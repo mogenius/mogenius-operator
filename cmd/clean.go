@@ -22,7 +22,7 @@ var cleanCmd = &cobra.Command{
 	This can be used if something went wrong during automatic cleanup.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		yellow := color.New(color.FgYellow).SprintFunc()
-		if !utils.ConfirmTask(fmt.Sprintf("Do you realy want to remove podlox from '%s' context?", yellow(kubernetes.CurrentContextName())), 1) {
+		if !utils.ConfirmTask(fmt.Sprintf("Do you realy want to remove mogenius-k8s-manager from '%s' context?", yellow(kubernetes.CurrentContextName())), 1) {
 			os.Exit(0)
 		}
 
