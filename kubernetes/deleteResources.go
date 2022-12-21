@@ -1,0 +1,50 @@
+package kubernetes
+
+import (
+	"context"
+
+	"mogenius-k8s-manager/logger"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+func Remove() {
+	provider, err := NewKubeProviderLocal()
+	if err != nil {
+		panic(err)
+	}
+
+	removeRbac(provider)
+	removeDeployment(provider)
+}
+
+func removeDeployment(kubeProvider *KubeProvider) {
+	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
+
+	// DELETE Deployment
+	logger.Log.Info("Deleting mogenius-k8s-manager deployment ...")
+	deletePolicy := metav1.DeletePropagationForeground
+	err := deploymentClient.Delete(context.TODO(), DEPLOYMENTNAME, metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
+	if err != nil {
+		logger.Log.Error(err)
+	}
+	logger.Log.Info("Deleted mogenius-k8s-manager deployment.")
+}
+
+func removeRbac(kubeProvider *KubeProvider) {
+	// CREATE RBAC
+	logger.Log.Info("Deleting mogenius-k8s-manager RBAC ...")
+	err := kubeProvider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Delete(context.TODO(), SERVICEACCOUNTNAME, metav1.DeleteOptions{})
+	if err != nil {
+		logger.Log.Error(err)
+	}
+	err = kubeProvider.ClientSet.RbacV1().ClusterRoles().Delete(context.TODO(), CLUSTERROLENAME, metav1.DeleteOptions{})
+	if err != nil {
+		logger.Log.Error(err)
+	}
+	err = kubeProvider.ClientSet.RbacV1().ClusterRoleBindings().Delete(context.TODO(), CLUSTERROLEBINDINGNAME, metav1.DeleteOptions{})
+	if err != nil {
+		logger.Log.Error(err)
+	}
+	logger.Log.Info("Deleted mogenius-k8s-manager RBAC.")
+}
