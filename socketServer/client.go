@@ -89,21 +89,17 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				return
 			} else {
 				rowJson := string(message)
-				request := structs.Datagram{}
+				datagram := structs.Datagram{}
 
-				_ = json.Unmarshal([]byte(rowJson), &request)
+				_ = json.Unmarshal([]byte(rowJson), &datagram)
 
-				switch request.Pattern {
-				case "namespace-service-pod-traffic-time-series":
-					//TCPTrafficNamespaceServicePod(rowJson, &responseMessage)
-					break
+				switch datagram.Pattern {
 				case structs.ClusterStatusPattern:
 					status := mokubernetes.ClusterStatus()
 					c.WriteJSON(structs.CreateDatagramFrom(structs.ClusterStatusPattern, status))
 				default:
-					logger.Log.Errorf("Pattern not found: '%s'.", request.Pattern)
+					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 				}
-				//c.WriteJSON(responseMessage)
 			}
 			log.Printf("recv: %s", message)
 		}

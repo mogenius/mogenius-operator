@@ -65,6 +65,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 
 		switch datagram.Pattern {
 		case "HeartBeat":
+			// NOTHING TO DO HERE
 			// sendConnect(connection.RemoteAddr().String(), request.ClusterName)
 			// logger.Log.Infof("HeartBeat '%s' ...", clusterName)
 		case structs.ClusterStatusPattern:
@@ -114,7 +115,7 @@ func printShortcuts() {
 	logger.Log.Notice("h:     help")
 	logger.Log.Notice("l:     list clusters")
 	logger.Log.Notice("q:     quit application")
-	logger.Log.Notice("1-9:   send status request to cluster")
+	logger.Log.Notice("1-9:   request status from cluster")
 }
 
 func ReadInput() {
@@ -133,7 +134,7 @@ func ReadInput() {
 		}
 		switch string(r) {
 		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
-			sendStatusRequestToCluster(string(r))
+			requestStatusFromCluster(string(r))
 		case "h":
 			printShortcuts()
 		case "l":
@@ -155,13 +156,13 @@ func listClusters() {
 	}
 }
 
-func sendStatusRequestToCluster(no string) {
+func requestStatusFromCluster(no string) {
 	count := 0
 	for _, value := range connections {
 		count++
 		if no == strconv.Itoa(count) {
-			conResponse := structs.CreateDatagramFrom(structs.ClusterStatusPattern, nil)
-			value.Connection.WriteJSON(conResponse)
+			datagram := structs.CreateDatagramFrom(structs.ClusterStatusPattern, nil)
+			value.Connection.WriteJSON(datagram)
 			logger.Log.Infof("Requesting status for cluster '%s'.", value.ClusterName)
 			return
 		}
