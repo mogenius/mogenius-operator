@@ -1,14 +1,23 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
+	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
+	"os"
 	"path/filepath"
+	"time"
 
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 var (
@@ -21,6 +30,11 @@ var (
 	CLUSTERROLEBINDINGNAME = "mogenius-k8s-manager-cluster-role-binding-app"
 	RBACRESOURCES          = []string{"pods", "services", "endpoints"}
 )
+
+type KubeProviderMetrics struct {
+	ClientSet    *metricsv.Clientset
+	ClientConfig rest.Config
+}
 
 type KubeProvider struct {
 	ClientSet    *kubernetes.Clientset
@@ -66,6 +80,46 @@ func NewKubeProviderInCluster() (*KubeProvider, error) {
 	}, nil
 }
 
+func NewKubeProviderMetricsLocal() (*KubeProviderMetrics, error) {
+	kubeconfig := getKubeConfig()
+
+	restConfig, errConfig := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if errConfig != nil {
+		panic(errConfig.Error())
+	}
+
+	clientSet, errClientSet := metricsv.NewForConfig(restConfig)
+	if errClientSet != nil {
+		panic(errClientSet.Error())
+	}
+
+	logger.Log.Debugf("K8s client config (init with .kube/config), host: %s", restConfig.Host)
+
+	return &KubeProviderMetrics{
+		ClientSet:    clientSet,
+		ClientConfig: *restConfig,
+	}, nil
+}
+
+func NewKubeProviderMetricsInCluster() (*KubeProviderMetrics, error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	clientset, err := metricsv.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	logger.Log.Debugf("K8s client config (init InCluster), host: %s", config.Host)
+
+	return &KubeProviderMetrics{
+		ClientSet:    clientset,
+		ClientConfig: *config,
+	}, nil
+}
+
 func CurrentContextName() string {
 	var kubeconfig string = ""
 	if home := homedir.HomeDir(); home != "" {
@@ -92,4 +146,164 @@ func Hostname() string {
 	}
 
 	return provider.ClientConfig.Host
+}
+
+func ClusterStatus(useLocalKubeConfig bool) structs.ClusterStatusResponse {
+	var currentPods = make(map[string]v1.Pod)
+	pods := listAllPods(useLocalKubeConfig)
+	for _, pod := range pods {
+		currentPods[pod.Name] = pod
+	}
+
+	result, err := podStats(useLocalKubeConfig, currentPods)
+	if err != nil {
+		logger.Log.Error("podStats:", err)
+	}
+
+	var cpu int64 = 0
+	var cpuLimit int64 = 0
+	var memory int64 = 0
+	var memoryLimit int64 = 0
+	var ephemeralStorageLimit int64 = 0
+	for _, pod := range result {
+		cpu += pod.Cpu
+		cpuLimit += pod.CpuLimit
+		memory += pod.Memory
+		memoryLimit += pod.MemoryLimit
+		ephemeralStorageLimit += pod.EphemeralStorageLimit
+	}
+
+	return structs.ClusterStatusResponse{
+		ClusterName:           os.Getenv("CLUSTERNAME"),
+		Pods:                  len(result),
+		CpuInMilliCores:       int(cpu),
+		CpuLimitInMilliCores:  int(cpuLimit),
+		Memory:                utils.BytesToHumanReadable(uint64(memory)),
+		MemoryLimit:           utils.BytesToHumanReadable(uint64(memoryLimit)),
+		EphemeralStorageLimit: utils.BytesToHumanReadable(uint64(ephemeralStorageLimit)),
+	}
+}
+
+func listAllPods(useLocalKubeConfig bool) []v1.Pod {
+	var result []v1.Pod
+	var kubeProvider *KubeProvider
+	var err error
+	if useLocalKubeConfig {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	pods, err := kubeProvider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
+
+	if err != nil {
+		logger.Log.Error("Error listAllPods:", err)
+		return result
+	}
+	return pods.Items
+}
+
+func podStats(useLocalKubeConfig bool, pods map[string]v1.Pod) ([]structs.Stats, error) {
+	var provider *KubeProviderMetrics
+	var err error
+	if useLocalKubeConfig {
+		provider, err = NewKubeProviderMetricsLocal()
+	} else {
+		provider, err = NewKubeProviderMetricsInCluster()
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
+	if err != nil {
+		return nil, err
+	}
+
+	var result []structs.Stats
+	// I HATE THIS BUT I DONT SEE ANY OTHER SOLUTION! SPEND HOURS (to find something better) ON THIS UGGLY SHIT!!!!
+
+	for _, podMetrics := range podMetricsList.Items {
+		var pod = pods[podMetrics.Name]
+
+		var entry = structs.Stats{}
+		entry.Cluster = os.Getenv("CLUSTERNAME")
+		entry.Namespace = podMetrics.Namespace
+		entry.PodName = podMetrics.Name
+		entry.StartTime = pod.Status.StartTime.Format(time.RFC3339)
+		for _, container := range pod.Spec.Containers {
+			entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()
+			entry.MemoryLimit += container.Resources.Limits.Memory().Value()
+			entry.EphemeralStorageLimit += container.Resources.Limits.StorageEphemeral().Value()
+		}
+		for _, containerMetric := range podMetrics.Containers {
+			entry.Cpu += containerMetric.Usage.Cpu().MilliValue()
+			entry.Memory += containerMetric.Usage.Memory().Value()
+		}
+
+		result = append(result, entry)
+	}
+
+	return result, nil
+}
+
+func getKubeConfig() string {
+	var kubeconfig string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = filepath.Join(home, ".kube", "config")
+	} else {
+		kubeconfig = ""
+	}
+	return kubeconfig
+}
+
+// TAKEN FROM Kubernetes apimachineryv0.25.1
+func HumanDuration(d time.Duration) string {
+	// Allow deviation no more than 2 seconds(excluded) to tolerate machine time
+	// inconsistence, it can be considered as almost now.
+	if seconds := int(d.Seconds()); seconds < -1 {
+		return "<invalid>"
+	} else if seconds < 0 {
+		return "0s"
+	} else if seconds < 60*2 {
+		return fmt.Sprintf("%ds", seconds)
+	}
+	minutes := int(d / time.Minute)
+	if minutes < 10 {
+		s := int(d/time.Second) % 60
+		if s == 0 {
+			return fmt.Sprintf("%dm", minutes)
+		}
+		return fmt.Sprintf("%dm%ds", minutes, s)
+	} else if minutes < 60*3 {
+		return fmt.Sprintf("%dm", minutes)
+	}
+	hours := int(d / time.Hour)
+	if hours < 8 {
+		m := int(d/time.Minute) % 60
+		if m == 0 {
+			return fmt.Sprintf("%dh", hours)
+		}
+		return fmt.Sprintf("%dh%dm", hours, m)
+	} else if hours < 48 {
+		return fmt.Sprintf("%dh", hours)
+	} else if hours < 24*8 {
+		h := hours % 24
+		if h == 0 {
+			return fmt.Sprintf("%dd", hours/24)
+		}
+		return fmt.Sprintf("%dd%dh", hours/24, h)
+	} else if hours < 24*365*2 {
+		return fmt.Sprintf("%dd", hours/24)
+	} else if hours < 24*365*8 {
+		dy := int(hours/24) % 365
+		if dy == 0 {
+			return fmt.Sprintf("%dy", hours/24/365)
+		}
+		return fmt.Sprintf("%dy%dd", hours/24/365, dy)
+	}
+	return fmt.Sprintf("%dy", int(hours/24/365))
 }

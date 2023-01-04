@@ -6,21 +6,14 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/mattn/go-tty"
-)
-
-const (
-	redisInstanceName string = "WEBSOCKET"
-	redisInstanceDB   int    = 1
-	ChannelName       string = "WS_CHANNEL"
-	APIKEY            string = "94E23575-A689-4F88-8D67-215A274F4E6E"
 )
 
 var upgrader = websocket.Upgrader{
@@ -52,6 +45,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 
 	defer removeConnection(connection)
 
+	addConnection(connection, clusterName)
+
 	for {
 		_, msg, err := connection.ReadMessage()
 		if err != nil {
@@ -59,24 +54,23 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 			break
 		}
 
-		request := structs.TCPRequest{}
+		datagram := structs.Datagram{}
+		_ = json.Unmarshal(msg, &datagram)
+		datagramValidationError := validate.Struct(datagram)
 
-		_ = json.Unmarshal(msg, &request)
-
-		validationError := validate.Struct(request)
-		if validationError != nil {
-			logger.Log.Errorf("JSON Validation Error:\n%s", validationError.Error())
+		if datagramValidationError != nil {
+			logger.Log.Errorf("Invalid datagram: %s", datagramValidationError.Error())
 			return
 		}
 
-		addConnection(connection, clusterName)
-
-		switch request.Pattern {
+		switch datagram.Pattern {
 		case "HeartBeat":
 			// sendConnect(connection.RemoteAddr().String(), request.ClusterName)
 			// logger.Log.Infof("HeartBeat '%s' ...", clusterName)
+		case "ClusterStatus":
+			structs.PrettyPrint(datagram.Payload)
 		default:
-			logger.Log.Errorf("Unknown pattern '%s'.", request.Pattern)
+			logger.Log.Errorf("Unknown pattern '%s'.", datagram.Pattern)
 			logger.Log.Error(string(msg))
 		}
 	}
@@ -89,7 +83,7 @@ func validateHeader(c *gin.Context) string {
 	}
 
 	apiKey := c.Request.Header.Get("x-authorization")
-	if apiKey != APIKEY {
+	if apiKey != os.Getenv("API_KEY") {
 		logger.Log.Errorf("Invalid x-authorization: '%s'", apiKey)
 		return ""
 	}
@@ -115,9 +109,16 @@ func removeConnection(connection *websocket.Conn) {
 	delete(connections, remoteAddr)
 }
 
+func printShortcuts() {
+	logger.Log.Notice("Keyboard shortcusts: ")
+	logger.Log.Notice("h:     help")
+	logger.Log.Notice("l:     list clusters")
+	logger.Log.Notice("q:     quit application")
+	logger.Log.Notice("1-9:   send status request to cluster")
+}
+
 func ReadInput() {
-	logger.Log.Info("Keyboard shortcusts: ")
-	logger.Log.Info("l: list clusters")
+	printShortcuts()
 
 	tty, err := tty.Open()
 	if err != nil {
@@ -133,8 +134,12 @@ func ReadInput() {
 		switch string(r) {
 		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
 			sendStatusRequestToCluster(string(r))
+		case "h":
+			printShortcuts()
 		case "l":
 			listClusters()
+		case "q":
+			os.Exit(0)
 		default:
 			logger.Log.Errorf("Unrecognized character '%s'.", r)
 		}
@@ -142,11 +147,11 @@ func ReadInput() {
 }
 
 func listClusters() {
-	logger.Log.Infof("Listing %d connected clusters:", len(connections))
+	logger.Log.Noticef("Listing %d connected clusters:", len(connections))
 	count := 0
 	for _, value := range connections {
 		count++
-		logger.Log.Infof("%d: %s/%s", count, value.ClusterName, value.Connection.RemoteAddr().String())
+		logger.Log.Noticef("%d: %s/%s", count, value.ClusterName, value.Connection.RemoteAddr().String())
 	}
 }
 
@@ -155,7 +160,7 @@ func sendStatusRequestToCluster(no string) {
 	for _, value := range connections {
 		count++
 		if no == strconv.Itoa(count) {
-			conResponse := structs.TCPRequest{Pattern: "ClusterStatus", Id: uuid.New().String()}
+			conResponse := structs.CreateDatagramFrom("ClusterStatus", nil)
 			value.Connection.WriteJSON(conResponse)
 			logger.Log.Infof("Requesting status for cluster '%s'.", value.ClusterName)
 			return

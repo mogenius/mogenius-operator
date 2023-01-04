@@ -48,8 +48,8 @@ func LoadDotEnv() {
 		// write it to default location
 		folderErr := os.Mkdir(homeDirName+"/.mogenius-k8s-manager/", 0755)
 		if folderErr != nil {
-			logger.Log.Fatal("Error creating folder " + homeDirName + "/.mogenius-k8s-manager/")
-			logger.Log.Fatal(folderErr)
+			logger.Log.Warning("Error creating folder " + homeDirName + "/.mogenius-k8s-manager/")
+			logger.Log.Warning(folderErr)
 		}
 
 		err := godotenv.Write(tes, homeDirName+"/.mogenius-k8s-manager/mogenius-k8s-manager.env")

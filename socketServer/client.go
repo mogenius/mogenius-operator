@@ -3,6 +3,7 @@ package socketServer
 import (
 	"encoding/json"
 	"log"
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"net/http"
@@ -11,23 +12,18 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/gorilla/websocket"
 )
 
-const apiKey = "94E23575-A689-4F88-8D67-215A274F4E6E"
-const serverAddress = "127.0.0.1:8080"
 const heartBeatSeconds = 3
-const clusterName = "BenesTestCluster"
 
 func StartClient() {
-	u := url.URL{Scheme: "ws", Host: serverAddress, Path: "/ws"}
+	u := url.URL{Scheme: "ws", Host: os.Getenv("MO_WS_SERVER_ADDRESS"), Path: "/ws"}
 	log.Printf("connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), http.Header{
-		"x-authorization": []string{apiKey},
-		"x-clustername":   []string{clusterName}})
+		"x-authorization": []string{os.Getenv("API_KEY")},
+		"x-clustername":   []string{os.Getenv("CLUSTERNAME")}})
 	if err != nil {
 		logger.Log.Error("dial:", err)
 		return
@@ -57,7 +53,7 @@ func heartbeat(done chan struct{}, c *websocket.Conn) {
 			return
 		case <-heartBeatTicker.C:
 			logger.Log.Info("HeartBeat ...")
-			heartBeat := structs.TCPRequest{Pattern: "HeartBeat", Id: uuid.New().String()}
+			heartBeat := structs.CreateDatagram("HeartBeat")
 			err := c.WriteJSON(heartBeat)
 			if err != nil {
 				log.Println("HEARTBEAT ERROR:", err)
@@ -93,31 +89,19 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				return
 			} else {
 				rowJson := string(message)
-				request := structs.TCPRequest{}
+				request := structs.Datagram{}
 
 				_ = json.Unmarshal([]byte(rowJson), &request)
-
-				responseMessage := structs.TCPResponse{
-					Id: request.Id,
-				}
 
 				switch request.Pattern {
 				case "namespace-service-pod-traffic-time-series":
 					//TCPTrafficNamespaceServicePod(rowJson, &responseMessage)
 					break
-				case "namespace-service-compute-time-series":
-					//TCPComputeNamespaceService(rowJson, &responseMessage)
-					break
-				case "tcp-test":
-					jsonStr, err := json.Marshal(map[string]interface{}{
-						"message": "tcp-test",
-					})
-					if err == nil {
-						responseMessage.Response = string(jsonStr)
-					}
-					responseMessage.Response = string(jsonStr)
+				case "ClusterStatus":
+					status := mokubernetes.ClusterStatus(true)
+					c.WriteJSON(structs.CreateDatagramFrom("ClusterStatus", status))
 				default:
-					responseMessage.Err = "Pattern not found"
+					logger.Log.Errorf("Pattern not found: '%s'.", request.Pattern)
 				}
 				//c.WriteJSON(responseMessage)
 			}

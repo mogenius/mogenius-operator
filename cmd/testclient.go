@@ -4,8 +4,11 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/socketServer"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -17,10 +20,18 @@ var testClientCmd = &cobra.Command{
 	Short: "Print testServerCmd information and exit.",
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		interrupt := make(chan os.Signal, 1)
+		signal.Notify(interrupt, os.Interrupt)
 		for {
+			select {
+			case <-interrupt:
+				log.Fatal("CTRL + C pressed. Terminating.")
+			case <-time.After(time.Second):
+			}
 			socketServer.StartClient()
 			logger.Log.Error("Connection closed. Reconnecting after waiting 1 second ...")
 			time.Sleep(1 * time.Second)
+
 		}
 	},
 }
