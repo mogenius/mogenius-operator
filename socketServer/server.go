@@ -67,7 +67,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 		case "HeartBeat":
 			// sendConnect(connection.RemoteAddr().String(), request.ClusterName)
 			// logger.Log.Infof("HeartBeat '%s' ...", clusterName)
-		case "ClusterStatus":
+		case structs.ClusterStatusPattern:
 			structs.PrettyPrint(datagram.Payload)
 		default:
 			logger.Log.Errorf("Unknown pattern '%s'.", datagram.Pattern)
@@ -160,7 +160,7 @@ func sendStatusRequestToCluster(no string) {
 	for _, value := range connections {
 		count++
 		if no == strconv.Itoa(count) {
-			conResponse := structs.CreateDatagramFrom("ClusterStatus", nil)
+			conResponse := structs.CreateDatagramFrom(structs.ClusterStatusPattern, nil)
 			value.Connection.WriteJSON(conResponse)
 			logger.Log.Infof("Requesting status for cluster '%s'.", value.ClusterName)
 			return

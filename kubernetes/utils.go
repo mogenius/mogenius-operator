@@ -148,14 +148,14 @@ func Hostname() string {
 	return provider.ClientConfig.Host
 }
 
-func ClusterStatus(useLocalKubeConfig bool) structs.ClusterStatusResponse {
+func ClusterStatus() structs.ClusterStatus {
 	var currentPods = make(map[string]v1.Pod)
-	pods := listAllPods(useLocalKubeConfig)
+	pods := listAllPods()
 	for _, pod := range pods {
 		currentPods[pod.Name] = pod
 	}
 
-	result, err := podStats(useLocalKubeConfig, currentPods)
+	result, err := podStats(currentPods)
 	if err != nil {
 		logger.Log.Error("podStats:", err)
 	}
@@ -173,7 +173,7 @@ func ClusterStatus(useLocalKubeConfig bool) structs.ClusterStatusResponse {
 		ephemeralStorageLimit += pod.EphemeralStorageLimit
 	}
 
-	return structs.ClusterStatusResponse{
+	return structs.ClusterStatus{
 		ClusterName:           os.Getenv("CLUSTERNAME"),
 		Pods:                  len(result),
 		CpuInMilliCores:       int(cpu),
@@ -184,11 +184,11 @@ func ClusterStatus(useLocalKubeConfig bool) structs.ClusterStatusResponse {
 	}
 }
 
-func listAllPods(useLocalKubeConfig bool) []v1.Pod {
+func listAllPods() []v1.Pod {
 	var result []v1.Pod
 	var kubeProvider *KubeProvider
 	var err error
-	if useLocalKubeConfig {
+	if os.Getenv("USE_LOCAL_KUBECONFIG") == "true" {
 		kubeProvider, err = NewKubeProviderLocal()
 	} else {
 		kubeProvider, err = NewKubeProviderInCluster()
@@ -206,10 +206,10 @@ func listAllPods(useLocalKubeConfig bool) []v1.Pod {
 	return pods.Items
 }
 
-func podStats(useLocalKubeConfig bool, pods map[string]v1.Pod) ([]structs.Stats, error) {
+func podStats(pods map[string]v1.Pod) ([]structs.Stats, error) {
 	var provider *KubeProviderMetrics
 	var err error
-	if useLocalKubeConfig {
+	if os.Getenv("USE_LOCAL_KUBECONFIG") == "true" {
 		provider, err = NewKubeProviderMetricsLocal()
 	} else {
 		provider, err = NewKubeProviderMetricsInCluster()

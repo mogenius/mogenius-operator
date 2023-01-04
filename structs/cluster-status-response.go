@@ -1,6 +1,10 @@
 package structs
 
-type ClusterStatusResponse struct {
+const (
+	ClusterStatusPattern = "ClusterStatus"
+)
+
+type ClusterStatus struct {
 	ClusterName           string `json:"clusterName"`
 	Pods                  int    `json:"pods"`
 	CpuInMilliCores       int    `json:"cpu"`

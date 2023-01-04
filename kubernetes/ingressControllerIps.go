@@ -9,15 +9,16 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetIngressControllerIps(useLocalKubeConfig bool) []net.IP {
+func GetIngressControllerIps() []net.IP {
 	var result []net.IP
 	var kubeProvider *KubeProvider
 	var err error
-	if useLocalKubeConfig {
+	if os.Getenv("USE_LOCAL_KUBECONFIG") == "true" {
 		kubeProvider, err = NewKubeProviderLocal()
 	} else {
 		kubeProvider, err = NewKubeProviderInCluster()

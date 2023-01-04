@@ -97,9 +97,9 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				case "namespace-service-pod-traffic-time-series":
 					//TCPTrafficNamespaceServicePod(rowJson, &responseMessage)
 					break
-				case "ClusterStatus":
-					status := mokubernetes.ClusterStatus(true)
-					c.WriteJSON(structs.CreateDatagramFrom("ClusterStatus", status))
+				case structs.ClusterStatusPattern:
+					status := mokubernetes.ClusterStatus()
+					c.WriteJSON(structs.CreateDatagramFrom(structs.ClusterStatusPattern, status))
 				default:
 					logger.Log.Errorf("Pattern not found: '%s'.", request.Pattern)
 				}
