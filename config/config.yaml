@@ -1,0 +1,7 @@
+kubernetes:
+  cluster_name: BenesTestCluster
+  run_in_cluster: false
+api_server:
+  websocket_server: 127.0.0.1
+  websocket_port: 8080
+  api_key: 94E23575-A689-4F88-8D67-215A274F4E6E

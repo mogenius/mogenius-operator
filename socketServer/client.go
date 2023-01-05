@@ -2,10 +2,12 @@ package socketServer
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,12 +20,13 @@ import (
 const heartBeatSeconds = 3
 
 func StartClient() {
-	u := url.URL{Scheme: "ws", Host: os.Getenv("MO_WS_SERVER_ADDRESS"), Path: "/ws"}
+	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.WebsocketServer, utils.CONFIG.ApiServer.WebsocketPort)
+	u := url.URL{Scheme: "ws", Host: host, Path: "/ws"}
 	log.Printf("connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), http.Header{
-		"x-authorization": []string{os.Getenv("API_KEY")},
-		"x-clustername":   []string{os.Getenv("CLUSTERNAME")}})
+		"x-authorization": []string{utils.CONFIG.ApiServer.ApiKey},
+		"x-clustername":   []string{utils.CONFIG.Kubernetes.ClusterName}})
 	if err != nil {
 		logger.Log.Error("dial:", err)
 		return

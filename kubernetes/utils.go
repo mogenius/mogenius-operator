@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -175,7 +174,7 @@ func ClusterStatus() dtos.ClusterStatusDto {
 	}
 
 	return dtos.ClusterStatusDto{
-		ClusterName:           os.Getenv("CLUSTERNAME"),
+		ClusterName:           utils.CONFIG.Kubernetes.ClusterName,
 		Pods:                  len(result),
 		CpuInMilliCores:       int(cpu),
 		CpuLimitInMilliCores:  int(cpuLimit),
@@ -189,7 +188,7 @@ func listAllPods() []v1.Pod {
 	var result []v1.Pod
 	var kubeProvider *KubeProvider
 	var err error
-	if os.Getenv("KUBERNETES_LOCAL_CONFIG") == "true" {
+	if !utils.CONFIG.Kubernetes.RunInCluster {
 		kubeProvider, err = NewKubeProviderLocal()
 	} else {
 		kubeProvider, err = NewKubeProviderInCluster()
@@ -210,7 +209,7 @@ func listAllPods() []v1.Pod {
 func podStats(pods map[string]v1.Pod) ([]structs.Stats, error) {
 	var provider *KubeProviderMetrics
 	var err error
-	if os.Getenv("KUBERNETES_LOCAL_CONFIG") == "true" {
+	if !utils.CONFIG.Kubernetes.RunInCluster {
 		provider, err = NewKubeProviderMetricsLocal()
 	} else {
 		provider, err = NewKubeProviderMetricsInCluster()
@@ -231,7 +230,7 @@ func podStats(pods map[string]v1.Pod) ([]structs.Stats, error) {
 		var pod = pods[podMetrics.Name]
 
 		var entry = structs.Stats{}
-		entry.Cluster = os.Getenv("CLUSTERNAME")
+		entry.Cluster = utils.CONFIG.Kubernetes.ClusterName
 		entry.Namespace = podMetrics.Namespace
 		entry.PodName = podMetrics.Name
 		entry.StartTime = pod.Status.StartTime.Format(time.RFC3339)

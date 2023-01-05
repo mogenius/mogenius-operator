@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"net/http"
 	"os"
 	"strconv"
@@ -99,7 +100,7 @@ func validateHeader(c *gin.Context) string {
 	}
 
 	apiKey := c.Request.Header.Get("x-authorization")
-	if apiKey != os.Getenv("API_KEY") {
+	if apiKey != utils.CONFIG.ApiServer.ApiKey {
 		logger.Log.Errorf("Invalid x-authorization: '%s'", apiKey)
 		return ""
 	}

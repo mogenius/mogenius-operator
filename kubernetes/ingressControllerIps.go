@@ -8,8 +8,8 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/utils"
 	"net"
-	"os"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -18,7 +18,7 @@ func GetIngressControllerIps() []net.IP {
 	var result []net.IP
 	var kubeProvider *KubeProvider
 	var err error
-	if os.Getenv("KUBERNETES_LOCAL_CONFIG") == "true" {
+	if !utils.CONFIG.Kubernetes.RunInCluster {
 		kubeProvider, err = NewKubeProviderLocal()
 	} else {
 		kubeProvider, err = NewKubeProviderInCluster()

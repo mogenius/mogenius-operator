@@ -4,7 +4,9 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/socketServer"
+	"mogenius-k8s-manager/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
@@ -16,8 +18,10 @@ var testServerCmd = &cobra.Command{
 	Short: "Print testServerCmd information and exit.",
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		gin.SetMode(gin.ReleaseMode)
 		router := gin.Default()
 		socketServer.Init(router)
+		logger.Log.Noticef("Started WS server %s:%d 🚀", utils.CONFIG.ApiServer.WebsocketServer, utils.CONFIG.ApiServer.WebsocketPort)
 
 		go socketServer.ReadInput()
 		router.Run()

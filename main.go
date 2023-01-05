@@ -7,12 +7,12 @@ import (
 	"mogenius-k8s-manager/utils"
 )
 
-//go:embed .env/production.env
-var defaultEnvFile string
+//go:embed config/config.yaml
+var DefaultConfigFile string
 
 func main() {
-	utils.DefaultEnvFile = defaultEnvFile
+	utils.DefaultConfigFile = DefaultConfigFile
 	logger.Init()
-	utils.LoadDotEnv()
+	utils.InitConfigYaml()
 	cmd.Execute()
 }

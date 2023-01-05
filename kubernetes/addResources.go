@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"os"
 
 	"mogenius-k8s-manager/logger"
 
@@ -106,9 +105,6 @@ func addDeployment(kubeProvider *KubeProvider) {
 	deploymentContainer.WithImagePullPolicy(core.PullAlways)
 	deploymentContainer.WithName(DEPLOYMENTNAME)
 	deploymentContainer.WithImage(DEPLOYMENTIMAGE)
-	deploymentContainer.WithEnv(
-		applyconfcore.EnvVar().WithName("STAGE").WithValue(os.Getenv("STAGE")),
-	)
 	agentResourceLimits := core.ResourceList{
 		"cpu":               resource.MustParse("300m"),
 		"memory":            resource.MustParse("256Mi"),
