@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -148,7 +149,7 @@ func Hostname() string {
 	return provider.ClientConfig.Host
 }
 
-func ClusterStatus() structs.ClusterStatus {
+func ClusterStatus() dtos.ClusterStatusDto {
 	var currentPods = make(map[string]v1.Pod)
 	pods := listAllPods()
 	for _, pod := range pods {
@@ -173,7 +174,7 @@ func ClusterStatus() structs.ClusterStatus {
 		ephemeralStorageLimit += pod.EphemeralStorageLimit
 	}
 
-	return structs.ClusterStatus{
+	return dtos.ClusterStatusDto{
 		ClusterName:           os.Getenv("CLUSTERNAME"),
 		Pods:                  len(result),
 		CpuInMilliCores:       int(cpu),
@@ -188,7 +189,7 @@ func listAllPods() []v1.Pod {
 	var result []v1.Pod
 	var kubeProvider *KubeProvider
 	var err error
-	if os.Getenv("USE_LOCAL_KUBECONFIG") == "true" {
+	if os.Getenv("KUBERNETES_LOCAL_CONFIG") == "true" {
 		kubeProvider, err = NewKubeProviderLocal()
 	} else {
 		kubeProvider, err = NewKubeProviderInCluster()
@@ -209,7 +210,7 @@ func listAllPods() []v1.Pod {
 func podStats(pods map[string]v1.Pod) ([]structs.Stats, error) {
 	var provider *KubeProviderMetrics
 	var err error
-	if os.Getenv("USE_LOCAL_KUBECONFIG") == "true" {
+	if os.Getenv("KUBERNETES_LOCAL_CONFIG") == "true" {
 		provider, err = NewKubeProviderMetricsLocal()
 	} else {
 		provider, err = NewKubeProviderMetricsInCluster()

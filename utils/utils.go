@@ -92,6 +92,15 @@ func Contains(s []string, str string) bool {
 	return false
 }
 
+func ContainsInt(v int, a []int) bool {
+	for _, i := range a {
+		if i == v {
+			return true
+		}
+	}
+	return false
+}
+
 func OpenBrowser(url string) {
 	var err error
 

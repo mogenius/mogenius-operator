@@ -9,3 +9,15 @@ type K8sNamespaceDto struct {
 	GitConnectionType string `json:"gitConnectionType" validate:"required"` // "GIT_HUB", "GIT_LAB", "BITBUCKET"
 	ClusterName       string `json:"clusterName" validate:"required"`
 }
+
+func K8sNamespaceDtoExampleData() K8sNamespaceDto {
+	return K8sNamespaceDto{
+		Id:                "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		ShortId:           "shortId",
+		DisplayName:       "displayName",
+		GitAccessToken:    "gitAccessToken",
+		GitUserId:         "gitUserId",
+		GitConnectionType: "GIT_HUB",
+		ClusterName:       "clusterName",
+	}
+}

@@ -10,3 +10,16 @@ type K8sAppDto struct {
 	ContainerImageCommand     string `json:"containerImageCommand" validate:"required"`
 	ContainerImageCommandArgs string `json:"containerImageCommandArgs" validate:"required"`
 }
+
+func K8sAppDtoExampleData() K8sAppDto {
+	return K8sAppDto{
+		Id:                        "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Name:                      "name",
+		Type:                      "CONTAINER_IMAGE_TEMPLATE",
+		SetupCommands:             "",
+		RepositoryLink:            "",
+		ContainerImage:            "",
+		ContainerImageCommand:     "",
+		ContainerImageCommandArgs: "",
+	}
+}

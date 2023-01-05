@@ -18,7 +18,7 @@ func GetIngressControllerIps() []net.IP {
 	var result []net.IP
 	var kubeProvider *KubeProvider
 	var err error
-	if os.Getenv("USE_LOCAL_KUBECONFIG") == "true" {
+	if os.Getenv("KUBERNETES_LOCAL_CONFIG") == "true" {
 		kubeProvider, err = NewKubeProviderLocal()
 	} else {
 		kubeProvider, err = NewKubeProviderInCluster()

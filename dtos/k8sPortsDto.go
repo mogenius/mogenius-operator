@@ -7,3 +7,12 @@ type K8sPortsDto struct {
 	Expose       bool   `json:"expose" validate:"required"`
 	DeletedAt    string `json:"deletedAt,omitempty"`
 }
+
+func K8sPortsDtoExampleData() K8sPortsDto {
+	return K8sPortsDto{
+		PortType:     "HTTPS",
+		InternalPort: 1,
+		ExternalPort: 1,
+		Expose:       true,
+	}
+}

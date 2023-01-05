@@ -22,3 +22,28 @@ type K8sServiceDto struct {
 	Ports                                []K8sPortsDto              `json:"ports" validate:"required"`
 	SwitchedOn                           bool                       `json:"switchedOn" validate:"required"`
 }
+
+func K8sServiceDtoExampleData() K8sServiceDto {
+	return K8sServiceDto{
+		Id:                                   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		DisplayName:                          "displayName",
+		ShortId:                              "shortId",
+		FullHostname:                         "fullHostname",
+		K8sName:                              "k8sName",
+		CNames:                               []NamespaceServiceCnameDto{NamespaceServiceCnameDtoExampleData()},
+		GitRepository:                        "gitRepository",
+		GitBranch:                            "gitBranch",
+		ContainerImage:                       "containerImage",
+		ContainerImageRepoSecretDecryptValue: "containerImageRepoSecretDecryptValue",
+		ContainerImageCommand:                "containerImageCommand",
+		ContainerImageCommandArgs:            "containerImageCommandArgs",
+		DockerfileName:                       "dockerfileName",
+		DockerContext:                        "dockerContext",
+		App:                                  K8sAppDtoExampleData(),
+		Name:                                 "name",
+		K8sSettings:                          K8sServiceSettingsDtoExampleData(),
+		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData()},
+		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData()},
+		SwitchedOn:                           true,
+	}
+}

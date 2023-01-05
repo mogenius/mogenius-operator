@@ -3,7 +3,7 @@ package socketServer
 import (
 	"encoding/json"
 	"log"
-	mokubernetes "mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"net/http"
@@ -93,11 +93,16 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				_ = json.Unmarshal([]byte(rowJson), &datagram)
 
-				switch datagram.Pattern {
-				case structs.ClusterStatusPattern:
-					status := mokubernetes.ClusterStatus()
-					c.WriteJSON(structs.CreateDatagramFrom(structs.ClusterStatusPattern, status))
-				default:
+				matchedEntry := dtos.DtoListEntryForPattern(datagram.Pattern)
+				if matchedEntry != nil {
+					if matchedEntry.Pattern == "HeartBeat" {
+						logger.Log.Info("HeartBeat received.")
+					} else {
+						logger.Log.Infof("Pattern found: '%s'.", matchedEntry.Pattern)
+						// status := mokubernetes.ClusterStatus()
+						// c.WriteJSON(structs.CreateDatagramFrom(matchedEntry.Pattern, status))
+					}
+				} else {
 					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 				}
 			}

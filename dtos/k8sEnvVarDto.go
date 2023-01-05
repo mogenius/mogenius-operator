@@ -5,3 +5,11 @@ type K8sEnvVarDto struct {
 	Value string `json:"value" validate:"required"`
 	Type  string `json:"type" validate:"required"` // "PLAINTEXT", "KEY_VAULT", "VOLUME_MOUNT", "VOLUME_MOUNT_SEED", "CHANGE_OWNER", "HOSTNAME"
 }
+
+func K8sEnvVarDtoExampleData() K8sEnvVarDto {
+	return K8sEnvVarDto{
+		Name:  "name",
+		Value: "value",
+		Type:  "PLAINTEXT",
+	}
+}

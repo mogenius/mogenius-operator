@@ -2,7 +2,9 @@ package socketServer
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"net/http"
@@ -63,17 +65,30 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 			return
 		}
 
-		switch datagram.Pattern {
-		case "HeartBeat":
-			// NOTHING TO DO HERE
-			// sendConnect(connection.RemoteAddr().String(), request.ClusterName)
-			// logger.Log.Infof("HeartBeat '%s' ...", clusterName)
-		case structs.ClusterStatusPattern:
-			structs.PrettyPrint(datagram.Payload)
-		default:
-			logger.Log.Errorf("Unknown pattern '%s'.", datagram.Pattern)
-			logger.Log.Error(string(msg))
+		matchedEntry := dtos.DtoListEntryForPattern(datagram.Pattern)
+		if matchedEntry != nil {
+			if matchedEntry.Pattern == "HeartBeat" {
+				logger.Log.Info("HeartBeat received.")
+			} else {
+				logger.Log.Infof("Pattern found: '%s'.", matchedEntry.Pattern)
+				// status := mokubernetes.ClusterStatus()
+				// c.WriteJSON(structs.CreateDatagramFrom(matchedEntry.Pattern, status))
+			}
+		} else {
+			logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 		}
+
+		// switch datagram.Pattern {
+		// case "HeartBeat":
+		// 	// NOTHING TO DO HERE
+		// 	// sendConnect(connection.RemoteAddr().String(), request.ClusterName)
+		// 	// logger.Log.Infof("HeartBeat '%s' ...", clusterName)
+		// case structs.ClusterStatusPattern:
+		// 	structs.PrettyPrint(datagram.Payload)
+		// default:
+		// 	logger.Log.Errorf("Unknown pattern '%s'.", datagram.Pattern)
+		// 	logger.Log.Error(string(msg))
+		// }
 	}
 }
 
@@ -114,6 +129,7 @@ func printShortcuts() {
 	logger.Log.Notice("Keyboard shortcusts: ")
 	logger.Log.Notice("h:     help")
 	logger.Log.Notice("l:     list clusters")
+	logger.Log.Notice("s:     send command to cluster")
 	logger.Log.Notice("q:     quit application")
 	logger.Log.Notice("1-9:   request status from cluster")
 }
@@ -137,6 +153,15 @@ func ReadInput() {
 			requestStatusFromCluster(string(r))
 		case "h":
 			printShortcuts()
+		case "s":
+			cluster, selectErr := selectCluster(tty)
+			if selectErr == nil {
+				cmd := selectCommand(tty)
+				sendCmdToCluster(cluster, cmd)
+				logger.Log.Noticef("Selected cluster: %s", cluster.ClusterName)
+			} else {
+				logger.Log.Notice(err)
+			}
 		case "l":
 			listClusters()
 		case "q":
@@ -147,13 +172,77 @@ func ReadInput() {
 	}
 }
 
-func listClusters() {
+func selectCommand(tty *tty.TTY) string {
+	for innerLoop := true; innerLoop; {
+		r, err := tty.ReadRune()
+		if err != nil {
+			log.Fatal(err)
+		}
+		cmds := listCommands()
+		inputInt, _ := strconv.Atoi(string(r))
+		if len(cmds) >= inputInt {
+			innerLoop = false
+			return cmds[inputInt-1]
+		} else {
+			logger.Log.Errorf("Unrecognized character '%s'. Please select 1-%d.", string(r), len(cmds))
+			innerLoop = false
+		}
+	}
+	return ""
+}
+
+func listCommands() []string {
+	cmds := []string{"status", "version"}
+	logger.Log.Noticef("Select from (%d) Commands:", len(cmds))
+	for i, cmd := range cmds {
+		logger.Log.Noticef("%d: %s", i+1, cmd)
+	}
+	return cmds
+}
+
+func selectCluster(tty *tty.TTY) (structs.ClusterConnection, error) {
+	clusters := listClusters()
+	if len(clusters) > 0 {
+		for innerLoop := true; innerLoop; {
+			r, err := tty.ReadRune()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			inputInt, _ := strconv.Atoi(string(r))
+			if len(clusters) >= inputInt {
+				innerLoop = false
+				return connectionFromNo(string(r))
+			} else {
+				logger.Log.Errorf("Unrecognized character '%s'. Please select 1-%d.", string(r), len(clusters))
+				innerLoop = false
+			}
+		}
+	}
+	return structs.ClusterConnection{}, errors.New("No clusters available for selection.")
+}
+
+func connectionFromNo(no string) (structs.ClusterConnection, error) {
+	count := 0
+	for _, value := range connections {
+		count++
+		if no == strconv.Itoa(count) {
+			return value, nil
+		}
+	}
+	return structs.ClusterConnection{}, errors.New("No connection found")
+}
+
+func listClusters() []string {
+	var result []string = make([]string, 0)
 	logger.Log.Noticef("Listing %d connected clusters:", len(connections))
 	count := 0
 	for _, value := range connections {
 		count++
 		logger.Log.Noticef("%d: %s/%s", count, value.ClusterName, value.Connection.RemoteAddr().String())
+		result = append(result, value.ClusterName)
 	}
+	return result
 }
 
 func requestStatusFromCluster(no string) {
@@ -161,11 +250,20 @@ func requestStatusFromCluster(no string) {
 	for _, value := range connections {
 		count++
 		if no == strconv.Itoa(count) {
-			datagram := structs.CreateDatagramFrom(structs.ClusterStatusPattern, nil)
-			value.Connection.WriteJSON(datagram)
-			logger.Log.Infof("Requesting status for cluster '%s'.", value.ClusterName)
-			return
+			statusDto := dtos.DtoListEntryForPattern("ClusterStatus")
+			if statusDto != nil {
+				datagram := structs.CreateDatagramFrom(statusDto.Pattern, nil)
+				value.Connection.WriteJSON(datagram)
+				logger.Log.Infof("Requesting status for cluster '%s'.", value.ClusterName)
+				return
+			}
 		}
 	}
 	logger.Log.Errorf("Cluster number '%s' not found.", no)
+}
+
+func sendCmdToCluster(cluster structs.ClusterConnection, cmd string) {
+	datagram := structs.CreateDatagramFrom(cmd, nil)
+	cluster.Connection.WriteJSON(datagram)
+	logger.Log.Infof("Sending CMD '%s' to cluster '%s'.", cmd, cluster.ClusterName)
 }

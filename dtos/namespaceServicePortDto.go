@@ -9,3 +9,14 @@ type NamespaceServicePortDto struct {
 	SpectrumAppId     string `json:"spectrumAppId" validate:"required"`
 	DeletedAt         string `json:"deletedAt,omitempty"`
 }
+
+func NamespaceServicePortDtoExampleData() NamespaceServicePortDto {
+	return NamespaceServicePortDto{
+		PortType:          "HTTPS",
+		InternalPort:      1,
+		ExternalPort:      1,
+		Expose:            true,
+		SpectrumEnableTls: true,
+		SpectrumAppId:     "spectrumAppId",
+	}
+}
