@@ -93,7 +93,7 @@ func NewKubeProviderMetricsLocal() (*KubeProviderMetrics, error) {
 		panic(errClientSet.Error())
 	}
 
-	logger.Log.Debugf("K8s client config (init with .kube/config), host: %s", restConfig.Host)
+	//logger.Log.Debugf("K8s client config (init with .kube/config), host: %s", restConfig.Host)
 
 	return &KubeProviderMetrics{
 		ClientSet:    clientSet,
@@ -112,7 +112,7 @@ func NewKubeProviderMetricsInCluster() (*KubeProviderMetrics, error) {
 		panic(err.Error())
 	}
 
-	logger.Log.Debugf("K8s client config (init InCluster), host: %s", config.Host)
+	//logger.Log.Debugf("K8s client config (init InCluster), host: %s", config.Host)
 
 	return &KubeProviderMetrics{
 		ClientSet:    clientset,

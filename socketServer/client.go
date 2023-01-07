@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/http"
@@ -17,7 +17,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const heartBeatSeconds = 3
+const heartBeatSeconds = 30
 
 func StartClient() {
 	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.WebsocketServer, utils.CONFIG.ApiServer.WebsocketPort)
@@ -96,20 +96,16 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				_ = json.Unmarshal([]byte(rowJson), &datagram)
 
-				matchedEntry := dtos.DtoListEntryForPattern(datagram.Pattern)
-				if matchedEntry != nil {
-					if matchedEntry.Pattern == "HeartBeat" {
-						logger.Log.Info("HeartBeat received.")
-					} else {
-						logger.Log.Infof("Pattern found: '%s'.", matchedEntry.Pattern)
-						// status := mokubernetes.ClusterStatus()
-						// c.WriteJSON(structs.CreateDatagramFrom(matchedEntry.Pattern, status))
-					}
+				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
+					log.Printf("recv: %s (%s)", datagram.Pattern, datagram.Id)
+					payload := services.ExecuteRequest(datagram)
+					result := structs.CreateDatagramRequest(datagram, payload)
+					c.WriteJSON(result)
+					log.Printf("sent: %s (%s)", result.Pattern, result.Id)
 				} else {
 					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 				}
 			}
-			log.Printf("recv: %s", message)
 		}
 	}()
 }

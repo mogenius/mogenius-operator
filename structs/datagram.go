@@ -11,6 +11,15 @@ type Datagram struct {
 	Err     string      `json:"err,omitempty"`
 }
 
+func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
+	datagram := Datagram{
+		Id:      request.Id,
+		Pattern: request.Pattern,
+		Payload: data,
+	}
+	return datagram
+}
+
 func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	datagram := Datagram{
 		Id:      uuid.New().String(),

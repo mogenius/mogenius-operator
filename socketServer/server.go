@@ -69,11 +69,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 		matchedEntry := dtos.DtoListEntryForPattern(datagram.Pattern)
 		if matchedEntry != nil {
 			if matchedEntry.Pattern == "HeartBeat" {
-				logger.Log.Info("HeartBeat received.")
+				//logger.Log.Info("HeartBeat received.")
 			} else {
-				logger.Log.Infof("Pattern found: '%s'.", matchedEntry.Pattern)
-				// status := mokubernetes.ClusterStatus()
-				// c.WriteJSON(structs.CreateDatagramFrom(matchedEntry.Pattern, status))
+				structs.PrettyPrint(datagram)
 			}
 		} else {
 			logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
@@ -161,7 +159,7 @@ func ReadInput() {
 				sendCmdToCluster(cluster, cmd)
 				logger.Log.Noticef("Selected cluster: %s", cluster.ClusterName)
 			} else {
-				logger.Log.Notice(err)
+				logger.Log.Notice(selectErr.Error())
 			}
 		case "l":
 			listClusters()
