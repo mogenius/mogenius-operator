@@ -2,39 +2,27 @@ package services
 
 import "mogenius-k8s-manager/dtos"
 
-// @Post('create')
-// public async create(@Body('namespace') namespace: K8sNamespaceDto, @Body('stage') stage: K8sStageDto): Promise<void> {
-func CreateNamespace(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto) {
+func CreateNamespace(r NamespaceCreateRequest) bool {
 	// TODO: Implement
+	return false
 }
 
-// @Post('delete')
-// public async delete(@Body('namespace') namespace: K8sNamespaceDto, @Body('stage') stage: K8sStageDto): Promise<void> {
-func DeleteNamespace(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto) {
+func DeleteNamespace(r NamespaceDeleteRequest) bool {
 	// TODO: Implement
+	return false
 }
 
-// @Post('shutdown')
-// public async shutdown(@Body('namespaceId') namespaceId: string, @Body('stage') stage: K8sStageDto): Promise<void> {
-func ShutdownNamespace(namespaceId string, stage dtos.K8sStageDto) {
+func ShutdownNamespace(r NamespaceShutdownRequest) bool {
 	// TODO: Implement
+	return false
 }
 
-// @Post('reboot')
-// public async reboot(@Body('namespaceId') namespaceId: string, @Body('stage') stage: K8sStageDto): Promise<void> {
-func RebootNamespace(namespaceId string, stage dtos.K8sStageDto) {
+func RebootNamespace(r NamespaceRebootRequest) bool {
 	// TODO: Implement
+	return false
 }
 
-// @Get('ingress-state/:state')
-// public async setIngressState(
-//
-//	@Body('namespace') namespace: K8sNamespaceDto,
-//	@Body('stage') stage: K8sStageDto,
-//	@Param('state') state: IngressState
-//
-// ): Promise<any> {
-func SetIngressState(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, state string) interface{} {
+func SetIngressState(r NamespaceSetIngressStateRequest) interface{} {
 	// ENABLED = 'ENABLED',
 	// DISABLED = 'DISABLED',
 	// TRAFFIC_EXCEEDED = 'TRAFFIC_EXCEEDED'
@@ -42,37 +30,80 @@ func SetIngressState(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, sta
 	return nil
 }
 
-// @Get('pod-ids/:namespace')
-// public async podIds(@Param('namespace') namespace: string): Promise<any> {
-func PodIds(namespace string) interface{} {
+func PodIds(r NamespacePodIdsRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Get('get-cluster-pods')
-// public async clusterPods(): Promise<string[]> {
 func ClusterPods() []string {
 	// TODO: Implement
 	return []string{}
 }
 
-// @Post('validate-cluster-pods')
-// public async validateClusterPods(@Body('dbPodNames') dbPodNames: string[]): Promise<any> {
-func ValidateClusterPods(dbPodNames []string) interface{} {
+func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Post('validate-ports')
-// public async validateClusterPorts(@Body('ports') ports: NamespaceServicePortDto[]): Promise<any> {
-func ValidateClusterPorts(ports []dtos.NamespaceServicePortDto) interface{} {
+func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Post('storage-size')
-// public async storageSize(@Body('stageIds') stageIds: string[]): Promise<{ [key: string]: number }> {
-func StorageSize(stageIds []string) map[string]int {
+func StorageSize(r NamespaceStorageSizeRequest) map[string]int {
 	// TODO: Implement
 	return map[string]int{}
+}
+
+// namespace/create POST
+type NamespaceCreateRequest struct {
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Stage     dtos.K8sStageDto     `json:"stage"`
+}
+
+// namespace/delete POST
+type NamespaceDeleteRequest struct {
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Stage     dtos.K8sStageDto     `json:"stage"`
+}
+
+// namespace/shutdown POST
+type NamespaceShutdownRequest struct {
+	NamespaceId string           `json:"namespaceId"`
+	Stage       dtos.K8sStageDto `json:"stage"`
+}
+
+// namespace/reboot POST
+type NamespaceRebootRequest struct {
+	NamespaceId string           `json:"namespaceId"`
+	Stage       dtos.K8sStageDto `json:"stage"`
+}
+
+// namespace/ingress-state/:state GET
+type NamespaceSetIngressStateRequest struct {
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Stage     dtos.K8sStageDto     `json:"stage"`
+	State     string               `json:"state"`
+}
+
+// namespace/pod-ids/:namespace GET
+type NamespacePodIdsRequest struct {
+	Namespace string `json:"namespace"`
+}
+
+// namespace/get-cluster-pods GET
+
+// namespace/validate-cluster-pods POST
+type NamespaceValidateClusterPodsRequest struct {
+	DbPodNames []string `json:"dbPodNames"`
+}
+
+// namespace/validate-ports POST
+type NamespaceValidatePortsRequest struct {
+	Ports []dtos.NamespaceServicePortDto `json:"ports"`
+}
+
+// namespace/storage-size POST
+type NamespaceStorageSizeRequest struct {
+	Stageids []string `json:"stageIds"`
 }

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/http"
@@ -66,28 +66,15 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 			return
 		}
 
-		matchedEntry := dtos.DtoListEntryForPattern(datagram.Pattern)
-		if matchedEntry != nil {
-			if matchedEntry.Pattern == "HeartBeat" {
-				//logger.Log.Info("HeartBeat received.")
+		if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
+			if datagram.Pattern == "HeartBeat" {
+				logger.Log.Infof("HeartBeat received from %s.", clusterName)
 			} else {
 				structs.PrettyPrint(datagram)
 			}
 		} else {
 			logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 		}
-
-		// switch datagram.Pattern {
-		// case "HeartBeat":
-		// 	// NOTHING TO DO HERE
-		// 	// sendConnect(connection.RemoteAddr().String(), request.ClusterName)
-		// 	// logger.Log.Infof("HeartBeat '%s' ...", clusterName)
-		// case structs.ClusterStatusPattern:
-		// 	structs.PrettyPrint(datagram.Payload)
-		// default:
-		// 	logger.Log.Errorf("Unknown pattern '%s'.", datagram.Pattern)
-		// 	logger.Log.Error(string(msg))
-		// }
 	}
 }
 
@@ -249,13 +236,10 @@ func requestStatusFromCluster(no string) {
 	for _, value := range connections {
 		count++
 		if no == strconv.Itoa(count) {
-			statusDto := dtos.DtoListEntryForPattern("ClusterStatus")
-			if statusDto != nil {
-				datagram := structs.CreateDatagramFrom(statusDto.Pattern, nil)
-				value.Connection.WriteJSON(datagram)
-				logger.Log.Infof("Requesting status for cluster '%s'.", value.ClusterName)
-				return
-			}
+			datagram := structs.CreateDatagramFrom("ClusterStatus", nil)
+			value.Connection.WriteJSON(datagram)
+			logger.Log.Infof("Requesting status for cluster '%s'.", value.ClusterName)
+			return
 		}
 	}
 	logger.Log.Errorf("Cluster number '%s' not found.", no)

@@ -17,17 +17,17 @@ func BuildLog(r BuildLogRequest) dtos.NamespaceAzureBuildLogDto {
 	return dtos.NamespaceAzureBuildLogDto{}
 }
 
-// GET cicd/build-info
+// cicd/build-info GET
 type BuildInfoRequest struct {
 	BuildId int `json:"buildId"`
 }
 
-// POST cicd/build-info-array
+// cicd/build-info-array POST
 type BuildInfoArrayRequest struct {
 	BuildIds []int `json:"buildIds"`
 }
 
-// GET cicd/build-log
+// cicd/build-log GET
 type BuildLogRequest struct {
 	BuildId int `json:"buildId"`
 	LogId   int `json:"logId"`

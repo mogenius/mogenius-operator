@@ -2,74 +2,105 @@ package services
 
 import "mogenius-k8s-manager/dtos"
 
-// @Get('storage-stats')
-// public async allFiles(): Promise<PersistentFileStatsDto> {
 func AllFiles() dtos.PersistentFileStatsDto {
 	// TODO: Implement
 	return dtos.PersistentFileStatsDto{}
 }
 
-// @Post('list')
-// public async list(@Body() data: PersistentFileRequestDto): Promise<PersistentFileDto[]> {
-func List(data dtos.PersistentFileRequestDto) []dtos.PersistentFileDto {
+func List(r FilesListRequest) []dtos.PersistentFileDto {
 	// TODO: Implement
 	return []dtos.PersistentFileDto{}
 }
 
-// @Post('download')
-// public async download(@Body() data: PersistentFileRequestDto, @Res() res: Response): Promise<any> {
-func Download(data dtos.PersistentFileRequestDto, res interface{}) interface{} {
+func Download(r FilesDownloadRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Post('upload')
-// @UseInterceptors(FileInterceptor('file'))
-// public async upload(@Body() data: PersistentFileRequestDto, @UploadedFile() file: Express.Multer.File): Promise<any> {
-func Upload(data dtos.PersistentFileRequestDto, file interface{}) interface{} {
+func Upload(r FilesUploadRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Patch('update')
-// @UseInterceptors(FileInterceptor('file'))
-// public async update(@Body() data: PersistentFileRequestDto, @UploadedFile() file: Express.Multer.File): Promise<any> {
-func Update(data dtos.PersistentFileRequestDto, file interface{}) interface{} {
+func Update(r FilesUpdateRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Post('create-folder')
-// public async create(@Body() data: PersistentFileRequestDto): Promise<boolean> {
-func CreateFolder(data dtos.PersistentFileRequestDto) bool {
+func CreateFolder(r FilesCreateFolderRequest) bool {
 	// TODO: Implement
 	return false
 }
 
-// @Post('rename')
-// public async rename(@Body() data: PersistentFileRequestDto, @Body('newName') newName: string): Promise<boolean> {
-func Rename(data dtos.PersistentFileRequestDto, newName string) bool {
+func Rename(r FilesRenameRequest) bool {
 	// TODO: Implement
 	return false
 }
 
-// @Post('chown')
-// public async chown(@Body() data: PersistentFileRequestDto, @Body('uid') uid: number, @Body('gid') gid: number): Promise<boolean | Error> {
-func Chown(data dtos.PersistentFileRequestDto, uid int, gid int) interface{} {
+func Chown(r FilesChownRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Post('chmod')
-// public async chmod(@Body() data: PersistentFileRequestDto, @Body('mode') mode: string): Promise<boolean | Error> {
-func Chmod(data dtos.PersistentFileRequestDto, mode string) interface{} {
+func Chmod(r FilesChmodRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Post('delete')
-// public async delete(@Body() data: PersistentFileRequestDto): Promise<boolean> {
-func Delete(data dtos.PersistentFileRequestDto) bool {
+func Delete(r FilesDeleteRequest) bool {
 	// TODO: Implement
 	return false
+}
+
+// files/storage-stats GET
+
+// files/list POST
+type FilesListRequest struct {
+	Folder dtos.PersistentFileRequestDto `json:"folder"`
+}
+
+// files/download POST
+type FilesDownloadRequest struct {
+	File dtos.PersistentFileRequestDto `json:"file"` // TODO: how? before go we simply used the response to write binary stream
+}
+
+// files/upload POST
+type FilesUploadRequest struct {
+	File        dtos.PersistentFileRequestDto `json:"file"`
+	NewFileData string                        `json:"newFileData"` // TODO: base64? was originally Multer File Upload
+}
+
+// files/update PATCH
+type FilesUpdateRequest struct {
+	File        dtos.PersistentFileRequestDto `json:"file"`
+	NewFileData string                        `json:"newFileData"` // TODO: base64? was originally Multer File Upload
+}
+
+// files/create-folder POST
+type FilesCreateFolderRequest struct {
+	Folder dtos.PersistentFileRequestDto `json:"folder"`
+}
+
+// files/rename POST
+type FilesRenameRequest struct {
+	File    dtos.PersistentFileRequestDto `json:"file"`
+	NewName string                        `json:"newName"`
+}
+
+// files/chown POST
+type FilesChownRequest struct {
+	File dtos.PersistentFileRequestDto `json:"file"`
+	Uid  string                        `json:"uid"`
+	Gid  string                        `json:"gid"`
+}
+
+// files/chmod POST
+type FilesChmodRequest struct {
+	File dtos.PersistentFileRequestDto `json:"file"`
+	Mode string                        `json:"mode"`
+}
+
+// files/delete POST
+type FilesDeleteRequest struct {
+	File dtos.PersistentFileRequestDto `json:"file"`
 }

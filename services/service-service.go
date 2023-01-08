@@ -2,189 +2,184 @@ package services
 
 import "mogenius-k8s-manager/dtos"
 
-// @Post('create')
-// public async create(
-//
-//	@Body('namespace') namespace: K8sNamespaceDto,
-//	@Body('stage') stage: K8sStageDto,
-//	@Body('service') service: K8sServiceDto
-//
-// ): Promise<void | BadRequestException> {
-func CreateService(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, service dtos.K8sServiceDto) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
-}
-
-// @Post('delete')
-// public async delete(
-//
-//	@Body('namespace') namespace: K8sNamespaceDto,
-//	@Body('stage') stage: K8sStageDto,
-//	@Body('service') service: K8sServiceDto
-//
-// ): Promise<void | BadRequestException | Job>
-func DeleteService(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, service dtos.K8sServiceDto) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
-}
-
-// @Patch('images/:imageName')
-// public async setImage(
-//
-//	@Body('namespace') namespace: K8sNamespaceDto,
-//	@Body('stage') stage: K8sStageDto,
-//	@Body('service') service: K8sServiceDto,
-//	@Param('imageName') imageName: string
-//
-// ): Promise<void | BadRequestException> {
-func SetImage(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, service dtos.K8sServiceDto, imageName string) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
-}
-
-// @Get('pod-ids/:namespace/:serviceId')
-// public async podIds(@Param('namespace') namespace: string, @Param('serviceId') serviceId: string): Promise<any>
-func ServicePodIds(namespace string, serviceId string) interface{} {
+func CreateService(r ServiceCreateRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Get('log/:namespace/:podId')
-// public async podLog(@Param('namespace') namespace: string, @Param('podId') podId: string): Promise<any>
-func PodLog(namespace string, podId string) interface{} {
+func DeleteService(r ServiceDeleteRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Sse('log-stream/:namespace/:podId/:sinceSeconds')
-// public podLogStream(
-//
-//	@Param('namespace') namespace: string,
-//	@Param('podId') podId: string,
-//	@Param('sinceSeconds') sinceSeconds: number,
-//	@Res() res: Response,
-//	@Req() req: Request
-//
-// ): Observable<any> {
-func PodLogStream(namespace string, podId string, sinceSeconds int) interface{} {
+func SetImage(r ServiceSetImageRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Get('resource-status/:resource/:namespace/:name/:statusOnly')
-// public podStatus(
-//
-//	@Param('resource') resource: string,
-//	@Param('namespace') namespace: string,
-//	@Param('name') name: string,
-//	@Param('statusOnly') statusOnly: boolean
-//
-// ): Promise<any> {
-func PodStatus(resource string, namespace string, name string, statusOnly bool) interface{} {
+func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
 	// TODO: Implement
 	return nil
 }
 
-// @Post('build')
-// public async build(
-//
-//	@Body('namespace') namespace: K8sNamespaceDto,
-//	@Body('stage') stage: K8sStageDto,
-//	@Body('service') service: K8sServiceDto,
-//	@Body('commitHash') commitHash: string,
-//	@Body('commitAuthor') commitAuthor: string,
-//	@Body('commitMessage') commitMessage: string
-//
-// ): Promise<void | BadRequestException> {
-func Build(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, service dtos.K8sServiceDto, commitHash string, commitAuthor string, commitMessage string) (interface{}, error) {
+func PodLog(r ServiceGetLogRequest) interface{} {
 	// TODO: Implement
-	return nil, nil
+	return nil
 }
 
-// @Post('restart')
-// public async restart(
-//
-//	@Body('namespace') namespace: K8sNamespaceDto,
-//	@Body('stage') stage: K8sStageDto,
-//	@Body('service') service: K8sServiceDto
-//
-// ): Promise<void | BadRequestException> {
-func Restart(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, service dtos.K8sServiceDto) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
+func PodLogStream(r ServiceLogStreamRequest) interface{} {
+	// TODO: Implement XXX WAS AN OBSERVABLE - SSE - written directly to response
+	return nil
 }
 
-// @Post('stop')
-// public async stop(
-//
-//	@Body('namespaceId') namespaceId: string,
-//	@Body('stage') stage: K8sStageDto,
-//	@Body('service') service: K8sServiceDto
-//
-// ): Promise<void | BadRequestException> {
-func StopService(namespaceId string, stage dtos.K8sStageDto, service dtos.K8sServiceDto) (interface{}, error) {
+func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	// TODO: Implement
-	return nil, nil
+	return nil
 }
 
-// @Post('start')
-// public async start(
-//
-//	@Body('namespaceId') namespaceId: string,
-//	@Body('stage') stage: K8sStageDto,
-//	@Body('service') service: K8sServiceDto
-//
-// ): Promise<void | BadRequestException> {
-func StartService(namespaceId string, stage dtos.K8sStageDto, service dtos.K8sServiceDto) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
+func Build(r ServiceBuildRequest) interface{} {
+	// TODO: REMOVE ME! das hier soll in API-Service
+	return nil
 }
 
-// @Post('update-service')
-// public async updateService(
-//
-//	@Body('namespace') namespace: K8sNamespaceDto,
-//	@Body('stage') stage: K8sStageDto,
-//	@Body('service') service: K8sServiceDto
-//
-// ): Promise<void | BadRequestException> {
-func UpdateService(namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, service dtos.K8sServiceDto) (interface{}, error) {
+func Restart(r ServiceRestartRequest) interface{} {
 	// TODO: Implement
-	return nil, nil
+	return nil
 }
 
-// @Post('spectrum-bind')
-// public async bind(
-//
-//	@Query('k8sNamespaceName') k8sNamespaceName: string,
-//	@Query('k8sServiceName') k8sServiceName: string,
-//	@Query('externalPort') externalPort: number,
-//	@Query('internalPort') internalPort: number,
-//	@Query('type') type: NamespaceServicePortBindingTypeEnum,
-//	@Query('namespaceId') namespaceId: string
-//
-// ): Promise<void | BadRequestException> {
-func BindSpectrum(k8sNamespaceName string, k8sServiceName string, externalPort int, internalPort int, portType string, namespaceId string) (interface{}, error) {
+func StopService(r ServiceStopRequest) interface{} {
 	// TODO: Implement
-	return nil, nil
+	return nil
 }
 
-// @Delete('spectrum-unbind')
-// public async unbind(
-//
-//	@Query('externalPort') externalPort: number,
-//	@Query('type') type: NamespaceServicePortBindingTypeEnum,
-//	@Query('namespaceId') namespaceId: string
-//
-// ): Promise<void | BadRequestException> {
-func UnbindSpectrum(externalPort int, portType string, namespaceId string) (interface{}, error) {
+func StartService(r ServiceStartRequest) interface{} {
 	// TODO: Implement
-	return nil, nil
+	return nil
 }
 
-// @Get('spectrum-configmaps')
-// public async spectrumConfigmaps(): Promise<any | BadRequestException> {
-func SpectrumConfigmaps() (interface{}, error) {
+func UpdateService(r ServiceUpdateRequest) interface{} {
 	// TODO: Implement
-	return nil, nil
+	return nil
 }
+
+func BindSpectrum(r ServiceBindSpectrumRequest) interface{} {
+	// TODO: Implement
+	return nil
+}
+
+func UnbindSpectrum(r ServiceUnbindSpectrumRequest) interface{} {
+	// TODO: Implement
+	return nil
+}
+
+func SpectrumConfigmaps() interface{} {
+	// TODO: Implement
+	return nil
+}
+
+// service/create POST
+type ServiceCreateRequest struct {
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Stage     dtos.K8sStageDto     `json:"stage"`
+	Service   dtos.K8sServiceDto   `json:"service"`
+}
+
+// service/delete POST
+type ServiceDeleteRequest struct {
+	NamespaceId string `json:"namespaceId"`
+	Stage       string `json:"stage"`
+	ServiceId   string `json:"serviceId"`
+}
+
+// service/pod-ids/:namespace/:serviceId GET
+type ServiceGetPodIdsRequest struct {
+	Namespace string `json:"namespace"`
+	ServiceId string `json:"serviceId"`
+}
+
+// service/images/:imageName PATCH
+type ServiceSetImageRequest struct {
+	NamespaceId string `json:"namespaceId"`
+	Stage       string `json:"stage"`
+	ServiceId   string `json:"serviceId"`
+	ImageName   string `json:"imageName"`
+}
+
+// service/log/:namespace/:podId GET
+type ServiceGetLogRequest struct {
+	Namespace string `json:"namespace"`
+	PodId     string `json:"podId"`
+}
+
+// service/log-stream/:namespace/:podId/:sinceSeconds SSE
+type ServiceLogStreamRequest struct {
+	Namespace    string `json:"namespace"`
+	PodId        string `json:"podId"`
+	SinceSeconds int    `json:"sinceSeconds"`
+}
+
+// service/resource-status/:resource/:namespace/:name/:statusOnly GET
+type ServiceResourceStatusRequest struct {
+	Resource    string `json:"resource"`
+	NamespaceId string `json:"namespaceId"`
+	Name        string `json:"name"`
+	StatusOnly  bool   `json:"statusOnly"`
+}
+
+// TODO: das gehört hier nicht mehr rein. soll in API-Service
+// service/build POST
+type ServiceBuildRequest struct {
+	NamespaceId   string `json:"namespaceId"`
+	Stage         string `json:"stage"`
+	ServiceId     string `json:"serviceId"`
+	CommitHash    string `json:"commitHash"`
+	CommitAuthor  string `json:"commitAuthor"`
+	CommitMessage string `json:"commitMessage"`
+}
+
+// service/restart POST
+type ServiceRestartRequest struct {
+	NamespaceId string `json:"namespaceId"`
+	Stage       string `json:"stage"`
+	ServiceId   string `json:"serviceId"`
+}
+
+// service/stop POST
+type ServiceStopRequest struct {
+	NamespaceId string `json:"namespaceId"`
+	Stage       string `json:"stage"`
+	ServiceId   string `json:"serviceId"`
+}
+
+// service/start POST
+type ServiceStartRequest struct {
+	NamespaceId string `json:"namespaceId"`
+	Stage       string `json:"stage"`
+	ServiceId   string `json:"serviceId"`
+}
+
+// service/update-service POST
+type ServiceUpdateRequest struct {
+	NamespaceId string `json:"namespaceId"`
+	Stage       string `json:"stage"`
+	ServiceId   string `json:"serviceId"`
+}
+
+// service/spectrum-bind POST
+type ServiceBindSpectrumRequest struct {
+	K8sNamespaceName string `json:"k8sNamespaceName"`
+	K8sServiceName   string `json:"k8sServiceName"`
+	ExternalPort     int    `json:"externalPort"`
+	InternalPort     int    `json:"internalPort"`
+	Type             string `json:"type"`
+	NamespaceId      string `json:"namespaceId"`
+}
+
+// service/spectrum-unbind DELETE
+type ServiceUnbindSpectrumRequest struct {
+	ExternalPort int    `json:"externalPort"`
+	Type         string `json:"type"`
+	NamespaceId  string `json:"namespaceId"`
+}
+
+// service/spectrum-configmaps GET
