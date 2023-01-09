@@ -1,13 +1,19 @@
 package services
 
 import (
+	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
+
+	"github.com/gorilla/websocket"
 )
 
 var ALL_REQUESTS = []string{
 	"HeartBeat",
 	"ClusterStatus",
+	"Test",
 	"cicd/build-info GET",
 	"cicd/build-info-array POST",
 	"cicd/build-log GET",
@@ -48,10 +54,16 @@ var ALL_REQUESTS = []string{
 	"service/spectrum-configmaps GET",
 }
 
-func ExecuteRequest(datagram structs.Datagram) interface{} {
+var ALL_TESTS = []string{
+	"TestCreateNamespace",
+	"TestDeleteNamespace",
+	"TestUpdateIngress",
+}
+
+func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 	switch datagram.Pattern {
 	case "HeartBeat":
-		return nil // nothing to do here
+		return HeartBeat(datagram, c)
 	case "ClusterStatus":
 		return mokubernetes.ClusterStatus()
 	case "cicd/build-info GET":
@@ -130,8 +142,45 @@ func ExecuteRequest(datagram structs.Datagram) interface{} {
 		return UnbindSpectrum(datagram.Payload.(ServiceUnbindSpectrumRequest))
 	case "service/spectrum-configmaps GET":
 		return SpectrumConfigmaps()
-
 	}
+
+	switch datagram.Pattern {
+	case "TestCreateNamespace":
+		return TestCreateNamespace(datagram, c)
+	case "TestDeleteNamespace":
+		return TestDeleteNamespace(datagram, c)
+	case "TestUpdateIngress":
+		return TestUpdateIngress(datagram, c)
+	}
+
 	datagram.Err = "Pattern not found"
 	return datagram
+}
+
+func HeartBeat(d structs.Datagram, c *websocket.Conn) interface{} {
+	logger.Log.Info(utils.FunctionName())
+	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
+	return nil
+}
+
+func TestUpdateIngress(d structs.Datagram, c *websocket.Conn) interface{} {
+	logger.Log.Info(utils.FunctionName())
+	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
+	return mokubernetes.UpdateIngress(dtos.K8sNamespaceDtoExampleData(), dtos.K8sStageDtoExampleData(), nil, nil)
+}
+
+func TestCreateNamespace(d structs.Datagram, c *websocket.Conn) interface{} {
+	logger.Log.Info(utils.FunctionName())
+	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
+	return mokubernetes.CreateNamespace(dtos.K8sStageDtoExampleData())
+}
+
+func TestDeleteNamespace(d structs.Datagram, c *websocket.Conn) interface{} {
+	logger.Log.Info(utils.FunctionName())
+	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
+	return mokubernetes.DeleteNamespace(dtos.K8sStageDtoExampleData())
+}
+
+func ReportState() {
+	// TODO: implement me
 }

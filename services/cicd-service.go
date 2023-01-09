@@ -1,19 +1,26 @@
 package services
 
-import "mogenius-k8s-manager/dtos"
+import (
+	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
+)
 
 func BuildInfo(r BuildInfoRequest) []dtos.CiCdPipelineDto {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return []dtos.CiCdPipelineDto{}
 }
 
 func BuildInfoArray(r BuildInfoArrayRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func BuildLog(r BuildLogRequest) dtos.NamespaceAzureBuildLogDto {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return dtos.NamespaceAzureBuildLogDto{}
 }
 

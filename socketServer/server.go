@@ -66,12 +66,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 			return
 		}
 
-		if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
-			if datagram.Pattern == "HeartBeat" {
-				logger.Log.Infof("HeartBeat received from %s.", clusterName)
-			} else {
-				structs.PrettyPrint(datagram)
-			}
+		if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) || utils.Contains(services.ALL_TESTS, datagram.Pattern) {
+			services.ExecuteRequest(datagram, connection)
+			structs.PrettyPrint(datagram)
 		} else {
 			logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 		}
@@ -116,6 +113,7 @@ func printShortcuts() {
 	logger.Log.Notice("h:     help")
 	logger.Log.Notice("l:     list clusters")
 	logger.Log.Notice("s:     send command to cluster")
+	logger.Log.Notice("t:     send test-cmd to cluster")
 	logger.Log.Notice("q:     quit application")
 	logger.Log.Notice("1-9:   request status from cluster")
 }
@@ -148,6 +146,9 @@ func ReadInput() {
 			} else {
 				logger.Log.Notice(selectErr.Error())
 			}
+		case "t":
+			testCmd := selectTestCommands(tty)
+			requestTestFromCluster(testCmd)
 		case "l":
 			listClusters()
 		case "q":
@@ -245,8 +246,48 @@ func requestStatusFromCluster(no string) {
 	logger.Log.Errorf("Cluster number '%s' not found.", no)
 }
 
+func requestTestFromCluster(pattern string) {
+	if len(connections) > 0 {
+		firstConnection := selectRandomCluster()
+		datagram := structs.CreateDatagramFrom(pattern, nil)
+		firstConnection.Connection.WriteJSON(datagram)
+		logger.Log.Infof("Requesting '%s' for cluster '%s'.", pattern, firstConnection.ClusterName)
+		return
+	}
+	logger.Log.Error("Not connected to any cluster.")
+}
+
+func selectTestCommands(tty *tty.TTY) string {
+	for index, testPatternName := range services.ALL_TESTS {
+		logger.Log.Infof("%d: %s", index, testPatternName)
+	}
+
+	for innerLoop := true; innerLoop; {
+		r, err := tty.ReadRune()
+		if err != nil {
+			log.Fatal(err)
+		}
+		inputInt, _ := strconv.Atoi(string(r))
+		if len(services.ALL_TESTS) >= inputInt {
+			innerLoop = false
+			return services.ALL_TESTS[inputInt]
+		} else {
+			logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", string(r), len(services.ALL_TESTS))
+			innerLoop = false
+		}
+	}
+	return ""
+}
+
 func sendCmdToCluster(cluster structs.ClusterConnection, cmd string) {
 	datagram := structs.CreateDatagramFrom(cmd, nil)
 	cluster.Connection.WriteJSON(datagram)
 	logger.Log.Infof("Sending CMD '%s' to cluster '%s'.", cmd, cluster.ClusterName)
+}
+
+func selectRandomCluster() *structs.ClusterConnection {
+	for _, v := range connections {
+		return &v
+	}
+	return nil
 }

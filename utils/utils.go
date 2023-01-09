@@ -68,3 +68,14 @@ func ConfirmTask(s string, tries int) bool {
 
 	return false
 }
+
+func FunctionName() string {
+	counter, _, _, success := runtime.Caller(1)
+
+	if !success {
+		println("functionName: runtime.Caller: failed")
+		os.Exit(1)
+	}
+
+	return runtime.FuncForPC(counter).Name()
+}

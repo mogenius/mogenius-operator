@@ -13,7 +13,7 @@ func K8sStageDtoExampleData() K8sStageDto {
 	return K8sStageDto{
 		Id:              "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		DisplayName:     "displayName",
-		K8sName:         "k8sName",
+		K8sName:         "k8sname",
 		Hostname:        "hostname",
 		StorageSizeInMb: 1,
 		Services:        []K8sServiceDto{K8sServiceDtoExampleData()},

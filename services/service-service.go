@@ -1,79 +1,98 @@
 package services
 
-import "mogenius-k8s-manager/dtos"
+import (
+	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
+)
 
 func CreateService(r ServiceCreateRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func DeleteService(r ServiceDeleteRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func SetImage(r ServiceSetImageRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func PodLog(r ServiceGetLogRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func PodLogStream(r ServiceLogStreamRequest) interface{} {
 	// TODO: Implement XXX WAS AN OBSERVABLE - SSE - written directly to response
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Build(r ServiceBuildRequest) interface{} {
 	// TODO: REMOVE ME! das hier soll in API-Service
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Restart(r ServiceRestartRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func StopService(r ServiceStopRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func StartService(r ServiceStartRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func UpdateService(r ServiceUpdateRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func BindSpectrum(r ServiceBindSpectrumRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func UnbindSpectrum(r ServiceUnbindSpectrumRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func SpectrumConfigmaps() interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 

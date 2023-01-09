@@ -1,54 +1,68 @@
 package services
 
-import "mogenius-k8s-manager/dtos"
+import (
+	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
+)
 
 func AllFiles() dtos.PersistentFileStatsDto {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return dtos.PersistentFileStatsDto{}
 }
 
 func List(r FilesListRequest) []dtos.PersistentFileDto {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return []dtos.PersistentFileDto{}
 }
 
 func Download(r FilesDownloadRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Upload(r FilesUploadRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Update(r FilesUpdateRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func CreateFolder(r FilesCreateFolderRequest) bool {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
 func Rename(r FilesRenameRequest) bool {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
 func Chown(r FilesChownRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Chmod(r FilesChmodRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Delete(r FilesDeleteRequest) bool {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return false
 }
 

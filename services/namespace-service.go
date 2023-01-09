@@ -1,24 +1,32 @@
 package services
 
-import "mogenius-k8s-manager/dtos"
+import (
+	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
+)
 
 func CreateNamespace(r NamespaceCreateRequest) bool {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
 func DeleteNamespace(r NamespaceDeleteRequest) bool {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
 func ShutdownNamespace(r NamespaceShutdownRequest) bool {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
 func RebootNamespace(r NamespaceRebootRequest) bool {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
@@ -27,31 +35,37 @@ func SetIngressState(r NamespaceSetIngressStateRequest) interface{} {
 	// DISABLED = 'DISABLED',
 	// TRAFFIC_EXCEEDED = 'TRAFFIC_EXCEEDED'
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func PodIds(r NamespacePodIdsRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func ClusterPods() []string {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return []string{}
 }
 
 func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func StorageSize(r NamespaceStorageSizeRequest) map[string]int {
 	// TODO: Implement
+	logger.Log.Info(utils.FunctionName())
 	return map[string]int{}
 }
 

@@ -96,9 +96,9 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				_ = json.Unmarshal([]byte(rowJson), &datagram)
 
-				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
+				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) || utils.Contains(services.ALL_TESTS, datagram.Pattern) {
 					log.Printf("recv: %s (%s)", datagram.Pattern, datagram.Id)
-					payload := services.ExecuteRequest(datagram)
+					payload := services.ExecuteRequest(datagram, c)
 					result := structs.CreateDatagramRequest(datagram, payload)
 					c.WriteJSON(result)
 					log.Printf("sent: %s (%s)", result.Pattern, result.Id)
