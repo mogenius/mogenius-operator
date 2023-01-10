@@ -11,8 +11,7 @@ import (
 var DefaultConfigFile string
 
 func main() {
-	utils.DefaultConfigFile = DefaultConfigFile
 	logger.Init()
-	utils.InitConfigYaml()
+	utils.DefaultConfigFile = DefaultConfigFile
 	cmd.Execute()
 }

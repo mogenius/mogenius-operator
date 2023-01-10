@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"io/ioutil"
 	"mogenius-k8s-manager/logger"
 	"os"
+	"strings"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -16,6 +16,7 @@ type Config struct {
 	ApiServer struct {
 		WebsocketServer string `yaml:"websocket_server" env-description:"Server host" env-default:"127.0.0.1"`
 		WebsocketPort   int    `yaml:"websocket_port" env-description:"Server port" env-default:"8080"`
+		WebsocketPath   string `yaml:"websocket_path" env-description:"Server Path" env-default:"/ws"`
 		ApiKey          string `yaml:"api_key" env-description:"Api Key to access the server"`
 	} `yaml:"api_server"`
 }
@@ -24,39 +25,22 @@ var DefaultConfigFile string
 var CONFIG Config
 
 func InitConfigYaml() {
-
-	homeDirName, homeDirErr := os.UserHomeDir()
-	if homeDirErr != nil {
-		logger.Log.Error(homeDirErr)
-	}
-
-	configDir := homeDirName + "/.mogenius-k8s-manager/"
-	configPath := configDir + "config.yaml"
+	_, configPath := GetDirectories()
 
 	if _, err := os.Stat(configPath); err == nil || os.IsExist(err) {
 		// file exists
 		if err := cleanenv.ReadConfig(configPath, &CONFIG); err != nil {
+			if strings.HasPrefix(err.Error(), "config file parsing error:") {
+				logger.Log.Notice("Config file is corrupted. Creating a new one by using -r flag.")
+			}
 			logger.Log.Fatal(err)
-			os.Exit(2)
 		}
 	} else {
-		// write it to default location
-		folderErr := os.Mkdir(configDir, 0644)
-		if folderErr != nil && folderErr.Error() != "mkdir "+configDir+": file exists" {
-			logger.Log.Warning("Error creating folder " + configDir)
-			logger.Log.Warning(folderErr)
-		}
-
-		errWrite := ioutil.WriteFile(configPath, []byte(DefaultConfigFile), 0644)
-		if errWrite != nil {
-			logger.Log.Fatal("Error writing " + configPath + " file")
-			logger.Log.Fatal(err)
-		}
+		WriteDefaultConfig()
 
 		// read configuration from the file and environment variables
 		if err := cleanenv.ReadConfig(configPath, &CONFIG); err != nil {
 			logger.Log.Fatal(err)
-			os.Exit(2)
 		}
 	}
 
@@ -64,5 +48,35 @@ func InitConfigYaml() {
 	logger.Log.Infof("RunInCluster: \t%t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("WebsocketServer: %s", CONFIG.ApiServer.WebsocketServer)
 	logger.Log.Infof("WebsocketPort: \t%d", CONFIG.ApiServer.WebsocketPort)
+	logger.Log.Infof("WebsocketPath: \t%s", CONFIG.ApiServer.WebsocketPath)
 	logger.Log.Infof("ApiKey: \t\t%s", CONFIG.ApiServer.ApiKey)
+}
+
+func GetDirectories() (configDir string, configPath string) {
+	homeDirName, err := os.UserHomeDir()
+	if err != nil {
+		logger.Log.Error(err)
+	}
+
+	configDir = homeDirName + "/.mogenius-k8s-manager/"
+	configPath = configDir + "config.yaml"
+
+	return configDir, configPath
+}
+
+func WriteDefaultConfig() {
+	configDir, configPath := GetDirectories()
+
+	// write it to default location
+	err := os.Mkdir(configDir, 0755)
+	if err != nil && err.Error() != "mkdir "+configDir+": file exists" {
+		logger.Log.Warning("Error creating folder " + configDir)
+		logger.Log.Warning(err)
+	}
+
+	err = os.WriteFile(configPath, []byte(DefaultConfigFile), 0755)
+	if err != nil {
+		logger.Log.Error("Error writing " + configPath + " file")
+		logger.Log.Fatal(err.Error())
+	}
 }

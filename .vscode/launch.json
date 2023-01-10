@@ -17,7 +17,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "main.go",
-            "args": ["testclient"],
+            "args": ["-r", "testclient"],
             "asRoot": false,
             "console": "integratedTerminal"
         }

@@ -4,11 +4,14 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
+	"mogenius-k8s-manager/utils"
 	"os"
 
 	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/spf13/cobra"
 )
+
+var ResetConfig bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -33,6 +36,13 @@ func Execute() {
 		ExecName: cc.Bold,
 		Flags:    cc.Bold,
 	})
+
+	rootCmd.PersistentFlags().BoolVarP(&ResetConfig, "reset-config", "r", false, "Reset Config File.")
+
+	if ResetConfig {
+		utils.WriteDefaultConfig()
+	}
+	utils.InitConfigYaml()
 
 	err := rootCmd.Execute()
 	if err != nil {
