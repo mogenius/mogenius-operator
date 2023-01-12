@@ -19,6 +19,9 @@ type Config struct {
 		WebsocketPath   string `yaml:"websocket_path" env-description:"Server Path" env-default:"/ws"`
 		ApiKey          string `yaml:"api_key" env-description:"Api Key to access the server"`
 	} `yaml:"api_server"`
+	Misc struct {
+		StorageAccount string `yaml:"storage_account" env-description:"Azure Storage Account"`
+	} `yaml:"misc"`
 }
 
 var DefaultConfigFile string
@@ -50,6 +53,7 @@ func InitConfigYaml() {
 	logger.Log.Infof("WebsocketPort: \t%d", CONFIG.ApiServer.WebsocketPort)
 	logger.Log.Infof("WebsocketPath: \t%s", CONFIG.ApiServer.WebsocketPath)
 	logger.Log.Infof("ApiKey: \t\t%s", CONFIG.ApiServer.ApiKey)
+	logger.Log.Infof("StorageAccount: \t%s", CONFIG.Misc.StorageAccount)
 }
 
 func GetDirectories() (configDir string, configPath string) {

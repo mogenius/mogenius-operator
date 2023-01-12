@@ -58,6 +58,7 @@ var ALL_TESTS = []string{
 	"TestCreateNamespace",
 	"TestDeleteNamespace",
 	"TestUpdateIngress",
+	"TestCreatePV",
 }
 
 func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
@@ -151,6 +152,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 		return TestDeleteNamespace(datagram, c)
 	case "TestUpdateIngress":
 		return TestUpdateIngress(datagram, c)
+	case "TestCreatePV":
+		return TestCreatePv(datagram, c)
 	}
 
 	datagram.Err = "Pattern not found"
@@ -179,6 +182,12 @@ func TestDeleteNamespace(d structs.Datagram, c *websocket.Conn) interface{} {
 	logger.Log.Info(utils.FunctionName())
 	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
 	return mokubernetes.DeleteNamespace(dtos.K8sStageDtoExampleData())
+}
+
+func TestCreatePv(d structs.Datagram, c *websocket.Conn) interface{} {
+	logger.Log.Info(utils.FunctionName())
+	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
+	return mokubernetes.CreatePersistentVolume(dtos.K8sStageDtoExampleData())
 }
 
 func ReportState() {

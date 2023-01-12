@@ -12,13 +12,13 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/ilyakaznacheev/cleanenv v1.4.2
 	github.com/ivanpirog/coloredcobra v1.0.1
-	github.com/joho/godotenv v1.4.0
 	github.com/mattn/go-tty v0.0.4
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.0
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0
 	k8s.io/client-go v0.26.0
+	k8s.io/kubectl v0.26.0
 	k8s.io/metrics v0.26.0
 )
 
@@ -42,6 +42,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
