@@ -91,10 +91,10 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				log.Println("read:", err)
 				return
 			} else {
-				rowJson := string(message)
+				rawJson := string(message)
 				datagram := structs.Datagram{}
 
-				_ = json.Unmarshal([]byte(rowJson), &datagram)
+				_ = json.Unmarshal([]byte(rawJson), &datagram)
 
 				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) || utils.Contains(services.ALL_TESTS, datagram.Pattern) {
 					log.Printf("recv: %s (%s)", datagram.Pattern, datagram.Id)

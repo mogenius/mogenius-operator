@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
@@ -248,8 +249,16 @@ func requestStatusFromCluster(no string) {
 
 func requestTestFromCluster(pattern string) {
 	if len(connections) > 0 {
+		var payload interface{} = nil
+		switch pattern {
+		case "TestCreateNamespace":
+			payload = services.NamespaceCreateRequest{
+				Namespace: dtos.K8sNamespaceDtoExampleData(),
+				Stage:     dtos.K8sStageDtoExampleData(),
+			}
+		}
 		firstConnection := selectRandomCluster()
-		datagram := structs.CreateDatagramFrom(pattern, nil)
+		datagram := structs.CreateDatagramFrom(pattern, payload)
 		firstConnection.Connection.WriteJSON(datagram)
 		logger.Log.Infof("Requesting '%s' for cluster '%s'.", pattern, firstConnection.ClusterName)
 		return

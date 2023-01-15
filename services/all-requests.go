@@ -5,7 +5,6 @@ import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 
 	"github.com/gorilla/websocket"
 )
@@ -94,7 +93,7 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 	case "files/delete POST":
 		return Delete(datagram.Payload.(FilesDeleteRequest))
 	case "namespace/create POST":
-		return CreateNamespace(datagram.Payload.(NamespaceCreateRequest))
+		return CreateNamespace(datagram.Payload.(NamespaceCreateRequest), c)
 	case "namespace/delete POST":
 		return DeleteNamespace(datagram.Payload.(NamespaceDeleteRequest))
 	case "namespace/shutdown POST":
@@ -161,35 +160,26 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 }
 
 func HeartBeat(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Info(utils.FunctionName())
 	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
 	return nil
 }
 
 func TestUpdateIngress(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Info(utils.FunctionName())
 	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
 	return mokubernetes.UpdateIngress(dtos.K8sNamespaceDtoExampleData(), dtos.K8sStageDtoExampleData(), nil, nil)
 }
 
 func TestCreateNamespace(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Info(utils.FunctionName())
 	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
-	return mokubernetes.CreateNamespace(dtos.K8sStageDtoExampleData())
+	return CreateNamespace(d.Payload.(NamespaceCreateRequest), c)
 }
 
 func TestDeleteNamespace(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Info(utils.FunctionName())
 	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
 	return mokubernetes.DeleteNamespace(dtos.K8sStageDtoExampleData())
 }
 
 func TestCreatePv(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Info(utils.FunctionName())
 	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
 	return mokubernetes.CreatePersistentVolume(dtos.K8sStageDtoExampleData())
-}
-
-func ReportState() {
-	// TODO: implement me
 }

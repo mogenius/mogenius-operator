@@ -14,6 +14,7 @@ require (
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/mattn/go-tty v0.0.4
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
+	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.6.0
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0

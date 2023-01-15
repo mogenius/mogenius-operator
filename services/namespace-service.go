@@ -1,15 +1,35 @@
 package services
 
 import (
+	"fmt"
 	"mogenius-k8s-manager/dtos"
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"os"
+
+	"github.com/gorilla/websocket"
 )
 
-func CreateNamespace(r NamespaceCreateRequest) bool {
-	// TODO: Implement
+func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) interface{} {
 	logger.Log.Info(utils.FunctionName())
-	return false
+	job := utils.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil)
+	job.AddCmd(mokubernetes.CreateNamespace(r.Stage, c))
+	if r.Stage.StorageSizeInMb > 0 {
+		dataRoot, err := os.Getwd()
+		if err != nil {
+			logger.Log.Error(err.Error())
+		}
+		if utils.CONFIG.Kubernetes.RunInCluster {
+			dataRoot = "/"
+		}
+		job.AddCmd(utils.CreateBashCommand("Create storage", fmt.Sprintf("mkdir %s/mo-data/%s", dataRoot, r.Stage.Id), c))
+		// TODO: IMPLEMENT THESE!!!!
+		// job.add(this.createPV(stage))
+		// job.add(this.createPVC(stage))
+	}
+	job.Report(c)
+	return nil
 }
 
 func DeleteNamespace(r NamespaceDeleteRequest) bool {
