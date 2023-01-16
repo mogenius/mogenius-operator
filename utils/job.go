@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/structs"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
 )
@@ -122,10 +123,30 @@ func ReportStateToServer(job *Job, cmd *Command, c *websocket.Conn) {
 }
 
 func stateLog(typeName string, data *dtos.K8sNotificationDto) {
-	if data.State == "ERROR" || data.State == "FAILED" {
-		fmt.Printf("%-10s %-6s %-60s (%dms)\n", data.State, typeName, data.Title, data.DurationMs)
-	} else {
-		fmt.Printf("%-10s %-6s %-60s (%dms)\n", data.State, typeName, truncateText(data.Title, 50), data.DurationMs)
+	PEND := color.New(color.FgWhite, color.BgBlue).SprintFunc()
+	STAR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
+	ERRO := color.New(color.FgWhite, color.BgRed).SprintFunc()
+	SUCC := color.New(color.FgWhite, color.BgGreen).SprintFunc()
+	DEFA := color.New(color.FgWhite, color.BgCyan).SprintFunc()
+	LONG := color.New(color.FgRed).SprintFunc()
+
+	// COLOR MILLISECONDS IF >500
+	duration := fmt.Sprint(data.DurationMs)
+	if data.DurationMs > 500 {
+		duration = LONG(duration)
+	}
+
+	switch data.State {
+	case "PENDING":
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, PEND(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
+	case "STARTED":
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, STAR(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
+	case "ERROR", "FAILED":
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, ERRO(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
+	case "SUCCEEDED":
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, SUCC(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
+	default:
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, DEFA(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
 	}
 }
 
@@ -134,4 +155,14 @@ func truncateText(s string, max int) string {
 		return s
 	}
 	return s[:max] + " ..."
+}
+
+func fillWith(s string, targetLength int, chars string) string {
+	if len(s) >= targetLength {
+		return s
+	}
+	for i := 0; i < targetLength-len(s)+1; i++ {
+		s = s + chars
+	}
+	return s
 }
