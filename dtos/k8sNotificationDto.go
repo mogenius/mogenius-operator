@@ -10,5 +10,5 @@ type K8sNotificationDto struct {
 	Message     string `json:"message"`
 	StartedAt   string `json:"startedAt"`
 	State       string `json:"state"`
-	DurationMs  int    `json:"durationMs"`
+	DurationMs  int64  `json:"durationMs"`
 }

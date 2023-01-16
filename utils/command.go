@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/logger"
 	"os/exec"
 	"time"
 
@@ -20,13 +21,14 @@ type Command struct {
 	Message                 string `json:"message,omitempty"`
 	StartedAt               string `json:"startedAt"`
 	State                   string `json:"state"`
-	DurationMs              int    `json:"durationMs"`
+	DurationMs              int64  `json:"durationMs"`
 	MustSucceed             bool   `json:"mustSucceed"`
 	ReportToNotificationSvc bool   `json:"reportToNotificationService"`
 	IgnoreError             bool   `json:"ignoreError"`
+	Started                 time.Time
 }
 
-func K8sNotificationDtoFromCommand(cmd Command) *dtos.K8sNotificationDto {
+func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
 	return &dtos.K8sNotificationDto{
 		Id:          cmd.Id,
 		JobId:       cmd.JobId,
@@ -41,10 +43,11 @@ func K8sNotificationDtoFromCommand(cmd Command) *dtos.K8sNotificationDto {
 	}
 }
 
-func CreateCommand(title string, c *websocket.Conn) Command {
+func CreateCommand(title string, job *Job, c *websocket.Conn) *Command {
 	cmd := Command{
 		Id:                      uuid.NewV4().String(),
 		Title:                   title,
+		NamespaceId:             job.NamespaceId,
 		Message:                 "",
 		StartedAt:               time.Now().Format(time.RFC3339),
 		State:                   "PENDING",
@@ -52,21 +55,26 @@ func CreateCommand(title string, c *websocket.Conn) Command {
 		MustSucceed:             false,
 		ReportToNotificationSvc: true,
 		IgnoreError:             false,
+		Started:                 time.Now(),
 	}
-	ReportStateToServer(cmd, c)
-	return cmd
+	ReportStateToServer(nil, &cmd, c)
+	return &cmd
 }
 
-func CreateBashCommand(title string, shellCmd string, c *websocket.Conn) Command {
-	cmd := CreateCommand(title, c)
-	go func(cmd Command) {
+func CreateBashCommand(title string, job *Job, shellCmd string, c *websocket.Conn) *Command {
+	cmd := CreateCommand(title, job, c)
+	go func(cmd *Command) {
 		cmd.Start(title, c)
 
-		bashCommand := exec.Command("bash", "-c", shellCmd)
-		err := bashCommand.Run()
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("'%s' ERROR: %s", title, err.Error()), c)
+		_, err := exec.Command("bash", "-c", shellCmd).Output()
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode := exitErr.ExitCode()
+			errorMsg := string(exitErr.Stderr)
+			logger.Log.Error(shellCmd)
+			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
+			cmd.Fail(fmt.Sprintf("'%s' ERROR: %s", title, errorMsg), c)
+		} else if err != nil {
+			logger.Log.Error("SOME OTHER ERROR")
 		} else {
 			cmd.Success(title, c)
 		}
@@ -77,17 +85,20 @@ func CreateBashCommand(title string, shellCmd string, c *websocket.Conn) Command
 func (cmd *Command) Start(msg string, c *websocket.Conn) {
 	cmd.State = "STARTED"
 	cmd.Message = msg
-	ReportStateToServer(cmd, c)
+	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
+	ReportStateToServer(nil, cmd, c)
 }
 
 func (cmd *Command) Fail(error string, c *websocket.Conn) {
 	cmd.State = "FAILED"
 	cmd.Message = error
-	ReportStateToServer(cmd, c)
+	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
+	ReportStateToServer(nil, cmd, c)
 }
 
 func (cmd *Command) Success(msg string, c *websocket.Conn) {
 	cmd.State = "SUCCEEDED"
 	cmd.Message = msg
-	ReportStateToServer(cmd, c)
+	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
+	ReportStateToServer(nil, cmd, c)
 }

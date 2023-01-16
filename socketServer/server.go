@@ -68,7 +68,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 		}
 
 		if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) || utils.Contains(services.ALL_TESTS, datagram.Pattern) {
-			services.ExecuteRequest(datagram, connection)
+			//services.ExecuteRequest(datagram, connection)
 			structs.PrettyPrint(datagram)
 		} else {
 			logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
@@ -238,8 +238,8 @@ func requestStatusFromCluster(no string) {
 	for _, value := range connections {
 		count++
 		if no == strconv.Itoa(count) {
-			datagram := structs.CreateDatagramFrom("ClusterStatus", nil)
-			value.Connection.WriteJSON(datagram)
+			datagram := structs.CreateDatagramFrom("ClusterStatus", nil, value.Connection)
+			datagram.Send()
 			logger.Log.Infof("Requesting status for cluster '%s'.", value.ClusterName)
 			return
 		}
@@ -258,8 +258,8 @@ func requestTestFromCluster(pattern string) {
 			}
 		}
 		firstConnection := selectRandomCluster()
-		datagram := structs.CreateDatagramFrom(pattern, payload)
-		firstConnection.Connection.WriteJSON(datagram)
+		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
+		datagram.Send()
 		logger.Log.Infof("Requesting '%s' for cluster '%s'.", pattern, firstConnection.ClusterName)
 		return
 	}
@@ -289,8 +289,8 @@ func selectTestCommands(tty *tty.TTY) string {
 }
 
 func sendCmdToCluster(cluster structs.ClusterConnection, cmd string) {
-	datagram := structs.CreateDatagramFrom(cmd, nil)
-	cluster.Connection.WriteJSON(datagram)
+	datagram := structs.CreateDatagram(cmd, cluster.Connection)
+	datagram.Send()
 	logger.Log.Infof("Sending CMD '%s' to cluster '%s'.", cmd, cluster.ClusterName)
 }
 

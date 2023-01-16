@@ -56,8 +56,8 @@ func heartbeat(done chan struct{}, c *websocket.Conn) {
 			return
 		case <-heartBeatTicker.C:
 			logger.Log.Info("HeartBeat ...")
-			heartBeat := structs.CreateDatagram("HeartBeat")
-			err := c.WriteJSON(heartBeat)
+			heartBeat := structs.CreateDatagram("HeartBeat", c)
+			err := heartBeat.Send()
 			if err != nil {
 				log.Println("HEARTBEAT ERROR:", err)
 				return
@@ -95,13 +95,15 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				datagram := structs.Datagram{}
 
 				_ = json.Unmarshal([]byte(rawJson), &datagram)
+				// TODO: Remove
+				//structs.PrettyPrint(datagram)
 
 				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) || utils.Contains(services.ALL_TESTS, datagram.Pattern) {
-					log.Printf("recv: %s (%s)", datagram.Pattern, datagram.Id)
-					payload := services.ExecuteRequest(datagram, c)
-					result := structs.CreateDatagramRequest(datagram, payload)
-					c.WriteJSON(result)
-					log.Printf("sent: %s (%s)", result.Pattern, result.Id)
+					//log.Printf("recv: %s (%s)", datagram.Pattern, datagram.Id)
+					responsePayload := services.ExecuteRequest(datagram, c)
+					result := structs.CreateDatagramRequest(datagram, responsePayload, c)
+					result.Send()
+					//log.Printf("sent: %s (%s)", result.Pattern, result.Id)
 				} else {
 					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 				}

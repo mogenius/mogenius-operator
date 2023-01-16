@@ -13,3 +13,11 @@ func PrettyPrint(i interface{}) {
 	}
 	fmt.Printf("%s\n", string(iJson))
 }
+
+func PrettyPrintString(i interface{}) string {
+	iJson, err := json.MarshalIndent(i, "", "  ")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	return string(iJson)
+}

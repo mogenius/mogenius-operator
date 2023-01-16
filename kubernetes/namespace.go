@@ -6,15 +6,18 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"sync"
 
 	"github.com/gorilla/websocket"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-func CreateNamespace(stage dtos.K8sStageDto, c *websocket.Conn) utils.Command {
-	cmd := utils.CreateCommand("Create Kubernetes namespace", c)
-	go func(cmd utils.Command) {
+func CreateNamespace(job *utils.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
+	cmd := utils.CreateCommand("Create Kubernetes namespace", job, c)
+	wg.Add(1)
+	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating namespace '%s'.", stage.K8sName), c)
 
 		var kubeProvider *KubeProvider
@@ -46,7 +49,7 @@ func CreateNamespace(stage dtos.K8sStageDto, c *websocket.Conn) utils.Command {
 		} else {
 			cmd.Success(fmt.Sprintf("Created namespace '%s'.", *namespace.Name), c)
 		}
-	}(cmd)
+	}(cmd, wg)
 	return cmd
 }
 
