@@ -4,6 +4,7 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"os"
 
@@ -11,17 +12,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ResetConfig bool
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "mogenius-k8s-manager",
-	Short: "Collect traffic data using pcap from a machine.",
+	Short: "Control your kubernetes cluster the easy way.",
 	Long: `
-Use mogenius-k8s-manager to collect extensive traffic-data in realtime from from your kubernetes cluster. 🚀`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
+	Run: func(cmd *cobra.Command, args []string) {
+		reset, _ := cmd.Flags().GetBool("reset")
+		logger.Log.Notice(reset)
+		if reset {
+			logger.Log.Notice("Resetting config yaml to dafault values.")
+			utils.WriteDefaultConfig()
+		}
+		utils.InitConfigYaml()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -36,13 +41,6 @@ func Execute() {
 		ExecName: cc.Bold,
 		Flags:    cc.Bold,
 	})
-
-	rootCmd.PersistentFlags().BoolVarP(&ResetConfig, "reset-config", "r", false, "Reset Config File.")
-
-	if ResetConfig {
-		utils.WriteDefaultConfig()
-	}
-	utils.InitConfigYaml()
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -60,5 +58,5 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().BoolP("reset", "r", false, "Reset Config YAML File ''~/.mogenius-k8s-manager/config.yaml")
 }

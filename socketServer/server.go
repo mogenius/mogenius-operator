@@ -2,7 +2,7 @@ package socketServer
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
@@ -139,13 +139,9 @@ func ReadInput() {
 		case "h":
 			printShortcuts()
 		case "s":
-			cluster, selectErr := selectCluster(tty)
-			if selectErr == nil {
-				cmd := selectCommand(tty)
-				sendCmdToCluster(cluster, cmd)
-				logger.Log.Noticef("Selected cluster: %s", cluster.ClusterName)
-			} else {
-				logger.Log.Notice(selectErr.Error())
+			cmd := selectCommands()
+			if cmd != "" {
+				requestTestFromCluster(cmd)
 			}
 		case "t":
 			testCmd := selectTestCommands(tty)
@@ -160,66 +156,66 @@ func ReadInput() {
 	}
 }
 
-func selectCommand(tty *tty.TTY) string {
-	for innerLoop := true; innerLoop; {
-		r, err := tty.ReadRune()
-		if err != nil {
-			log.Fatal(err)
-		}
-		cmds := listCommands()
-		inputInt, _ := strconv.Atoi(string(r))
-		if len(cmds) >= inputInt {
-			innerLoop = false
-			return cmds[inputInt-1]
-		} else {
-			logger.Log.Errorf("Unrecognized character '%s'. Please select 1-%d.", string(r), len(cmds))
-			innerLoop = false
-		}
-	}
-	return ""
-}
+// func selectCommand(tty *tty.TTY) string {
+// 	for innerLoop := true; innerLoop; {
+// 		r, err := tty.ReadRune()
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+// 		cmds := listCommands()
+// 		inputInt, _ := strconv.Atoi(string(r))
+// 		if len(cmds) >= inputInt {
+// 			innerLoop = false
+// 			return cmds[inputInt-1]
+// 		} else {
+// 			logger.Log.Errorf("Unrecognized character '%s'. Please select 1-%d.", string(r), len(cmds))
+// 			innerLoop = false
+// 		}
+// 	}
+// 	return ""
+// }
 
-func listCommands() []string {
-	cmds := []string{"status", "version"}
-	logger.Log.Noticef("Select from (%d) Commands:", len(cmds))
-	for i, cmd := range cmds {
-		logger.Log.Noticef("%d: %s", i+1, cmd)
-	}
-	return cmds
-}
+// func listCommands() []string {
+// 	cmds := []string{"status", "version"}
+// 	logger.Log.Noticef("Select from (%d) Commands:", len(cmds))
+// 	for i, cmd := range cmds {
+// 		logger.Log.Noticef("%d: %s", i+1, cmd)
+// 	}
+// 	return cmds
+// }
 
-func selectCluster(tty *tty.TTY) (structs.ClusterConnection, error) {
-	clusters := listClusters()
-	if len(clusters) > 0 {
-		for innerLoop := true; innerLoop; {
-			r, err := tty.ReadRune()
-			if err != nil {
-				log.Fatal(err)
-			}
+// func selectCluster(tty *tty.TTY) (structs.ClusterConnection, error) {
+// 	clusters := listClusters()
+// 	if len(clusters) > 0 {
+// 		for innerLoop := true; innerLoop; {
+// 			r, err := tty.ReadRune()
+// 			if err != nil {
+// 				log.Fatal(err)
+// 			}
 
-			inputInt, _ := strconv.Atoi(string(r))
-			if len(clusters) >= inputInt {
-				innerLoop = false
-				return connectionFromNo(string(r))
-			} else {
-				logger.Log.Errorf("Unrecognized character '%s'. Please select 1-%d.", string(r), len(clusters))
-				innerLoop = false
-			}
-		}
-	}
-	return structs.ClusterConnection{}, errors.New("No clusters available for selection.")
-}
+// 			inputInt, _ := strconv.Atoi(string(r))
+// 			if len(clusters) >= inputInt {
+// 				innerLoop = false
+// 				return connectionFromNo(string(r))
+// 			} else {
+// 				logger.Log.Errorf("Unrecognized character '%s'. Please select 1-%d.", string(r), len(clusters))
+// 				innerLoop = false
+// 			}
+// 		}
+// 	}
+// 	return structs.ClusterConnection{}, errors.New("No clusters available for selection.")
+// }
 
-func connectionFromNo(no string) (structs.ClusterConnection, error) {
-	count := 0
-	for _, value := range connections {
-		count++
-		if no == strconv.Itoa(count) {
-			return value, nil
-		}
-	}
-	return structs.ClusterConnection{}, errors.New("No connection found")
-}
+// func connectionFromNo(no string) (structs.ClusterConnection, error) {
+// 	count := 0
+// 	for _, value := range connections {
+// 		count++
+// 		if no == strconv.Itoa(count) {
+// 			return value, nil
+// 		}
+// 	}
+// 	return structs.ClusterConnection{}, errors.New("No connection found")
+// }
 
 func listClusters() []string {
 	var result []string = make([]string, 0)
@@ -288,11 +284,33 @@ func selectTestCommands(tty *tty.TTY) string {
 	return ""
 }
 
-func sendCmdToCluster(cluster structs.ClusterConnection, cmd string) {
-	datagram := structs.CreateDatagram(cmd, cluster.Connection)
-	datagram.Send()
-	logger.Log.Infof("Sending CMD '%s' to cluster '%s'.", cmd, cluster.ClusterName)
+func selectCommands() string {
+	for index, patternName := range services.ALL_REQUESTS {
+		fmt.Printf("%d: %s\n", index, patternName)
+	}
+
+	fmt.Println("input number:")
+	var number int
+	_, err := fmt.Scanf("%d", &number)
+	if err != nil {
+		logger.Log.Error(err)
+		return ""
+	}
+	fmt.Println(number)
+
+	if len(services.ALL_REQUESTS) >= number {
+		return services.ALL_REQUESTS[number]
+	} else {
+		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(services.ALL_REQUESTS))
+		return ""
+	}
 }
+
+// func sendCmdToCluster(cluster structs.ClusterConnection, cmd string) {
+// 	datagram := structs.CreateDatagram(cmd, cluster.Connection)
+// 	datagram.Send()
+// 	logger.Log.Infof("Sending CMD '%s' to cluster '%s'.", cmd, cluster.ClusterName)
+// }
 
 func selectRandomCluster() *structs.ClusterConnection {
 	for _, v := range connections {

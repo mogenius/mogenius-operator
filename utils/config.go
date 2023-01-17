@@ -20,6 +20,7 @@ type Config struct {
 		ApiKey          string `yaml:"api_key" env-description:"Api Key to access the server"`
 	} `yaml:"api_server"`
 	Misc struct {
+		Debug          bool   `yaml:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		StorageAccount string `yaml:"storage_account" env-description:"Azure Storage Account"`
 	} `yaml:"misc"`
 }
@@ -53,6 +54,7 @@ func InitConfigYaml() {
 	logger.Log.Infof("WebsocketPort: \t%d", CONFIG.ApiServer.WebsocketPort)
 	logger.Log.Infof("WebsocketPath: \t%s", CONFIG.ApiServer.WebsocketPath)
 	logger.Log.Infof("ApiKey: \t\t%s", CONFIG.ApiServer.ApiKey)
+	logger.Log.Infof("Debug: \t\t%t", CONFIG.Misc.Debug)
 	logger.Log.Infof("StorageAccount: \t%s", CONFIG.Misc.StorageAccount)
 }
 

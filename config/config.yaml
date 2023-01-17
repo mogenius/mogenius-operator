@@ -10,3 +10,4 @@ api_server:
 
 misc:
   storage_account: monfs
+  debug: false
