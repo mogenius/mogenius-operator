@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -14,9 +13,6 @@ var ALL_REQUESTS = []string{
 	"HeartBeat",
 	"K8sNotification",
 	"ClusterStatus",
-	"cicd/build-info GET",
-	"cicd/build-info-array POST",
-	"cicd/build-log GET",
 	"files/storage-stats GET",
 	"files/list POST",
 	"files/download POST",
@@ -44,7 +40,6 @@ var ALL_REQUESTS = []string{
 	"service/log/:namespace/:podId GET",
 	"service/log-stream/:namespace/:podId/:sinceSeconds SSE",
 	"service/resource-status/:resource/:namespace/:name/:statusOnly GET",
-	"service/build POST",
 	"service/restart POST",
 	"service/stop POST",
 	"service/start POST",
@@ -52,13 +47,6 @@ var ALL_REQUESTS = []string{
 	"service/spectrum-bind POST",
 	"service/spectrum-unbind DELETE",
 	"service/spectrum-configmaps GET",
-}
-
-var ALL_TESTS = []string{
-	"TestCreateNamespace",
-	"TestDeleteNamespace",
-	"TestUpdateIngress",
-	"TestCreatePV",
 }
 
 func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
@@ -69,30 +57,6 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 		return K8sNotification(datagram, c)
 	case "ClusterStatus":
 		return mokubernetes.ClusterStatus()
-	case "cicd/build-info GET":
-		data := BuildInfoRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
-		if err != nil {
-			datagram.Err = err.Error()
-			return datagram
-		}
-		return BuildInfo(data)
-	case "cicd/build-info-array POST":
-		data := BuildInfoArrayRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
-		if err != nil {
-			datagram.Err = err.Error()
-			return datagram
-		}
-		return BuildInfoArray(data)
-	case "cicd/build-log GET":
-		data := BuildLogRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
-		if err != nil {
-			datagram.Err = err.Error()
-			return datagram
-		}
-		return BuildLog(data)
 	case "files/storage-stats GET":
 		return AllFiles()
 	case "files/list POST":
@@ -182,7 +146,7 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 			datagram.Err = err.Error()
 			return datagram
 		}
-		return DeleteNamespace(data)
+		return DeleteNamespace(data, c)
 	case "namespace/shutdown POST":
 		data := NamespaceShutdownRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
@@ -297,14 +261,6 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 			return datagram
 		}
 		return PodStatus(data)
-	case "service/build POST":
-		data := ServiceBuildRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
-		if err != nil {
-			datagram.Err = err.Error()
-			return datagram
-		}
-		return Build(data)
 	case "service/restart POST":
 		data := ServiceRestartRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
@@ -357,17 +313,6 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 		return SpectrumConfigmaps()
 	}
 
-	switch datagram.Pattern {
-	case "TestCreateNamespace":
-		return TestCreateNamespace(datagram, c)
-	case "TestDeleteNamespace":
-		return TestDeleteNamespace(datagram, c)
-	case "TestUpdateIngress":
-		return TestUpdateIngress(datagram, c)
-	case "TestCreatePV":
-		return TestCreatePv(datagram, c)
-	}
-
 	datagram.Err = "Pattern not found"
 	return datagram
 }
@@ -380,30 +325,4 @@ func HeartBeat(d structs.Datagram, c *websocket.Conn) interface{} {
 func K8sNotification(d structs.Datagram, c *websocket.Conn) interface{} {
 	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
 	return nil
-}
-
-func TestUpdateIngress(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
-	return mokubernetes.UpdateIngress(dtos.K8sNamespaceDtoExampleData(), dtos.K8sStageDtoExampleData(), nil, nil)
-}
-
-func TestCreateNamespace(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
-	data := NamespaceCreateRequest{}
-	err := json.Unmarshal([]byte(d.Payload), &data)
-	if err != nil {
-		d.Err = err.Error()
-		return d
-	}
-	return CreateNamespace(data, c)
-}
-
-func TestDeleteNamespace(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
-	return mokubernetes.DeleteNamespace(dtos.K8sStageDtoExampleData())
-}
-
-func TestCreatePv(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
-	return mokubernetes.CreatePersistentVolume(dtos.K8sStageDtoExampleData())
 }

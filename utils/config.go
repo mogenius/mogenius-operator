@@ -28,7 +28,7 @@ type Config struct {
 var DefaultConfigFile string
 var CONFIG Config
 
-func InitConfigYaml() {
+func InitConfigYaml(showDebug bool) {
 	_, configPath := GetDirectories()
 
 	if _, err := os.Stat(configPath); err == nil || os.IsExist(err) {
@@ -48,6 +48,12 @@ func InitConfigYaml() {
 		}
 	}
 
+	if showDebug {
+		PrintSettings()
+	}
+}
+
+func PrintSettings() {
 	logger.Log.Infof("ClusterName: \t%s", CONFIG.Kubernetes.ClusterName)
 	logger.Log.Infof("RunInCluster: \t%t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("WebsocketServer: %s", CONFIG.ApiServer.WebsocketServer)

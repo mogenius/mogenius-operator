@@ -7,6 +7,7 @@ import (
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/socketServer"
+	"mogenius-k8s-manager/utils"
 	"os"
 	"os/signal"
 	"time"
@@ -20,6 +21,11 @@ var testClientCmd = &cobra.Command{
 	Short: "Print testServerCmd information and exit.",
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		showDebug, _ := cmd.Flags().GetBool("debug")
+		if showDebug {
+			utils.PrintSettings()
+		}
+
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		for {
@@ -48,4 +54,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	testClientCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
 }

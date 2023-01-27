@@ -48,12 +48,6 @@ func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	return nil
 }
 
-func Build(r ServiceBuildRequest) interface{} {
-	// TODO: REMOVE ME! das hier soll in API-Service
-	logger.Log.Info(utils.FunctionName())
-	return nil
-}
-
 func Restart(r ServiceRestartRequest) interface{} {
 	// TODO: Implement
 	logger.Log.Info(utils.FunctionName())
@@ -103,6 +97,15 @@ type ServiceCreateRequest struct {
 	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
+func ServiceCreateRequestExample() ServiceCreateRequest {
+	return ServiceCreateRequest{
+		Service: dtos.K8sServiceDto{
+			Id:   "test",
+			Name: "test",
+		},
+	}
+}
+
 // service/delete POST
 type ServiceDeleteRequest struct {
 	NamespaceId string `json:"namespaceId"`
@@ -110,10 +113,25 @@ type ServiceDeleteRequest struct {
 	ServiceId   string `json:"serviceId"`
 }
 
+func ServiceDeleteRequestExample() ServiceDeleteRequest {
+	return ServiceDeleteRequest{
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
+		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+	}
+}
+
 // service/pod-ids/:namespace/:serviceId GET
 type ServiceGetPodIdsRequest struct {
 	Namespace string `json:"namespace"`
 	ServiceId string `json:"serviceId"`
+}
+
+func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
+	return ServiceGetPodIdsRequest{
+		Namespace: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		ServiceId: "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+	}
 }
 
 // service/images/:imageName PATCH
@@ -124,10 +142,26 @@ type ServiceSetImageRequest struct {
 	ImageName   string `json:"imageName"`
 }
 
+func ServiceSetImageRequestExample() ServiceSetImageRequest {
+	return ServiceSetImageRequest{
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
+		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+		ImageName:   "test",
+	}
+}
+
 // service/log/:namespace/:podId GET
 type ServiceGetLogRequest struct {
 	Namespace string `json:"namespace"`
 	PodId     string `json:"podId"`
+}
+
+func ServiceGetLogRequestExample() ServiceGetLogRequest {
+	return ServiceGetLogRequest{
+		Namespace: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		PodId:     "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+	}
 }
 
 // service/log-stream/:namespace/:podId/:sinceSeconds SSE
@@ -135,6 +169,14 @@ type ServiceLogStreamRequest struct {
 	Namespace    string `json:"namespace"`
 	PodId        string `json:"podId"`
 	SinceSeconds int    `json:"sinceSeconds"`
+}
+
+func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
+	return ServiceLogStreamRequest{
+		Namespace:    "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		PodId:        "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+		SinceSeconds: 0,
+	}
 }
 
 // service/resource-status/:resource/:namespace/:name/:statusOnly GET
@@ -145,15 +187,13 @@ type ServiceResourceStatusRequest struct {
 	StatusOnly  bool   `json:"statusOnly"`
 }
 
-// TODO: das gehört hier nicht mehr rein. soll in API-Service
-// service/build POST
-type ServiceBuildRequest struct {
-	NamespaceId   string `json:"namespaceId"`
-	Stage         string `json:"stage"`
-	ServiceId     string `json:"serviceId"`
-	CommitHash    string `json:"commitHash"`
-	CommitAuthor  string `json:"commitAuthor"`
-	CommitMessage string `json:"commitMessage"`
+func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
+	return ServiceResourceStatusRequest{
+		Resource:    "deployment",
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Name:        "test",
+		StatusOnly:  true,
+	}
 }
 
 // service/restart POST
@@ -163,11 +203,27 @@ type ServiceRestartRequest struct {
 	ServiceId   string `json:"serviceId"`
 }
 
+func ServiceRestartRequestExample() ServiceRestartRequest {
+	return ServiceRestartRequest{
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
+		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+	}
+}
+
 // service/stop POST
 type ServiceStopRequest struct {
 	NamespaceId string `json:"namespaceId"`
 	Stage       string `json:"stage"`
 	ServiceId   string `json:"serviceId"`
+}
+
+func ServiceStopRequestExample() ServiceStopRequest {
+	return ServiceStopRequest{
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
+		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+	}
 }
 
 // service/start POST
@@ -177,11 +233,27 @@ type ServiceStartRequest struct {
 	ServiceId   string `json:"serviceId"`
 }
 
+func ServiceStartRequestExample() ServiceStartRequest {
+	return ServiceStartRequest{
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
+		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+	}
+}
+
 // service/update-service POST
 type ServiceUpdateRequest struct {
 	NamespaceId string `json:"namespaceId"`
 	Stage       string `json:"stage"`
 	ServiceId   string `json:"serviceId"`
+}
+
+func ServiceUpdateRequestExample() ServiceUpdateRequest {
+	return ServiceUpdateRequest{
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
+		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+	}
 }
 
 // service/spectrum-bind POST
@@ -194,11 +266,30 @@ type ServiceBindSpectrumRequest struct {
 	NamespaceId      string `json:"namespaceId"`
 }
 
+func ServiceBindSpectrumRequestExample() ServiceBindSpectrumRequest {
+	return ServiceBindSpectrumRequest{
+		K8sNamespaceName: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		K8sServiceName:   "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
+		ExternalPort:     8080,
+		InternalPort:     80,
+		Type:             "http",
+		NamespaceId:      "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+	}
+}
+
 // service/spectrum-unbind DELETE
 type ServiceUnbindSpectrumRequest struct {
 	ExternalPort int    `json:"externalPort"`
 	Type         string `json:"type"`
 	NamespaceId  string `json:"namespaceId"`
+}
+
+func ServiceUnbindSpectrumRequestExample() ServiceUnbindSpectrumRequest {
+	return ServiceUnbindSpectrumRequest{
+		ExternalPort: 8080,
+		Type:         "http",
+		NamespaceId:  "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+	}
 }
 
 // service/spectrum-configmaps GET

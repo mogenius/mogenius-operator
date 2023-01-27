@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
@@ -67,9 +66,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 			return
 		}
 
-		if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) || utils.Contains(services.ALL_TESTS, datagram.Pattern) {
+		if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
 			//services.ExecuteRequest(datagram, connection)
-			structs.PrettyPrint(datagram)
+			datagram.DisplayBeautiful()
 		} else {
 			logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 		}
@@ -114,7 +113,6 @@ func printShortcuts() {
 	logger.Log.Notice("h:     help")
 	logger.Log.Notice("l:     list clusters")
 	logger.Log.Notice("s:     send command to cluster")
-	logger.Log.Notice("t:     send test-cmd to cluster")
 	logger.Log.Notice("q:     quit application")
 	logger.Log.Notice("1-9:   request status from cluster")
 }
@@ -141,11 +139,8 @@ func ReadInput() {
 		case "s":
 			cmd := selectCommands()
 			if cmd != "" {
-				requestTestFromCluster(cmd)
+				requestCmdFromCluster(cmd)
 			}
-		case "t":
-			testCmd := selectTestCommands(tty)
-			requestTestFromCluster(testCmd)
 		case "l":
 			listClusters()
 		case "q":
@@ -155,67 +150,6 @@ func ReadInput() {
 		}
 	}
 }
-
-// func selectCommand(tty *tty.TTY) string {
-// 	for innerLoop := true; innerLoop; {
-// 		r, err := tty.ReadRune()
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		cmds := listCommands()
-// 		inputInt, _ := strconv.Atoi(string(r))
-// 		if len(cmds) >= inputInt {
-// 			innerLoop = false
-// 			return cmds[inputInt-1]
-// 		} else {
-// 			logger.Log.Errorf("Unrecognized character '%s'. Please select 1-%d.", string(r), len(cmds))
-// 			innerLoop = false
-// 		}
-// 	}
-// 	return ""
-// }
-
-// func listCommands() []string {
-// 	cmds := []string{"status", "version"}
-// 	logger.Log.Noticef("Select from (%d) Commands:", len(cmds))
-// 	for i, cmd := range cmds {
-// 		logger.Log.Noticef("%d: %s", i+1, cmd)
-// 	}
-// 	return cmds
-// }
-
-// func selectCluster(tty *tty.TTY) (structs.ClusterConnection, error) {
-// 	clusters := listClusters()
-// 	if len(clusters) > 0 {
-// 		for innerLoop := true; innerLoop; {
-// 			r, err := tty.ReadRune()
-// 			if err != nil {
-// 				log.Fatal(err)
-// 			}
-
-// 			inputInt, _ := strconv.Atoi(string(r))
-// 			if len(clusters) >= inputInt {
-// 				innerLoop = false
-// 				return connectionFromNo(string(r))
-// 			} else {
-// 				logger.Log.Errorf("Unrecognized character '%s'. Please select 1-%d.", string(r), len(clusters))
-// 				innerLoop = false
-// 			}
-// 		}
-// 	}
-// 	return structs.ClusterConnection{}, errors.New("No clusters available for selection.")
-// }
-
-// func connectionFromNo(no string) (structs.ClusterConnection, error) {
-// 	count := 0
-// 	for _, value := range connections {
-// 		count++
-// 		if no == strconv.Itoa(count) {
-// 			return value, nil
-// 		}
-// 	}
-// 	return structs.ClusterConnection{}, errors.New("No connection found")
-// }
 
 func listClusters() []string {
 	var result []string = make([]string, 0)
@@ -243,15 +177,85 @@ func requestStatusFromCluster(no string) {
 	logger.Log.Errorf("Cluster number '%s' not found.", no)
 }
 
-func requestTestFromCluster(pattern string) {
+func requestCmdFromCluster(pattern string) {
 	if len(connections) > 0 {
 		var payload interface{} = nil
 		switch pattern {
-		case "TestCreateNamespace":
-			payload = services.NamespaceCreateRequest{
-				Namespace: dtos.K8sNamespaceDtoExampleData(),
-				Stage:     dtos.K8sStageDtoExampleData(),
-			}
+
+		case "HeartBeat":
+			payload = nil
+		case "K8sNotification":
+			payload = nil
+		case "ClusterStatus":
+			payload = nil
+		case "files/storage-stats GET":
+			payload = nil
+		case "files/list POST":
+			payload = services.FilesListRequestExampleData()
+		case "files/download POST":
+			payload = services.FilesDownloadRequestExampleData()
+		case "files/upload POST":
+			payload = services.FilesUploadRequestExampleData()
+		case "files/update POST":
+			payload = services.FilesUpdateRequestExampleData()
+		case "files/create-folder POST":
+			payload = services.FilesCreateFolderRequestExampleData()
+		case "files/rename POST":
+			payload = services.FilesRenameRequestExampleData()
+		case "files/chown POST":
+			payload = services.FilesChownRequestExampleData()
+		case "files/chmod POST":
+			payload = services.FilesChmodRequestExampleData()
+		case "files/delete POST":
+			payload = services.FilesDeleteRequestExampleData()
+		case "namespace/create POST":
+			payload = services.NamespaceCreateRequestExample()
+		case "namespace/delete POST":
+			payload = services.NamespaceDeleteRequestExample()
+		case "namespace/shutdown POST":
+			payload = services.NamespaceShutdownRequestExample()
+		case "namespace/reboot POST":
+			payload = services.NamespaceRebootRequestExample()
+		case "namespace/ingress-state/:state GET":
+			payload = services.NamespaceSetIngressStateRequestExample()
+		case "namespace/pod-ids/:namespace GET":
+			payload = services.NamespacePodIdsRequestExample()
+		case "namespace/get-cluster-pods GET":
+			payload = nil
+		case "namespace/validate-cluster-pods POST":
+			payload = services.NamespaceValidateClusterPodsRequestExample()
+		case "namespace/validate-ports POST":
+			payload = services.NamespaceValidatePortsRequestExample()
+		case "namespace/storage-size POST":
+			payload = services.NamespaceStorageSizeRequestExample()
+		case "service/create POST":
+			payload = services.ServiceCreateRequestExample()
+		case "service/delete POST":
+			payload = services.ServiceDeleteRequestExample()
+		case "service/pod-ids/:namespace/:service GET":
+			payload = services.ServiceGetPodIdsRequestExample()
+		case "service/images/:imageName PATCH":
+			payload = services.ServiceSetImageRequestExample()
+		case "service/log/:namespace/:podId GET":
+			payload = services.ServiceGetLogRequestExample()
+		case "service/log-stream/:namespace/:podId/:sinceSeconds SSE":
+			payload = services.ServiceLogStreamRequestExample()
+		case "service/resource-status/:resource/:namespace/:name/:statusOnly GET":
+			payload = services.ServiceResourceStatusRequestExample()
+		case "service/restart POST":
+			payload = services.ServiceRestartRequestExample()
+		case "service/stop POST":
+			payload = services.ServiceStopRequestExample()
+		case "service/start POST":
+			payload = services.ServiceStartRequestExample()
+		case "service/update-service POST":
+			payload = services.ServiceUpdateRequestExample()
+		case "service/spectrum-bind POST":
+			payload = services.ServiceBindSpectrumRequestExample()
+		case "service/spectrum-unbind DELETE":
+			payload = services.ServiceUnbindSpectrumRequestExample()
+		case "service/spectrum-configmaps GET":
+			payload = nil
 		}
 		firstConnection := selectRandomCluster()
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
@@ -260,28 +264,6 @@ func requestTestFromCluster(pattern string) {
 		return
 	}
 	logger.Log.Error("Not connected to any cluster.")
-}
-
-func selectTestCommands(tty *tty.TTY) string {
-	for index, testPatternName := range services.ALL_TESTS {
-		logger.Log.Infof("%d: %s", index, testPatternName)
-	}
-
-	for innerLoop := true; innerLoop; {
-		r, err := tty.ReadRune()
-		if err != nil {
-			log.Fatal(err)
-		}
-		inputInt, _ := strconv.Atoi(string(r))
-		if len(services.ALL_TESTS) >= inputInt {
-			innerLoop = false
-			return services.ALL_TESTS[inputInt]
-		} else {
-			logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", string(r), len(services.ALL_TESTS))
-			innerLoop = false
-		}
-	}
-	return ""
 }
 
 func selectCommands() string {
@@ -305,12 +287,6 @@ func selectCommands() string {
 		return ""
 	}
 }
-
-// func sendCmdToCluster(cluster structs.ClusterConnection, cmd string) {
-// 	datagram := structs.CreateDatagram(cmd, cluster.Connection)
-// 	datagram.Send()
-// 	logger.Log.Infof("Sending CMD '%s' to cluster '%s'.", cmd, cluster.ClusterName)
-// }
 
 func selectRandomCluster() *structs.ClusterConnection {
 	for _, v := range connections {

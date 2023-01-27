@@ -5,6 +5,7 @@ go 1.19
 //replace github.com/mogenius/mo-go/utils => /Users/bene/git/mo/mo-go/utils
 
 require (
+	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
 	github.com/fatih/color v1.13.0
 	github.com/gin-gonic/gin v1.8.2
 	github.com/go-playground/validator v9.31.0+incompatible
@@ -41,6 +42,7 @@ require (
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/joho/godotenv v1.4.0 // indirect

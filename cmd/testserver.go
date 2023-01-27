@@ -18,6 +18,11 @@ var testServerCmd = &cobra.Command{
 	Short: "Print testServerCmd information and exit.",
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		showDebug, _ := cmd.Flags().GetBool("debug")
+		if showDebug {
+			utils.PrintSettings()
+		}
+
 		gin.SetMode(gin.ReleaseMode)
 		router := gin.Default()
 		socketServer.Init(router)
@@ -40,4 +45,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	testServerCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
 }

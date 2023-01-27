@@ -1,9 +1,13 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
+	"github.com/TylerBrock/colorjson"
+	"github.com/fatih/color"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -47,6 +51,46 @@ func CreateDatagram(pattern string, c *websocket.Conn) Datagram {
 	return datagram
 }
 
+func (d *Datagram) DisplayBeautiful() {
+
+	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
+	PATTERNCOLOR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
+	TIMECOLOR := color.New(color.FgWhite, color.BgRed).SprintFunc()
+	PAYLOADCOLOR := color.New(color.FgWhite, color.BgHiGreen).SprintFunc()
+
+	fmt.Printf("%s %s\n", IDCOLOR("ID:      "), d.Id)
+	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
+	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
+
+	var obj map[string]interface{}
+	json.Unmarshal([]byte(d.Payload), &obj)
+
+	f := colorjson.NewFormatter()
+	f.Indent = 2
+
+	s, _ := f.Marshal(obj)
+
+	fmt.Printf("%s %s\n", PAYLOADCOLOR("PAYLOAD: "), string(s))
+}
+
+func (d *Datagram) DisplayReceiveSummary() {
+
+	RECEIVCOLOR := color.New(color.FgWhite, color.BgHiGreen).SprintFunc()
+	PATTERNCOLOR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
+	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
+
+	fmt.Printf("%s%s%s\n", RECEIVCOLOR("RECEIVED      "), PATTERNCOLOR(fillWith(d.Pattern, 50, " ")), IDCOLOR(d.Id))
+}
+
+func (d *Datagram) DisplaySentSummary() {
+
+	RECEIVCOLOR := color.New(color.FgWhite, color.BgHiGreen).SprintFunc()
+	PATTERNCOLOR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
+	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
+
+	fmt.Printf("%s%s%s\n", RECEIVCOLOR("SENT          "), PATTERNCOLOR(fillWith(d.Pattern, 50, " ")), IDCOLOR(d.Id))
+}
+
 func (d *Datagram) Send() error {
 	if d.Connection != nil {
 		sendMutex.Lock()
@@ -56,4 +100,14 @@ func (d *Datagram) Send() error {
 	} else {
 		return fmt.Errorf("Connection cannot be nil.")
 	}
+}
+
+func fillWith(s string, targetLength int, chars string) string {
+	if len(s) >= targetLength {
+		return s
+	}
+	for i := 0; i < targetLength-len(s)+1; i++ {
+		s = s + chars
+	}
+	return s
 }

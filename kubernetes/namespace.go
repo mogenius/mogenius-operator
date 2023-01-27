@@ -53,29 +53,33 @@ func CreateNamespace(job *utils.Job, namespace dtos.K8sNamespaceDto, stage dtos.
 	return cmd
 }
 
-func DeleteNamespace(stage dtos.K8sStageDto) error {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
+func DeleteNamespace(job *utils.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
+	cmd := utils.CreateCommand("Delete Kubernetes namespace", job, c)
+	wg.Add(1)
+	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Deleting namespace '%s'.", stage.K8sName), c)
 
-	if err != nil {
-		logger.Log.Errorf("DeleteNamespace ERROR: %s", err.Error())
-	}
+		var kubeProvider *KubeProvider
+		var err error
+		if !utils.CONFIG.Kubernetes.RunInCluster {
+			kubeProvider, err = NewKubeProviderLocal()
+		} else {
+			kubeProvider, err = NewKubeProviderInCluster()
+		}
 
-	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
+		if err != nil {
+			logger.Log.Errorf("DeleteNamespace ERROR: %s", err.Error())
+		}
 
-	logger.Log.Infof("Deleting namespace '%s'.", stage.K8sName)
+		namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 
-	err = namespaceClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
-	if err != nil {
-		logger.Log.Errorf("DeleteNamespace ERROR: %s", err.Error())
-	} else {
-		logger.Log.Infof("Deleted namespace '%s'.", stage.K8sName)
-	}
-
-	return err
+		err = namespaceClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()), c)
+		} else {
+			cmd.Success(fmt.Sprintf("Deleted namespace '%s'.", stage.K8sName), c)
+		}
+	}(cmd, wg)
+	return cmd
 }

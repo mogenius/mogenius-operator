@@ -55,8 +55,8 @@ func heartbeat(done chan struct{}, c *websocket.Conn) {
 		case <-done:
 			return
 		case <-heartBeatTicker.C:
-			logger.Log.Info("HeartBeat ...")
 			heartBeat := structs.CreateDatagram("HeartBeat", c)
+			heartBeat.DisplaySentSummary()
 			err := heartBeat.Send()
 			if err != nil {
 				log.Println("HEARTBEAT ERROR:", err)
@@ -98,8 +98,9 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				// TODO: Remove
 				//structs.PrettyPrint(datagram)
 
-				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) || utils.Contains(services.ALL_TESTS, datagram.Pattern) {
+				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
 					//log.Printf("recv: %s (%s)", datagram.Pattern, datagram.Id)
+					datagram.DisplayReceiveSummary()
 					responsePayload := services.ExecuteRequest(datagram, c)
 					result := structs.CreateDatagramRequest(datagram, responsePayload, c)
 					result.Send()
