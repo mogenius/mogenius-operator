@@ -142,7 +142,8 @@ func stateLog(typeName string, data *dtos.K8sNotificationDto) {
 	case "STARTED":
 		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, STAR(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
 	case "ERROR", "FAILED":
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, ERRO(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, ERRO(fillWith(data.State, 10, " ")), truncateText(data.Title, 60), duration)
+		fmt.Printf("%-6s %-25s %s\n", "", ERRO(fillWith("--> ", 10, " ")), data.Message)
 	case "SUCCEEDED":
 		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, SUCC(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
 	default:

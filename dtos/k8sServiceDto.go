@@ -29,7 +29,7 @@ func K8sServiceDtoExampleData() K8sServiceDto {
 		DisplayName:                          "displayName",
 		ShortId:                              "shortId",
 		FullHostname:                         "fullHostname",
-		K8sName:                              "k8sName",
+		K8sName:                              "k8sname",
 		CNames:                               []NamespaceServiceCnameDto{NamespaceServiceCnameDtoExampleData()},
 		GitRepository:                        "gitRepository",
 		GitBranch:                            "gitBranch",

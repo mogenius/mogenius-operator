@@ -4,64 +4,76 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+
+	"github.com/gorilla/websocket"
 )
 
 func AllFiles() dtos.PersistentFileStatsDto {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return dtos.PersistentFileStatsDto{}
 }
 
-func List(r FilesListRequest) []dtos.PersistentFileDto {
+func List(r FilesListRequest, c *websocket.Conn) []dtos.PersistentFileDto {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return []dtos.PersistentFileDto{}
 }
 
-func Download(r FilesDownloadRequest) interface{} {
+func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func Upload(r FilesUploadRequest) interface{} {
+func Upload(r FilesUploadRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func Update(r FilesUpdateRequest) interface{} {
+func Update(r FilesUpdateRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func CreateFolder(r FilesCreateFolderRequest) bool {
+func CreateFolder(r FilesCreateFolderRequest, c *websocket.Conn) bool {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
-func Rename(r FilesRenameRequest) bool {
+func Rename(r FilesRenameRequest, c *websocket.Conn) bool {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
-func Chown(r FilesChownRequest) interface{} {
+func Chown(r FilesChownRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func Chmod(r FilesChmodRequest) interface{} {
+func Chmod(r FilesChmodRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func Delete(r FilesDeleteRequest) bool {
+func Delete(r FilesDeleteRequest, c *websocket.Conn) bool {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return false
 }

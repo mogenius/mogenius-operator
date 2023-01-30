@@ -2,90 +2,116 @@ package services
 
 import (
 	"mogenius-k8s-manager/dtos"
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
-func CreateService(r ServiceCreateRequest) interface{} {
+func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
+	var wg sync.WaitGroup
+
+	job := utils.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job.Start(c)
+	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, nil, nil, c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return job
+}
+
+func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
+	var wg sync.WaitGroup
+
+	job := utils.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job.Start(c)
+	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return job
+}
+
+func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func DeleteService(r ServiceDeleteRequest) interface{} {
+func ServicePodIds(r ServiceGetPodIdsRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func SetImage(r ServiceSetImageRequest) interface{} {
+func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
-	// TODO: Implement
-	logger.Log.Info(utils.FunctionName())
-	return nil
-}
-
-func PodLog(r ServiceGetLogRequest) interface{} {
-	// TODO: Implement
-	logger.Log.Info(utils.FunctionName())
-	return nil
-}
-
-func PodLogStream(r ServiceLogStreamRequest) interface{} {
+func PodLogStream(r ServiceLogStreamRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement XXX WAS AN OBSERVABLE - SSE - written directly to response
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func PodStatus(r ServiceResourceStatusRequest) interface{} {
+func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func Restart(r ServiceRestartRequest) interface{} {
+func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func StopService(r ServiceStopRequest) interface{} {
+func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func StartService(r ServiceStartRequest) interface{} {
+func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func UpdateService(r ServiceUpdateRequest) interface{} {
+func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func BindSpectrum(r ServiceBindSpectrumRequest) interface{} {
+func BindSpectrum(r ServiceBindSpectrumRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func UnbindSpectrum(r ServiceUnbindSpectrumRequest) interface{} {
+func UnbindSpectrum(r ServiceUnbindSpectrumRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func SpectrumConfigmaps() interface{} {
+func SpectrumConfigmaps(c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
@@ -99,25 +125,24 @@ type ServiceCreateRequest struct {
 
 func ServiceCreateRequestExample() ServiceCreateRequest {
 	return ServiceCreateRequest{
-		Service: dtos.K8sServiceDto{
-			Id:   "test",
-			Name: "test",
-		},
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Stage:     dtos.K8sStageDtoExampleData(),
+		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
 
 // service/delete POST
 type ServiceDeleteRequest struct {
-	NamespaceId string `json:"namespaceId"`
-	Stage       string `json:"stage"`
-	ServiceId   string `json:"serviceId"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Stage     dtos.K8sStageDto     `json:"stage"`
+	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func ServiceDeleteRequestExample() ServiceDeleteRequest {
 	return ServiceDeleteRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
-		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Stage:     dtos.K8sStageDtoExampleData(),
+		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
 

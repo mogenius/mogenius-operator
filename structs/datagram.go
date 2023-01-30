@@ -15,11 +15,11 @@ import (
 var sendMutex sync.Mutex
 
 type Datagram struct {
-	Id         string          `json:"id" validate:"required"`
-	Pattern    string          `json:"pattern" validate:"required"`
-	Payload    string          `json:"payload,omitempty"`
-	Err        string          `json:"err,omitempty"`
-	Connection *websocket.Conn // websocket connection of the player
+	Id         string `json:"id" validate:"required"`
+	Pattern    string `json:"pattern" validate:"required"`
+	Payload    string `json:"payload,omitempty"`
+	Err        string `json:"err,omitempty"`
+	Connection *websocket.Conn
 }
 
 func CreateDatagramRequest(request Datagram, data interface{}, c *websocket.Conn) Datagram {

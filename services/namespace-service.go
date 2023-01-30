@@ -30,6 +30,7 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) utils.Job {
 		// TODO: IMPLEMENT THESE!!!!
 		// job.add(this.createPV(stage))
 		// job.add(this.createPVC(stage))
+		logger.Log.Info("TODO: IMPLEMENT PV AND PC")
 	}
 	wg.Wait()
 	job.Finish(c)
@@ -47,53 +48,61 @@ func DeleteNamespace(r NamespaceDeleteRequest, c *websocket.Conn) utils.Job {
 	return job
 }
 
-func ShutdownNamespace(r NamespaceShutdownRequest) bool {
+func ShutdownNamespace(r NamespaceShutdownRequest, c *websocket.Conn) bool {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
-func RebootNamespace(r NamespaceRebootRequest) bool {
+func RebootNamespace(r NamespaceRebootRequest, c *websocket.Conn) bool {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
-func SetIngressState(r NamespaceSetIngressStateRequest) interface{} {
+func SetIngressState(r NamespaceSetIngressStateRequest, c *websocket.Conn) interface{} {
 	// ENABLED = 'ENABLED',
 	// DISABLED = 'DISABLED',
 	// TRAFFIC_EXCEEDED = 'TRAFFIC_EXCEEDED'
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func PodIds(r NamespacePodIdsRequest) interface{} {
+func PodIds(r NamespacePodIdsRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func ClusterPods() []string {
+func ClusterPods(c *websocket.Conn) []string {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return []string{}
 }
 
-func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) interface{} {
+func ValidateClusterPods(r NamespaceValidateClusterPodsRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
+func ValidateClusterPorts(r NamespaceValidatePortsRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
-func StorageSize(r NamespaceStorageSizeRequest) map[string]int {
+func StorageSize(r NamespaceStorageSizeRequest, c *websocket.Conn) map[string]int {
 	// TODO: Implement
+	logger.Log.Info("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return map[string]int{}
 }

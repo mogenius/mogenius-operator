@@ -181,7 +181,6 @@ func requestCmdFromCluster(pattern string) {
 	if len(connections) > 0 {
 		var payload interface{} = nil
 		switch pattern {
-
 		case "HeartBeat":
 			payload = nil
 		case "K8sNotification":
@@ -259,6 +258,7 @@ func requestCmdFromCluster(pattern string) {
 		}
 		firstConnection := selectRandomCluster()
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
+		datagram.DisplaySentSummary()
 		datagram.Send()
 		logger.Log.Infof("Requesting '%s' for cluster '%s'.", pattern, firstConnection.ClusterName)
 		return
