@@ -75,10 +75,16 @@ func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
 }
 
 func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+	var wg sync.WaitGroup
+
+	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job.Start(c)
+	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return job
 }
 
 func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
@@ -87,6 +93,8 @@ func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
 	job := structs.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.NamespaceShortId, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -98,7 +106,8 @@ func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
 	job := structs.CreateJob("Start Service "+r.Stage.DisplayName, r.NamespaceId, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.StartDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, false, c, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.NamespaceShortId, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
@@ -247,16 +256,16 @@ func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
 
 // service/restart POST
 type ServiceRestartRequest struct {
-	NamespaceId string `json:"namespaceId"`
-	Stage       string `json:"stage"`
-	ServiceId   string `json:"serviceId"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Stage     dtos.K8sStageDto     `json:"stage"`
+	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func ServiceRestartRequestExample() ServiceRestartRequest {
 	return ServiceRestartRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
-		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Stage:     dtos.K8sStageDtoExampleData(),
+		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
 

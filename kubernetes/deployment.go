@@ -9,10 +9,10 @@ import (
 	"mogenius-k8s-manager/utils"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/apps/v1"
-	scale "k8s.io/api/autoscaling/v1"
 	core "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -145,14 +145,9 @@ func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		}
 
 		serviceClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
+		deployment := generateDeployment(stage, service, false)
 
-		scale := scale.Scale{
-			Spec: scale.ScaleSpec{
-				Replicas: int32(service.K8sSettings.ReplicaCount),
-			},
-		}
-
-		_, err = serviceClient.UpdateScale(context.TODO(), service.K8sName, &scale, metav1.UpdateOptions{})
+		_, err = serviceClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -182,18 +177,53 @@ func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 		}
 
 		serviceClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
+		deployment := generateDeployment(stage, service, false)
+		deployment.Spec.Replicas = utils.Pointer[int32](0)
 
-		scale := scale.Scale{
-			Spec: scale.ScaleSpec{
-				Replicas: 0,
-			},
-		}
-
-		_, err = serviceClient.UpdateScale(context.TODO(), service.K8sName, &scale, metav1.UpdateOptions{})
+		_, err = serviceClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()), c)
 		} else {
 			cmd.Success(fmt.Sprintf("Stopped Deployment '%s'.", service.K8sName), c)
+		}
+	}(cmd, wg)
+	return cmd
+}
+
+func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Restart Deployment", job, c)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Restarting Deployment '%s'.", service.K8sName), c)
+
+		var kubeProvider *KubeProvider
+		var err error
+		if !utils.CONFIG.Kubernetes.RunInCluster {
+			kubeProvider, err = NewKubeProviderLocal()
+		} else {
+			kubeProvider, err = NewKubeProviderInCluster()
+		}
+
+		if err != nil {
+			logger.Log.Errorf("RestartDeployment ERROR: %s", err.Error())
+		}
+
+		serviceClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
+		deployment := generateDeployment(stage, service, false)
+		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
+		if deployment.ObjectMeta.Annotations == nil {
+			deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+		} else {
+			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+		}
+
+		_, err = serviceClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()), c)
+		} else {
+			cmd.Success(fmt.Sprintf("Restart Deployment '%s'.", service.K8sName), c)
 		}
 	}(cmd, wg)
 	return cmd
