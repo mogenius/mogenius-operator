@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
 
@@ -18,10 +19,10 @@ const (
 	INGRESS_PREFIX = "ingress"
 )
 
-func UpdateIngress(job *utils.Job, namespaceShortId string, stage dtos.K8sStageDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
-	cmd := utils.CreateCommand("Updating ingress setup.", job, c)
+func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStageDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Updating ingress setup.", job, c)
 	wg.Add(1)
-	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 
 		var kubeProvider *KubeProvider

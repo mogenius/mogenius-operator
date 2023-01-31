@@ -13,7 +13,7 @@ type K8sNamespaceDto struct {
 func K8sNamespaceDtoExampleData() K8sNamespaceDto {
 	return K8sNamespaceDto{
 		Id:                "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		ShortId:           "shortId",
+		ShortId:           "y123as",
 		DisplayName:       "displayName",
 		GitAccessToken:    "gitAccessToken",
 		GitUserId:         "gitUserId",

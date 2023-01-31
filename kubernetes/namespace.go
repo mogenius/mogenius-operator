@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
 
@@ -13,10 +14,10 @@ import (
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-func CreateNamespace(job *utils.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
-	cmd := utils.CreateCommand("Create Kubernetes namespace", job, c)
+func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Create Kubernetes namespace", job, c)
 	wg.Add(1)
-	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating namespace '%s'.", stage.K8sName), c)
 
@@ -53,10 +54,10 @@ func CreateNamespace(job *utils.Job, namespace dtos.K8sNamespaceDto, stage dtos.
 	return cmd
 }
 
-func DeleteNamespace(job *utils.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
-	cmd := utils.CreateCommand("Delete Kubernetes namespace", job, c)
+func DeleteNamespace(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Delete Kubernetes namespace", job, c)
 	wg.Add(1)
-	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting namespace '%s'.", stage.K8sName), c)
 

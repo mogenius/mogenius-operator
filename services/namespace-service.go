@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
 	"sync"
@@ -12,10 +13,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) utils.Job {
+func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 	var wg sync.WaitGroup
 
-	job := utils.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.CreateNamespace(&job, r.Namespace, r.Stage, c, &wg))
 	if r.Stage.StorageSizeInMb > 0 {
@@ -26,7 +27,7 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) utils.Job {
 		if utils.CONFIG.Kubernetes.RunInCluster {
 			dataRoot = "/"
 		}
-		job.AddCmd(utils.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c))
+		job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c))
 		// TODO: IMPLEMENT THESE!!!!
 		// job.add(this.createPV(stage))
 		// job.add(this.createPVC(stage))
@@ -37,10 +38,10 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) utils.Job {
 	return job
 }
 
-func DeleteNamespace(r NamespaceDeleteRequest, c *websocket.Conn) utils.Job {
+func DeleteNamespace(r NamespaceDeleteRequest, c *websocket.Conn) structs.Job {
 	var wg sync.WaitGroup
 
-	job := utils.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Stage, c, &wg))
 	wg.Wait()

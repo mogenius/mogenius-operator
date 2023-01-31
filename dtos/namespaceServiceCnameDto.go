@@ -15,7 +15,7 @@ func NamespaceServiceCnameDtoExampleData() NamespaceServiceCnameDto {
 		Id:                       "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		CreatedAt:                time.Now().Format(time.RFC3339),
 		UpdatedAt:                time.Now().Format(time.RFC3339),
-		CName:                    "cName",
+		CName:                    "cname.iltis.io",
 		CloudflareCustomHostname: CloudflareCustomHostnameDtoExampleData(),
 	}
 }

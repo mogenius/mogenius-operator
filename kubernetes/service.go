@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
 
@@ -13,10 +14,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateService(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
-	cmd := utils.CreateCommand(fmt.Sprintf("Creating service '%s'.", stage.K8sName), job, c)
+func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", stage.K8sName), job, c)
 	wg.Add(1)
-	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 
 		var kubeProvider *KubeProvider
@@ -74,10 +75,10 @@ func CreateService(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sServi
 	return cmd
 }
 
-func DeleteService(job *utils.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
-	cmd := utils.CreateCommand("Delete Service", job, c)
+func DeleteService(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Delete Service", job, c)
 	wg.Add(1)
-	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting service '%s'.", stage.K8sName), c)
 

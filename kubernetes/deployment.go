@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
 	"sync"
@@ -17,10 +18,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateDeployment(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPaused bool, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
-	cmd := utils.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", stage.K8sName), job, c)
+func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPaused bool, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", stage.K8sName), job, c)
 	wg.Add(1)
-	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 
 		var kubeProvider *KubeProvider
@@ -95,7 +96,7 @@ func CreateDeployment(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 
 		// RESOURCES
 		limits := core.ResourceList{}
-		limits["cpu"] = resource.MustParse(fmt.Sprintf("%dm", service.K8sSettings.LimitCpuCores*1000))
+		limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
 		limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
 		limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
 		newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = limits
@@ -147,7 +148,7 @@ func CreateDeployment(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 		}
 
 		// SECURITY CONTEXT
-		logger.Log.Warningf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName)
+		structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
 		newDeployment.Spec.Template.Spec.Containers[0].SecurityContext = nil
 
 		// VOLUME MOUNT
@@ -200,10 +201,45 @@ func CreateDeployment(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 	return cmd
 }
 
-func StartDeployment(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
-	cmd := utils.CreateCommand("Starting Deployment", job, c)
+func DeleteDeployment(job *structs.Job, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Deleting Deployment '%s'.", service.K8sName), job, c)
 	wg.Add(1)
-	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+
+		var kubeProvider *KubeProvider
+		var err error
+		if !utils.CONFIG.Kubernetes.RunInCluster {
+			kubeProvider, err = NewKubeProviderLocal()
+		} else {
+			kubeProvider, err = NewKubeProviderInCluster()
+		}
+
+		if err != nil {
+			logger.Log.Errorf("DeleteDeployment ERROR: %s", err.Error())
+		}
+
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(service.K8sName)
+
+		deleteOptions := metav1.DeleteOptions{
+			GracePeriodSeconds: utils.Pointer[int64](5),
+		}
+
+		err = deploymentClient.Delete(context.TODO(), service.K8sName, deleteOptions)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()), c)
+		} else {
+			cmd.Success(fmt.Sprintf("Deleted Deployment '%s'.", service.K8sName), c)
+		}
+
+	}(cmd, wg)
+	return cmd
+}
+
+func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Starting Deployment", job, c)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Starting Deployment '%s'.", service.K8sName), c)
 
@@ -237,10 +273,10 @@ func StartDeployment(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 	return cmd
 }
 
-func StopDeployment(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
-	cmd := utils.CreateCommand("Stopping Deployment", job, c)
+func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Stopping Deployment", job, c)
 	wg.Add(1)
-	go func(cmd *utils.Command, wg *sync.WaitGroup) {
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Stopping Deployment '%s'.", service.K8sName), c)
 

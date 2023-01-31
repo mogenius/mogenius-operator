@@ -1,10 +1,10 @@
-package utils
+package structs
 
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
-	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"time"
 
 	"github.com/fatih/color"
@@ -112,7 +112,7 @@ func ReportStateToServer(job *Job, cmd *Command, c *websocket.Conn) {
 
 		if data != nil {
 			stateLog(typeName, data)
-			result := structs.CreateDatagramFrom("K8sNotificationDto", data, c)
+			result := CreateDatagramFrom("K8sNotificationDto", data, c)
 			result.Send()
 		} else {
 			logger.Log.Error("Serialization failed.")
@@ -138,32 +138,20 @@ func stateLog(typeName string, data *dtos.K8sNotificationDto) {
 
 	switch data.State {
 	case "PENDING":
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, PEND(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, PEND(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
 	case "STARTED":
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, STAR(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, STAR(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
 	case "ERROR", "FAILED":
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, ERRO(fillWith(data.State, 10, " ")), truncateText(data.Title, 60), duration)
-		fmt.Printf("%-6s %-25s %s\n", "", ERRO(fillWith("--> ", 10, " ")), data.Message)
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, ERRO(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
+		fmt.Printf("%-6s %-25s %s\n", "", ERRO(utils.FillWith("--> ", 9, " ")), data.Message)
 	case "SUCCEEDED":
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, SUCC(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, SUCC(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
 	default:
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, DEFA(fillWith(data.State, 9, " ")), truncateText(data.Title, 60), duration)
+		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, DEFA(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
 	}
 }
 
-func truncateText(s string, max int) string {
-	if max > len(s) {
-		return s
-	}
-	return s[:max] + " ..."
-}
-
-func fillWith(s string, targetLength int, chars string) string {
-	if len(s) >= targetLength {
-		return s
-	}
-	for i := 0; i < targetLength-len(s)+1; i++ {
-		s = s + chars
-	}
-	return s
+func StateDebugLog(debugStr string) {
+	DEBUG := color.New(color.FgWhite, color.BgHiMagenta).SprintFunc()
+	fmt.Printf("%-6s %-26s %s\n", "DEBUG", DEBUG(utils.FillWith("DEBUG", 9, " ")), debugStr)
 }

@@ -75,6 +75,23 @@ func ConfirmTask(s string, tries int) bool {
 	return false
 }
 
+func FillWith(s string, targetLength int, chars string) string {
+	if len(s) >= targetLength {
+		return s
+	}
+	for i := 0; len(s) < targetLength; i++ {
+		s = s + chars
+	}
+	return s
+}
+
+func TruncateText(s string, max int) string {
+	if max > len(s) {
+		return s
+	}
+	return s[:max] + " ..."
+}
+
 func FunctionName() string {
 	counter, _, _, success := runtime.Caller(1)
 

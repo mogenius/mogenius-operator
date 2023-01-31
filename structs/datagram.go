@@ -3,6 +3,7 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"mogenius-k8s-manager/utils"
 	"sync"
 	"time"
 
@@ -79,7 +80,7 @@ func (d *Datagram) DisplayReceiveSummary() {
 	PATTERNCOLOR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
 	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
 
-	fmt.Printf("%s%s%s\n", RECEIVCOLOR("RECEIVED      "), PATTERNCOLOR(fillWith(d.Pattern, 50, " ")), IDCOLOR(d.Id))
+	fmt.Printf("%s%s%s\n", RECEIVCOLOR("RECEIVED        "), PATTERNCOLOR(utils.FillWith(d.Pattern, 50, " ")), IDCOLOR(d.Id))
 }
 
 func (d *Datagram) DisplaySentSummary() {
@@ -88,7 +89,7 @@ func (d *Datagram) DisplaySentSummary() {
 	PATTERNCOLOR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
 	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
 
-	fmt.Printf("%s%s%s\n", RECEIVCOLOR("SENT          "), PATTERNCOLOR(fillWith(d.Pattern, 50, " ")), IDCOLOR(d.Id))
+	fmt.Printf("%s%s%s\n", RECEIVCOLOR("SENT            "), PATTERNCOLOR(utils.FillWith(d.Pattern, 50, " ")), IDCOLOR(d.Id))
 }
 
 func (d *Datagram) Send() error {
@@ -100,14 +101,4 @@ func (d *Datagram) Send() error {
 	} else {
 		return fmt.Errorf("Connection cannot be nil.")
 	}
-}
-
-func fillWith(s string, targetLength int, chars string) string {
-	if len(s) >= targetLength {
-		return s
-	}
-	for i := 0; i < targetLength-len(s)+1; i++ {
-		s = s + chars
-	}
-	return s
 }

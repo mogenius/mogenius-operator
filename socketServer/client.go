@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
@@ -20,6 +21,10 @@ import (
 const heartBeatSeconds = 30
 
 func StartClient() {
+	fmt.Println(utils.FillWith("", 60, "#"))
+	fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", utils.FillWith(mokubernetes.CurrentContextName(), 31, " "))
+	fmt.Println(utils.FillWith("", 60, "#"))
+
 	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.WebsocketServer, utils.CONFIG.ApiServer.WebsocketPort)
 	u := url.URL{Scheme: "ws", Host: host, Path: "/ws"}
 	log.Printf("connecting to %s", u.String())
