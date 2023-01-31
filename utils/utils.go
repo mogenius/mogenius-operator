@@ -2,13 +2,19 @@ package utils
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
+	"mogenius-k8s-manager/logger"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 )
+
+func Pointer[K any](val K) *K {
+	return &val
+}
 
 func Contains(s []string, str string) bool {
 	for _, v := range s {
@@ -78,4 +84,12 @@ func FunctionName() string {
 	}
 
 	return runtime.FuncForPC(counter).Name()
+}
+
+func ParseJsonStringArray(input string) []string {
+	val := []string{}
+	if err := json.Unmarshal([]byte(input), &val); err != nil {
+		logger.Log.Errorf("jsonStringArrayToStringArray: Failed to parse: '%s' to []string.", input)
+	}
+	return val
 }

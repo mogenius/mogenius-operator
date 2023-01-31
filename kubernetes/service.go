@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateService(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
+func CreateService(job *utils.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
 	cmd := utils.CreateCommand(fmt.Sprintf("Creating service '%s'.", stage.K8sName), job, c)
 	wg.Add(1)
 	go func(cmd *utils.Command, wg *sync.WaitGroup) {

@@ -10,8 +10,9 @@ import (
 
 type Config struct {
 	Kubernetes struct {
-		ClusterName  string `yaml:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
-		RunInCluster bool   `yaml:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
+		ClusterName              string `yaml:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
+		RunInCluster             bool   `yaml:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
+		DefaultContainerRegistry string `yaml:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
 		WebsocketServer string `yaml:"websocket_server" env-description:"Server host" env-default:"127.0.0.1"`
@@ -20,8 +21,9 @@ type Config struct {
 		ApiKey          string `yaml:"api_key" env-description:"Api Key to access the server"`
 	} `yaml:"api_server"`
 	Misc struct {
-		Debug          bool   `yaml:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
-		StorageAccount string `yaml:"storage_account" env-description:"Azure Storage Account"`
+		Debug            bool   `yaml:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
+		StorageAccount   string `yaml:"storage_account" env-description:"Azure Storage Account"`
+		DefaultMountPath string `yaml:"default_mount_path" env-description:"All containers will have access to this mount point"`
 	} `yaml:"misc"`
 }
 
@@ -62,6 +64,7 @@ func PrintSettings() {
 	logger.Log.Infof("ApiKey: \t\t%s", CONFIG.ApiServer.ApiKey)
 	logger.Log.Infof("Debug: \t\t%t", CONFIG.Misc.Debug)
 	logger.Log.Infof("StorageAccount: \t%s", CONFIG.Misc.StorageAccount)
+	logger.Log.Infof("DefaultContainerRegistry: \t%s", CONFIG.Kubernetes.DefaultContainerRegistry)
 }
 
 func GetDirectories() (configDir string, configPath string) {

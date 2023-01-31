@@ -15,7 +15,9 @@ func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 
 	job := utils.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
-	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, nil, nil, c, &wg))
+	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, true, c, &wg))
+	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -34,84 +36,94 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 
 func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func ServicePodIds(r ServiceGetPodIdsRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func PodLogStream(r ServiceLogStreamRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement XXX WAS AN OBSERVABLE - SSE - written directly to response
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+	var wg sync.WaitGroup
+
+	job := utils.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, r.Stage.Id, nil, c)
+	job.Start(c)
+	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return job
 }
 
 func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+	var wg sync.WaitGroup
+
+	job := utils.CreateJob("Start Service "+r.Stage.DisplayName, r.NamespaceId, r.Stage.Id, nil, c)
+	job.Start(c)
+	job.AddCmd(mokubernetes.StartDeployment(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.NamespaceShortId, r.Stage, nil, nil, c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return job
 }
 
 func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func BindSpectrum(r ServiceBindSpectrumRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func UnbindSpectrum(r ServiceUnbindSpectrumRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func SpectrumConfigmaps(c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
@@ -238,31 +250,35 @@ func ServiceRestartRequestExample() ServiceRestartRequest {
 
 // service/stop POST
 type ServiceStopRequest struct {
-	NamespaceId string `json:"namespaceId"`
-	Stage       string `json:"stage"`
-	ServiceId   string `json:"serviceId"`
+	NamespaceId      string             `json:"namespaceId"`
+	NamespaceShortId string             `json:"namespaceShortId"`
+	Stage            dtos.K8sStageDto   `json:"stage"`
+	Service          dtos.K8sServiceDto `json:"service"`
 }
 
 func ServiceStopRequestExample() ServiceStopRequest {
 	return ServiceStopRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
-		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+		NamespaceId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		NamespaceShortId: "Y123AS",
+		Stage:            dtos.K8sStageDtoExampleData(),
+		Service:          dtos.K8sServiceDtoExampleData(),
 	}
 }
 
 // service/start POST
 type ServiceStartRequest struct {
-	NamespaceId string `json:"namespaceId"`
-	Stage       string `json:"stage"`
-	ServiceId   string `json:"serviceId"`
+	NamespaceId      string             `json:"namespaceId"`
+	NamespaceShortId string             `json:"namespaceShortId"`
+	Stage            dtos.K8sStageDto   `json:"stage"`
+	Service          dtos.K8sServiceDto `json:"service"`
 }
 
 func ServiceStartRequestExample() ServiceStartRequest {
 	return ServiceStartRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
-		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+		NamespaceId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		NamespaceShortId: "Y123AS",
+		Stage:            dtos.K8sStageDtoExampleData(),
+		Service:          dtos.K8sServiceDtoExampleData(),
 	}
 }
 

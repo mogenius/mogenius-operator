@@ -10,70 +10,70 @@ import (
 
 func AllFiles() dtos.PersistentFileStatsDto {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return dtos.PersistentFileStatsDto{}
 }
 
 func List(r FilesListRequest, c *websocket.Conn) []dtos.PersistentFileDto {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return []dtos.PersistentFileDto{}
 }
 
 func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Upload(r FilesUploadRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Update(r FilesUpdateRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func CreateFolder(r FilesCreateFolderRequest, c *websocket.Conn) bool {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
 func Rename(r FilesRenameRequest, c *websocket.Conn) bool {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return false
 }
 
 func Chown(r FilesChownRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Chmod(r FilesChmodRequest, c *websocket.Conn) interface{} {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return nil
 }
 
 func Delete(r FilesDeleteRequest, c *websocket.Conn) bool {
 	// TODO: Implement
-	logger.Log.Info("TODO: IMPLEMENT")
+	logger.Log.Error("TODO: IMPLEMENT")
 	logger.Log.Info(utils.FunctionName())
 	return false
 }

@@ -1,6 +1,7 @@
 kubernetes:
   cluster_name: BenesTestCluster
   run_in_cluster: false
+  default_container_registry: mogenius.azurecr.io
 
 api_server:
   websocket_server: 127.0.0.1
@@ -9,5 +10,6 @@ api_server:
   api_key: 94E23575-A689-4F88-8D67-215A274F4E6E
 
 misc:
+  default_mount_path: /mo-data
   storage_account: monfs
   debug: false

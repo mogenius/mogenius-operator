@@ -18,7 +18,7 @@ const (
 	INGRESS_PREFIX = "ingress"
 )
 
-func UpdateIngress(job *utils.Job, ns dtos.K8sNamespaceDto, stage dtos.K8sStageDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
+func UpdateIngress(job *utils.Job, namespaceShortId string, stage dtos.K8sStageDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *utils.Command {
 	cmd := utils.CreateCommand("Updating ingress setup.", job, c)
 	wg.Add(1)
 	go func(cmd *utils.Command, wg *sync.WaitGroup) {
@@ -43,7 +43,7 @@ func UpdateIngress(job *utils.Job, ns dtos.K8sNamespaceDto, stage dtos.K8sStageD
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		config := networkingv1.Ingress(INGRESS_PREFIX+"-"+ns.ShortId, stage.K8sName)
+		config := networkingv1.Ingress(INGRESS_PREFIX+"-"+namespaceShortId, stage.K8sName)
 		config.WithAnnotations(map[string]string{
 			"kubernetes.io/ingress.class":                    "nginx",
 			"nginx.ingress.kubernetes.io/rewrite-target":     "/",

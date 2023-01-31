@@ -140,6 +140,8 @@ func ReadInput() {
 			cmd := selectCommands()
 			if cmd != "" {
 				requestCmdFromCluster(cmd)
+			} else {
+				printShortcuts()
 			}
 		case "l":
 			listClusters()
@@ -147,6 +149,7 @@ func ReadInput() {
 			os.Exit(0)
 		default:
 			logger.Log.Errorf("Unrecognized character '%s'.", r)
+			printShortcuts()
 		}
 	}
 }
@@ -275,7 +278,7 @@ func selectCommands() string {
 	var number int
 	_, err := fmt.Scanf("%d", &number)
 	if err != nil {
-		logger.Log.Error(err)
+		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(services.ALL_REQUESTS)-1)
 		return ""
 	}
 	fmt.Println(number)
@@ -283,7 +286,7 @@ func selectCommands() string {
 	if len(services.ALL_REQUESTS) >= number {
 		return services.ALL_REQUESTS[number]
 	} else {
-		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(services.ALL_REQUESTS))
+		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(services.ALL_REQUESTS)-1)
 		return ""
 	}
 }
