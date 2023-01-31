@@ -54,12 +54,34 @@ func InitPersistentVolumeClaim() core.PersistentVolumeClaim {
 	return app
 }
 
-func InitSecret() core.Secret {
+func InitContainerSecret() core.Secret {
 	pwd, err := os.Getwd()
 	if err != nil {
 		panic(err.Error())
 	}
 	path := pwd + "/yaml-templates/container-secret.yaml"
+
+	yaml, err := os.ReadFile(path)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app core.Secret
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitSecret() core.Secret {
+	pwd, err := os.Getwd()
+	if err != nil {
+		panic(err.Error())
+	}
+	path := pwd + "/yaml-templates/secret.yaml"
 
 	yaml, err := os.ReadFile(path)
 	if err != nil {

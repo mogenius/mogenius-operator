@@ -16,6 +16,7 @@ func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 
 	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
+	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, true, c, &wg))
 	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
@@ -30,6 +31,7 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, c, &wg))
+	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
@@ -104,10 +106,17 @@ func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
 }
 
 func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+	var wg sync.WaitGroup
+
+	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job.Start(c)
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, false, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return job
 }
 
 func BindSpectrum(r ServiceBindSpectrumRequest, c *websocket.Conn) interface{} {
@@ -287,16 +296,16 @@ func ServiceStartRequestExample() ServiceStartRequest {
 
 // service/update-service POST
 type ServiceUpdateRequest struct {
-	NamespaceId string `json:"namespaceId"`
-	Stage       string `json:"stage"`
-	ServiceId   string `json:"serviceId"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Stage     dtos.K8sStageDto     `json:"stage"`
+	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func ServiceUpdateRequestExample() ServiceUpdateRequest {
 	return ServiceUpdateRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
-		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Stage:     dtos.K8sStageDtoExampleData(),
+		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
 
