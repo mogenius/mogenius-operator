@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Server",
+            "name": "Server",
             "type": "go",
             "request": "launch",
             "mode": "debug",
@@ -12,12 +12,32 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Launch Client",
+            "name": "Client LOCAL",
             "type": "go",
             "request": "launch",
             "mode": "debug",
             "program": "main.go",
             "args": ["testclient", "-d"],
+            "asRoot": false,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Client Behrang Home",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "main.go",
+            "args": ["testclient", "-d", "-c", "behrang-home.yaml"],
+            "asRoot": false,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Client Behrang Office",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "main.go",
+            "args": ["testclient", "-d", "-c", "behrang.yaml"],
             "asRoot": false,
             "console": "integratedTerminal"
         }

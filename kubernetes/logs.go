@@ -70,9 +70,8 @@ func StreamLog(namespace string, podId string, sindceSeconds int64) (*bufio.Read
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
 
 	opts := v1.PodLogOptions{
-		Follow:       true,
-		SinceSeconds: &sindceSeconds,
-		TailLines:    utils.Pointer[int64](2000),
+		Follow:    true,
+		TailLines: utils.Pointer[int64](2000),
 	}
 
 	restReq := podClient.GetLogs(podId, &opts)
@@ -81,7 +80,8 @@ func StreamLog(namespace string, podId string, sindceSeconds int64) (*bufio.Read
 	if err != nil {
 		return nil, err
 	}
-	defer stream.Close()
+	// TODO: DAS IST MIES
+	//defer stream.Close()
 
 	return reader, nil
 }

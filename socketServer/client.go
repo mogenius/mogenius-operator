@@ -105,9 +105,6 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 					logger.Log.Errorf("%s", jsonErr.Error())
 				}
 
-				// TODO: Remove
-				//structs.PrettyPrint(datagram)
-
 				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
 					//log.Printf("recv: %s (%s)", datagram.Pattern, datagram.Id)
 					datagram.DisplayReceiveSummary()

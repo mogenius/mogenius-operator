@@ -226,9 +226,9 @@ type ServiceLogStreamRequest struct {
 
 func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	return ServiceLogStreamRequest{
-		Namespace:    "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		PodId:        "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
-		SinceSeconds: 0,
+		Namespace:    "default",
+		PodId:        "mo-k8s-manager-mo7-87fbc475b-skktl",
+		SinceSeconds: -1,
 	}
 }
 
