@@ -115,6 +115,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 					} else {
 						buf := make([]byte, 512)
 						var totalCount uint64 = 0
+						c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
 						for {
 							chunk, err := reader.Read(buf)
 							if err != nil {
@@ -132,6 +133,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 						if err != nil {
 							logger.Log.Errorf("reading bytes error: %s", err.Error())
 						}
+						c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
 					}
 					//log.Printf("sent: %s (%s)", result.Pattern, result.Id)
 				} else {
