@@ -254,7 +254,12 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 			datagram.Err = err.Error()
 			return datagram, nil
 		}
-		return PodLogStream(data, c), nil
+		reader, err := PodLogStream(data, c)
+		if err != nil {
+			datagram.Err = err.Error()
+			return datagram, nil
+		}
+		return nil, reader
 	case "service/resource-status/:resource/:namespace/:name/:statusOnly GET":
 		data := ServiceResourceStatusRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)

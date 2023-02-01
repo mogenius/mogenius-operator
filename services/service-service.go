@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bufio"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -54,17 +55,11 @@ func ServicePodIds(r ServiceGetPodIdsRequest, c *websocket.Conn) interface{} {
 }
 
 func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+	return mokubernetes.GetLog(r.Namespace, r.PodId)
 }
 
-func PodLogStream(r ServiceLogStreamRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement XXX WAS AN OBSERVABLE - SSE - written directly to response
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+func PodLogStream(r ServiceLogStreamRequest, c *websocket.Conn) (*bufio.Reader, error) {
+	return mokubernetes.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
 }
 
 func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
@@ -217,8 +212,8 @@ type ServiceGetLogRequest struct {
 
 func ServiceGetLogRequestExample() ServiceGetLogRequest {
 	return ServiceGetLogRequest{
-		Namespace: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		PodId:     "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+		Namespace: "default",
+		PodId:     "mo-k8s-manager-mo7-87fbc475b-skktl",
 	}
 }
 
