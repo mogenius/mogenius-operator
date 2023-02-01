@@ -19,9 +19,9 @@ var testServerCmd = &cobra.Command{
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		showDebug, _ := cmd.Flags().GetBool("debug")
-		if showDebug {
-			utils.PrintSettings()
-		}
+		customConfig, _ := cmd.Flags().GetString("config")
+		clusterName, _ := cmd.Flags().GetString("clustername")
+		utils.InitConfigYaml(showDebug, &customConfig, &clusterName)
 
 		gin.SetMode(gin.ReleaseMode)
 		router := gin.Default()
@@ -47,4 +47,6 @@ func init() {
 	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 	testServerCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
+	testServerCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
+	testServerCmd.Flags().StringP("clustername", "o", "", "Override clustername.")
 }

@@ -7,7 +7,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "main.go",
-            "args": ["testserver"],
+            "args": ["testserver", "-d"],
             "asRoot": false,
             "console": "integratedTerminal"
         },
@@ -17,7 +17,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "main.go",
-            "args": ["testclient"],
+            "args": ["testclient", "-d"],
             "asRoot": false,
             "console": "integratedTerminal"
         }

@@ -36,7 +36,7 @@ func CreateDatagramFrom(pattern string, data interface{}, c *websocket.Conn) Dat
 	datagram := Datagram{
 		Id:         uuid.New().String(),
 		Pattern:    pattern,
-		Payload:    PrettyPrintString(data),
+		Payload:    data,
 		Connection: c,
 	}
 	return datagram

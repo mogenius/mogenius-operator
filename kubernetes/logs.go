@@ -41,7 +41,7 @@ func GetLog(namespace string, podId string) string {
 		buf := make([]byte, 2000)
 		numBytes, err := reader.Read(buf)
 		if numBytes == 0 {
-			continue
+			break
 		}
 		if err == io.EOF {
 			break
