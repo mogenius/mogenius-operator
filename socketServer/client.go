@@ -14,12 +14,17 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
+
+	"github.com/schollz/progressbar/v3"
 
 	"github.com/gorilla/websocket"
 )
 
 const heartBeatSeconds = 30
+
+var sendMutex sync.Mutex
 
 func StartClient() {
 	fmt.Println(utils.FillWith("", 60, "#"))
@@ -108,13 +113,16 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
 					//log.Printf("recv: %s (%s)", datagram.Pattern, datagram.Id)
 					datagram.DisplayReceiveSummary()
-					responsePayload, reader := services.ExecuteRequest(datagram, c)
+					responsePayload, reader, totalSize := services.ExecuteRequest(datagram, c)
 					if reader == nil {
 						result := structs.CreateDatagramRequest(datagram, responsePayload, c)
+						sendMutex.Lock()
 						result.Send()
+						sendMutex.Unlock()
 					} else {
 						buf := make([]byte, 512)
-						var totalCount uint64 = 0
+						bar := progressbar.DefaultBytes(*totalSize)
+						sendMutex.Lock()
 						c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
 						for {
 							chunk, err := reader.Read(buf)
@@ -122,18 +130,20 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 								if err != io.EOF {
 									fmt.Println(err)
 								} else {
-									fmt.Printf("%d bytes sent.\n", totalCount)
+									fmt.Printf("%s transmitted.\n", utils.BytesToHumanReadable(*totalSize))
+									bar.Finish()
 								}
 								break
 							}
 							c.WriteMessage(websocket.BinaryMessage, buf)
-							totalCount += uint64(chunk)
-							fmt.Printf("%d bytes sent ...\n", chunk)
+							bar.Add(chunk)
+							//fmt.Print(".")
 						}
 						if err != nil {
 							logger.Log.Errorf("reading bytes error: %s", err.Error())
 						}
 						c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
+						sendMutex.Unlock()
 					}
 					//log.Printf("sent: %s (%s)", result.Pattern, result.Id)
 				} else {

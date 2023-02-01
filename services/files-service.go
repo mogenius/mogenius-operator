@@ -34,14 +34,19 @@ func List(r FilesListRequest, c *websocket.Conn) []dtos.PersistentFileDto {
 	return result
 }
 
-func Download(r FilesDownloadRequest, c *websocket.Conn) (*bufio.Reader, error) {
+func Download(r FilesDownloadRequest, c *websocket.Conn) (*bufio.Reader, int64, error) {
 	pathToFile, err := verify(&r.File)
 	if err != nil {
-		return nil, fmt.Errorf("Download Error %s", err.Error())
+		return nil, 0, fmt.Errorf("Download Error %s", err.Error())
 	}
 	file, err := os.Open(pathToFile)
+	info, err := file.Stat()
+	var totalSize int64 = 0
+	if err == nil {
+		totalSize = info.Size()
+	}
 	reader := bufio.NewReader(file)
-	return reader, err
+	return reader, totalSize, err
 }
 
 func Upload(r FilesUploadRequest, c *websocket.Conn) interface{} {

@@ -54,9 +54,9 @@ func CreateDatagram(pattern string, c *websocket.Conn) Datagram {
 func (d *Datagram) DisplayBeautiful() {
 
 	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
-	PATTERNCOLOR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
+	PATTERNCOLOR := color.New(color.FgBlack, color.BgYellow).SprintFunc()
 	TIMECOLOR := color.New(color.FgWhite, color.BgRed).SprintFunc()
-	PAYLOADCOLOR := color.New(color.FgWhite, color.BgHiGreen).SprintFunc()
+	PAYLOADCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
 
 	fmt.Printf("%s %s\n", IDCOLOR("ID:      "), d.Id)
 	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
@@ -77,8 +77,8 @@ func (d *Datagram) DisplayBeautiful() {
 
 func (d *Datagram) DisplayReceiveSummary() {
 
-	RECEIVCOLOR := color.New(color.FgWhite, color.BgHiGreen).SprintFunc()
-	PATTERNCOLOR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
+	RECEIVCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
+	PATTERNCOLOR := color.New(color.FgBlack, color.BgYellow).SprintFunc()
 	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
 
 	fmt.Printf("%s%s%s\n", RECEIVCOLOR("RECEIVED        "), PATTERNCOLOR(utils.FillWith(d.Pattern, 50, " ")), IDCOLOR(d.Id))
@@ -86,8 +86,8 @@ func (d *Datagram) DisplayReceiveSummary() {
 
 func (d *Datagram) DisplaySentSummary() {
 
-	RECEIVCOLOR := color.New(color.FgWhite, color.BgHiGreen).SprintFunc()
-	PATTERNCOLOR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
+	RECEIVCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
+	PATTERNCOLOR := color.New(color.FgBlack, color.BgYellow).SprintFunc()
 	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
 
 	fmt.Printf("%s%s%s\n", RECEIVCOLOR("SENT            "), PATTERNCOLOR(utils.FillWith(d.Pattern, 50, " ")), IDCOLOR(d.Id))

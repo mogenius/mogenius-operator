@@ -178,9 +178,9 @@ func ClusterStatus() dtos.ClusterStatusDto {
 		Pods:                  len(result),
 		CpuInMilliCores:       int(cpu),
 		CpuLimitInMilliCores:  int(cpuLimit),
-		Memory:                utils.BytesToHumanReadable(uint64(memory)),
-		MemoryLimit:           utils.BytesToHumanReadable(uint64(memoryLimit)),
-		EphemeralStorageLimit: utils.BytesToHumanReadable(uint64(ephemeralStorageLimit)),
+		Memory:                utils.BytesToHumanReadable(memory),
+		MemoryLimit:           utils.BytesToHumanReadable(memoryLimit),
+		EphemeralStorageLimit: utils.BytesToHumanReadable(ephemeralStorageLimit),
 	}
 }
 

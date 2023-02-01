@@ -85,7 +85,7 @@ func PersistentFileDtoFrom(path string, d fs.DirEntry) PersistentFileDto {
 		IsSymbolicLink: false,
 		Extension:      filepath.Ext(path),
 		SizeInBytes:    size,
-		Size:           utils.BytesToHumanReadable(uint64(size)),
+		Size:           utils.BytesToHumanReadable(size),
 		Hash:           utils.QuickHash(path),
 		CreatedAt:      createTime,
 		ModifiedAt:     modTime,

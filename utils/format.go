@@ -22,7 +22,7 @@ func QuickHash(s string) string {
 	return fmt.Sprint(h.Sum32())
 }
 
-func BytesToHumanReadable(b uint64) string {
+func BytesToHumanReadable(b int64) string {
 	const unit = 1000
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
