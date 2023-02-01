@@ -23,7 +23,8 @@ var testClientCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
-		utils.InitConfigYaml(showDebug, &customConfig)
+		clusterName, _ := cmd.Flags().GetString("clustername")
+		utils.InitConfigYaml(showDebug, &customConfig, &clusterName)
 
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
@@ -56,4 +57,5 @@ func init() {
 
 	testClientCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
 	testClientCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
+	testClientCmd.Flags().StringP("clustername", "o", "", "Override clustername.")
 }

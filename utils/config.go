@@ -30,7 +30,7 @@ type Config struct {
 var DefaultConfigFile string
 var CONFIG Config
 
-func InitConfigYaml(showDebug bool, customConfigName *string) {
+func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterName *string) {
 	_, configPath := GetDirectories(customConfigName)
 
 	if _, err := os.Stat(configPath); err == nil || os.IsExist(err) {
@@ -48,6 +48,10 @@ func InitConfigYaml(showDebug bool, customConfigName *string) {
 		if err := cleanenv.ReadConfig(configPath, &CONFIG); err != nil {
 			logger.Log.Fatal(err)
 		}
+	}
+
+	if *overrideClusterName != "" {
+		CONFIG.Kubernetes.ClusterName = *overrideClusterName
 	}
 
 	if showDebug {
