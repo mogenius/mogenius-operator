@@ -62,7 +62,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return AllFiles(), nil
 	case "files/list POST":
 		data := FilesListRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -70,7 +71,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return List(data, c), nil
 	case "files/download POST":
 		data := FilesDownloadRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -79,7 +81,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return nil, reader
 	case "files/upload POST":
 		data := FilesUploadRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -87,7 +90,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return Upload(data, c), nil
 	case "files/update POST":
 		data := FilesUpdateRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -95,7 +99,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return Update(data, c), nil
 	case "files/create-folder POST":
 		data := FilesCreateFolderRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -103,7 +108,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return CreateFolder(data, c), nil
 	case "files/rename POST":
 		data := FilesRenameRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -111,7 +117,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return Rename(data, c), nil
 	case "files/chown POST":
 		data := FilesChownRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -119,7 +126,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return Chown(data, c), nil
 	case "files/chmod POST":
 		data := FilesChmodRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -127,7 +135,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return Chmod(data, c), nil
 	case "files/delete POST":
 		data := FilesDeleteRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -135,7 +144,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return Delete(data, c), nil
 	case "namespace/create POST":
 		data := NamespaceCreateRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -143,7 +153,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return CreateNamespace(data, c), nil
 	case "namespace/delete POST":
 		data := NamespaceDeleteRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -151,7 +162,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return DeleteNamespace(data, c), nil
 	case "namespace/shutdown POST":
 		data := NamespaceShutdownRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -159,7 +171,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return ShutdownNamespace(data, c), nil
 	case "namespace/reboot POST":
 		data := NamespaceRebootRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -167,7 +180,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return RebootNamespace(data, c), nil
 	case "namespace/ingress-state/:state GET":
 		data := NamespaceSetIngressStateRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -175,7 +189,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return SetIngressState(data, c), nil
 	case "namespace/pod-ids/:namespace GET":
 		data := NamespacePodIdsRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -185,7 +200,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return ClusterPods(c), nil
 	case "namespace/validate-cluster-pods POST":
 		data := NamespaceValidateClusterPodsRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -193,7 +209,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return ValidateClusterPods(data, c), nil
 	case "namespace/validate-ports POST":
 		data := NamespaceValidatePortsRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -201,7 +218,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return ValidateClusterPorts(data, c), nil
 	case "namespace/storage-size POST":
 		data := NamespaceStorageSizeRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -209,7 +227,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return StorageSize(data, c), nil
 	case "service/create POST":
 		data := ServiceCreateRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -217,7 +236,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return CreateService(data, c), nil
 	case "service/delete POST":
 		data := ServiceDeleteRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -225,7 +245,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return DeleteService(data, c), nil
 	case "service/pod-ids/:namespace/:service GET":
 		data := ServiceGetPodIdsRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -233,7 +254,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return ServicePodIds(data, c), nil
 	case "service/images/:imageName PATCH":
 		data := ServiceSetImageRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -241,7 +263,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return SetImage(data, c), nil
 	case "service/log/:namespace/:podId GET":
 		data := ServiceGetLogRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -249,7 +272,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return PodLog(data, c), nil
 	case "service/log-stream/:namespace/:podId/:sinceSeconds SSE":
 		data := ServiceLogStreamRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -262,7 +286,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return nil, reader
 	case "service/resource-status/:resource/:namespace/:name/:statusOnly GET":
 		data := ServiceResourceStatusRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -270,7 +295,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return PodStatus(data, c), nil
 	case "service/restart POST":
 		data := ServiceRestartRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -278,7 +304,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return Restart(data, c), nil
 	case "service/stop POST":
 		data := ServiceStopRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -286,7 +313,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return StopService(data, c), nil
 	case "service/start POST":
 		data := ServiceStartRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -294,7 +322,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return StartService(data, c), nil
 	case "service/update-service POST":
 		data := ServiceUpdateRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -302,7 +331,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return UpdateService(data, c), nil
 	case "service/spectrum-bind POST":
 		data := ServiceBindSpectrumRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil
@@ -310,7 +340,8 @@ func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, 
 		return BindSpectrum(data, c), nil
 	case "service/spectrum-unbind DELETE":
 		data := ServiceUnbindSpectrumRequest{}
-		err := json.Unmarshal([]byte(datagram.Payload), &data)
+		bytes, err := json.Marshal(datagram.Payload)
+		err = json.Unmarshal(bytes, &data)
 		if err != nil {
 			datagram.Err = err.Error()
 			return datagram, nil

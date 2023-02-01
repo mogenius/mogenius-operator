@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/utils"
 	"sync"
@@ -16,10 +15,10 @@ import (
 var sendMutex sync.Mutex
 
 type Datagram struct {
-	Id         string `json:"id" validate:"required"`
-	Pattern    string `json:"pattern" validate:"required"`
-	Payload    string `json:"payload,omitempty"`
-	Err        string `json:"err,omitempty"`
+	Id         string      `json:"id" validate:"required"`
+	Pattern    string      `json:"pattern" validate:"required"`
+	Payload    interface{} `json:"payload,omitempty"`
+	Err        string      `json:"err,omitempty"`
 	Connection *websocket.Conn
 }
 
@@ -27,7 +26,7 @@ func CreateDatagramRequest(request Datagram, data interface{}, c *websocket.Conn
 	datagram := Datagram{
 		Id:         request.Id,
 		Pattern:    request.Pattern,
-		Payload:    PrettyPrintString(data),
+		Payload:    data,
 		Connection: c,
 	}
 	return datagram
@@ -63,15 +62,15 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
 	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
 
-	var obj interface{}
-	json.Unmarshal([]byte(d.Payload), &obj)
+	// var obj interface{}
+	// json.Unmarshal([]byte(d.Payload), &obj)
 	// if err != nil {
 	// 	logger.Log.Errorf("Error Marshaling Payload: %s", err.Error())
 	// }
 
 	f := colorjson.NewFormatter()
 	f.Indent = 2
-	s, _ := f.Marshal(obj)
+	s, _ := f.Marshal(d.Payload)
 
 	fmt.Printf("%s %s\n", PAYLOADCOLOR("PAYLOAD: "), string(s))
 }

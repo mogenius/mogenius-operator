@@ -100,7 +100,11 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				rawJson := string(message)
 				datagram := structs.Datagram{}
 
-				_ = json.Unmarshal([]byte(rawJson), &datagram)
+				jsonErr := json.Unmarshal([]byte(rawJson), &datagram)
+				if jsonErr != nil {
+					logger.Log.Errorf("%s", jsonErr.Error())
+				}
+
 				// TODO: Remove
 				//structs.PrettyPrint(datagram)
 
