@@ -3,6 +3,7 @@ package socketServer
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -106,9 +107,31 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
 					//log.Printf("recv: %s (%s)", datagram.Pattern, datagram.Id)
 					datagram.DisplayReceiveSummary()
-					responsePayload := services.ExecuteRequest(datagram, c)
-					result := structs.CreateDatagramRequest(datagram, responsePayload, c)
-					result.Send()
+					responsePayload, reader := services.ExecuteRequest(datagram, c)
+					if reader == nil {
+						result := structs.CreateDatagramRequest(datagram, responsePayload, c)
+						result.Send()
+					} else {
+						buf := make([]byte, 512)
+						var totalCount uint64 = 0
+						for {
+							chunk, err := reader.Read(buf)
+							if err != nil {
+								if err != io.EOF {
+									fmt.Println(err)
+								} else {
+									fmt.Printf("%d bytes sent.\n", totalCount)
+								}
+								break
+							}
+							c.WriteMessage(websocket.BinaryMessage, buf)
+							totalCount += uint64(chunk)
+							fmt.Printf("%d bytes sent ...\n", chunk)
+						}
+						if err != nil {
+							logger.Log.Errorf("reading bytes error: %s", err.Error())
+						}
+					}
 					//log.Printf("sent: %s (%s)", result.Pattern, result.Id)
 				} else {
 					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)

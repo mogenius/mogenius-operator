@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bufio"
 	"encoding/json"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -49,272 +50,273 @@ var ALL_REQUESTS = []string{
 	"service/spectrum-configmaps GET",
 }
 
-func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
+func ExecuteRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, *bufio.Reader) {
 	switch datagram.Pattern {
 	case "HeartBeat":
-		return HeartBeat(datagram, c)
+		return HeartBeat(datagram, c), nil
 	case "K8sNotification":
-		return K8sNotification(datagram, c)
+		return K8sNotification(datagram, c), nil
 	case "ClusterStatus":
-		return mokubernetes.ClusterStatus()
+		return mokubernetes.ClusterStatus(), nil
 	case "files/storage-stats GET":
-		return AllFiles()
+		return AllFiles(), nil
 	case "files/list POST":
 		data := FilesListRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return List(data, c)
+		return List(data, c), nil
 	case "files/download POST":
 		data := FilesDownloadRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return Download(data, c)
+		reader, err := Download(data, c)
+		return nil, reader
 	case "files/upload POST":
 		data := FilesUploadRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return Upload(data, c)
+		return Upload(data, c), nil
 	case "files/update POST":
 		data := FilesUpdateRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return Update(data, c)
+		return Update(data, c), nil
 	case "files/create-folder POST":
 		data := FilesCreateFolderRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return CreateFolder(data, c)
+		return CreateFolder(data, c), nil
 	case "files/rename POST":
 		data := FilesRenameRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return Rename(data, c)
+		return Rename(data, c), nil
 	case "files/chown POST":
 		data := FilesChownRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return Chown(data, c)
+		return Chown(data, c), nil
 	case "files/chmod POST":
 		data := FilesChmodRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return Chmod(data, c)
+		return Chmod(data, c), nil
 	case "files/delete POST":
 		data := FilesDeleteRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return Delete(data, c)
+		return Delete(data, c), nil
 	case "namespace/create POST":
 		data := NamespaceCreateRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return CreateNamespace(data, c)
+		return CreateNamespace(data, c), nil
 	case "namespace/delete POST":
 		data := NamespaceDeleteRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return DeleteNamespace(data, c)
+		return DeleteNamespace(data, c), nil
 	case "namespace/shutdown POST":
 		data := NamespaceShutdownRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return ShutdownNamespace(data, c)
+		return ShutdownNamespace(data, c), nil
 	case "namespace/reboot POST":
 		data := NamespaceRebootRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return RebootNamespace(data, c)
+		return RebootNamespace(data, c), nil
 	case "namespace/ingress-state/:state GET":
 		data := NamespaceSetIngressStateRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return SetIngressState(data, c)
+		return SetIngressState(data, c), nil
 	case "namespace/pod-ids/:namespace GET":
 		data := NamespacePodIdsRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return PodIds(data, c)
+		return PodIds(data, c), nil
 	case "namespace/get-cluster-pods GET":
-		return ClusterPods(c)
+		return ClusterPods(c), nil
 	case "namespace/validate-cluster-pods POST":
 		data := NamespaceValidateClusterPodsRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return ValidateClusterPods(data, c)
+		return ValidateClusterPods(data, c), nil
 	case "namespace/validate-ports POST":
 		data := NamespaceValidatePortsRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return ValidateClusterPorts(data, c)
+		return ValidateClusterPorts(data, c), nil
 	case "namespace/storage-size POST":
 		data := NamespaceStorageSizeRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return StorageSize(data, c)
+		return StorageSize(data, c), nil
 	case "service/create POST":
 		data := ServiceCreateRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return CreateService(data, c)
+		return CreateService(data, c), nil
 	case "service/delete POST":
 		data := ServiceDeleteRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return DeleteService(data, c)
+		return DeleteService(data, c), nil
 	case "service/pod-ids/:namespace/:service GET":
 		data := ServiceGetPodIdsRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return ServicePodIds(data, c)
+		return ServicePodIds(data, c), nil
 	case "service/images/:imageName PATCH":
 		data := ServiceSetImageRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return SetImage(data, c)
+		return SetImage(data, c), nil
 	case "service/log/:namespace/:podId GET":
 		data := ServiceGetLogRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return PodLog(data, c)
+		return PodLog(data, c), nil
 	case "service/log-stream/:namespace/:podId/:sinceSeconds SSE":
 		data := ServiceLogStreamRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return PodLogStream(data, c)
+		return PodLogStream(data, c), nil
 	case "service/resource-status/:resource/:namespace/:name/:statusOnly GET":
 		data := ServiceResourceStatusRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return PodStatus(data, c)
+		return PodStatus(data, c), nil
 	case "service/restart POST":
 		data := ServiceRestartRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return Restart(data, c)
+		return Restart(data, c), nil
 	case "service/stop POST":
 		data := ServiceStopRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return StopService(data, c)
+		return StopService(data, c), nil
 	case "service/start POST":
 		data := ServiceStartRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return StartService(data, c)
+		return StartService(data, c), nil
 	case "service/update-service POST":
 		data := ServiceUpdateRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return UpdateService(data, c)
+		return UpdateService(data, c), nil
 	case "service/spectrum-bind POST":
 		data := ServiceBindSpectrumRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return BindSpectrum(data, c)
+		return BindSpectrum(data, c), nil
 	case "service/spectrum-unbind DELETE":
 		data := ServiceUnbindSpectrumRequest{}
 		err := json.Unmarshal([]byte(datagram.Payload), &data)
 		if err != nil {
 			datagram.Err = err.Error()
-			return datagram
+			return datagram, nil
 		}
-		return UnbindSpectrum(data, c)
+		return UnbindSpectrum(data, c), nil
 	case "service/spectrum-configmaps GET":
-		return SpectrumConfigmaps(c)
+		return SpectrumConfigmaps(c), nil
 	}
 
 	datagram.Err = "Pattern not found"
-	return datagram
+	return datagram, nil
 }
 
 func HeartBeat(d structs.Datagram, c *websocket.Conn) interface{} {

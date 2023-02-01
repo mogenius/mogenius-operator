@@ -8,8 +8,16 @@ type PersistentFileRequestDto struct {
 
 func PersistentFileRequestDtoExampleData() PersistentFileRequestDto {
 	return PersistentFileRequestDto{
-		Root:      "root",
-		Path:      "path",
+		Root:      "/",
+		Path:      "/",
+		ClusterId: "clusterId",
+	}
+}
+
+func PersistentFileDownloadDtoExampleData() PersistentFileRequestDto {
+	return PersistentFileRequestDto{
+		Root:      "/",
+		Path:      "/README.md",
 		ClusterId: "clusterId",
 	}
 }

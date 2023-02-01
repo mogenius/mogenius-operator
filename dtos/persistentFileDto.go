@@ -1,6 +1,15 @@
 package dtos
 
-import "time"
+import (
+	"fmt"
+	"io/fs"
+	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
+	"os"
+	"path/filepath"
+	"syscall"
+	"time"
+)
 
 type PersistentFileDto struct {
 	Name           string `json:"name" validate:"required"`
@@ -9,7 +18,7 @@ type PersistentFileDto struct {
 	AbsolutePath   string `json:"absolutePath" validate:"required"`
 	IsSymbolicLink bool   `json:"isSymbolicLink" validate:"required"`
 	Extension      string `json:"extension,omitempty"`
-	SizeInBytes    int    `json:"sizeInBytes" validate:"required"`
+	SizeInBytes    int64  `json:"sizeInBytes" validate:"required"`
 	Size           string `json:"size" validate:"required"`
 	Hash           string `json:"hash" validate:"required"`
 	MimeType       string `json:"mimeType,omitempty"`
@@ -35,6 +44,53 @@ func PersistentFileDtoExampleData() PersistentFileDto {
 		ModifiedAt:     time.Now().Format(time.RFC3339),
 		Uid_gid:        "uid_gid",
 		Mode:           1,
+		New:            true,
+	}
+}
+
+func PersistentFileDtoFrom(path string, d fs.DirEntry) PersistentFileDto {
+	fileType := "file"
+	if d.IsDir() {
+		fileType = "directory"
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		logger.Log.Warning("FileStat Err: %s", err.Error())
+	}
+	var uid int = 0
+	var gid int = 0
+	var size int64 = 0
+	var createTime = time.Now().Format(time.RFC3339)
+	var modTime = time.Now().Format(time.RFC3339)
+	var mode = 0
+	if err == nil {
+		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
+			uid = int(stat.Uid)
+			gid = int(stat.Gid)
+			size = stat.Size
+			mode = int(stat.Mode)
+			createTime = time.Unix(stat.Ctimespec.Sec, 0).Format(time.RFC3339)
+			modTime = time.Unix(stat.Mtimespec.Sec, 0).Format(time.RFC3339)
+
+		}
+	}
+	uidGid := fmt.Sprintf("%d:%d", uid, gid)
+
+	return PersistentFileDto{
+		Name:           d.Name(),
+		Type:           fileType,
+		RelativePath:   filepath.Dir(path),
+		AbsolutePath:   fmt.Sprintf("/%s", path),
+		IsSymbolicLink: false,
+		Extension:      filepath.Ext(path),
+		SizeInBytes:    size,
+		Size:           utils.BytesToHumanReadable(uint64(size)),
+		Hash:           utils.QuickHash(path),
+		CreatedAt:      createTime,
+		ModifiedAt:     modTime,
+		Uid_gid:        uidGid,
+		Mode:           mode,
 		New:            true,
 	}
 }

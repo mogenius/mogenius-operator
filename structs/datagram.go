@@ -63,12 +63,14 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
 	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
 
-	var obj map[string]interface{}
+	var obj interface{}
 	json.Unmarshal([]byte(d.Payload), &obj)
+	// if err != nil {
+	// 	logger.Log.Errorf("Error Marshaling Payload: %s", err.Error())
+	// }
 
 	f := colorjson.NewFormatter()
 	f.Indent = 2
-
 	s, _ := f.Marshal(obj)
 
 	fmt.Printf("%s %s\n", PAYLOADCOLOR("PAYLOAD: "), string(s))

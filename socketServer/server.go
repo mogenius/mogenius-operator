@@ -51,26 +51,39 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 	addConnection(connection, clusterName)
 
 	for {
-		_, msg, err := connection.ReadMessage()
+		msgType, msg, err := connection.ReadMessage()
 		if err != nil {
 			logger.Log.Error("websocket read err:", err)
 			break
 		}
 
-		datagram := structs.Datagram{}
-		_ = json.Unmarshal(msg, &datagram)
-		datagramValidationError := validate.Struct(datagram)
+		switch msgType {
+		case websocket.BinaryMessage:
+			fmt.Print(string(msg))
+		case websocket.TextMessage:
+			datagram := structs.Datagram{}
+			_ = json.Unmarshal(msg, &datagram)
+			datagramValidationError := validate.Struct(datagram)
 
-		if datagramValidationError != nil {
-			logger.Log.Errorf("Invalid datagram: %s", datagramValidationError.Error())
-			return
-		}
+			if datagramValidationError != nil {
+				logger.Log.Errorf("Invalid datagram: %s", datagramValidationError.Error())
+				return
+			}
 
-		if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
-			//services.ExecuteRequest(datagram, connection)
-			datagram.DisplayBeautiful()
-		} else {
-			logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
+			if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
+				//services.ExecuteRequest(datagram, connection)
+				datagram.DisplayBeautiful()
+			} else {
+				logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
+			}
+		case websocket.CloseMessage:
+			logger.Log.Warning("Received websocket.CloseMessage.")
+		case websocket.PingMessage:
+			logger.Log.Warning("Received websocket.PingMessage.")
+		case websocket.PongMessage:
+			logger.Log.Warning("Received websocket.PongMessage.")
+		default:
+			logger.Log.Warningf("Received unknown messageType '%d' via websocket.", msgType)
 		}
 	}
 }

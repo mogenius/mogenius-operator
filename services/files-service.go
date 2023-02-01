@@ -1,9 +1,15 @@
 package services
 
 import (
+	"bufio"
+	"fmt"
+	"io/fs"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
@@ -16,17 +22,26 @@ func AllFiles() dtos.PersistentFileStatsDto {
 }
 
 func List(r FilesListRequest, c *websocket.Conn) []dtos.PersistentFileDto {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return []dtos.PersistentFileDto{}
+	result := []dtos.PersistentFileDto{}
+	pathToFile, err := verify(&r.Folder)
+	if err != nil {
+		return result
+	}
+	result, err = listFiles(pathToFile, 0)
+	if err != nil {
+		logger.Log.Errorf("Files List Error: %s", err.Error())
+	}
+	return result
 }
 
-func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+func Download(r FilesDownloadRequest, c *websocket.Conn) (*bufio.Reader, error) {
+	pathToFile, err := verify(&r.File)
+	if err != nil {
+		return nil, fmt.Errorf("Download Error %s", err.Error())
+	}
+	file, err := os.Open(pathToFile)
+	reader := bufio.NewReader(file)
+	return reader, err
 }
 
 func Upload(r FilesUploadRequest, c *websocket.Conn) interface{} {
@@ -98,7 +113,7 @@ type FilesDownloadRequest struct {
 
 func FilesDownloadRequestExampleData() FilesDownloadRequest {
 	return FilesDownloadRequest{
-		File: dtos.PersistentFileRequestDtoExampleData(),
+		File: dtos.PersistentFileDownloadDtoExampleData(),
 	}
 }
 
@@ -189,4 +204,57 @@ func FilesDeleteRequestExampleData() FilesDeleteRequest {
 	return FilesDeleteRequest{
 		File: dtos.PersistentFileRequestDtoExampleData(),
 	}
+}
+
+func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
+	result := []dtos.PersistentFileDto{}
+	err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		result = append(result, dtos.PersistentFileDtoFrom(path, d))
+		if d.IsDir() && strings.Count(path, string(os.PathSeparator)) > maxDepth {
+			fmt.Println("skip", path)
+			return fs.SkipDir
+		}
+		return nil
+	})
+	return result, err
+}
+
+func verify(data *dtos.PersistentFileRequestDto) (string, error) {
+	if data.Path == "" {
+		return "", fmt.Errorf("path cannot be empty. Must at least contain '/'")
+	}
+	if strings.Contains(data.Path, "..") {
+		return "", fmt.Errorf("path cannot contain '..'")
+	}
+	if strings.Contains(data.Root, "..") {
+		return "", fmt.Errorf("root cannot contain '..'")
+	}
+	if strings.Contains(data.Path, "./") {
+		return "", fmt.Errorf("path cannot contain './'")
+	}
+	if strings.Contains(data.Root, "./") {
+		return "", fmt.Errorf("root cannot begin with './'")
+	}
+	if strings.Contains(data.Path, "~") {
+		return "", fmt.Errorf("path cannot contain '~'")
+	}
+	if strings.Contains(data.Root, "~") {
+		return "", fmt.Errorf("root cannot begin with '~'")
+	}
+	if data.Root == "/" {
+		data.Root = ""
+	}
+	if data.Path == "/" {
+		data.Path = ""
+	}
+
+	dataRoot := utils.CONFIG.Misc.DefaultMountPath
+	if utils.CONFIG.Misc.Debug {
+		dataRoot = "."
+	}
+	pathToFile := fmt.Sprintf("%s%s%s", dataRoot, data.Root, data.Path)
+	return pathToFile, nil
 }
