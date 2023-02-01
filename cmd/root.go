@@ -20,12 +20,10 @@ var rootCmd = &cobra.Command{
 Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 	Run: func(cmd *cobra.Command, args []string) {
 		reset, _ := cmd.Flags().GetBool("reset")
-		showDebug, _ := cmd.Flags().GetBool("debug")
 		if reset {
 			logger.Log.Notice("Resetting config yaml to dafault values.")
 			utils.WriteDefaultConfig()
 		}
-		utils.InitConfigYaml(showDebug)
 	},
 }
 
@@ -40,9 +38,6 @@ func Execute() {
 		ExecName: cc.Bold,
 		Flags:    cc.Bold,
 	})
-
-	showDebug, _ := rootCmd.Flags().GetBool("debug")
-	utils.InitConfigYaml(showDebug)
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -61,5 +56,4 @@ func init() {
 	// when this action is called directly.
 
 	rootCmd.Flags().BoolP("reset", "r", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
-	rootCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
 }

@@ -30,8 +30,8 @@ type Config struct {
 var DefaultConfigFile string
 var CONFIG Config
 
-func InitConfigYaml(showDebug bool) {
-	_, configPath := GetDirectories()
+func InitConfigYaml(showDebug bool, customConfigName *string) {
+	_, configPath := GetDirectories(customConfigName)
 
 	if _, err := os.Stat(configPath); err == nil || os.IsExist(err) {
 		// file exists
@@ -67,20 +67,27 @@ func PrintSettings() {
 	logger.Log.Infof("DefaultContainerRegistry: \t%s", CONFIG.Kubernetes.DefaultContainerRegistry)
 }
 
-func GetDirectories() (configDir string, configPath string) {
+func GetDirectories(customConfigName *string) (configDir string, configPath string) {
 	homeDirName, err := os.UserHomeDir()
 	if err != nil {
 		logger.Log.Error(err)
 	}
 
 	configDir = homeDirName + "/.mogenius-k8s-manager/"
-	configPath = configDir + "config.yaml"
+	if customConfigName != nil {
+		newConfigName := *customConfigName
+		if newConfigName != "" {
+			configPath = configDir + newConfigName
+		}
+	} else {
+		configPath = configDir + "config.yaml"
+	}
 
 	return configDir, configPath
 }
 
 func WriteDefaultConfig() {
-	configDir, configPath := GetDirectories()
+	configDir, configPath := GetDirectories(nil)
 
 	// write it to default location
 	err := os.Mkdir(configDir, 0755)

@@ -22,9 +22,8 @@ var testClientCmd = &cobra.Command{
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		showDebug, _ := cmd.Flags().GetBool("debug")
-		if showDebug {
-			utils.PrintSettings()
-		}
+		customConfig, _ := cmd.Flags().GetString("config")
+		utils.InitConfigYaml(showDebug, &customConfig)
 
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
@@ -56,4 +55,5 @@ func init() {
 	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 	testClientCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
+	testClientCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
 }
