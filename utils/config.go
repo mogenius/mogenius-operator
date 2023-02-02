@@ -21,9 +21,10 @@ type Config struct {
 		ApiKey          string `yaml:"api_key" env-description:"Api Key to access the server"`
 	} `yaml:"api_server"`
 	Misc struct {
-		Debug            bool   `yaml:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
-		StorageAccount   string `yaml:"storage_account" env-description:"Azure Storage Account"`
-		DefaultMountPath string `yaml:"default_mount_path" env-description:"All containers will have access to this mount point"`
+		Debug                 bool   `yaml:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
+		StorageAccount        string `yaml:"storage_account" env-description:"Azure Storage Account"`
+		DefaultMountPath      string `yaml:"default_mount_path" env-description:"All containers will have access to this mount point"`
+		ConcurrentConnections int    `yaml:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"3"`
 	} `yaml:"misc"`
 }
 

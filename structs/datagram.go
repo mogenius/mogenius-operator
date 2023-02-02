@@ -107,17 +107,17 @@ func (d *Datagram) DisplayBeautiful() {
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
-	RECEIVCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
-	PATTERNCOLOR := color.New(color.FgBlack, color.BgYellow).SprintFunc()
-	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
+	RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
+	PATTERNCOLOR := color.New(color.FgBlack, color.BgHiRed).SprintFunc()
+	IDCOLOR := color.New(color.FgWhite, color.BgCyan).SprintFunc()
 
 	fmt.Printf("%s%s%s (%s)\n", RECEIVCOLOR("RECEIVED        "), PATTERNCOLOR(utils.FillWith(d.Pattern, 60, " ")), IDCOLOR(d.Id), DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummary() {
-	RECEIVCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
-	PATTERNCOLOR := color.New(color.FgBlack, color.BgYellow).SprintFunc()
-	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
+	RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
+	PATTERNCOLOR := color.New(color.FgBlack, color.BgHiRed).SprintFunc()
+	IDCOLOR := color.New(color.FgWhite, color.BgCyan).SprintFunc()
 
 	fmt.Printf("%s%s%s (%s)\n", RECEIVCOLOR("SENT            "), PATTERNCOLOR(utils.FillWith(d.Pattern, 60, " ")), IDCOLOR(d.Id), DurationStrSince(d.CreatedAt))
 }
