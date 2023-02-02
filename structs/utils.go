@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 )
 
 func PrettyPrint(i interface{}) {
@@ -20,4 +21,22 @@ func PrettyPrintString(i interface{}) string {
 		log.Fatalf(err.Error())
 	}
 	return string(iJson)
+}
+
+func MilliSecSince(since time.Time) int64 {
+	return time.Since(since).Milliseconds()
+}
+
+func MicroSecSince(since time.Time) int64 {
+	return time.Since(since).Microseconds()
+}
+
+func DurationStrSince(since time.Time) string {
+	duration := MilliSecSince(since)
+	durationStr := fmt.Sprintf("%d ms", duration)
+	if duration <= 0 {
+		duration = MicroSecSince(since)
+		durationStr = fmt.Sprintf("%d μs", duration)
+	}
+	return durationStr
 }

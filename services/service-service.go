@@ -63,10 +63,7 @@ func PodLogStream(r ServiceLogStreamRequest, c *websocket.Conn) (*rest.Request, 
 }
 
 func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+	return mokubernetes.PodStatus(r.Resource, r.Namespace, r.Name, r.StatusOnly)
 }
 
 func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
@@ -234,18 +231,18 @@ func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 
 // service/resource-status/:resource/:namespace/:name/:statusOnly GET
 type ServiceResourceStatusRequest struct {
-	Resource    string `json:"resource"`
-	NamespaceId string `json:"namespaceId"`
-	Name        string `json:"name"`
-	StatusOnly  bool   `json:"statusOnly"`
+	Resource   string `json:"resource"` // pods, services, deployments
+	Namespace  string `json:"namespace"`
+	Name       string `json:"name"`
+	StatusOnly bool   `json:"statusOnly"`
 }
 
 func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
 	return ServiceResourceStatusRequest{
-		Resource:    "deployment",
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Name:        "test",
-		StatusOnly:  true,
+		Resource:   "pods",
+		Namespace:  "default",
+		Name:       "mo-k8s-manager-mo7-87fbc475b-skktl",
+		StatusOnly: true,
 	}
 }
 

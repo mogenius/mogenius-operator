@@ -66,14 +66,13 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 		case websocket.TextMessage:
 			recvText := string(msg)
 			if strings.HasPrefix(recvText, "######START######;") || strings.HasPrefix(recvText, "######END######;") {
-				fmt.Println(recvText)
 				currentMsg := string(msg)
 				currentMsg = strings.Replace(currentMsg, "######START######;", "", 1)
 				currentMsg = strings.Replace(currentMsg, "######END######;", "", 1)
 				msg = []byte(currentMsg)
 			}
 
-			datagram := structs.Datagram{}
+			datagram := structs.CreateEmptyDatagram()
 			_ = json.Unmarshal(msg, &datagram)
 			datagramValidationError := validate.Struct(datagram)
 
@@ -211,7 +210,6 @@ func requestStatusFromCluster(no string) {
 		if no == strconv.Itoa(count) {
 			datagram := structs.CreateDatagramFrom("ClusterStatus", nil, value.Connection)
 			datagram.Send()
-			logger.Log.Infof("Requesting status for cluster '%s'.", value.ClusterName)
 			return
 		}
 	}
@@ -301,7 +299,6 @@ func requestCmdFromCluster(pattern string) {
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
 		datagram.DisplaySentSummary()
 		datagram.Send()
-		logger.Log.Infof("Requesting '%s' for cluster '%s'.", pattern, firstConnection.ClusterName)
 		return
 	}
 	logger.Log.Error("Not connected to any cluster.")

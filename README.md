@@ -26,12 +26,28 @@
 <br />
 <br />
 
-# TODOS 
-1. Websocket: how to handle uploads/downloads (Files)
 
+# Start Server 
+```
+go run main.go testserver -d
 
-# Known Issues
-- No known issues
+OR
+
+air -c .air-server.toml
+```
+
+# Start Client 
+```
+go run main.go testclient -d
+
+OR
+
+air -c .air-client.toml
+
+```
+
+# LINKS
+- [AIR](https://github.com/cosmtrek/air) - Live reload for Go apps
 
 
 ---------------------

@@ -57,7 +57,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				return
 			} else {
 				rawJson := string(message)
-				datagram := structs.Datagram{}
+				datagram := structs.CreateEmptyDatagram()
 
 				jsonErr := json.Unmarshal([]byte(rawJson), &datagram)
 				if jsonErr != nil {
@@ -159,7 +159,6 @@ func heartbeat(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
 			return
 		case <-heartBeatTicker.C:
 			heartBeat := structs.CreateDatagram("HeartBeat", c)
-			heartBeat.DisplaySentSummary()
 			err := heartBeat.Send()
 			if err != nil {
 				log.Println("HEARTBEAT ERROR:", err)

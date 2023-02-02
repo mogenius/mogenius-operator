@@ -77,19 +77,20 @@ func ConfirmTask(s string, tries int) bool {
 
 func FillWith(s string, targetLength int, chars string) string {
 	if len(s) >= targetLength {
-		return s
+		return TruncateText(s, targetLength)
 	}
 	for i := 0; len(s) < targetLength; i++ {
 		s = s + chars
 	}
+
 	return s
 }
 
 func TruncateText(s string, max int) string {
-	if max > len(s) {
+	if max < 4 || max > len(s) {
 		return s
 	}
-	return s[:max] + " ..."
+	return s[:max-4] + " ..."
 }
 
 func FunctionName() string {

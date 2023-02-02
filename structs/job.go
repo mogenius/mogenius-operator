@@ -112,7 +112,7 @@ func ReportStateToServer(job *Job, cmd *Command, c *websocket.Conn) {
 
 		if data != nil {
 			stateLog(typeName, data)
-			result := CreateDatagramFrom("K8sNotificationDto", data, c)
+			result := CreateDatagramFromNotification(data, c)
 			result.Send()
 		} else {
 			logger.Log.Error("Serialization failed.")
