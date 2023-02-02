@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bufio"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -10,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"k8s.io/client-go/rest"
 )
 
 func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
@@ -58,7 +58,7 @@ func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
 	return mokubernetes.GetLog(r.Namespace, r.PodId)
 }
 
-func PodLogStream(r ServiceLogStreamRequest, c *websocket.Conn) (*bufio.Reader, error) {
+func PodLogStream(r ServiceLogStreamRequest, c *websocket.Conn) (*rest.Request, error) {
 	return mokubernetes.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
 }
 

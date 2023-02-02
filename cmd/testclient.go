@@ -4,6 +4,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/socketServer"
@@ -11,6 +12,8 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 
 	"github.com/spf13/cobra"
 )
@@ -28,15 +31,30 @@ var testClientCmd = &cobra.Command{
 
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
+
+		maxGoroutines := 3
+		connectionCounter := 0
+		guard := make(chan struct{}, maxGoroutines)
+
+		fmt.Println(utils.FillWith("", 60, "#"))
+		fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", utils.FillWith(mokubernetes.CurrentContextName(), 31, " "))
+		fmt.Println(utils.FillWith("", 60, "#"))
+
 		for {
 			select {
 			case <-interrupt:
 				log.Fatal("CTRL + C pressed. Terminating.")
 			case <-time.After(time.Second):
 			}
-			socketServer.StartClient()
-			logger.Log.Error("Connection closed. Reconnecting after waiting 1 second ...")
-			time.Sleep(1 * time.Second)
+
+			guard <- struct{}{} // would block if guard channel is already filled
+			go func() {
+				connectionCounter++
+				socketServer.StartClient(connectionCounter)
+				logger.Log.Error("Connection closed. Reconnecting after waiting 1 second ...")
+				time.Sleep(1 * time.Second)
+				<-guard
+			}()
 
 		}
 	},

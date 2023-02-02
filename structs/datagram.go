@@ -15,11 +15,11 @@ import (
 var sendMutex sync.Mutex
 
 type Datagram struct {
-	Id         string      `json:"id" validate:"required"`
-	Pattern    string      `json:"pattern" validate:"required"`
-	Payload    interface{} `json:"payload,omitempty"`
-	Err        string      `json:"err,omitempty"`
-	Connection *websocket.Conn
+	Id         string          `json:"id" validate:"required"`
+	Pattern    string          `json:"pattern" validate:"required"`
+	Payload    interface{}     `json:"payload,omitempty"`
+	Err        string          `json:"err,omitempty"`
+	Connection *websocket.Conn `json:"-"`
 }
 
 func CreateDatagramRequest(request Datagram, data interface{}, c *websocket.Conn) Datagram {
@@ -72,7 +72,7 @@ func (d *Datagram) DisplayBeautiful() {
 	f.Indent = 2
 	s, _ := f.Marshal(d.Payload)
 
-	fmt.Printf("%s %s\n", PAYLOADCOLOR("PAYLOAD: "), string(s))
+	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), string(s))
 }
 
 func (d *Datagram) DisplayReceiveSummary() {

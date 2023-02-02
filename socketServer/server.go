@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +28,7 @@ var upgrader = websocket.Upgrader{
 
 var validate = validator.New()
 var connections = make(map[string]structs.ClusterConnection)
+var sendMutex sync.Mutex
 
 func Init(r *gin.Engine) {
 	// r.Use(user.AuthUserMiddleware())
@@ -61,20 +64,28 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 		case websocket.BinaryMessage:
 			fmt.Print(string(msg))
 		case websocket.TextMessage:
+			recvText := string(msg)
+			if strings.HasPrefix(recvText, "######START######;") || strings.HasPrefix(recvText, "######END######;") {
+				fmt.Println(recvText)
+				currentMsg := string(msg)
+				currentMsg = strings.Replace(currentMsg, "######START######;", "", 1)
+				currentMsg = strings.Replace(currentMsg, "######END######;", "", 1)
+				msg = []byte(currentMsg)
+			}
+
 			datagram := structs.Datagram{}
 			_ = json.Unmarshal(msg, &datagram)
 			datagramValidationError := validate.Struct(datagram)
 
 			if datagramValidationError != nil {
 				logger.Log.Errorf("Invalid datagram: %s", datagramValidationError.Error())
-				return
-			}
-
-			if utils.Contains(services.ALL_REQUESTS, datagram.Pattern) {
-				//services.ExecuteRequest(datagram, connection)
-				datagram.DisplayBeautiful()
+				continue
 			} else {
-				logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
+				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) || utils.Contains(services.BINARY_REQUESTS, datagram.Pattern) || utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
+					datagram.DisplayBeautiful()
+				} else {
+					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
+				}
 			}
 		case websocket.CloseMessage:
 			logger.Log.Warning("Received websocket.CloseMessage.")
@@ -106,16 +117,20 @@ func validateHeader(c *gin.Context) string {
 		return ""
 	}
 
-	logger.Log.Infof("New client connected %s/%s (Agent: %s)", clusterName, c.ClientIP(), userAgent)
+	logger.Log.Infof("New client connected %s/%s (Agent: %s)", clusterName, c.Request.RemoteAddr, userAgent)
 	return clusterName
 }
 
 func addConnection(connection *websocket.Conn, clusterName string) {
+	sendMutex.Lock()
+	defer sendMutex.Unlock()
 	remoteAddr := connection.RemoteAddr().String()
 	connections[remoteAddr] = structs.ClusterConnection{ClusterName: clusterName, Connection: connection, AddedAt: time.Now()}
 }
 
 func removeConnection(connection *websocket.Conn) {
+	sendMutex.Lock()
+	defer sendMutex.Unlock()
 	remoteAddr := connection.RemoteAddr().String()
 	connection.Close()
 	delete(connections, remoteAddr)
@@ -126,6 +141,7 @@ func printShortcuts() {
 	logger.Log.Notice("h:     help")
 	logger.Log.Notice("l:     list clusters")
 	logger.Log.Notice("s:     send command to cluster")
+	logger.Log.Notice("c:     close random connection")
 	logger.Log.Notice("q:     quit application")
 	logger.Log.Notice("1-9:   request status from cluster")
 }
@@ -158,12 +174,21 @@ func ReadInput() {
 			}
 		case "l":
 			listClusters()
+		case "c":
+			closeRandomConnection()
 		case "q":
 			os.Exit(0)
 		default:
 			logger.Log.Errorf("Unrecognized character '%s'.", r)
 			printShortcuts()
 		}
+	}
+}
+
+func closeRandomConnection() {
+	cluster := selectRandomCluster()
+	if cluster != nil {
+		cluster.Connection.Close()
 	}
 }
 
@@ -283,7 +308,10 @@ func requestCmdFromCluster(pattern string) {
 }
 
 func selectCommands() string {
-	for index, patternName := range services.ALL_REQUESTS {
+	allCommands := append([]string{}, services.COMMAND_REQUESTS...)
+	allCommands = append(allCommands, services.BINARY_REQUESTS...)
+	allCommands = append(allCommands, services.STREAM_REQUESTS...)
+	for index, patternName := range allCommands {
 		fmt.Printf("%d: %s\n", index, patternName)
 	}
 
@@ -291,15 +319,15 @@ func selectCommands() string {
 	var number int
 	_, err := fmt.Scanf("%d", &number)
 	if err != nil {
-		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(services.ALL_REQUESTS)-1)
+		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(allCommands)-1)
 		return ""
 	}
 	fmt.Println(number)
 
-	if len(services.ALL_REQUESTS) >= number {
-		return services.ALL_REQUESTS[number]
+	if len(allCommands) >= number {
+		return allCommands[number]
 	} else {
-		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(services.ALL_REQUESTS)-1)
+		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(allCommands)-1)
 		return ""
 	}
 }

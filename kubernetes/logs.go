@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/utils"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
 )
 
 func GetLog(namespace string, podId string) string {
@@ -55,7 +56,7 @@ func GetLog(namespace string, podId string) string {
 	return resultMsg
 }
 
-func StreamLog(namespace string, podId string, sindceSeconds int64) (*bufio.Reader, error) {
+func StreamLog(namespace string, podId string, sindceSeconds int64) (*rest.Request, error) {
 	var kubeProvider *KubeProvider
 	var err error
 	if !utils.CONFIG.Kubernetes.RunInCluster {
@@ -75,13 +76,5 @@ func StreamLog(namespace string, podId string, sindceSeconds int64) (*bufio.Read
 	}
 
 	restReq := podClient.GetLogs(podId, &opts)
-	stream, err := restReq.Stream(context.TODO())
-	reader := bufio.NewReader(stream)
-	if err != nil {
-		return nil, err
-	}
-	// TODO: DAS IST MIES
-	//defer stream.Close()
-
-	return reader, nil
+	return restReq, nil
 }
