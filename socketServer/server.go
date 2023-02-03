@@ -10,11 +10,11 @@ import (
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	"github.com/gorilla/websocket"
@@ -81,6 +81,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 				continue
 			} else {
 				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) || utils.Contains(services.BINARY_REQUESTS, datagram.Pattern) || utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
+					RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
+					fmt.Printf("%s\n", RECEIVCOLOR(utils.FillWith("RECEIVED", 22, " ")))
 					datagram.DisplayBeautiful()
 				} else {
 					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
@@ -142,7 +144,6 @@ func printShortcuts() {
 	logger.Log.Notice("s:     send command to cluster")
 	logger.Log.Notice("c:     close random connection")
 	logger.Log.Notice("q:     quit application")
-	logger.Log.Notice("1-9:   request status from cluster")
 }
 
 func ReadInput() {
@@ -160,8 +161,6 @@ func ReadInput() {
 			log.Fatal(err)
 		}
 		switch string(r) {
-		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
-			requestStatusFromCluster(string(r))
 		case "h":
 			printShortcuts()
 		case "s":
@@ -203,25 +202,10 @@ func listClusters() []string {
 	return result
 }
 
-func requestStatusFromCluster(no string) {
-	count := 0
-	for _, value := range connections {
-		count++
-		if no == strconv.Itoa(count) {
-			datagram := structs.CreateDatagramFrom("ClusterStatus", nil, value.Connection)
-			datagram.Send()
-			return
-		}
-	}
-	logger.Log.Errorf("Cluster number '%s' not found.", no)
-}
-
 func requestCmdFromCluster(pattern string) {
 	if len(connections) > 0 {
 		var payload interface{} = nil
 		switch pattern {
-		case "HeartBeat":
-			payload = nil
 		case "K8sNotification":
 			payload = nil
 		case "ClusterStatus":
@@ -252,14 +236,8 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.NamespaceDeleteRequestExample()
 		case "namespace/shutdown POST":
 			payload = services.NamespaceShutdownRequestExample()
-		case "namespace/reboot POST":
-			payload = services.NamespaceRebootRequestExample()
-		case "namespace/ingress-state/:state GET":
-			payload = services.NamespaceSetIngressStateRequestExample()
 		case "namespace/pod-ids/:namespace GET":
 			payload = services.NamespacePodIdsRequestExample()
-		case "namespace/get-cluster-pods GET":
-			payload = nil
 		case "namespace/validate-cluster-pods POST":
 			payload = services.NamespaceValidateClusterPodsRequestExample()
 		case "namespace/validate-ports POST":
@@ -297,7 +275,6 @@ func requestCmdFromCluster(pattern string) {
 		}
 		firstConnection := selectRandomCluster()
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
-		datagram.DisplaySentSummary()
 		datagram.Send()
 		return
 	}

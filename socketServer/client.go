@@ -23,7 +23,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const heartBeatSeconds = 30
+const PingSeconds = 10
 
 func StartClient(connectionCounter int) {
 	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.WebsocketServer, utils.CONFIG.ApiServer.WebsocketPort)
@@ -143,25 +143,24 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	}()
 
 	// KEEP THE CONNECTION OPEN
-	heartbeat(done, c, &sendMutex)
+	Ping(done, c, &sendMutex)
 }
 
-func heartbeat(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
+func Ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	heartBeatTicker := time.NewTicker(time.Second * heartBeatSeconds)
-	defer heartBeatTicker.Stop()
+	pingTicker := time.NewTicker(time.Second * PingSeconds)
+	defer pingTicker.Stop()
 
 	for {
 		select {
 		case <-done:
 			return
-		case <-heartBeatTicker.C:
-			heartBeat := structs.CreateDatagram("HeartBeat", c)
-			err := heartBeat.Send()
+		case <-pingTicker.C:
+			err := c.WriteMessage(websocket.PingMessage, nil)
 			if err != nil {
-				log.Println("HEARTBEAT ERROR:", err)
+				log.Println("pingTicker ERROR:", err)
 				return
 			}
 		case <-interrupt:

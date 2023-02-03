@@ -82,7 +82,6 @@ func CreateEmptyDatagram() Datagram {
 }
 
 func (d *Datagram) DisplayBeautiful() {
-
 	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
 	PATTERNCOLOR := color.New(color.FgBlack, color.BgYellow).SprintFunc()
 	TIMECOLOR := color.New(color.FgWhite, color.BgRed).SprintFunc()
@@ -92,12 +91,6 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
 	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
 	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), DurationStrSince(d.CreatedAt))
-
-	// var obj interface{}
-	// json.Unmarshal([]byte(d.Payload), &obj)
-	// if err != nil {
-	// 	logger.Log.Errorf("Error Marshaling Payload: %s", err.Error())
-	// }
 
 	f := colorjson.NewFormatter()
 	f.Indent = 2
@@ -111,7 +104,7 @@ func (d *Datagram) DisplayReceiveSummary() {
 	PATTERNCOLOR := color.New(color.FgBlack, color.BgHiRed).SprintFunc()
 	IDCOLOR := color.New(color.FgWhite, color.BgCyan).SprintFunc()
 
-	fmt.Printf("%s%s%s (%s)\n", RECEIVCOLOR("RECEIVED        "), PATTERNCOLOR(utils.FillWith(d.Pattern, 60, " ")), IDCOLOR(d.Id), DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s%s%s (%s)\n", RECEIVCOLOR(utils.FillWith("RECEIVED", 22, " ")), PATTERNCOLOR(utils.FillWith(d.Pattern, 60, " ")), IDCOLOR(d.Id), DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummary() {
@@ -119,7 +112,7 @@ func (d *Datagram) DisplaySentSummary() {
 	PATTERNCOLOR := color.New(color.FgBlack, color.BgHiRed).SprintFunc()
 	IDCOLOR := color.New(color.FgWhite, color.BgCyan).SprintFunc()
 
-	fmt.Printf("%s%s%s (%s)\n", RECEIVCOLOR("SENT            "), PATTERNCOLOR(utils.FillWith(d.Pattern, 60, " ")), IDCOLOR(d.Id), DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s%s%s (%s)\n", RECEIVCOLOR(utils.FillWith("SENT", 22, " ")), PATTERNCOLOR(utils.FillWith(d.Pattern, 60, " ")), IDCOLOR(d.Id), DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) Send() error {

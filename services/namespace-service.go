@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -28,10 +29,8 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 			dataRoot = "/"
 		}
 		job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c))
-		// TODO: IMPLEMENT THESE!!!!
-		// job.add(this.createPV(stage))
-		// job.add(this.createPVC(stage))
-		logger.Log.Info("TODO: IMPLEMENT PV AND PC")
+		job.AddCmd(mokubernetes.CreatePersistentVolume(&job, r.Stage, c, &wg))
+		job.AddCmd(mokubernetes.CreatePersistentVolumeClaim(&job, r.Stage, c, &wg))
 	}
 	wg.Wait()
 	job.Finish(c)
@@ -44,47 +43,27 @@ func DeleteNamespace(r NamespaceDeleteRequest, c *websocket.Conn) structs.Job {
 	job := structs.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Stage, c, &wg))
+	job.AddCmd(mokubernetes.DeletePersistentVolume(&job, r.Stage, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
 }
 
-func ShutdownNamespace(r NamespaceShutdownRequest, c *websocket.Conn) bool {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return false
-}
+func ShutdownNamespace(r NamespaceShutdownRequest, c *websocket.Conn) structs.Job {
+	var wg sync.WaitGroup
 
-func RebootNamespace(r NamespaceRebootRequest, c *websocket.Conn) bool {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return false
-}
-
-func SetIngressState(r NamespaceSetIngressStateRequest, c *websocket.Conn) interface{} {
-	// ENABLED = 'ENABLED',
-	// DISABLED = 'DISABLED',
-	// TRAFFIC_EXCEEDED = 'TRAFFIC_EXCEEDED'
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+	job := structs.CreateJob("Shutdown Stage "+r.Stage.DisplayName, r.NamespaceId, r.Stage.Id, nil, c)
+	job.Start(c)
+	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.NamespaceShortId, r.Stage, nil, nil, c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return job
 }
 
 func PodIds(r NamespacePodIdsRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
-}
-
-func ClusterPods(c *websocket.Conn) []string {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return []string{}
+	return kubernetes.PodIdsFor(r.Namespace, nil)
 }
 
 func ValidateClusterPods(r NamespaceValidateClusterPodsRequest, c *websocket.Conn) interface{} {
@@ -102,10 +81,12 @@ func ValidateClusterPorts(r NamespaceValidatePortsRequest, c *websocket.Conn) in
 }
 
 func StorageSize(r NamespaceStorageSizeRequest, c *websocket.Conn) map[string]int {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return map[string]int{}
+	// TODO: Implement for CephFS
+	result := make(map[string]int)
+	for _, v := range r.Stageids {
+		result[v] = 0
+	}
+	return result
 }
 
 // namespace/create POST
@@ -136,42 +117,18 @@ func NamespaceDeleteRequestExample() NamespaceDeleteRequest {
 
 // namespace/shutdown POST
 type NamespaceShutdownRequest struct {
-	NamespaceId string           `json:"namespaceId"`
-	Stage       dtos.K8sStageDto `json:"stage"`
+	NamespaceId      string             `json:"namespaceId"`
+	NamespaceShortId string             `json:"namespaceShortId"`
+	Stage            dtos.K8sStageDto   `json:"stage"`
+	Service          dtos.K8sServiceDto `json:"service"`
 }
 
 func NamespaceShutdownRequestExample() NamespaceShutdownRequest {
 	return NamespaceShutdownRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       dtos.K8sStageDtoExampleData(),
-	}
-}
-
-// namespace/reboot POST
-type NamespaceRebootRequest struct {
-	NamespaceId string           `json:"namespaceId"`
-	Stage       dtos.K8sStageDto `json:"stage"`
-}
-
-func NamespaceRebootRequestExample() NamespaceRebootRequest {
-	return NamespaceRebootRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       dtos.K8sStageDtoExampleData(),
-	}
-}
-
-// namespace/ingress-state/:state GET
-type NamespaceSetIngressStateRequest struct {
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Stage     dtos.K8sStageDto     `json:"stage"`
-	State     string               `json:"state"`
-}
-
-func NamespaceSetIngressStateRequestExample() NamespaceSetIngressStateRequest {
-	return NamespaceSetIngressStateRequest{
-		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Stage:     dtos.K8sStageDtoExampleData(),
-		State:     "ENABLED",
+		NamespaceId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		NamespaceShortId: "y123as",
+		Stage:            dtos.K8sStageDtoExampleData(),
+		Service:          dtos.K8sServiceDtoExampleData(),
 	}
 }
 
@@ -182,11 +139,9 @@ type NamespacePodIdsRequest struct {
 
 func NamespacePodIdsRequestExample() NamespacePodIdsRequest {
 	return NamespacePodIdsRequest{
-		Namespace: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Namespace: "default",
 	}
 }
-
-// namespace/get-cluster-pods GET
 
 // namespace/validate-cluster-pods POST
 type NamespaceValidateClusterPodsRequest struct {
@@ -219,6 +174,6 @@ type NamespaceStorageSizeRequest struct {
 
 func NamespaceStorageSizeRequestExample() NamespaceStorageSizeRequest {
 	return NamespaceStorageSizeRequest{
-		Stageids: []string{"stage1", "stage2"},
+		Stageids: []string{"stage1", "stage2", "stage3", "stage4", "stage5"},
 	}
 }

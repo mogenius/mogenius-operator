@@ -13,7 +13,6 @@ import (
 )
 
 var COMMAND_REQUESTS = []string{
-	"HeartBeat",
 	"K8sNotification",
 	"ClusterStatus",
 	"files/storage-stats GET",
@@ -26,10 +25,7 @@ var COMMAND_REQUESTS = []string{
 	"namespace/create POST",
 	"namespace/delete POST",
 	"namespace/shutdown POST",
-	"namespace/reboot POST",
-	"namespace/ingress-state/:state POST",
 	"namespace/pod-ids/:namespace GET",
-	"namespace/get-cluster-pods GET",
 	"namespace/validate-cluster-pods POST",
 	"namespace/validate-ports POST",
 	"namespace/storage-size POST",
@@ -60,8 +56,6 @@ var BINARY_REQUESTS = []string{
 
 func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 	switch datagram.Pattern {
-	case "HeartBeat":
-		return HeartBeat(datagram, c)
 	case "K8sNotification":
 		return K8sNotification(datagram, c)
 	case "ClusterStatus":
@@ -104,20 +98,10 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := NamespaceShutdownRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ShutdownNamespace(data, c)
-	case "namespace/reboot POST":
-		data := NamespaceRebootRequest{}
-		marshalUnmarshal(&datagram, &data)
-		return RebootNamespace(data, c)
-	case "namespace/ingress-state/:state GET":
-		data := NamespaceSetIngressStateRequest{}
-		marshalUnmarshal(&datagram, &data)
-		return SetIngressState(data, c)
 	case "namespace/pod-ids/:namespace GET":
 		data := NamespacePodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return PodIds(data, c)
-	case "namespace/get-cluster-pods GET":
-		return ClusterPods(c)
 	case "namespace/validate-cluster-pods POST":
 		data := NamespaceValidateClusterPodsRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -226,11 +210,6 @@ func ExecuteBinaryRequest(datagram structs.Datagram, c *websocket.Conn) (interfa
 
 	datagram.Err = "Pattern not found"
 	return datagram, nil, nil
-}
-
-func HeartBeat(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
-	return nil
 }
 
 func K8sNotification(d structs.Datagram, c *websocket.Conn) interface{} {

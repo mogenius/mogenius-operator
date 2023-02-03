@@ -15,7 +15,6 @@ import (
 
 func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-
 	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, c, &wg))
@@ -29,7 +28,6 @@ func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 
 func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-
 	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, c, &wg))
@@ -42,14 +40,17 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 }
 
 func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Set new image for service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job.Start(c)
+	job.AddCmd(kubernetes.SetImage(&job, r.Namespace, r.Stage, r.Service, r.ImageName, c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return job
 }
 
 func ServicePodIds(r ServiceGetPodIdsRequest, c *websocket.Conn) interface{} {
-	return kubernetes.PodIdsForServiceId(r.Namespace, &r.ServiceId)
+	return kubernetes.PodIdsFor(r.Namespace, &r.ServiceId)
 }
 
 func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
@@ -66,7 +67,6 @@ func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
 
 func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-
 	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Stage, r.Service, c, &wg))
@@ -79,7 +79,6 @@ func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 
 func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-
 	job := structs.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
@@ -106,7 +105,6 @@ func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
 
 func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-
 	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
@@ -184,18 +182,18 @@ func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
 
 // service/images/:imageName PATCH
 type ServiceSetImageRequest struct {
-	NamespaceId string `json:"namespaceId"`
-	Stage       string `json:"stage"`
-	ServiceId   string `json:"serviceId"`
-	ImageName   string `json:"imageName"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Stage     dtos.K8sStageDto     `json:"stage"`
+	Service   dtos.K8sServiceDto   `json:"service"`
+	ImageName string               `json:"imageName"`
 }
 
 func ServiceSetImageRequestExample() ServiceSetImageRequest {
 	return ServiceSetImageRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
-		ServiceId:   "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
-		ImageName:   "test",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Stage:     dtos.K8sStageDtoExampleData(),
+		Service:   dtos.K8sServiceDtoExampleData(),
+		ImageName: "nginx:latest",
 	}
 }
 

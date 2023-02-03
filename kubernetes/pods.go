@@ -39,7 +39,7 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 	return pod
 }
 
-func PodIdsForServiceId(namespace string, serviceId *string) []string {
+func PodIdsFor(namespace string, serviceId *string) []string {
 	result := []string{}
 
 	var provider *KubeProviderMetrics

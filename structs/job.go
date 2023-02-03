@@ -138,20 +138,20 @@ func stateLog(typeName string, data *dtos.K8sNotificationDto) {
 
 	switch data.State {
 	case "PENDING":
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, PEND(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, PEND(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
 	case "STARTED":
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, STAR(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, STAR(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
 	case "ERROR", "FAILED":
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, ERRO(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
-		fmt.Printf("%-6s %-25s %s\n", "", ERRO(utils.FillWith("--> ", 9, " ")), data.Message)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, ERRO(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
+		fmt.Printf("   %s %s %s\n", "", ERRO(utils.FillWith("--> ", 15, " ")), data.Message)
 	case "SUCCEEDED":
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, SUCC(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, SUCC(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
 	default:
-		fmt.Printf("%-6s %-25s %-70s (%sms)\n", typeName, DEFA(utils.FillWith(data.State, 9, " ")), utils.TruncateText(data.Title, 60), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, DEFA(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
 	}
 }
 
 func StateDebugLog(debugStr string) {
 	DEBUG := color.New(color.FgWhite, color.BgHiMagenta).SprintFunc()
-	fmt.Printf("%-6s %-26s %s\n", "DEBUG", DEBUG(utils.FillWith("DEBUG", 9, " ")), debugStr)
+	fmt.Printf("%-6s %-26s %s\n", "DEBUG", DEBUG(utils.FillWith("DEBUG", 15, " ")), debugStr)
 }

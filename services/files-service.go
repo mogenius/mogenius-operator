@@ -63,18 +63,28 @@ func Update(r FilesUpdateRequest, c *websocket.Conn) interface{} {
 	return nil
 }
 
-func CreateFolder(r FilesCreateFolderRequest, c *websocket.Conn) bool {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return false
+func CreateFolder(r FilesCreateFolderRequest, c *websocket.Conn) error {
+	pathToDir, err := verify(&r.Folder)
+	if err != nil {
+		return err
+	}
+	err = os.Mkdir(pathToDir, fs.ModeDir)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func Rename(r FilesRenameRequest, c *websocket.Conn) bool {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return false
+func Rename(r FilesRenameRequest, c *websocket.Conn) error {
+	pathToFile, err := verify(&r.File)
+	if err != nil {
+		return err
+	}
+	err = os.Rename(pathToFile, "asdasd")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func Chown(r FilesChownRequest, c *websocket.Conn) interface{} {
@@ -155,7 +165,7 @@ type FilesCreateFolderRequest struct {
 
 func FilesCreateFolderRequestExampleData() FilesCreateFolderRequest {
 	return FilesCreateFolderRequest{
-		Folder: dtos.PersistentFileRequestDtoExampleData(),
+		Folder: dtos.PersistentFileRequestNewFolderDtoExampleData(),
 	}
 }
 

@@ -14,6 +14,14 @@ func PersistentFileRequestDtoExampleData() PersistentFileRequestDto {
 	}
 }
 
+func PersistentFileRequestNewFolderDtoExampleData() PersistentFileRequestDto {
+	return PersistentFileRequestDto{
+		Root:      "/",
+		Path:      "/blaaaa",
+		ClusterId: "clusterId",
+	}
+}
+
 func PersistentFileDownloadDtoExampleData() PersistentFileRequestDto {
 	return PersistentFileRequestDto{
 		Root:      "/",

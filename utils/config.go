@@ -61,15 +61,19 @@ func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterNam
 }
 
 func PrintSettings() {
-	logger.Log.Infof("ClusterName: \t\t%s", CONFIG.Kubernetes.ClusterName)
-	logger.Log.Infof("RunInCluster: \t\t%t", CONFIG.Kubernetes.RunInCluster)
-	logger.Log.Infof("WebsocketServer:\t\t%s", CONFIG.ApiServer.WebsocketServer)
-	logger.Log.Infof("WebsocketPort: \t\t%d", CONFIG.ApiServer.WebsocketPort)
-	logger.Log.Infof("WebsocketPath: \t\t%s", CONFIG.ApiServer.WebsocketPath)
-	logger.Log.Infof("ApiKey: \t\t\t%s", CONFIG.ApiServer.ApiKey)
-	logger.Log.Infof("Debug: \t\t\t%t", CONFIG.Misc.Debug)
-	logger.Log.Infof("StorageAccount: \t\t%s", CONFIG.Misc.StorageAccount)
-	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
+	logger.Log.Infof("ClusterName: \t\t\t%s", CONFIG.Kubernetes.ClusterName)
+	logger.Log.Infof("RunInCluster: \t\t\t%t", CONFIG.Kubernetes.RunInCluster)
+	logger.Log.Infof("DefaultContainerRegistry: \t%s", CONFIG.Kubernetes.DefaultContainerRegistry)
+
+	logger.Log.Infof("WebsocketServer:\t\t\t%s", CONFIG.ApiServer.WebsocketServer)
+	logger.Log.Infof("WebsocketPort: \t\t\t%d", CONFIG.ApiServer.WebsocketPort)
+	logger.Log.Infof("WebsocketPath: \t\t\t%s", CONFIG.ApiServer.WebsocketPath)
+	logger.Log.Infof("ApiKey: \t\t\t\t%s", CONFIG.ApiServer.ApiKey)
+
+	logger.Log.Infof("Debug: \t\t\t\t%t", CONFIG.Misc.Debug)
+	logger.Log.Infof("StorageAccount: \t\t\t%s", CONFIG.Misc.StorageAccount)
+	logger.Log.Infof("DefaultMountPath: \t\t%s", CONFIG.Misc.DefaultMountPath)
+	logger.Log.Infof("ConcurrentConnections: \t\t%d", CONFIG.Misc.ConcurrentConnections)
 }
 
 func GetDirectories(customConfigName *string) (configDir string, configPath string) {
