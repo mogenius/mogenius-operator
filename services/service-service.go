@@ -2,6 +2,7 @@ package services
 
 import (
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -48,10 +49,7 @@ func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
 }
 
 func ServicePodIds(r ServiceGetPodIdsRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+	return kubernetes.PodIdsForServiceId(r.Namespace, &r.ServiceId)
 }
 
 func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
@@ -179,8 +177,8 @@ type ServiceGetPodIdsRequest struct {
 
 func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
 	return ServiceGetPodIdsRequest{
-		Namespace: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		ServiceId: "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+		Namespace: "default",
+		ServiceId: "mo-",
 	}
 }
 

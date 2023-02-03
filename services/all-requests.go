@@ -138,7 +138,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := ServiceDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return DeleteService(data, c)
-	case "service/pod-ids/:namespace/:service GET":
+	case "service/pod-ids/:namespace/:serviceId GET":
 		data := ServiceGetPodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ServicePodIds(data, c)

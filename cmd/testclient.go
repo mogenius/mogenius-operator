@@ -32,7 +32,7 @@ var testClientCmd = &cobra.Command{
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 
-		maxGoroutines := 3
+		maxGoroutines := utils.CONFIG.Misc.ConcurrentConnections
 		connectionCounter := 0
 		guard := make(chan struct{}, maxGoroutines)
 
