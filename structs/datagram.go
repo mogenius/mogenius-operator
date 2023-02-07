@@ -100,19 +100,16 @@ func (d *Datagram) DisplayBeautiful() {
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
-	RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
-	PATTERNCOLOR := color.New(color.FgBlack, color.BgHiRed).SprintFunc()
-	IDCOLOR := color.New(color.FgWhite, color.BgCyan).SprintFunc()
-
-	fmt.Printf("%s%s%s (%s)\n", RECEIVCOLOR(utils.FillWith("RECEIVED", 22, " ")), PATTERNCOLOR(utils.FillWith(d.Pattern, 60, " ")), IDCOLOR(d.Id), DurationStrSince(d.CreatedAt))
+	fmt.Println()
+	fmt.Printf("%s%s%s (%s)\n", utils.FillWith("RECEIVED", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummary() {
-	RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
-	PATTERNCOLOR := color.New(color.FgBlack, color.BgHiRed).SprintFunc()
-	IDCOLOR := color.New(color.FgWhite, color.BgCyan).SprintFunc()
+	fmt.Printf("%s%s%s (%s)\n", utils.FillWith("SENT", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), DurationStrSince(d.CreatedAt))
+}
 
-	fmt.Printf("%s%s%s (%s)\n", RECEIVCOLOR(utils.FillWith("SENT", 22, " ")), PATTERNCOLOR(utils.FillWith(d.Pattern, 60, " ")), IDCOLOR(d.Id), DurationStrSince(d.CreatedAt))
+func (d *Datagram) DisplayStreamSummary() {
+	fmt.Printf("%s%s%s\n", utils.FillWith("STREAMING", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
 }
 
 func (d *Datagram) Send() error {

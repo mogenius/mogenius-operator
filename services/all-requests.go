@@ -15,7 +15,6 @@ import (
 var COMMAND_REQUESTS = []string{
 	"K8sNotification",
 	"ClusterStatus",
-	"files/storage-stats GET",
 	"files/list POST",
 	"files/create-folder POST",
 	"files/rename POST",
@@ -60,8 +59,6 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		return K8sNotification(datagram, c)
 	case "ClusterStatus":
 		return mokubernetes.ClusterStatus()
-	case "files/storage-stats GET":
-		return AllFiles()
 	case "files/list POST":
 		data := FilesListRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -157,11 +154,19 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	case "service/spectrum-bind POST":
 		data := ServiceBindSpectrumRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return BindSpectrum(data, c)
+		result, err := BindSpectrum(data, c)
+		if err != nil {
+			logger.Log.Error(err)
+		}
+		return result
 	case "service/spectrum-unbind DELETE":
 		data := ServiceUnbindSpectrumRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return UnbindSpectrum(data, c)
+		result, err := UnbindSpectrum(data, c)
+		if err != nil {
+			logger.Log.Error(err)
+		}
+		return result
 	case "service/spectrum-configmaps GET":
 		return SpectrumConfigmaps(c)
 	}

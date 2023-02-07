@@ -9,17 +9,11 @@ import (
 	"mogenius-k8s-manager/utils"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/websocket"
 )
-
-func AllFiles() dtos.PersistentFileStatsDto {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return dtos.PersistentFileStatsDto{}
-}
 
 func List(r FilesListRequest, c *websocket.Conn) []dtos.PersistentFileDto {
 	result := []dtos.PersistentFileDto{}
@@ -88,27 +82,63 @@ func Rename(r FilesRenameRequest, c *websocket.Conn) error {
 }
 
 func Chown(r FilesChownRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
+	pathToDir, err := verify(&r.File)
+	if err != nil {
+		return err
+	}
+
+	gid, err := strconv.Atoi(r.Gid)
+	if err != nil {
+		return err
+	}
+	uid, err := strconv.Atoi(r.Uid)
+	if err != nil {
+		return err
+	}
+
+	if gid > 0 && gid < 2^32 && uid > 0 && uid < 2^32 {
+		err = os.Chown(pathToDir, uid, gid)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("gid/uid > 0 and < 2^32")
+	}
 	return nil
 }
 
 func Chmod(r FilesChmodRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
+	pathToDir, err := verify(&r.File)
+	if err != nil {
+		return err
+	}
+	mode64, err := strconv.ParseUint(r.Mode, 10, 64)
+	if err != nil {
+		return err
+	}
+	var mode32 fs.FileMode = fs.FileMode(mode64)
+	if mode64 > 0 && mode64 < 777 {
+		err = os.Chmod(pathToDir, mode32)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("mode string must be > 0 and < 777")
+	}
 	return nil
 }
 
-func Delete(r FilesDeleteRequest, c *websocket.Conn) bool {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return false
+func Delete(r FilesDeleteRequest, c *websocket.Conn) interface{} {
+	pathToDir, err := verify(&r.File)
+	if err != nil {
+		return err
+	}
+	err = os.RemoveAll(pathToDir)
+	if err != nil {
+		return err
+	}
+	return nil
 }
-
-// files/storage-stats GET
 
 // files/list POST
 type FilesListRequest struct {
@@ -123,7 +153,7 @@ func FilesListRequestExampleData() FilesListRequest {
 
 // files/download POST
 type FilesDownloadRequest struct {
-	File dtos.PersistentFileRequestDto `json:"file"` // TODO: how? before go we simply used the response to write binary stream
+	File dtos.PersistentFileRequestDto `json:"file"`
 }
 
 func FilesDownloadRequestExampleData() FilesDownloadRequest {

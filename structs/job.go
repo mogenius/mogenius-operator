@@ -15,7 +15,7 @@ import (
 type Job struct {
 	Id                      string     `json:"id"`
 	NamespaceId             string     `json:"namespaceId"`
-	StageId                 string     `json:"stageId,omitempty"`
+	StageId                 *string    `json:"stageId,omitempty"`
 	ServiceId               *string    `json:"serviceId,omitempty"`
 	Title                   string     `json:"title"`
 	Message                 string     `json:"message"`
@@ -32,6 +32,7 @@ func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
 		JobId:       job.Id,
 		NamespaceId: job.NamespaceId,
 		StageId:     job.StageId,
+		ServiceId:   job.ServiceId,
 		Title:       job.Title,
 		Message:     job.Message,
 		State:       job.State,
@@ -39,7 +40,7 @@ func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
 	}
 }
 
-func CreateJob(title string, namespaceId string, stageId string, serviceId *string, c *websocket.Conn) Job {
+func CreateJob(title string, namespaceId string, stageId *string, serviceId *string, c *websocket.Conn) Job {
 	job := Job{
 		Id:                      uuid.NewV4().String(),
 		NamespaceId:             namespaceId,
@@ -138,16 +139,16 @@ func stateLog(typeName string, data *dtos.K8sNotificationDto) {
 
 	switch data.State {
 	case "PENDING":
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, PEND(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, PEND(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	case "STARTED":
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, STAR(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, STAR(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	case "ERROR", "FAILED":
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, ERRO(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
-		fmt.Printf("   %s %s %s\n", "", ERRO(utils.FillWith("--> ", 15, " ")), data.Message)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, ERRO(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		fmt.Printf("      %s %s %s\n", "", ERRO(utils.FillWith("--> ", 15, " ")), data.Message)
 	case "SUCCEEDED":
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, SUCC(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, SUCC(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	default:
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, DEFA(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 95, " "), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, DEFA(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	}
 }
 

@@ -17,7 +17,7 @@ import (
 func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.CreateNamespace(&job, r.Namespace, r.Stage, c, &wg))
 	if r.Stage.StorageSizeInMb > 0 {
@@ -40,7 +40,7 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 func DeleteNamespace(r NamespaceDeleteRequest, c *websocket.Conn) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Stage, c, &wg))
 	job.AddCmd(mokubernetes.DeletePersistentVolume(&job, r.Stage, c, &wg))
@@ -52,7 +52,7 @@ func DeleteNamespace(r NamespaceDeleteRequest, c *websocket.Conn) structs.Job {
 func ShutdownNamespace(r NamespaceShutdownRequest, c *websocket.Conn) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Shutdown Stage "+r.Stage.DisplayName, r.NamespaceId, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Shutdown Stage "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, c, &wg))

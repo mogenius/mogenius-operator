@@ -1,12 +1,12 @@
 package services
 
 import (
+	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -15,7 +15,7 @@ import (
 
 func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, true, c, &wg))
@@ -28,7 +28,7 @@ func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 
 func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, c, &wg))
 	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Stage, r.Service, c, &wg))
@@ -41,7 +41,7 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 
 func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Set new image for service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Set new image for service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(kubernetes.SetImage(&job, r.Namespace, r.Stage, r.Service, r.ImageName, c, &wg))
 	wg.Wait()
@@ -67,7 +67,7 @@ func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
 
 func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
@@ -79,7 +79,7 @@ func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 
 func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
@@ -92,7 +92,7 @@ func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
 func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Start Service "+r.Stage.DisplayName, r.NamespaceId, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Start Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.StartDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
@@ -105,7 +105,7 @@ func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
 
 func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, r.Stage.Id, nil, c)
+	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Stage, r.Service, c, &wg))
@@ -116,25 +116,57 @@ func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
 	return job
 }
 
-func BindSpectrum(r ServiceBindSpectrumRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+func BindSpectrum(r ServiceBindSpectrumRequest, c *websocket.Conn) (interface{}, error) {
+	if r.ExternalPort < 9999 && r.ExternalPort > 65536 {
+		return nil, fmt.Errorf("port must be >9999 and <65536")
+	}
+	if r.InternalPort <= 0 && r.InternalPort > 65536 {
+		return nil, fmt.Errorf("port must be >9999 and <65536")
+	}
+	if r.Type != "TCP" && r.Type != "UDP" {
+		return nil, fmt.Errorf("type musst be TCP or UDP")
+	}
+
+	configMapName := fmt.Sprintf("%s-services", strings.ToLower(r.Type))
+	externalPortStr := fmt.Sprintf("%d", r.ExternalPort)
+	fullServiceName := fmt.Sprintf("%s/%s:%d", r.K8sNamespaceName, r.K8sServiceName, r.InternalPort)
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob(fmt.Sprintf("Bind: Port %d:%d/%s", r.InternalPort, r.ExternalPort, r.Type), r.NamespaceId, nil, nil, c)
+	job.Start(c)
+	job.AddCmd(mokubernetes.AddKeyToConfigMap(&job, "default", configMapName, externalPortStr, fullServiceName, c, &wg))
+	job.AddCmd(mokubernetes.AddPortToService(&job, "default", "nginx-ingress-ingress-nginx-controller", int32(r.ExternalPort), r.Type, c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return &job, nil
 }
 
-func UnbindSpectrum(r ServiceUnbindSpectrumRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+func UnbindSpectrum(r ServiceUnbindSpectrumRequest, c *websocket.Conn) (*structs.Job, error) {
+	if r.ExternalPort < 9999 && r.ExternalPort > 65536 {
+		return nil, fmt.Errorf("port must be >9999 and <65536")
+	}
+	if r.Type != "TCP" && r.Type != "UDP" {
+		return nil, fmt.Errorf("type musst be TCP or UDP")
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob(fmt.Sprintf("Unbind: Port %d/%s", r.ExternalPort, r.Type), r.NamespaceId, nil, nil, c)
+	job.Start(c)
+	configMapName := fmt.Sprintf("%s-services", strings.ToLower(r.Type))
+	externalPortStr := fmt.Sprintf("%d", r.ExternalPort)
+	job.AddCmd(mokubernetes.RemoveKeyFromConfigMap(&job, "default", configMapName, externalPortStr, c, &wg))
+	job.AddCmd(mokubernetes.RemovePortFromService(&job, "default", "nginx-ingress-ingress-nginx-controller", int32(r.ExternalPort), c, &wg))
+	wg.Wait()
+	job.Finish(c)
+	return &job, nil
 }
 
-func SpectrumConfigmaps(c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+func SpectrumConfigmaps(c *websocket.Conn) dtos.SpectrumConfigmapDto {
+	return dtos.SpectrumConfigmapDto{
+		IngressServices: mokubernetes.ServiceFor("default", "nginx-ingress-ingress-nginx-controller"),
+		TcpServices:     mokubernetes.ConfigMapFor("default", "tcp-services"),
+		UdpServices:     mokubernetes.ConfigMapFor("default", "udp-services"),
+	}
 }
 
 // service/create POST
@@ -318,11 +350,11 @@ type ServiceBindSpectrumRequest struct {
 
 func ServiceBindSpectrumRequestExample() ServiceBindSpectrumRequest {
 	return ServiceBindSpectrumRequest{
-		K8sNamespaceName: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		K8sServiceName:   "73AD838E-BDEC-4D5E-BBEB-C5E4EF0D94BF",
-		ExternalPort:     8080,
+		K8sNamespaceName: "lalalal123",
+		K8sServiceName:   "lulululu123",
+		ExternalPort:     12345,
 		InternalPort:     80,
-		Type:             "http",
+		Type:             "TCP",
 		NamespaceId:      "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
 	}
 }
@@ -336,8 +368,8 @@ type ServiceUnbindSpectrumRequest struct {
 
 func ServiceUnbindSpectrumRequestExample() ServiceUnbindSpectrumRequest {
 	return ServiceUnbindSpectrumRequest{
-		ExternalPort: 8080,
-		Type:         "http",
+		ExternalPort: 12345,
+		Type:         "TCP",
 		NamespaceId:  "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
 	}
 }

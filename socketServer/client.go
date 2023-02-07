@@ -1,6 +1,7 @@
 package socketServer
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -21,11 +22,42 @@ import (
 	"github.com/schollz/progressbar/v3"
 
 	"github.com/gorilla/websocket"
+
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 )
 
 const PingSeconds = 10
 
-func StartClient(connectionCounter int) {
+func StartK8sManager() {
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+
+	fmt.Println(utils.FillWith("", 60, "#"))
+	fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", utils.FillWith(mokubernetes.CurrentContextName(), 31, " "))
+	fmt.Println(utils.FillWith("", 60, "#"))
+
+	var connectionCounter int
+	maxGoroutines := utils.CONFIG.Misc.ConcurrentConnections
+	connectionGuard := make(chan struct{}, maxGoroutines)
+
+	for {
+		select {
+		case <-interrupt:
+			log.Fatal("CTRL + C pressed. Terminating.")
+		case <-time.After(1000 * time.Millisecond):
+		}
+
+		connectionGuard <- struct{}{} // would block if guard channel is already filled
+		go func() {
+			connectionCounter++
+			startClient(connectionCounter)
+			<-connectionGuard
+		}()
+
+	}
+}
+
+func startClient(connectionCounter int) {
 	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.WebsocketServer, utils.CONFIG.ApiServer.WebsocketPort)
 	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: "/ws"}
 
@@ -38,7 +70,9 @@ func StartClient(connectionCounter int) {
 	} else {
 		logger.Log.Infof("Connection%d %s ... %s\n", connectionCounter, color.BlueString(connectionUrl.String()), color.GreenString("SUCCESS 🚀"))
 	}
-	defer connection.Close()
+	defer func() {
+		connection.Close()
+	}()
 
 	done := make(chan struct{})
 
@@ -49,7 +83,9 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	var sendMutex sync.Mutex
 
 	go func() {
-		defer close(done)
+		defer func() {
+			close(done)
+		}()
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
@@ -77,33 +113,37 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 					// ####### STREAM
 					responsePayload, restReq := services.ExecuteStreamRequest(datagram, c)
 					result := structs.CreateDatagramRequest(datagram, responsePayload, c)
+					result.DisplayStreamSummary()
 
+					ctx := context.Background()
+					cancelCtx, endGofunc := context.WithCancel(ctx)
 					stream, err := restReq.Stream(context.TODO())
 					if err != nil {
 						result.Err = err.Error()
 					}
-					defer stream.Close()
+					defer func() {
+						stream.Close()
+						endGofunc()
+						sendMutex.Unlock()
+					}()
 
-					logger.Log.Noticef("Start streaming logs: %s ...", structs.PrettyPrintString(responsePayload))
+					go startClient(1234)
+
 					sendMutex.Lock()
 					c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
+					reader := bufio.NewScanner(stream)
 					for {
-						buf := make([]byte, 512)
-						numBytes, err := stream.Read(buf)
-						if numBytes == 0 {
-							continue
-						}
-						if err != nil {
-							if err == io.EOF {
-								// DONE
+						select {
+						case <-cancelCtx.Done():
+							c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
+							return
+						default:
+							for reader.Scan() {
+								lastBytes := reader.Bytes()
+								c.WriteMessage(websocket.BinaryMessage, lastBytes)
 							}
-							break
 						}
-						logger.Log.Info(string(buf[:numBytes]))
-						c.WriteMessage(websocket.BinaryMessage, buf)
 					}
-					c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
-					sendMutex.Unlock()
 				} else if utils.Contains(services.BINARY_REQUESTS, datagram.Pattern) {
 					// ####### BINARY
 					responsePayload, reader, totalSize := services.ExecuteBinaryRequest(datagram, c)
@@ -143,10 +183,10 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	}()
 
 	// KEEP THE CONNECTION OPEN
-	Ping(done, c, &sendMutex)
+	ping(done, c, &sendMutex)
 }
 
-func Ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
+func ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 

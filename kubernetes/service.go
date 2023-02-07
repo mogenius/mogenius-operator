@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
@@ -115,6 +116,120 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		}
 	}(cmd, wg)
 	return cmd
+}
+
+func RemovePortFromService(job *structs.Job, namespace string, serviceName string, port int32, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Remove Port from Service", job, c)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Remove Port '%d'.", port), c)
+
+		service := ServiceFor(namespace, serviceName)
+		if service != nil {
+			wasModified := false
+			for index, aPort := range service.Spec.Ports {
+				if aPort.Port == port {
+					service.Spec.Ports = utils.Remove(service.Spec.Ports, index)
+					wasModified = true
+					break
+				}
+			}
+
+			if wasModified {
+				var kubeProvider *KubeProvider
+				var err error
+				if !utils.CONFIG.Kubernetes.RunInCluster {
+					kubeProvider, err = NewKubeProviderLocal()
+				} else {
+					kubeProvider, err = NewKubeProviderInCluster()
+				}
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()), c)
+					return
+				}
+				updateOptions := metav1.UpdateOptions{
+					FieldManager: DEPLOYMENTNAME,
+				}
+				serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
+				_, err = serviceClient.Update(context.TODO(), service, updateOptions)
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()), c)
+					return
+				}
+				cmd.Success(fmt.Sprintf("Port %d successfully removed.", port), c)
+				return
+			} else {
+				cmd.Success(fmt.Sprintf("Port %d was not contained in list.", port), c)
+				return
+			}
+		}
+		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, serviceName), c)
+	}(cmd, wg)
+	return cmd
+}
+
+func AddPortToService(job *structs.Job, namespace string, serviceName string, port int32, protocol string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Add Port to Service", job, c)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Add Port '%d'.", port), c)
+
+		service := ServiceFor(namespace, serviceName)
+		if service != nil {
+			var kubeProvider *KubeProvider
+			var err error
+			if !utils.CONFIG.Kubernetes.RunInCluster {
+				kubeProvider, err = NewKubeProviderLocal()
+			} else {
+				kubeProvider, err = NewKubeProviderInCluster()
+			}
+			if err != nil {
+				cmd.Fail(fmt.Sprintf("AddPortToService ERROR: %s", err.Error()), c)
+				return
+			}
+
+			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{
+				Name:       fmt.Sprintf("%d-%s", port, serviceName),
+				Port:       port,
+				Protocol:   v1.Protocol(protocol),
+				TargetPort: intstr.FromInt(int(port)),
+			})
+
+			serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
+			_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
+			if err != nil {
+				cmd.Fail(fmt.Sprintf("AddPortToService ERROR: %s", err.Error()), c)
+				return
+			}
+			cmd.Success(fmt.Sprintf("Port %d added successfully removed.", port), c)
+			return
+		}
+		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, serviceName), c)
+	}(cmd, wg)
+	return cmd
+}
+
+func ServiceFor(namespace string, serviceName string) *v1.Service {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		logger.Log.Errorf("ServiceFor ERROR: %s", err.Error())
+	}
+
+	serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
+	service, err := serviceClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		logger.Log.Errorf("ServiceFor ERROR: %s", err.Error())
+	}
+	return service
 }
 
 func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Service {

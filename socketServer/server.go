@@ -143,6 +143,7 @@ func printShortcuts() {
 	logger.Log.Notice("l:     list clusters")
 	logger.Log.Notice("s:     send command to cluster")
 	logger.Log.Notice("c:     close random connection")
+	logger.Log.Notice("k:     close open stream")
 	logger.Log.Notice("q:     quit application")
 }
 
@@ -174,6 +175,8 @@ func ReadInput() {
 			listClusters()
 		case "c":
 			closeRandomConnection()
+		case "k":
+			closeOpenStream()
 		case "q":
 			os.Exit(0)
 		default:
@@ -186,6 +189,12 @@ func ReadInput() {
 func closeRandomConnection() {
 	cluster := selectRandomCluster()
 	if cluster != nil {
+		cluster.Connection.Close()
+	}
+}
+
+func closeOpenStream() {
+	for _, cluster := range connections {
 		cluster.Connection.Close()
 	}
 }
@@ -209,8 +218,6 @@ func requestCmdFromCluster(pattern string) {
 		case "K8sNotification":
 			payload = nil
 		case "ClusterStatus":
-			payload = nil
-		case "files/storage-stats GET":
 			payload = nil
 		case "files/list POST":
 			payload = services.FilesListRequestExampleData()

@@ -98,6 +98,28 @@ func InitSecret() core.Secret {
 	return app
 }
 
+func InitConfigMap() core.ConfigMap {
+	pwd, err := os.Getwd()
+	if err != nil {
+		panic(err.Error())
+	}
+	path := pwd + "/yaml-templates/configmap.yaml"
+
+	yaml, err := os.ReadFile(path)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app core.ConfigMap
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
 func InitDeployment() v1.Deployment {
 	pwd, err := os.Getwd()
 	if err != nil {
