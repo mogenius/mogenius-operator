@@ -12,9 +12,9 @@ type NamespaceServicePortDto struct {
 
 func NamespaceServicePortDtoExampleData() NamespaceServicePortDto {
 	return NamespaceServicePortDto{
-		PortType:          "HTTPS",
-		InternalPort:      1,
-		ExternalPort:      1,
+		PortType:          "TCP",
+		InternalPort:      80,
+		ExternalPort:      12345,
 		Expose:            true,
 		SpectrumEnableTls: true,
 		SpectrumAppId:     "spectrumAppId",

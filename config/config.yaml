@@ -14,3 +14,4 @@ misc:
   storage_account: monfs
   debug: false
   concurrent_connections: 3
+  ignore_namespaces: ["kube-system", "default"]

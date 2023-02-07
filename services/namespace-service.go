@@ -66,17 +66,30 @@ func PodIds(r NamespacePodIdsRequest, c *websocket.Conn) interface{} {
 	return kubernetes.PodIdsFor(r.Namespace, nil)
 }
 
-func ValidateClusterPods(r NamespaceValidateClusterPodsRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
+func ValidateClusterPods(r NamespaceValidateClusterPodsRequest, c *websocket.Conn) dtos.ValidateClusterPodsDto {
+	inDbButNotInCluster := []string{}
+	clusterPodNames := mokubernetes.AllPodNames()
+	for index, dbPodName := range r.DbPodNames {
+		if !utils.Contains(clusterPodNames, dbPodName) {
+			inDbButNotInCluster = append(inDbButNotInCluster, dbPodName)
+		} else {
+			clusterPodNames = utils.Remove(clusterPodNames, index)
+		}
+	}
+	return dtos.ValidateClusterPodsDto{
+		InDbButNotInCluster: inDbButNotInCluster,
+		InClusterButNotInDb: clusterPodNames,
+	}
 }
 
 func ValidateClusterPorts(r NamespaceValidatePortsRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
+	logger.Log.Infof("CleanupIngressPorts: %d ports received from DB.", len(r.Ports))
+	if len(r.Ports) <= 0 {
+		logger.Log.Error("Received empty ports list. Something seems wrong. Skipping process.")
+		return nil
+	}
+	mokubernetes.CleanupIngressControllerServicePorts(r.Ports)
+
 	return nil
 }
 
@@ -150,7 +163,7 @@ type NamespaceValidateClusterPodsRequest struct {
 
 func NamespaceValidateClusterPodsRequestExample() NamespaceValidateClusterPodsRequest {
 	return NamespaceValidateClusterPodsRequest{
-		DbPodNames: []string{"pod1", "pod2"},
+		DbPodNames: []string{"pod1", "pod2", "pod3", "pod4", "pod5", "mo-traffic-collector-mo7-nnnqv"},
 	}
 }
 

@@ -39,6 +39,42 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 	return pod
 }
 
+func AllPods() []v1.Pod {
+	result := []v1.Pod{}
+
+	var provider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		provider, err = NewKubeProviderLocal()
+	} else {
+		provider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("AllPods ERROR: %s", err.Error())
+	}
+
+	podsList, err := provider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllPods podMetricsList ERROR: %s", err.Error())
+	}
+
+	for _, pod := range podsList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, pod.ObjectMeta.Namespace) {
+			result = append(result, pod)
+		}
+	}
+	return result
+}
+
+func AllPodNames() []string {
+	result := []string{}
+	allPods := AllPods()
+	for _, pod := range allPods {
+		result = append(result, pod.ObjectMeta.Name)
+	}
+	return result
+}
+
 func PodIdsFor(namespace string, serviceId *string) []string {
 	result := []string{}
 

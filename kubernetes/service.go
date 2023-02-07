@@ -118,6 +118,26 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 	return cmd
 }
 
+func UpdateServiceWith(service *v1.Service) error {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("UpdateServiceWith ERROR: %s", err.Error())
+	}
+
+	serviceClient := kubeProvider.ClientSet.CoreV1().Services("")
+	_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func RemovePortFromService(job *structs.Job, namespace string, serviceName string, port int32, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Remove Port from Service", job, c)
 	wg.Add(1)

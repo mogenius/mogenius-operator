@@ -21,10 +21,11 @@ type Config struct {
 		ApiKey          string `yaml:"api_key" env-description:"Api Key to access the server"`
 	} `yaml:"api_server"`
 	Misc struct {
-		Debug                 bool   `yaml:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
-		StorageAccount        string `yaml:"storage_account" env-description:"Azure Storage Account"`
-		DefaultMountPath      string `yaml:"default_mount_path" env-description:"All containers will have access to this mount point"`
-		ConcurrentConnections int    `yaml:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"3"`
+		Debug                 bool     `yaml:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
+		StorageAccount        string   `yaml:"storage_account" env-description:"Azure Storage Account"`
+		DefaultMountPath      string   `yaml:"default_mount_path" env-description:"All containers will have access to this mount point"`
+		ConcurrentConnections int      `yaml:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"3"`
+		IgnoreNamespaces      []string `yaml:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
 	} `yaml:"misc"`
 }
 
@@ -74,6 +75,7 @@ func PrintSettings() {
 	logger.Log.Infof("StorageAccount: \t\t\t%s", CONFIG.Misc.StorageAccount)
 	logger.Log.Infof("DefaultMountPath: \t\t%s", CONFIG.Misc.DefaultMountPath)
 	logger.Log.Infof("ConcurrentConnections: \t\t%d", CONFIG.Misc.ConcurrentConnections)
+	logger.Log.Infof("IgnoreNamespaces: \t\t%s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
 }
 
 func GetDirectories(customConfigName *string) (configDir string, configPath string) {

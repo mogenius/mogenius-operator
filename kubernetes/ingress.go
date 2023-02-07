@@ -145,24 +145,45 @@ func createIngressRule(hostname string, serviceName string, port int32) *network
 	return rule
 }
 
-// func CreateIngressRule(hostname string, path string, pathType networking.PathType, backendServiceName string, port int32) *networking.IngressRule {
-// 	return &networking.IngressRule{
-// 		Host: hostname,
-// 		IngressRuleValue: networking.IngressRuleValue{
-// 			HTTP: &networking.HTTPIngressRuleValue{
-// 				Paths: []networking.HTTPIngressPath{{
-// 					Path:     path,
-// 					PathType: &pathType,
-// 					Backend: networking.IngressBackend{
-// 						Service: &networking.IngressServiceBackend{
-// 							Name: backendServiceName,
-// 							Port: networking.ServiceBackendPort{
-// 								Number: port, //todo add optional port configuration via PortName right here
-// 							},
-// 						},
-// 					},
-// 				}},
-// 			},
-// 		},
-// 	}
-// }
+func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) {
+	indexesToRemove := []int{}
+	service := ServiceFor("default", "nginx-ingress-ingress-nginx-controller")
+	if service != nil {
+		portsDb := []dtos.NamespaceServicePortDto{}
+		for _, port := range ports {
+			if port.ExternalPort != 0 {
+				portsDb = append(portsDb, port)
+			}
+		}
+		if service.Spec.Ports != nil {
+			for index, ingressPort := range service.Spec.Ports {
+				if ingressPort.Port < 9999 {
+					continue
+				}
+				isInDb := false
+				for _, item := range portsDb {
+					if item.ExternalPort == int(ingressPort.Port) && item.PortType == string(ingressPort.Protocol) {
+						isInDb = true
+						break
+					}
+				}
+				if !isInDb {
+					indexesToRemove = append(indexesToRemove, index)
+				}
+			}
+			logger.Log.Infof("Following indexes will be remove: %v", indexesToRemove)
+			if len(indexesToRemove) > 0 {
+				for _, indexToRemove := range indexesToRemove {
+					service.Spec.Ports = utils.Remove(service.Spec.Ports, indexToRemove)
+				}
+				logger.Log.Infof("%d indexes successfully remove.", len(indexesToRemove))
+
+				// TODO wieder einkommentieren wenn ordentlich getest in DEV. sieht gut aus.
+				//UpdateServiceWith(service)
+			}
+			return
+		}
+		logger.Log.Error("IngressController has no ports defined.")
+	}
+	logger.Log.Error("Could not load service default/nginx-ingress-ingress-nginx-controller.")
+}
