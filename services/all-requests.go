@@ -47,8 +47,11 @@ var STREAM_REQUESTS = []string{
 	"service/log-stream/:namespace/:podId/:sinceSeconds SSE",
 }
 
-var BINARY_REQUESTS = []string{
+var BINARY_REQUESTS_DOWNLOAD = []string{
 	"files/download POST",
+}
+
+var BINARY_REQUEST_UPLOAD = []string{
 	"files/upload POST",
 	"files/update POST",
 }
@@ -192,7 +195,7 @@ func ExecuteStreamRequest(datagram structs.Datagram, c *websocket.Conn) (interfa
 	return datagram, nil
 }
 
-func ExecuteBinaryRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, *bufio.Reader, *int64) {
+func ExecuteBinaryRequestDownload(datagram structs.Datagram, c *websocket.Conn) (interface{}, *bufio.Reader, *int64) {
 	switch datagram.Pattern {
 	case "files/download POST":
 		data := FilesDownloadRequest{}
@@ -203,18 +206,16 @@ func ExecuteBinaryRequest(datagram structs.Datagram, c *websocket.Conn) (interfa
 			return datagram, nil, utils.Pointer[int64](0)
 		}
 		return datagram, reader, &totalSize
-	case "files/upload POST":
-		data := FilesUploadRequest{}
-		marshalUnmarshal(&datagram, &data)
-		return Upload(data, c), nil, nil
-	case "files/update POST":
-		data := FilesUpdateRequest{}
-		marshalUnmarshal(&datagram, &data)
-		return Update(data, c), nil, nil
 	}
 
 	datagram.Err = "Pattern not found"
 	return datagram, nil, nil
+}
+
+func ExecuteBinaryRequestUpload(datagram structs.Datagram, c *websocket.Conn) *FilesUploadRequest {
+	data := FilesUploadRequest{}
+	marshalUnmarshal(&datagram, &data)
+	return &data
 }
 
 func K8sNotification(d structs.Datagram, c *websocket.Conn) interface{} {

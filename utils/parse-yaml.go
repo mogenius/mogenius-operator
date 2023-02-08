@@ -37,7 +37,7 @@ func InitPersistentVolumeClaim() core.PersistentVolumeClaim {
 	if err != nil {
 		panic(err.Error())
 	}
-	path := pwd + "/yaml-templates/volumeclaim-nfs-pvc.yaml"
+	path := pwd + "/yaml-templates/volumeclaim-cephfs.yaml"
 
 	yaml, err := os.ReadFile(path)
 	if err != nil {

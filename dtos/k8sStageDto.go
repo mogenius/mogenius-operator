@@ -16,8 +16,8 @@ func K8sStageDtoExampleData() K8sStageDto {
 		DisplayName:       "displayName",
 		K8sName:           "k8sname",
 		Hostname:          "hostname",
-		StorageSizeInMb:   1,
+		StorageSizeInMb:   1028,
 		Services:          []K8sServiceDto{K8sServiceDtoExampleData()},
-		CloudflareProxied: true,
+		CloudflareProxied: false,
 	}
 }

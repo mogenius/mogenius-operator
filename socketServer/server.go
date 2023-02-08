@@ -1,8 +1,10 @@
 package socketServer
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
@@ -19,6 +21,7 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/gorilla/websocket"
 	"github.com/mattn/go-tty"
+	"github.com/schollz/progressbar/v3"
 )
 
 var upgrader = websocket.Upgrader{
@@ -80,7 +83,10 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 				logger.Log.Errorf("Invalid datagram: %s", datagramValidationError.Error())
 				continue
 			} else {
-				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) || utils.Contains(services.BINARY_REQUESTS, datagram.Pattern) || utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
+				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) ||
+					utils.Contains(services.BINARY_REQUESTS_DOWNLOAD, datagram.Pattern) ||
+					utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) ||
+					utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
 					RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
 					fmt.Printf("%s\n", RECEIVCOLOR(utils.FillWith("RECEIVED", 22, " ")))
 					datagram.DisplayBeautiful()
@@ -283,6 +289,10 @@ func requestCmdFromCluster(pattern string) {
 		firstConnection := selectRandomCluster()
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
 		datagram.Send()
+		// send file after pattern
+		if pattern == "files/upload POST" {
+			sendFile()
+		}
 		return
 	}
 	logger.Log.Error("Not connected to any cluster.")
@@ -290,7 +300,8 @@ func requestCmdFromCluster(pattern string) {
 
 func selectCommands() string {
 	allCommands := append([]string{}, services.COMMAND_REQUESTS...)
-	allCommands = append(allCommands, services.BINARY_REQUESTS...)
+	allCommands = append(allCommands, services.BINARY_REQUESTS_DOWNLOAD...)
+	allCommands = append(allCommands, services.BINARY_REQUEST_UPLOAD...)
 	allCommands = append(allCommands, services.STREAM_REQUESTS...)
 	for index, patternName := range allCommands {
 		fmt.Printf("%d: %s\n", index, patternName)
@@ -318,4 +329,56 @@ func selectRandomCluster() *structs.ClusterConnection {
 		return &v
 	}
 	return nil
+}
+
+func sendFile() {
+	err := utils.ZipSource("./video.mp4", "test.zip")
+	if err != nil {
+		logger.Log.Error(err)
+		return
+	}
+
+	file, err := os.Open("./test.zip")
+	if err != nil {
+		logger.Log.Error(err)
+		return
+	}
+	info, err := file.Stat()
+	var totalSize int64 = 0
+	if err == nil {
+		totalSize = info.Size()
+	} else {
+		logger.Log.Error(err)
+		return
+	}
+
+	reader := bufio.NewReader(file)
+	if reader != nil && totalSize > 0 {
+		cluster := selectRandomCluster()
+		buf := make([]byte, 512)
+		bar := progressbar.DefaultBytes(totalSize)
+
+		sendMutex.Lock()
+		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######START_UPLOAD######;"))
+		for {
+			chunk, err := reader.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					fmt.Println(err)
+				}
+				bar.Finish()
+				break
+			}
+			cluster.Connection.WriteMessage(websocket.BinaryMessage, buf)
+			bar.Add(chunk)
+		}
+		if err != nil {
+			logger.Log.Errorf("reading bytes error: %s", err.Error())
+		}
+		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######END_UPLOAD######;"))
+		sendMutex.Unlock()
+	} else {
+		logger.Log.Error("reader cannot be nil")
+		logger.Log.Error("file size cannot be nil")
+	}
 }

@@ -68,10 +68,8 @@ func CreatePersistentVolumeClaim(job *structs.Job, stage dtos.K8sStageDto, c *we
 
 		pvc := utils.InitPersistentVolumeClaim()
 		pvc.ObjectMeta.Name = stage.K8sName
-		pvc.ObjectMeta.Labels["type"] = stage.K8sName
-		pvc.Spec.Selector.MatchLabels["type"] = stage.K8sName
-		storageClassName := ""
-		pvc.Spec.StorageClassName = &storageClassName
+		pvc.ObjectMeta.Namespace = stage.K8sName
+		pvc.Spec.StorageClassName = utils.Pointer("cephfs")
 		pvc.Spec.Resources.Requests.Storage().Set(int64(stage.StorageSizeInMb / 1024))
 		pvc.Spec.Resources.Limits.Storage().Set(int64(stage.StorageSizeInMb / 1024))
 

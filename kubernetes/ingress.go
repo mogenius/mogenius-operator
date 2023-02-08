@@ -51,9 +51,18 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 			"nginx.ingress.kubernetes.io/use-regex":          "true",
 			"nginx.ingress.kubernetes.io/cors-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,correlation-id,device-version,device,access-token,refresh-token",
 			"nginx.ingress.kubernetes.io/proxy-body-size":    "100m",
+			"nginx.ingress.kubernetes.io/server-snippet": `location @custom {
+				proxy_pass https://errorpages.mogenius.io;
+				proxy_set_header Host            \"errorpages.mogenius.io\";
+				internal;
+			}
+			error_page 400 401 403 404 405 406 408 413 417 500 502 503 504 @custom;`,
 		})
-		spec := networkingv1.IngressSpec()
+		if !stage.CloudflareProxied {
+			config.Annotations["cert-manager.io/cluster-issuer"] = "letsencrypt-cluster-issuer"
+		}
 
+		spec := networkingv1.IngressSpec()
 		tlsHosts := []string{}
 
 		// 1. All Services
@@ -80,6 +89,9 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 				spec.Rules = append(spec.Rules, *createIngressRule(service.FullHostname, service.K8sName, int32(port.InternalPort)))
 				for _, cname := range service.CNames {
 					spec.Rules = append(spec.Rules, *createIngressRule(cname.CName, service.K8sName, int32(port.InternalPort)))
+					if !stage.CloudflareProxied {
+						tlsHosts = append(tlsHosts, cname.CName)
+					}
 				}
 			}
 			if !stage.CloudflareProxied {

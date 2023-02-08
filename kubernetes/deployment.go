@@ -294,9 +294,9 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPa
 	limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
 	newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = limits
 	requests := core.ResourceList{}
-	limits["cpu"] = resource.MustParse("1m")
-	limits["memory"] = resource.MustParse("1Mi")
-	limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+	requests["cpu"] = resource.MustParse("1m")
+	requests["memory"] = resource.MustParse("1Mi")
+	requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
 	newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests = requests
 
 	newDeployment.Spec.Template.Spec.Containers[0].Name = service.K8sName

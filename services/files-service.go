@@ -43,10 +43,22 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) (*bufio.Reader, int64, 
 	return reader, totalSize, err
 }
 
-func Upload(r FilesUploadRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
+func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
+	// 1: VERIFY
+	targetDestination, err := verify(&fileReq.File)
+	if err != nil {
+		logger.Log.Error(err)
+	}
+	fmt.Printf("\n%s: %s (%s) -> %s %s\n", fileReq.File.ClusterId, targetDestination, utils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Root, fileReq.File.Path)
+
+	//2: UNZIP FILE TO TEMP
+	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
+	if err != nil {
+		logger.Log.Error(err)
+	}
+	for _, file := range files {
+		fmt.Println("uncompress: " + file)
+	}
 	return nil
 }
 
@@ -165,13 +177,13 @@ func FilesDownloadRequestExampleData() FilesDownloadRequest {
 // files/upload POST
 type FilesUploadRequest struct {
 	File        dtos.PersistentFileRequestDto `json:"file"`
-	NewFileData string                        `json:"newFileData"` // TODO: base64? was originally Multer File Upload
+	SizeInBytes int64                         `json:"sizeInBytes"`
 }
 
 func FilesUploadRequestExampleData() FilesUploadRequest {
 	return FilesUploadRequest{
-		File:        dtos.PersistentFileRequestDtoExampleData(),
-		NewFileData: "",
+		File:        dtos.PersistentFileUploadDtoExampleData(),
+		SizeInBytes: 21217588,
 	}
 }
 
@@ -298,7 +310,8 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 
 	dataRoot := utils.CONFIG.Misc.DefaultMountPath
 	if utils.CONFIG.Misc.Debug {
-		dataRoot = "."
+		pwd, _ := os.Getwd()
+		dataRoot = fmt.Sprintf("%s/temp", pwd)
 	}
 	pathToFile := fmt.Sprintf("%s%s%s", dataRoot, data.Root, data.Path)
 	return pathToFile, nil

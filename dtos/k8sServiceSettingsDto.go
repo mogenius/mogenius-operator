@@ -10,9 +10,9 @@ type K8sServiceSettingsDto struct {
 
 func K8sServiceSettingsDtoExampleData() K8sServiceSettingsDto {
 	return K8sServiceSettingsDto{
-		LimitCpuCores:      1,
-		LimitMemoryMB:      1,
-		EphemeralStorageMB: 1,
+		LimitCpuCores:      100,
+		LimitMemoryMB:      128,
+		EphemeralStorageMB: 200,
 		ReplicaCount:       1,
 		DeploymentStrategy: "recreate",
 	}

@@ -29,7 +29,7 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 			dataRoot = "/"
 		}
 		job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c))
-		job.AddCmd(mokubernetes.CreatePersistentVolume(&job, r.Stage, c, &wg))
+		job.AddCmd(mokubernetes.CreateNetworkPoliciesNamespace(&job, r.Stage, c, &wg))
 		job.AddCmd(mokubernetes.CreatePersistentVolumeClaim(&job, r.Stage, c, &wg))
 	}
 	wg.Wait()
@@ -43,7 +43,7 @@ func DeleteNamespace(r NamespaceDeleteRequest, c *websocket.Conn) structs.Job {
 	job := structs.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Stage, c, &wg))
-	job.AddCmd(mokubernetes.DeletePersistentVolume(&job, r.Stage, c, &wg))
+	//job.AddCmd(mokubernetes.DeletePersistentVolume(&job, r.Stage, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job

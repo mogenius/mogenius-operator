@@ -11,8 +11,8 @@ type K8sPortsDto struct {
 func K8sPortsDtoExampleData() K8sPortsDto {
 	return K8sPortsDto{
 		PortType:     "HTTPS",
-		InternalPort: 1,
-		ExternalPort: 1,
+		InternalPort: 80,
+		ExternalPort: 80,
 		Expose:       true,
 	}
 }

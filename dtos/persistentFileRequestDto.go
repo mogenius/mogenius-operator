@@ -29,3 +29,11 @@ func PersistentFileDownloadDtoExampleData() PersistentFileRequestDto {
 		ClusterId: "clusterId",
 	}
 }
+
+func PersistentFileUploadDtoExampleData() PersistentFileRequestDto {
+	return PersistentFileRequestDto{
+		Root:      "/",
+		Path:      "/",
+		ClusterId: "clusterId",
+	}
+}

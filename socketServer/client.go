@@ -15,10 +15,12 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/google/uuid"
 	"github.com/schollz/progressbar/v3"
 
 	"github.com/gorilla/websocket"
@@ -81,6 +83,10 @@ func startClient(connectionCounter int) {
 
 func parseMessage(done chan struct{}, c *websocket.Conn) {
 	var sendMutex sync.Mutex
+	var preparedFileName *string
+	var preparedFileRequest *services.FilesUploadRequest
+	var openFile *os.File
+	bar := progressbar.DefaultSilent(0)
 
 	go func() {
 		defer func() {
@@ -92,91 +98,121 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				log.Println("read:", err)
 				return
 			} else {
-				rawJson := string(message)
-				datagram := structs.CreateEmptyDatagram()
-
-				jsonErr := json.Unmarshal([]byte(rawJson), &datagram)
-				if jsonErr != nil {
-					logger.Log.Errorf("%s", jsonErr.Error())
+				rawDataStr := string(message)
+				if rawDataStr == "" {
+					continue
 				}
-
-				datagram.DisplayReceiveSummary()
-
-				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
-					// ####### COMMAND
-					responsePayload := services.ExecuteCommandRequest(datagram, c)
-					result := structs.CreateDatagramRequest(datagram, responsePayload, c)
-					sendMutex.Lock()
-					result.Send()
-					sendMutex.Unlock()
-				} else if utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
-					// ####### STREAM
-					responsePayload, restReq := services.ExecuteStreamRequest(datagram, c)
-					result := structs.CreateDatagramRequest(datagram, responsePayload, c)
-					result.DisplayStreamSummary()
-
-					ctx := context.Background()
-					cancelCtx, endGofunc := context.WithCancel(ctx)
-					stream, err := restReq.Stream(context.TODO())
-					if err != nil {
-						result.Err = err.Error()
+				if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
+					preparedFileName = utils.Pointer(fmt.Sprintf("%s.zip", uuid.New().String()))
+					rawDataStr = strings.Replace(rawDataStr, "######START_UPLOAD######;", "", 1)
+					openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+					if preparedFileRequest != nil {
+						bar = progressbar.DefaultBytes(preparedFileRequest.SizeInBytes)
+					} else {
+						progressbar.DefaultBytes(0)
 					}
-					defer func() {
-						stream.Close()
-						endGofunc()
+				}
+				if strings.HasPrefix(rawDataStr, "######END_UPLOAD######;") {
+					openFile.Close()
+					if preparedFileName != nil && preparedFileRequest != nil {
+						services.Uploaded(*preparedFileName, *preparedFileRequest)
+					}
+					bar.Finish()
+					os.Remove(*preparedFileName)
+					preparedFileName = nil
+					preparedFileRequest = nil
+					continue
+				}
+				if preparedFileName != nil {
+					openFile.Write([]byte(rawDataStr))
+					bar.Add(len(rawDataStr))
+				} else {
+					datagram := structs.CreateEmptyDatagram()
+
+					jsonErr := json.Unmarshal([]byte(rawDataStr), &datagram)
+					if jsonErr != nil {
+						logger.Log.Errorf("%s", jsonErr.Error())
+					}
+
+					datagram.DisplayReceiveSummary()
+
+					if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
+						// ####### COMMAND
+						responsePayload := services.ExecuteCommandRequest(datagram, c)
+						result := structs.CreateDatagramRequest(datagram, responsePayload, c)
+						sendMutex.Lock()
+						result.Send()
 						sendMutex.Unlock()
-					}()
+					} else if utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
+						preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram, c)
+					} else if utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
+						// ####### STREAM
+						responsePayload, restReq := services.ExecuteStreamRequest(datagram, c)
+						result := structs.CreateDatagramRequest(datagram, responsePayload, c)
+						result.DisplayStreamSummary()
 
-					go startClient(1234)
-
-					sendMutex.Lock()
-					c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
-					reader := bufio.NewScanner(stream)
-					for {
-						select {
-						case <-cancelCtx.Done():
-							c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
-							return
-						default:
-							for reader.Scan() {
-								lastBytes := reader.Bytes()
-								c.WriteMessage(websocket.BinaryMessage, lastBytes)
-							}
+						ctx := context.Background()
+						cancelCtx, endGofunc := context.WithCancel(ctx)
+						stream, err := restReq.Stream(context.TODO())
+						if err != nil {
+							result.Err = err.Error()
 						}
-					}
-				} else if utils.Contains(services.BINARY_REQUESTS, datagram.Pattern) {
-					// ####### BINARY
-					responsePayload, reader, totalSize := services.ExecuteBinaryRequest(datagram, c)
-					result := structs.CreateDatagramRequest(datagram, responsePayload, c)
-					if reader != nil && *totalSize > 0 && result.Err == "" {
-						buf := make([]byte, 512)
-						bar := progressbar.DefaultBytes(*totalSize)
+						defer func() {
+							stream.Close()
+							endGofunc()
+							sendMutex.Unlock()
+						}()
+
+						go startClient(1234)
 
 						sendMutex.Lock()
 						c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
+						reader := bufio.NewScanner(stream)
 						for {
-							chunk, err := reader.Read(buf)
-							if err != nil {
-								if err != io.EOF {
-									fmt.Println(err)
+							select {
+							case <-cancelCtx.Done():
+								c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
+								return
+							default:
+								for reader.Scan() {
+									lastBytes := reader.Bytes()
+									c.WriteMessage(websocket.BinaryMessage, lastBytes)
 								}
-								bar.Finish()
-								break
 							}
-							c.WriteMessage(websocket.BinaryMessage, buf)
-							bar.Add(chunk)
 						}
-						if err != nil {
-							logger.Log.Errorf("reading bytes error: %s", err.Error())
+					} else if utils.Contains(services.BINARY_REQUESTS_DOWNLOAD, datagram.Pattern) {
+						responsePayload, reader, totalSize := services.ExecuteBinaryRequestDownload(datagram, c)
+						result := structs.CreateDatagramRequest(datagram, responsePayload, c)
+						if reader != nil && *totalSize > 0 && result.Err == "" {
+							buf := make([]byte, 512)
+							bar := progressbar.DefaultBytes(*totalSize)
+
+							sendMutex.Lock()
+							c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
+							for {
+								chunk, err := reader.Read(buf)
+								if err != nil {
+									if err != io.EOF {
+										fmt.Println(err)
+									}
+									bar.Finish()
+									break
+								}
+								c.WriteMessage(websocket.BinaryMessage, buf)
+								bar.Add(chunk)
+							}
+							if err != nil {
+								logger.Log.Errorf("reading bytes error: %s", err.Error())
+							}
+							c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
+							sendMutex.Unlock()
+						} else {
+							// something went wrong. send error message instead of stream
+							result.Send()
 						}
-						c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
-						sendMutex.Unlock()
 					} else {
-						// something went wrong. send error message instead of stream
-						result.Send()
+						logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 					}
-				} else {
-					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 				}
 			}
 		}
