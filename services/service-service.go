@@ -20,6 +20,7 @@ func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, true, c, &wg))
 	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)

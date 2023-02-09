@@ -303,7 +303,7 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPa
 
 	// IMAGE
 	if service.App.Type != "CONTAINER_IMAGE" && service.App.Type != "CONTAINER_IMAGE_TEMPLATE" {
-		newDeployment.Spec.Template.Spec.Containers[0].Image = fmt.Sprintf("`%s/%s-%s:latest", utils.CONFIG.Kubernetes.DefaultContainerRegistry, service.K8sName, stage.K8sName)
+		newDeployment.Spec.Template.Spec.Containers[0].Image = fmt.Sprintf("%s/%s-%s:latest", utils.CONFIG.Kubernetes.DefaultContainerRegistry, service.K8sName, stage.K8sName)
 	} else {
 		newDeployment.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
 		if service.ContainerImageCommand != "" {
