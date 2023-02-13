@@ -21,7 +21,7 @@ var testServerCmd = &cobra.Command{
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
 		clusterName, _ := cmd.Flags().GetString("clustername")
-		utils.InitConfigYaml(showDebug, &customConfig, &clusterName)
+		utils.InitConfigYaml(showDebug, &customConfig, &clusterName, false)
 
 		gin.SetMode(gin.ReleaseMode)
 		router := gin.Default()

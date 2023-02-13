@@ -4,11 +4,9 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
-	"fmt"
-	"mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/manager"
+	"mogenius-k8s-manager/socketServer"
+	"mogenius-k8s-manager/utils"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +18,12 @@ var clusterCmd = &cobra.Command{
 	This cmd starts the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		yellow := color.New(color.FgYellow).SprintFunc()
-		fmt.Printf("Initializing mogenius-k8s-manager on '%s'.\n", yellow(kubernetes.Hostname()))
-		manager.Init()
+		showDebug, _ := cmd.Flags().GetBool("debug")
+		customConfig, _ := cmd.Flags().GetString("config")
+		clusterName, _ := cmd.Flags().GetString("clustername")
+		utils.InitConfigYaml(showDebug, &customConfig, &clusterName, true)
+
+		socketServer.StartK8sManager()
 	},
 }
 
@@ -38,4 +39,8 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// clusterCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	clusterCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
+	clusterCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
+	clusterCmd.Flags().StringP("clustername", "o", "", "Override clustername.")
 }

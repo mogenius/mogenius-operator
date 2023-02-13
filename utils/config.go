@@ -10,31 +10,32 @@ import (
 
 type Config struct {
 	Kubernetes struct {
-		ClusterName              string `yaml:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
-		RunInCluster             bool   `yaml:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
-		DefaultContainerRegistry string `yaml:"default_container_registry" env-description:"Default Container Image Registry"`
+		ClusterName              string `yaml:"cluster_name" env:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
+		RunInCluster             bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
+		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
-		WebsocketServer string `yaml:"websocket_server" env-description:"Server host" env-default:"127.0.0.1"`
-		WebsocketPort   int    `yaml:"websocket_port" env-description:"Server port" env-default:"8080"`
-		WebsocketPath   string `yaml:"websocket_path" env-description:"Server Path" env-default:"/ws"`
-		ApiKey          string `yaml:"api_key" env-description:"Api Key to access the server"`
+		WebsocketServer string `yaml:"websocket_server" env:"websocket_server" env-description:"Server host" env-default:"127.0.0.1"`
+		WebsocketPort   int    `yaml:"websocket_port" env:"websocket_port" env-description:"Server port" env-default:"8080"`
+		WebsocketPath   string `yaml:"websocket_path" env:"websocket_path" env-description:"Server Path" env-default:"/ws"`
+		ApiKey          string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
 	} `yaml:"api_server"`
 	Misc struct {
-		Debug                 bool     `yaml:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
-		StorageAccount        string   `yaml:"storage_account" env-description:"Azure Storage Account"`
-		DefaultMountPath      string   `yaml:"default_mount_path" env-description:"All containers will have access to this mount point"`
-		ConcurrentConnections int      `yaml:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"3"`
-		IgnoreNamespaces      []string `yaml:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
-		CheckForUpdates       int      `yaml:"check_for_updates" env-description:"Time interval between update checks." env-default:"3600"`
-		HelmIndex             string   `yaml:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
+		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
+		StorageAccount        string   `yaml:"storage_account" env:"storage_account" env-description:"Azure Storage Account"`
+		DefaultMountPath      string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
+		ConcurrentConnections int      `yaml:"concurrent_connections" env:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"3"`
+		IgnoreNamespaces      []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
+		CheckForUpdates       int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"3600"`
+		HelmIndex             string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
 	} `yaml:"misc"`
 }
 
-var DefaultConfigFile string
+var DefaultConfigLocalFile string
+var DefaultConfigClusterFile string
 var CONFIG Config
 
-func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterName *string) {
+func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterName *string, loadClusterConfig bool) {
 	_, configPath := GetDirectories(customConfigName)
 
 	if _, err := os.Stat(configPath); err == nil || os.IsExist(err) {
@@ -46,7 +47,7 @@ func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterNam
 			logger.Log.Fatal(err)
 		}
 	} else {
-		WriteDefaultConfig()
+		WriteDefaultConfig(loadClusterConfig)
 
 		// read configuration from the file and environment variables
 		if err := cleanenv.ReadConfig(configPath, &CONFIG); err != nil {
@@ -60,6 +61,22 @@ func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterNam
 
 	if showDebug {
 		PrintSettings()
+	}
+
+	// CHECKS FOR CLUSTER
+	if loadClusterConfig {
+		if CONFIG.Kubernetes.ClusterName == "YOUR_CLUSTER_NAME" || CONFIG.Kubernetes.ClusterName == "" {
+			if !showDebug {
+				PrintSettings()
+			}
+			logger.Log.Fatalf("Environment Variable 'cluster_name' not setup. TERMINATING.")
+		}
+		if CONFIG.ApiServer.ApiKey == "YOUR_API_KEY" || CONFIG.ApiServer.ApiKey == "" {
+			if !showDebug {
+				PrintSettings()
+			}
+			logger.Log.Fatalf("Environment Variable 'api_key' not setup. TERMINATING.")
+		}
 	}
 }
 
@@ -78,8 +95,8 @@ func PrintSettings() {
 	logger.Log.Infof("DefaultMountPath: \t\t%s", CONFIG.Misc.DefaultMountPath)
 	logger.Log.Infof("ConcurrentConnections: \t\t%d", CONFIG.Misc.ConcurrentConnections)
 	logger.Log.Infof("IgnoreNamespaces: \t\t%s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
-	logger.Log.Infof("CheckForUpdates: \t\t%d", CONFIG.Misc.CheckForUpdates)
-	logger.Log.Infof("HelmIndex: \t\t%d", CONFIG.Misc.HelmIndex)
+	logger.Log.Infof("CheckForUpdates: \t\t\t%d", CONFIG.Misc.CheckForUpdates)
+	logger.Log.Infof("HelmIndex: \t\t\t%s", CONFIG.Misc.HelmIndex)
 }
 
 func GetDirectories(customConfigName *string) (configDir string, configPath string) {
@@ -101,7 +118,7 @@ func GetDirectories(customConfigName *string) (configDir string, configPath stri
 	return configDir, configPath
 }
 
-func WriteDefaultConfig() {
+func WriteDefaultConfig(loadClusterConfig bool) {
 	configDir, configPath := GetDirectories(nil)
 
 	// write it to default location
@@ -111,7 +128,11 @@ func WriteDefaultConfig() {
 		logger.Log.Warning(err)
 	}
 
-	err = os.WriteFile(configPath, []byte(DefaultConfigFile), 0755)
+	if loadClusterConfig {
+		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFile), 0755)
+	} else {
+		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
+	}
 	if err != nil {
 		logger.Log.Error("Error writing " + configPath + " file")
 		logger.Log.Fatal(err.Error())

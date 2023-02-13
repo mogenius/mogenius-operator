@@ -21,8 +21,8 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 	Run: func(cmd *cobra.Command, args []string) {
 		reset, _ := cmd.Flags().GetBool("reset")
 		if reset {
-			logger.Log.Notice("Resetting config yaml to dafault values.")
-			utils.WriteDefaultConfig()
+			logger.Log.Notice("Resetting config yaml to dafault local values.")
+			utils.WriteDefaultConfig(false)
 		}
 	},
 }

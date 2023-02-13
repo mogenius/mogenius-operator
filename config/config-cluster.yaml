@@ -1,0 +1,19 @@
+kubernetes:
+  cluster_name: YOUR_CLUSTER_NAME
+  run_in_cluster: true
+  default_container_registry: docker.io
+
+api_server:
+  websocket_server: api.mogenius.com
+  websocket_path: /ws
+  websocket_port: 8080
+  api_key: YOUR_API_KEY
+
+misc:
+  default_mount_path: /mo-data
+  storage_account: monfs
+  debug: false
+  concurrent_connections: 3
+  ignore_namespaces: ["kube-system", "default"]
+  check_for_updates: 3600
+  helm_index: https://helm.mogenius.com/public/index.yaml

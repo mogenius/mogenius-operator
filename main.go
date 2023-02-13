@@ -7,12 +7,16 @@ import (
 	"mogenius-k8s-manager/utils"
 )
 
-//go:embed config/config.yaml
-var DefaultConfigFile string
+//go:embed config/config-local.yaml
+var DefaultConfigLocalFile string
+
+//go:embed config/config-cluster.yaml
+var DefaultConfigClusterFile string
 
 func main() {
 	utils.PrintLogo()
 	logger.Init()
-	utils.DefaultConfigFile = DefaultConfigFile
+	utils.DefaultConfigClusterFile = DefaultConfigClusterFile
+	utils.DefaultConfigLocalFile = DefaultConfigLocalFile
 	cmd.Execute()
 }

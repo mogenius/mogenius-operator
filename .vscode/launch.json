@@ -40,6 +40,16 @@
             "args": ["testclient", "-d", "-c", "behrang.yaml"],
             "asRoot": false,
             "console": "integratedTerminal"
-        }
+        },
+        {
+            "name": "CLUSTER",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "main.go",
+            "args": ["cluster", "-d"],
+            "asRoot": false,
+            "console": "integratedTerminal"
+        },
     ]
 }
