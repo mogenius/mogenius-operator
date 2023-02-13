@@ -26,6 +26,8 @@ type Config struct {
 		DefaultMountPath      string   `yaml:"default_mount_path" env-description:"All containers will have access to this mount point"`
 		ConcurrentConnections int      `yaml:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"3"`
 		IgnoreNamespaces      []string `yaml:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
+		CheckForUpdates       int      `yaml:"check_for_updates" env-description:"Time interval between update checks." env-default:"3600"`
+		HelmIndex             string   `yaml:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
 	} `yaml:"misc"`
 }
 
@@ -76,6 +78,8 @@ func PrintSettings() {
 	logger.Log.Infof("DefaultMountPath: \t\t%s", CONFIG.Misc.DefaultMountPath)
 	logger.Log.Infof("ConcurrentConnections: \t\t%d", CONFIG.Misc.ConcurrentConnections)
 	logger.Log.Infof("IgnoreNamespaces: \t\t%s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
+	logger.Log.Infof("CheckForUpdates: \t\t%d", CONFIG.Misc.CheckForUpdates)
+	logger.Log.Infof("HelmIndex: \t\t%d", CONFIG.Misc.HelmIndex)
 }
 
 func GetDirectories(customConfigName *string) (configDir string, configPath string) {

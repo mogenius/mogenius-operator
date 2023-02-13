@@ -10,4 +10,5 @@ type ClusterConnection struct {
 	Connection  *websocket.Conn
 	ClusterName string
 	AddedAt     time.Time
+	Blocked     bool
 }

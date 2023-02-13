@@ -5,6 +5,7 @@ go 1.19
 //replace github.com/mogenius/mo-go/utils => /Users/bene/git/mo/mo-go/utils
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
 	github.com/fatih/color v1.13.0
 	github.com/gin-gonic/gin v1.8.2
@@ -18,6 +19,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/schollz/progressbar/v3 v3.13.0
 	github.com/spf13/cobra v1.6.0
+	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0
 	k8s.io/client-go v0.26.0
@@ -73,7 +75,6 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect

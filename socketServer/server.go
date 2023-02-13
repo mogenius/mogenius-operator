@@ -30,7 +30,7 @@ var upgrader = websocket.Upgrader{
 }
 
 var validate = validator.New()
-var connections = make(map[string]structs.ClusterConnection)
+var connections = make(map[string]*structs.ClusterConnection)
 var sendMutex sync.Mutex
 
 func Init(r *gin.Engine) {
@@ -132,7 +132,7 @@ func addConnection(connection *websocket.Conn, clusterName string) {
 	sendMutex.Lock()
 	defer sendMutex.Unlock()
 	remoteAddr := connection.RemoteAddr().String()
-	connections[remoteAddr] = structs.ClusterConnection{ClusterName: clusterName, Connection: connection, AddedAt: time.Now()}
+	connections[remoteAddr] = &structs.ClusterConnection{ClusterName: clusterName, Connection: connection, AddedAt: time.Now()}
 }
 
 func removeConnection(connection *websocket.Conn) {
@@ -148,8 +148,8 @@ func printShortcuts() {
 	logger.Log.Notice("h:     help")
 	logger.Log.Notice("l:     list clusters")
 	logger.Log.Notice("s:     send command to cluster")
-	logger.Log.Notice("c:     close random connection")
-	logger.Log.Notice("k:     close open stream")
+	logger.Log.Notice("c:     close blocked connection")
+	logger.Log.Notice("k:     close all connections")
 	logger.Log.Notice("q:     quit application")
 }
 
@@ -180,9 +180,9 @@ func ReadInput() {
 		case "l":
 			listClusters()
 		case "c":
-			closeRandomConnection()
+			closeBlockedConnection()
 		case "k":
-			closeOpenStream()
+			closeAllConnections()
 		case "q":
 			os.Exit(0)
 		default:
@@ -192,14 +192,14 @@ func ReadInput() {
 	}
 }
 
-func closeRandomConnection() {
-	cluster := selectRandomCluster()
+func closeBlockedConnection() {
+	cluster := selectBlockedCluster()
 	if cluster != nil {
 		cluster.Connection.Close()
 	}
 }
 
-func closeOpenStream() {
+func closeAllConnections() {
 	for _, cluster := range connections {
 		cluster.Connection.Close()
 	}
@@ -218,6 +218,8 @@ func listClusters() []string {
 }
 
 func requestCmdFromCluster(pattern string) {
+	var blockConnection = false
+
 	if len(connections) > 0 {
 		var payload interface{} = nil
 		switch pattern {
@@ -231,8 +233,6 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.FilesDownloadRequestExampleData()
 		case "files/upload POST":
 			payload = services.FilesUploadRequestExampleData()
-		case "files/update POST":
-			payload = services.FilesUpdateRequestExampleData()
 		case "files/create-folder POST":
 			payload = services.FilesCreateFolderRequestExampleData()
 		case "files/rename POST":
@@ -269,6 +269,7 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ServiceGetLogRequestExample()
 		case "service/log-stream/:namespace/:podId/:sinceSeconds SSE":
 			payload = services.ServiceLogStreamRequestExample()
+			blockConnection = true
 		case "service/resource-status/:resource/:namespace/:name/:statusOnly GET":
 			payload = services.ServiceResourceStatusRequestExample()
 		case "service/restart POST":
@@ -286,7 +287,7 @@ func requestCmdFromCluster(pattern string) {
 		case "service/spectrum-configmaps GET":
 			payload = nil
 		}
-		firstConnection := selectRandomCluster()
+		firstConnection := selectRandomCluster(blockConnection)
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
 		datagram.Send()
 		// send file after pattern
@@ -324,10 +325,24 @@ func selectCommands() string {
 	}
 }
 
-func selectRandomCluster() *structs.ClusterConnection {
+func selectRandomCluster(blockConnection bool) *structs.ClusterConnection {
 	for _, v := range connections {
-		return &v
+		if !v.Blocked {
+			v.Blocked = blockConnection
+			return v
+		}
 	}
+	fmt.Println("All connections are blocked.")
+	return nil
+}
+
+func selectBlockedCluster() *structs.ClusterConnection {
+	for _, v := range connections {
+		if v.Blocked {
+			return v
+		}
+	}
+	fmt.Println("No blocked connection available.")
 	return nil
 }
 
@@ -354,7 +369,7 @@ func sendFile() {
 
 	reader := bufio.NewReader(file)
 	if reader != nil && totalSize > 0 {
-		cluster := selectRandomCluster()
+		cluster := selectRandomCluster(false)
 		buf := make([]byte, 512)
 		bar := progressbar.DefaultBytes(totalSize)
 

@@ -62,13 +62,6 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	return nil
 }
 
-func Update(r FilesUpdateRequest, c *websocket.Conn) interface{} {
-	// TODO: Implement
-	logger.Log.Error("TODO: IMPLEMENT")
-	logger.Log.Info(utils.FunctionName())
-	return nil
-}
-
 func CreateFolder(r FilesCreateFolderRequest, c *websocket.Conn) error {
 	pathToDir, err := verify(&r.Folder)
 	if err != nil {
@@ -184,19 +177,6 @@ func FilesUploadRequestExampleData() FilesUploadRequest {
 	return FilesUploadRequest{
 		File:        dtos.PersistentFileUploadDtoExampleData(),
 		SizeInBytes: 21217588,
-	}
-}
-
-// files/update PATCH
-type FilesUpdateRequest struct {
-	File        dtos.PersistentFileRequestDto `json:"file"`
-	NewFileData string                        `json:"newFileData"` // TODO: base64? was originally Multer File Upload
-}
-
-func FilesUpdateRequestExampleData() FilesUpdateRequest {
-	return FilesUpdateRequest{
-		File:        dtos.PersistentFileRequestDtoExampleData(),
-		NewFileData: "",
 	}
 }
 

@@ -15,3 +15,5 @@ misc:
   debug: false
   concurrent_connections: 3
   ignore_namespaces: ["kube-system", "default"]
+  check_for_updates: 3600
+  helm_index: https://helm.mogenius.com/public/index.yaml

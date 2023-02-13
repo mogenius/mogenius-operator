@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"mogenius-k8s-manager/version"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,9 +21,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	"github.com/google/uuid"
 	"github.com/schollz/progressbar/v3"
+	"gopkg.in/yaml.v2"
 
 	"github.com/gorilla/websocket"
 
@@ -29,6 +33,10 @@ import (
 )
 
 const PingSeconds = 10
+
+var connectionCounter int = 0
+var maxGoroutines = 0
+var connectionGuard chan struct{}
 
 func StartK8sManager() {
 	interrupt := make(chan os.Signal, 1)
@@ -38,9 +46,10 @@ func StartK8sManager() {
 	fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", utils.FillWith(mokubernetes.CurrentContextName(), 31, " "))
 	fmt.Println(utils.FillWith("", 60, "#"))
 
-	var connectionCounter int
-	maxGoroutines := utils.CONFIG.Misc.ConcurrentConnections
-	connectionGuard := make(chan struct{}, maxGoroutines)
+	updateCheck()
+
+	maxGoroutines = utils.CONFIG.Misc.ConcurrentConnections
+	connectionGuard = make(chan struct{}, maxGoroutines)
 
 	for {
 		select {
@@ -51,15 +60,15 @@ func StartK8sManager() {
 
 		connectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
-			connectionCounter++
-			startClient(connectionCounter)
+			if connectionCounter < maxGoroutines {
+				startClient()
+			}
 			<-connectionGuard
 		}()
-
 	}
 }
 
-func startClient(connectionCounter int) {
+func startClient() {
 	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.WebsocketServer, utils.CONFIG.ApiServer.WebsocketPort)
 	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: "/ws"}
 
@@ -67,18 +76,24 @@ func startClient(connectionCounter int) {
 		"x-authorization": []string{utils.CONFIG.ApiServer.ApiKey},
 		"x-clustername":   []string{utils.CONFIG.Kubernetes.ClusterName}})
 	if err != nil {
-		logger.Log.Infof("Connection%d %s ... %s -> %s\n", connectionCounter, color.BlueString(connectionUrl.String()), color.RedString("FAIL 💥"), color.HiRedString(err.Error()))
+		logger.Log.Errorf("Connection (available: %d/%d) %s ... %s -> %s\n", connectionCounter, maxGoroutines, color.BlueString(connectionUrl.String()), color.RedString("FAIL 💥"), color.HiRedString(err.Error()))
 		return
 	} else {
-		logger.Log.Infof("Connection%d %s ... %s\n", connectionCounter, color.BlueString(connectionUrl.String()), color.GreenString("SUCCESS 🚀"))
+		connectionCounter++
+		logger.Log.Infof("Connection (available: %d/%d) %s ... %s\n", connectionCounter, maxGoroutines, color.BlueString(connectionUrl.String()), color.GreenString("SUCCESS 🚀"))
 	}
 	defer func() {
 		connection.Close()
+		if connectionCounter > 0 {
+			connectionCounter--
+		}
 	}()
 
 	done := make(chan struct{})
 
 	parseMessage(done, connection)
+
+	logger.Log.Infof(color.BlueString("Connections Available: %d/%d"), connectionCounter-1, maxGoroutines)
 }
 
 func parseMessage(done chan struct{}, c *websocket.Conn) {
@@ -86,6 +101,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	var preparedFileName *string
 	var preparedFileRequest *services.FilesUploadRequest
 	var openFile *os.File
+	var hasOpenStream = false
 	bar := progressbar.DefaultSilent(0)
 
 	go func() {
@@ -153,7 +169,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 						ctx := context.Background()
 						cancelCtx, endGofunc := context.WithCancel(ctx)
-						stream, err := restReq.Stream(context.TODO())
+						stream, err := restReq.Stream(cancelCtx)
 						if err != nil {
 							result.Err = err.Error()
 						}
@@ -163,7 +179,8 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 							sendMutex.Unlock()
 						}()
 
-						go startClient(1234)
+						startAdditionalConnection()
+						hasOpenStream = true
 
 						sendMutex.Lock()
 						c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
@@ -220,6 +237,21 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 	// KEEP THE CONNECTION OPEN
 	ping(done, c, &sendMutex)
+
+	if hasOpenStream {
+		freeAdditionalConnectionOnDisconnect()
+	}
+	c.Close()
+}
+
+func startAdditionalConnection() {
+	maxGoroutines++
+	<-connectionGuard
+}
+
+func freeAdditionalConnectionOnDisconnect() {
+	maxGoroutines--
+	<-connectionGuard
 }
 
 func ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
@@ -258,5 +290,106 @@ func ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
 			}
 			return
 		}
+	}
+}
+
+func versionTicker() {
+	updateTicker := time.NewTicker(time.Second * time.Duration(utils.CONFIG.Misc.CheckForUpdates))
+	done := make(chan bool)
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-updateTicker.C:
+				updateCheck()
+			}
+		}
+	}()
+}
+
+func updateCheck() {
+	fmt.Print("Checking for updates ...")
+	helmData, err := getVersionData()
+	if err != nil {
+		logger.Log.Error(err)
+		return
+	}
+	if version.Ver != helmData.Entries["mo-k8s-manager"][0].Version {
+		fmt.Printf("\n")
+		fmt.Printf("####################################################################\n")
+		fmt.Printf("####################################################################\n")
+		fmt.Printf("######                  %s                ######\n", color.BlueString("NEW VERSION AVAILABLE!"))
+		fmt.Printf("######               %s              ######\n", color.YellowString(" UPDATE AS FAST AS POSSIBLE"))
+		fmt.Printf("######                                                        ######\n")
+		fmt.Printf("######                    Server: %s                       ######\n", color.GreenString(helmData.Entries["mo-k8s-manager"][0].Version))
+		fmt.Printf("######                    Local:  %s                       ######\n", color.RedString(version.Ver))
+		fmt.Printf("######                                                        ######\n")
+		fmt.Printf("######   %s   ######\n", color.RedString("Not updating might result in service interruption."))
+		fmt.Printf("####################################################################\n")
+		fmt.Printf("####################################################################\n")
+		notUpToDateAction(helmData)
+	} else {
+		fmt.Printf(" Up-To-Date: 👍\n")
+	}
+
+	versionTicker()
+}
+
+func getVersionData() (*structs.HelmData, error) {
+	response, err := http.Get(utils.CONFIG.Misc.HelmIndex)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	data, _ := ioutil.ReadAll(response.Body)
+	var helmData structs.HelmData
+	err = yaml.Unmarshal(data, &helmData)
+	if err != nil {
+		return nil, err
+	}
+	return &helmData, nil
+}
+
+func notUpToDateAction(helmData *structs.HelmData) {
+	localVer, err := semver.NewVersion(version.Ver)
+	if err != nil {
+		logger.Log.Error("Error parsing local version: %s", err.Error())
+		return
+	}
+
+	remoteVer, err := semver.NewVersion(helmData.Entries["mo-k8s-manager"][0].Version)
+	if err != nil {
+		logger.Log.Error("Error parsing remote version: %s", err.Error())
+		return
+	}
+
+	constraint, err := semver.NewConstraint(">= " + version.Ver)
+	if err != nil {
+		logger.Log.Error("Error parsing constraint version: %s", err.Error())
+		return
+	}
+
+	_, errors := constraint.Validate(remoteVer)
+	for _, m := range errors {
+		fmt.Println(m)
+	}
+	// Local version > Remote version (likely development version)
+	if remoteVer.LessThan(localVer) {
+		logger.Log.Warningf("Your local version '%s' is > the remote version '%s'. AI thinks: You are likely a developer.", localVer.String(), remoteVer.String())
+		return
+	}
+
+	// MAYOR CHANGES: MUST UPGRADE TO CONTINUE
+	if remoteVer.GreaterThan(localVer) && remoteVer.Major() > localVer.Major() {
+		log.Fatalf("Your version '%s' is too low to continue. Please upgrade to '%s' and try again.\n", localVer.String(), remoteVer.String())
+	}
+
+	// MMINOR&PATCH CHANGES: SHOULD UPGRADE
+	if remoteVer.GreaterThan(localVer) {
+		logger.Log.Warningf("Your version '%s' is out-dated. Please upgrade to '%s' to avoid service interruption.", localVer.String(), remoteVer.String())
+		return
 	}
 }

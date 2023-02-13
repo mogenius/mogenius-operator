@@ -53,7 +53,6 @@ var BINARY_REQUESTS_DOWNLOAD = []string{
 
 var BINARY_REQUEST_UPLOAD = []string{
 	"files/upload POST",
-	"files/update POST",
 }
 
 func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
