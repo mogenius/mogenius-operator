@@ -70,9 +70,10 @@ func PersistentFileDtoFrom(path string, d fs.DirEntry) PersistentFileDto {
 			gid = int(stat.Gid)
 			size = stat.Size
 			mode = int(stat.Mode)
-			createTime = time.Unix(stat.Ctimespec.Sec, 0).Format(time.RFC3339)
-			modTime = time.Unix(stat.Mtimespec.Sec, 0).Format(time.RFC3339)
-
+			// TODO: https://stackoverflow.com/questions/53266940/get-change-date-of-a-folder-in-go
+			// RESULTS IN: stat.Ctimespec undefined (type *syscall.Stat_t has no field or method Ctimespec)
+			//createTime = time.Unix(stat.Ctimespec.Sec, 0).Format(time.RFC3339)
+			//modTime = time.Unix(stat.Mtimespec.Sec, 0).Format(time.RFC3339)
 		}
 	}
 	uidGid := fmt.Sprintf("%d:%d", uid, gid)

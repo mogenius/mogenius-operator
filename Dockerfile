@@ -48,7 +48,6 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
-COPY --from=builder ["/app/.env", "/app/.env"]
 
 ENV GIN_MODE=release
 

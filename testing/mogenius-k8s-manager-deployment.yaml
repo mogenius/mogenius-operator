@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mogenius-k8s-manager
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: mogenius-k8s-manager
+  replicas: 1
+  revisionHistoryLimit: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mogenius-k8s-manager
+    spec:
+      containers:
+        - name: mogenius-k8s-manager
+          image: ghcr.io/mogenius/mogenius-k8s-manager:1.0.1
+          env:
+            - name: cluster_name
+              value: 'ollalalaaa-cluster-mo7'
+            - name: api_key
+              value: 'XXX'
+          resources:
+            requests:
+              ephemeral-storage: '100Mi'
+              memory: '128Mi'
+              cpu: '200m'
+            limits:
+              ephemeral-storage: '100Mi'
+              memory: '256Mi'
+              cpu: '300m'
+          securityContext:
+            #allowPrivilegeEscalation: false
+            #runAsNonRoot: true
+          volumeMounts:
+          - mountPath: "/mo-data"
+            name: data-volume
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: nfs
