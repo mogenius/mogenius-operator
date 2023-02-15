@@ -1,7 +1,7 @@
 package version
 
 var (
-	Ver            = "1.0.1"
+	Ver            = "1.0.2"
 	Branch         = ""
 	GitCommitHash  = "" // ldflags
 	BuildTimestamp = "" // ldflags
