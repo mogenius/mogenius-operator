@@ -228,3 +228,30 @@ func ConfigMapFor(namespace string, configMapName string) *v1.ConfigMap {
 	}
 	return configMap
 }
+
+func AllConfigmaps(namespaceName string) []v1.ConfigMap {
+	result := []v1.ConfigMap{}
+
+	var provider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		provider, err = NewKubeProviderLocal()
+	} else {
+		provider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("AllConfigmaps ERROR: %s", err.Error())
+	}
+
+	configmapList, err := provider.ClientSet.CoreV1().ConfigMaps(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllConfigmaps ERROR: %s", err.Error())
+	}
+
+	for _, configmap := range configmapList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, configmap.ObjectMeta.Namespace) {
+			result = append(result, configmap)
+		}
+	}
+	return result
+}

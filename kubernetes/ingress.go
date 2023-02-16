@@ -199,3 +199,30 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 	}
 	logger.Log.Error("Could not load service default/nginx-ingress-ingress-nginx-controller.")
 }
+
+func AllIngresses(namespaceName string) []v1.Ingress {
+	result := []v1.Ingress{}
+
+	var provider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		provider, err = NewKubeProviderLocal()
+	} else {
+		provider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("AllIngresses ERROR: %s", err.Error())
+	}
+
+	ingressList, err := provider.ClientSet.NetworkingV1().Ingresses(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllIngresses ERROR: %s", err.Error())
+	}
+
+	for _, ingress := range ingressList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, ingress.ObjectMeta.Namespace) {
+			result = append(result, ingress)
+		}
+	}
+	return result
+}

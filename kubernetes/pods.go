@@ -39,7 +39,7 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 	return pod
 }
 
-func AllPods() []v1.Pod {
+func AllPods(namespaceName string) []v1.Pod {
 	result := []v1.Pod{}
 
 	var provider *KubeProvider
@@ -53,7 +53,7 @@ func AllPods() []v1.Pod {
 		logger.Log.Errorf("AllPods ERROR: %s", err.Error())
 	}
 
-	podsList, err := provider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	podsList, err := provider.ClientSet.CoreV1().Pods(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllPods podMetricsList ERROR: %s", err.Error())
 	}
@@ -68,7 +68,7 @@ func AllPods() []v1.Pod {
 
 func AllPodNames() []string {
 	result := []string{}
-	allPods := AllPods()
+	allPods := AllPods("")
 	for _, pod := range allPods {
 		result = append(result, pod.ObjectMeta.Name)
 	}

@@ -84,3 +84,31 @@ func DeleteNamespace(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn
 	}(cmd, wg)
 	return cmd
 }
+
+func ListAllNamespaceNames() []string {
+	result := []string{}
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		logger.Log.Errorf("ListAll ERROR: %s", err.Error())
+	}
+
+	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
+
+	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		logger.Log.Errorf("ListAll ERROR: %s", err.Error())
+	}
+
+	for _, ns := range namespaceList.Items {
+		result = append(result, ns.Name)
+	}
+
+	return result
+}

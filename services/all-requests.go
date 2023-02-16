@@ -28,6 +28,8 @@ var COMMAND_REQUESTS = []string{
 	"namespace/validate-cluster-pods POST",
 	"namespace/validate-ports POST",
 	"namespace/storage-size POST",
+	"namespace/list-all",
+	"namespace/gather-all-resources",
 	"service/create POST",
 	"service/delete POST",
 	"service/pod-ids/:namespace/:serviceId GET",
@@ -113,6 +115,12 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := NamespaceStorageSizeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StorageSize(data, c)
+	case "namespace/list-all":
+		return ListAllNamespaces()
+	case "namespace/gather-all-resources":
+		data := NamespaceGatherAllResourcesRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return ListAllResourcesForNamespace(data)
 	case "service/create POST":
 		data := ServiceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)

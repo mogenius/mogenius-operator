@@ -257,6 +257,10 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.NamespaceValidatePortsRequestExample()
 		case "namespace/storage-size POST":
 			payload = services.NamespaceStorageSizeRequestExample()
+		case "namespace/list-all":
+			payload = nil
+		case "namespace/gather-all-resources":
+			payload = services.NamespaceGatherAllResourcesRequestExample()
 		case "service/create POST":
 			payload = services.ServiceCreateRequestExample()
 		case "service/delete POST":

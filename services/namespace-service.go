@@ -93,12 +93,29 @@ func ValidateClusterPorts(r NamespaceValidatePortsRequest, c *websocket.Conn) in
 	return nil
 }
 
+func ListAllNamespaces() []string {
+	return mokubernetes.ListAllNamespaceNames()
+}
+
 func StorageSize(r NamespaceStorageSizeRequest, c *websocket.Conn) map[string]int {
 	// TODO: Implement for CephFS
 	result := make(map[string]int)
 	for _, v := range r.Stageids {
 		result[v] = 0
 	}
+	return result
+}
+
+func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.NamespaceResourcesDto {
+	result := dtos.CreateNamespaceResourcesDto()
+	result.Pods = mokubernetes.AllPods(r.NamespaceName)
+	result.Services = mokubernetes.AllServices(r.NamespaceName)
+	result.Deployments = mokubernetes.AllDeployments(r.NamespaceName)
+	result.Daemonsets = mokubernetes.AllDaemonsets(r.NamespaceName)
+	result.Replicasets = mokubernetes.AllReplicasets(r.NamespaceName)
+	result.Ingresses = mokubernetes.AllIngresses(r.NamespaceName)
+	result.Secrets = mokubernetes.AllSecrets(r.NamespaceName)
+	result.Configmaps = mokubernetes.AllConfigmaps(r.NamespaceName)
 	return result
 }
 
@@ -188,5 +205,16 @@ type NamespaceStorageSizeRequest struct {
 func NamespaceStorageSizeRequestExample() NamespaceStorageSizeRequest {
 	return NamespaceStorageSizeRequest{
 		Stageids: []string{"stage1", "stage2", "stage3", "stage4", "stage5"},
+	}
+}
+
+// namespace/gather-all-resources
+type NamespaceGatherAllResourcesRequest struct {
+	NamespaceName string `json:"namespaceName"`
+}
+
+func NamespaceGatherAllResourcesRequestExample() NamespaceGatherAllResourcesRequest {
+	return NamespaceGatherAllResourcesRequest{
+		NamespaceName: "default",
 	}
 }

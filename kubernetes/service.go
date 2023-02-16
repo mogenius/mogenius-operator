@@ -252,6 +252,33 @@ func ServiceFor(namespace string, serviceName string) *v1.Service {
 	return service
 }
 
+func AllServices(namespaceName string) []v1.Service {
+	result := []v1.Service{}
+
+	var provider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		provider, err = NewKubeProviderLocal()
+	} else {
+		provider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("AllServices ERROR: %s", err.Error())
+	}
+
+	serviceList, err := provider.ClientSet.CoreV1().Services(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllServices ERROR: %s", err.Error())
+	}
+
+	for _, service := range serviceList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, service.ObjectMeta.Namespace) {
+			result = append(result, service)
+		}
+	}
+	return result
+}
+
 func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Service {
 	newService := utils.InitService()
 	newService.ObjectMeta.Name = service.K8sName

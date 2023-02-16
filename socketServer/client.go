@@ -312,11 +312,29 @@ func versionTicker() {
 func updateCheck() {
 	fmt.Print("Checking for updates ...")
 	helmData, err := getVersionData()
+
 	if err != nil {
 		logger.Log.Error(err)
 		return
 	}
-	if version.Ver != helmData.Entries["mo-k8s-manager"][0].Version {
+	// VALIDATE RESPONSE
+	if len(helmData.Entries) < 1 {
+		fmt.Printf("\n")
+		logger.Log.Errorf("HelmIndex Entries length <= 0. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		return
+	}
+	mok8sManager, doesExist := helmData.Entries["mo-k8s-manager"]
+	if !doesExist {
+		fmt.Printf("\n")
+		logger.Log.Errorf("HelmIndex does not contain the field 'mo-k8s-manager'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		return
+	}
+	if len(mok8sManager) > 0 {
+		fmt.Printf("\n")
+		logger.Log.Errorf("Field 'mo-k8s-manager' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		return
+	}
+	if version.Ver != mok8sManager[0].Version {
 		fmt.Printf("\n")
 		fmt.Printf("####################################################################\n")
 		fmt.Printf("####################################################################\n")

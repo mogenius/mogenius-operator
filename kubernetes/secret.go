@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -136,4 +137,31 @@ func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		}
 	}(cmd, wg)
 	return cmd
+}
+
+func AllSecrets(namespaceName string) []v1.Secret {
+	result := []v1.Secret{}
+
+	var provider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		provider, err = NewKubeProviderLocal()
+	} else {
+		provider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("AllSecrets ERROR: %s", err.Error())
+	}
+
+	secretList, err := provider.ClientSet.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllSecrets podMetricsList ERROR: %s", err.Error())
+	}
+
+	for _, secret := range secretList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, secret.ObjectMeta.Namespace) {
+			result = append(result, secret)
+		}
+	}
+	return result
 }

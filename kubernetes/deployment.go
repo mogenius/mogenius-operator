@@ -419,3 +419,30 @@ func SetImage(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sSt
 	}(cmd, wg)
 	return cmd
 }
+
+func AllDeployments(namespaceName string) []v1.Deployment {
+	result := []v1.Deployment{}
+
+	var provider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		provider, err = NewKubeProviderLocal()
+	} else {
+		provider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("AllDeployments ERROR: %s", err.Error())
+	}
+
+	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllDeployments ERROR: %s", err.Error())
+	}
+
+	for _, deployment := range deploymentList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, deployment.ObjectMeta.Namespace) {
+			result = append(result, deployment)
+		}
+	}
+	return result
+}
