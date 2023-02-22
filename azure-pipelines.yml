@@ -23,6 +23,27 @@ stages:
 - stage: Build
   displayName: Build and push stage
   jobs:
+  - job: main
+    steps:
+    - script: echo "##vso[task.setvariable variable=VERSION;isOutput=true]1.0.2"
+      displayName: Set version variable
+      name: myVersion
+  - job: variables_handler
+    dependsOn: main
+    variables:
+      VERSION: $[ dependencies.main.outputs['myVersion.VERSION'] ]
+    steps:
+    - task: CmdLine@2
+      displayName: Create artifact from variables
+      inputs:
+        script: |
+          echo "##vso[task.setvariable variable=VERSION;]$(VERSION)" >  $(Build.ArtifactStagingDirectory)/pipeline.env
+    - task: PublishBuildArtifacts@1
+      displayName: publish variables
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'variables'
+        publishLocation: 'Container'
   - job: Build
     displayName: Build
     pool:
@@ -37,4 +58,3 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
-
