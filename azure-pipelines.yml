@@ -25,9 +25,12 @@ stages:
   jobs:
   - job: main
     steps:
-    - script: echo "##vso[task.setvariable variable=VERSION;isOutput=true]1.0.2"
+    - script: VERSION=$(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
       displayName: Set version variable
       name: myVersion
+    # - script: echo "##vso[task.setvariable variable=VERSION;isOutput=true]1.0.2"
+    #   displayName: Set version variable
+    #   name: myVersion
   - job: variables_handler
     dependsOn: main
     variables:
