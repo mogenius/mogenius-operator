@@ -30,7 +30,7 @@ stages:
       VERX: $(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
     steps:
     - script: |
-        echo "v: ${VER} - ${VERX}"
+        echo "v: ${VER} - ${VERX} - $(Build.BuildId) - ${Build.BuildId}"
         echo "x: $(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})"
     - task: CmdLine@2
       displayName: Create version artifact from variables
