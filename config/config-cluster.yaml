@@ -4,9 +4,9 @@ kubernetes:
   default_container_registry: docker.io
 
 api_server:
-  websocket_server: api.mogenius.com
+  websocket_server: k8s-api.dev.mogenius.com
   websocket_path: /ws
-  websocket_port: 8080
+  websocket_port: 1337
   api_key: YOUR_API_KEY
 
 misc:
