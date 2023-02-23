@@ -27,7 +27,11 @@ stages:
     dependsOn: main
     variables:
       VER: $[ dependencies.main.outputs['myVersion.VERS'] ]
+      VERX: $(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
     steps:
+    - script: |
+        echo "v: ${VER} - ${VERX}"
+        echo "x: $(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})"
     - task: CmdLine@2
       displayName: Create version artifact from variables
       inputs:
@@ -36,8 +40,6 @@ stages:
     - script: |
         cat $(Build.ArtifactStagingDirectory)/pipeline.env
       displayName: cat pipeline env
-    - script: |
-        echo "v: ${VER}"
     # - task: CmdLine@2
     #   displayName: Create build artifact from variables
     #   inputs:
