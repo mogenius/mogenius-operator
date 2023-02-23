@@ -29,10 +29,15 @@ stages:
       VERSION: $[ dependencies.main.outputs['myVersion.VERSION'] ]
     steps:
     - task: CmdLine@2
-      displayName: Create artifact from variables
+      displayName: Create version artifact from variables
       inputs:
         script: |
-          echo "##vso[task.setvariable variable=VERSION;]$(VERSION)\n##vso[task.setvariable variable=BUILDID;]$(Build.BuildId)" >  $(Build.ArtifactStagingDirectory)/pipeline.env
+          echo "##vso[task.setvariable variable=VERSION;]$(VERSION)" >  $(Build.ArtifactStagingDirectory)/pipeline.env
+    - task: CmdLine@3
+      displayName: Create build artifact from variables
+      inputs:
+        script: |
+          echo "##vso[task.setvariable variable=BUILDID;]$(Build.BuildId)" >  $(Build.ArtifactStagingDirectory)/build.env
     - task: PublishBuildArtifacts@1
       displayName: publish variables
       inputs:
