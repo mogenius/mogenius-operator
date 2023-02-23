@@ -33,28 +33,28 @@ stages:
       inputs:
         script: |
           echo "##vso[task.setvariable variable=VERSION;]$(VERSION)" >  $(Build.ArtifactStagingDirectory)/pipeline.env
-    - task: CmdLine@2
-      displayName: Create build artifact from variables
-      inputs:
-        script: |
-          echo "##vso[task.setvariable variable=BUILDID;]$(Build.BuildId)" >  $(Build.ArtifactStagingDirectory)/build.env
+    # - task: CmdLine@2
+    #   displayName: Create build artifact from variables
+    #   inputs:
+    #     script: |
+    #       echo "##vso[task.setvariable variable=BUILDID;]$(Build.BuildId)" >  $(Build.ArtifactStagingDirectory)/build.env
     - task: PublishBuildArtifacts@1
       displayName: publish variables
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'variables'
         publishLocation: 'Container'
-  - job: Build
-    displayName: Build
-    pool:
-      vmImage: $(vmImageName)
-    steps:
-    - task: Docker@2
-      displayName: Build and push an image to container registry
-      inputs:
-        command: buildAndPush
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(tag)
+  # - job: Build
+  #   displayName: Build
+  #   pool:
+  #     vmImage: $(vmImageName)
+  #   steps:
+  #   - task: Docker@2
+  #     displayName: Build and push an image to container registry
+  #     inputs:
+  #       command: buildAndPush
+  #       repository: $(imageRepository)
+  #       dockerfile: $(dockerfilePath)
+  #       containerRegistry: $(dockerRegistryServiceConnection)
+  #       tags: |
+  #         $(tag)
