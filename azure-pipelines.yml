@@ -55,17 +55,17 @@ stages:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'variables'
         publishLocation: 'Container'
-  # - job: Build
-  #   displayName: Build
-  #   pool:
-  #     vmImage: $(vmImageName)
-  #   steps:
-  #   - task: Docker@2
-  #     displayName: Build and push an image to container registry
-  #     inputs:
-  #       command: buildAndPush
-  #       repository: $(imageRepository)
-  #       dockerfile: $(dockerfilePath)
-  #       containerRegistry: $(dockerRegistryServiceConnection)
-  #       tags: |
-  #         $(tag)
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
