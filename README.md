@@ -27,23 +27,19 @@
 <br />
 
 
-# Start Server 
+# Helm Install
 ```
-go run main.go testserver -d
-
-OR
-
-air -c .air-server.toml
+helm repo add mo-public helm.mogenius.com/public
+helm repo update
+helm search repo k8s
+helm install k8s-manager mo-public/mo-k8s-manager
 ```
 
-# Start Client 
+# Clean Helm Cache 
 ```
-go run main.go testclient -d
-
-OR
-
-air -c .air-client.toml
-
+rm -rf ~/.helm/cache/archive/*
+rm -rf ~/.helm/repository/cache/*
+helm repo update
 ```
 
 # LINKS

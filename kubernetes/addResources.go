@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -105,6 +106,17 @@ func addDeployment(kubeProvider *KubeProvider) {
 	deploymentContainer.WithImagePullPolicy(core.PullAlways)
 	deploymentContainer.WithName(DEPLOYMENTNAME)
 	deploymentContainer.WithImage(DEPLOYMENTIMAGE)
+
+	envVars := []applyconfcore.EnvVarApplyConfiguration{}
+	envVars = append(envVars, applyconfcore.EnvVarApplyConfiguration{
+		Name:  utils.Pointer("cluster_name"),
+		Value: utils.Pointer("TestClusterFromCode"),
+	})
+	envVars = append(envVars, applyconfcore.EnvVarApplyConfiguration{
+		Name:  utils.Pointer("api_key"),
+		Value: utils.Pointer("94E23575-A689-4F88-8D67-215A274F4E6E"), // dont worry. this is a test key
+	})
+	deploymentContainer.Env = envVars
 	agentResourceLimits := core.ResourceList{
 		"cpu":               resource.MustParse("300m"),
 		"memory":            resource.MustParse("256Mi"),

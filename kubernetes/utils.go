@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	NAMESPACE       = "mogenius-k8s-manager"
+	NAMESPACE       = "mogenius"
 	DEPLOYMENTNAME  = "mogenius-k8s-manager"
 	DEPLOYMENTIMAGE = "ghcr.io/mogenius/mogenius-k8s-manager:" + version.Ver
 
