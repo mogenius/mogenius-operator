@@ -170,7 +170,6 @@ func SpectrumConfigmaps(c *websocket.Conn) dtos.SpectrumConfigmapDto {
 	}
 }
 
-// service/create POST
 type ServiceCreateRequest struct {
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
 	Stage     dtos.K8sStageDto     `json:"stage"`
@@ -185,7 +184,6 @@ func ServiceCreateRequestExample() ServiceCreateRequest {
 	}
 }
 
-// service/delete POST
 type ServiceDeleteRequest struct {
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
 	Stage     dtos.K8sStageDto     `json:"stage"`
@@ -200,7 +198,6 @@ func ServiceDeleteRequestExample() ServiceDeleteRequest {
 	}
 }
 
-// service/pod-ids/:namespace/:serviceId GET
 type ServiceGetPodIdsRequest struct {
 	Namespace string `json:"namespace"`
 	ServiceId string `json:"serviceId"`
@@ -213,7 +210,6 @@ func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
 	}
 }
 
-// service/images/:imageName PATCH
 type ServiceSetImageRequest struct {
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
 	Stage     dtos.K8sStageDto     `json:"stage"`
@@ -230,7 +226,6 @@ func ServiceSetImageRequestExample() ServiceSetImageRequest {
 	}
 }
 
-// service/log/:namespace/:podId GET
 type ServiceGetLogRequest struct {
 	Namespace string `json:"namespace"`
 	PodId     string `json:"podId"`
@@ -243,7 +238,6 @@ func ServiceGetLogRequestExample() ServiceGetLogRequest {
 	}
 }
 
-// service/log-stream/:namespace/:podId/:sinceSeconds SSE
 type ServiceLogStreamRequest struct {
 	Namespace    string `json:"namespace"`
 	PodId        string `json:"podId"`
@@ -258,7 +252,6 @@ func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	}
 }
 
-// service/resource-status/:resource/:namespace/:name/:statusOnly GET
 type ServiceResourceStatusRequest struct {
 	Resource   string `json:"resource"` // pods, services, deployments
 	Namespace  string `json:"namespace"`
@@ -275,7 +268,6 @@ func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
 	}
 }
 
-// service/restart POST
 type ServiceRestartRequest struct {
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
 	Stage     dtos.K8sStageDto     `json:"stage"`
@@ -290,7 +282,6 @@ func ServiceRestartRequestExample() ServiceRestartRequest {
 	}
 }
 
-// service/stop POST
 type ServiceStopRequest struct {
 	NamespaceId      string             `json:"namespaceId"`
 	NamespaceShortId string             `json:"namespaceShortId"`
@@ -307,7 +298,6 @@ func ServiceStopRequestExample() ServiceStopRequest {
 	}
 }
 
-// service/start POST
 type ServiceStartRequest struct {
 	NamespaceId      string             `json:"namespaceId"`
 	NamespaceShortId string             `json:"namespaceShortId"`
@@ -324,7 +314,6 @@ func ServiceStartRequestExample() ServiceStartRequest {
 	}
 }
 
-// service/update-service POST
 type ServiceUpdateRequest struct {
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
 	Stage     dtos.K8sStageDto     `json:"stage"`
@@ -339,7 +328,6 @@ func ServiceUpdateRequestExample() ServiceUpdateRequest {
 	}
 }
 
-// service/spectrum-bind POST
 type ServiceBindSpectrumRequest struct {
 	K8sNamespaceName string `json:"k8sNamespaceName"`
 	K8sServiceName   string `json:"k8sServiceName"`
@@ -360,7 +348,6 @@ func ServiceBindSpectrumRequestExample() ServiceBindSpectrumRequest {
 	}
 }
 
-// service/spectrum-unbind DELETE
 type ServiceUnbindSpectrumRequest struct {
 	ExternalPort int    `json:"externalPort"`
 	Type         string `json:"type"`
@@ -374,5 +361,3 @@ func ServiceUnbindSpectrumRequestExample() ServiceUnbindSpectrumRequest {
 		NamespaceId:  "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
 	}
 }
-
-// service/spectrum-configmaps GET

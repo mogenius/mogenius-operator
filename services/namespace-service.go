@@ -119,7 +119,6 @@ func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.Nam
 	return result
 }
 
-// namespace/create POST
 type NamespaceCreateRequest struct {
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
 	Stage     dtos.K8sStageDto     `json:"stage"`
@@ -132,7 +131,6 @@ func NamespaceCreateRequestExample() NamespaceCreateRequest {
 	}
 }
 
-// namespace/delete POST
 type NamespaceDeleteRequest struct {
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
 	Stage     dtos.K8sStageDto     `json:"stage"`
@@ -145,7 +143,6 @@ func NamespaceDeleteRequestExample() NamespaceDeleteRequest {
 	}
 }
 
-// namespace/shutdown POST
 type NamespaceShutdownRequest struct {
 	NamespaceId      string             `json:"namespaceId"`
 	NamespaceShortId string             `json:"namespaceShortId"`
@@ -162,7 +159,6 @@ func NamespaceShutdownRequestExample() NamespaceShutdownRequest {
 	}
 }
 
-// namespace/pod-ids/:namespace GET
 type NamespacePodIdsRequest struct {
 	Namespace string `json:"namespace"`
 }
@@ -173,7 +169,6 @@ func NamespacePodIdsRequestExample() NamespacePodIdsRequest {
 	}
 }
 
-// namespace/validate-cluster-pods POST
 type NamespaceValidateClusterPodsRequest struct {
 	DbPodNames []string `json:"dbPodNames"`
 }
@@ -184,7 +179,6 @@ func NamespaceValidateClusterPodsRequestExample() NamespaceValidateClusterPodsRe
 	}
 }
 
-// namespace/validate-ports POST
 type NamespaceValidatePortsRequest struct {
 	Ports []dtos.NamespaceServicePortDto `json:"ports"`
 }
@@ -197,7 +191,6 @@ func NamespaceValidatePortsRequestExample() NamespaceValidatePortsRequest {
 	}
 }
 
-// namespace/storage-size POST
 type NamespaceStorageSizeRequest struct {
 	Stageids []string `json:"stageIds"`
 }
@@ -208,7 +201,6 @@ func NamespaceStorageSizeRequestExample() NamespaceStorageSizeRequest {
 	}
 }
 
-// namespace/gather-all-resources
 type NamespaceGatherAllResourcesRequest struct {
 	NamespaceName string `json:"namespaceName"`
 }

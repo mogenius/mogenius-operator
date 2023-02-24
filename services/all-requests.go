@@ -15,46 +15,46 @@ import (
 var COMMAND_REQUESTS = []string{
 	"K8sNotification",
 	"ClusterStatus",
-	"files/list POST",
-	"files/create-folder POST",
-	"files/rename POST",
-	"files/chown POST",
-	"files/chmod POST",
-	"files/delete POST",
-	"namespace/create POST",
-	"namespace/delete POST",
-	"namespace/shutdown POST",
-	"namespace/pod-ids/:namespace GET",
-	"namespace/validate-cluster-pods POST",
-	"namespace/validate-ports POST",
-	"namespace/storage-size POST",
+	"files/list",
+	"files/create-folder",
+	"files/rename",
+	"files/chown",
+	"files/chmod",
+	"files/delete",
+	"namespace/create",
+	"namespace/delete",
+	"namespace/shutdown",
+	"namespace/pod-ids",
+	"namespace/validate-cluster-pods",
+	"namespace/validate-ports",
+	"namespace/storage-size",
 	"namespace/list-all",
 	"namespace/gather-all-resources",
-	"service/create POST",
-	"service/delete POST",
-	"service/pod-ids/:namespace/:serviceId GET",
-	"service/images/:imageName PATCH",
-	"service/log/:namespace/:podId GET",
-	"service/resource-status/:resource/:namespace/:name/:statusOnly GET",
-	"service/restart POST",
-	"service/stop POST",
-	"service/start POST",
-	"service/update-service POST",
-	"service/spectrum-bind POST",
-	"service/spectrum-unbind DELETE",
-	"service/spectrum-configmaps GET",
+	"service/create",
+	"service/delete",
+	"service/pod-ids",
+	"service/images",
+	"service/log",
+	"service/resource-status",
+	"service/restart",
+	"service/stop",
+	"service/start",
+	"service/update-service",
+	"service/spectrum-bind",
+	"service/spectrum-unbind",
+	"service/spectrum-configmaps",
 }
 
 var STREAM_REQUESTS = []string{
-	"service/log-stream/:namespace/:podId/:sinceSeconds SSE",
+	"service/log-stream",
 }
 
 var BINARY_REQUESTS_DOWNLOAD = []string{
-	"files/download POST",
+	"files/download",
 }
 
 var BINARY_REQUEST_UPLOAD = []string{
-	"files/upload POST",
+	"files/upload",
 }
 
 func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
@@ -63,55 +63,55 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		return K8sNotification(datagram, c)
 	case "ClusterStatus":
 		return mokubernetes.ClusterStatus()
-	case "files/list POST":
+	case "files/list":
 		data := FilesListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return List(data, c)
-	case "files/create-folder POST":
+	case "files/create-folder":
 		data := FilesCreateFolderRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return CreateFolder(data, c)
-	case "files/rename POST":
+	case "files/rename":
 		data := FilesRenameRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Rename(data, c)
-	case "files/chown POST":
+	case "files/chown":
 		data := FilesChownRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Chown(data, c)
-	case "files/chmod POST":
+	case "files/chmod":
 		data := FilesChmodRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Chmod(data, c)
-	case "files/delete POST":
+	case "files/delete":
 		data := FilesDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Delete(data, c)
-	case "namespace/create POST":
+	case "namespace/create":
 		data := NamespaceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return CreateNamespace(data, c)
-	case "namespace/delete POST":
+	case "namespace/delete":
 		data := NamespaceDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return DeleteNamespace(data, c)
-	case "namespace/shutdown POST":
+	case "namespace/shutdown":
 		data := NamespaceShutdownRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ShutdownNamespace(data, c)
-	case "namespace/pod-ids/:namespace GET":
+	case "namespace/pod-ids":
 		data := NamespacePodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return PodIds(data, c)
-	case "namespace/validate-cluster-pods POST":
+	case "namespace/validate-cluster-pods":
 		data := NamespaceValidateClusterPodsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ValidateClusterPods(data, c)
-	case "namespace/validate-ports POST":
+	case "namespace/validate-ports":
 		data := NamespaceValidatePortsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ValidateClusterPorts(data, c)
-	case "namespace/storage-size POST":
+	case "namespace/storage-size":
 		data := NamespaceStorageSizeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StorageSize(data, c)
@@ -121,47 +121,47 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := NamespaceGatherAllResourcesRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ListAllResourcesForNamespace(data)
-	case "service/create POST":
+	case "service/create":
 		data := ServiceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return CreateService(data, c)
-	case "service/delete POST":
+	case "service/delete":
 		data := ServiceDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return DeleteService(data, c)
-	case "service/pod-ids/:namespace/:serviceId GET":
+	case "service/pod-ids":
 		data := ServiceGetPodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ServicePodIds(data, c)
-	case "service/images/:imageName PATCH":
+	case "service/images":
 		data := ServiceSetImageRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return SetImage(data, c)
-	case "service/log/:namespace/:podId GET":
+	case "service/log":
 		data := ServiceGetLogRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return PodLog(data, c)
-	case "service/resource-status/:resource/:namespace/:name/:statusOnly GET":
+	case "service/resource-status":
 		data := ServiceResourceStatusRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return PodStatus(data, c)
-	case "service/restart POST":
+	case "service/restart":
 		data := ServiceRestartRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Restart(data, c)
-	case "service/stop POST":
+	case "service/stop":
 		data := ServiceStopRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StopService(data, c)
-	case "service/start POST":
+	case "service/start":
 		data := ServiceStartRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StartService(data, c)
-	case "service/update-service POST":
+	case "service/update-service":
 		data := ServiceUpdateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return UpdateService(data, c)
-	case "service/spectrum-bind POST":
+	case "service/spectrum-bind":
 		data := ServiceBindSpectrumRequest{}
 		marshalUnmarshal(&datagram, &data)
 		result, err := BindSpectrum(data, c)
@@ -169,7 +169,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 			logger.Log.Error(err)
 		}
 		return result
-	case "service/spectrum-unbind DELETE":
+	case "service/spectrum-unbind":
 		data := ServiceUnbindSpectrumRequest{}
 		marshalUnmarshal(&datagram, &data)
 		result, err := UnbindSpectrum(data, c)
@@ -177,7 +177,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 			logger.Log.Error(err)
 		}
 		return result
-	case "service/spectrum-configmaps GET":
+	case "service/spectrum-configmaps":
 		return SpectrumConfigmaps(c)
 	}
 
@@ -187,7 +187,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 
 func ExecuteStreamRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, *rest.Request) {
 	switch datagram.Pattern {
-	case "service/log-stream/:namespace/:podId/:sinceSeconds SSE":
+	case "service/log-stream":
 		data := ServiceLogStreamRequest{}
 		marshalUnmarshal(&datagram, &data)
 		restReq, err := PodLogStream(data, c)
@@ -204,7 +204,7 @@ func ExecuteStreamRequest(datagram structs.Datagram, c *websocket.Conn) (interfa
 
 func ExecuteBinaryRequestDownload(datagram structs.Datagram, c *websocket.Conn) (interface{}, *bufio.Reader, *int64) {
 	switch datagram.Pattern {
-	case "files/download POST":
+	case "files/download":
 		data := FilesDownloadRequest{}
 		marshalUnmarshal(&datagram, &data)
 		reader, totalSize, err := Download(data, c)

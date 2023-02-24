@@ -227,75 +227,75 @@ func requestCmdFromCluster(pattern string) {
 			payload = nil
 		case "ClusterStatus":
 			payload = nil
-		case "files/list POST":
+		case "files/list":
 			payload = services.FilesListRequestExampleData()
-		case "files/download POST":
+		case "files/download":
 			payload = services.FilesDownloadRequestExampleData()
-		case "files/upload POST":
+		case "files/upload":
 			payload = services.FilesUploadRequestExampleData()
-		case "files/create-folder POST":
+		case "files/create-folder":
 			payload = services.FilesCreateFolderRequestExampleData()
-		case "files/rename POST":
+		case "files/rename":
 			payload = services.FilesRenameRequestExampleData()
-		case "files/chown POST":
+		case "files/chown":
 			payload = services.FilesChownRequestExampleData()
-		case "files/chmod POST":
+		case "files/chmod":
 			payload = services.FilesChmodRequestExampleData()
-		case "files/delete POST":
+		case "files/delete":
 			payload = services.FilesDeleteRequestExampleData()
-		case "namespace/create POST":
+		case "namespace/create":
 			payload = services.NamespaceCreateRequestExample()
-		case "namespace/delete POST":
+		case "namespace/delete":
 			payload = services.NamespaceDeleteRequestExample()
-		case "namespace/shutdown POST":
+		case "namespace/shutdown":
 			payload = services.NamespaceShutdownRequestExample()
-		case "namespace/pod-ids/:namespace GET":
+		case "namespace/pod-ids":
 			payload = services.NamespacePodIdsRequestExample()
-		case "namespace/validate-cluster-pods POST":
+		case "namespace/validate-cluster-pods":
 			payload = services.NamespaceValidateClusterPodsRequestExample()
-		case "namespace/validate-ports POST":
+		case "namespace/validate-ports":
 			payload = services.NamespaceValidatePortsRequestExample()
-		case "namespace/storage-size POST":
+		case "namespace/storage-size":
 			payload = services.NamespaceStorageSizeRequestExample()
 		case "namespace/list-all":
 			payload = nil
 		case "namespace/gather-all-resources":
 			payload = services.NamespaceGatherAllResourcesRequestExample()
-		case "service/create POST":
+		case "service/create":
 			payload = services.ServiceCreateRequestExample()
-		case "service/delete POST":
+		case "service/delete":
 			payload = services.ServiceDeleteRequestExample()
-		case "service/pod-ids/:namespace/:serviceId GET":
+		case "service/pod-ids":
 			payload = services.ServiceGetPodIdsRequestExample()
-		case "service/images/:imageName PATCH":
+		case "service/images":
 			payload = services.ServiceSetImageRequestExample()
-		case "service/log/:namespace/:podId GET":
+		case "service/log":
 			payload = services.ServiceGetLogRequestExample()
-		case "service/log-stream/:namespace/:podId/:sinceSeconds SSE":
+		case "service/log-stream":
 			payload = services.ServiceLogStreamRequestExample()
 			blockConnection = true
-		case "service/resource-status/:resource/:namespace/:name/:statusOnly GET":
+		case "service/resource-status":
 			payload = services.ServiceResourceStatusRequestExample()
-		case "service/restart POST":
+		case "service/restart":
 			payload = services.ServiceRestartRequestExample()
-		case "service/stop POST":
+		case "service/stop":
 			payload = services.ServiceStopRequestExample()
-		case "service/start POST":
+		case "service/start":
 			payload = services.ServiceStartRequestExample()
-		case "service/update-service POST":
+		case "service/update-service":
 			payload = services.ServiceUpdateRequestExample()
-		case "service/spectrum-bind POST":
+		case "service/spectrum-bind":
 			payload = services.ServiceBindSpectrumRequestExample()
-		case "service/spectrum-unbind DELETE":
+		case "service/spectrum-unbind":
 			payload = services.ServiceUnbindSpectrumRequestExample()
-		case "service/spectrum-configmaps GET":
+		case "service/spectrum-configmaps":
 			payload = nil
 		}
 		firstConnection := selectRandomCluster(blockConnection)
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
 		datagram.Send()
 		// send file after pattern
-		if pattern == "files/upload POST" {
+		if pattern == "files/upload" {
 			sendFile()
 		}
 		return

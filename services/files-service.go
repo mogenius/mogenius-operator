@@ -145,7 +145,6 @@ func Delete(r FilesDeleteRequest, c *websocket.Conn) interface{} {
 	return nil
 }
 
-// files/list POST
 type FilesListRequest struct {
 	Folder dtos.PersistentFileRequestDto `json:"folder"`
 }
@@ -156,7 +155,6 @@ func FilesListRequestExampleData() FilesListRequest {
 	}
 }
 
-// files/download POST
 type FilesDownloadRequest struct {
 	File dtos.PersistentFileRequestDto `json:"file"`
 }
@@ -167,7 +165,6 @@ func FilesDownloadRequestExampleData() FilesDownloadRequest {
 	}
 }
 
-// files/upload POST
 type FilesUploadRequest struct {
 	File        dtos.PersistentFileRequestDto `json:"file"`
 	SizeInBytes int64                         `json:"sizeInBytes"`
@@ -180,7 +177,6 @@ func FilesUploadRequestExampleData() FilesUploadRequest {
 	}
 }
 
-// files/create-folder POST
 type FilesCreateFolderRequest struct {
 	Folder dtos.PersistentFileRequestDto `json:"folder"`
 }
@@ -191,7 +187,6 @@ func FilesCreateFolderRequestExampleData() FilesCreateFolderRequest {
 	}
 }
 
-// files/rename POST
 type FilesRenameRequest struct {
 	File    dtos.PersistentFileRequestDto `json:"file"`
 	NewName string                        `json:"newName"`
@@ -204,7 +199,6 @@ func FilesRenameRequestExampleData() FilesRenameRequest {
 	}
 }
 
-// files/chown POST
 type FilesChownRequest struct {
 	File dtos.PersistentFileRequestDto `json:"file"`
 	Uid  string                        `json:"uid"`
@@ -219,7 +213,6 @@ func FilesChownRequestExampleData() FilesChownRequest {
 	}
 }
 
-// files/chmod POST
 type FilesChmodRequest struct {
 	File dtos.PersistentFileRequestDto `json:"file"`
 	Mode string                        `json:"mode"`
@@ -232,7 +225,6 @@ func FilesChmodRequestExampleData() FilesChmodRequest {
 	}
 }
 
-// files/delete POST
 type FilesDeleteRequest struct {
 	File dtos.PersistentFileRequestDto `json:"file"`
 }
