@@ -4,6 +4,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/socketServer"
 	"mogenius-k8s-manager/utils"
@@ -21,12 +22,15 @@ var testServerCmd = &cobra.Command{
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
 		clusterName, _ := cmd.Flags().GetString("clustername")
-		utils.InitConfigYaml(showDebug, &customConfig, &clusterName, false)
+
+		clusterId := mokubernetes.CreateClusterIdIfNotExist()
+
+		utils.InitConfigYaml(showDebug, &customConfig, &clusterName, clusterId, false)
 
 		gin.SetMode(gin.ReleaseMode)
 		router := gin.Default()
 		socketServer.Init(router)
-		logger.Log.Noticef("Started WS server %s:%d 🚀", utils.CONFIG.ApiServer.WebsocketServer, utils.CONFIG.ApiServer.WebsocketPort)
+		logger.Log.Noticef("Started WS server %s:%d 🚀", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.Port)
 
 		go socketServer.ReadInput()
 		router.Run()

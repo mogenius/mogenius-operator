@@ -14,8 +14,10 @@ func Remove() {
 		panic(err)
 	}
 
+	// namespace is not deleted on purpose
 	removeRbac(provider)
 	removeDeployment(provider)
+	// secret is not deleted on purpose
 }
 
 func removeDeployment(kubeProvider *KubeProvider) {

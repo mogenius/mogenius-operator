@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 
+	"github.com/google/uuid"
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,6 +26,7 @@ func Deploy() {
 	applyNamespace(provider)
 	addRbac(provider)
 	addDeployment(provider)
+	CreateClusterIdIfNotExist()
 }
 
 func addRbac(kubeProvider *KubeProvider) error {
@@ -97,6 +99,44 @@ func applyNamespace(kubeProvider *KubeProvider) {
 		logger.Log.Error(err)
 	}
 	logger.Log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
+}
+
+func CreateClusterIdIfNotExist() string {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		logger.Log.Errorf("DeleteNamespace ERROR: %s", err.Error())
+	}
+
+	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(NAMESPACE)
+
+	existingSecret, err := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+	if existingSecret == nil || err != nil {
+		secret := utils.InitSecret()
+		secret.ObjectMeta.Name = NAMESPACE
+		secret.ObjectMeta.Namespace = NAMESPACE
+		delete(secret.StringData, "PRIVATE_KEY") // delete example data
+		secret.StringData["clusterId"] = uuid.New().String()
+
+		logger.Log.Info("Creating mogenius secret ...")
+		result, err := secretClient.Create(context.TODO(), &secret, metav1.CreateOptions{})
+		if err != nil {
+			logger.Log.Error(err)
+			return ""
+		}
+		logger.Log.Info("Created mogenius secret", result.GetObjectMeta().GetName(), ".")
+
+		return secret.StringData["clusterId"]
+	}
+
+	logger.Log.Info("Using existing mogenius secret.")
+	return string(existingSecret.Data["clusterId"])
 }
 
 func addDeployment(kubeProvider *KubeProvider) {

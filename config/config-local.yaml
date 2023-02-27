@@ -1,13 +1,19 @@
 kubernetes:
+  api_key: 94E23575-A689-4F88-8D67-215A274F4E6E
   cluster_name: BenesTestCluster
+  cluster_id:
   run_in_cluster: false
   default_container_registry: mogenius.azurecr.io
 
 api_server:
-  websocket_server: 127.0.0.1
-  websocket_path: /ws
-  websocket_port: 8080
-  api_key: 94E23575-A689-4F88-8D67-215A274F4E6E
+  server: 127.0.0.1
+  path: /ws
+  port: 8080
+
+event_server:
+  server: 127.0.0.1
+  path: /ws
+  port: 8080
 
 misc:
   default_mount_path: /mo-data

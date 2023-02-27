@@ -69,12 +69,13 @@ func StartK8sManager() {
 }
 
 func startClient() {
-	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.WebsocketServer, utils.CONFIG.ApiServer.WebsocketPort)
-	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: "/ws"}
+	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.Port)
+	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.ApiServer.Path}
 
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), http.Header{
-		"x-authorization": []string{utils.CONFIG.ApiServer.ApiKey},
-		"x-clustername":   []string{utils.CONFIG.Kubernetes.ClusterName}})
+		"x-authorization": []string{utils.CONFIG.Kubernetes.ApiKey},
+		"x-cluster-id":    []string{utils.CONFIG.Kubernetes.ClusterId},
+		"x-cluster-name":  []string{utils.CONFIG.Kubernetes.ClusterName}})
 	if err != nil {
 		logger.Log.Errorf("Connection (available: %d/%d) %s ... %s -> %s\n", connectionCounter, maxGoroutines, color.BlueString(connectionUrl.String()), color.RedString("FAIL 💥"), color.HiRedString(err.Error()))
 		return
