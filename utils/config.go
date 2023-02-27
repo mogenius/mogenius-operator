@@ -10,16 +10,22 @@ import (
 
 type Config struct {
 	Kubernetes struct {
+		ApiKey                   string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
 		ClusterName              string `yaml:"cluster_name" env:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
+		ClusterId                string `yaml:"cluster_id" env:"cluster_uuid" env-description:"UUID of the Kubernetes Cluster"`
 		RunInCluster             bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
-		WebsocketServer string `yaml:"websocket_server" env:"websocket_server" env-description:"Server host" env-default:"127.0.0.1"`
-		WebsocketPort   int    `yaml:"websocket_port" env:"websocket_port" env-description:"Server port" env-default:"8080"`
-		WebsocketPath   string `yaml:"websocket_path" env:"websocket_path" env-description:"Server Path" env-default:"/ws"`
-		ApiKey          string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
+		Server string `yaml:"server" env:"api_server" env-description:"Server host" env-default:"127.0.0.1"`
+		Port   int    `yaml:"port" env:"api_port" env-description:"Server port" env-default:"8080"`
+		Path   string `yaml:"path" env:"api_path" env-description:"Server Path" env-default:"/ws"`
 	} `yaml:"api_server"`
+	EventServer struct {
+		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1"`
+		Port   int    `yaml:"port" env:"event_port" env-description:"Server port" env-default:"8080"`
+		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws"`
+	} `yaml:"event_server"`
 	Misc struct {
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		StorageAccount        string   `yaml:"storage_account" env:"storage_account" env-description:"Azure Storage Account"`
@@ -35,7 +41,7 @@ var DefaultConfigLocalFile string
 var DefaultConfigClusterFile string
 var CONFIG Config
 
-func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterName *string, loadClusterConfig bool) {
+func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterName *string, clusterId string, loadClusterConfig bool) {
 	_, configPath := GetDirectories(customConfigName)
 
 	if _, err := os.Stat(configPath); err == nil || os.IsExist(err) {
@@ -59,6 +65,10 @@ func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterNam
 		CONFIG.Kubernetes.ClusterName = *overrideClusterName
 	}
 
+	if clusterId != "" && !CONFIG.Kubernetes.RunInCluster {
+		CONFIG.Kubernetes.ClusterId = clusterId
+	}
+
 	if showDebug {
 		PrintSettings()
 	}
@@ -71,7 +81,7 @@ func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterNam
 			}
 			logger.Log.Fatalf("Environment Variable 'cluster_name' not setup. TERMINATING.")
 		}
-		if CONFIG.ApiServer.ApiKey == "YOUR_API_KEY" || CONFIG.ApiServer.ApiKey == "" {
+		if CONFIG.Kubernetes.ApiKey == "YOUR_API_KEY" || CONFIG.Kubernetes.ApiKey == "" {
 			if !showDebug {
 				PrintSettings()
 			}
@@ -82,13 +92,19 @@ func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterNam
 
 func PrintSettings() {
 	logger.Log.Infof("ClusterName: \t\t\t%s", CONFIG.Kubernetes.ClusterName)
+	logger.Log.Infof("ClusterID: \t\t\t%s", CONFIG.Kubernetes.ClusterId)
 	logger.Log.Infof("RunInCluster: \t\t\t%t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("DefaultContainerRegistry: \t%s", CONFIG.Kubernetes.DefaultContainerRegistry)
 
-	logger.Log.Infof("WebsocketServer:\t\t\t%s", CONFIG.ApiServer.WebsocketServer)
-	logger.Log.Infof("WebsocketPort: \t\t\t%d", CONFIG.ApiServer.WebsocketPort)
-	logger.Log.Infof("WebsocketPath: \t\t\t%s", CONFIG.ApiServer.WebsocketPath)
-	logger.Log.Infof("ApiKey: \t\t\t\t%s", CONFIG.ApiServer.ApiKey)
+	logger.Log.Infof("ApiKey: \t\t\t\t%s", CONFIG.Kubernetes.ApiKey)
+
+	logger.Log.Infof("ApiServer:\t\t\t%s", CONFIG.ApiServer.Server)
+	logger.Log.Infof("ApiPort: \t\t\t%d", CONFIG.ApiServer.Port)
+	logger.Log.Infof("ApiPath: \t\t\t%s", CONFIG.ApiServer.Path)
+
+	logger.Log.Infof("EventServer:\t\t\t%s", CONFIG.EventServer.Server)
+	logger.Log.Infof("EventPort: \t\t\t%d", CONFIG.EventServer.Port)
+	logger.Log.Infof("EventPath: \t\t\t%s", CONFIG.EventServer.Path)
 
 	logger.Log.Infof("Debug: \t\t\t\t%t", CONFIG.Misc.Debug)
 	logger.Log.Infof("StorageAccount: \t\t\t%s", CONFIG.Misc.StorageAccount)

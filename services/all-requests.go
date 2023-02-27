@@ -15,6 +15,7 @@ import (
 var COMMAND_REQUESTS = []string{
 	"K8sNotification",
 	"ClusterStatus",
+	"KubernetesEvent",
 	"files/list",
 	"files/create-folder",
 	"files/rename",

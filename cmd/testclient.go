@@ -4,6 +4,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/socketServer"
 	"mogenius-k8s-manager/utils"
 
@@ -19,7 +20,12 @@ var testClientCmd = &cobra.Command{
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
 		clusterName, _ := cmd.Flags().GetString("clustername")
-		utils.InitConfigYaml(showDebug, &customConfig, &clusterName, false)
+
+		clusterId := mokubernetes.CreateClusterIdIfNotExist()
+
+		utils.InitConfigYaml(showDebug, &customConfig, &clusterName, clusterId, false)
+
+		go mokubernetes.ObserveKubernetesEvents()
 
 		socketServer.StartK8sManager()
 	},

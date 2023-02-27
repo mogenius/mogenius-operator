@@ -113,14 +113,14 @@ func validateHeader(c *gin.Context) string {
 	}
 
 	apiKey := c.Request.Header.Get("x-authorization")
-	if apiKey != utils.CONFIG.ApiServer.ApiKey {
+	if apiKey != utils.CONFIG.Kubernetes.ApiKey {
 		logger.Log.Errorf("Invalid x-authorization: '%s'", apiKey)
 		return ""
 	}
 
-	clusterName := c.Request.Header.Get("x-clustername")
+	clusterName := c.Request.Header.Get("x-cluster-name")
 	if clusterName == "" {
-		logger.Log.Errorf("Invalid x-clustername: '%s'", clusterName)
+		logger.Log.Errorf("Invalid x-cluster-name: '%s'", clusterName)
 		return ""
 	}
 

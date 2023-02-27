@@ -1,13 +1,19 @@
 kubernetes:
+  api_key: YOUR_API_KEY
   cluster_name: YOUR_CLUSTER_NAME
+  cluster_id:
   run_in_cluster: true
   default_container_registry: docker.io
 
 api_server:
-  websocket_server: k8s-api.dev.mogenius.com
-  websocket_path: /ws
-  websocket_port: 1337
-  api_key: YOUR_API_KEY
+  server: k8s-api.dev.mogenius.com
+  path: /ws
+  port: 1337
+
+event_server:
+  server: k8s-api.dev.mogenius.com
+  path: /ws
+  port: 1338
 
 misc:
   default_mount_path: /mo-data
