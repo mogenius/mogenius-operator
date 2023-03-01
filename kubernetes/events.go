@@ -15,6 +15,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const RETRYTIMEOUT time.Duration = 3
+
 func ObserveKubernetesEvents() {
 	for {
 		ctx := context.Background()
@@ -31,12 +33,13 @@ func ObserveKubernetesEvents() {
 			logger.Log.Infof("Connected to EventServer: %s \n", connection.RemoteAddr())
 			watchEvents(connection, ctx)
 		}
-		defer func() {
-			connection.Close()
-			ctx.Done()
-		}()
 
-		time.Sleep(1 * time.Second)
+		// reset everything if connection dies
+		if connection != nil {
+			connection.Close()
+		}
+		ctx.Done()
+		time.Sleep(RETRYTIMEOUT * time.Second)
 	}
 }
 
@@ -70,6 +73,7 @@ func watchEvents(connection *websocket.Conn, ctx context.Context) {
 
 		case <-ctx.Done():
 			logger.Log.Error("Stopped watching events!")
+			return
 		}
 	}
 }
