@@ -108,6 +108,10 @@ func (d *Datagram) DisplaySentSummary() {
 	fmt.Printf("%s%s%s (%s)\n", utils.FillWith("SENT", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), DurationStrSince(d.CreatedAt))
 }
 
+func (d *Datagram) DisplaySentSummaryEvent(msg string) {
+	fmt.Printf("%s%s%s (%s)\n", utils.FillWith("SENT", 23, " "), utils.FillWith(d.Pattern+": "+msg, 60, " "), color.BlueString(d.Id), DurationStrSince(d.CreatedAt))
+}
+
 func (d *Datagram) DisplayStreamSummary() {
 	fmt.Printf("%s%s%s\n", utils.FillWith("STREAMING", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
 }
@@ -118,6 +122,18 @@ func (d *Datagram) Send() error {
 		defer sendMutex.Unlock()
 		err := d.Connection.WriteJSON(d)
 		d.DisplaySentSummary()
+		return err
+	} else {
+		return fmt.Errorf("connection cannot be nil")
+	}
+}
+
+func (d *Datagram) SendEvent(msg string) error {
+	if d.Connection != nil {
+		sendMutex.Lock()
+		defer sendMutex.Unlock()
+		err := d.Connection.WriteJSON(d)
+		d.DisplaySentSummaryEvent(msg)
 		return err
 	} else {
 		return fmt.Errorf("connection cannot be nil")

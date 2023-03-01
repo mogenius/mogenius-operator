@@ -12,14 +12,18 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"reflect"
 	"time"
 
 	"github.com/gorilla/websocket"
+	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
+
+var lastResourceVersion = ""
 
 func ObserveKubernetesEvents() {
 	interrupt := make(chan os.Signal, 1)
@@ -103,7 +107,7 @@ func watchEvents(connection *websocket.Conn, ctx context.Context) {
 		logger.Log.Errorf("CreateDeployment ERROR: %s", err.Error())
 	}
 
-	watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(ctx, v1.ListOptions{Watch: true})
+	watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(ctx, v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
 	defer watcher.Stop()
 
 	if err != nil {
@@ -115,9 +119,12 @@ func watchEvents(connection *websocket.Conn, ctx context.Context) {
 		case event := <-watcher.ResultChan():
 			eventDto := dtos.CreateEvent(string(event.Type), event.Object)
 			datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto, connection)
-			//structs.PrettyPrint(eventDto)
-			datagram.Send()
 
+			if reflect.TypeOf(event.Object).String() == "*v1.Event" {
+				var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
+				lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
+				datagram.SendEvent(eventObj.Message)
+			}
 		case <-ctx.Done():
 			logger.Log.Error("Stopped watching events!")
 			return
