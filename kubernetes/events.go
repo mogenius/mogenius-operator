@@ -55,6 +55,7 @@ func connect() {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
 	} else {
 		logger.Log.Infof("Connected to EventServer: %s \n", connection.RemoteAddr())
+		go observceConnection(connection)
 		watchEvents(connection, ctx)
 	}
 
@@ -65,6 +66,28 @@ func connect() {
 		}
 		ctx.Done()
 	}()
+}
+
+func observceConnection(connection *websocket.Conn) {
+	for {
+		if connection == nil {
+			return
+		}
+
+		msgType, _, err := connection.ReadMessage()
+		if err != nil {
+			logger.Log.Error("websocket read err:", err)
+			connection.Close()
+			return
+		}
+
+		switch msgType {
+		case websocket.CloseMessage:
+			logger.Log.Warning("Received websocket.CloseMessage.")
+			connection.Close()
+			return
+		}
+	}
 }
 
 func watchEvents(connection *websocket.Conn, ctx context.Context) {
