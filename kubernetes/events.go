@@ -55,8 +55,8 @@ func connect() {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
 	} else {
 		logger.Log.Infof("Connected to EventServer: %s \n", connection.RemoteAddr())
-		go observceConnection(connection)
-		watchEvents(connection, ctx)
+		go watchEvents(connection, ctx)
+		observeConnection(connection)
 	}
 
 	defer func() {
@@ -68,7 +68,7 @@ func connect() {
 	}()
 }
 
-func observceConnection(connection *websocket.Conn) {
+func observeConnection(connection *websocket.Conn) {
 	for {
 		if connection == nil {
 			return
