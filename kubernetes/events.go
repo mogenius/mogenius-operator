@@ -3,12 +3,15 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -16,31 +19,52 @@ import (
 )
 
 const RETRYTIMEOUT time.Duration = 3
+const CONCURRENTCONNECTIONS = 1
 
 func ObserveKubernetesEvents() {
-	for {
-		ctx := context.Background()
-		host := fmt.Sprintf("%s:%d", utils.CONFIG.EventServer.Server, utils.CONFIG.EventServer.Port)
-		connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.EventServer.Path}
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
 
-		connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), http.Header{
-			"x-authorization": []string{utils.CONFIG.Kubernetes.ApiKey},
-			"x-cluster-id":    []string{utils.CONFIG.Kubernetes.ClusterId},
-			"x-cluster-name":  []string{utils.CONFIG.Kubernetes.ClusterName}})
-		if err != nil {
-			logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
-		} else {
-			logger.Log.Infof("Connected to EventServer: %s \n", connection.RemoteAddr())
-			watchEvents(connection, ctx)
+	connectionGuard := make(chan struct{}, CONCURRENTCONNECTIONS)
+
+	for {
+		select {
+		case <-interrupt:
+			log.Fatal("CTRL + C pressed. Terminating.")
+		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
+		connectionGuard <- struct{}{} // would block if guard channel is already filled
+		go func() {
+			connect()
+			<-connectionGuard
+		}()
+	}
+}
+
+func connect() {
+	ctx := context.Background()
+	host := fmt.Sprintf("%s:%d", utils.CONFIG.EventServer.Server, utils.CONFIG.EventServer.Port)
+	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.EventServer.Path}
+
+	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), http.Header{
+		"x-authorization": []string{utils.CONFIG.Kubernetes.ApiKey},
+		"x-cluster-id":    []string{utils.CONFIG.Kubernetes.ClusterId},
+		"x-cluster-name":  []string{utils.CONFIG.Kubernetes.ClusterName}})
+	if err != nil {
+		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
+	} else {
+		logger.Log.Infof("Connected to EventServer: %s \n", connection.RemoteAddr())
+		watchEvents(connection, ctx)
+	}
+
+	defer func() {
 		// reset everything if connection dies
 		if connection != nil {
 			connection.Close()
 		}
 		ctx.Done()
-		time.Sleep(RETRYTIMEOUT * time.Second)
-	}
+	}()
 }
 
 func watchEvents(connection *websocket.Conn, ctx context.Context) {
