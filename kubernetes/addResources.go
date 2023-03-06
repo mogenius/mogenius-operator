@@ -106,29 +106,6 @@ func applyNamespace(kubeProvider *KubeProvider) {
 }
 
 func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, error) {
-	apikey := os.Getenv("api_key")
-	if apikey == "" {
-		if runsInCluster {
-			logger.Log.Fatal("Environment Variable 'api_key' is missing.")
-		} else {
-			apikey = utils.CONFIG.Kubernetes.ApiKey
-		}
-	}
-	clusterName := os.Getenv("cluster_name")
-	if clusterName == "" {
-		if runsInCluster {
-			logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
-		} else {
-			clusterName = utils.CONFIG.Kubernetes.ClusterName
-		}
-	}
-
-	clusterSecret := utils.ClusterSecret{
-		ApiKey:      apikey,
-		ClusterId:   uuid.New().String(),
-		ClusterName: clusterName,
-	}
-
 	var kubeProvider *KubeProvider
 	var err error
 	if !utils.CONFIG.Kubernetes.RunInCluster {
@@ -145,6 +122,29 @@ func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, err
 
 	existingSecret, err := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
 	if existingSecret == nil || err != nil {
+		// CREATE NEW SECRET
+		apikey := os.Getenv("api_key")
+		if apikey == "" {
+			if runsInCluster {
+				logger.Log.Fatal("Environment Variable 'api_key' is missing.")
+			} else {
+				apikey = utils.CONFIG.Kubernetes.ApiKey
+			}
+		}
+		clusterName := os.Getenv("cluster_name")
+		if clusterName == "" {
+			if runsInCluster {
+				logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
+			} else {
+				clusterName = utils.CONFIG.Kubernetes.ClusterName
+			}
+		}
+
+		clusterSecret := utils.ClusterSecret{
+			ApiKey:      apikey,
+			ClusterId:   uuid.New().String(),
+			ClusterName: clusterName,
+		}
 		secret := utils.InitSecret()
 		secret.ObjectMeta.Name = NAMESPACE
 		secret.ObjectMeta.Namespace = NAMESPACE
