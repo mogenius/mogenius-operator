@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"os"
 
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -26,7 +27,10 @@ func Deploy() {
 	applyNamespace(provider)
 	addRbac(provider)
 	addDeployment(provider)
-	CreateClusterIdIfNotExist()
+	_, err = CreateClusterSecretIfNotExist(false)
+	if err != nil {
+		logger.Log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
+	}
 }
 
 func addRbac(kubeProvider *KubeProvider) error {
@@ -101,7 +105,7 @@ func applyNamespace(kubeProvider *KubeProvider) {
 	logger.Log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
-func CreateClusterIdIfNotExist() string {
+func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, error) {
 	var kubeProvider *KubeProvider
 	var err error
 	if !utils.CONFIG.Kubernetes.RunInCluster {
@@ -111,32 +115,61 @@ func CreateClusterIdIfNotExist() string {
 	}
 
 	if err != nil {
-		logger.Log.Errorf("DeleteNamespace ERROR: %s", err.Error())
+		logger.Log.Errorf("CreateClusterSecretIfNotExist ERROR: %s", err.Error())
 	}
 
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(NAMESPACE)
 
 	existingSecret, err := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
 	if existingSecret == nil || err != nil {
+		// CREATE NEW SECRET
+		apikey := os.Getenv("api_key")
+		if apikey == "" {
+			if runsInCluster {
+				logger.Log.Fatal("Environment Variable 'api_key' is missing.")
+			} else {
+				apikey = utils.CONFIG.Kubernetes.ApiKey
+			}
+		}
+		clusterName := os.Getenv("cluster_name")
+		if clusterName == "" {
+			if runsInCluster {
+				logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
+			} else {
+				clusterName = utils.CONFIG.Kubernetes.ClusterName
+			}
+		}
+
+		clusterSecret := utils.ClusterSecret{
+			ApiKey:      apikey,
+			ClusterId:   uuid.New().String(),
+			ClusterName: clusterName,
+		}
 		secret := utils.InitSecret()
 		secret.ObjectMeta.Name = NAMESPACE
 		secret.ObjectMeta.Namespace = NAMESPACE
 		delete(secret.StringData, "PRIVATE_KEY") // delete example data
-		secret.StringData["clusterId"] = uuid.New().String()
+		secret.StringData["cluster-id"] = clusterSecret.ClusterId
+		secret.StringData["api-key"] = clusterSecret.ApiKey
+		secret.StringData["cluster-name"] = clusterSecret.ClusterName
 
 		logger.Log.Info("Creating mogenius secret ...")
 		result, err := secretClient.Create(context.TODO(), &secret, metav1.CreateOptions{})
 		if err != nil {
 			logger.Log.Error(err)
-			return ""
+			return clusterSecret, err
 		}
 		logger.Log.Info("Created mogenius secret", result.GetObjectMeta().GetName(), ".")
 
-		return secret.StringData["clusterId"]
+		return clusterSecret, nil
 	}
 
 	logger.Log.Info("Using existing mogenius secret.")
-	return string(existingSecret.Data["clusterId"])
+	return utils.ClusterSecret{
+		ApiKey:      string(existingSecret.Data["api-key"]),
+		ClusterId:   string(existingSecret.Data["cluster-id"]),
+		ClusterName: string(existingSecret.Data["cluster-name"]),
+	}, nil
 }
 
 func addDeployment(kubeProvider *KubeProvider) {

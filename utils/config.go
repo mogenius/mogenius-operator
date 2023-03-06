@@ -8,11 +8,18 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+// This object will initially created in secrets when the software is installed into the cluster for the first time (resource: secret -> mogenius/mogenius)
+type ClusterSecret struct {
+	ApiKey      string
+	ClusterId   string
+	ClusterName string
+}
+
 type Config struct {
 	Kubernetes struct {
 		ApiKey                   string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
 		ClusterName              string `yaml:"cluster_name" env:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
-		ClusterId                string `yaml:"cluster_id" env:"cluster_uuid" env-description:"UUID of the Kubernetes Cluster"`
+		ClusterId                string `yaml:"cluster_id" env:"cluster_id" env-description:"UUID of the Kubernetes Cluster"`
 		RunInCluster             bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
@@ -41,7 +48,7 @@ var DefaultConfigLocalFile string
 var DefaultConfigClusterFile string
 var CONFIG Config
 
-func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterName *string, clusterId string, loadClusterConfig bool) {
+func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret ClusterSecret, loadClusterConfig bool) {
 	_, configPath := GetDirectories(customConfigName)
 
 	if _, err := os.Stat(configPath); err == nil || os.IsExist(err) {
@@ -61,12 +68,14 @@ func InitConfigYaml(showDebug bool, customConfigName *string, overrideClusterNam
 		}
 	}
 
-	if *overrideClusterName != "" {
-		CONFIG.Kubernetes.ClusterName = *overrideClusterName
+	if clusterSecret.ClusterId != "" {
+		CONFIG.Kubernetes.ClusterId = clusterSecret.ClusterId
 	}
-
-	if clusterId != "" && !CONFIG.Kubernetes.RunInCluster {
-		CONFIG.Kubernetes.ClusterId = clusterId
+	if clusterSecret.ApiKey != "" {
+		CONFIG.Kubernetes.ApiKey = clusterSecret.ApiKey
+	}
+	if clusterSecret.ClusterName != "" {
+		CONFIG.Kubernetes.ClusterName = clusterSecret.ClusterName
 	}
 
 	if showDebug {
@@ -99,8 +108,8 @@ func PrintSettings() {
 	logger.Log.Infof("ApiKey: \t\t\t\t%s", CONFIG.Kubernetes.ApiKey)
 
 	logger.Log.Infof("ApiServer:\t\t\t%s", CONFIG.ApiServer.Server)
-	logger.Log.Infof("ApiPort: \t\t\t%d", CONFIG.ApiServer.Port)
-	logger.Log.Infof("ApiPath: \t\t\t%s", CONFIG.ApiServer.Path)
+	logger.Log.Infof("ApiPort: \t\t\t\t%d", CONFIG.ApiServer.Port)
+	logger.Log.Infof("ApiPath: \t\t\t\t%s", CONFIG.ApiServer.Path)
 
 	logger.Log.Infof("EventServer:\t\t\t%s", CONFIG.EventServer.Server)
 	logger.Log.Infof("EventPort: \t\t\t%d", CONFIG.EventServer.Port)
