@@ -70,7 +70,7 @@ stages:
         BUILD_TIMESTAMP=$(date)
         VERSION=$(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
         echo $(CR_PAT) | docker login ghcr.io -u beneiltis --password-stdin
-        docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile -t ghcr.io/mogenius/mogenius-k8s-manager:$version -t ghcr.io/mogenius/mogenius-k8s-manager:latest .
+        docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile -t ghcr.io/mogenius/mogenius-k8s-manager:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager:latest .
         docker image push ghcr.io/mogenius/mogenius-k8s-manager:$VERSION; docker image push ghcr.io/mogenius/mogenius-k8s-manager:latest
       timeoutInMinutes: 10
       name: dockerBuildPush
