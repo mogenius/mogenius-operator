@@ -67,7 +67,7 @@ stages:
         GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
         COMMIT_HASH=$(git rev-parse --short HEAD)
         GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-        BUILD_TIMESTAMP=$(date -u +"%FT%T.000Z")
+        BUILD_TIMESTAMP=$(date -Iseconds)
         VERSION=$(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
         echo $(CR_PAT) | docker login ghcr.io -u beneiltis --password-stdin
         docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile -t ghcr.io/mogenius/mogenius-k8s-manager:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager:latest .
