@@ -108,10 +108,10 @@ func applyNamespace(kubeProvider *KubeProvider) {
 func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, error) {
 	var kubeProvider *KubeProvider
 	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
+	if runsInCluster {
 		kubeProvider, err = NewKubeProviderInCluster()
+	} else {
+		kubeProvider, err = NewKubeProviderLocal()
 	}
 
 	if err != nil {
