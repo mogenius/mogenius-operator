@@ -101,34 +101,34 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 }
 
 func PrintSettings() {
-	logger.Log.Infof("ClusterName: \t\t\t%s", CONFIG.Kubernetes.ClusterName)
-	logger.Log.Infof("ClusterID: \t\t\t%s", CONFIG.Kubernetes.ClusterId)
-	logger.Log.Infof("RunInCluster: \t\t\t%t", CONFIG.Kubernetes.RunInCluster)
-	logger.Log.Infof("DefaultContainerRegistry: \t%s", CONFIG.Kubernetes.DefaultContainerRegistry)
+	logger.Log.Infof("ClusterName:              %s", CONFIG.Kubernetes.ClusterName)
+	logger.Log.Infof("ClusterID:                %s", CONFIG.Kubernetes.ClusterId)
+	logger.Log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
+	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
 
-	logger.Log.Infof("ApiKey: \t\t\t\t%s", CONFIG.Kubernetes.ApiKey)
+	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 
-	logger.Log.Infof("ApiServer:\t\t\t%s", CONFIG.ApiServer.Server)
-	logger.Log.Infof("ApiPort: \t\t\t\t%d", CONFIG.ApiServer.Port)
-	logger.Log.Infof("ApiPath: \t\t\t\t%s", CONFIG.ApiServer.Path)
+	logger.Log.Infof("ApiServer:                %s", CONFIG.ApiServer.Server)
+	logger.Log.Infof("ApiPort:                  %d", CONFIG.ApiServer.Port)
+	logger.Log.Infof("ApiPath:                  %s", CONFIG.ApiServer.Path)
 
-	logger.Log.Infof("EventServer:\t\t\t%s", CONFIG.EventServer.Server)
-	logger.Log.Infof("EventPort: \t\t\t%d", CONFIG.EventServer.Port)
-	logger.Log.Infof("EventPath: \t\t\t%s", CONFIG.EventServer.Path)
+	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
+	logger.Log.Infof("EventPort:                %d", CONFIG.EventServer.Port)
+	logger.Log.Infof("EventPath:                %s", CONFIG.EventServer.Path)
 
-	logger.Log.Infof("Debug: \t\t\t\t%t", CONFIG.Misc.Debug)
-	logger.Log.Infof("StorageAccount: \t\t\t%s", CONFIG.Misc.StorageAccount)
-	logger.Log.Infof("DefaultMountPath: \t\t%s", CONFIG.Misc.DefaultMountPath)
-	logger.Log.Infof("ConcurrentConnections: \t\t%d", CONFIG.Misc.ConcurrentConnections)
-	logger.Log.Infof("IgnoreNamespaces: \t\t%s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
-	logger.Log.Infof("CheckForUpdates: \t\t\t%d", CONFIG.Misc.CheckForUpdates)
-	logger.Log.Infof("HelmIndex: \t\t\t%s", CONFIG.Misc.HelmIndex)
+	logger.Log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
+	logger.Log.Infof("StorageAccount:           %s", CONFIG.Misc.StorageAccount)
+	logger.Log.Infof("DefaultMountPath:         %s", CONFIG.Misc.DefaultMountPath)
+	logger.Log.Infof("ConcurrentConnections:    %d", CONFIG.Misc.ConcurrentConnections)
+	logger.Log.Infof("IgnoreNamespaces:         %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
+	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
+	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
 }
 
 func PrintVersionInfo() {
 	logger.Log.Infof("Version:     %s", version.Ver)
 	logger.Log.Infof("Branch:      %s", version.Branch)
-	logger.Log.Infof("Hash:        %t", version.GitCommitHash)
+	logger.Log.Infof("Hash:        %s", version.GitCommitHash)
 	logger.Log.Infof("BuildAt:     %s", version.BuildTimestamp)
 }
 
