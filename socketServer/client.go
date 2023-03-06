@@ -43,7 +43,7 @@ func StartK8sManager(runsInCluster bool) {
 	signal.Notify(interrupt, os.Interrupt)
 
 	if runsInCluster {
-		version.PrintVersionInfo()
+		utils.PrintVersionInfo()
 		utils.PrintSettings()
 	} else {
 		fmt.Println(utils.FillWith("", 60, "#"))

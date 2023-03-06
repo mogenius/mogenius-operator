@@ -1,6 +1,6 @@
 package version
 
-import "mogenius-k8s-manager/logger"
+// IMPORTANT! DO NOT MODIFY THIS FILE BECAUSE SUBSCRIPTS ARE GOING TO FAIL IF YOU DO SO!
 
 var (
 	Ver            = "1.0.5"
@@ -8,10 +8,3 @@ var (
 	GitCommitHash  = "" // ldflags
 	BuildTimestamp = "" // ldflags
 )
-
-func PrintVersionInfo() {
-	logger.Log.Infof("Ver:         %s", Ver)
-	logger.Log.Infof("Branch:      %s", Branch)
-	logger.Log.Infof("Hash:        %t", GitCommitHash)
-	logger.Log.Infof("BuildAt:     %s", BuildTimestamp)
-}

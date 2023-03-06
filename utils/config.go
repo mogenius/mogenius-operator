@@ -2,6 +2,7 @@ package utils
 
 import (
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/version"
 	"os"
 	"strings"
 
@@ -122,6 +123,13 @@ func PrintSettings() {
 	logger.Log.Infof("IgnoreNamespaces: \t\t%s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
 	logger.Log.Infof("CheckForUpdates: \t\t\t%d", CONFIG.Misc.CheckForUpdates)
 	logger.Log.Infof("HelmIndex: \t\t\t%s", CONFIG.Misc.HelmIndex)
+}
+
+func PrintVersionInfo() {
+	logger.Log.Infof("Version:     %s", version.Ver)
+	logger.Log.Infof("Branch:      %s", version.Branch)
+	logger.Log.Infof("Hash:        %t", version.GitCommitHash)
+	logger.Log.Infof("BuildAt:     %s", version.BuildTimestamp)
 }
 
 func GetDirectories(customConfigName *string) (configDir string, configPath string) {
