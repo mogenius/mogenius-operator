@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"os"
-
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -11,13 +9,7 @@ import (
 )
 
 func InitPersistentVolume() core.PersistentVolume {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/volume-nfs-pv.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/volume-nfs-pv.yaml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -33,13 +25,7 @@ func InitPersistentVolume() core.PersistentVolume {
 }
 
 func InitPersistentVolumeClaim() core.PersistentVolumeClaim {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/volumeclaim-cephfs.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/volumeclaim-cephfs.yaml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -55,13 +41,7 @@ func InitPersistentVolumeClaim() core.PersistentVolumeClaim {
 }
 
 func InitContainerSecret() core.Secret {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/container-secret.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/container-secret.yaml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -77,13 +57,7 @@ func InitContainerSecret() core.Secret {
 }
 
 func InitSecret() core.Secret {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/secret.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/secret.yaml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -99,13 +73,7 @@ func InitSecret() core.Secret {
 }
 
 func InitConfigMap() core.ConfigMap {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/configmap.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/configmap.yaml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -121,13 +89,7 @@ func InitConfigMap() core.ConfigMap {
 }
 
 func InitDeployment() v1.Deployment {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/deployment.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/deployment.yaml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -143,13 +105,7 @@ func InitDeployment() v1.Deployment {
 }
 
 func InitIngress() netv1.Ingress {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/ingress.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/ingress.yaml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -165,13 +121,7 @@ func InitIngress() netv1.Ingress {
 }
 
 func InitNetPolNamespace() netv1.NetworkPolicy {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/network-policy-namespace.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/network-policy-namespace.yaml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -187,13 +137,7 @@ func InitNetPolNamespace() netv1.NetworkPolicy {
 }
 
 func InitNetPolService() netv1.NetworkPolicy {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/network-policy-service.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/network-policy-service.yaml")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -209,13 +153,7 @@ func InitNetPolService() netv1.NetworkPolicy {
 }
 
 func InitService() core.Service {
-	pwd, err := os.Getwd()
-	if err != nil {
-		panic(err.Error())
-	}
-	path := pwd + "/yaml-templates/service.yaml"
-
-	yaml, err := os.ReadFile(path)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/service.yaml")
 	if err != nil {
 		panic(err.Error())
 	}

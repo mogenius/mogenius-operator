@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bufio"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 )
+
+var YamlTemplatesFolder embed.FS
 
 func Pointer[K any](val K) *K {
 	return &val
