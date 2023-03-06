@@ -64,9 +64,10 @@ stages:
         #!/bin/bash
         set -x
         ls -lisa
+        version=$(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
         echo $(CR_PAT) | docker login ghcr.io -u beneiltis --password-stdin
-        docker build -f Dockerfile -t ghcr.io/mogenius/mogenius-k8s-manager:$(tag) -t ghcr.io/mogenius/mogenius-k8s-manager:latest .
-        docker image push ghcr.io/mogenius/mogenius-k8s-manager:$(tag);docker image push $(dockerRegistry)/$(imageName):latest
+        docker build -f Dockerfile -t ghcr.io/mogenius/mogenius-k8s-manager:$version -t ghcr.io/mogenius/mogenius-k8s-manager:latest .
+        docker image push ghcr.io/mogenius/mogenius-k8s-manager:$version; docker image push ghcr.io/mogenius/mogenius-k8s-manager:latest
       timeoutInMinutes: 10
       name: dockerBuildPush
       failOnStderr: true
