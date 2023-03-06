@@ -70,4 +70,4 @@ stages:
         docker image push ghcr.io/mogenius/mogenius-k8s-manager:$version; docker image push ghcr.io/mogenius/mogenius-k8s-manager:latest
       timeoutInMinutes: 10
       name: dockerBuildPush
-      failOnStderr: true
+      failOnStderr: false
