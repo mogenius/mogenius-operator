@@ -27,7 +27,7 @@ func Deploy() {
 	applyNamespace(provider)
 	addRbac(provider)
 	addDeployment(provider)
-	_, err = CreateClusterSecretIfNotExist()
+	_, err = CreateClusterSecretIfNotExist(false)
 	if err != nil {
 		logger.Log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
 	}
@@ -105,14 +105,22 @@ func applyNamespace(kubeProvider *KubeProvider) {
 	logger.Log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
-func CreateClusterSecretIfNotExist() (utils.ClusterSecret, error) {
+func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, error) {
 	apikey := os.Getenv("api_key")
 	if apikey == "" {
-		logger.Log.Fatal("Environment Variable 'api_key' is missing.")
+		if runsInCluster {
+			logger.Log.Fatal("Environment Variable 'api_key' is missing.")
+		} else {
+			apikey = utils.CONFIG.Kubernetes.ApiKey
+		}
 	}
 	clusterName := os.Getenv("cluster_name")
 	if clusterName == "" {
-		logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
+		if runsInCluster {
+			logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
+		} else {
+			clusterName = utils.CONFIG.Kubernetes.ClusterName
+		}
 	}
 
 	clusterSecret := utils.ClusterSecret{
@@ -160,7 +168,7 @@ func CreateClusterSecretIfNotExist() (utils.ClusterSecret, error) {
 	return utils.ClusterSecret{
 		ApiKey:      string(existingSecret.Data["api-key"]),
 		ClusterId:   string(existingSecret.Data["cluster-id"]),
-		ClusterName: string(existingSecret.Data["clusterId"]),
+		ClusterName: string(existingSecret.Data["cluster-name"]),
 	}, nil
 }
 

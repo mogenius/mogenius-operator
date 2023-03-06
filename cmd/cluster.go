@@ -23,7 +23,7 @@ var clusterCmd = &cobra.Command{
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
 
-		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist()
+		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(true)
 		if err != nil {
 			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
