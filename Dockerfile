@@ -1,5 +1,7 @@
 FROM golang:1.19-alpine AS builder
 
+LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit-log here.
+
 ENV GOOS=linux
 
 RUN apk add --no-cache \
