@@ -60,12 +60,13 @@ stages:
     pool:
       vmImage: $(vmImageName)
     steps:
-    - task: Docker@2
-      displayName: Build and push an image to container registry
-      inputs:
-        command: buildAndPush
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(tag)
+    - bash: |
+        #!/bin/bash
+        set -x
+        ls -lisa
+        echo $(CR_PAT) | docker login ghcr.io -u beneiltis --password-stdin
+        docker build -f Dockerfile -t ghcr.io/mogenius/mogenius-k8s-manager:$(tag) -t ghcr.io/mogenius/mogenius-k8s-manager:latest .
+        docker image push ghcr.io/mogenius/mogenius-k8s-manager:$(tag);docker image push $(dockerRegistry)/$(imageName):latest
+      timeoutInMinutes: 10
+      name: dockerBuildPush
+      failOnStderr: true
