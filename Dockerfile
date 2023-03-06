@@ -21,13 +21,6 @@ ARG COMMIT_HASH=NOT_SET
 ARG GIT_BRANCH=NOT_SET
 ARG BUILD_TIMESTAMP=NOT_SET
 ARG NEXT_VERSION=NOT_SET
-ARG GITUSER
-ARG GITPAT
-
-RUN go env -w GOPRIVATE=github.com/mogenius
-RUN apk add git
-RUN git config --global url."https://$GITUSER:$GITPAT@github.com".insteadOf "https://github.com"
-
 
 WORKDIR /app
 

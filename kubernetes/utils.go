@@ -28,7 +28,7 @@ var (
 	SERVICEACCOUNTNAME     = "mogenius-k8s-manager-service-account-app"
 	CLUSTERROLENAME        = "mogenius-k8s-manager-cluster-role-app"
 	CLUSTERROLEBINDINGNAME = "mogenius-k8s-manager-cluster-role-binding-app"
-	RBACRESOURCES          = []string{"pods", "services", "endpoints"}
+	RBACRESOURCES          = []string{"pods", "services", "endpoints", "secrets"}
 )
 
 type KubeProviderMetrics struct {

@@ -38,13 +38,18 @@ var connectionCounter int = 0
 var maxGoroutines = 0
 var connectionGuard chan struct{}
 
-func StartK8sManager() {
+func StartK8sManager(runsInCluster bool) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	fmt.Println(utils.FillWith("", 60, "#"))
-	fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", utils.FillWith(mokubernetes.CurrentContextName(), 31, " "))
-	fmt.Println(utils.FillWith("", 60, "#"))
+	if runsInCluster {
+		version.PrintVersionInfo()
+		utils.PrintSettings()
+	} else {
+		fmt.Println(utils.FillWith("", 60, "#"))
+		fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", utils.FillWith(mokubernetes.CurrentContextName(), 31, " "))
+		fmt.Println(utils.FillWith("", 60, "#"))
+	}
 
 	updateCheck()
 

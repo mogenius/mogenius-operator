@@ -30,7 +30,7 @@ var clusterCmd = &cobra.Command{
 
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, true)
 
-		socketServer.StartK8sManager()
+		socketServer.StartK8sManager(true)
 	},
 }
 

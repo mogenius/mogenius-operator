@@ -30,7 +30,7 @@ var testClientCmd = &cobra.Command{
 
 		go mokubernetes.ObserveKubernetesEvents()
 
-		socketServer.StartK8sManager()
+		socketServer.StartK8sManager(false)
 	},
 }
 

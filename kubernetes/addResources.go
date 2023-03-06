@@ -47,7 +47,7 @@ func addRbac(kubeProvider *KubeProvider) error {
 			{
 				APIGroups: []string{"", "extensions", "apps"},
 				Resources: RBACRESOURCES,
-				Verbs:     []string{"list", "get", "watch"},
+				Verbs:     []string{"list", "get", "watch", "create", "update"},
 			},
 		},
 	}
