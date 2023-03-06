@@ -330,7 +330,7 @@ func updateCheck() {
 		logger.Log.Errorf("HelmIndex does not contain the field 'mo-k8s-manager'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
-	if len(mok8sManager) > 0 {
+	if len(mok8sManager) <= 0 {
 		fmt.Printf("\n")
 		logger.Log.Errorf("Field 'mo-k8s-manager' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
@@ -350,7 +350,7 @@ func updateCheck() {
 		fmt.Printf("####################################################################\n")
 		notUpToDateAction(helmData)
 	} else {
-		fmt.Printf(" Up-To-Date: 👍\n")
+		fmt.Printf(" Up-To-Date: 👍 (Your Ver: %s, Available Ver: %s)\n", version.Ver, helmData.Entries["mo-k8s-manager"][0].Version)
 	}
 
 	versionTicker()

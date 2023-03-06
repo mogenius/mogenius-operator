@@ -21,11 +21,13 @@ var testServerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
-		clusterName, _ := cmd.Flags().GetString("clustername")
 
-		clusterId := mokubernetes.CreateClusterIdIfNotExist()
+		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist()
+		if err != nil {
+			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
+		}
 
-		utils.InitConfigYaml(showDebug, &customConfig, &clusterName, clusterId, false)
+		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
 
 		gin.SetMode(gin.ReleaseMode)
 		router := gin.Default()
@@ -52,5 +54,4 @@ func init() {
 
 	testServerCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
 	testServerCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
-	testServerCmd.Flags().StringP("clustername", "o", "", "Override clustername.")
 }

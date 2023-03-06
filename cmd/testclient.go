@@ -5,6 +5,7 @@ package cmd
 
 import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/socketServer"
 	"mogenius-k8s-manager/utils"
 
@@ -19,11 +20,13 @@ var testClientCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
-		clusterName, _ := cmd.Flags().GetString("clustername")
 
-		clusterId := mokubernetes.CreateClusterIdIfNotExist()
+		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist()
+		if err != nil {
+			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
+		}
 
-		utils.InitConfigYaml(showDebug, &customConfig, &clusterName, clusterId, false)
+		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
 
 		go mokubernetes.ObserveKubernetesEvents()
 
@@ -46,5 +49,4 @@ func init() {
 
 	testClientCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
 	testClientCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
-	testClientCmd.Flags().StringP("clustername", "o", "", "Override clustername.")
 }
