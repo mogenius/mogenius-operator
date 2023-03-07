@@ -4,6 +4,7 @@ kubernetes:
   cluster_id:
   run_in_cluster: true
   default_container_registry: docker.io
+  check_for_node_stats: 1800
 
 api_server:
   server: k8s-api.dev.mogenius.com

@@ -23,6 +23,7 @@ type Config struct {
 		ClusterId                string `yaml:"cluster_id" env:"cluster_id" env-description:"UUID of the Kubernetes Cluster"`
 		RunInCluster             bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
+		CheckForNodeStats        int    `yaml:"check_for_node_stats" env:"check_for_node_stats" env-description:"Time interval between update checks." env-default:"1800"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
 		Server string `yaml:"server" env:"api_server" env-description:"Server host" env-default:"127.0.0.1"`
@@ -106,6 +107,7 @@ func PrintSettings() {
 	logger.Log.Infof("ClusterID:                %s", CONFIG.Kubernetes.ClusterId)
 	logger.Log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
+	logger.Log.Infof("CheckForNodeStats:        %d", CONFIG.Kubernetes.CheckForNodeStats)
 
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 

@@ -4,6 +4,7 @@ kubernetes:
   cluster_id:
   run_in_cluster: false
   default_container_registry: mogenius.azurecr.io
+  check_for_node_stats: 1800
 
 api_server:
   server: 127.0.0.1
