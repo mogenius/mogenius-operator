@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -21,7 +22,7 @@ import (
 )
 
 var (
-	NAMESPACE       = "mogenius"
+	NAMESPACE       = os.Getenv("OWN_NAMESPACE")
 	DEPLOYMENTNAME  = "mogenius-k8s-manager"
 	DEPLOYMENTIMAGE = "ghcr.io/mogenius/mogenius-k8s-manager:" + version.Ver
 
@@ -39,6 +40,13 @@ type KubeProviderMetrics struct {
 type KubeProvider struct {
 	ClientSet    *kubernetes.Clientset
 	ClientConfig rest.Config
+}
+
+func init() {
+	// SETUP DOWNFAULT VALUE
+	if NAMESPACE == "" {
+		NAMESPACE = "mogenius"
+	}
 }
 
 func NewKubeProviderLocal() (*KubeProvider, error) {
