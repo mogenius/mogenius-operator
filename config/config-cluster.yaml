@@ -1,6 +1,6 @@
 kubernetes:
   api_key: YOUR_API_KEY
-  cluster_name: YOUR_CLUSTER_NAME
+  cluster_name: your-cluster-name
   cluster_id:
   run_in_cluster: true
   default_container_registry: docker.io

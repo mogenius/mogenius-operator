@@ -85,7 +85,7 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 
 	// CHECKS FOR CLUSTER
 	if loadClusterConfig {
-		if CONFIG.Kubernetes.ClusterName == "YOUR_CLUSTER_NAME" || CONFIG.Kubernetes.ClusterName == "" {
+		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
 			if !showDebug {
 				PrintSettings()
 			}
