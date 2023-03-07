@@ -329,15 +329,15 @@ func updateCheck() {
 		logger.Log.Errorf("HelmIndex Entries length <= 0. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
-	mok8sManager, doesExist := helmData.Entries["mo-k8s-manager"]
+	mok8sManager, doesExist := helmData.Entries["mogenius-k8s-manager"]
 	if !doesExist {
 		fmt.Printf("\n")
-		logger.Log.Errorf("HelmIndex does not contain the field 'mo-k8s-manager'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		logger.Log.Errorf("HelmIndex does not contain the field 'mogenius-k8s-manager'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
 	if len(mok8sManager) <= 0 {
 		fmt.Printf("\n")
-		logger.Log.Errorf("Field 'mo-k8s-manager' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		logger.Log.Errorf("Field 'mogenius-k8s-manager' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
 	if version.Ver != mok8sManager[0].Version {
@@ -347,7 +347,7 @@ func updateCheck() {
 		fmt.Printf("######                  %s                ######\n", color.BlueString("NEW VERSION AVAILABLE!"))
 		fmt.Printf("######               %s              ######\n", color.YellowString(" UPDATE AS FAST AS POSSIBLE"))
 		fmt.Printf("######                                                        ######\n")
-		fmt.Printf("######                    Available: %s                    ######\n", color.GreenString(helmData.Entries["mo-k8s-manager"][0].Version))
+		fmt.Printf("######                    Available: %s                    ######\n", color.GreenString(helmData.Entries["mogenius-k8s-manager"][0].Version))
 		fmt.Printf("######                    In-Use:    %s                    ######\n", color.RedString(version.Ver))
 		fmt.Printf("######                                                        ######\n")
 		fmt.Printf("######   %s   ######\n", color.RedString("Not updating might result in service interruption."))
@@ -355,7 +355,7 @@ func updateCheck() {
 		fmt.Printf("####################################################################\n")
 		notUpToDateAction(helmData)
 	} else {
-		fmt.Printf(" Up-To-Date: 👍 (Your Ver: %s, Available Ver: %s)\n", version.Ver, helmData.Entries["mo-k8s-manager"][0].Version)
+		fmt.Printf(" Up-To-Date: 👍 (Your Ver: %s, Available Ver: %s)\n", version.Ver, helmData.Entries["mogenius-k8s-manager"][0].Version)
 	}
 
 	versionTicker()
@@ -384,7 +384,7 @@ func notUpToDateAction(helmData *structs.HelmData) {
 		return
 	}
 
-	remoteVer, err := semver.NewVersion(helmData.Entries["mo-k8s-manager"][0].Version)
+	remoteVer, err := semver.NewVersion(helmData.Entries["mogenius-k8s-manager"][0].Version)
 	if err != nil {
 		logger.Log.Error("Error parsing remote version: %s", err.Error())
 		return
