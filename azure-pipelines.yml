@@ -7,8 +7,10 @@ resources:
 pool: mo-cluster-agent-pool
 
 variables:
+  DOCKER_HOST: 'unix:///run/user/1000/docker.sock'
+  DOCKER_BUILDKIT: 1
+
   packageName: 'mogenius-k8s-manager'
-  #vmImageName: 'ubuntu-latest'
 
 stages:
 - stage: Build
