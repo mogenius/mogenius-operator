@@ -13,11 +13,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const APP_NAME = "k8s"
+
 var sendMutex sync.Mutex
 
 type Datagram struct {
 	Id         string          `json:"id" validate:"required"`
 	Pattern    string          `json:"pattern" validate:"required"`
+	App        string          `json:"app" validate:"required"`
 	Payload    interface{}     `json:"payload,omitempty"`
 	Err        string          `json:"err,omitempty"`
 	CreatedAt  time.Time       `json:"-"`
@@ -28,6 +31,7 @@ func CreateDatagramRequest(request Datagram, data interface{}, c *websocket.Conn
 	datagram := Datagram{
 		Id:         request.Id,
 		Pattern:    request.Pattern,
+		App:        APP_NAME,
 		Payload:    data,
 		CreatedAt:  request.CreatedAt,
 		Connection: c,
@@ -43,6 +47,7 @@ func CreateDatagramFromNotification(data *dtos.K8sNotificationDto, c *websocket.
 	datagram := Datagram{
 		Id:         uuid.New().String(),
 		Pattern:    "K8sNotificationDto",
+		App:        APP_NAME,
 		Payload:    data,
 		CreatedAt:  created,
 		Connection: c,
@@ -54,6 +59,7 @@ func CreateDatagramFrom(pattern string, data interface{}, c *websocket.Conn) Dat
 	datagram := Datagram{
 		Id:         uuid.New().String(),
 		Pattern:    pattern,
+		App:        APP_NAME,
 		Payload:    data,
 		CreatedAt:  time.Now(),
 		Connection: c,
@@ -65,6 +71,7 @@ func CreateDatagram(pattern string, c *websocket.Conn) Datagram {
 	datagram := Datagram{
 		Id:         uuid.New().String(),
 		Pattern:    pattern,
+		App:        APP_NAME,
 		CreatedAt:  time.Now(),
 		Connection: c,
 	}
@@ -75,6 +82,7 @@ func CreateEmptyDatagram() Datagram {
 	datagram := Datagram{
 		Id:         uuid.New().String(),
 		Pattern:    "",
+		App:        APP_NAME,
 		CreatedAt:  time.Now(),
 		Connection: nil,
 	}
