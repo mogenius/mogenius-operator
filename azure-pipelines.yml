@@ -4,9 +4,11 @@ trigger:
 resources:
 - repo: self
 
+pool: mo-cluster-agent-pool
+
 variables:
   packageName: 'mogenius-k8s-manager'
-  vmImageName: 'ubuntu-latest'
+  #vmImageName: 'ubuntu-latest'
 
 stages:
 - stage: Build
@@ -51,8 +53,6 @@ stages:
         publishLocation: 'Container'
   - job: Build
     displayName: Build
-    pool:
-      vmImage: $(vmImageName)
     steps:
     - bash: |
         #!/bin/bash
