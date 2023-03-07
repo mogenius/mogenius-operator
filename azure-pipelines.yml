@@ -5,13 +5,7 @@ resources:
 - repo: self
 
 variables:
-  # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: 'c33e89d2-8471-4f8a-9ea6-068fc3bd2f4b'
-  imageRepository: 'mogeniusk8smanager'
-  containerRegistry: 'mogenius.azurecr.io'
-  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
-  tag: '$(Build.BuildId)'
-
+  packageName: 'mogenius-k8s-manager'
   vmImageName: 'ubuntu-latest'
 
 stages:
@@ -70,8 +64,8 @@ stages:
         BUILD_TIMESTAMP=$(date -Iseconds)
         VERSION=$(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
         echo $(CR_PAT) | docker login ghcr.io -u beneiltis --password-stdin
-        docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile -t ghcr.io/mogenius/mogenius-k8s-manager:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager:latest .
-        docker image push ghcr.io/mogenius/mogenius-k8s-manager:$VERSION; docker image push ghcr.io/mogenius/mogenius-k8s-manager:latest
+        docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile -t ghcr.io/mogenius/$(packageName):$VERSION -t ghcr.io/mogenius/$(packageName):latest .
+        docker image push ghcr.io/mogenius/$(packageName):$VERSION; docker image push ghcr.io/mogenius/$(packageName):latest
       timeoutInMinutes: 10
       name: dockerBuildPush
       failOnStderr: false
