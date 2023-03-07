@@ -80,6 +80,7 @@ func startClient() {
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), http.Header{
 		"x-authorization": []string{utils.CONFIG.Kubernetes.ApiKey},
 		"x-cluster-id":    []string{utils.CONFIG.Kubernetes.ClusterId},
+		"x-app":           []string{structs.APP_NAME},
 		"x-cluster-name":  []string{utils.CONFIG.Kubernetes.ClusterName}})
 	if err != nil {
 		logger.Log.Errorf("Connection (available: %d/%d) %s ... %s -> %s\n", connectionCounter, maxGoroutines, color.BlueString(connectionUrl.String()), color.RedString("FAIL 💥"), color.HiRedString(err.Error()))
