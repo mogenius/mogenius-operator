@@ -69,13 +69,14 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 		}
 	}
 
-	if clusterSecret.ClusterId != "" {
+	// LOCAL ALWAYS WINS
+	if clusterSecret.ClusterId != "" && CONFIG.Kubernetes.RunInCluster {
 		CONFIG.Kubernetes.ClusterId = clusterSecret.ClusterId
 	}
-	if clusterSecret.ApiKey != "" {
+	if clusterSecret.ApiKey != "" && CONFIG.Kubernetes.RunInCluster {
 		CONFIG.Kubernetes.ApiKey = clusterSecret.ApiKey
 	}
-	if clusterSecret.ClusterName != "" {
+	if clusterSecret.ClusterName != "" && CONFIG.Kubernetes.RunInCluster {
 		CONFIG.Kubernetes.ClusterName = clusterSecret.ClusterName
 	}
 
