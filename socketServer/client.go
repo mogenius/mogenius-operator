@@ -52,6 +52,7 @@ func StartK8sManager(runsInCluster bool) {
 	}
 
 	updateCheck()
+	versionTicker()
 
 	maxGoroutines = utils.CONFIG.Misc.ConcurrentConnections
 	connectionGuard = make(chan struct{}, maxGoroutines)
@@ -356,10 +357,8 @@ func updateCheck() {
 		fmt.Printf("####################################################################\n")
 		notUpToDateAction(helmData)
 	} else {
-		fmt.Printf(" Up-To-Date: 👍 (Your Ver: %s, Available Ver: %s)\n", version.Ver, helmData.Entries["mogenius-k8s-manager"][0].Version)
+		fmt.Printf(" Up-To-Date: 👍 (Your Ver: %s)\n", version.Ver)
 	}
-
-	versionTicker()
 }
 
 func getVersionData() (*structs.HelmData, error) {
