@@ -214,6 +214,28 @@ func listAllPods() []v1.Pod {
 	return pods.Items
 }
 
+// func listAllNodes() []v1.Node {
+// 	var result []v1.Pod
+// 	var kubeProvider *KubeProvider
+// 	var err error
+// 	if !utils.CONFIG.Kubernetes.RunInCluster {
+// 		kubeProvider, err = NewKubeProviderLocal()
+// 	} else {
+// 		kubeProvider, err = NewKubeProviderInCluster()
+// 	}
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	pods, err := kubeProvider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
+
+// 	if err != nil {
+// 		logger.Log.Error("Error listAllPods:", err)
+// 		return result
+// 	}
+// 	return pods.Items
+// }
+
 func podStats(pods map[string]v1.Pod) ([]structs.Stats, error) {
 	var provider *KubeProviderMetrics
 	var err error
