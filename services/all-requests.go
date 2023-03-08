@@ -15,6 +15,7 @@ import (
 var COMMAND_REQUESTS = []string{
 	"K8sNotification",
 	"ClusterStatus",
+	"ClusterResourceInfo",
 	"KubernetesEvent",
 	"files/list",
 	"files/create-folder",
@@ -64,6 +65,8 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		return K8sNotification(datagram, c)
 	case "ClusterStatus":
 		return mokubernetes.ClusterStatus()
+	case "ClusterResourceInfo":
+		return mokubernetes.GetNodeStats()
 	case "files/list":
 		data := FilesListRequest{}
 		marshalUnmarshal(&datagram, &data)

@@ -227,6 +227,8 @@ func requestCmdFromCluster(pattern string) {
 			payload = nil
 		case "ClusterStatus":
 			payload = nil
+		case "ClusterResourceInfo":
+			payload = nil
 		case "files/list":
 			payload = services.FilesListRequestExampleData()
 		case "files/download":

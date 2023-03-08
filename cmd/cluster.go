@@ -31,7 +31,6 @@ var clusterCmd = &cobra.Command{
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, true)
 
 		go mokubernetes.ObserveKubernetesEvents()
-		go mokubernetes.MonitorMetrics()
 
 		socketServer.StartK8sManager(true)
 	},

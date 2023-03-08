@@ -214,7 +214,7 @@ func listAllPods() []v1.Pod {
 	return pods.Items
 }
 
-func listNodeMetrics() []v1.Node {
+func listNodes() []v1.Node {
 	var provider *KubeProvider
 	var err error
 	if !utils.CONFIG.Kubernetes.RunInCluster {
