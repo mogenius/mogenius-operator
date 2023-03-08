@@ -331,25 +331,37 @@ func updateCheck() {
 		logger.Log.Errorf("HelmIndex Entries length <= 0. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
-	mok8sManager, doesExist := helmData.Entries["mogenius-k8s-manager"]
+	mogeniusPlatform, doesExist := helmData.Entries["mogenius-platform"]
 	if !doesExist {
 		fmt.Printf("\n")
-		logger.Log.Errorf("HelmIndex does not contain the field 'mogenius-k8s-manager'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		logger.Log.Errorf("HelmIndex does not contain the field 'mogenius-platform'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
-	if len(mok8sManager) <= 0 {
+	if len(mogeniusPlatform) <= 0 {
 		fmt.Printf("\n")
-		logger.Log.Errorf("Field 'mogenius-k8s-manager' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		logger.Log.Errorf("Field 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
-	if version.Ver != mok8sManager[0].Version {
+	var mok8smanager *structs.HelmDependency = nil
+	for _, dep := range mogeniusPlatform[0].Dependencies {
+		if dep.Name == "mogenius-k8s-manager" {
+			mok8smanager = &dep
+			break
+		}
+	}
+	if mok8smanager == nil {
+		logger.Log.Errorf("The umbrella chart 'mogenius-platform' does not contain a dependency for 'mogenius-k8s-manager'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		return
+	}
+
+	if version.Ver != mok8smanager.Version {
 		fmt.Printf("\n")
 		fmt.Printf("####################################################################\n")
 		fmt.Printf("####################################################################\n")
 		fmt.Printf("######                  %s                ######\n", color.BlueString("NEW VERSION AVAILABLE!"))
 		fmt.Printf("######               %s              ######\n", color.YellowString(" UPDATE AS FAST AS POSSIBLE"))
 		fmt.Printf("######                                                        ######\n")
-		fmt.Printf("######                    Available: %s                    ######\n", color.GreenString(helmData.Entries["mogenius-k8s-manager"][0].Version))
+		fmt.Printf("######                    Available: %s                    ######\n", color.GreenString(mok8smanager.Version))
 		fmt.Printf("######                    In-Use:    %s                    ######\n", color.RedString(version.Ver))
 		fmt.Printf("######                                                        ######\n")
 		fmt.Printf("######   %s   ######\n", color.RedString("Not updating might result in service interruption."))
