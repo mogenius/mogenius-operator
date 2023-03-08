@@ -31,8 +31,22 @@
 ```
 helm repo add mo-public helm.mogenius.com/public
 helm repo update
-helm search repo k8s
-helm install k8s-manager mo-public/mo-k8s-manager
+helm search repo mogenius-platform
+helm install mogenius-platform mo-public/mogenius-platform \
+  --set global.cluster_name="mo7-mogenius-io" \
+  --set global.api_key="mo_7bf5c2b5-d7bc-4f0e-b8fc-b29d09108928_0hkga6vjum3p1mvezith" \
+  --set global.namespace="mogenius"
+```
+
+# Helm Upgrade
+```
+helm repo update
+helm upgrade mogenius-platform mo-public/mogenius-platform
+```
+
+# Helm Uninstall
+```
+helm uninstall mogenius-platform
 ```
 
 # Clean Helm Cache 
