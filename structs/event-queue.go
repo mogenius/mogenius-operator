@@ -37,18 +37,19 @@ func ConnectToEventQueue() {
 
 		connectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
-			connect()
+			ctx := context.Background()
+			connect(ctx)
+			ctx.Done()
 			<-connectionGuard
 		}()
 	}
 }
 
-func connect() {
-	ctx := context.Background()
+func connect(ctx context.Context) {
 	host := fmt.Sprintf("%s:%d", utils.CONFIG.EventServer.Server, utils.CONFIG.EventServer.Port)
 	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.EventServer.Path}
 
-	queueConnection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), http.Header{
+	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), http.Header{
 		"x-authorization": []string{utils.CONFIG.Kubernetes.ApiKey},
 		"x-cluster-id":    []string{utils.CONFIG.Kubernetes.ClusterId},
 		"x-app":           []string{APP_NAME},
@@ -56,7 +57,8 @@ func connect() {
 	if err != nil {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
 	} else {
-		logger.Log.Infof("Connected to EventServer: %s \n", queueConnection.RemoteAddr())
+		logger.Log.Infof("Connected to EventServer: %s \n", connection.RemoteAddr())
+		queueConnection = connection
 		observeConnection(queueConnection)
 	}
 
@@ -91,7 +93,7 @@ func observeConnection(connection *websocket.Conn) {
 	}
 }
 
-func EventServerSendData(datagram Datagram) {
+func EventServerSendData(datagram Datagram, eventName *string) {
 	dataQueue = append(dataQueue, datagram)
 
 	for i := 0; i < len(dataQueue); i++ {
@@ -99,7 +101,9 @@ func EventServerSendData(datagram Datagram) {
 		if queueConnection != nil {
 			err := queueConnection.WriteJSON(element)
 			if err == nil {
-				datagram.DisplayBeautiful()
+				if eventName != nil {
+					datagram.DisplaySentSummaryEvent(*eventName)
+				}
 				dataQueue = RemoveIndex(dataQueue, i)
 			} else {
 				return
