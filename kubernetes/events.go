@@ -119,7 +119,8 @@ func WatchEvents() {
 			if reflect.TypeOf(event.Object).String() == "*v1.Event" {
 				var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
 				lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
-				structs.EventServerSendData(datagram, &eventObj.Message)
+				// eventMsg in eventObj.Message
+				structs.EventServerSendData(datagram)
 			}
 		case <-ctx.Done():
 			logger.Log.Error("Stopped watching events!")

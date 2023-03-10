@@ -91,7 +91,7 @@ func observeConnection(connection *websocket.Conn) {
 	}
 }
 
-func EventServerSendData(datagram Datagram, eventName *string) {
+func EventServerSendData(datagram Datagram) {
 	dataQueue = append(dataQueue, datagram)
 
 	for i := 0; i < len(dataQueue); i++ {
@@ -99,12 +99,10 @@ func EventServerSendData(datagram Datagram, eventName *string) {
 		if queueConnection != nil {
 			err := queueConnection.WriteJSON(element)
 			if err == nil {
+				datagram.DisplayBeautiful()
 				dataQueue = RemoveIndex(dataQueue, i)
 			} else {
 				return
-			}
-			if eventName != nil {
-				datagram.DisplaySentSummaryEvent(*eventName)
 			}
 		}
 	}
