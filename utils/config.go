@@ -96,7 +96,7 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 			if !showDebug {
 				PrintSettings()
 			}
-			logger.Log.Fatalf("Environment Variable 'api_key' not setup. TERMINATING.")
+			logger.Log.Fatalf("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
 		}
 	}
 }

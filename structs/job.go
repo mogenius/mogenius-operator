@@ -12,6 +12,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+var EVENTCONNECTION *websocket.Conn
+
 type Job struct {
 	Id                      string     `json:"id"`
 	NamespaceId             string     `json:"namespaceId"`
@@ -114,7 +116,8 @@ func ReportStateToServer(job *Job, cmd *Command, c *websocket.Conn) {
 		if data != nil {
 			stateLog(typeName, data)
 			result := CreateDatagramFromNotification(data, c)
-			result.Send()
+			EVENTCONNECTION.WriteJSON(result)
+
 		} else {
 			logger.Log.Error("Serialization failed.")
 		}

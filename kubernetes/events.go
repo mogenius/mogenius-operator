@@ -60,6 +60,7 @@ func connect() {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
 	} else {
 		logger.Log.Infof("Connected to EventServer: %s \n", connection.RemoteAddr())
+		structs.EVENTCONNECTION = connection
 		go watchEvents(connection, ctx)
 		observeConnection(connection)
 	}
