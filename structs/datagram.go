@@ -129,15 +129,3 @@ func (d *Datagram) Send() error {
 		return fmt.Errorf("connection cannot be nil")
 	}
 }
-
-func (d *Datagram) SendEvent(msg string) error {
-	if d.Connection != nil {
-		sendMutex.Lock()
-		defer sendMutex.Unlock()
-		err := d.Connection.WriteJSON(d)
-		d.DisplaySentSummaryEvent(msg)
-		return err
-	} else {
-		return fmt.Errorf("connection cannot be nil")
-	}
-}

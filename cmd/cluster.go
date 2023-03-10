@@ -7,6 +7,7 @@ import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/socketServer"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
 	"github.com/spf13/cobra"
@@ -30,7 +31,8 @@ var clusterCmd = &cobra.Command{
 
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, true)
 
-		go mokubernetes.ObserveKubernetesEvents()
+		go structs.ConnectToEventQueue()
+		go mokubernetes.WatchEvents()
 
 		socketServer.StartK8sManager(true)
 	},
