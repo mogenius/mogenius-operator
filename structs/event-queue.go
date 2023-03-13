@@ -103,8 +103,8 @@ func EventServerSendData(datagram Datagram, eventName *string) {
 		element := dataQueue[i]
 		if queueConnection != nil {
 			eventSendMutex.Lock()
-			defer eventSendMutex.Unlock()
 			err := queueConnection.WriteJSON(element)
+			eventSendMutex.Unlock()
 			if err == nil {
 				if eventName != nil {
 					datagram.DisplaySentSummaryEvent(*eventName)
