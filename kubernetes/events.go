@@ -113,13 +113,15 @@ func WatchEvents() {
 	for {
 		select {
 		case event := <-watcher.ResultChan():
-			eventDto := dtos.CreateEvent(string(event.Type), event.Object)
-			datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto, nil)
+			if event.Object != nil {
+				eventDto := dtos.CreateEvent(string(event.Type), event.Object)
+				datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto, nil)
 
-			if reflect.TypeOf(event.Object).String() == "*v1.Event" {
-				var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
-				lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
-				structs.EventServerSendData(datagram, &eventObj.Message)
+				if reflect.TypeOf(event.Object).String() == "*v1.Event" {
+					var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
+					lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
+					structs.EventServerSendData(datagram, &eventObj.Message)
+				}
 			}
 		case <-ctx.Done():
 			logger.Log.Error("Stopped watching events!")
