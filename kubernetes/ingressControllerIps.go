@@ -27,7 +27,7 @@ func GetIngressControllerIps() []net.IP {
 		panic(err)
 	}
 
-	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/instance=nginx-ingress,app.kubernetes.io/name=ingress-nginx"
+	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/name=ingress-nginx"
 
 	pods, err := kubeProvider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 
@@ -42,6 +42,15 @@ func GetIngressControllerIps() []net.IP {
 	if err != nil {
 		fmt.Println("Error:", err)
 		return result
+	}
+	return result
+}
+
+func GetIngressControllerIpsAsStrings() []string {
+	ips := GetIngressControllerIps()
+	result := []string{}
+	for _, ip := range ips {
+		result = append(result, ip.String())
 	}
 	return result
 }

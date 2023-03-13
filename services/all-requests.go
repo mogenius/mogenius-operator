@@ -3,6 +3,8 @@ package services
 import (
 	"bufio"
 	"encoding/json"
+	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -66,7 +68,13 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	case "ClusterStatus":
 		return mokubernetes.ClusterStatus()
 	case "ClusterResourceInfo":
-		return mokubernetes.GetNodeStats()
+		nodeStats := mokubernetes.GetNodeStats()
+		loadBalancerIps := kubernetes.GetIngressControllerIpsAsStrings()
+		result := dtos.ClusterResourceInfoDto{
+			NodeStats:       nodeStats,
+			LoadBalancerIps: loadBalancerIps,
+		}
+		return result
 	case "files/list":
 		data := FilesListRequest{}
 		marshalUnmarshal(&datagram, &data)
