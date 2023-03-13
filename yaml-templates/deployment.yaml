@@ -41,10 +41,10 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
-          volumeMounts:
-          - mountPath: "/mo-data"
-            name: data-volume
-      volumes:
-        - name: data-volume
-          persistentVolumeClaim:
-            claimName: k8s-manager-data-storage
+          # volumeMounts:
+          # - mountPath: "/mo-data"
+          #   name: data-volume
+      # volumes:
+      #   - name: data-volume
+      #     persistentVolumeClaim:
+      #       claimName: k8s-manager-data-storage
