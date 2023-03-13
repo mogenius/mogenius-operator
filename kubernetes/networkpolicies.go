@@ -112,8 +112,7 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 				})
 			}
 		}
-		netpol.Spec.PodSelector.MatchLabels["app"] = stage.K8sName
-		// netpol.Spec.Ingress[0].From[0].PodSelector.MatchLabels["ns"] = stage.K8sName
+		netpol.Spec.PodSelector.MatchLabels["app"] = service.K8sName
 
 		_, err = netPolClient.Create(context.TODO(), &netpol, metav1.CreateOptions{})
 		if err != nil {
