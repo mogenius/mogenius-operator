@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -17,6 +18,8 @@ import (
 
 const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
+
+var eventSendMutex sync.Mutex
 
 var queueConnection *websocket.Conn
 
@@ -99,6 +102,8 @@ func EventServerSendData(datagram Datagram, eventName *string) {
 	for i := 0; i < len(dataQueue); i++ {
 		element := dataQueue[i]
 		if queueConnection != nil {
+			eventSendMutex.Lock()
+			defer eventSendMutex.Unlock()
 			err := queueConnection.WriteJSON(element)
 			if err == nil {
 				if eventName != nil {

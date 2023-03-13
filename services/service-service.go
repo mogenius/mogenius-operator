@@ -18,7 +18,7 @@ func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, true, c, &wg))
+	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, false, c, &wg))
 	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
