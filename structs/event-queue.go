@@ -118,5 +118,8 @@ func EventServerSendData(datagram Datagram, eventName *string) {
 }
 
 func RemoveIndex(s []Datagram, index int) []Datagram {
-	return append(s[:index], s[index+1:]...)
+	if len(s) > index {
+		return append(s[:index], s[index+1:]...)
+	}
+	return s
 }
