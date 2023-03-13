@@ -120,7 +120,12 @@ func WatchEvents() {
 				if reflect.TypeOf(event.Object).String() == "*v1.Event" {
 					var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
 					lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
-					structs.EventServerSendData(datagram, &eventObj.Message)
+					eventName := &eventObj.Message
+					if eventObj.Count > 1 {
+						// this disables the log-display (prevent log spamming)
+						eventName = nil
+					}
+					structs.EventServerSendData(datagram, eventName)
 				}
 			}
 		case <-ctx.Done():
