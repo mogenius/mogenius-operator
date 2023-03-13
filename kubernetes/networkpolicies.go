@@ -103,6 +103,7 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 		netpol := utils.InitNetPolService()
 		netpol.ObjectMeta.Name = service.K8sName
 		netpol.ObjectMeta.Namespace = stage.K8sName
+		netpol.Spec.Ingress[0].Ports = []v1.NetworkPolicyPort{} //reset before using
 
 		for _, aPort := range service.Ports {
 			if aPort.Expose {

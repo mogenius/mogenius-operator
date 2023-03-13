@@ -283,7 +283,7 @@ func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Serv
 	newService := utils.InitService()
 	newService.ObjectMeta.Name = service.K8sName
 	newService.ObjectMeta.Namespace = stage.K8sName
-	newService.Spec.Ports = []v1.ServicePort{}
+	newService.Spec.Ports = []v1.ServicePort{} // reset before using
 	for _, port := range service.Ports {
 		if port.PortType == "HTTPS" {
 			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
