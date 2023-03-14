@@ -54,7 +54,7 @@ func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 	return cmd
 }
 
-func DeleteDeployment(job *structs.Job, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Deleting Deployment '%s'.", service.K8sName), job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -72,7 +72,7 @@ func DeleteDeployment(job *structs.Job, service dtos.K8sServiceDto, c *websocket
 			logger.Log.Errorf("DeleteDeployment ERROR: %s", err.Error())
 		}
 
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(service.K8sName)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),

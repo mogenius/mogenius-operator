@@ -87,9 +87,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 					utils.Contains(services.BINARY_REQUESTS_DOWNLOAD, datagram.Pattern) ||
 					utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) ||
 					utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
-					RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
-					fmt.Printf("%s\n", RECEIVCOLOR(utils.FillWith("RECEIVED", 22, " ")))
-					datagram.DisplayBeautiful()
+					if datagram.Pattern != "KubernetesEvent" {
+						RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
+						fmt.Printf("%s\n", RECEIVCOLOR(utils.FillWith("RECEIVED", 22, " ")))
+						datagram.DisplayBeautiful()
+					}
 				} else {
 					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 				}
