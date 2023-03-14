@@ -44,7 +44,9 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		config := networkingv1.Ingress(INGRESS_PREFIX+"-"+namespaceShortId, stage.K8sName)
+		ingressName := INGRESS_PREFIX + "-" + namespaceShortId
+
+		config := networkingv1.Ingress(ingressName, stage.K8sName)
 		config.WithAnnotations(map[string]string{
 			"kubernetes.io/ingress.class":                    "nginx",
 			"nginx.ingress.kubernetes.io/rewrite-target":     "/",
@@ -113,7 +115,7 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 		config.WithSpec(spec)
 
 		if len(spec.Rules) <= 0 {
-			err = ingressClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
+			err = ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()), c)
 			} else {
