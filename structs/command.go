@@ -12,19 +12,19 @@ import (
 )
 
 type Command struct {
-	Id                      string `json:"id"`
-	JobId                   string `json:"jobId"`
-	NamespaceId             string `json:"namespaceId"`
-	StageId                 string `json:"stageId,omitempty"`
-	ServiceId               string `json:"serviceId,omitempty"`
-	Title                   string `json:"title"`
-	Message                 string `json:"message,omitempty"`
-	StartedAt               string `json:"startedAt"`
-	State                   string `json:"state"`
-	DurationMs              int64  `json:"durationMs"`
-	MustSucceed             bool   `json:"mustSucceed"`
-	ReportToNotificationSvc bool   `json:"reportToNotificationService"`
-	IgnoreError             bool   `json:"ignoreError"`
+	Id                      string  `json:"id"`
+	JobId                   string  `json:"jobId"`
+	NamespaceId             string  `json:"namespaceId"`
+	StageId                 *string `json:"stageId,omitempty"`
+	ServiceId               *string `json:"serviceId,omitempty"`
+	Title                   string  `json:"title"`
+	Message                 string  `json:"message,omitempty"`
+	StartedAt               string  `json:"startedAt"`
+	State                   string  `json:"state"`
+	DurationMs              int64   `json:"durationMs"`
+	MustSucceed             bool    `json:"mustSucceed"`
+	ReportToNotificationSvc bool    `json:"reportToNotificationService"`
+	IgnoreError             bool    `json:"ignoreError"`
 	Started                 time.Time
 }
 
@@ -46,6 +46,9 @@ func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
 func CreateCommand(title string, job *Job, c *websocket.Conn) *Command {
 	cmd := Command{
 		Id:                      uuid.NewV4().String(),
+		JobId:                   job.Id,
+		StageId:                 job.StageId,
+		ServiceId:               job.ServiceId,
 		Title:                   title,
 		NamespaceId:             job.NamespaceId,
 		Message:                 "",

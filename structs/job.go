@@ -27,21 +27,12 @@ type Job struct {
 }
 
 func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
-	stageId := ""
-	if job.StageId != nil {
-		stageId = *job.StageId
-	}
-	serviceId := ""
-	if job.ServiceId != nil {
-		serviceId = *job.ServiceId
-	}
-
 	return &dtos.K8sNotificationDto{
 		Id:          job.Id,
 		JobId:       job.Id,
 		NamespaceId: job.NamespaceId,
-		StageId:     stageId,
-		ServiceId:   serviceId,
+		StageId:     job.StageId,
+		ServiceId:   job.ServiceId,
 		Title:       job.Title,
 		Message:     job.Message,
 		State:       job.State,
