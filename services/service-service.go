@@ -15,7 +15,7 @@ import (
 
 func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
+	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, false, c, &wg))
@@ -29,7 +29,7 @@ func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 
 func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
+	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, c, &wg))
 	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Stage, r.Service, c, &wg))
@@ -42,7 +42,7 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 
 func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Set new image for service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
+	job := structs.CreateJob("Set new image for service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
 	job.Start(c)
 	job.AddCmd(kubernetes.SetImage(&job, r.Namespace, r.Stage, r.Service, r.ImageName, c, &wg))
 	wg.Wait()
@@ -68,7 +68,7 @@ func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
 
 func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
+	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
@@ -80,7 +80,7 @@ func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 
 func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, nil, c)
+	job := structs.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
@@ -93,7 +93,7 @@ func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
 func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Start Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, nil, c)
+	job := structs.CreateJob("Start Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.StartDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
@@ -106,7 +106,7 @@ func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
 
 func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
+	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Stage, r.Service, c, &wg))
