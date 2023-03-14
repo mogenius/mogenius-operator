@@ -2,10 +2,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "env": {
-        "api_key": "1234567890",
-        "cluster_name": "benesclustertestname"
-      },
       "name": "Server",
       "type": "go",
       "request": "launch",
@@ -16,10 +12,6 @@
       "console": "integratedTerminal"
     },
     {
-      "env": {
-        "api_key": "1234567890",
-        "cluster_name": "benesclustertestname"
-      },
       "name": "Client LOCAL",
       "type": "go",
       "request": "launch",

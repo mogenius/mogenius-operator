@@ -5,7 +5,6 @@ package cmd
 
 import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/socketServer"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -22,9 +21,15 @@ var testClientCmd = &cobra.Command{
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
 
-		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(false)
-		if err != nil {
-			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
+		// clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(false)
+		// if err != nil {
+		// 	logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
+		// }
+
+		clusterSecret := utils.ClusterSecret{
+			ApiKey:      "",
+			ClusterId:   "",
+			ClusterName: "",
 		}
 
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
