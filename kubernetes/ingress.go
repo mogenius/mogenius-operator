@@ -115,18 +115,23 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 		config.WithSpec(spec)
 
 		if len(spec.Rules) <= 0 {
-			err = ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
-			if err != nil {
-				cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()), c)
+			existingIngress, _ := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+			if existingIngress != nil {
+				err = ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()), c)
+				} else {
+					cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName), c)
+				}
 			} else {
-				cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", stage.K8sName), c)
+				cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName), c)
 			}
 		} else {
 			_, err = ingressClient.Apply(context.TODO(), config, applyOptions)
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()), c)
 			} else {
-				cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", stage.K8sName), c)
+				cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", ingressName), c)
 			}
 		}
 	}(cmd, wg)
