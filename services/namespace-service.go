@@ -55,7 +55,7 @@ func ShutdownNamespace(r NamespaceShutdownRequest, c *websocket.Conn) structs.Jo
 	job := structs.CreateJob("Shutdown Stage "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, nil, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, c, &wg))
+	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.NamespaceShortId, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)

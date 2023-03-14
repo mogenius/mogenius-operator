@@ -31,7 +31,7 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
 	job.Start(c)
-	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, c, &wg))
+	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))

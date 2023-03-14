@@ -51,7 +51,7 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 	return cmd
 }
 
-func DeleteService(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Delete Service", job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -72,7 +72,7 @@ func DeleteService(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn, 
 
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
 
-		err = serviceClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
+		err = serviceClient.Delete(context.TODO(), service.K8sName, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()), c)
 		} else {
