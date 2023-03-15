@@ -339,6 +339,13 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPa
 		}
 	}
 
+	// IMAGE PULL SECRET
+	if ContainerSecretDoesExistForStage(stage) {
+		containerSecretName := "container-secret-" + stage.K8sName
+		newDeployment.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
+		newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
+	}
+
 	// SECURITY CONTEXT
 	structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
 	newDeployment.Spec.Template.Spec.Containers[0].SecurityContext = nil

@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
@@ -94,6 +95,85 @@ func DeleteSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 	return cmd
 }
 
+func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Create Container secret", job, c)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Creating Container secret '%s'.", stage.K8sName), c)
+
+		var kubeProvider *KubeProvider
+		var err error
+		if !utils.CONFIG.Kubernetes.RunInCluster {
+			kubeProvider, err = NewKubeProviderLocal()
+		} else {
+			kubeProvider, err = NewKubeProviderInCluster()
+		}
+		if err != nil {
+			logger.Log.Errorf("CreateContainerSecret ERROR: %s", err.Error())
+		}
+
+		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
+		secret := utils.InitContainerSecret()
+		secret.ObjectMeta.Name = "container-secret-" + stage.K8sName
+		secret.ObjectMeta.Namespace = stage.K8sName
+
+		authStr := fmt.Sprintf("%s:%s", namespace.ContainerRegistryUser, namespace.ContainerRegistryPat)
+		authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
+		jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, namespace.ContainerRegistryUrl, namespace.ContainerRegistryUser, namespace.ContainerRegistryPat, authStrBase64)
+
+		secretStringData := make(map[string]string)
+		secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
+		secret.StringData = secretStringData
+
+		createOptions := metav1.CreateOptions{
+			FieldManager: DEPLOYMENTNAME,
+		}
+
+		_, err = secretClient.Create(context.TODO(), &secret, createOptions)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()), c)
+		} else {
+			cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.K8sName), c)
+		}
+	}(cmd, wg)
+	return cmd
+}
+
+func DeleteContainerSecret(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Delete Container secret", job, c)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Deleting Container secret '%s'.", stage.K8sName), c)
+
+		var kubeProvider *KubeProvider
+		var err error
+		if !utils.CONFIG.Kubernetes.RunInCluster {
+			kubeProvider, err = NewKubeProviderLocal()
+		} else {
+			kubeProvider, err = NewKubeProviderInCluster()
+		}
+		if err != nil {
+			logger.Log.Errorf("DeleteContainerSecret ERROR: %s", err.Error())
+		}
+
+		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
+
+		deleteOptions := metav1.DeleteOptions{
+			GracePeriodSeconds: utils.Pointer[int64](5),
+		}
+
+		err = secretClient.Delete(context.TODO(), "container-secret-"+stage.K8sName, deleteOptions)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()), c)
+		} else {
+			cmd.Success(fmt.Sprintf("Deleted Container secret '%s'.", stage.K8sName), c)
+		}
+	}(cmd, wg)
+	return cmd
+}
+
 func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Update Kubernetes secret", job, c)
 	wg.Add(1)
@@ -164,4 +244,24 @@ func AllSecrets(namespaceName string) []v1.Secret {
 		}
 	}
 	return result
+}
+
+func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {
+	var provider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		provider, err = NewKubeProviderLocal()
+	} else {
+		provider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("SecretDoesExistForStage ERROR: %s", err.Error())
+	}
+
+	secret, err := provider.ClientSet.CoreV1().Secrets(stage.K8sName).Get(context.TODO(), "container-secret-"+stage.K8sName, metav1.GetOptions{})
+	if err != nil {
+		logger.Log.Errorf("SecretDoesExistForStage ERROR: %s", err.Error())
+		return false
+	}
+	return secret != nil
 }
