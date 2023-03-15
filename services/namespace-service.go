@@ -31,6 +31,7 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 		job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c))
 		job.AddCmd(mokubernetes.CreateNetworkPolicyNamespace(&job, r.Stage, c, &wg))
 		job.AddCmd(mokubernetes.CreatePersistentVolumeClaim(&job, r.Stage, c, &wg))
+		fmt.Println(r.Namespace)
 		if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
 			job.AddCmd(mokubernetes.CreateContainerSecret(&job, r.Namespace, r.Stage, c, &wg))
 		}
