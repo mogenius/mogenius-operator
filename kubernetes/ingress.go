@@ -90,9 +90,9 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 				// 2. ALL CNAMES
 				spec.Rules = append(spec.Rules, *createIngressRule(service.FullHostname, service.K8sName, int32(port.InternalPort)))
 				for _, cname := range service.CNames {
-					spec.Rules = append(spec.Rules, *createIngressRule(cname.CName, service.K8sName, int32(port.InternalPort)))
+					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.K8sName, int32(port.InternalPort)))
 					if !stage.CloudflareProxied {
-						tlsHosts = append(tlsHosts, cname.CName)
+						tlsHosts = append(tlsHosts, cname)
 					}
 				}
 			}
