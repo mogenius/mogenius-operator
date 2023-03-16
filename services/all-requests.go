@@ -145,7 +145,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := ServiceGetPodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ServicePodIds(data, c)
-	case "service/images":
+	case "service/set-image":
 		data := ServiceSetImageRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return SetImage(data, c)

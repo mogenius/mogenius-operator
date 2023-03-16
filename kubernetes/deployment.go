@@ -389,12 +389,12 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPa
 	return newDeployment
 }
 
-func SetImage(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, service dtos.K8sServiceDto, imageName string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+func SetImage(job *structs.Job, stagek8sName string, serviceK8sName string, imageName string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Set Image", job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", service.K8sName), c)
+		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceK8sName), c)
 
 		var kubeProvider *KubeProvider
 		var err error
@@ -408,8 +408,8 @@ func SetImage(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sSt
 			logger.Log.Errorf("SetImage ERROR: %s", err.Error())
 		}
 
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
-		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), service.K8sName, metav1.GetOptions{})
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stagek8sName)
+		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceK8sName, metav1.GetOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()), c)
 			return
@@ -417,12 +417,13 @@ func SetImage(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sSt
 
 		// SET NEW IMAGE
 		deploymentToUpdate.Spec.Template.Spec.Containers[0].Image = imageName
+		deploymentToUpdate.Spec.Paused = false
 
 		_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", service.K8sName), c)
+			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", serviceK8sName), c)
 		}
 	}(cmd, wg)
 	return cmd

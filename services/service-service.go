@@ -42,9 +42,9 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 
 func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Set new image for service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
+	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.NamespaceId, &r.StageId, &r.ServiceId, c)
 	job.Start(c)
-	job.AddCmd(kubernetes.SetImage(&job, r.Namespace, r.Stage, r.Service, r.ImageName, c, &wg))
+	job.AddCmd(kubernetes.SetImage(&job, r.StageK8sName, r.ServiceK8sName, r.ImageName, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -211,18 +211,24 @@ func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
 }
 
 type ServiceSetImageRequest struct {
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Stage     dtos.K8sStageDto     `json:"stage"`
-	Service   dtos.K8sServiceDto   `json:"service"`
-	ImageName string               `json:"imageName"`
+	NamespaceId        string `json:"namespaceId"`
+	StageId            string `json:"stageId"`
+	ServiceId          string `json:"serviceId"`
+	StageK8sName       string `json:"stageK8sName"`
+	ServiceK8sName     string `json:"serviceK8sName"`
+	ServiceDisplayName string `json:"serviceDisplayName"`
+	ImageName          string `json:"imageName"`
 }
 
 func ServiceSetImageRequestExample() ServiceSetImageRequest {
 	return ServiceSetImageRequest{
-		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Stage:     dtos.K8sStageDtoExampleData(),
-		Service:   dtos.K8sServiceDtoExampleData(),
-		ImageName: "nginx:latest",
+		NamespaceId:        "NAMESPACEID",
+		ServiceId:          "SERVICEID",
+		StageId:            "STAGEID",
+		StageK8sName:       "StageK8sName",
+		ServiceK8sName:     "ServiceK8sName",
+		ServiceDisplayName: "ServiceDisplayName",
+		ImageName:          "nginx:latest",
 	}
 }
 
