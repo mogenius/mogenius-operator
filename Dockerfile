@@ -16,7 +16,20 @@ RUN apk add --no-cache \
     clang \
     llvm \
     libbpf-dev \
-    linux-headers
+    linux-headers \
+    nodejs \
+    npm \
+    coreutils \
+    ruby-dev
+
+RUN gem install -N rails
+RUN gem install -N bundler
+RUN npm install -g @vue/cli
+RUN npm install -g @angular/cli
+RUN npm install -g @nestjs/cli
+RUN npm install -g gatsby-cli
+RUN npm install -g create-next-app next react react-dom
+
 
 ARG COMMIT_HASH=NOT_SET
 ARG GIT_BRANCH=NOT_SET
