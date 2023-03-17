@@ -177,19 +177,22 @@ func SpectrumConfigmaps(c *websocket.Conn) dtos.SpectrumConfigmapDto {
 func initDocker(service dtos.K8sServiceDto, job structs.Job, c *websocket.Conn) []*structs.Command {
 	pwd, _ := os.Getwd()
 	tempDir := fmt.Sprintf("%s/temp", pwd)
-	gitDir := fmt.Sprintf("%s/temp/", service.Id)
+	gitDir := fmt.Sprintf("%s/temp/%s", pwd, service.Id)
+
+	fmt.Println(tempDir)
+	fmt.Println(gitDir)
 
 	cmds := []*structs.Command{}
 	structs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
-	cmds = append(cmds, structs.CreateBashCommand("Clone", &job, fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, service.GitRepository, gitDir, gitDir, service.GitBranch), c))
+	structs.ExecuteBashCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, service.GitRepository, gitDir, gitDir, service.GitBranch))
 	if service.App.SetupCommands != "" {
 		structs.ExecuteBashCommandSilent("Run Setup Commands ...", fmt.Sprintf("cd %s; %s", gitDir, service.App.SetupCommands))
 	}
 	if service.App.RepositoryLink != "" {
-		structs.ExecuteBashCommandSilent("Clone files from template ...", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", gitDir, service.App.RepositoryLink, gitDir, gitDir, gitDir, gitDir, gitDir))
+		structs.ExecuteBashCommandSilent("Clone files from template ...", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", gitDir, service.App.RepositoryLink, gitDir, gitDir, gitDir, gitDir))
 	}
-	cmds = append(cmds, structs.CreateBashCommand("Commit", &job, fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add inital files."`, gitDir), c))
-	cmds = append(cmds, structs.CreateBashCommand("Push", &job, fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch), c))
+	structs.ExecuteBashCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add inital files."`, gitDir))
+	structs.ExecuteBashCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
 	structs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
 	return cmds
 }
