@@ -11,16 +11,16 @@ import (
 
 // This object will initially created in secrets when the software is installed into the cluster for the first time (resource: secret -> mogenius/mogenius)
 type ClusterSecret struct {
-	ApiKey      string
-	ClusterId   string
-	ClusterName string
+	ApiKey       string
+	ClusterMfaId string
+	ClusterName  string
 }
 
 type Config struct {
 	Kubernetes struct {
 		ApiKey                   string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
 		ClusterName              string `yaml:"cluster_name" env:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
-		ClusterId                string `yaml:"cluster_id" env:"cluster_id" env-description:"UUID of the Kubernetes Cluster"`
+		ClusterMfaId             string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"UUID of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster             bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
@@ -70,8 +70,8 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 	}
 
 	// LOCAL ALWAYS WINS
-	if clusterSecret.ClusterId != "" && CONFIG.Kubernetes.RunInCluster {
-		CONFIG.Kubernetes.ClusterId = clusterSecret.ClusterId
+	if clusterSecret.ClusterMfaId != "" && CONFIG.Kubernetes.RunInCluster {
+		CONFIG.Kubernetes.ClusterMfaId = clusterSecret.ClusterMfaId
 	}
 	if clusterSecret.ApiKey != "" && CONFIG.Kubernetes.RunInCluster {
 		CONFIG.Kubernetes.ApiKey = clusterSecret.ApiKey
@@ -103,7 +103,7 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 
 func PrintSettings() {
 	logger.Log.Infof("ClusterName:              %s", CONFIG.Kubernetes.ClusterName)
-	logger.Log.Infof("ClusterID:                %s", CONFIG.Kubernetes.ClusterId)
+	logger.Log.Infof("ClusterMfaId:             %s", CONFIG.Kubernetes.ClusterMfaId)
 	logger.Log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
 

@@ -141,15 +141,15 @@ func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, err
 		}
 
 		clusterSecret := utils.ClusterSecret{
-			ApiKey:      apikey,
-			ClusterId:   uuid.New().String(),
-			ClusterName: clusterName,
+			ApiKey:       apikey,
+			ClusterMfaId: uuid.New().String(),
+			ClusterName:  clusterName,
 		}
 		secret := utils.InitSecret()
 		secret.ObjectMeta.Name = NAMESPACE
 		secret.ObjectMeta.Namespace = NAMESPACE
 		delete(secret.StringData, "PRIVATE_KEY") // delete example data
-		secret.StringData["cluster-id"] = clusterSecret.ClusterId
+		secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 		secret.StringData["api-key"] = clusterSecret.ApiKey
 		secret.StringData["cluster-name"] = clusterSecret.ClusterName
 
@@ -166,9 +166,9 @@ func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, err
 
 	logger.Log.Info("Using existing mogenius secret.")
 	return utils.ClusterSecret{
-		ApiKey:      string(existingSecret.Data["api-key"]),
-		ClusterId:   string(existingSecret.Data["cluster-id"]),
-		ClusterName: string(existingSecret.Data["cluster-name"]),
+		ApiKey:       string(existingSecret.Data["api-key"]),
+		ClusterMfaId: string(existingSecret.Data["cluster-mfa-id"]),
+		ClusterName:  string(existingSecret.Data["cluster-name"]),
 	}, nil
 }
 

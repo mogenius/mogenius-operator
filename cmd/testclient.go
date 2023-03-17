@@ -27,9 +27,9 @@ var testClientCmd = &cobra.Command{
 		// }
 
 		clusterSecret := utils.ClusterSecret{
-			ApiKey:      "",
-			ClusterId:   "",
-			ClusterName: "",
+			ApiKey:       "",
+			ClusterMfaId: "",
+			ClusterName:  "",
 		}
 
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
