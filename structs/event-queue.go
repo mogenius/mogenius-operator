@@ -6,6 +6,7 @@ import (
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"mogenius-k8s-manager/version"
 	"net/http"
 	"net/url"
 	"os"
@@ -56,6 +57,7 @@ func connect(ctx context.Context) {
 		"x-authorization":  []string{utils.CONFIG.Kubernetes.ApiKey},
 		"x-cluster-mfa-id": []string{utils.CONFIG.Kubernetes.ClusterMfaId},
 		"x-app":            []string{APP_NAME},
+		"x-app-version":    []string{version.Ver},
 		"x-cluster-name":   []string{utils.CONFIG.Kubernetes.ClusterName}})
 	if err != nil {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())

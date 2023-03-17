@@ -82,6 +82,7 @@ func startClient() {
 		"x-authorization":  []string{utils.CONFIG.Kubernetes.ApiKey},
 		"x-cluster-mfa-id": []string{utils.CONFIG.Kubernetes.ClusterMfaId},
 		"x-app":            []string{structs.APP_NAME},
+		"x-app-version":    []string{version.Ver},
 		"x-cluster-name":   []string{utils.CONFIG.Kubernetes.ClusterName}})
 	if err != nil {
 		logger.Log.Errorf("Connection (available: %d/%d) %s ... %s -> %s\n", connectionCounter, maxGoroutines, color.BlueString(connectionUrl.String()), color.RedString("FAIL 💥"), color.HiRedString(err.Error()))
