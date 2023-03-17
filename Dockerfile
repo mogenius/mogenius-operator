@@ -16,20 +16,7 @@ RUN apk add --no-cache \
     clang \
     llvm \
     libbpf-dev \
-    linux-headers \
-    nodejs \
-    npm \
-    coreutils \
-    ruby-dev
-
-RUN gem install -N rails
-RUN gem install -N bundler
-RUN npm install -g @vue/cli
-RUN npm install -g @angular/cli
-RUN npm install -g @nestjs/cli
-RUN npm install -g gatsby-cli
-RUN npm install -g create-next-app next react react-dom
-
+    linux-headers 
 
 ARG COMMIT_HASH=NOT_SET
 ARG GIT_BRANCH=NOT_SET
@@ -52,7 +39,19 @@ RUN GOOS=linux GOARCH=amd64 go build -ldflags="-extldflags= \
 
 FROM alpine:latest
 RUN apk add --no-cache \
-    libpcap-dev bash
+    libpcap-dev bash \
+    nodejs \
+    npm \
+    coreutils \
+    ruby-dev
+
+RUN gem install -N rails
+RUN gem install -N bundler
+RUN npm install -g @vue/cli
+RUN npm install -g @angular/cli
+RUN npm install -g @nestjs/cli
+RUN npm install -g gatsby-cli
+RUN npm install -g create-next-app next react react-dom
 
 WORKDIR /app
 
