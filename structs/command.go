@@ -77,12 +77,24 @@ func CreateBashCommand(title string, job *Job, shellCmd string, c *websocket.Con
 			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
 			cmd.Fail(fmt.Sprintf("'%s' ERROR: %s", title, errorMsg), c)
 		} else if err != nil {
-			logger.Log.Error("SOME OTHER ERROR")
+			logger.Log.Error("exec.Command: %s", err.Error())
 		} else {
 			cmd.Success(title, c)
 		}
 	}(cmd)
 	return cmd
+}
+
+func ExecuteBashCommandSilent(title string, shellCmd string) {
+	_, err := exec.Command("bash", "-c", shellCmd).Output()
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		exitCode := exitErr.ExitCode()
+		errorMsg := string(exitErr.Stderr)
+		logger.Log.Error(shellCmd)
+		logger.Log.Errorf("%d: %s", exitCode, errorMsg)
+	} else if err != nil {
+		logger.Log.Error("exec.Command: %s", err.Error())
+	}
 }
 
 func (cmd *Command) Start(msg string, c *websocket.Conn) {

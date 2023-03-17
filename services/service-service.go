@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
+	"os"
 	"strings"
 	"sync"
 
@@ -22,6 +23,9 @@ func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
+	if r.Service.App.Type == "DOCKER_TEMPLATE" {
+		initDocker(r.Service, job, c)
+	}
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -168,6 +172,26 @@ func SpectrumConfigmaps(c *websocket.Conn) dtos.SpectrumConfigmapDto {
 		TcpServices:     mokubernetes.ConfigMapFor("default", "tcp-services"),
 		UdpServices:     mokubernetes.ConfigMapFor("default", "udp-services"),
 	}
+}
+
+func initDocker(service dtos.K8sServiceDto, job structs.Job, c *websocket.Conn) []*structs.Command {
+	pwd, _ := os.Getwd()
+	tempDir := fmt.Sprintf("%s/temp", pwd)
+	gitDir := fmt.Sprintf("%s/temp/", service.Id)
+
+	cmds := []*structs.Command{}
+	structs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
+	cmds = append(cmds, structs.CreateBashCommand("Clone", &job, fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, service.GitRepository, gitDir, gitDir, service.GitBranch), c))
+	if service.App.SetupCommands != "" {
+		structs.ExecuteBashCommandSilent("Run Setup Commands ...", fmt.Sprintf("cd %s; %s", gitDir, service.App.SetupCommands))
+	}
+	if service.App.RepositoryLink != "" {
+		structs.ExecuteBashCommandSilent("Clone files from template ...", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", gitDir, service.App.RepositoryLink, gitDir, gitDir, gitDir, gitDir, gitDir))
+	}
+	cmds = append(cmds, structs.CreateBashCommand("Commit", &job, fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add inital files."`, gitDir), c))
+	cmds = append(cmds, structs.CreateBashCommand("Push", &job, fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch), c))
+	structs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+	return cmds
 }
 
 type ServiceCreateRequest struct {

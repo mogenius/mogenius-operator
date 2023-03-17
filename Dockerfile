@@ -5,6 +5,7 @@ LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit
 ENV GOOS=linux
 
 RUN apk add --no-cache \
+    git \
     libpcap-dev \
     g++ \
     perl-utils \

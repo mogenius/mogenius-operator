@@ -5,7 +5,6 @@ type K8sPortsDto struct {
 	InternalPort int    `json:"internalPort" validate:"required"`
 	ExternalPort int    `json:"externalPort" validate:"required"`
 	Expose       bool   `json:"expose" validate:"required"`
-	DeletedAt    string `json:"deletedAt,omitempty"`
 }
 
 func K8sPortsDtoExampleData() K8sPortsDto {
