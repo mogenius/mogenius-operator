@@ -34,6 +34,8 @@ var clusterCmd = &cobra.Command{
 		go structs.ConnectToEventQueue()
 		go mokubernetes.WatchEvents()
 
+		structs.ExecuteBashCommandSilent("Git setup ...", `git config --global user.email "git@mogenius.com"; git config --global user.name "mogenius git-user"; git config --global init.defaultBranch main; git config --global advice.addIgnoredFile false;`)
+
 		socketServer.StartK8sManager(true)
 	},
 }
