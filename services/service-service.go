@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
-	"os"
 	"strings"
 	"sync"
 
@@ -175,9 +174,8 @@ func SpectrumConfigmaps(c *websocket.Conn) dtos.SpectrumConfigmapDto {
 }
 
 func initDocker(service dtos.K8sServiceDto, job structs.Job, c *websocket.Conn) []*structs.Command {
-	pwd, _ := os.Getwd()
-	tempDir := fmt.Sprintf("%s/temp", pwd)
-	gitDir := fmt.Sprintf("%s/temp/%s", pwd, service.Id)
+	tempDir := "/temp"
+	gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
 
 	fmt.Println(tempDir)
 	fmt.Println(gitDir)

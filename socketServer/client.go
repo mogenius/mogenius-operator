@@ -161,6 +161,10 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 					datagram.DisplayReceiveSummary()
 
+					if utils.CONFIG.Misc.Debug {
+						structs.PrettyPrint(datagram)
+					}
+
 					if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
 						// ####### COMMAND
 						responsePayload := services.ExecuteCommandRequest(datagram, c)

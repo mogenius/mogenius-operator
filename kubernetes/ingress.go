@@ -67,8 +67,6 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 		spec := networkingv1.IngressSpec()
 		tlsHosts := []string{}
 
-		structs.PrettyPrint(stage.Services)
-
 		// 1. All Services
 		for _, service := range stage.Services {
 			// SKIP service if marked for delete
