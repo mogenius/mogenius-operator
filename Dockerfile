@@ -5,7 +5,6 @@ LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit
 ENV GOOS=linux
 
 RUN apk add --no-cache \
-    git \
     libpcap-dev \
     g++ \
     perl-utils \
@@ -39,6 +38,10 @@ RUN GOOS=linux GOARCH=amd64 go build -ldflags="-extldflags= \
 
 FROM alpine:latest
 RUN apk add --no-cache \
+    bash \
+    git \
+    curl \
+    build-base \
     libpcap-dev bash \
     nodejs \
     npm \
