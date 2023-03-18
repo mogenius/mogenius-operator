@@ -99,14 +99,14 @@ func observeConnection(connection *websocket.Conn) {
 }
 
 func EventServerSendData(datagram Datagram, eventName *string) {
+	eventSendMutex.Lock()
+	defer eventSendMutex.Unlock()
 	dataQueue = append(dataQueue, datagram)
 
 	for i := 0; i < len(dataQueue); i++ {
 		element := dataQueue[i]
 		if queueConnection != nil {
-			eventSendMutex.Lock()
 			err := queueConnection.WriteJSON(element)
-			eventSendMutex.Unlock()
 			if err == nil {
 				if eventName != nil {
 					datagram.DisplaySentSummaryEvent(*eventName)
