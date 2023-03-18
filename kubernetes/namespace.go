@@ -29,7 +29,8 @@ func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dto
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("CreateNamespace ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()), c)
+			return
 		}
 
 		namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
@@ -70,7 +71,8 @@ func DeleteNamespace(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn
 		}
 
 		if err != nil {
-			logger.Log.Errorf("DeleteNamespace ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()), c)
+			return
 		}
 
 		namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
@@ -97,6 +99,7 @@ func ListAllNamespaceNames() []string {
 
 	if err != nil {
 		logger.Log.Errorf("ListAll ERROR: %s", err.Error())
+		return result
 	}
 
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
@@ -104,6 +107,7 @@ func ListAllNamespaceNames() []string {
 	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("ListAll ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, ns := range namespaceList.Items {

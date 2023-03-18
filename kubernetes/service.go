@@ -30,7 +30,8 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		}
 
 		if err != nil {
-			logger.Log.Errorf("CreateService ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()), c)
+			return
 		}
 
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
@@ -67,7 +68,8 @@ func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		}
 
 		if err != nil {
-			logger.Log.Errorf("DeleteService ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()), c)
+			return
 		}
 
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
@@ -98,7 +100,8 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		}
 
 		if err != nil {
-			logger.Log.Errorf("UpdateServoce ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()), c)
+			return
 		}
 
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
@@ -128,6 +131,7 @@ func UpdateServiceWith(service *v1.Service) error {
 	}
 	if err != nil {
 		logger.Log.Errorf("UpdateServiceWith ERROR: %s", err.Error())
+		return err
 	}
 
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services("")
@@ -242,12 +246,14 @@ func ServiceFor(namespace string, serviceName string) *v1.Service {
 
 	if err != nil {
 		logger.Log.Errorf("ServiceFor ERROR: %s", err.Error())
+		return nil
 	}
 
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
 	service, err := serviceClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 	if err != nil {
 		logger.Log.Errorf("ServiceFor ERROR: %s", err.Error())
+		return nil
 	}
 	return service
 }
@@ -264,11 +270,13 @@ func AllServices(namespaceName string) []v1.Service {
 	}
 	if err != nil {
 		logger.Log.Errorf("AllServices ERROR: %s", err.Error())
+		return result
 	}
 
 	serviceList, err := provider.ClientSet.CoreV1().Services(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllServices ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, service := range serviceList.Items {

@@ -22,11 +22,13 @@ func AllDaemonsets(namespaceName string) []v1.DaemonSet {
 	}
 	if err != nil {
 		logger.Log.Errorf("AllDaemonsets ERROR: %s", err.Error())
+		return result
 	}
 
 	daemonsetList, err := provider.ClientSet.AppsV1().DaemonSets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllDaemonsets ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, daemonset := range daemonsetList.Items {

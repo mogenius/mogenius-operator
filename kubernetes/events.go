@@ -101,6 +101,7 @@ func WatchEvents() {
 
 	if err != nil {
 		logger.Log.Errorf("watchEvents ERROR: %s", err.Error())
+		return
 	}
 
 	watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(ctx, v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
@@ -108,6 +109,7 @@ func WatchEvents() {
 
 	if err != nil {
 		logger.Log.Error(err.Error())
+		return
 	}
 
 	for {

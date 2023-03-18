@@ -224,6 +224,7 @@ func listNodes() []v1.Node {
 	}
 	if err != nil {
 		logger.Log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
+		return []v1.Node{}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})

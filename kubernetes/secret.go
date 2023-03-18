@@ -30,7 +30,8 @@ func CreateSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("CreateSecret ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("CreateSecret ERROR: %s", err.Error()), c)
+			return
 		}
 
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
@@ -76,7 +77,8 @@ func DeleteSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("DeleteSecret ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()), c)
+			return
 		}
 
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
@@ -110,7 +112,8 @@ func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, sta
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("CreateContainerSecret ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()), c)
+			return
 		}
 
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
@@ -155,7 +158,8 @@ func DeleteContainerSecret(job *structs.Job, stage dtos.K8sStageDto, c *websocke
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("DeleteContainerSecret ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()), c)
+			return
 		}
 
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
@@ -189,7 +193,8 @@ func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("UpdateSecret ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()), c)
+			return
 		}
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
 		secret := utils.InitSecret()
@@ -231,11 +236,13 @@ func AllSecrets(namespaceName string) []v1.Secret {
 	}
 	if err != nil {
 		logger.Log.Errorf("AllSecrets ERROR: %s", err.Error())
+		return result
 	}
 
 	secretList, err := provider.ClientSet.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllSecrets podMetricsList ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, secret := range secretList.Items {
@@ -256,6 +263,7 @@ func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {
 	}
 	if err != nil {
 		logger.Log.Errorf("SecretDoesExistForStage ERROR: %s", err.Error())
+		return false
 	}
 
 	secret, err := provider.ClientSet.CoreV1().Secrets(stage.K8sName).Get(context.TODO(), "container-secret-"+stage.K8sName, metav1.GetOptions{})

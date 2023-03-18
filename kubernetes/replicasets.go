@@ -22,11 +22,13 @@ func AllReplicasets(namespaceName string) []v1.ReplicaSet {
 	}
 	if err != nil {
 		logger.Log.Errorf("AllReplicasets ERROR: %s", err.Error())
+		return result
 	}
 
 	replicaSetList, err := provider.ClientSet.AppsV1().ReplicaSets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllReplicasets ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, replicaSet := range replicaSetList.Items {

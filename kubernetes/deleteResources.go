@@ -29,6 +29,7 @@ func removeDeployment(kubeProvider *KubeProvider) {
 	err := deploymentClient.Delete(context.TODO(), DEPLOYMENTNAME, metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
 		logger.Log.Error(err)
+		return
 	}
 	logger.Log.Info("Deleted mogenius-k8s-manager deployment.")
 }
@@ -39,14 +40,17 @@ func removeRbac(kubeProvider *KubeProvider) {
 	err := kubeProvider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Delete(context.TODO(), SERVICEACCOUNTNAME, metav1.DeleteOptions{})
 	if err != nil {
 		logger.Log.Error(err)
+		return
 	}
 	err = kubeProvider.ClientSet.RbacV1().ClusterRoles().Delete(context.TODO(), CLUSTERROLENAME, metav1.DeleteOptions{})
 	if err != nil {
 		logger.Log.Error(err)
+		return
 	}
 	err = kubeProvider.ClientSet.RbacV1().ClusterRoleBindings().Delete(context.TODO(), CLUSTERROLEBINDINGNAME, metav1.DeleteOptions{})
 	if err != nil {
 		logger.Log.Error(err)
+		return
 	}
 	logger.Log.Info("Deleted mogenius-k8s-manager RBAC.")
 }

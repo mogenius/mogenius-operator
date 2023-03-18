@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
@@ -30,7 +29,8 @@ func CreateNetworkPolicyNamespace(job *structs.Job, stage dtos.K8sStageDto, c *w
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("CreateNetworkPolicyNamespace ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()), c)
+			return
 		}
 
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
@@ -66,7 +66,8 @@ func DeleteNetworkPolicyNamespace(job *structs.Job, stage dtos.K8sStageDto, c *w
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()), c)
+			return
 		}
 
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
@@ -96,7 +97,8 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("CreateNetworkPolicyService ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()), c)
+			return
 		}
 
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
@@ -140,7 +142,8 @@ func DeleteNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("DeleteNetworkPolicyService ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()), c)
+			return
 		}
 
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)

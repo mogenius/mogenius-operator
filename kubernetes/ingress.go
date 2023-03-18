@@ -34,7 +34,8 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 		}
 
 		if err != nil {
-			logger.Log.Errorf("UpdateIngress ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()), c)
+			return
 		}
 
 		ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(stage.K8sName)
@@ -120,6 +121,7 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 				err = ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
 					cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()), c)
+					return
 				} else {
 					cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName), c)
 				}
@@ -130,6 +132,7 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 			_, err = ingressClient.Apply(context.TODO(), config, applyOptions)
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()), c)
+				return
 			} else {
 				cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", ingressName), c)
 			}
@@ -219,11 +222,13 @@ func AllIngresses(namespaceName string) []v1.Ingress {
 	}
 	if err != nil {
 		logger.Log.Errorf("AllIngresses ERROR: %s", err.Error())
+		return result
 	}
 
 	ingressList, err := provider.ClientSet.NetworkingV1().Ingresses(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllIngresses ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, ingress := range ingressList.Items {

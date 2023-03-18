@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -21,6 +22,7 @@ func GetLog(namespace string, podId string) string {
 	}
 	if err != nil {
 		logger.Log.Errorf("CreateNamespace ERROR: %s", err.Error())
+		return ""
 	}
 
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
@@ -66,6 +68,7 @@ func StreamLog(namespace string, podId string, sindceSeconds int64) (*rest.Reque
 	}
 	if err != nil {
 		logger.Log.Errorf("CreateNamespace ERROR: %s", err.Error())
+		return nil, fmt.Errorf("CreateNamespace ERROR: %s", err.Error())
 	}
 
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)

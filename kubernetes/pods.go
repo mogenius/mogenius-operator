@@ -21,6 +21,7 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 	}
 	if err != nil {
 		logger.Log.Errorf("CreateNamespace ERROR: %s", err.Error())
+		return nil
 	}
 
 	getOptions := metav1.GetOptions{}
@@ -30,6 +31,7 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 	pod, err := podClient.Get(context.TODO(), name, getOptions)
 	if err != nil {
 		logger.Log.Error("PodStatus Error: %s", err.Error())
+		return nil
 	}
 
 	if statusOnly {
@@ -51,11 +53,13 @@ func AllPods(namespaceName string) []v1.Pod {
 	}
 	if err != nil {
 		logger.Log.Errorf("AllPods ERROR: %s", err.Error())
+		return result
 	}
 
 	podsList, err := provider.ClientSet.CoreV1().Pods(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllPods podMetricsList ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, pod := range podsList.Items {
@@ -87,11 +91,13 @@ func PodIdsFor(namespace string, serviceId *string) []string {
 	}
 	if err != nil {
 		logger.Log.Errorf("PodIdsForServiceId ERROR: %s", err.Error())
+		return result
 	}
 
 	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses(namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("PodIdsForServiceId podMetricsList ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, podMetrics := range podMetricsList.Items {

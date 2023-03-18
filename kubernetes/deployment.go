@@ -32,7 +32,8 @@ func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		}
 
 		if err != nil {
-			logger.Log.Errorf("CreateDeployment ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()), c)
+			return
 		}
 
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
@@ -68,7 +69,8 @@ func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		}
 
 		if err != nil {
-			logger.Log.Errorf("DeleteDeployment ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()), c)
+			return
 		}
 
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
@@ -103,7 +105,8 @@ func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		}
 
 		if err != nil {
-			logger.Log.Errorf("UpdatingDeployment ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()), c)
+			return
 		}
 
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
@@ -140,7 +143,8 @@ func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		}
 
 		if err != nil {
-			logger.Log.Errorf("StartingDeployment ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()), c)
+			return
 		}
 
 		serviceClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
@@ -172,7 +176,8 @@ func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 		}
 
 		if err != nil {
-			logger.Log.Errorf("StopDeployment ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()), c)
+			return
 		}
 
 		serviceClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
@@ -205,7 +210,8 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 		}
 
 		if err != nil {
-			logger.Log.Errorf("RestartDeployment ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()), c)
+			return
 		}
 
 		serviceClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
@@ -405,7 +411,8 @@ func SetImage(job *structs.Job, stagek8sName string, serviceK8sName string, imag
 		}
 
 		if err != nil {
-			logger.Log.Errorf("SetImage ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()), c)
+			return
 		}
 
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stagek8sName)
@@ -441,11 +448,13 @@ func AllDeployments(namespaceName string) []v1.Deployment {
 	}
 	if err != nil {
 		logger.Log.Errorf("AllDeployments ERROR: %s", err.Error())
+		return result
 	}
 
 	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllDeployments ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, deployment := range deploymentList.Items {

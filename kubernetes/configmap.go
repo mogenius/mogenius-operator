@@ -29,7 +29,8 @@ func CreateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("CreateConfigMap ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()), c)
+			return
 		}
 
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.K8sName)
@@ -69,7 +70,8 @@ func DeleteConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("DeleteConfigMap ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()), c)
+			return
 		}
 
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.K8sName)
@@ -103,7 +105,8 @@ func UpdateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 			kubeProvider, err = NewKubeProviderInCluster()
 		}
 		if err != nil {
-			logger.Log.Errorf("UpdateConfigmap ERROR: %s", err.Error())
+			cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()), c)
+			return
 		}
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.K8sName)
 		configMap := utils.InitConfigMap()
@@ -219,12 +222,14 @@ func ConfigMapFor(namespace string, configMapName string) *v1.ConfigMap {
 
 	if err != nil {
 		logger.Log.Errorf("ConfigMapFor ERROR: %s", err.Error())
+		return nil
 	}
 
 	configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace)
 	configMap, err := configMapClient.Get(context.TODO(), configMapName, metav1.GetOptions{})
 	if err != nil {
 		logger.Log.Errorf("ConfigMapFor ERROR: %s", err.Error())
+		return nil
 	}
 	return configMap
 }
@@ -241,11 +246,13 @@ func AllConfigmaps(namespaceName string) []v1.ConfigMap {
 	}
 	if err != nil {
 		logger.Log.Errorf("AllConfigmaps ERROR: %s", err.Error())
+		return result
 	}
 
 	configmapList, err := provider.ClientSet.CoreV1().ConfigMaps(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllConfigmaps ERROR: %s", err.Error())
+		return result
 	}
 
 	for _, configmap := range configmapList.Items {
