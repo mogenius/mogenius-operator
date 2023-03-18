@@ -17,7 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPaused bool, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", stage.K8sName), job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -38,7 +38,7 @@ func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		}
 
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
-		newDeployment := generateDeployment(stage, service, isPaused)
+		newDeployment := generateDeployment(stage, service, true)
 
 		createOptions := metav1.CreateOptions{
 			FieldManager: DEPLOYMENTNAME,
@@ -92,7 +92,7 @@ func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 	return cmd
 }
 
-func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPaused bool, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", stage.K8sName), job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -113,7 +113,7 @@ func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		}
 
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
-		newDeployment := generateDeployment(stage, service, isPaused)
+		newDeployment := generateDeployment(stage, service, false)
 
 		updateOptions := metav1.UpdateOptions{
 			FieldManager: DEPLOYMENTNAME,
@@ -237,7 +237,7 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 	return cmd
 }
 
-func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPaused bool) v1.Deployment {
+func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, freshlyCreated bool) v1.Deployment {
 	// SANITIZE
 	if service.K8sSettings.LimitCpuCores <= 0 {
 		service.K8sSettings.LimitCpuCores = 0.1
@@ -279,7 +279,11 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPa
 	}
 
 	// PAUSE
-	newDeployment.Spec.Paused = isPaused
+	if freshlyCreated && service.App.Type == "DOCKER_TEMPLATE" {
+		newDeployment.Spec.Paused = true
+	} else {
+		newDeployment.Spec.Paused = false
+	}
 
 	// PORTS
 	if len(service.Ports) > 0 {
