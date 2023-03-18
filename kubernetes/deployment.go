@@ -22,6 +22,7 @@ func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Creating Deployment '%s'.", stage.K8sName), c)
 
 		var kubeProvider *KubeProvider
 		var err error
@@ -59,6 +60,7 @@ func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Deleting Deployment '%s'.", service.K8sName), c)
 
 		var kubeProvider *KubeProvider
 		var err error
@@ -95,6 +97,7 @@ func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", stage.K8sName), c)
 
 		var kubeProvider *KubeProvider
 		var err error

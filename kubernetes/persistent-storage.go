@@ -17,6 +17,7 @@ func CreatePersistentVolume(job *structs.Job, stage dtos.K8sStageDto, c *websock
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", stage.K8sName), c)
 
 		var kubeProvider *KubeProvider
 		var err error
@@ -54,6 +55,7 @@ func CreatePersistentVolumeClaim(job *structs.Job, stage dtos.K8sStageDto, c *we
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", stage.K8sName), c)
 
 		var kubeProvider *KubeProvider
 		var err error
@@ -85,10 +87,11 @@ func CreatePersistentVolumeClaim(job *structs.Job, stage dtos.K8sStageDto, c *we
 }
 
 func DeletePersistentVolume(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", stage.K8sName), job, c)
+	cmd := structs.CreateCommand(fmt.Sprintf("Deleting PersistentVolume '%s'.", stage.K8sName), job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Deleting PersistentVolume '%s'.", stage.K8sName), c)
 
 		var kubeProvider *KubeProvider
 		var err error

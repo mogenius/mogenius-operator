@@ -16,10 +16,11 @@ import (
 )
 
 func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", stage.K8sName), job, c)
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", service.K8sName), job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.K8sName), c)
 
 		var kubeProvider *KubeProvider
 		var err error

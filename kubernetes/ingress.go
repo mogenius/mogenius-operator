@@ -24,6 +24,7 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
+		cmd.Start("Updating ingress setup.", c)
 
 		var kubeProvider *KubeProvider
 		var err error
