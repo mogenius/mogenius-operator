@@ -37,7 +37,7 @@ var COMMAND_REQUESTS = []string{
 	"service/create",
 	"service/delete",
 	"service/pod-ids",
-	"service/images",
+	"service/set-image",
 	"service/log",
 	"service/resource-status",
 	"service/restart",

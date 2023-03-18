@@ -93,9 +93,9 @@ func ExecuteBashCommandSilent(title string, shellCmd string) {
 		logger.Log.Error(shellCmd)
 		logger.Log.Errorf("%d: %s", exitCode, errorMsg)
 	} else if err != nil {
-		logger.Log.Error("ERROR: '%s': %s", title, err.Error())
+		logger.Log.Errorf("ERROR: '%s': %s\n", title, err.Error())
 	} else {
-		logger.Log.Info("SUCCESS '%s': %s", title, shellCmd)
+		logger.Log.Infof("SUCCESS '%s': %s\n", title, shellCmd)
 	}
 }
 

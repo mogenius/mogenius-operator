@@ -192,6 +192,7 @@ func initDocker(service dtos.K8sServiceDto, job structs.Job, c *websocket.Conn) 
 	structs.ExecuteBashCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add inital files."`, gitDir))
 	structs.ExecuteBashCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
 	structs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+	structs.ExecuteBashCommandSilent("Wait", "sleep 5")
 	return cmds
 }
 
