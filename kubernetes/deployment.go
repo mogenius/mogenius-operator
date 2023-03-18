@@ -390,7 +390,7 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, isPa
 }
 
 func SetImage(job *structs.Job, stagek8sName string, serviceK8sName string, imageName string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Set Image", job, c)
+	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
