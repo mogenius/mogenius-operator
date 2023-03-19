@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -17,76 +18,6 @@ const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
 
 var lastResourceVersion = ""
-
-// func ObserveKubernetesEvents() {
-// 	interrupt := make(chan os.Signal, 1)
-// 	signal.Notify(interrupt, os.Interrupt)
-
-// 	connectionGuard := make(chan struct{}, CONCURRENTCONNECTIONS)
-
-// 	for {
-// 		select {
-// 		case <-interrupt:
-// 			log.Fatal("CTRL + C pressed. Terminating.")
-// 		case <-time.After(RETRYTIMEOUT * time.Second):
-// 		}
-
-// 		connectionGuard <- struct{}{} // would block if guard channel is already filled
-// 		go func() {
-// 			connect()
-// 			<-connectionGuard
-// 		}()
-// 	}
-// }
-
-// func connect() {
-// 	ctx := context.Background()
-// 	host := fmt.Sprintf("%s:%d", utils.CONFIG.EventServer.Server, utils.CONFIG.EventServer.Port)
-// 	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.EventServer.Path}
-
-// 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), http.Header{
-// 		"x-authorization": []string{utils.CONFIG.Kubernetes.ApiKey},
-// 		"x-cluster-id":    []string{utils.CONFIG.Kubernetes.ClusterId},
-// 		"x-app":           []string{structs.APP_NAME},
-// 		"x-cluster-name":  []string{utils.CONFIG.Kubernetes.ClusterName}})
-// 	if err != nil {
-// 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
-// 	} else {
-// 		logger.Log.Infof("Connected to EventServer: %s \n", connection.RemoteAddr())
-// 		go watchEvents(connection, ctx)
-// 		observeConnection(connection)
-// 	}
-
-// 	defer func() {
-// 		// reset everything if connection dies
-// 		if connection != nil {
-// 			connection.Close()
-// 		}
-// 		ctx.Done()
-// 	}()
-// }
-
-// func observeConnection(connection *websocket.Conn) {
-// 	for {
-// 		if connection == nil {
-// 			return
-// 		}
-
-// 		msgType, _, err := connection.ReadMessage()
-// 		if err != nil {
-// 			logger.Log.Error("websocket read err:", err)
-// 			connection.Close()
-// 			return
-// 		}
-
-// 		switch msgType {
-// 		case websocket.CloseMessage:
-// 			logger.Log.Warning("Received websocket.CloseMessage.")
-// 			connection.Close()
-// 			return
-// 		}
-// 	}
-// }
 
 func WatchEvents() {
 	ctx := context.Background()
@@ -104,17 +35,17 @@ func WatchEvents() {
 		return
 	}
 
-	watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(ctx, v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
-	defer watcher.Stop()
-
-	if err != nil {
-		logger.Log.Error(err.Error())
-		return
-	}
-
 	for {
-		select {
-		case event := <-watcher.ResultChan():
+		// Create a watcher for all Kubernetes events
+		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(ctx, v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
+		if err != nil {
+			log.Printf("Error creating watcher: %v", err)
+			time.Sleep(5 * time.Second) // Wait for 5 seconds before retrying
+			continue
+		}
+
+		// Start watching events
+		for event := range watcher.ResultChan() {
 			if event.Object != nil {
 				eventDto := dtos.CreateEvent(string(event.Type), event.Object)
 				datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto, nil)
@@ -130,9 +61,10 @@ func WatchEvents() {
 					structs.EventServerSendData(datagram, eventName)
 				}
 			}
-		case <-ctx.Done():
-			logger.Log.Error("Stopped watching events!")
-			return
 		}
+
+		// If the watcher channel is closed, wait for 5 seconds before retrying
+		log.Printf("Watcher channel closed. Waiting before retrying...")
+		time.Sleep(RETRYTIMEOUT * time.Second)
 	}
 }
