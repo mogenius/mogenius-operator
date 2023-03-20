@@ -40,7 +40,7 @@ func WatchEvents() {
 		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(ctx, v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
 		if err != nil {
 			log.Printf("Error creating watcher: %v", err)
-			time.Sleep(5 * time.Second) // Wait for 5 seconds before retrying
+			time.Sleep(RETRYTIMEOUT * time.Second) // Wait for 5 seconds before retrying
 			continue
 		}
 
@@ -52,7 +52,7 @@ func WatchEvents() {
 
 				if reflect.TypeOf(event.Object).String() == "*v1.Event" {
 					var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
-					lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
+					lastResourceVersion = eventObj.ResourceVersion
 					eventName := &eventObj.Message
 					if eventObj.Count > 1 {
 						// this disables the log-display (prevent log spamming)

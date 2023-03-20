@@ -46,7 +46,8 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     coreutils \
-    ruby-dev
+    ruby-dev \
+    openssl
 
 RUN gem install -N rails
 RUN gem install -N bundler
@@ -55,6 +56,12 @@ RUN npm install -g @angular/cli
 RUN npm install -g @nestjs/cli
 RUN npm install -g gatsby-cli
 RUN npm install -g create-next-app next react react-dom
+
+# Install HELM
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+RUN chmod 700 get_helm.sh
+RUN ./get_helm.sh
+RUN rm get_helm.sh
 
 WORKDIR /app
 
