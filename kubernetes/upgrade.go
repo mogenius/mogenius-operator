@@ -32,8 +32,8 @@ func UpgradeMyself(job *structs.Job, command string, c *websocket.Conn, wg *sync
 			return
 		}
 
-		jobClient := kubeProvider.ClientSet.BatchV1().Jobs(NAMESPACE)
-		configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
+		jobClient := kubeProvider.ClientSet.BatchV1().Jobs("default")
+		configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps("default")
 
 		configmap := utils.InitUpgradeConfigMap()
 		configmap.Data["values.command"] = command
