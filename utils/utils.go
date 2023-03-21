@@ -7,11 +7,15 @@ import (
 	"fmt"
 	"log"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/version"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 )
+
+const APP_NAME = "k8s"
 
 var YamlTemplatesFolder embed.FS
 
@@ -117,4 +121,13 @@ func ParseJsonStringArray(input string) []string {
 
 func Remove[T any](slice []T, s int) []T {
 	return append(slice[:s], slice[s+1:]...)
+}
+
+func HttpHeader() http.Header {
+	return http.Header{
+		"x-authorization":  []string{CONFIG.Kubernetes.ApiKey},
+		"x-cluster-mfa-id": []string{CONFIG.Kubernetes.ClusterMfaId},
+		"x-app":            []string{APP_NAME},
+		"x-app-version":    []string{version.Ver},
+		"x-cluster-name":   []string{CONFIG.Kubernetes.ClusterName}}
 }

@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -22,7 +21,7 @@ import (
 )
 
 var (
-	NAMESPACE       = os.Getenv("OWN_NAMESPACE")
+	NAMESPACE       = utils.CONFIG.Kubernetes.OwnNamespace
 	DEPLOYMENTNAME  = "mogenius-k8s-manager"
 	DEPLOYMENTIMAGE = "ghcr.io/mogenius/mogenius-k8s-manager:" + version.Ver
 

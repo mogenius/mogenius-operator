@@ -28,7 +28,7 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 		if utils.CONFIG.Kubernetes.RunInCluster {
 			dataRoot = "/"
 		}
-		job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c))
+		job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c, &wg))
 		job.AddCmd(mokubernetes.CreateNetworkPolicyNamespace(&job, r.Stage, c, &wg))
 		job.AddCmd(mokubernetes.CreatePersistentVolumeClaim(&job, r.Stage, c, &wg))
 		if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {

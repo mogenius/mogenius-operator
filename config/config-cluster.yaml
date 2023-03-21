@@ -1,6 +1,7 @@
 kubernetes:
   api_key: YOUR_API_KEY
   cluster_name: your-cluster-name
+  own_namespace: mogenius
   cluster_mfa_id:
   run_in_cluster: true
   default_container_registry: docker.io

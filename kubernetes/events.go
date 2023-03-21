@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
@@ -24,18 +25,18 @@ func WatchEvents() {
 	var kubeProvider *KubeProvider
 	var err error
 
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		logger.Log.Errorf("watchEvents ERROR: %s", err.Error())
-		return
-	}
-
 	for {
+		if !utils.CONFIG.Kubernetes.RunInCluster {
+			kubeProvider, err = NewKubeProviderLocal()
+		} else {
+			kubeProvider, err = NewKubeProviderInCluster()
+		}
+
+		if err != nil {
+			logger.Log.Errorf("watchEvents ERROR: %s", err.Error())
+			return
+		}
+
 		// Create a watcher for all Kubernetes events
 		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(ctx, v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
 		if err != nil {
@@ -52,7 +53,7 @@ func WatchEvents() {
 
 				if reflect.TypeOf(event.Object).String() == "*v1.Event" {
 					var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
-					lastResourceVersion = eventObj.ResourceVersion
+					lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
 					eventName := &eventObj.Message
 					if eventObj.Count > 1 {
 						// this disables the log-display (prevent log spamming)
@@ -64,7 +65,7 @@ func WatchEvents() {
 		}
 
 		// If the watcher channel is closed, wait for 5 seconds before retrying
-		log.Printf("Watcher channel closed. Waiting before retrying...")
+		log.Printf(fmt.Sprintf("Watcher channel closed. Waiting before retrying with '%s' ...", lastResourceVersion))
 		time.Sleep(RETRYTIMEOUT * time.Second)
 	}
 }

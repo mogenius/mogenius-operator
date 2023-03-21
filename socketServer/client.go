@@ -78,12 +78,7 @@ func startClient() {
 	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.Port)
 	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.ApiServer.Path}
 
-	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), http.Header{
-		"x-authorization":  []string{utils.CONFIG.Kubernetes.ApiKey},
-		"x-cluster-mfa-id": []string{utils.CONFIG.Kubernetes.ClusterMfaId},
-		"x-app":            []string{structs.APP_NAME},
-		"x-app-version":    []string{version.Ver},
-		"x-cluster-name":   []string{utils.CONFIG.Kubernetes.ClusterName}})
+	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
 	if err != nil {
 		logger.Log.Errorf("Connection (available: %d/%d) %s ... %s -> %s\n", connectionCounter, maxGoroutines, color.BlueString(connectionUrl.String()), color.RedString("FAIL 💥"), color.HiRedString(err.Error()))
 		return

@@ -13,8 +13,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const APP_NAME = "k8s"
-
 var sendMutex sync.Mutex
 
 type Datagram struct {

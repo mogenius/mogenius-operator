@@ -2,6 +2,7 @@ package utils
 
 import (
 	v1 "k8s.io/api/apps/v1"
+	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -161,6 +162,38 @@ func InitService() core.Service {
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var app core.Service
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitUpgradeConfigMap() core.ConfigMap {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/upgrade-configmap.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app core.ConfigMap
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitUpgradeJob() v1job.Job {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/upgrade-job.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app v1job.Job
 	_, _, err = s.Decode(yaml, nil, &app)
 	if err != nil {
 		panic(err)

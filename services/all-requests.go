@@ -19,12 +19,15 @@ var COMMAND_REQUESTS = []string{
 	"ClusterStatus",
 	"ClusterResourceInfo",
 	"KubernetesEvent",
+	"UpgradeK8sManager",
 	"files/list",
 	"files/create-folder",
 	"files/rename",
 	"files/chown",
 	"files/chmod",
 	"files/delete",
+	"cluster/execute-helm-chart-task",
+	"cluster/uninstall-helm-chart",
 	"namespace/create",
 	"namespace/delete",
 	"namespace/shutdown",
@@ -75,6 +78,10 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 			LoadBalancerIps: loadBalancerIps,
 		}
 		return result
+	case "UpgradeK8sManager":
+		data := K8sManagerUpgradeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return UpgradeK8sManager(data, c)
 	case "files/list":
 		data := FilesListRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -99,6 +106,14 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := FilesDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Delete(data, c)
+	case "cluster/execute-helm-chart-task":
+		data := ClusterHelmRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return InstallHelmChart(data, c)
+	case "cluster/uninstall-helm-chart":
+		data := ClusterHelmUninstallRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return DeleteHelmChart(data, c)
 	case "namespace/create":
 		data := NamespaceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)

@@ -6,8 +6,6 @@ import (
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
-	"mogenius-k8s-manager/version"
-	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
@@ -53,12 +51,7 @@ func connect(ctx context.Context) {
 	host := fmt.Sprintf("%s:%d", utils.CONFIG.EventServer.Server, utils.CONFIG.EventServer.Port)
 	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.EventServer.Path}
 
-	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), http.Header{
-		"x-authorization":  []string{utils.CONFIG.Kubernetes.ApiKey},
-		"x-cluster-mfa-id": []string{utils.CONFIG.Kubernetes.ClusterMfaId},
-		"x-app":            []string{APP_NAME},
-		"x-app-version":    []string{version.Ver},
-		"x-cluster-name":   []string{utils.CONFIG.Kubernetes.ClusterName}})
+	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
 	if err != nil {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
 	} else {

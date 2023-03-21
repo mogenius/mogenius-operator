@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -64,9 +65,11 @@ func CreateCommand(title string, job *Job, c *websocket.Conn) *Command {
 	return &cmd
 }
 
-func CreateBashCommand(title string, job *Job, shellCmd string, c *websocket.Conn) *Command {
+func CreateBashCommand(title string, job *Job, shellCmd string, c *websocket.Conn, wg *sync.WaitGroup) *Command {
+	wg.Add(1)
 	cmd := CreateCommand(title, job, c)
 	go func(cmd *Command) {
+		defer wg.Done()
 		cmd.Start(title, c)
 
 		_, err := exec.Command("bash", "-c", shellCmd).Output()
