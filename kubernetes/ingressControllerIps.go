@@ -46,11 +46,33 @@ func GetIngressControllerIps() []net.IP {
 	return result
 }
 
-func GetIngressControllerIpsAsStrings() []string {
-	ips := GetIngressControllerIps()
-	result := []string{}
-	for _, ip := range ips {
-		result = append(result, ip.String())
+func GetClusterExternalIps() []string {
+	var result []string = []string{}
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/name=ingress-nginx"
+
+	services, err := kubeProvider.ClientSet.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+
+	for _, service := range services.Items {
+		for _, ingress := range service.Status.LoadBalancer.Ingress {
+			fmt.Println(ingress.IP)
+			result = append(result, ingress.IP)
+		}
+	}
+
+	if err != nil {
+		fmt.Println("Error:", err)
+		return result
 	}
 	return result
 }

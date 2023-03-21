@@ -72,10 +72,10 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		return mokubernetes.ClusterStatus()
 	case "ClusterResourceInfo":
 		nodeStats := mokubernetes.GetNodeStats()
-		loadBalancerIps := kubernetes.GetIngressControllerIpsAsStrings()
+		loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
 		result := dtos.ClusterResourceInfoDto{
-			NodeStats:       nodeStats,
-			LoadBalancerIps: loadBalancerIps,
+			NodeStats:               nodeStats,
+			LoadBalancerExternalIps: loadBalancerExternalIps,
 		}
 		return result
 	case "UpgradeK8sManager":

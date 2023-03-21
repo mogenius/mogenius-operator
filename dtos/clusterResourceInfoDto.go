@@ -1,6 +1,6 @@
 package dtos
 
 type ClusterResourceInfoDto struct {
-	LoadBalancerIps []string   `json:"loadBalancerIps"`
-	NodeStats       []NodeStat `json:"nodeStats"`
+	LoadBalancerExternalIps []string   `json:"loadBalancerExternalIps"`
+	NodeStats               []NodeStat `json:"nodeStats"`
 }
