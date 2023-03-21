@@ -36,11 +36,9 @@ func UpgradeMyself(job *structs.Job, command string, c *websocket.Conn, wg *sync
 		configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
 
 		configmap := utils.InitUpgradeConfigMap()
-		configmap.Namespace = NAMESPACE
 		configmap.Data["values.command"] = command
 
 		job := utils.InitUpgradeJob()
-		job.Namespace = NAMESPACE
 		job.Name = fmt.Sprintf("%s-%s", job.Name, uuid.New().String())
 
 		createOptions := metav1.CreateOptions{
