@@ -17,7 +17,7 @@ spec:
             - key: values.command
               path: values.command                
       containers:
-      - image: ruedigerp/mo-updater:latest
+      - image: ghcr.io/mogenius/mogenius-updater:latest
         imagePullPolicy: Always
         name: mo-updater
         volumeMounts:
