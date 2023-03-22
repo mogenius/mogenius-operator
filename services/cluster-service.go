@@ -47,7 +47,22 @@ type K8sManagerUpgradeRequest struct {
 
 func K8sManagerUpgradeRequestExample() K8sManagerUpgradeRequest {
 	return K8sManagerUpgradeRequest{
-		Command: "helm version",
+		Command: `helm repo add mogenius https://helm.mogenius.com/public
+		helm repo update
+		helm upgrade mogenius mogenius/mogenius-platform -n mogenius \
+		--set global.cluster_name="gcp2" \
+		--set global.api_key="mo_e8a0ac85-c158-4d9d-83aa-d488218fc9f7_vlhqnlum2uh9q8kdhdmu" \
+		--set global.namespace="mogenius" \
+		--set k8smanager.enabled=true \
+		--set metrics.enabled=false \
+		--set traffic-collector.enabled=true \
+		--set pod-stats-collector.enabled=true \
+		--set ingress-nginx.enabled=true \
+		--set certmanager.enabled=true \
+		--set cert-manager.startupapicheck.enabled=false \
+		--set certmanager.namespace="mogenius" \
+		--set cert-manager.namespace="mogenius" \
+		--set cert-manager.installCRDs=true`,
 	}
 }
 
