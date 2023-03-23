@@ -2,6 +2,7 @@ package socketServer
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -35,10 +36,37 @@ var sendMutex sync.Mutex
 
 func Init(r *gin.Engine) {
 	// r.Use(user.AuthUserMiddleware())
-	r.GET("/ws", func(c *gin.Context) {
+	r.GET(utils.CONFIG.ApiServer.Path, func(c *gin.Context) {
 		clusterName := validateHeader(c)
 		if clusterName != "" {
 			wsHandler(c.Writer, c.Request, clusterName)
+		}
+	})
+	r.POST(utils.CONFIG.ApiServer.StreamPath, func(c *gin.Context) {
+		clusterName := validateHeader(c)
+		if clusterName != "" {
+			ctx := context.Background()
+			cancelCtx, _ := context.WithCancel(ctx)
+
+			reader := bufio.NewScanner(c.Request.Body)
+			for {
+				select {
+				case <-cancelCtx.Done():
+					fmt.Println("done")
+					return
+				default:
+					for reader.Scan() {
+						lastBytes := reader.Bytes()
+						fmt.Println(string(lastBytes))
+					}
+				}
+			}
+			// data, err := ioutil.ReadAll(c.Request.Body)
+			// if err != nil {
+			// 	fmt.Println(err.Error())
+			// }
+			fmt.Println(c.Request.Header)
+			// fmt.Println(string(data))
 		}
 	})
 }
@@ -85,8 +113,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 			} else {
 				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) ||
 					utils.Contains(services.BINARY_REQUESTS_DOWNLOAD, datagram.Pattern) ||
-					utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) ||
-					utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
+					utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 					if datagram.Pattern != "KubernetesEvent" {
 						RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
 						fmt.Printf("%s\n", RECEIVCOLOR(utils.FillWith("RECEIVED", 22, " ")))
@@ -317,7 +344,6 @@ func selectCommands() string {
 	allCommands := append([]string{}, services.COMMAND_REQUESTS...)
 	allCommands = append(allCommands, services.BINARY_REQUESTS_DOWNLOAD...)
 	allCommands = append(allCommands, services.BINARY_REQUEST_UPLOAD...)
-	allCommands = append(allCommands, services.STREAM_REQUESTS...)
 	for index, patternName := range allCommands {
 		fmt.Printf("%d: %s\n", index, patternName)
 	}

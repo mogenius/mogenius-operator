@@ -7,9 +7,12 @@ kubernetes:
   default_container_registry: docker.io
 
 api_server:
+  proto: https
   server: k8s-api.dev.mogenius.com
   path: /ws
-  port: 1337
+  stream_path: /stream-data
+  ws_port: 1337
+  http_port: 80
 
 event_server:
   server: k8s-api.dev.mogenius.com
@@ -20,7 +23,7 @@ misc:
   default_mount_path: /mo-data
   storage_account: monfs
   debug: false
-  concurrent_connections: 3
+  concurrent_connections: 1
   ignore_namespaces: ["kube-system", "default"]
   check_for_updates: 86400
   helm_index: https://helm.mogenius.com/public/index.yaml

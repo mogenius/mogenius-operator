@@ -1,8 +1,6 @@
 package socketServer
 
 import (
-	"bufio"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -75,7 +73,7 @@ func StartK8sManager(runsInCluster bool) {
 }
 
 func startClient() {
-	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.Port)
+	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.WsPort)
 	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.ApiServer.Path}
 
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
@@ -169,42 +167,42 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 						sendMutex.Unlock()
 					} else if utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 						preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram, c)
-					} else if utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
-						// ####### STREAM
-						responsePayload, restReq := services.ExecuteStreamRequest(datagram, c)
-						result := structs.CreateDatagramRequest(datagram, responsePayload, c)
-						result.DisplayStreamSummary()
+						// } else if utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
+						// 	// ####### STREAM
+						// 	responsePayload, restReq := services.ExecuteStreamRequest(datagram, c)
+						// 	result := structs.CreateDatagramRequest(datagram, responsePayload, c)
+						// 	result.DisplayStreamSummary()
 
-						ctx := context.Background()
-						cancelCtx, endGofunc := context.WithCancel(ctx)
-						stream, err := restReq.Stream(cancelCtx)
-						if err != nil {
-							result.Err = err.Error()
-						}
-						defer func() {
-							stream.Close()
-							endGofunc()
-							sendMutex.Unlock()
-						}()
+						// 	ctx := context.Background()
+						// 	cancelCtx, endGofunc := context.WithCancel(ctx)
+						// 	stream, err := restReq.Stream(cancelCtx)
+						// 	if err != nil {
+						// 		result.Err = err.Error()
+						// 	}
+						// 	defer func() {
+						// 		stream.Close()
+						// 		endGofunc()
+						// 		sendMutex.Unlock()
+						// 	}()
 
-						startAdditionalConnection()
-						hasOpenStream = true
+						// 	startAdditionalConnection()
+						// 	hasOpenStream = true
 
-						sendMutex.Lock()
-						c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
-						reader := bufio.NewScanner(stream)
-						for {
-							select {
-							case <-cancelCtx.Done():
-								c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
-								return
-							default:
-								for reader.Scan() {
-									lastBytes := reader.Bytes()
-									c.WriteMessage(websocket.BinaryMessage, lastBytes)
-								}
-							}
-						}
+						// 	sendMutex.Lock()
+						// 	c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
+						// 	reader := bufio.NewScanner(stream)
+						// 	for {
+						// 		select {
+						// 		case <-cancelCtx.Done():
+						// 			c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
+						// 			return
+						// 		default:
+						// 			for reader.Scan() {
+						// 				lastBytes := reader.Bytes()
+						// 				c.WriteMessage(websocket.BinaryMessage, lastBytes)
+						// 			}
+						// 		}
+						// 	}
 					} else if utils.Contains(services.BINARY_REQUESTS_DOWNLOAD, datagram.Pattern) {
 						responsePayload, reader, totalSize := services.ExecuteBinaryRequestDownload(datagram, c)
 						result := structs.CreateDatagramRequest(datagram, responsePayload, c)

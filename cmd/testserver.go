@@ -32,7 +32,7 @@ var testServerCmd = &cobra.Command{
 		gin.SetMode(gin.ReleaseMode)
 		router := gin.Default()
 		socketServer.Init(router)
-		logger.Log.Noticef("Started WS server %s:%d 🚀", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.Port)
+		logger.Log.Noticef("Started WS server %s:%d 🚀", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.HttpPort)
 
 		go socketServer.ReadInput()
 		router.Run()

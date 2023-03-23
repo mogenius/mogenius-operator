@@ -262,7 +262,6 @@ func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {
 		provider, err = NewKubeProviderInCluster()
 	}
 	if err != nil {
-		logger.Log.Errorf("SecretDoesExistForStage ERROR: %s", err.Error())
 		return false
 	}
 

@@ -2,13 +2,17 @@ package services
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"k8s.io/client-go/rest"
@@ -50,9 +54,7 @@ var COMMAND_REQUESTS = []string{
 	"service/spectrum-bind",
 	"service/spectrum-unbind",
 	"service/spectrum-configmaps",
-}
 
-var STREAM_REQUESTS = []string{
 	"service/log-stream",
 }
 
@@ -72,7 +74,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		return mokubernetes.ClusterStatus()
 	case "ClusterResourceInfo":
 		nodeStats := mokubernetes.GetNodeStats()
-		loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
+		loadBalancerExternalIps := mokubernetes.GetClusterExternalIps()
 		result := dtos.ClusterResourceInfoDto{
 			NodeStats:               nodeStats,
 			LoadBalancerExternalIps: loadBalancerExternalIps,
@@ -206,28 +208,84 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		return result
 	case "service/spectrum-configmaps":
 		return SpectrumConfigmaps(c)
+	case "service/log-stream":
+		data := ServiceLogStreamRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return logStream(data, datagram, c)
 	}
 
 	datagram.Err = "Pattern not found"
 	return datagram
 }
 
-func ExecuteStreamRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, *rest.Request) {
-	switch datagram.Pattern {
-	case "service/log-stream":
-		data := ServiceLogStreamRequest{}
-		marshalUnmarshal(&datagram, &data)
-		restReq, err := PodLogStream(data, c)
-		if err != nil {
-			datagram.Err = err.Error()
-			return datagram, nil
-		}
-		return data, restReq
+func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *websocket.Conn) ServiceLogStreamResult {
+	requestURL := url.URL{Scheme: utils.CONFIG.ApiServer.Proto, Host: fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.HttpPort), Path: utils.CONFIG.ApiServer.StreamPath}
+	result := ServiceLogStreamResult{
+		Message: fmt.Sprintf("Initiated log-stream '%s' for '%s/%s'.", requestURL.String(), data.Namespace, data.PodId),
 	}
 
-	datagram.Err = "Pattern not found"
-	return datagram, nil
+	restReq, err := PodLogStream(data, c)
+	if err != nil {
+		result.Message = err.Error()
+		logger.Log.Error(result.Message)
+		return result
+	}
+
+	go streamData(restReq, requestURL.String())
+
+	return result
 }
+
+func streamData(restReq *rest.Request, toServerUrl string) {
+
+	ctx := context.Background()
+	cancelCtx, endGofunc := context.WithCancel(ctx)
+	stream, err := restReq.Stream(cancelCtx)
+	if err != nil {
+		logger.Log.Error(err.Error())
+	}
+	defer func() {
+		if stream != nil {
+			stream.Close()
+		}
+		endGofunc()
+	}()
+	if err != nil {
+		logger.Log.Error(err.Error())
+	}
+
+	req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
+	if err != nil {
+		logger.Log.Errorf("streamData client: could not create request: %s\n", err)
+	}
+	req.Header = utils.HttpHeader()
+
+	client := http.Client{
+		Timeout: 0 * time.Second, // no timeout
+	}
+
+	_, err = client.Do(req)
+	if err != nil {
+		logger.Log.Errorf("streamData client: error making http request: %s\n", err)
+	}
+}
+
+// func ExecuteStreamRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, *rest.Request) {
+// 	switch datagram.Pattern {
+// 	case "service/log-stream":
+// 		data := ServiceLogStreamRequest{}
+// 		marshalUnmarshal(&datagram, &data)
+// 		restReq, err := PodLogStream(data, c)
+// 		if err != nil {
+// 			datagram.Err = err.Error()
+// 			return datagram, nil
+// 		}
+// 		return data, restReq
+// 	}
+
+// 	datagram.Err = "Pattern not found"
+// 	return datagram, nil
+// }
 
 func ExecuteBinaryRequestDownload(datagram structs.Datagram, c *websocket.Conn) (interface{}, *bufio.Reader, *int64) {
 	switch datagram.Pattern {

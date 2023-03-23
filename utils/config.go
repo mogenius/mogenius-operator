@@ -26,9 +26,12 @@ type Config struct {
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
-		Server string `yaml:"server" env:"api_server" env-description:"Server host" env-default:"127.0.0.1"`
-		Port   int    `yaml:"port" env:"api_port" env-description:"Server port" env-default:"8080"`
-		Path   string `yaml:"path" env:"api_path" env-description:"Server Path" env-default:"/ws"`
+		Proto      string `yaml:"proto" env:"api_proto" env-description:"Server protocol" env-default:"https"`
+		Server     string `yaml:"server" env:"api_server" env-description:"Server host" env-default:"127.0.0.1"`
+		WsPort     int    `yaml:"ws_port" env:"api_ws_port" env-description:"Server port" env-default:"8080"`
+		HttpPort   int    `yaml:"http_port" env:"api_http_port" env-description:"Server port" env-default:"8080"`
+		Path       string `yaml:"path" env:"api_path" env-description:"Server Path" env-default:"/ws"`
+		StreamPath string `yaml:"stream_path" env:"api_stream_path" env-description:"Server Path" env-default:"/stream-data"`
 	} `yaml:"api_server"`
 	EventServer struct {
 		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1"`
@@ -39,7 +42,7 @@ type Config struct {
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		StorageAccount        string   `yaml:"storage_account" env:"storage_account" env-description:"Azure Storage Account"`
 		DefaultMountPath      string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
-		ConcurrentConnections int      `yaml:"concurrent_connections" env:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"3"`
+		ConcurrentConnections int      `yaml:"concurrent_connections" env:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"1"`
 		IgnoreNamespaces      []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
 		CheckForUpdates       int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
 		HelmIndex             string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
@@ -111,9 +114,12 @@ func PrintSettings() {
 
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 
+	logger.Log.Infof("ApiProtocol:              %s", CONFIG.ApiServer.Proto)
 	logger.Log.Infof("ApiServer:                %s", CONFIG.ApiServer.Server)
-	logger.Log.Infof("ApiPort:                  %d", CONFIG.ApiServer.Port)
+	logger.Log.Infof("ApiWsPort:                %d", CONFIG.ApiServer.WsPort)
+	logger.Log.Infof("ApiHttpPort:              %s", CONFIG.ApiServer.HttpPort)
 	logger.Log.Infof("ApiPath:                  %s", CONFIG.ApiServer.Path)
+	logger.Log.Infof("StreamPath:               %s", CONFIG.ApiServer.StreamPath)
 
 	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
 	logger.Log.Infof("EventPort:                %d", CONFIG.EventServer.Port)

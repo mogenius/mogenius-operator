@@ -265,12 +265,13 @@ type ServiceGetLogRequest struct {
 
 func ServiceGetLogRequestExample() ServiceGetLogRequest {
 	return ServiceGetLogRequest{
-		Namespace: "default",
-		PodId:     "mo-k8s-manager-mo7-87fbc475b-skktl",
+		Namespace: "gcp2-new-xrrllb-y0y3g6",
+		PodId:     "nginx-63uleb-686867bb6c-bsdvl",
 	}
 }
 
 type ServiceLogStreamRequest struct {
+	Id           string `json:"id"`
 	Namespace    string `json:"namespace"`
 	PodId        string `json:"podId"`
 	SinceSeconds int    `json:"sinceSeconds"`
@@ -278,10 +279,15 @@ type ServiceLogStreamRequest struct {
 
 func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	return ServiceLogStreamRequest{
-		Namespace:    "default",
-		PodId:        "mo-k8s-manager-mo7-87fbc475b-skktl",
+		Id:           "6BBE797E-D559-48B9-9810-1D25A7FF9167",
+		Namespace:    "gcp2-new-xrrllb-y0y3g6",
+		PodId:        "nginx-63uleb-686867bb6c-bsdvl",
 		SinceSeconds: -1,
 	}
+}
+
+type ServiceLogStreamResult struct {
+	Message string `json:"message"`
 }
 
 type ServiceResourceStatusRequest struct {
@@ -294,8 +300,8 @@ type ServiceResourceStatusRequest struct {
 func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
 	return ServiceResourceStatusRequest{
 		Resource:   "pods",
-		Namespace:  "default",
-		Name:       "mo-k8s-manager-mo7-87fbc475b-skktl",
+		Namespace:  "mogenius",
+		Name:       "mogenius-k8s-manager-gcp2-6c969cb878-tcksq",
 		StatusOnly: true,
 	}
 }
