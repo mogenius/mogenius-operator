@@ -117,7 +117,7 @@ func PrintSettings() {
 	logger.Log.Infof("ApiProtocol:              %s", CONFIG.ApiServer.Proto)
 	logger.Log.Infof("ApiServer:                %s", CONFIG.ApiServer.Server)
 	logger.Log.Infof("ApiWsPort:                %d", CONFIG.ApiServer.WsPort)
-	logger.Log.Infof("ApiHttpPort:              %s", CONFIG.ApiServer.HttpPort)
+	logger.Log.Infof("ApiHttpPort:              %d", CONFIG.ApiServer.HttpPort)
 	logger.Log.Infof("ApiPath:                  %s", CONFIG.ApiServer.Path)
 	logger.Log.Infof("StreamPath:               %s", CONFIG.ApiServer.StreamPath)
 

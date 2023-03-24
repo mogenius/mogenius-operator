@@ -308,6 +308,8 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ServiceSetImageRequestExample()
 		case "service/log":
 			payload = services.ServiceGetLogRequestExample()
+		case "service/log-error":
+			payload = services.ServiceGetLogRequestExample()
 		case "service/log-stream":
 			payload = services.ServiceLogStreamRequestExample()
 			blockConnection = true

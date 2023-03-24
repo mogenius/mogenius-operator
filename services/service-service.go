@@ -61,6 +61,10 @@ func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
 	return mokubernetes.GetLog(r.Namespace, r.PodId)
 }
 
+func PodLogError(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
+	return mokubernetes.GetLogError(r.Namespace, r.PodId)
+}
+
 func PodLogStream(r ServiceLogStreamRequest, c *websocket.Conn) (*rest.Request, error) {
 	return mokubernetes.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
 }

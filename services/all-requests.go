@@ -46,6 +46,7 @@ var COMMAND_REQUESTS = []string{
 	"service/pod-ids",
 	"service/set-image",
 	"service/log",
+	"service/log-error",
 	"service/resource-status",
 	"service/restart",
 	"service/stop",
@@ -170,6 +171,10 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := ServiceGetLogRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return PodLog(data, c)
+	case "service/log-error":
+		data := ServiceGetLogRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return PodLogError(data, c)
 	case "service/resource-status":
 		data := ServiceResourceStatusRequest{}
 		marshalUnmarshal(&datagram, &data)
