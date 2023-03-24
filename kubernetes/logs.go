@@ -23,16 +23,18 @@ type ServiceGetLogErrorResult struct {
 }
 
 type ServiceGetLogResult struct {
-	Namespace string `json:"namespace"`
-	PodId     string `json:"podId"`
-	Log       string `json:"log"`
+	Namespace       string    `json:"namespace"`
+	PodId           string    `json:"podId"`
+	ServerTimestamp time.Time `json:"serverTimestamp"`
+	Log             string    `json:"log"`
 }
 
 func GetLog(namespace string, podId string, timestamp *time.Time) ServiceGetLogResult {
 	result := ServiceGetLogResult{
-		Namespace: namespace,
-		PodId:     podId,
-		Log:       "",
+		Namespace:       namespace,
+		PodId:           podId,
+		ServerTimestamp: time.Now(),
+		Log:             "",
 	}
 
 	var kubeProvider *KubeProvider
