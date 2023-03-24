@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +22,7 @@ type ServiceGetLogErrorResult struct {
 	Log       string `json:"log"`
 }
 
-func GetLog(namespace string, podId string) string {
+func GetLog(namespace string, podId string, timestamp *time.Time) string {
 	var kubeProvider *KubeProvider
 	var err error
 	if !utils.CONFIG.Kubernetes.RunInCluster {
@@ -36,8 +37,13 @@ func GetLog(namespace string, podId string) string {
 
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
 
+	var kubernetesTime metav1.Time
+	if timestamp != nil {
+		kubernetesTime = metav1.NewTime(*timestamp)
+	}
 	opts := v1.PodLogOptions{
 		TailLines: utils.Pointer[int64](2000),
+		SinceTime: &kubernetesTime,
 	}
 
 	restReq := podClient.GetLogs(podId, &opts)

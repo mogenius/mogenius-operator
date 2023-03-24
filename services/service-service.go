@@ -6,8 +6,10 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"k8s.io/client-go/rest"
@@ -58,7 +60,7 @@ func ServicePodIds(r ServiceGetPodIdsRequest, c *websocket.Conn) interface{} {
 }
 
 func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
-	return mokubernetes.GetLog(r.Namespace, r.PodId)
+	return mokubernetes.GetLog(r.Namespace, r.PodId, r.Timestamp)
 }
 
 func PodLogError(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
@@ -263,14 +265,16 @@ func ServiceSetImageRequestExample() ServiceSetImageRequest {
 }
 
 type ServiceGetLogRequest struct {
-	Namespace string `json:"namespace"`
-	PodId     string `json:"podId"`
+	Namespace string     `json:"namespace"`
+	PodId     string     `json:"podId"`
+	Timestamp *time.Time `json:"timestamp"`
 }
 
 func ServiceGetLogRequestExample() ServiceGetLogRequest {
 	return ServiceGetLogRequest{
 		Namespace: "gcp2-new-xrrllb-y0y3g6",
 		PodId:     "nginx-63uleb-686867bb6c-bsdvl",
+		Timestamp: utils.Pointer(time.Now()),
 	}
 }
 
