@@ -22,7 +22,19 @@ type ServiceGetLogErrorResult struct {
 	Log       string `json:"log"`
 }
 
-func GetLog(namespace string, podId string, timestamp *time.Time) string {
+type ServiceGetLogResult struct {
+	Namespace string `json:"namespace"`
+	PodId     string `json:"podId"`
+	Log       string `json:"log"`
+}
+
+func GetLog(namespace string, podId string, timestamp *time.Time) ServiceGetLogResult {
+	result := ServiceGetLogResult{
+		Namespace: namespace,
+		PodId:     podId,
+		Log:       "",
+	}
+
 	var kubeProvider *KubeProvider
 	var err error
 	if !utils.CONFIG.Kubernetes.RunInCluster {
@@ -32,7 +44,8 @@ func GetLog(namespace string, podId string, timestamp *time.Time) string {
 	}
 	if err != nil {
 		logger.Log.Errorf("GetLog ERROR: %s", err.Error())
-		return ""
+		result.Log = err.Error()
+		return result
 	}
 
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
@@ -50,11 +63,11 @@ func GetLog(namespace string, podId string, timestamp *time.Time) string {
 	stream, err := restReq.Stream(context.TODO())
 	reader := bufio.NewReader(stream)
 	if err != nil {
-		return err.Error()
+		result.Log = err.Error()
+		return result
 	}
 	defer stream.Close()
 
-	resultMsg := ""
 	for {
 		buf := make([]byte, 2000)
 		numBytes, err := reader.Read(buf)
@@ -65,12 +78,13 @@ func GetLog(namespace string, podId string, timestamp *time.Time) string {
 			break
 		}
 		if err != nil {
-			return err.Error()
+			result.Log = err.Error()
+			return result
 		}
 		message := string(buf[:numBytes])
-		resultMsg += message
+		result.Log += message
 	}
-	return resultMsg
+	return result
 }
 
 func GetLogError(namespace string, podId string) ServiceGetLogErrorResult {
