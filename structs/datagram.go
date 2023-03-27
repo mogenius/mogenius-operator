@@ -108,8 +108,22 @@ func (d *Datagram) DisplaySentSummary() {
 	fmt.Printf("%s%s%s (%s)\n", utils.FillWith("SENT", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), DurationStrSince(d.CreatedAt))
 }
 
-func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string) {
-	fmt.Printf("%s%s: %s/%s -> %s \n", utils.FillWith("SENT", 23, " "), d.Pattern, kind, reason, msg)
+func (d *Datagram) DisplaySentSummaryEvent(kind *string, reason *string, msg *string) {
+	aKind := ""
+	aReason := ""
+	aMsg := ""
+
+	if kind != nil {
+		aKind = *kind
+	}
+	if reason != nil {
+		aReason = *reason
+	}
+	if msg != nil {
+		aMsg = *msg
+	}
+
+	fmt.Printf("%s%s: %s/%s -> %s \n", utils.FillWith("SENT", 23, " "), d.Pattern, aKind, aReason, aMsg)
 }
 
 func (d *Datagram) DisplayStreamSummary() {
