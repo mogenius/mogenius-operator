@@ -114,7 +114,7 @@ func ReportStateToServer(job *Job, cmd *Command, c *websocket.Conn) {
 		if data != nil {
 			stateLog(typeName, data)
 			result := CreateDatagramFromNotification(data, nil)
-			EventServerSendData(result, nil)
+			EventServerSendData(result, nil, nil, nil)
 		} else {
 			logger.Log.Error("Serialization failed.")
 		}

@@ -11,6 +11,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type ServicePodExistsResult struct {
+	PodExists bool `json:"podExists"`
+}
+
 func PodStatus(resource string, namespace string, name string, statusOnly bool) *v1.Pod {
 	var kubeProvider *KubeProvider
 	var err error
@@ -20,7 +24,7 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 		kubeProvider, err = NewKubeProviderInCluster()
 	}
 	if err != nil {
-		logger.Log.Errorf("CreateNamespace ERROR: %s", err.Error())
+		logger.Log.Errorf("PodStatus ERROR: %s", err.Error())
 		return nil
 	}
 
@@ -39,6 +43,35 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 	}
 
 	return pod
+}
+
+func PodExists(namespace string, name string) ServicePodExistsResult {
+	result := ServicePodExistsResult{}
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("PodExists ERROR: %s", err.Error())
+		result.PodExists = false
+		return result
+	}
+
+	getOptions := metav1.GetOptions{}
+
+	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
+
+	pod, err := podClient.Get(context.TODO(), name, getOptions)
+	if err != nil || pod == nil {
+		result.PodExists = false
+		return result
+	}
+
+	result.PodExists = true
+	return result
 }
 
 func AllPods(namespaceName string) []v1.Pod {

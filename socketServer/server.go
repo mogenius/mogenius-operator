@@ -304,6 +304,8 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ServiceDeleteRequestExample()
 		case "service/pod-ids":
 			payload = services.ServiceGetPodIdsRequestExample()
+		case "SERVICE_POD_EXISTS":
+			payload = services.ServicePodExistsRequestExample()
 		case "service/set-image":
 			payload = services.ServiceSetImageRequestExample()
 		case "service/log":

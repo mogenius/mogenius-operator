@@ -267,7 +267,6 @@ func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {
 
 	secret, err := provider.ClientSet.CoreV1().Secrets(stage.K8sName).Get(context.TODO(), "container-secret-"+stage.K8sName, metav1.GetOptions{})
 	if err != nil {
-		logger.Log.Errorf("SecretDoesExistForStage ERROR: %s", err.Error())
 		return false
 	}
 	return secret != nil

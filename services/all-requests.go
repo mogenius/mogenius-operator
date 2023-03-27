@@ -24,6 +24,7 @@ var COMMAND_REQUESTS = []string{
 	"ClusterResourceInfo",
 	"KubernetesEvent",
 	"UpgradeK8sManager",
+	"SERVICE_POD_EXISTS",
 	"files/list",
 	"files/create-folder",
 	"files/rename",
@@ -163,6 +164,10 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := ServiceGetPodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ServicePodIds(data, c)
+	case "SERVICE_POD_EXISTS":
+		data := ServicePodExistsRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return ServicePodExists(data, c)
 	case "service/set-image":
 		data := ServiceSetImageRequest{}
 		marshalUnmarshal(&datagram, &data)

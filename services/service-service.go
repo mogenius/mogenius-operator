@@ -59,6 +59,10 @@ func ServicePodIds(r ServiceGetPodIdsRequest, c *websocket.Conn) interface{} {
 	return kubernetes.PodIdsFor(r.Namespace, &r.ServiceId)
 }
 
+func ServicePodExists(r ServicePodExistsRequest, c *websocket.Conn) interface{} {
+	return kubernetes.PodExists(r.K8sNamespace, r.K8sPod)
+}
+
 func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
 	return mokubernetes.GetLog(r.Namespace, r.PodId, r.Timestamp)
 }
@@ -239,6 +243,18 @@ func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
 	return ServiceGetPodIdsRequest{
 		Namespace: "default",
 		ServiceId: "mo-",
+	}
+}
+
+type ServicePodExistsRequest struct {
+	K8sNamespace string `json:"k8sNamespace"`
+	K8sPod       string `json:"k8sPod"`
+}
+
+func ServicePodExistsRequestExample() ServicePodExistsRequest {
+	return ServicePodExistsRequest{
+		K8sNamespace: "mogenius",
+		K8sPod:       "mogenius-traffic-collector-jfnjw",
 	}
 }
 

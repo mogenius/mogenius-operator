@@ -91,7 +91,7 @@ func observeConnection(connection *websocket.Conn) {
 	}
 }
 
-func EventServerSendData(datagram Datagram, eventName *string) {
+func EventServerSendData(datagram Datagram, k8sKind *string, k8sReason *string, k8sMessage *string) {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 	dataQueue = append(dataQueue, datagram)
@@ -101,9 +101,7 @@ func EventServerSendData(datagram Datagram, eventName *string) {
 		if queueConnection != nil {
 			err := queueConnection.WriteJSON(element)
 			if err == nil {
-				if eventName != nil {
-					datagram.DisplaySentSummaryEvent(*eventName)
-				}
+				datagram.DisplaySentSummaryEvent(*k8sKind, *k8sReason, *k8sMessage)
 				dataQueue = RemoveIndex(dataQueue, i)
 			} else {
 				return
