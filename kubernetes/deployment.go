@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1depl "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
 func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
@@ -38,7 +40,7 @@ func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		}
 
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
-		newDeployment := generateDeployment(stage, service, true)
+		newDeployment := generateDeployment(stage, service, true, deploymentClient)
 
 		createOptions := metav1.CreateOptions{
 			FieldManager: DEPLOYMENTNAME,
@@ -113,7 +115,7 @@ func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		}
 
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
-		newDeployment := generateDeployment(stage, service, false)
+		newDeployment := generateDeployment(stage, service, false, deploymentClient)
 
 		updateOptions := metav1.UpdateOptions{
 			FieldManager: DEPLOYMENTNAME,
@@ -150,10 +152,10 @@ func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 			return
 		}
 
-		serviceClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
-		deployment := generateDeployment(stage, service, false)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
+		deployment := generateDeployment(stage, service, false, deploymentClient)
 
-		_, err = serviceClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -183,11 +185,11 @@ func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 			return
 		}
 
-		serviceClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
-		deployment := generateDeployment(stage, service, false)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
+		deployment := generateDeployment(stage, service, false, deploymentClient)
 		deployment.Spec.Replicas = utils.Pointer[int32](0)
 
-		_, err = serviceClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -217,8 +219,8 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 			return
 		}
 
-		serviceClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
-		deployment := generateDeployment(stage, service, false)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
+		deployment := generateDeployment(stage, service, false, deploymentClient)
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
 		if deployment.ObjectMeta.Annotations == nil {
 			deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
@@ -227,7 +229,7 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		}
 
-		_, err = serviceClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -237,7 +239,12 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 	return cmd
 }
 
-func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, freshlyCreated bool) v1.Deployment {
+func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, freshlyCreated bool, deploymentclient v1depl.DeploymentInterface) v1.Deployment {
+	previousDeployment, err := deploymentclient.Get(context.TODO(), service.K8sName, metav1.GetOptions{})
+	if err != nil {
+		logger.Log.Infof("No previous deployment found for %s/%s.", stage.K8sName, service.K8sName)
+	}
+
 	// SANITIZE
 	if service.K8sSettings.LimitCpuCores <= 0 {
 		service.K8sSettings.LimitCpuCores = 0.1
@@ -314,9 +321,7 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 	newDeployment.Spec.Template.Spec.Containers[0].Name = service.K8sName
 
 	// IMAGE
-	if service.App.Type != "CONTAINER_IMAGE" && service.App.Type != "CONTAINER_IMAGE_TEMPLATE" {
-		newDeployment.Spec.Template.Spec.Containers[0].Image = fmt.Sprintf("%s/%s-%s:latest", utils.CONFIG.Kubernetes.DefaultContainerRegistry, service.K8sName, stage.K8sName)
-	} else {
+	if service.App.Type == "CONTAINER_IMAGE" || service.App.Type == "CONTAINER_IMAGE_TEMPLATE" {
 		newDeployment.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
 		if service.ContainerImageCommand != "" {
 			newDeployment.Spec.Template.Spec.Containers[0].Command = utils.ParseJsonStringArray(service.ContainerImageCommand)
@@ -329,6 +334,13 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 			newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{
 				Name: fmt.Sprintf("%s-container-secret", service.K8sName),
 			})
+		}
+	} else {
+		// this will be setup UNTIL the buildserver overwrites the image with the real one.
+		if previousDeployment != nil {
+			newDeployment.Spec.Template.Spec.Containers[0].Image = previousDeployment.Spec.Template.Spec.Containers[0].Image
+		} else {
+			newDeployment.Spec.Template.Spec.Containers[0].Image = "ghcr.io/mogenius/mo-default-backend:latest"
 		}
 	}
 
