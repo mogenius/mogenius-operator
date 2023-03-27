@@ -243,6 +243,7 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 	previousDeployment, err := deploymentclient.Get(context.TODO(), service.K8sName, metav1.GetOptions{})
 	if err != nil {
 		logger.Log.Infof("No previous deployment found for %s/%s.", stage.K8sName, service.K8sName)
+		previousDeployment = nil
 	}
 
 	// SANITIZE

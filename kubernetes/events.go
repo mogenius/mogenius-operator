@@ -52,12 +52,11 @@ func WatchEvents() {
 				if reflect.TypeOf(event.Object).String() == "*v1.Event" {
 					var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
 					lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
-					message := &eventObj.Message
-					kind := &eventObj.InvolvedObject.Kind
-					reason := &eventObj.Reason
-					if eventObj.Count <= 1 {
-						structs.EventServerSendData(datagram, kind, reason, message)
-					}
+					message := eventObj.Message
+					kind := eventObj.InvolvedObject.Kind
+					reason := eventObj.Reason
+					count := eventObj.Count
+					structs.EventServerSendData(datagram, kind, reason, message, count)
 				}
 			}
 		}
