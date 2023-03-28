@@ -1,11 +1,14 @@
 package structs
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func PrettyPrint(i interface{}) {
 	iJson, err := json.MarshalIndent(i, "", "  ")

@@ -3,7 +3,6 @@ package services
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
@@ -13,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gorilla/websocket"
 	"k8s.io/client-go/rest"
@@ -67,6 +68,8 @@ var BINARY_REQUESTS_DOWNLOAD = []string{
 var BINARY_REQUEST_UPLOAD = []string{
 	"files/upload",
 }
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 	switch datagram.Pattern {

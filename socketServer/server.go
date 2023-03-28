@@ -3,7 +3,6 @@ package socketServer
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"

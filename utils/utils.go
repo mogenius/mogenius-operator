@@ -3,7 +3,6 @@ package utils
 import (
 	"bufio"
 	"embed"
-	"encoding/json"
 	"fmt"
 	"log"
 	"mogenius-k8s-manager/logger"
@@ -13,11 +12,14 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 const APP_NAME = "k8s"
 
 var YamlTemplatesFolder embed.FS
+var jsonOnSteroids = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func Pointer[K any](val K) *K {
 	return &val
@@ -113,7 +115,7 @@ func FunctionName() string {
 
 func ParseJsonStringArray(input string) []string {
 	val := []string{}
-	if err := json.Unmarshal([]byte(input), &val); err != nil {
+	if err := jsonOnSteroids.Unmarshal([]byte(input), &val); err != nil {
 		logger.Log.Errorf("jsonStringArrayToStringArray: Failed to parse: '%s' to []string.", input)
 	}
 	return val

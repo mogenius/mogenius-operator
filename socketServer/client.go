@@ -1,7 +1,6 @@
 package socketServer
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
+
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	"github.com/google/uuid"
@@ -35,6 +36,7 @@ const PingSeconds = 10
 var connectionCounter int = 0
 var maxGoroutines = 0
 var connectionGuard chan struct{}
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func StartK8sManager(runsInCluster bool) {
 	interrupt := make(chan os.Signal, 1)
