@@ -106,6 +106,7 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 				}
 				dataQueue = RemoveIndex(dataQueue, i)
 			} else {
+				logger.Log.Error(err)
 				return
 			}
 		}
