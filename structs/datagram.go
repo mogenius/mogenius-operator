@@ -105,7 +105,7 @@ func (d *Datagram) DisplayReceiveSummary() {
 }
 
 func (d *Datagram) DisplaySentSummary() {
-	fmt.Printf("%s%s%s (%s)\n", utils.FillWith("SENT", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s%s%s [%s] (%s)\n", utils.FillWith("SENT", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), d.Connection.RemoteAddr().String(), DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
