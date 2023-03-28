@@ -20,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 	"github.com/gorilla/websocket"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/mattn/go-tty"
 	"github.com/schollz/progressbar/v3"
 )
@@ -103,6 +104,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 			}
 
 			datagram := structs.CreateEmptyDatagram()
+			var json = jsoniter.ConfigCompatibleWithStandardLibrary
 			_ = json.Unmarshal(msg, &datagram)
 			datagramValidationError := validate.Struct(datagram)
 

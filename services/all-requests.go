@@ -69,8 +69,6 @@ var BINARY_REQUEST_UPLOAD = []string{
 	"files/upload",
 }
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
 func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
 	switch datagram.Pattern {
 	case "K8sNotification":
@@ -329,6 +327,7 @@ func K8sNotification(d structs.Datagram, c *websocket.Conn) interface{} {
 }
 
 func marshalUnmarshal(datagram *structs.Datagram, data interface{}) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(datagram.Payload)
 	if err != nil {
 		datagram.Err = err.Error()

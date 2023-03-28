@@ -8,9 +8,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
 func PrettyPrint(i interface{}) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	iJson, err := json.MarshalIndent(i, "", "  ")
 	if err != nil {
 		log.Fatalf(err.Error())
@@ -19,6 +18,7 @@ func PrettyPrint(i interface{}) {
 }
 
 func PrettyPrintString(i interface{}) string {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	iJson, err := json.MarshalIndent(i, "", "  ")
 	if err != nil {
 		log.Fatalf(err.Error())

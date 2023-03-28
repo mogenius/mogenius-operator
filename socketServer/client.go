@@ -18,11 +18,10 @@ import (
 	"sync"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
-
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	"github.com/google/uuid"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/schollz/progressbar/v3"
 	"gopkg.in/yaml.v2"
 
@@ -36,7 +35,6 @@ const PingSeconds = 10
 var connectionCounter int = 0
 var maxGoroutines = 0
 var connectionGuard chan struct{}
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func StartK8sManager(runsInCluster bool) {
 	interrupt := make(chan os.Signal, 1)
@@ -149,6 +147,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				} else {
 					datagram := structs.CreateEmptyDatagram()
 
+					var json = jsoniter.ConfigCompatibleWithStandardLibrary
 					jsonErr := json.Unmarshal([]byte(rawDataStr), &datagram)
 					if jsonErr != nil {
 						logger.Log.Errorf("%s", jsonErr.Error())
