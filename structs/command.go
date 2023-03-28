@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 	"os/exec"
 	"sync"
 	"time"
@@ -98,7 +99,9 @@ func ExecuteBashCommandSilent(title string, shellCmd string) {
 	} else if err != nil {
 		logger.Log.Errorf("ERROR: '%s': %s\n", title, err.Error())
 	} else {
-		logger.Log.Infof("SUCCESS '%s': %s\n", title, shellCmd)
+		if utils.CONFIG.Misc.Debug {
+			logger.Log.Infof("SUCCESS '%s': %s\n", title, shellCmd)
+		}
 	}
 }
 

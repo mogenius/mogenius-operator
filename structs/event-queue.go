@@ -102,7 +102,9 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 			err := queueConnection.WriteJSON(element)
 			if err == nil {
 				if k8sKind != "" && k8sReason != "" && k8sMessage != "" {
-					datagram.DisplaySentSummaryEvent(k8sKind, k8sReason, k8sMessage, count)
+					if utils.CONFIG.Misc.Debug {
+						datagram.DisplaySentSummaryEvent(k8sKind, k8sReason, k8sMessage, count)
+					}
 				}
 				dataQueue = RemoveIndex(dataQueue, i)
 			} else {

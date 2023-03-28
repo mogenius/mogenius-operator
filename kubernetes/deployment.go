@@ -373,7 +373,8 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 	}
 
 	// SECURITY CONTEXT
-	structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
+	// TODO wieder in betrieb nehmen
+	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
 	newDeployment.Spec.Template.Spec.Containers[0].SecurityContext = nil
 
 	// VOLUME MOUNT
