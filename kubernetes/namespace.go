@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 )
@@ -112,6 +113,36 @@ func ListAllNamespaceNames() []string {
 
 	for _, ns := range namespaceList.Items {
 		result = append(result, ns.Name)
+	}
+
+	return result
+}
+
+func ListAllNamespace() []v1.Namespace {
+	result := []v1.Namespace{}
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		logger.Log.Errorf("ListAllNamespace ERROR: %s", err.Error())
+		return result
+	}
+
+	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
+
+	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		logger.Log.Errorf("ListAllNamespace ERROR: %s", err.Error())
+		return result
+	}
+
+	for _, ns := range namespaceList.Items {
+		result = append(result, ns)
 	}
 
 	return result

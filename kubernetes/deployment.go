@@ -457,6 +457,37 @@ func SetImage(job *structs.Job, stagek8sName string, serviceK8sName string, imag
 	return cmd
 }
 
+func UpdateK8sDeployment(job *structs.Job, data v1.Deployment, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Update '%s/%s'", data.Kind, data.Name), job, c)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Update '%s/%s'", data.Kind, data.Name), c)
+
+		var kubeProvider *KubeProvider
+		var err error
+		if !utils.CONFIG.Kubernetes.RunInCluster {
+			kubeProvider, err = NewKubeProviderLocal()
+		} else {
+			kubeProvider, err = NewKubeProviderInCluster()
+		}
+
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("UpdateK8sDeployment ERROR: %s", err.Error()), c)
+			return
+		}
+
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(data.Namespace)
+		_, err = deploymentClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("UpdateK8sDeployment ERROR: %s", err.Error()), c)
+			return
+		}
+		cmd.Success(fmt.Sprintf("Updated '%s/%s'", data.Kind, data.Name), c)
+	}(cmd, wg)
+	return cmd
+}
+
 func AllDeployments(namespaceName string) []v1.Deployment {
 	result := []v1.Deployment{}
 

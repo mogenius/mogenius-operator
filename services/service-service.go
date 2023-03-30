@@ -325,117 +325,140 @@ func K8sListRequestExample() K8sListRequest {
 }
 
 type K8sUpdateDeploymentRequest struct {
-	data *v1.Deployment `json:"data"`
+	NamespaceId string         `json:"namespaceId"`
+	Data        *v1.Deployment `json:"d ata"`
 }
 
 func K8sUpdateDeploymentRequestExample() K8sUpdateDeploymentRequest {
 	return K8sUpdateDeploymentRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdateServiceRequest struct {
-	data *core.Service `json:"data"`
+	NamespaceId string        `json:"namespaceId"`
+	Data        *core.Service `json:"data"`
 }
 
 func K8sUpdateServiceRequestExample() K8sUpdateServiceRequest {
 	return K8sUpdateServiceRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdatePodRequest struct {
-	data *core.Pod `json:"data"`
+	NamespaceId string    `json:"namespaceId"`
+	Data        *core.Pod `json:"data"`
 }
 
 func K8sUpdatePodRequestExample() K8sUpdatePodRequest {
 	return K8sUpdatePodRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdateIngressRequest struct {
-	data *netv1.Ingress `json:"data"`
+	NamespaceId string         `json:"namespaceId"`
+	Data        *netv1.Ingress `json:"data"`
 }
 
 func K8sUpdateIngressRequestExample() K8sUpdateIngressRequest {
 	return K8sUpdateIngressRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdateConfigmapRequest struct {
-	data *core.ConfigMap `json:"data"`
+	NamespaceId string          `json:"namespaceId"`
+	Data        *core.ConfigMap `json:"data"`
 }
 
 func K8sUpdateConfigmapRequestExample() K8sUpdateConfigmapRequest {
 	return K8sUpdateConfigmapRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdateSecretRequest struct {
-	data *core.Secret `json:"data"`
+	NamespaceId string       `json:"namespaceId"`
+	Data        *core.Secret `json:"data"`
 }
 
 func K8sUpdateSecretRequestExample() K8sUpdateSecretRequest {
 	return K8sUpdateSecretRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdateDaemonSetRequest struct {
-	data *v1.DaemonSet `json:"data"`
+	NamespaceId string        `json:"namespaceId"`
+	Data        *v1.DaemonSet `json:"data"`
 }
 
 func K8sUpdateDaemonsetRequestExample() K8sUpdateDaemonSetRequest {
 	return K8sUpdateDaemonSetRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdateStatefulSetRequest struct {
-	data *v1.StatefulSet `json:"data"`
+	NamespaceId string          `json:"namespaceId"`
+	Data        *v1.StatefulSet `json:"data"`
 }
 
 func K8sUpdateStatefulSetRequestExample() K8sUpdateStatefulSetRequest {
 	return K8sUpdateStatefulSetRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdateJobRequest struct {
-	data *v1job.Job `json:"data"`
+	NamespaceId string     `json:"namespaceId"`
+	Data        *v1job.Job `json:"data"`
 }
 
 func K8sUpdateJobRequestExample() K8sUpdateJobRequest {
 	return K8sUpdateJobRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdateCronJobRequest struct {
-	data *v1job.CronJob `json:"data"`
+	NamespaceId string         `json:"namespaceId"`
+	Data        *v1job.CronJob `json:"data"`
 }
 
 func K8sUpdateCronJobRequestExample() K8sUpdateCronJobRequest {
 	return K8sUpdateCronJobRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type K8sUpdateReplicaSetRequest struct {
-	data *v1.ReplicaSet `json:"data"`
+	NamespaceId string         `json:"namespaceId"`
+	Data        *v1.ReplicaSet `json:"data"`
 }
 
 func K8sUpdateRequestExample() K8sUpdateReplicaSetRequest {
 	return K8sUpdateReplicaSetRequest{
-		data: nil,
+		NamespaceId: "",
+		Data:        nil,
 	}
 }
 
 type ServiceLogStreamResult struct {
-	Message string `json:"message"`
+	NamespaceId string `json:"namespaceId"`
+	Message     string `json:"message"`
 }
 
 type ServiceResourceStatusRequest struct {

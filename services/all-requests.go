@@ -60,6 +60,7 @@ var COMMAND_REQUESTS = []string{
 
 	"service/log-stream",
 
+	"list/namespaces",
 	"list/deployments",
 	"list/services",
 	"list/pods",
@@ -249,6 +250,8 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		marshalUnmarshal(&datagram, &data)
 		return logStream(data, datagram, c)
 
+	case "list/namespaces":
+		return mokubernetes.ListAllNamespace()
 	case "list/deployments":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -298,10 +301,10 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllReplicasets(data.NamespaceName)
 
-		// case "update/deployment":
-		// 	data := K8sUpdateDeploymentRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sDeployment(data, datagram, c)
+	case "update/deployment":
+		data := K8sUpdateDeploymentRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateDeployment(data, c)
 		// case "update/service":
 		// 	data := K8sUpdateServiceRequest{}
 		// 	marshalUnmarshal(&datagram, &data)
