@@ -31,6 +31,10 @@ var (
 	RBACRESOURCES          = []string{"pods", "services", "endpoints", "secrets"}
 )
 
+type K8sWorkloadResult struct {
+	Result string `json:"Result"`
+}
+
 type KubeProviderMetrics struct {
 	ClientSet    *metricsv.Clientset
 	ClientConfig rest.Config
@@ -45,6 +49,12 @@ func init() {
 	// SETUP DOWNFAULT VALUE
 	if NAMESPACE == "" {
 		NAMESPACE = "mogenius"
+	}
+}
+
+func WorkloadResult(result string) K8sWorkloadResult {
+	return K8sWorkloadResult{
+		Result: result,
 	}
 }
 

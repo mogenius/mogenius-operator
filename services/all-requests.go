@@ -305,46 +305,46 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := K8sUpdateDeploymentRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateDeployment(data, c)
-		// case "update/service":
-		// 	data := K8sUpdateServiceRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sService(data, datagram, c)
-		// case "update/pod":
-		// 	data := K8sUpdatePodRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sPod(data, datagram, c)
-		// case "update/ingress":
-		// 	data := K8sUpdateIngressRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sIngress(data, datagram, c)
-		// case "update/configmap":
-		// 	data := K8sUpdateConfigmapRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sConfigmap(data, datagram, c)
-		// case "update/secret":
-		// 	data := K8sUpdateSecretRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sSecret(data, datagram, c)
-		// case "update/daemonset":
-		// 	data := K8sUpdateDaemonSetRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sDaemonset(data, datagram, c)
-		// case "update/statefulset":
-		// 	data := K8sUpdateStatefulSetRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sStatefullSet(data, datagram, c)
-		// case "update/job":
-		// 	data := K8sUpdateJobRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sJob(data, datagram, c)
-		// case "update/cronjob":
-		// 	data := K8sUpdateCronJobRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8s(data, datagram, c)
-		// case "update/replicaset":
-		// 	data := K8sUpdateReplicaSetRequest{}
-		// 	marshalUnmarshal(&datagram, &data)
-		// 	return updateK8sReplicaSet(data, datagram, c)
+	case "update/service":
+		data := K8sUpdateServiceRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateService(data, c)
+	case "update/pod":
+		data := K8sUpdatePodRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdatePod(data, c)
+	case "update/ingress":
+		data := K8sUpdateIngressRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateIngress(data, c)
+	case "update/configmap":
+		data := K8sUpdateConfigmapRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateConfigMap(data, c)
+	case "update/secret":
+		data := K8sUpdateSecretRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateSecret(data, c)
+	case "update/daemonset":
+		data := K8sUpdateDaemonSetRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateDaemonSet(data, c)
+	case "update/statefulset":
+		data := K8sUpdateStatefulSetRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateStatefulset(data, c)
+	case "update/job":
+		data := K8sUpdateJobRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateJob(data, c)
+	case "update/cronjob":
+		data := K8sUpdateCronJobRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateCronJob(data, c)
+	case "update/replicaset":
+		data := K8sUpdateReplicaSetRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sUpdateReplicaSet(data, c)
 	}
 
 	datagram.Err = "Pattern not found"

@@ -38,3 +38,24 @@ func AllJobs(namespaceName string) []v1job.Job {
 	}
 	return result
 }
+
+func UpdateK8sJob(data v1job.Job) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	jobClient := kubeProvider.ClientSet.BatchV1().Jobs(data.Namespace)
+	_, err = jobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

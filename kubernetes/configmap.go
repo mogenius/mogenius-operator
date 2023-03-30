@@ -262,3 +262,24 @@ func AllConfigmaps(namespaceName string) []v1.ConfigMap {
 	}
 	return result
 }
+
+func UpdateK8sConfigMap(data v1.ConfigMap) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(data.Namespace)
+	_, err = configmapClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

@@ -38,3 +38,24 @@ func AllStatefulSets(namespaceName string) []v1.StatefulSet {
 	}
 	return result
 }
+
+func UpdateK8sStatefulset(data v1.StatefulSet) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	statefulsetClient := kubeProvider.ClientSet.AppsV1().StatefulSets(data.Namespace)
+	_, err = statefulsetClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

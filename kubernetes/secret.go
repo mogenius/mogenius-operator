@@ -253,6 +253,27 @@ func AllSecrets(namespaceName string) []v1.Secret {
 	return result
 }
 
+func UpdateK8sSecret(data v1.Secret) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(data.Namespace)
+	_, err = secretClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}
+
 func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {
 	var provider *KubeProvider
 	var err error

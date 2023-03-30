@@ -239,3 +239,24 @@ func AllIngresses(namespaceName string) []v1.Ingress {
 	}
 	return result
 }
+
+func UpdateK8sIngress(data v1.Ingress) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(data.Namespace)
+	_, err = ingressClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

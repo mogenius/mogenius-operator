@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 
+	v1 "k8s.io/api/batch/v1"
 	v1job "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -37,4 +38,25 @@ func AllCronjobs(namespaceName string) []v1job.CronJob {
 		}
 	}
 	return result
+}
+
+func UpdateK8sCronJob(data v1.CronJob) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(data.Namespace)
+	_, err = cronJobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
 }

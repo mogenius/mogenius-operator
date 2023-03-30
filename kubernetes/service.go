@@ -288,6 +288,27 @@ func AllServices(namespaceName string) []v1.Service {
 	return result
 }
 
+func UpdateK8sService(data v1.Service) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	serviceClient := kubeProvider.ClientSet.CoreV1().Services(data.ObjectMeta.Namespace)
+	_, err = serviceClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}
+
 func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Service {
 	newService := utils.InitService()
 	newService.ObjectMeta.Name = service.K8sName

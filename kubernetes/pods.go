@@ -148,6 +148,27 @@ func PodIdsFor(namespace string, serviceId *string) []string {
 	return result
 }
 
+func UpdateK8sPod(data v1.Pod) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	podClient := kubeProvider.ClientSet.CoreV1().Pods(data.Namespace)
+	_, err = podClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}
+
 func filterStatus(pod *v1.Pod) {
 	pod.ManagedFields = nil
 	pod.ObjectMeta = metav1.ObjectMeta{}

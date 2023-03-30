@@ -38,3 +38,24 @@ func AllDaemonsets(namespaceName string) []v1.DaemonSet {
 	}
 	return result
 }
+
+func UpdateK8sDaemonSet(data v1.DaemonSet) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	daemonSetClient := kubeProvider.ClientSet.AppsV1().DaemonSets(data.Namespace)
+	_, err = daemonSetClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}
