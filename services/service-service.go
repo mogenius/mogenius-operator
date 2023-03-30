@@ -12,6 +12,10 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	v1 "k8s.io/api/apps/v1"
+	v1job "k8s.io/api/batch/v1"
+	core "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -307,6 +311,126 @@ func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 		Namespace:    "gcp2-new-xrrllb-y0y3g6",
 		PodId:        "nginx-63uleb-686867bb6c-bsdvl",
 		SinceSeconds: -1,
+	}
+}
+
+type K8sListRequest struct {
+	NamespaceName string `json:"namespaceName"` // empty string for all namespaces
+}
+
+func K8sListRequestExample() K8sListRequest {
+	return K8sListRequest{
+		NamespaceName: "",
+	}
+}
+
+type K8sUpdateDeploymentRequest struct {
+	data *v1.Deployment `json:"data"`
+}
+
+func K8sUpdateDeploymentRequestExample() K8sUpdateDeploymentRequest {
+	return K8sUpdateDeploymentRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdateServiceRequest struct {
+	data *core.Service `json:"data"`
+}
+
+func K8sUpdateServiceRequestExample() K8sUpdateServiceRequest {
+	return K8sUpdateServiceRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdatePodRequest struct {
+	data *core.Pod `json:"data"`
+}
+
+func K8sUpdatePodRequestExample() K8sUpdatePodRequest {
+	return K8sUpdatePodRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdateIngressRequest struct {
+	data *netv1.Ingress `json:"data"`
+}
+
+func K8sUpdateIngressRequestExample() K8sUpdateIngressRequest {
+	return K8sUpdateIngressRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdateConfigmapRequest struct {
+	data *core.ConfigMap `json:"data"`
+}
+
+func K8sUpdateConfigmapRequestExample() K8sUpdateConfigmapRequest {
+	return K8sUpdateConfigmapRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdateSecretRequest struct {
+	data *core.Secret `json:"data"`
+}
+
+func K8sUpdateSecretRequestExample() K8sUpdateSecretRequest {
+	return K8sUpdateSecretRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdateDaemonSetRequest struct {
+	data *v1.DaemonSet `json:"data"`
+}
+
+func K8sUpdateDaemonsetRequestExample() K8sUpdateDaemonSetRequest {
+	return K8sUpdateDaemonSetRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdateStatefulSetRequest struct {
+	data *v1.StatefulSet `json:"data"`
+}
+
+func K8sUpdateStatefulSetRequestExample() K8sUpdateStatefulSetRequest {
+	return K8sUpdateStatefulSetRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdateJobRequest struct {
+	data *v1job.Job `json:"data"`
+}
+
+func K8sUpdateJobRequestExample() K8sUpdateJobRequest {
+	return K8sUpdateJobRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdateCronJobRequest struct {
+	data *v1job.CronJob `json:"data"`
+}
+
+func K8sUpdateCronJobRequestExample() K8sUpdateCronJobRequest {
+	return K8sUpdateCronJobRequest{
+		data: nil,
+	}
+}
+
+type K8sUpdateReplicaSetRequest struct {
+	data *v1.ReplicaSet `json:"data"`
+}
+
+func K8sUpdateRequestExample() K8sUpdateReplicaSetRequest {
+	return K8sUpdateReplicaSetRequest{
+		data: nil,
 	}
 }
 

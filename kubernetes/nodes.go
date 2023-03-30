@@ -7,7 +7,7 @@ import (
 
 func GetNodeStats() []dtos.NodeStat {
 	result := []dtos.NodeStat{}
-	nodes := listNodes()
+	nodes := ListNodes()
 
 	for index, node := range nodes {
 		mem, _ := node.Status.Capacity.Memory().AsInt64()

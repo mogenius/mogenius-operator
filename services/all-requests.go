@@ -59,6 +59,31 @@ var COMMAND_REQUESTS = []string{
 	"service/spectrum-configmaps",
 
 	"service/log-stream",
+
+	"list/deployments",
+	"list/services",
+	"list/pods",
+	"list/ingresses",
+	"list/configmaps",
+	"list/secrets",
+	"list/nodes",
+	"list/daemonsets",
+	"list/statefulsets",
+	"list/jobs",
+	"list/cronjobs",
+	"list/replicasets",
+
+	"update/deployment",
+	"update/service",
+	"update/pod",
+	"update/ingress",
+	"update/configmap",
+	"update/secret",
+	"update/daemonset",
+	"update/statefulset",
+	"update/job",
+	"update/cronjob",
+	"update/replicaset",
 }
 
 var BINARY_REQUESTS_DOWNLOAD = []string{
@@ -223,6 +248,100 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := ServiceLogStreamRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return logStream(data, datagram, c)
+
+	case "list/deployments":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllDeployments(data.NamespaceName)
+	case "list/services":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllServices(data.NamespaceName)
+	case "list/pods":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllPods(data.NamespaceName)
+	case "list/ingresses":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllIngresses(data.NamespaceName)
+	case "list/configmaps":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllConfigmaps(data.NamespaceName)
+	case "list/secrets":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllSecrets(data.NamespaceName)
+	case "list/nodes":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.ListNodes()
+	case "list/daemonsets":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllDaemonsets(data.NamespaceName)
+	case "list/statefulsets":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllStatefulSets(data.NamespaceName)
+	case "list/jobs":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllJobs(data.NamespaceName)
+	case "list/cronjobs":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllCronjobs(data.NamespaceName)
+	case "list/replicasets":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllReplicasets(data.NamespaceName)
+
+		// case "update/deployment":
+		// 	data := K8sUpdateDeploymentRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sDeployment(data, datagram, c)
+		// case "update/service":
+		// 	data := K8sUpdateServiceRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sService(data, datagram, c)
+		// case "update/pod":
+		// 	data := K8sUpdatePodRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sPod(data, datagram, c)
+		// case "update/ingress":
+		// 	data := K8sUpdateIngressRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sIngress(data, datagram, c)
+		// case "update/configmap":
+		// 	data := K8sUpdateConfigmapRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sConfigmap(data, datagram, c)
+		// case "update/secret":
+		// 	data := K8sUpdateSecretRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sSecret(data, datagram, c)
+		// case "update/daemonset":
+		// 	data := K8sUpdateDaemonSetRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sDaemonset(data, datagram, c)
+		// case "update/statefulset":
+		// 	data := K8sUpdateStatefulSetRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sStatefullSet(data, datagram, c)
+		// case "update/job":
+		// 	data := K8sUpdateJobRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sJob(data, datagram, c)
+		// case "update/cronjob":
+		// 	data := K8sUpdateCronJobRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8s(data, datagram, c)
+		// case "update/replicaset":
+		// 	data := K8sUpdateReplicaSetRequest{}
+		// 	marshalUnmarshal(&datagram, &data)
+		// 	return updateK8sReplicaSet(data, datagram, c)
 	}
 
 	datagram.Err = "Pattern not found"
