@@ -332,6 +332,56 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ServiceUnbindSpectrumRequestExample()
 		case "service/spectrum-configmaps":
 			payload = nil
+
+		case "list/namespaces":
+			payload = services.K8sListRequestExample()
+		case "list/deployments":
+			payload = services.K8sListRequestExample()
+		case "list/services":
+			payload = services.K8sListRequestExample()
+		case "list/pods":
+			payload = services.K8sListRequestExample()
+		case "list/ingresses":
+			payload = services.K8sListRequestExample()
+		case "list/configmaps":
+			payload = services.K8sListRequestExample()
+		case "list/secrets":
+			payload = services.K8sListRequestExample()
+		case "list/nodes":
+			payload = services.K8sListRequestExample()
+		case "list/daemonsets":
+			payload = services.K8sListRequestExample()
+		case "list/statefulsets":
+			payload = services.K8sListRequestExample()
+		case "list/jobs":
+			payload = services.K8sListRequestExample()
+		case "list/cronjobs":
+			payload = services.K8sListRequestExample()
+		case "list/replicasets":
+			payload = services.K8sListRequestExample()
+
+		case "update/deployment":
+			payload = services.K8sUpdateDeploymentRequestExample()
+		case "update/service":
+			payload = services.K8sUpdateServiceRequestExample()
+		case "update/pod":
+			payload = services.K8sUpdatePodRequestExample()
+		case "update/ingress":
+			payload = services.K8sUpdateIngressRequestExample()
+		case "update/configmap":
+			payload = services.K8sUpdateConfigmapRequestExample()
+		case "update/secret":
+			payload = services.K8sUpdateSecretRequestExample()
+		case "update/daemonset":
+			payload = services.K8sUpdateDaemonsetRequestExample()
+		case "update/statefulset":
+			payload = services.K8sUpdateStatefulSetRequestExample()
+		case "update/job":
+			payload = services.K8sUpdateJobRequestExample()
+		case "update/cronjob":
+			payload = services.K8sUpdateCronJobRequestExample()
+		case "update/replicaset":
+			payload = services.K8sUpdateReplicaSetRequestExample()
 		}
 		firstConnection := selectRandomCluster(blockConnection)
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)

@@ -449,6 +449,13 @@ type K8sUpdateReplicaSetRequest struct {
 	Data        *v1.ReplicaSet `json:"data"`
 }
 
+func K8sUpdateReplicaSetRequestExample() K8sUpdateReplicaSetRequest {
+	return K8sUpdateReplicaSetRequest{
+		NamespaceId: "",
+		Data:        nil,
+	}
+}
+
 func K8sUpdateRequestExample() K8sUpdateReplicaSetRequest {
 	return K8sUpdateReplicaSetRequest{
 		NamespaceId: "",
