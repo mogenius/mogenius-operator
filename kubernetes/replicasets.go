@@ -59,3 +59,24 @@ func UpdateK8sReplicaset(data v1.ReplicaSet) K8sWorkloadResult {
 	}
 	return WorkloadResult("")
 }
+
+func DeleteK8sReplicaset(data v1.ReplicaSet) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	replicasetClient := kubeProvider.ClientSet.AppsV1().ReplicaSets(data.Namespace)
+	err = replicasetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

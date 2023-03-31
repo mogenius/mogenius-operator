@@ -274,6 +274,27 @@ func UpdateK8sSecret(data v1.Secret) K8sWorkloadResult {
 	return WorkloadResult("")
 }
 
+func DeleteK8sSecret(data v1.Secret) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(data.Namespace)
+	err = secretClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}
+
 func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {
 	var provider *KubeProvider
 	var err error

@@ -283,3 +283,24 @@ func UpdateK8sConfigMap(data v1.ConfigMap) K8sWorkloadResult {
 	}
 	return WorkloadResult("")
 }
+
+func DeleteK8sConfigMap(data v1.ConfigMap) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(data.Namespace)
+	err = configmapClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

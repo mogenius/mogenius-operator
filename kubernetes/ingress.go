@@ -260,3 +260,24 @@ func UpdateK8sIngress(data v1.Ingress) K8sWorkloadResult {
 	}
 	return WorkloadResult("")
 }
+
+func DeleteK8sIngress(data v1.Ingress) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(data.Namespace)
+	err = ingressClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

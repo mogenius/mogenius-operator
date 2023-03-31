@@ -478,6 +478,27 @@ func UpdateK8sDeployment(data v1.Deployment) K8sWorkloadResult {
 	return WorkloadResult("")
 }
 
+func DeleteK8sDeployment(data v1.Deployment) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(data.Namespace)
+	err = deploymentClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}
+
 func AllDeployments(namespaceName string) []v1.Deployment {
 	result := []v1.Deployment{}
 
@@ -493,7 +514,7 @@ func AllDeployments(namespaceName string) []v1.Deployment {
 		return result
 	}
 
-	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("AllDeployments ERROR: %s", err.Error())
 		return result

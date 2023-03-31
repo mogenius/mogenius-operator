@@ -59,3 +59,24 @@ func UpdateK8sDaemonSet(data v1.DaemonSet) K8sWorkloadResult {
 	}
 	return WorkloadResult("")
 }
+
+func DeleteK8sDaemonSet(data v1.DaemonSet) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	daemonSetClient := kubeProvider.ClientSet.AppsV1().DaemonSets(data.Namespace)
+	err = daemonSetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

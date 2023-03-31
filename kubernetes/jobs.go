@@ -59,3 +59,24 @@ func UpdateK8sJob(data v1job.Job) K8sWorkloadResult {
 	}
 	return WorkloadResult("")
 }
+
+func DeleteK8sJob(data v1job.Job) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	jobClient := kubeProvider.ClientSet.BatchV1().Jobs(data.Namespace)
+	err = jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}
