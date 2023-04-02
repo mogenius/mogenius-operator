@@ -284,7 +284,7 @@ func UpdateK8sConfigMap(data v1.ConfigMap) K8sWorkloadResult {
 	return WorkloadResult("")
 }
 
-func DeleteK8sConfigMap(data v1.ConfigMap) K8sWorkloadResult {
+func DeleteK8sConfigmap(data v1.ConfigMap) K8sWorkloadResult {
 	var kubeProvider *KubeProvider
 	var err error
 	if !utils.CONFIG.Kubernetes.RunInCluster {

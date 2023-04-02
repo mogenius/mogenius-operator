@@ -434,8 +434,122 @@ func K8sUpdateReplicaSetRequestExample() K8sUpdateReplicaSetRequest {
 	}
 }
 
-func K8sUpdateRequestExample() K8sUpdateReplicaSetRequest {
-	return K8sUpdateReplicaSetRequest{
+type K8sDeleteNamespaceRequest struct {
+	Data *core.Namespace `json:"data"`
+}
+
+func K8sDeleteNamespaceRequestExample() K8sDeleteNamespaceRequest {
+	return K8sDeleteNamespaceRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteDeploymentRequest struct {
+	Data *v1.Deployment `json:"data"`
+}
+
+func K8sDeleteDeploymentRequestExample() K8sDeleteDeploymentRequest {
+	return K8sDeleteDeploymentRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteServiceRequest struct {
+	Data *core.Service `json:"data"`
+}
+
+func K8sDeleteServiceRequestExample() K8sDeleteServiceRequest {
+	return K8sDeleteServiceRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeletePodRequest struct {
+	Data *core.Pod `json:"data"`
+}
+
+func K8sDeletePodRequestExample() K8sDeletePodRequest {
+	return K8sDeletePodRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteIngressRequest struct {
+	Data *netv1.Ingress `json:"data"`
+}
+
+func K8sDeleteIngressRequestExample() K8sDeleteIngressRequest {
+	return K8sDeleteIngressRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteConfigmapRequest struct {
+	Data *core.ConfigMap `json:"data"`
+}
+
+func K8sDeleteConfigmapRequestExample() K8sDeleteConfigmapRequest {
+	return K8sDeleteConfigmapRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteSecretRequest struct {
+	Data *core.Secret `json:"data"`
+}
+
+func K8sDeleteSecretRequestExample() K8sDeleteSecretRequest {
+	return K8sDeleteSecretRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteDaemonsetRequest struct {
+	Data *v1.DaemonSet `json:"data"`
+}
+
+func K8sDeleteDaemonsetRequestExample() K8sDeleteDaemonsetRequest {
+	return K8sDeleteDaemonsetRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteStatefulsetRequest struct {
+	Data *v1.StatefulSet `json:"data"`
+}
+
+func K8sDeleteStatefulsetRequestExample() K8sDeleteStatefulsetRequest {
+	return K8sDeleteStatefulsetRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteJobRequest struct {
+	Data *v1job.Job `json:"data"`
+}
+
+func K8sDeleteJobRequestExample() K8sDeleteJobRequest {
+	return K8sDeleteJobRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteCronjobRequest struct {
+	Data *v1job.CronJob `json:"data"`
+}
+
+func K8sDeleteCronjobRequestExample() K8sDeleteCronjobRequest {
+	return K8sDeleteCronjobRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteReplicasetRequest struct {
+	Data *v1.ReplicaSet `json:"data"`
+}
+
+func K8sDeleteReplicaSetRequestExample() K8sDeleteReplicasetRequest {
+	return K8sDeleteReplicasetRequest{
 		Data: nil,
 	}
 }

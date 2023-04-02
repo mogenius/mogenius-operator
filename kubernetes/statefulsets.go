@@ -59,3 +59,24 @@ func UpdateK8sStatefulset(data v1.StatefulSet) K8sWorkloadResult {
 	}
 	return WorkloadResult("")
 }
+
+func DeleteK8sStatefulset(data v1.StatefulSet) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	statefulsetClient := kubeProvider.ClientSet.AppsV1().StatefulSets(data.Namespace)
+	err = statefulsetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

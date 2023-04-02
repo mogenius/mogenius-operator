@@ -147,3 +147,24 @@ func ListAllNamespace() []v1.Namespace {
 
 	return result
 }
+
+func DeleteK8sNamespace(data v1.Namespace) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
+	err = namespaceClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

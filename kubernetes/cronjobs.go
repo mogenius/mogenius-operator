@@ -60,3 +60,24 @@ func UpdateK8sCronJob(data v1.CronJob) K8sWorkloadResult {
 	}
 	return WorkloadResult("")
 }
+
+func DeleteK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
+	var kubeProvider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderLocal()
+	} else {
+		kubeProvider, err = NewKubeProviderInCluster()
+	}
+
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+
+	jobClient := kubeProvider.ClientSet.BatchV1().CronJobs(data.Namespace)
+	err = jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult("")
+}

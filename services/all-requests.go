@@ -85,6 +85,19 @@ var COMMAND_REQUESTS = []string{
 	"update/job",
 	"update/cronjob",
 	"update/replicaset",
+
+	"delete/namespace",
+	"delete/deployment",
+	"delete/service",
+	"delete/pod",
+	"delete/ingress",
+	"delete/configmap",
+	"delete/secret",
+	"delete/daemonset",
+	"delete/statefulset",
+	"delete/job",
+	"delete/cronjob",
+	"delete/replicaset",
 }
 
 var BINARY_REQUESTS_DOWNLOAD = []string{
@@ -345,6 +358,55 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := K8sUpdateReplicaSetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateReplicaSet(data, c)
+
+	case "delete/namespace":
+		data := K8sDeleteNamespaceRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteNamespace(data, c)
+	case "delete/deployment":
+		data := K8sDeleteDeploymentRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteDeployment(data, c)
+	case "delete/service":
+		data := K8sDeleteServiceRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteService(data, c)
+	case "delete/pod":
+		data := K8sDeletePodRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeletePod(data, c)
+	case "delete/ingress":
+		data := K8sDeleteIngressRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteIngress(data, c)
+	case "delete/configmap":
+		data := K8sDeleteConfigmapRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteConfigMap(data, c)
+	case "delete/secret":
+		data := K8sDeleteSecretRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteSecret(data, c)
+	case "delete/daemonset":
+		data := K8sDeleteDaemonsetRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteDaemonSet(data, c)
+	case "delete/statefulset":
+		data := K8sDeleteStatefulsetRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteStatefulset(data, c)
+	case "delete/job":
+		data := K8sDeleteJobRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteJob(data, c)
+	case "delete/cronjob":
+		data := K8sDeleteCronjobRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteCronJob(data, c)
+	case "delete/replicaset":
+		data := K8sDeleteReplicasetRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return K8sDeleteReplicaSet(data, c)
 	}
 
 	datagram.Err = "Pattern not found"
