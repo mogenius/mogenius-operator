@@ -21,18 +21,7 @@ func CreateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating ConfigMap '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.K8sName)
 		configMap := utils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.K8sName
@@ -45,7 +34,7 @@ func CreateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = configMapClient.Create(context.TODO(), &configMap, createOptions)
+		_, err := configMapClient.Create(context.TODO(), &configMap, createOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()), c)
 		} else {
@@ -62,25 +51,14 @@ func DeleteConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting configMap '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.K8sName)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
-		err = configMapClient.Delete(context.TODO(), service.K8sName, deleteOptions)
+		err := configMapClient.Delete(context.TODO(), service.K8sName, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()), c)
 		} else {
@@ -97,17 +75,7 @@ func UpdateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()), c)
-			return
-		}
+		kubeProvider := NewKubeProvider()
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.K8sName)
 		configMap := utils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.K8sName
@@ -120,7 +88,7 @@ func UpdateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = configMapClient.Update(context.TODO(), &configMap, updateOptions)
+		_, err := configMapClient.Update(context.TODO(), &configMap, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()), c)
 		} else {
@@ -139,21 +107,11 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 
 		configMap := ConfigMapFor(namespace, configMapName)
 		if configMap != nil {
-			var kubeProvider *KubeProvider
-			var err error
-			if !utils.CONFIG.Kubernetes.RunInCluster {
-				kubeProvider, err = NewKubeProviderLocal()
-			} else {
-				kubeProvider, err = NewKubeProviderInCluster()
-			}
-			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()), c)
-				return
-			}
+			kubeProvider := NewKubeProvider()
 			configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace)
 			configMap.Data[key] = value
 
-			_, err = configMapClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
+			_, err := configMapClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()), c)
 				return
@@ -182,22 +140,12 @@ func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName st
 			} else {
 				delete(configMap.Data, key)
 
-				var kubeProvider *KubeProvider
-				var err error
-				if !utils.CONFIG.Kubernetes.RunInCluster {
-					kubeProvider, err = NewKubeProviderLocal()
-				} else {
-					kubeProvider, err = NewKubeProviderInCluster()
-				}
-				if err != nil {
-					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()), c)
-					return
-				}
+				kubeProvider := NewKubeProvider()
 				updateOptions := metav1.UpdateOptions{
 					FieldManager: DEPLOYMENTNAME,
 				}
 				configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace)
-				_, err = configMapClient.Update(context.TODO(), configMap, updateOptions)
+				_, err := configMapClient.Update(context.TODO(), configMap, updateOptions)
 				if err != nil {
 					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()), c)
 					return
@@ -212,19 +160,7 @@ func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName st
 }
 
 func ConfigMapFor(namespace string, configMapName string) *v1.ConfigMap {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		logger.Log.Errorf("ConfigMapFor ERROR: %s", err.Error())
-		return nil
-	}
-
+	kubeProvider := NewKubeProvider()
 	configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace)
 	configMap, err := configMapClient.Get(context.TODO(), configMapName, metav1.GetOptions{})
 	if err != nil {
@@ -237,18 +173,7 @@ func ConfigMapFor(namespace string, configMapName string) *v1.ConfigMap {
 func AllConfigmaps(namespaceName string) []v1.ConfigMap {
 	result := []v1.ConfigMap{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllConfigmaps ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	configmapList, err := provider.ClientSet.CoreV1().ConfigMaps(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllConfigmaps ERROR: %s", err.Error())
@@ -264,20 +189,9 @@ func AllConfigmaps(namespaceName string) []v1.ConfigMap {
 }
 
 func UpdateK8sConfigMap(data v1.ConfigMap) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(data.Namespace)
-	_, err = configmapClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := configmapClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -285,20 +199,9 @@ func UpdateK8sConfigMap(data v1.ConfigMap) K8sWorkloadResult {
 }
 
 func DeleteK8sConfigmap(data v1.ConfigMap) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(data.Namespace)
-	err = configmapClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := configmapClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}

@@ -19,17 +19,7 @@ func CreatePersistentVolume(job *structs.Job, stage dtos.K8sStageDto, c *websock
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreatePersistentVolume ERROR: %s", err.Error()), c)
-		}
-
+		kubeProvider := NewKubeProvider()
 		pv := utils.InitPersistentVolume()
 		pv.ObjectMeta.Name = stage.K8sName
 		pv.ObjectMeta.Labels["type"] = stage.K8sName
@@ -40,7 +30,7 @@ func CreatePersistentVolume(job *structs.Job, stage dtos.K8sStageDto, c *websock
 		pv.Spec.Capacity.Storage().Set(int64(stage.StorageSizeInMb / 1024))
 
 		pvClient := kubeProvider.ClientSet.CoreV1().PersistentVolumes()
-		_, err = pvClient.Create(context.TODO(), &pv, metav1.CreateOptions{})
+		_, err := pvClient.Create(context.TODO(), &pv, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreatePersistentVolume ERROR: %s", err.Error()), c)
 		} else {
@@ -57,17 +47,7 @@ func CreatePersistentVolumeClaim(job *structs.Job, stage dtos.K8sStageDto, c *we
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreatePersistentVolumeClaim ERROR: %s", err.Error()), c)
-		}
-
+		kubeProvider := NewKubeProvider()
 		pvc := utils.InitPersistentVolumeClaim()
 		pvc.ObjectMeta.Name = stage.K8sName
 		pvc.ObjectMeta.Namespace = stage.K8sName
@@ -76,7 +56,7 @@ func CreatePersistentVolumeClaim(job *structs.Job, stage dtos.K8sStageDto, c *we
 		pvc.Spec.Resources.Limits.Storage().Set(int64(stage.StorageSizeInMb / 1024))
 
 		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(stage.K8sName)
-		_, err = pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
+		_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreatePersistentVolumeClaim ERROR: %s", err.Error()), c)
 		} else {
@@ -93,19 +73,9 @@ func DeletePersistentVolume(job *structs.Job, stage dtos.K8sStageDto, c *websock
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting PersistentVolume '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeletePersistentVolume ERROR: %s", err.Error()), c)
-		}
-
+		kubeProvider := NewKubeProvider()
 		pvClient := kubeProvider.ClientSet.CoreV1().PersistentVolumes()
-		err = pvClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
+		err := pvClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeletePersistentVolume ERROR: %s", err.Error()), c)
 		} else {

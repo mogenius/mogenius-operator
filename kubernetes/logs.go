@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"mogenius-k8s-manager/logger"
@@ -37,19 +36,7 @@ func GetLog(namespace string, podId string, timestamp *time.Time) ServiceGetLogR
 		Log:             "",
 	}
 
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("GetLog ERROR: %s", err.Error())
-		result.Log = err.Error()
-		return result
-	}
-
+	kubeProvider := NewKubeProvider()
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
 
 	var kubernetesTime metav1.Time
@@ -97,19 +84,7 @@ func GetLogError(namespace string, podId string) ServiceGetLogErrorResult {
 		Log:       "",
 	}
 
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("GetLogError ERROR: %s", err.Error())
-		result.Log = err.Error()
-		return result
-	}
-
+	kubeProvider := NewKubeProvider()
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
 
 	pod, err := podClient.Get(context.TODO(), podId, metav1.GetOptions{})
@@ -148,18 +123,7 @@ func GetLogError(namespace string, podId string) ServiceGetLogErrorResult {
 }
 
 func StreamLog(namespace string, podId string, sindceSeconds int64) (*rest.Request, error) {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("CreateNamespace ERROR: %s", err.Error())
-		return nil, fmt.Errorf("CreateNamespace ERROR: %s", err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
 
 	opts := v1.PodLogOptions{

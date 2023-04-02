@@ -22,18 +22,7 @@ func CreateSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating secret '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateSecret ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
 		secret := utils.InitSecret()
 		secret.ObjectMeta.Name = service.K8sName
@@ -52,7 +41,7 @@ func CreateSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = secretClient.Create(context.TODO(), &secret, createOptions)
+		_, err := secretClient.Create(context.TODO(), &secret, createOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateSecret ERROR: %s", err.Error()), c)
 		} else {
@@ -69,25 +58,14 @@ func DeleteSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting secret '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
-		err = secretClient.Delete(context.TODO(), service.K8sName, deleteOptions)
+		err := secretClient.Delete(context.TODO(), service.K8sName, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()), c)
 		} else {
@@ -104,18 +82,7 @@ func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, sta
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating Container secret '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
 		secret := utils.InitContainerSecret()
 		secret.ObjectMeta.Name = "container-secret-" + stage.K8sName
@@ -133,7 +100,7 @@ func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, sta
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = secretClient.Create(context.TODO(), &secret, createOptions)
+		_, err := secretClient.Create(context.TODO(), &secret, createOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()), c)
 		} else {
@@ -150,25 +117,14 @@ func DeleteContainerSecret(job *structs.Job, stage dtos.K8sStageDto, c *websocke
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting Container secret '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
-		err = secretClient.Delete(context.TODO(), "container-secret-"+stage.K8sName, deleteOptions)
+		err := secretClient.Delete(context.TODO(), "container-secret-"+stage.K8sName, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()), c)
 		} else {
@@ -185,17 +141,7 @@ func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating secret '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()), c)
-			return
-		}
+		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
 		secret := utils.InitSecret()
 		secret.ObjectMeta.Name = service.K8sName
@@ -214,7 +160,7 @@ func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = secretClient.Update(context.TODO(), &secret, updateOptions)
+		_, err := secretClient.Update(context.TODO(), &secret, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()), c)
 		} else {
@@ -227,18 +173,7 @@ func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 func AllSecrets(namespaceName string) []v1.Secret {
 	result := []v1.Secret{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllSecrets ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	secretList, err := provider.ClientSet.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllSecrets podMetricsList ERROR: %s", err.Error())
@@ -254,20 +189,9 @@ func AllSecrets(namespaceName string) []v1.Secret {
 }
 
 func UpdateK8sSecret(data v1.Secret) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(data.Namespace)
-	_, err = secretClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := secretClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -275,20 +199,9 @@ func UpdateK8sSecret(data v1.Secret) K8sWorkloadResult {
 }
 
 func DeleteK8sSecret(data v1.Secret) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(data.Namespace)
-	err = secretClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := secretClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -296,17 +209,7 @@ func DeleteK8sSecret(data v1.Secret) K8sWorkloadResult {
 }
 
 func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		return false
-	}
-
+	provider := NewKubeProvider()
 	secret, err := provider.ClientSet.CoreV1().Secrets(stage.K8sName).Get(context.TODO(), "container-secret-"+stage.K8sName, metav1.GetOptions{})
 	if err != nil {
 		return false

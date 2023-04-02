@@ -21,18 +21,7 @@ func CreateNetworkPolicyNamespace(job *structs.Job, stage dtos.K8sStageDto, c *w
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
 		netpol := utils.InitNetPolNamespace()
 		netpol.ObjectMeta.Name = stage.K8sName
@@ -41,7 +30,7 @@ func CreateNetworkPolicyNamespace(job *structs.Job, stage dtos.K8sStageDto, c *w
 		netpol.Spec.PodSelector.MatchLabels["ns"] = stage.K8sName
 		netpol.Spec.Ingress[0].From[0].PodSelector.MatchLabels["ns"] = stage.K8sName
 
-		_, err = netPolClient.Create(context.TODO(), &netpol, metav1.CreateOptions{})
+		_, err := netPolClient.Create(context.TODO(), &netpol, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()), c)
 		} else {
@@ -58,21 +47,10 @@ func DeleteNetworkPolicyNamespace(job *structs.Job, stage dtos.K8sStageDto, c *w
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
 
-		err = netPolClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
+		err := netPolClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()), c)
 		} else {
@@ -89,18 +67,7 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", service.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
 		netpol := utils.InitNetPolService()
 		netpol.ObjectMeta.Name = service.K8sName
@@ -117,7 +84,7 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 		}
 		netpol.Spec.PodSelector.MatchLabels["app"] = service.K8sName
 
-		_, err = netPolClient.Create(context.TODO(), &netpol, metav1.CreateOptions{})
+		_, err := netPolClient.Create(context.TODO(), &netpol, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()), c)
 		} else {
@@ -134,21 +101,10 @@ func DeleteNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
 
-		err = netPolClient.Delete(context.TODO(), service.K8sName, metav1.DeleteOptions{})
+		err := netPolClient.Delete(context.TODO(), service.K8sName, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()), c)
 		} else {

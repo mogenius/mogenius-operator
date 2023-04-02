@@ -13,18 +13,7 @@ import (
 func AllDaemonsets(namespaceName string) []v1.DaemonSet {
 	result := []v1.DaemonSet{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllDaemonsets ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	daemonsetList, err := provider.ClientSet.AppsV1().DaemonSets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllDaemonsets ERROR: %s", err.Error())
@@ -40,20 +29,9 @@ func AllDaemonsets(namespaceName string) []v1.DaemonSet {
 }
 
 func UpdateK8sDaemonSet(data v1.DaemonSet) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	daemonSetClient := kubeProvider.ClientSet.AppsV1().DaemonSets(data.Namespace)
-	_, err = daemonSetClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := daemonSetClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -61,20 +39,9 @@ func UpdateK8sDaemonSet(data v1.DaemonSet) K8sWorkloadResult {
 }
 
 func DeleteK8sDaemonSet(data v1.DaemonSet) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	daemonSetClient := kubeProvider.ClientSet.AppsV1().DaemonSets(data.Namespace)
-	err = daemonSetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := daemonSetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}

@@ -19,19 +19,7 @@ func UpgradeMyself(job *structs.Job, command string, c *websocket.Conn, wg *sync
 		defer wg.Done()
 		cmd.Start("Upgrade mogenius platform ...", c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpgradeMyself ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		jobClient := kubeProvider.ClientSet.BatchV1().Jobs(NAMESPACE)
 		configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
 
@@ -48,7 +36,7 @@ func UpgradeMyself(job *structs.Job, command string, c *websocket.Conn, wg *sync
 		}
 
 		// CONFIGMAP
-		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
+		_, err := configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
 		if err != nil {
 			// CREATE
 			_, err = configmapClient.Create(context.TODO(), &configmap, createOptions)

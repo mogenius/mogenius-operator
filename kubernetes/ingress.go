@@ -26,19 +26,7 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 		defer wg.Done()
 		cmd.Start("Updating ingress setup.", c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(stage.K8sName)
 
 		applyOptions := metav1.ApplyOptions{
@@ -119,7 +107,7 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 		if len(spec.Rules) <= 0 {
 			existingIngress, _ := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
 			if existingIngress != nil {
-				err = ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
 					cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()), c)
 					return
@@ -130,7 +118,7 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 				cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName), c)
 			}
 		} else {
-			_, err = ingressClient.Apply(context.TODO(), config, applyOptions)
+			_, err := ingressClient.Apply(context.TODO(), config, applyOptions)
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()), c)
 				return
@@ -214,18 +202,7 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 func AllIngresses(namespaceName string) []v1.Ingress {
 	result := []v1.Ingress{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllIngresses ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	ingressList, err := provider.ClientSet.NetworkingV1().Ingresses(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllIngresses ERROR: %s", err.Error())
@@ -241,20 +218,9 @@ func AllIngresses(namespaceName string) []v1.Ingress {
 }
 
 func UpdateK8sIngress(data v1.Ingress) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(data.Namespace)
-	_, err = ingressClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := ingressClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -262,20 +228,9 @@ func UpdateK8sIngress(data v1.Ingress) K8sWorkloadResult {
 }
 
 func DeleteK8sIngress(data v1.Ingress) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(data.Namespace)
-	err = ingressClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := ingressClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}

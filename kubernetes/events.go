@@ -4,9 +4,7 @@ import (
 	"context"
 	"log"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"reflect"
 	"time"
 
@@ -20,19 +18,7 @@ const CONCURRENTCONNECTIONS = 1
 var lastResourceVersion = ""
 
 func WatchEvents() {
-	var kubeProvider *KubeProvider
-	var err error
-
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		logger.Log.Errorf("watchEvents ERROR: %s", err.Error())
-		return
-	}
+	kubeProvider := NewKubeProvider()
 
 	for {
 		// Create a watcher for all Kubernetes events

@@ -26,19 +26,7 @@ func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating Deployment '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
 		newDeployment := generateDeployment(stage, service, true, deploymentClient)
 
@@ -46,7 +34,7 @@ func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = deploymentClient.Create(context.TODO(), &newDeployment, createOptions)
+		_, err := deploymentClient.Create(context.TODO(), &newDeployment, createOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -64,26 +52,14 @@ func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting Deployment '%s'.", service.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
-		err = deploymentClient.Delete(context.TODO(), service.K8sName, deleteOptions)
+		err := deploymentClient.Delete(context.TODO(), service.K8sName, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -101,19 +77,7 @@ func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
 		newDeployment := generateDeployment(stage, service, false, deploymentClient)
 
@@ -121,7 +85,7 @@ func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = deploymentClient.Update(context.TODO(), &newDeployment, updateOptions)
+		_, err := deploymentClient.Update(context.TODO(), &newDeployment, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -139,23 +103,11 @@ func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Starting Deployment '%s'.", service.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
 		deployment := generateDeployment(stage, service, false, deploymentClient)
 
-		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -172,24 +124,12 @@ func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Stopping Deployment '%s'.", service.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
 		deployment := generateDeployment(stage, service, false, deploymentClient)
 		deployment.Spec.Replicas = utils.Pointer[int32](0)
 
-		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -206,19 +146,7 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Restarting Deployment '%s'.", service.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
 		deployment := generateDeployment(stage, service, false, deploymentClient)
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
@@ -229,7 +157,7 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		}
 
-		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()), c)
 		} else {
@@ -423,19 +351,7 @@ func SetImage(job *structs.Job, stagek8sName string, serviceK8sName string, imag
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceK8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stagek8sName)
 		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceK8sName, metav1.GetOptions{})
 		if err != nil {
@@ -458,20 +374,9 @@ func SetImage(job *structs.Job, stagek8sName string, serviceK8sName string, imag
 }
 
 func UpdateK8sDeployment(data v1.Deployment) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(data.Namespace)
-	_, err = deploymentClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := deploymentClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -479,20 +384,9 @@ func UpdateK8sDeployment(data v1.Deployment) K8sWorkloadResult {
 }
 
 func DeleteK8sDeployment(data v1.Deployment) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(data.Namespace)
-	err = deploymentClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := deploymentClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -502,18 +396,7 @@ func DeleteK8sDeployment(data v1.Deployment) K8sWorkloadResult {
 func AllDeployments(namespaceName string) []v1.Deployment {
 	result := []v1.Deployment{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllDeployments ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("AllDeployments ERROR: %s", err.Error())

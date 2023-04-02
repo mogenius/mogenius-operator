@@ -13,18 +13,7 @@ import (
 func AllReplicasets(namespaceName string) []v1.ReplicaSet {
 	result := []v1.ReplicaSet{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllReplicasets ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	replicaSetList, err := provider.ClientSet.AppsV1().ReplicaSets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllReplicasets ERROR: %s", err.Error())
@@ -40,20 +29,9 @@ func AllReplicasets(namespaceName string) []v1.ReplicaSet {
 }
 
 func UpdateK8sReplicaset(data v1.ReplicaSet) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	replicasetClient := kubeProvider.ClientSet.AppsV1().ReplicaSets(data.Namespace)
-	_, err = replicasetClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := replicasetClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -61,20 +39,9 @@ func UpdateK8sReplicaset(data v1.ReplicaSet) K8sWorkloadResult {
 }
 
 func DeleteK8sReplicaset(data v1.ReplicaSet) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	replicasetClient := kubeProvider.ClientSet.AppsV1().ReplicaSets(data.Namespace)
-	err = replicasetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := replicasetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}

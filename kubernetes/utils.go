@@ -58,6 +58,21 @@ func WorkloadResult(result string) K8sWorkloadResult {
 	}
 }
 
+func NewKubeProvider() *KubeProvider {
+	var kubeProvider *KubeProvider
+	var err error
+	if utils.CONFIG.Kubernetes.RunInCluster {
+		kubeProvider, err = NewKubeProviderInCluster()
+	} else {
+		kubeProvider, err = NewKubeProviderLocal()
+	}
+
+	if err != nil {
+		logger.Log.Errorf("ERROR: %s", err.Error())
+	}
+	return kubeProvider
+}
+
 func NewKubeProviderLocal() (*KubeProvider, error) {
 	var kubeconfig string = ""
 	if home := homedir.HomeDir(); home != "" {
@@ -203,17 +218,8 @@ func ClusterStatus() dtos.ClusterStatusDto {
 
 func listAllPods() []v1.Pod {
 	var result []v1.Pod
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		panic(err)
-	}
 
+	kubeProvider := NewKubeProvider()
 	pods, err := kubeProvider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
 
 	if err != nil {

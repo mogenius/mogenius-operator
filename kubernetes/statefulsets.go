@@ -13,18 +13,7 @@ import (
 func AllStatefulSets(namespaceName string) []v1.StatefulSet {
 	result := []v1.StatefulSet{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllStatefulSets ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	statefulSetList, err := provider.ClientSet.AppsV1().StatefulSets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllStatefulSets ERROR: %s", err.Error())
@@ -40,20 +29,9 @@ func AllStatefulSets(namespaceName string) []v1.StatefulSet {
 }
 
 func UpdateK8sStatefulset(data v1.StatefulSet) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	statefulsetClient := kubeProvider.ClientSet.AppsV1().StatefulSets(data.Namespace)
-	_, err = statefulsetClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := statefulsetClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -61,20 +39,9 @@ func UpdateK8sStatefulset(data v1.StatefulSet) K8sWorkloadResult {
 }
 
 func DeleteK8sStatefulset(data v1.StatefulSet) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	statefulsetClient := kubeProvider.ClientSet.AppsV1().StatefulSets(data.Namespace)
-	err = statefulsetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := statefulsetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}

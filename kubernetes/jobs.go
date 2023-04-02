@@ -13,18 +13,7 @@ import (
 func AllJobs(namespaceName string) []v1job.Job {
 	result := []v1job.Job{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllJobs ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	jobList, err := provider.ClientSet.BatchV1().Jobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllJobs ERROR: %s", err.Error())
@@ -40,20 +29,9 @@ func AllJobs(namespaceName string) []v1job.Job {
 }
 
 func UpdateK8sJob(data v1job.Job) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	jobClient := kubeProvider.ClientSet.BatchV1().Jobs(data.Namespace)
-	_, err = jobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := jobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -61,20 +39,9 @@ func UpdateK8sJob(data v1job.Job) K8sWorkloadResult {
 }
 
 func DeleteK8sJob(data v1job.Job) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	jobClient := kubeProvider.ClientSet.BatchV1().Jobs(data.Namespace)
-	err = jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}

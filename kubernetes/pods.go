@@ -16,18 +16,7 @@ type ServicePodExistsResult struct {
 }
 
 func PodStatus(resource string, namespace string, name string, statusOnly bool) *v1.Pod {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("PodStatus ERROR: %s", err.Error())
-		return nil
-	}
-
+	kubeProvider := NewKubeProvider()
 	getOptions := metav1.GetOptions{}
 
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
@@ -47,24 +36,10 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 
 func PodExists(namespace string, name string) ServicePodExistsResult {
 	result := ServicePodExistsResult{}
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("PodExists ERROR: %s", err.Error())
-		result.PodExists = false
-		return result
-	}
 
-	getOptions := metav1.GetOptions{}
-
+	kubeProvider := NewKubeProvider()
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
-
-	pod, err := podClient.Get(context.TODO(), name, getOptions)
+	pod, err := podClient.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil || pod == nil {
 		result.PodExists = false
 		return result
@@ -77,18 +52,7 @@ func PodExists(namespace string, name string) ServicePodExistsResult {
 func AllPods(namespaceName string) []v1.Pod {
 	result := []v1.Pod{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllPods ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	podsList, err := provider.ClientSet.CoreV1().Pods(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllPods podMetricsList ERROR: %s", err.Error())
@@ -149,20 +113,9 @@ func PodIdsFor(namespace string, serviceId *string) []string {
 }
 
 func UpdateK8sPod(data v1.Pod) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(data.Namespace)
-	_, err = podClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := podClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -170,20 +123,9 @@ func UpdateK8sPod(data v1.Pod) K8sWorkloadResult {
 }
 
 func DeleteK8sPod(data v1.Pod) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(data.Namespace)
-	err = podClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := podClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}

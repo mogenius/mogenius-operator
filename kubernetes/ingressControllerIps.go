@@ -8,7 +8,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/utils"
 	"net"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,17 +15,7 @@ import (
 
 func GetIngressControllerIps() []net.IP {
 	var result []net.IP
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		panic(err)
-	}
-
+	kubeProvider := NewKubeProvider()
 	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/name=ingress-nginx"
 
 	pods, err := kubeProvider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
@@ -48,17 +37,7 @@ func GetIngressControllerIps() []net.IP {
 
 func GetClusterExternalIps() []string {
 	var result []string = []string{}
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		panic(err)
-	}
-
+	kubeProvider := NewKubeProvider()
 	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/name=ingress-nginx"
 
 	services, err := kubeProvider.ClientSet.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})

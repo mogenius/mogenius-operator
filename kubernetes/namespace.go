@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -22,18 +21,7 @@ func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating namespace '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 		namespace := applyconfcore.Namespace(stage.K8sName)
 
@@ -46,7 +34,7 @@ func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dto
 			"name": stage.K8sName,
 		})
 
-		_, err = namespaceClient.Apply(context.TODO(), namespace, applyOptions)
+		_, err := namespaceClient.Apply(context.TODO(), namespace, applyOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()), c)
 		} else {
@@ -63,22 +51,10 @@ func DeleteNamespace(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting namespace '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 
-		err = namespaceClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
+		err := namespaceClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()), c)
 		} else {
@@ -90,19 +66,8 @@ func DeleteNamespace(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn
 
 func ListAllNamespaceNames() []string {
 	result := []string{}
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
 
-	if err != nil {
-		logger.Log.Errorf("ListAll ERROR: %s", err.Error())
-		return result
-	}
-
+	kubeProvider := NewKubeProvider()
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 
 	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
@@ -120,19 +85,8 @@ func ListAllNamespaceNames() []string {
 
 func ListAllNamespace() []v1.Namespace {
 	result := []v1.Namespace{}
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
 
-	if err != nil {
-		logger.Log.Errorf("ListAllNamespace ERROR: %s", err.Error())
-		return result
-	}
-
+	kubeProvider := NewKubeProvider()
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 
 	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
@@ -149,20 +103,9 @@ func ListAllNamespace() []v1.Namespace {
 }
 
 func DeleteK8sNamespace(data v1.Namespace) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
-	err = namespaceClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := namespaceClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}

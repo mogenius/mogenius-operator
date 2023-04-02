@@ -22,19 +22,7 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
 		newService := generateService(stage, service)
 
@@ -42,7 +30,7 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = serviceClient.Create(context.TODO(), &newService, createOptions)
+		_, err := serviceClient.Create(context.TODO(), &newService, createOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()), c)
 		} else {
@@ -60,22 +48,10 @@ func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting service '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
 
-		err = serviceClient.Delete(context.TODO(), service.K8sName, metav1.DeleteOptions{})
+		err := serviceClient.Delete(context.TODO(), service.K8sName, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()), c)
 		} else {
@@ -92,19 +68,7 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Update service '%s'.", stage.K8sName), c)
 
-		var kubeProvider *KubeProvider
-		var err error
-		if !utils.CONFIG.Kubernetes.RunInCluster {
-			kubeProvider, err = NewKubeProviderLocal()
-		} else {
-			kubeProvider, err = NewKubeProviderInCluster()
-		}
-
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()), c)
-			return
-		}
-
+		kubeProvider := NewKubeProvider()
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
 		updateService := generateService(stage, service)
 
@@ -112,7 +76,7 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = serviceClient.Update(context.TODO(), &updateService, updateOptions)
+		_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()), c)
 		} else {
@@ -123,20 +87,9 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 }
 
 func UpdateServiceWith(service *v1.Service) error {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("UpdateServiceWith ERROR: %s", err.Error())
-		return err
-	}
-
+	kubeProvider := NewKubeProvider()
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services("")
-	_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
+	_, err := serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -162,22 +115,12 @@ func RemovePortFromService(job *structs.Job, namespace string, serviceName strin
 			}
 
 			if wasModified {
-				var kubeProvider *KubeProvider
-				var err error
-				if !utils.CONFIG.Kubernetes.RunInCluster {
-					kubeProvider, err = NewKubeProviderLocal()
-				} else {
-					kubeProvider, err = NewKubeProviderInCluster()
-				}
-				if err != nil {
-					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()), c)
-					return
-				}
+				kubeProvider := NewKubeProvider()
 				updateOptions := metav1.UpdateOptions{
 					FieldManager: DEPLOYMENTNAME,
 				}
 				serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
-				_, err = serviceClient.Update(context.TODO(), service, updateOptions)
+				_, err := serviceClient.Update(context.TODO(), service, updateOptions)
 				if err != nil {
 					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()), c)
 					return
@@ -203,18 +146,7 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 
 		service := ServiceFor(namespace, serviceName)
 		if service != nil {
-			var kubeProvider *KubeProvider
-			var err error
-			if !utils.CONFIG.Kubernetes.RunInCluster {
-				kubeProvider, err = NewKubeProviderLocal()
-			} else {
-				kubeProvider, err = NewKubeProviderInCluster()
-			}
-			if err != nil {
-				cmd.Fail(fmt.Sprintf("AddPortToService ERROR: %s", err.Error()), c)
-				return
-			}
-
+			kubeProvider := NewKubeProvider()
 			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{
 				Name:       fmt.Sprintf("%d-%s", port, serviceName),
 				Port:       port,
@@ -223,7 +155,7 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 			})
 
 			serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
-			_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
+			_, err := serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("AddPortToService ERROR: %s", err.Error()), c)
 				return
@@ -237,19 +169,7 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 }
 
 func ServiceFor(namespace string, serviceName string) *v1.Service {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		logger.Log.Errorf("ServiceFor ERROR: %s", err.Error())
-		return nil
-	}
-
+	kubeProvider := NewKubeProvider()
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
 	service, err := serviceClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 	if err != nil {
@@ -262,18 +182,7 @@ func ServiceFor(namespace string, serviceName string) *v1.Service {
 func AllServices(namespaceName string) []v1.Service {
 	result := []v1.Service{}
 
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("AllServices ERROR: %s", err.Error())
-		return result
-	}
-
+	provider := NewKubeProvider()
 	serviceList, err := provider.ClientSet.CoreV1().Services(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllServices ERROR: %s", err.Error())
@@ -289,20 +198,9 @@ func AllServices(namespaceName string) []v1.Service {
 }
 
 func UpdateK8sService(data v1.Service) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services(data.ObjectMeta.Namespace)
-	_, err = serviceClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	_, err := serviceClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
@@ -310,20 +208,9 @@ func UpdateK8sService(data v1.Service) K8sWorkloadResult {
 }
 
 func DeleteK8sService(data v1.Service) K8sWorkloadResult {
-	var kubeProvider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderLocal()
-	} else {
-		kubeProvider, err = NewKubeProviderInCluster()
-	}
-
-	if err != nil {
-		return WorkloadResult(err.Error())
-	}
-
+	kubeProvider := NewKubeProvider()
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services(data.ObjectMeta.Namespace)
-	err = serviceClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+	err := serviceClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(err.Error())
 	}
