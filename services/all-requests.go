@@ -264,7 +264,9 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		return logStream(data, datagram, c)
 
 	case "list/namespaces":
-		return mokubernetes.ListAllNamespace()
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.ListK8sNamespaces(data.NamespaceName)
 	case "list/deployments":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)

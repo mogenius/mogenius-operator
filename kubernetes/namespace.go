@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -97,6 +98,31 @@ func ListAllNamespace() []v1.Namespace {
 
 	for _, ns := range namespaceList.Items {
 		result = append(result, ns)
+	}
+
+	return result
+}
+
+func ListK8sNamespaces(namespaceName string) []v1.Namespace {
+	result := []v1.Namespace{}
+
+	kubeProvider := NewKubeProvider()
+	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
+
+	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		logger.Log.Errorf("ListAllNamespace ERROR: %s", err.Error())
+		return result
+	}
+
+	for _, ns := range namespaceList.Items {
+		if namespaceName == "" {
+			result = append(result, ns)
+		} else {
+			if strings.HasPrefix(ns.Name, namespaceName) {
+				result = append(result, ns)
+			}
+		}
 	}
 
 	return result

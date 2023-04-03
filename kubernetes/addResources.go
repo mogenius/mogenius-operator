@@ -107,7 +107,6 @@ func applyNamespace(kubeProvider *KubeProvider) {
 
 func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, error) {
 	kubeProvider := NewKubeProvider()
-
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(NAMESPACE)
 
 	existingSecret, err := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
