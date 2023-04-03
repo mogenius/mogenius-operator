@@ -71,15 +71,15 @@ func addRbac(kubeProvider *KubeProvider) error {
 
 	// CREATE RBAC
 	logger.Log.Info("Creating mogenius-k8s-manager RBAC ...")
-	_, err := kubeProvider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Create(context.TODO(), serviceAccount, metav1.CreateOptions{})
+	_, err := kubeProvider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Create(context.TODO(), serviceAccount, MoCreateOptions())
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
-	_, err = kubeProvider.ClientSet.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, metav1.CreateOptions{})
+	_, err = kubeProvider.ClientSet.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, MoCreateOptions())
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
-	_, err = kubeProvider.ClientSet.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, metav1.CreateOptions{})
+	_, err = kubeProvider.ClientSet.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, MoCreateOptions())
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
@@ -143,7 +143,8 @@ func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, err
 		secret.StringData["cluster-name"] = clusterSecret.ClusterName
 
 		logger.Log.Info("Creating mogenius secret ...")
-		result, err := secretClient.Create(context.TODO(), &secret, metav1.CreateOptions{})
+
+		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
 			logger.Log.Error(err)
 			return clusterSecret, err

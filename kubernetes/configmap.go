@@ -29,12 +29,9 @@ func CreateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		delete(configMap.Data, "XXX") // delete example data
 
 		// TODO: WRITE STUFF INTO CONFIGMAP
+		MoUpdateLabels(&configMap.Labels, &job.NamespaceId, &stage, &service)
 
-		createOptions := metav1.CreateOptions{
-			FieldManager: DEPLOYMENTNAME,
-		}
-
-		_, err := configMapClient.Create(context.TODO(), &configMap, createOptions)
+		_, err := configMapClient.Create(context.TODO(), &configMap, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()), c)
 		} else {

@@ -30,7 +30,9 @@ func CreateNetworkPolicyNamespace(job *structs.Job, stage dtos.K8sStageDto, c *w
 		netpol.Spec.PodSelector.MatchLabels["ns"] = stage.K8sName
 		netpol.Spec.Ingress[0].From[0].PodSelector.MatchLabels["ns"] = stage.K8sName
 
-		_, err := netPolClient.Create(context.TODO(), &netpol, metav1.CreateOptions{})
+		MoUpdateLabels(&netpol.Labels, &job.NamespaceId, &stage, nil)
+
+		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()), c)
 		} else {
@@ -84,7 +86,9 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 		}
 		netpol.Spec.PodSelector.MatchLabels["app"] = service.K8sName
 
-		_, err := netPolClient.Create(context.TODO(), &netpol, metav1.CreateOptions{})
+		MoUpdateLabels(&netpol.Labels, &job.NamespaceId, &stage, &service)
+
+		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()), c)
 		} else {

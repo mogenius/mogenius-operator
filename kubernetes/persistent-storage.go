@@ -29,8 +29,10 @@ func CreatePersistentVolume(job *structs.Job, stage dtos.K8sStageDto, c *websock
 		pv.Spec.StorageClassName = ""
 		pv.Spec.Capacity.Storage().Set(int64(stage.StorageSizeInMb / 1024))
 
+		MoUpdateLabels(&pv.Labels, &job.NamespaceId, &stage, nil)
+
 		pvClient := kubeProvider.ClientSet.CoreV1().PersistentVolumes()
-		_, err := pvClient.Create(context.TODO(), &pv, metav1.CreateOptions{})
+		_, err := pvClient.Create(context.TODO(), &pv, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreatePersistentVolume ERROR: %s", err.Error()), c)
 		} else {
@@ -55,8 +57,10 @@ func CreatePersistentVolumeClaim(job *structs.Job, stage dtos.K8sStageDto, c *we
 		pvc.Spec.Resources.Requests.Storage().Set(int64(stage.StorageSizeInMb / 1024))
 		pvc.Spec.Resources.Limits.Storage().Set(int64(stage.StorageSizeInMb / 1024))
 
+		MoUpdateLabels(&pvc.Labels, &job.NamespaceId, &stage, nil)
+
 		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(stage.K8sName)
-		_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
+		_, err := pvcClient.Create(context.TODO(), &pvc, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreatePersistentVolumeClaim ERROR: %s", err.Error()), c)
 		} else {

@@ -37,11 +37,9 @@ func CreateSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 			}
 		}
 
-		createOptions := metav1.CreateOptions{
-			FieldManager: DEPLOYMENTNAME,
-		}
+		MoUpdateLabels(&secret.Labels, &job.NamespaceId, &stage, &service)
 
-		_, err := secretClient.Create(context.TODO(), &secret, createOptions)
+		_, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateSecret ERROR: %s", err.Error()), c)
 		} else {
@@ -96,11 +94,9 @@ func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, sta
 		secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
 		secret.StringData = secretStringData
 
-		createOptions := metav1.CreateOptions{
-			FieldManager: DEPLOYMENTNAME,
-		}
+		MoUpdateLabels(&secret.Labels, &job.NamespaceId, &stage, nil)
 
-		_, err := secretClient.Create(context.TODO(), &secret, createOptions)
+		_, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()), c)
 		} else {

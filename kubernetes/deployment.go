@@ -30,11 +30,9 @@ func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.K8sName)
 		newDeployment := generateDeployment(stage, service, true, deploymentClient)
 
-		createOptions := metav1.CreateOptions{
-			FieldManager: DEPLOYMENTNAME,
-		}
+		MoUpdateLabels(&newDeployment.Labels, &job.NamespaceId, &stage, &service)
 
-		_, err := deploymentClient.Create(context.TODO(), &newDeployment, createOptions)
+		_, err := deploymentClient.Create(context.TODO(), &newDeployment, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()), c)
 		} else {

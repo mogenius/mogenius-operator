@@ -31,15 +31,11 @@ func UpgradeMyself(job *structs.Job, command string, c *websocket.Conn, wg *sync
 		job.Namespace = NAMESPACE
 		job.Name = fmt.Sprintf("%s-%s", job.Name, uuid.New().String())
 
-		createOptions := metav1.CreateOptions{
-			FieldManager: DEPLOYMENTNAME,
-		}
-
 		// CONFIGMAP
 		_, err := configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
 		if err != nil {
 			// CREATE
-			_, err = configmapClient.Create(context.TODO(), &configmap, createOptions)
+			_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()), c)
 				return
@@ -57,7 +53,7 @@ func UpgradeMyself(job *structs.Job, command string, c *websocket.Conn, wg *sync
 		_, err = jobClient.Get(context.TODO(), job.Name, metav1.GetOptions{})
 		if err != nil {
 			// CREATE
-			_, err = jobClient.Create(context.TODO(), &job, createOptions)
+			_, err = jobClient.Create(context.TODO(), &job, MoCreateOptions())
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()), c)
 				return

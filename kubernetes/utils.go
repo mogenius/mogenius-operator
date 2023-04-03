@@ -351,3 +351,31 @@ func HumanDuration(d time.Duration) string {
 	}
 	return fmt.Sprintf("%dy", int(hours/24/365))
 }
+
+func MoCreateOptions() metav1.CreateOptions {
+	return metav1.CreateOptions{
+		FieldManager: DEPLOYMENTNAME,
+	}
+}
+
+func MoUpdateLabels(labels *map[string]string, namespaceId *string, stage *dtos.K8sStageDto, service *dtos.K8sServiceDto) {
+	// create if didnt exist
+	if labels == nil {
+		labels = &map[string]string{}
+	}
+
+	// populate with mo labels
+	(*labels)["createdBy"] = DEPLOYMENTNAME
+	if service != nil {
+		(*labels)["mo-service-id"] = service.Id
+		(*labels)["mo-service-id-short"] = service.ShortId
+		(*labels)["mo-service-k8sname"] = service.K8sName
+	}
+	if stage != nil {
+		(*labels)["mo-stage-id"] = stage.Id
+		(*labels)["mo-stage-k8sname"] = stage.K8sName
+	}
+	if namespaceId != nil {
+		(*labels)["mo-namespace-id"] = *namespaceId
+	}
+}
