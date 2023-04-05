@@ -213,3 +213,34 @@ func NamespaceGatherAllResourcesRequestExample() NamespaceGatherAllResourcesRequ
 		NamespaceName: "default",
 	}
 }
+
+type NamespaceBackupRequest struct {
+	NamespaceName string `json:"namespaceName"`
+}
+
+func NamespaceBackupRequestExample() NamespaceBackupRequest {
+	return NamespaceBackupRequest{
+		NamespaceName: "mogenius",
+	}
+}
+
+type NamespaceRestoreRequest struct {
+	NamespaceName string `json:"namespaceName"`
+	YamlData      string `json:"yamlData"`
+}
+
+func NamespaceRestoreRequestExample() NamespaceRestoreRequest {
+	// IF backup.yaml exists. use it. otherwise. used default workload
+	data := ""
+	fileData, err := os.ReadFile("backup.yaml")
+	if err != nil {
+		fileData, _ = os.ReadFile("example-workload.yaml")
+		data = string(fileData)
+	} else {
+		data = string(fileData)
+	}
+	return NamespaceRestoreRequest{
+		NamespaceName: "mogenius-test",
+		YamlData:      data,
+	}
+}

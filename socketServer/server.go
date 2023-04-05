@@ -115,7 +115,20 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) ||
 					utils.Contains(services.BINARY_REQUESTS_DOWNLOAD, datagram.Pattern) ||
 					utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
-					if datagram.Pattern != "KubernetesEvent" {
+					if datagram.Pattern == "namespace/backup" {
+						backupData := datagram.Payload.(map[string]interface{})["data"].(string)
+						name := datagram.Payload.(map[string]interface{})["namespaceName"].(string)
+						messages := datagram.Payload.(map[string]interface{})["messages"].([]interface{})
+						fmt.Printf("Backuped '%s'. Saved to 'backup.yaml'. Bytes=%d", name, len(backupData))
+						fmt.Println("Messages:")
+						for _, msg := range messages {
+							fmt.Println(msg)
+						}
+						err := os.WriteFile("backup.yaml", []byte(backupData), os.ModePerm)
+						if err != nil {
+							logger.Log.Error(err.Error())
+						}
+					} else if datagram.Pattern != "KubernetesEvent" {
 						RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
 						fmt.Printf("%s\n", RECEIVCOLOR(utils.FillWith("RECEIVED", 22, " ")))
 						datagram.DisplayBeautiful()
@@ -299,6 +312,10 @@ func requestCmdFromCluster(pattern string) {
 			payload = nil
 		case "namespace/gather-all-resources":
 			payload = services.NamespaceGatherAllResourcesRequestExample()
+		case "namespace/backup":
+			payload = services.NamespaceBackupRequestExample()
+		case "namespace/restore":
+			payload = services.NamespaceRestoreRequestExample()
 		case "service/create":
 			payload = services.ServiceCreateRequestExample()
 		case "service/delete":

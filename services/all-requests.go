@@ -34,6 +34,7 @@ var COMMAND_REQUESTS = []string{
 	"files/delete",
 	"cluster/execute-helm-chart-task",
 	"cluster/uninstall-helm-chart",
+
 	"namespace/create",
 	"namespace/delete",
 	"namespace/shutdown",
@@ -43,6 +44,9 @@ var COMMAND_REQUESTS = []string{
 	"namespace/storage-size",
 	"namespace/list-all",
 	"namespace/gather-all-resources",
+	"namespace/backup",
+	"namespace/restore",
+
 	"service/create",
 	"service/delete",
 	"service/pod-ids",
@@ -192,6 +196,22 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := NamespaceGatherAllResourcesRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ListAllResourcesForNamespace(data)
+	case "namespace/backup":
+		data := NamespaceBackupRequest{}
+		marshalUnmarshal(&datagram, &data)
+		result, err := mokubernetes.BackupNamespace(data.NamespaceName)
+		if err != nil {
+			return err.Error()
+		}
+		return result
+	case "namespace/restore":
+		data := NamespaceRestoreRequest{}
+		marshalUnmarshal(&datagram, &data)
+		result, err := mokubernetes.RestoreNamespace(data.YamlData, data.NamespaceName)
+		if err != nil {
+			return err.Error()
+		}
+		return result
 	case "service/create":
 		data := ServiceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)

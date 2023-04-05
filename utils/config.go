@@ -44,6 +44,7 @@ type Config struct {
 		DefaultMountPath      string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
 		ConcurrentConnections int      `yaml:"concurrent_connections" env:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"1"`
 		IgnoreNamespaces      []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
+		IgnoreResourcesBackup []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
 		CheckForUpdates       int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
 		HelmIndex             string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
 	} `yaml:"misc"`
@@ -129,6 +130,7 @@ func PrintSettings() {
 	logger.Log.Infof("StorageAccount:           %s", CONFIG.Misc.StorageAccount)
 	logger.Log.Infof("DefaultMountPath:         %s", CONFIG.Misc.DefaultMountPath)
 	logger.Log.Infof("ConcurrentConnections:    %d", CONFIG.Misc.ConcurrentConnections)
+	logger.Log.Infof("IgnoreResourcesBackup:    %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
 	logger.Log.Infof("IgnoreNamespaces:         %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
 	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)

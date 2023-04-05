@@ -25,5 +25,6 @@ misc:
   debug: false
   concurrent_connections: 1
   ignore_namespaces: ["kube-system", "default"]
+  ignore_resources_backup: ["events.k8s.io/v1", "events.k8s.io/v1beta1", "metrics.k8s.io/v1beta1", "discovery.k8s.io/v1"]
   check_for_updates: 3600
   helm_index: https://helm.mogenius.com/public/index.yaml
