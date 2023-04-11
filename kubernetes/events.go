@@ -2,12 +2,14 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	v1Core "k8s.io/api/core/v1"
@@ -47,6 +49,15 @@ func WatchEvents() {
 						kind := eventObj.InvolvedObject.Kind
 						reason := eventObj.Reason
 						count := eventObj.Count
+						if kind == "Pod" &&
+							(reason == "Started" && strings.HasPrefix(message, "Started container nfs-server")) ||
+							(reason == "Killing" && strings.HasPrefix(message, "Stopping container nfs-server")) {
+							fmt.Println(eventObj)
+							// trigger
+							// 1. list all pvc
+							// 2. generate list of all volumes/volumemounts
+							// 3. redeploy own deployment
+						}
 						structs.EventServerSendData(datagram, kind, reason, message, count)
 					}
 				} else if event.Type == "ERROR" {
@@ -63,3 +74,13 @@ func WatchEvents() {
 		time.Sleep(RETRYTIMEOUT * time.Second)
 	}
 }
+
+// OPTION 1 (Neu)
+// 1. Anlegenn eines Storage (pro cloudspace) 					|||||||||| wir benötigen eine mini-verwaltung dafür wie bei stages
+// 2. Zuweisen Name -> Mountverzeichnis (pro service) 			|||||||||| keine änderungen nötig. kommt in env-vars
+// ganz normal verwenden
+
+// OPTION 2 (alt)
+// 1. Anlegenn eines Storage für jede Stage 					||||||||||
+// 2. Zuweisen Name -> Mountverzeichnis (pro service) 			|||||||||| keine änderungen nötig. kommt in env-vars
+// ganz normal verwenden

@@ -73,6 +73,10 @@ func (j *Job) Finish(c *websocket.Conn) {
 			failedCmd = cmd.Title
 		}
 	}
+	if j.State == "FAILED" {
+		allSuccess = false
+		failedCmd = j.Title
+	}
 	if allSuccess {
 		j.State = "SUCCEEDED"
 		j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()

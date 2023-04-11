@@ -102,6 +102,14 @@ var COMMAND_REQUESTS = []string{
 	"delete/job",
 	"delete/cronjob",
 	"delete/replicaset",
+
+	"storage/enable",
+	"storage/disable",
+	"storage/create-volume",
+	"storage/delete-volume",
+	"storage/backup-volume",
+	"storage/restore-volume",
+	"storage/stats",
 }
 
 var BINARY_REQUESTS_DOWNLOAD = []string{
@@ -429,6 +437,35 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := K8sDeleteReplicasetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteReplicaSet(data, c)
+
+	case "storage/enable":
+		data := NfsStorageInstallRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return InstallMogeniusNfsStorage(data, c)
+	case "storage/disable":
+		data := NfsStorageInstallRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return UninstallMogeniusNfsStorage(data, c)
+	case "storage/create-volume":
+		data := NfsVolumeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return CreateMogeniusNfsVolume(data, c)
+	case "storage/delete-volume":
+		data := NfsVolumeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return DeleteMogeniusNfsVolume(data, c)
+	case "storage/backup-volume":
+		data := NfsVolumeBackupRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return BackupMogeniusNfsVolume(data, c)
+	case "storage/restore-volume":
+		data := NfsVolumeRestoreRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return RestoreMogeniusNfsVolume(data, c)
+	case "storage/stats":
+		data := NfsVolumeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return StatsMogeniusNfsVolume(data, c)
 	}
 
 	datagram.Err = "Pattern not found"

@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"fmt"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -22,4 +23,28 @@ func ExecuteHelmChartTask(job *structs.Job, helmReleaseName string, helmRepoName
 
 func DeleteHelmChart(job *structs.Job, helmReleaseName string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	return structs.CreateBashCommand("Uninstall chart.", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), c, wg)
+}
+
+func InstallMogeniusNfsStorage(job *structs.Job, c *websocket.Conn, wg *sync.WaitGroup) []*structs.Command {
+	cmds := []*structs.Command{}
+
+	addRepoCmd := structs.CreateBashCommand("Install/Update helm repo.", job, "helm repo add openebs https://openebs.github.io/charts; helm repo update", c, wg)
+	cmds = append(cmds, addRepoCmd)
+	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm install mogenius-nfs-storage openebs/openebs -n %s --create-namespace --set nfs-provisioner.enabled=true", utils.CONFIG.Kubernetes.OwnNamespace), c, wg)
+	cmds = append(cmds, instRelCmd)
+	storageClassCmd := CreateMogeniusNfsStorageClass(job, c, wg)
+	cmds = append(cmds, storageClassCmd)
+
+	return cmds
+}
+
+func UninstallMogeniusNfsStorage(job *structs.Job, c *websocket.Conn, wg *sync.WaitGroup) []*structs.Command {
+	cmds := []*structs.Command{}
+
+	uninstRelCmd := structs.CreateBashCommand("Uninstall helm release.", job, fmt.Sprintf("helm uninstall mogenius-nfs-storage -n %s", utils.CONFIG.Kubernetes.OwnNamespace), c, wg)
+	cmds = append(cmds, uninstRelCmd)
+	storageClassCmd := DeleteMogeniusNfsStorageClass(job, c, wg)
+	cmds = append(cmds, storageClassCmd)
+
+	return cmds
 }

@@ -399,6 +399,21 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.K8sUpdateCronJobRequestExample()
 		case "update/replicaset":
 			payload = services.K8sUpdateReplicaSetRequestExample()
+
+		case "storage/enable":
+			payload = services.NfsStorageInstallRequestExample()
+		case "storage/disable":
+			payload = services.NfsStorageInstallRequestExample()
+		case "storage/create-volume":
+			payload = services.NfsVolumeRequestExample()
+		case "storage/delete-volume":
+			payload = services.NfsVolumeRequestExample()
+		case "storage/backup-volume":
+			payload = services.NfsVolumeBackupRequestExample()
+		case "storage/restore-volume":
+			payload = services.NfsVolumeRestoreRequestExample()
+		case "storage/stats":
+			payload = services.NfsVolumeRequestExample()
 		}
 		firstConnection := selectRandomCluster(blockConnection)
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)

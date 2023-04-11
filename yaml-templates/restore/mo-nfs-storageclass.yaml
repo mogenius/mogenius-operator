@@ -1,0 +1,24 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-rwx
+  annotations:
+    openebs.io/cas-type: nfsrwx
+    cas.openebs.io/config: |
+      - name: NFSServerType
+        value: "kernel"
+      # - name: BackendStorageClass
+      #   value: "default"
+      #  LeaseTime defines the renewal period(in seconds) for client state
+      #- name: LeaseTime
+      #  value: 30
+      #  GraceTime defines the recovery period(in seconds) to reclaim locks
+      #- name: GraceTime
+      #  value: 30
+      #  FSGID defines the group permissions of NFS Volume. If it is set
+      #  then non-root applications should add FSGID value under pod
+      #  Supplemental groups
+      #- name: FSGID
+      #  value: "120"
+provisioner: openebs.io/nfsrwx
+reclaimPolicy: Delete
