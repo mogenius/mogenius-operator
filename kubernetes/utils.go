@@ -32,7 +32,12 @@ var (
 )
 
 type K8sWorkloadResult struct {
-	Result string `json:"Result"`
+	Result string `json:"result"`
+}
+
+type MogeniusNfsInstallationStatus struct {
+	Error       string `json:"error,omitempty"`
+	IsInstalled bool   `json:"isInstalled"`
 }
 
 type KubeProviderMetrics struct {

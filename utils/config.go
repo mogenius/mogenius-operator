@@ -40,6 +40,7 @@ type Config struct {
 	} `yaml:"event_server"`
 	Misc struct {
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
+		LogKubernetesEvents   bool     `yaml:"log_kubernetes_events" env:"log-kubernetes-events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
 		StorageAccount        string   `yaml:"storage_account" env:"storage_account" env-description:"Azure Storage Account"`
 		DefaultMountPath      string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
 		ConcurrentConnections int      `yaml:"concurrent_connections" env:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"1"`
@@ -127,6 +128,7 @@ func PrintSettings() {
 	logger.Log.Infof("EventPath:                %s", CONFIG.EventServer.Path)
 
 	logger.Log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
+	logger.Log.Infof("LogKubernetesEvents:      %t", CONFIG.Misc.LogKubernetesEvents)
 	logger.Log.Infof("StorageAccount:           %s", CONFIG.Misc.StorageAccount)
 	logger.Log.Infof("DefaultMountPath:         %s", CONFIG.Misc.DefaultMountPath)
 	logger.Log.Infof("ConcurrentConnections:    %d", CONFIG.Misc.ConcurrentConnections)

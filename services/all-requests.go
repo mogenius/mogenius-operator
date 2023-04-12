@@ -105,6 +105,7 @@ var COMMAND_REQUESTS = []string{
 
 	"storage/enable",
 	"storage/disable",
+	"storage/check-if-installed",
 	"storage/create-volume",
 	"storage/delete-volume",
 	"storage/backup-volume",
@@ -446,6 +447,8 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := NfsStorageInstallRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return UninstallMogeniusNfsStorage(data, c)
+	case "storage/check-if-installed":
+		return mokubernetes.CheckIfMogeniusNfsIsRunning()
 	case "storage/create-volume":
 		data := NfsVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)

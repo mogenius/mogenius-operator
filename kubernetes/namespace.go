@@ -15,33 +15,29 @@ import (
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, c *websocket.Conn) *structs.Command {
 	cmd := structs.CreateCommand("Create Kubernetes namespace", job, c)
-	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating namespace '%s'.", stage.K8sName), c)
+	cmd.Start(fmt.Sprintf("Creating namespace '%s'.", stage.K8sName), c)
 
-		kubeProvider := NewKubeProvider()
-		namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
-		namespace := applyconfcore.Namespace(stage.K8sName)
+	kubeProvider := NewKubeProvider()
+	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
+	newNamespace := applyconfcore.Namespace(stage.K8sName)
 
-		applyOptions := metav1.ApplyOptions{
-			Force:        true,
-			FieldManager: DEPLOYMENTNAME,
-		}
+	applyOptions := metav1.ApplyOptions{
+		Force:        true,
+		FieldManager: DEPLOYMENTNAME,
+	}
 
-		namespace.WithLabels(map[string]string{
-			"name": stage.K8sName,
-		})
+	newNamespace.WithLabels(map[string]string{
+		"name": stage.K8sName,
+	})
 
-		_, err := namespaceClient.Apply(context.TODO(), namespace, applyOptions)
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()), c)
-		} else {
-			cmd.Success(fmt.Sprintf("Created namespace '%s'.", *namespace.Name), c)
-		}
-	}(cmd, wg)
+	_, err := namespaceClient.Apply(context.TODO(), newNamespace, applyOptions)
+	if err != nil {
+		cmd.Fail(fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()), c)
+	} else {
+		cmd.Success(fmt.Sprintf("Created namespace '%s'.", newNamespace.Name), c)
+	}
 	return cmd
 }
 

@@ -99,11 +99,10 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 	for i := 0; i < len(dataQueue); i++ {
 		element := dataQueue[i]
 		if queueConnection != nil {
-			logger.Log.Infof("%s", queueConnection.RemoteAddr().String())
 			err := queueConnection.WriteJSON(element)
 			if err == nil {
 				if k8sKind != "" && k8sReason != "" && k8sMessage != "" {
-					if utils.CONFIG.Misc.Debug {
+					if utils.CONFIG.Misc.Debug && utils.CONFIG.Misc.LogKubernetesEvents {
 						datagram.DisplaySentSummaryEvent(k8sKind, k8sReason, k8sMessage, count)
 					}
 				}

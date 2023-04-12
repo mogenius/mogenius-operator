@@ -63,13 +63,19 @@ func DeleteHelmChart(r ClusterHelmUninstallRequest, c *websocket.Conn) structs.J
 }
 
 func InstallMogeniusNfsStorage(r NfsStorageInstallRequest, c *websocket.Conn) interface{} {
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Install mogenius nfs-storage.", r.NamespaceId, nil, nil, c)
-	job.Start(c)
-	job.AddCmds(mokubernetes.InstallMogeniusNfsStorage(&job, c, &wg))
-	wg.Wait()
-	job.Finish(c)
-	return job
+	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
+	if !nfsStatus.IsInstalled {
+		var wg sync.WaitGroup
+		job := structs.CreateJob("Install mogenius nfs-storage.", r.NamespaceId, nil, nil, c)
+		job.Start(c)
+		job.AddCmds(mokubernetes.InstallMogeniusNfsStorage(&job, c, &wg))
+		wg.Wait()
+		job.Finish(c)
+		return job
+	} else {
+		nfsStatus.Error = "Mogenius NFS storage has already been installed."
+		return nfsStatus
+	}
 }
 
 func UninstallMogeniusNfsStorage(r NfsStorageInstallRequest, c *websocket.Conn) interface{} {

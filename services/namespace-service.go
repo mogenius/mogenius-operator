@@ -19,7 +19,7 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 
 	job := structs.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
 	job.Start(c)
-	job.AddCmd(mokubernetes.CreateNamespace(&job, r.Namespace, r.Stage, c, &wg))
+	job.AddCmd(mokubernetes.CreateNamespace(&job, r.Namespace, r.Stage, c))
 	if r.Stage.StorageSizeInMb > 0 {
 		dataRoot, err := os.Getwd()
 		if err != nil {
