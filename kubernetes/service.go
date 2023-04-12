@@ -26,7 +26,7 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
 		newService := generateService(stage, service)
 
-		MoUpdateLabels(&newService.Labels, &job.NamespaceId, &stage, &service)
+		newService.Labels = MoUpdateLabels(&newService.Labels, &job.NamespaceId, &stage, &service)
 
 		_, err := serviceClient.Create(context.TODO(), &newService, MoCreateOptions())
 		if err != nil {

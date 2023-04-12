@@ -358,24 +358,30 @@ func MoCreateOptions() metav1.CreateOptions {
 	}
 }
 
-func MoUpdateLabels(labels *map[string]string, namespaceId *string, stage *dtos.K8sStageDto, service *dtos.K8sServiceDto) {
-	// create if didnt exist
-	if labels == nil {
-		labels = &map[string]string{}
+func MoUpdateLabels(labels *map[string]string, namespaceId *string, stage *dtos.K8sStageDto, service *dtos.K8sServiceDto) map[string]string {
+	resultingLabels := map[string]string{}
+
+	// transfer existing values
+	if labels != nil {
+		for k, v := range *labels {
+			resultingLabels[k] = v
+		}
 	}
 
 	// populate with mo labels
-	(*labels)["createdBy"] = DEPLOYMENTNAME
+	resultingLabels["createdBy"] = DEPLOYMENTNAME
 	if service != nil {
-		(*labels)["mo-service-id"] = service.Id
-		(*labels)["mo-service-id-short"] = service.ShortId
-		(*labels)["mo-service-k8sname"] = service.K8sName
+		resultingLabels["mo-service-id"] = service.Id
+		resultingLabels["mo-service-id-short"] = service.ShortId
+		resultingLabels["mo-service-k8sname"] = service.K8sName
 	}
 	if stage != nil {
-		(*labels)["mo-stage-id"] = stage.Id
-		(*labels)["mo-stage-k8sname"] = stage.K8sName
+		resultingLabels["mo-stage-id"] = stage.Id
+		resultingLabels["mo-stage-k8sname"] = stage.K8sName
 	}
 	if namespaceId != nil {
-		(*labels)["mo-namespace-id"] = *namespaceId
+		resultingLabels["mo-namespace-id"] = *namespaceId
 	}
+
+	return resultingLabels
 }

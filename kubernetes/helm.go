@@ -48,3 +48,28 @@ func UninstallMogeniusNfsStorage(job *structs.Job, c *websocket.Conn, wg *sync.W
 
 	return cmds
 }
+
+func CheckIfMogeniusNfsIsRunning() bool {
+	// kubeProvider := NewKubeProvider()
+
+	// settings := cli.New()
+
+	// actionConfig := new(action.Configuration)
+	// // You can pass an empty string instead of settings.Namespace() to list
+	// // all namespaces
+	// if err := actionConfig.Init(settings.RESTClientGetter(), NAMESPACE, "", log.Printf); err != nil {
+	// 	log.Printf("%+v", err)
+	// 	os.Exit(1)
+	// }
+
+	// releases, err := action.NewList(actionConfig).Run()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// for _, release := range releases {
+	// 	log.Println(release.Name)
+	// }
+
+	return false
+}
