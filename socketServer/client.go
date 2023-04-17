@@ -44,9 +44,9 @@ func StartK8sManager(runsInCluster bool) {
 		utils.PrintVersionInfo()
 		utils.PrintSettings()
 	} else {
-		fmt.Println(utils.FillWith("", 60, "#"))
-		fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", utils.FillWith(mokubernetes.CurrentContextName(), 31, " "))
-		fmt.Println(utils.FillWith("", 60, "#"))
+		fmt.Println(utils.FillWith("", 90, "#"))
+		fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", utils.FillWith(mokubernetes.CurrentContextName(), 61, " "))
+		fmt.Println(utils.FillWith("", 90, "#"))
 	}
 
 	updateCheck()

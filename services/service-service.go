@@ -434,6 +434,26 @@ func K8sUpdateReplicaSetRequestExample() K8sUpdateReplicaSetRequest {
 	}
 }
 
+type K8sUpdatePersistentVolumeRequest struct {
+	Data *core.PersistentVolume `json:"data"`
+}
+
+func K8sUpdatePersistentVolumeRequestExample() K8sUpdatePersistentVolumeRequest {
+	return K8sUpdatePersistentVolumeRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdatePersistentVolumeClaimRequest struct {
+	Data *core.PersistentVolumeClaim `json:"data"`
+}
+
+func K8sUpdatePersistentVolumeClaimRequestExample() K8sUpdatePersistentVolumeClaimRequest {
+	return K8sUpdatePersistentVolumeClaimRequest{
+		Data: nil,
+	}
+}
+
 type K8sDeleteNamespaceRequest struct {
 	Data *core.Namespace `json:"data"`
 }
@@ -550,6 +570,26 @@ type K8sDeleteReplicasetRequest struct {
 
 func K8sDeleteReplicaSetRequestExample() K8sDeleteReplicasetRequest {
 	return K8sDeleteReplicasetRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeletePersistentVolumeRequest struct {
+	Data *core.PersistentVolume `json:"data"`
+}
+
+func K8sDeletePersistentVolumeRequestExample() K8sDeletePersistentVolumeRequest {
+	return K8sDeletePersistentVolumeRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeletePersistentVolumeClaimRequest struct {
+	Data *core.PersistentVolumeClaim `json:"data"`
+}
+
+func K8sDeletePersistentVolumeClaimRequestExample() K8sDeletePersistentVolumeClaimRequest {
+	return K8sDeletePersistentVolumeClaimRequest{
 		Data: nil,
 	}
 }

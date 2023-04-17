@@ -89,23 +89,35 @@ func UninstallMogeniusNfsStorage(r NfsStorageInstallRequest, c *websocket.Conn) 
 }
 
 func CreateMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) interface{} {
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeId, r.VolumeName, r.SizeInGb, c, &wg))
-	wg.Wait()
-	job.Finish(c)
-	return job
+	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
+	if nfsStatus.IsInstalled {
+		var wg sync.WaitGroup
+		job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil, c)
+		job.Start(c)
+		job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeId, r.VolumeName, r.SizeInGb, c, &wg))
+		wg.Wait()
+		job.Finish(c)
+		return job
+	} else {
+		nfsStatus.Error = "Mogenius NFS storage has NOT been installed."
+		return nfsStatus
+	}
 }
 
 func DeleteMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) interface{} {
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, nil, nil, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, c, &wg))
-	wg.Wait()
-	job.Finish(c)
-	return job
+	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
+	if nfsStatus.IsInstalled {
+		var wg sync.WaitGroup
+		job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, nil, nil, c)
+		job.Start(c)
+		job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, c, &wg))
+		wg.Wait()
+		job.Finish(c)
+		return job
+	} else {
+		nfsStatus.Error = "Mogenius NFS storage has NOT been installed."
+		return nfsStatus
+	}
 }
 
 func StatsMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) NfsVolumeStatsResponse {
@@ -437,7 +449,7 @@ func NfsVolumeRequestExample() NfsVolumeRequest {
 		NamespaceName: "mogenius",
 		VolumeId:      "565D37BE-95C8-4069-A7F8-B61AB30DF250",
 		VolumeName:    "my-fancy-volume-name",
-		SizeInGb:      1,
+		SizeInGb:      10,
 	}
 }
 

@@ -376,6 +376,10 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.K8sListRequestExample()
 		case "list/replicasets":
 			payload = services.K8sListRequestExample()
+		case "list/persistentvolume":
+			payload = services.K8sListRequestExample()
+		case "list/persistentvolumeclaim":
+			payload = services.K8sListRequestExample()
 
 		case "update/deployment":
 			payload = services.K8sUpdateDeploymentRequestExample()
@@ -399,6 +403,39 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.K8sUpdateCronJobRequestExample()
 		case "update/replicaset":
 			payload = services.K8sUpdateReplicaSetRequestExample()
+		case "update/persistentvolume":
+			payload = services.K8sUpdatePersistentVolumeRequestExample()
+		case "update/persistentvolumeclaim":
+			payload = services.K8sUpdatePersistentVolumeClaimRequestExample()
+
+		case "delete/namespace":
+			payload = services.K8sDeleteNamespaceRequestExample()
+		case "delete/deployment":
+			payload = services.K8sDeleteDeploymentRequestExample()
+		case "delete/service":
+			payload = services.K8sDeleteServiceRequestExample()
+		case "delete/pod":
+			payload = services.K8sDeletePodRequestExample()
+		case "delete/ingress":
+			payload = services.K8sDeleteIngressRequestExample()
+		case "delete/configmap":
+			payload = services.K8sDeleteConfigmapRequestExample()
+		case "delete/secret":
+			payload = services.K8sDeleteSecretRequestExample()
+		case "delete/daemonset":
+			payload = services.K8sDeleteDaemonsetRequestExample()
+		case "delete/statefulset":
+			payload = services.K8sDeleteStatefulsetRequestExample()
+		case "delete/job":
+			payload = services.K8sDeleteJobRequestExample()
+		case "delete/cronjob":
+			payload = services.K8sDeleteCronjobRequestExample()
+		case "delete/replicaset":
+			payload = services.K8sDeleteReplicaSetRequestExample()
+		case "delete/persistentvolume":
+			payload = services.K8sDeletePersistentVolumeRequestExample()
+		case "delete/persistentvolumeclaim":
+			payload = services.K8sDeletePersistentVolumeClaimRequestExample()
 
 		case "storage/enable":
 			payload = services.NfsStorageInstallRequestExample()

@@ -7,8 +7,9 @@ metadata:
     cas.openebs.io/config: |
       - name: NFSServerType
         value: "kernel"
-      # - name: BackendStorageClass
-      #   value: "default"
+      # TODO: This must be removed once the issue is fixed
+      - name: BackendStorageClass
+        value: "openebs-hostpath"
       #  LeaseTime defines the renewal period(in seconds) for client state
       #- name: LeaseTime
       #  value: 30

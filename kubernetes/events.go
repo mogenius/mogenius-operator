@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	core "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -52,12 +52,23 @@ func WatchEvents() {
 						if kind == "Pod" &&
 							(reason == "Started" && strings.HasPrefix(message, "Started container nfs-server")) ||
 							(reason == "Killing" && strings.HasPrefix(message, "Stopping container nfs-server")) {
-							fmt.Println(eventObj)
-							// trigger
-							// 1. list all pvc
-							// 2. generate list of all volumes/volumemounts
-							// 3. redeploy own deployment
+							err := UpdateK8sManagerVolumeMounts()
+							if err != nil {
+								logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
+							}
 						}
+						// if kind == "PersistentVolumeClaim" {
+						// 	if reason == "ProvisioningSucceeded" && strings.HasPrefix(message, "Successfully provisioned volume pvc-") {
+						// 		// 1. get pvc
+						// 		// 2. check if storageclass is "openebs-rwx"
+
+						// 	} else if reason == "ProvisioningSucceeded" && strings.HasPrefix(message, "Successfully provisioned volume pvc-") {
+
+						// 	}
+						// 	fmt.Println(eventObj)
+						// }
+						//fmt.Println(eventObj)
+
 						structs.EventServerSendData(datagram, kind, reason, message, count)
 					}
 				} else if event.Type == "ERROR" {
@@ -75,12 +86,61 @@ func WatchEvents() {
 	}
 }
 
-// OPTION 1 (Neu)
-// 1. Anlegenn eines Storage (pro cloudspace) 					|||||||||| wir benötigen eine mini-verwaltung dafür wie bei stages
-// 2. Zuweisen Name -> Mountverzeichnis (pro service) 			|||||||||| keine änderungen nötig. kommt in env-vars
-// ganz normal verwenden
+func UpdateK8sManagerVolumeMounts() error {
+	allMountedPaths := []string{}
 
-// OPTION 2 (alt)
-// 1. Anlegenn eines Storage für jede Stage 					||||||||||
-// 2. Zuweisen Name -> Mountverzeichnis (pro service) 			|||||||||| keine änderungen nötig. kommt in env-vars
-// ganz normal verwenden
+	// 1: LIST all matching PersistentVolumes
+	allPvs := AllPersistentVolumes()
+	mogeniusPvs := []v1Core.PersistentVolume{}
+	for _, pv := range allPvs {
+		if pv.Spec.StorageClassName == "openebs-rwx" {
+			mogeniusPvs = append(mogeniusPvs, pv)
+		}
+	}
+
+	// 2: Get own deployment for future update
+	kubeProvider := NewKubeProvider()
+	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
+	ownDeployment, err := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// 3: Update own Deployment
+	hasBeenUpdated := false
+	for _, mopv := range mogeniusPvs {
+		mountPath := "/mo-data/mounts" + mopv.Name
+		allMountedPaths = append(allMountedPaths, mountPath)
+		// 3.1 Add VolumeMount
+		ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
+			MountPath: mountPath,
+			Name:      mopv.Name,
+		})
+		// 3.2 Add Volume
+		ownDeployment.Spec.Template.Spec.Volumes = append(ownDeployment.Spec.Template.Spec.Volumes, core.Volume{
+			Name: mopv.Name,
+			VolumeSource: core.VolumeSource{
+				PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+					ClaimName: mopv.Name,
+				},
+			},
+		})
+	}
+
+	// List all mounts marking new ones
+	logger.Log.Info("Currently mounted Volumes:")
+	for index, currentMountPath := range allMountedPaths {
+		logger.Log.Infof("%d: %s%s", index+1, currentMountPath)
+	}
+
+	// 5: Redeploy on up
+	if hasBeenUpdated {
+		deploymentClient.Update(context.TODO(), ownDeployment, v1.UpdateOptions{})
+	}
+
+	// 1. list all pvc
+	// 2. generate list of all volumes/volumemounts
+	// 3. check if volume has already been mounted
+	// 4. redeploy own deployment
+	return nil
+}

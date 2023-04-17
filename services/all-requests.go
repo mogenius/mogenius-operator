@@ -77,6 +77,8 @@ var COMMAND_REQUESTS = []string{
 	"list/jobs",
 	"list/cronjobs",
 	"list/replicasets",
+	"list/persistentvolume",
+	"list/persistentvolumeclaim",
 
 	"update/deployment",
 	"update/service",
@@ -89,6 +91,8 @@ var COMMAND_REQUESTS = []string{
 	"update/job",
 	"update/cronjob",
 	"update/replicaset",
+	"update/persistentvolume",
+	"update/persistentvolumeclaim",
 
 	"delete/namespace",
 	"delete/deployment",
@@ -102,6 +106,8 @@ var COMMAND_REQUESTS = []string{
 	"delete/job",
 	"delete/cronjob",
 	"delete/replicaset",
+	"delete/persistentvolume",
+	"delete/persistentvolumeclaim",
 
 	"storage/enable",
 	"storage/disable",
@@ -344,6 +350,14 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllReplicasets(data.NamespaceName)
+	case "list/persistentvolume":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllPersistentVolumes()
+	case "list/persistentvolumeclaim":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllPersistentVolumeClaims(data.NamespaceName)
 
 	case "update/deployment":
 		data := K8sUpdateDeploymentRequest{}
@@ -389,6 +403,14 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := K8sUpdateReplicaSetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateReplicaSet(data, c)
+	case "update/persistentvolume":
+		data := K8sUpdatePersistentVolumeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sPersistentVolume(*data.Data)
+	case "update/persistentvolumeclaim":
+		data := K8sUpdatePersistentVolumeClaimRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sPersistentVolumeClaim(*data.Data)
 
 	case "delete/namespace":
 		data := K8sDeleteNamespaceRequest{}
@@ -438,6 +460,14 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := K8sDeleteReplicasetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteReplicaSet(data, c)
+	case "delete/persistentvolume":
+		data := K8sDeletePersistentVolumeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sPersistentVolume(*data.Data)
+	case "delete/persistentvolumeclaim":
+		data := K8sDeletePersistentVolumeClaimRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sPersistentVolumeClaim(*data.Data)
 
 	case "storage/enable":
 		data := NfsStorageInstallRequest{}

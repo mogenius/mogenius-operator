@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
@@ -21,16 +20,16 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 	job.Start(c)
 	job.AddCmd(mokubernetes.CreateNamespace(&job, r.Namespace, r.Stage, c))
 	if r.Stage.StorageSizeInMb > 0 {
-		dataRoot, err := os.Getwd()
-		if err != nil {
-			logger.Log.Error(err.Error())
-		}
-		if utils.CONFIG.Kubernetes.RunInCluster {
-			dataRoot = "/"
-		}
-		job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c, &wg))
+		// dataRoot, err := os.Getwd()
+		// if err != nil {
+		// 	logger.Log.Error(err.Error())
+		// }
+		// if utils.CONFIG.Kubernetes.RunInCluster {
+		// 	dataRoot = "/"
+		// }
+		//job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c, &wg))
 		job.AddCmd(mokubernetes.CreateNetworkPolicyNamespace(&job, r.Stage, c, &wg))
-		job.AddCmd(mokubernetes.CreatePersistentVolumeClaim(&job, r.Stage, c, &wg))
+		//job.AddCmd(mokubernetes.CreatePersistentVolumeClaim(&job, r.Stage, c, &wg))
 		if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
 			job.AddCmd(mokubernetes.CreateContainerSecret(&job, r.Namespace, r.Stage, c, &wg))
 		}

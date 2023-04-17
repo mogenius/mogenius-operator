@@ -30,7 +30,9 @@ func InstallMogeniusNfsStorage(job *structs.Job, c *websocket.Conn, wg *sync.Wai
 
 	addRepoCmd := structs.CreateBashCommand("Install/Update helm repo.", job, "helm repo add openebs https://openebs.github.io/charts; helm repo update", c, wg)
 	cmds = append(cmds, addRepoCmd)
-	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm install mogenius-nfs-storage openebs/openebs -n %s --create-namespace --set nfs-provisioner.enabled=true", utils.CONFIG.Kubernetes.OwnNamespace), c, wg)
+	// AWS --set-string nfsStorageClass.backendStorageClass=gp2
+	// GCP --set-string nfsStorageClass.backendStorageClass=standard-rwo
+	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm install mogenius-nfs-storage openebs/openebs -n %s --create-namespace --set nfs-provisioner.enabled=true --set analytics.enabled=false", utils.CONFIG.Kubernetes.OwnNamespace), c, wg)
 	cmds = append(cmds, instRelCmd)
 	storageClassCmd := CreateMogeniusNfsStorageClass(job, c, wg)
 	cmds = append(cmds, storageClassCmd)
