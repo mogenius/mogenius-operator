@@ -12,43 +12,37 @@ import (
 )
 
 type PersistentFileDto struct {
-	Name           string `json:"name" validate:"required"`
-	Type           string `json:"type" validate:"required"` // "directory", "file"
-	RelativePath   string `json:"relativePath" validate:"required"`
-	AbsolutePath   string `json:"absolutePath" validate:"required"`
-	IsSymbolicLink bool   `json:"isSymbolicLink" validate:"required"`
-	Extension      string `json:"extension,omitempty"`
-	SizeInBytes    int64  `json:"sizeInBytes" validate:"required"`
-	Size           string `json:"size" validate:"required"`
-	Hash           string `json:"hash" validate:"required"`
-	MimeType       string `json:"mimeType,omitempty"`
-	ContentType    string `json:"contentType,omitempty"`
-	CreatedAt      string `json:"createdAt,omitempty"`
-	ModifiedAt     string `json:"modifiedAt,omitempty"`
-	Uid_gid        string `json:"uid_gid,omitempty"`
-	Mode           int    `json:"mode,omitempty"`
-	New            bool   `json:"new,omitempty"`
+	Name         string `json:"name" validate:"required"`
+	Type         string `json:"type" validate:"required"` // "directory", "file"
+	RelativePath string `json:"relativePath" validate:"required"`
+	Extension    string `json:"extension,omitempty"`
+	SizeInBytes  int64  `json:"sizeInBytes" validate:"required"`
+	Size         string `json:"size" validate:"required"`
+	Hash         string `json:"hash" validate:"required"`
+	MimeType     string `json:"mimeType,omitempty"`
+	ContentType  string `json:"contentType,omitempty"`
+	CreatedAt    string `json:"createdAt,omitempty"`
+	ModifiedAt   string `json:"modifiedAt,omitempty"`
+	Uid_gid      string `json:"uid_gid,omitempty"`
+	Mode         string `json:"mode,omitempty"`
 }
 
 func PersistentFileDtoExampleData() PersistentFileDto {
 	return PersistentFileDto{
-		Name:           "name",
-		Type:           "directory",
-		RelativePath:   "relativePath",
-		AbsolutePath:   "absolutePath",
-		IsSymbolicLink: true,
-		SizeInBytes:    1,
-		Size:           "size",
-		Hash:           "hash",
-		CreatedAt:      time.Now().Format(time.RFC3339),
-		ModifiedAt:     time.Now().Format(time.RFC3339),
-		Uid_gid:        "uid_gid",
-		Mode:           1,
-		New:            true,
+		Name:         "name",
+		Type:         "directory",
+		RelativePath: "relativePath",
+		SizeInBytes:  1,
+		Size:         "size",
+		Hash:         "hash",
+		CreatedAt:    time.Now().Format(time.RFC3339),
+		ModifiedAt:   time.Now().Format(time.RFC3339),
+		Uid_gid:      "uid_gid",
+		Mode:         "123",
 	}
 }
 
-func PersistentFileDtoFrom(path string, d fs.DirEntry) PersistentFileDto {
+func PersistentFileDtoFrom(rootDir string, path string, d fs.DirEntry) PersistentFileDto {
 	fileType := "file"
 	if d.IsDir() {
 		fileType = "directory"
@@ -63,13 +57,13 @@ func PersistentFileDtoFrom(path string, d fs.DirEntry) PersistentFileDto {
 	var size int64 = 0
 	var createTime = time.Now().Format(time.RFC3339)
 	var modTime = time.Now().Format(time.RFC3339)
-	var mode = 0
+	//var mode = info.Mode().Perm()
 	if err == nil {
 		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 			uid = int(stat.Uid)
 			gid = int(stat.Gid)
 			size = stat.Size
-			mode = int(stat.Mode)
+			//mode = int(stat.Mode)
 			// TODO: https://stackoverflow.com/questions/53266940/get-change-date-of-a-folder-in-go
 			// RESULTS IN: stat.Ctimespec undefined (type *syscall.Stat_t has no field or method Ctimespec)
 			//createTime = time.Unix(stat.Ctimespec.Sec, 0).Format(time.RFC3339)
@@ -78,20 +72,19 @@ func PersistentFileDtoFrom(path string, d fs.DirEntry) PersistentFileDto {
 	}
 	uidGid := fmt.Sprintf("%d:%d", uid, gid)
 
+	relPath, _ := filepath.Rel(rootDir, path)
+
 	return PersistentFileDto{
-		Name:           d.Name(),
-		Type:           fileType,
-		RelativePath:   filepath.Dir(path),
-		AbsolutePath:   fmt.Sprintf("/%s", path),
-		IsSymbolicLink: false,
-		Extension:      filepath.Ext(path),
-		SizeInBytes:    size,
-		Size:           utils.BytesToHumanReadable(size),
-		Hash:           utils.QuickHash(path),
-		CreatedAt:      createTime,
-		ModifiedAt:     modTime,
-		Uid_gid:        uidGid,
-		Mode:           mode,
-		New:            true,
+		Name:         d.Name(),
+		Type:         fileType,
+		RelativePath: relPath,
+		Extension:    filepath.Ext(path),
+		SizeInBytes:  size,
+		Size:         utils.BytesToHumanReadable(size),
+		Hash:         utils.QuickHash(path),
+		CreatedAt:    createTime,
+		ModifiedAt:   modTime,
+		Uid_gid:      uidGid,
+		Mode:         fmt.Sprintf("%o", info.Mode().Perm()),
 	}
 }

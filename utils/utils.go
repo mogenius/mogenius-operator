@@ -33,6 +33,39 @@ func Contains(s []string, str string) bool {
 	return false
 }
 
+func Diff(a []string, b []string) []string {
+	diff := make([]string, 0)
+
+	if len(a) != len(b) {
+		return a
+	}
+
+	// Create a map to store the count of each string in array 'a'
+	countMap := make(map[string]int)
+	for _, str := range a {
+		countMap[str]++
+	}
+
+	// Check if all strings in array 'b' are present in the map
+	for _, str := range b {
+		count, ok := countMap[str]
+		if !ok || count == 0 {
+			diff = append(diff, str)
+		} else {
+			countMap[str]--
+		}
+	}
+
+	// Add any remaining items in countMap to the diff slice
+	for str, count := range countMap {
+		if count > 0 {
+			diff = append(diff, str)
+		}
+	}
+
+	return diff
+}
+
 func ContainsInt(v int, a []int) bool {
 	for _, i := range a {
 		if i == v {
@@ -40,6 +73,20 @@ func ContainsInt(v int, a []int) bool {
 		}
 	}
 	return false
+}
+
+func MountPath(namespaceName string, volumeName string, defaultReturnValue string) string {
+	if CONFIG.Kubernetes.RunInCluster {
+		return fmt.Sprintf("%s/%s_%s", CONFIG.Misc.DefaultMountPath, namespaceName, volumeName)
+	} else {
+		pwd, err := os.Getwd()
+		if err != nil {
+			logger.Log.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
+		} else {
+			return pwd
+		}
+	}
+	return defaultReturnValue
 }
 
 func OpenBrowser(url string) {

@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"reflect"
 	"strconv"
 	"strings"
@@ -20,6 +21,8 @@ const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
 
 var lastResourceVersion = ""
+var lastMountedPaths = []string{}
+var eventsFirstStart = true
 
 func WatchEvents() {
 	kubeProvider := NewKubeProvider()
@@ -49,10 +52,9 @@ func WatchEvents() {
 						kind := eventObj.InvolvedObject.Kind
 						reason := eventObj.Reason
 						count := eventObj.Count
-						if kind == "Pod" &&
-							(reason == "Started" && strings.HasPrefix(message, "Started container nfs-server")) ||
-							(reason == "Killing" && strings.HasPrefix(message, "Stopping container nfs-server")) {
-							err := UpdateK8sManagerVolumeMounts()
+						if kind == "Pod" && reason == "Started" && strings.HasPrefix(message, "Started container nfs-server") {
+							// || (reason == "Killing" && strings.HasPrefix(message, "Stopping container nfs-server"))
+							err := UpdateK8sManagerVolumeMounts("", "")
 							if err != nil {
 								logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
 							}
@@ -86,15 +88,21 @@ func WatchEvents() {
 	}
 }
 
-func UpdateK8sManagerVolumeMounts() error {
+func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace string) error {
 	allMountedPaths := []string{}
 
+	time.Sleep(2 * time.Second)
+
 	// 1: LIST all matching PersistentVolumes
-	allPvs := AllPersistentVolumes()
-	mogeniusPvs := []v1Core.PersistentVolume{}
-	for _, pv := range allPvs {
-		if pv.Spec.StorageClassName == "openebs-rwx" {
-			mogeniusPvs = append(mogeniusPvs, pv)
+	allPvcs := AllPersistentVolumeClaims("")
+	mogeniusPvs := []v1Core.PersistentVolumeClaim{}
+	for _, pvc := range allPvcs {
+		if pvc.Spec.StorageClassName != nil {
+			if *pvc.Spec.StorageClassName == "openebs-rwx" && pvc.Status.Phase == v1Core.ClaimBound {
+				if pvc.Namespace != deleteVolumeNamespace && pvc.Name != deleteVolumeName {
+					mogeniusPvs = append(mogeniusPvs, pvc)
+				}
+			}
 		}
 	}
 
@@ -108,34 +116,50 @@ func UpdateK8sManagerVolumeMounts() error {
 
 	// 3: Update own Deployment
 	hasBeenUpdated := false
-	for _, mopv := range mogeniusPvs {
-		mountPath := "/mo-data/mounts" + mopv.Name
-		allMountedPaths = append(allMountedPaths, mountPath)
-		// 3.1 Add VolumeMount
-		ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
-			MountPath: mountPath,
-			Name:      mopv.Name,
-		})
-		// 3.2 Add Volume
-		ownDeployment.Spec.Template.Spec.Volumes = append(ownDeployment.Spec.Template.Spec.Volumes, core.Volume{
-			Name: mopv.Name,
-			VolumeSource: core.VolumeSource{
-				PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-					ClaimName: mopv.Name,
+	if len(mogeniusPvs) > 0 {
+		for _, mopvc := range mogeniusPvs {
+			mountPath := utils.MountPath(mopvc.Namespace, mopvc.Name, "/")
+			allMountedPaths = append(allMountedPaths, mountPath)
+			// 3.1 Add VolumeMount
+			ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
+				MountPath: mountPath,
+				Name:      mopvc.Name,
+			})
+			// 3.2 Add Volume
+			ownDeployment.Spec.Template.Spec.Volumes = append(ownDeployment.Spec.Template.Spec.Volumes, core.Volume{
+				Name: mopvc.Name,
+				VolumeSource: core.VolumeSource{
+					PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+						ClaimName: mopvc.Name,
+					},
 				},
-			},
-		})
+			})
+		}
+	} else {
+		ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
+		ownDeployment.Spec.Template.Spec.Volumes = []core.Volume{}
 	}
 
 	// List all mounts marking new ones
-	logger.Log.Info("Currently mounted Volumes:")
-	for index, currentMountPath := range allMountedPaths {
-		logger.Log.Infof("%d: %s%s", index+1, currentMountPath)
+	logger.Log.Infof("Currently mounted Volumes (%d):", len(lastMountedPaths))
+	for index, currentMountPath := range lastMountedPaths {
+		logger.Log.Infof("%d: %s", index+1, currentMountPath)
+	}
+
+	// check if something changed
+	diff := utils.Diff(allMountedPaths, lastMountedPaths)
+	if len(diff) > 0 {
+		for index, diffPath := range diff {
+			logger.Log.Infof("CHANGED (%d): %s", index+1, diffPath)
+		}
+		hasBeenUpdated = true
 	}
 
 	// 5: Redeploy on up
-	if hasBeenUpdated {
+	if hasBeenUpdated || eventsFirstStart || deleteVolumeName != "" {
+		lastMountedPaths = allMountedPaths
 		deploymentClient.Update(context.TODO(), ownDeployment, v1.UpdateOptions{})
+		eventsFirstStart = false
 	}
 
 	// 1. list all pvc

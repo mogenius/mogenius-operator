@@ -1,39 +1,39 @@
 package dtos
 
 type PersistentFileRequestDto struct {
-	Root      string `json:"root" validate:"required"`
-	Path      string `json:"path" validate:"required"`
-	ClusterId string `json:"clusterId,omitempty"`
+	Path            string `json:"path" validate:"required"`
+	VolumeNamespace string `json:"volumeNamespace" validate:"required"`
+	VolumeName      string `json:"volumeName" validate:"required"`
 }
 
 func PersistentFileRequestDtoExampleData() PersistentFileRequestDto {
 	return PersistentFileRequestDto{
-		Root:      "/",
-		Path:      "/",
-		ClusterId: "clusterId",
+		Path:            "/",
+		VolumeNamespace: "mogenius",
+		VolumeName:      "my-fancy-volume-name",
 	}
 }
 
 func PersistentFileRequestNewFolderDtoExampleData() PersistentFileRequestDto {
 	return PersistentFileRequestDto{
-		Root:      "/",
-		Path:      "/blaaaa",
-		ClusterId: "clusterId",
+		Path:            "/blaaaa",
+		VolumeNamespace: "mogenius",
+		VolumeName:      "my-fancy-volume-name",
 	}
 }
 
 func PersistentFileDownloadDtoExampleData() PersistentFileRequestDto {
 	return PersistentFileRequestDto{
-		Root:      "/",
-		Path:      "/README.md",
-		ClusterId: "clusterId",
+		Path:            "/README.md",
+		VolumeNamespace: "mogenius",
+		VolumeName:      "my-fancy-volume-name",
 	}
 }
 
 func PersistentFileUploadDtoExampleData() PersistentFileRequestDto {
 	return PersistentFileRequestDto{
-		Root:      "/",
-		Path:      "/",
-		ClusterId: "clusterId",
+		Path:            "/",
+		VolumeNamespace: "mogenius",
+		VolumeName:      "my-fancy-volume-name",
 	}
 }

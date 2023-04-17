@@ -113,6 +113,8 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) interface{} 
 		job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, c, &wg))
 		wg.Wait()
 		job.Finish(c)
+		// update mogenius-k8s-manager volume mounts
+		mokubernetes.UpdateK8sManagerVolumeMounts(r.VolumeName, r.NamespaceName)
 		return job
 	} else {
 		nfsStatus.Error = "Mogenius NFS storage has NOT been installed."
@@ -129,7 +131,7 @@ func StatsMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) NfsVolumeStat
 		TotalBytes: 0,
 	}
 
-	mountPath := mountPath(r.NamespaceName, r.VolumeName, "/")
+	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "/")
 	usage, err := disk.Usage(mountPath)
 	if err != nil {
 		logger.Log.Errorf("StatsMogeniusNfsVolume Err: %s", err.Error())
@@ -152,7 +154,7 @@ func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest, c *websocket.Conn) NfsVol
 	job := structs.CreateJob("Create nfs-volume backup.", r.NamespaceId, nil, nil, c)
 	job.Start(c)
 
-	mountPath := mountPath(r.NamespaceName, r.VolumeName, "")
+	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "")
 
 	result = ZipDirAndUploadToS3(mountPath, fmt.Sprintf("backup_%s_%s.zip", r.VolumeName, time.Now().Format(time.RFC3339)), result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
 	if result.Error != "" {
@@ -210,7 +212,7 @@ func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey st
 		panic(err)
 	}
 
-	mountPath := mountPath(namespaceName, volumeName, "")
+	mountPath := utils.MountPath(namespaceName, volumeName, "")
 	// TODO XXX REMOVE
 	mountPath = fmt.Sprintf("%s/restore", mountPath)
 	err = os.MkdirAll(mountPath, 0755)
@@ -350,20 +352,6 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 	logger.Log.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", utils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
 
 	return result
-}
-
-func mountPath(namespaceName string, volumeName string, defaultReturnValue string) string {
-	if utils.CONFIG.Kubernetes.RunInCluster {
-		return fmt.Sprintf("/mo-data/%s_%s", namespaceName, volumeName)
-	} else {
-		pwd, err := os.Getwd()
-		if err != nil {
-			logger.Log.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
-		} else {
-			return pwd
-		}
-	}
-	return defaultReturnValue
 }
 
 type K8sManagerUpgradeRequest struct {

@@ -49,7 +49,7 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	if err != nil {
 		logger.Log.Error(err)
 	}
-	fmt.Printf("\n%s: %s (%s) -> %s %s\n", fileReq.File.ClusterId, targetDestination, utils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Root, fileReq.File.Path)
+	fmt.Printf("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, utils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
@@ -241,11 +241,12 @@ func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
 		if err != nil {
 			return err
 		}
-		result = append(result, dtos.PersistentFileDtoFrom(path, d))
-		if d.IsDir() && strings.Count(path, string(os.PathSeparator)) > maxDepth {
-			fmt.Println("skip", path)
+		relPath, _ := filepath.Rel(rootDir, path)
+		//fmt.Printf("%d %s\n", strings.Count(relPath, string(os.PathSeparator)), path)
+		if strings.Count(relPath, string(os.PathSeparator)) > maxDepth {
 			return fs.SkipDir
 		}
+		result = append(result, dtos.PersistentFileDtoFrom(rootDir, path, d))
 		return nil
 	})
 	return result, err
@@ -258,33 +259,16 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 	if strings.Contains(data.Path, "..") {
 		return "", fmt.Errorf("path cannot contain '..'")
 	}
-	if strings.Contains(data.Root, "..") {
-		return "", fmt.Errorf("root cannot contain '..'")
-	}
 	if strings.Contains(data.Path, "./") {
 		return "", fmt.Errorf("path cannot contain './'")
 	}
-	if strings.Contains(data.Root, "./") {
-		return "", fmt.Errorf("root cannot begin with './'")
-	}
 	if strings.Contains(data.Path, "~") {
 		return "", fmt.Errorf("path cannot contain '~'")
-	}
-	if strings.Contains(data.Root, "~") {
-		return "", fmt.Errorf("root cannot begin with '~'")
-	}
-	if data.Root == "/" {
-		data.Root = ""
 	}
 	if data.Path == "/" {
 		data.Path = ""
 	}
 
-	dataRoot := utils.CONFIG.Misc.DefaultMountPath
-	if utils.CONFIG.Misc.Debug {
-		pwd, _ := os.Getwd()
-		dataRoot = fmt.Sprintf("%s/temp", pwd)
-	}
-	pathToFile := fmt.Sprintf("%s%s%s", dataRoot, data.Root, data.Path)
+	pathToFile := fmt.Sprintf("%s/%s", utils.MountPath(data.VolumeNamespace, data.VolumeName, "/"), data.Path)
 	return pathToFile, nil
 }
