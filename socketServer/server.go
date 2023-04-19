@@ -113,7 +113,6 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 				continue
 			} else {
 				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) ||
-					utils.Contains(services.BINARY_REQUESTS_DOWNLOAD, datagram.Pattern) ||
 					utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 					if datagram.Pattern == "namespace/backup" {
 						backupData := datagram.Payload.(map[string]interface{})["data"].(string)
@@ -466,7 +465,6 @@ func requestCmdFromCluster(pattern string) {
 
 func selectCommands() string {
 	allCommands := append([]string{}, services.COMMAND_REQUESTS...)
-	allCommands = append(allCommands, services.BINARY_REQUESTS_DOWNLOAD...)
 	allCommands = append(allCommands, services.BINARY_REQUEST_UPLOAD...)
 	for index, patternName := range allCommands {
 		fmt.Printf("%d: %s\n", index, patternName)

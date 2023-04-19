@@ -2,7 +2,6 @@ package socketServer
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"mogenius-k8s-manager/logger"
@@ -168,72 +167,6 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 						sendMutex.Unlock()
 					} else if utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 						preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram, c)
-						// } else if utils.Contains(services.STREAM_REQUESTS, datagram.Pattern) {
-						// 	// ####### STREAM
-						// 	responsePayload, restReq := services.ExecuteStreamRequest(datagram, c)
-						// 	result := structs.CreateDatagramRequest(datagram, responsePayload, c)
-						// 	result.DisplayStreamSummary()
-
-						// 	ctx := context.Background()
-						// 	cancelCtx, endGofunc := context.WithCancel(ctx)
-						// 	stream, err := restReq.Stream(cancelCtx)
-						// 	if err != nil {
-						// 		result.Err = err.Error()
-						// 	}
-						// 	defer func() {
-						// 		stream.Close()
-						// 		endGofunc()
-						// 		sendMutex.Unlock()
-						// 	}()
-
-						// 	startAdditionalConnection()
-						// 	hasOpenStream = true
-
-						// 	sendMutex.Lock()
-						// 	c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
-						// 	reader := bufio.NewScanner(stream)
-						// 	for {
-						// 		select {
-						// 		case <-cancelCtx.Done():
-						// 			c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
-						// 			return
-						// 		default:
-						// 			for reader.Scan() {
-						// 				lastBytes := reader.Bytes()
-						// 				c.WriteMessage(websocket.BinaryMessage, lastBytes)
-						// 			}
-						// 		}
-						// 	}
-					} else if utils.Contains(services.BINARY_REQUESTS_DOWNLOAD, datagram.Pattern) {
-						responsePayload, reader, totalSize := services.ExecuteBinaryRequestDownload(datagram, c)
-						result := structs.CreateDatagramRequest(datagram, responsePayload, c)
-						if reader != nil && *totalSize > 0 && result.Err == "" {
-							buf := make([]byte, 512)
-							bar := progressbar.DefaultBytes(*totalSize)
-
-							sendMutex.Lock()
-							c.WriteMessage(websocket.TextMessage, []byte("######START######;"+structs.PrettyPrintString(datagram)))
-							for {
-								chunk, err := reader.Read(buf)
-								if err != nil {
-									if err != io.EOF {
-										fmt.Println(err)
-									}
-									bar.Finish()
-									break
-								}
-								c.WriteMessage(websocket.BinaryMessage, buf)
-								bar.Add(chunk)
-							}
-							if err != nil {
-								logger.Log.Errorf("reading bytes error: %s", err.Error())
-							}
-							c.WriteMessage(websocket.TextMessage, []byte("######END######;"+structs.PrettyPrintString(datagram)))
-							sendMutex.Unlock()
-						} else {
-							// something went wrong. send error message instead of stream
-							result.Send()
-						}
 					} else {
 						logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 					}

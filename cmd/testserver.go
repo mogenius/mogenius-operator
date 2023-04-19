@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/socketServer"
 	"mogenius-k8s-manager/utils"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
@@ -29,8 +30,15 @@ var testServerCmd = &cobra.Command{
 
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
 
-		gin.SetMode(gin.ReleaseMode)
+		if !utils.CONFIG.Misc.Debug {
+			gin.SetMode(gin.ReleaseMode)
+		}
 		router := gin.Default()
+		router.POST("path/to/send/data", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "OK",
+			})
+		})
 		socketServer.Init(router)
 		logger.Log.Noticef("Started WS server %s:%d 🚀", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.HttpPort)
 

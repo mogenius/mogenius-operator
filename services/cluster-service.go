@@ -68,7 +68,7 @@ func InstallMogeniusNfsStorage(r NfsStorageInstallRequest, c *websocket.Conn) in
 		var wg sync.WaitGroup
 		job := structs.CreateJob("Install mogenius nfs-storage.", r.NamespaceId, nil, nil, c)
 		job.Start(c)
-		job.AddCmds(mokubernetes.InstallMogeniusNfsStorage(&job, c, &wg))
+		job.AddCmds(mokubernetes.InstallMogeniusNfsStorage(&job, r.ClusterProvider, c, &wg))
 		wg.Wait()
 		job.Finish(c)
 		return job
@@ -414,12 +414,14 @@ func ClusterHelmUninstallRequestExample() ClusterHelmUninstallRequest {
 }
 
 type NfsStorageInstallRequest struct {
-	NamespaceId string `json:"namespaceId"`
+	NamespaceId     string `json:"namespaceId"`
+	ClusterProvider string `json:"ClusterProvider"` // AWS GCP AZURE
 }
 
 func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
 	return NfsStorageInstallRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		NamespaceId:     "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		ClusterProvider: "GCP",
 	}
 }
 

@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
@@ -27,6 +26,7 @@ var COMMAND_REQUESTS = []string{
 	"UpgradeK8sManager",
 	"SERVICE_POD_EXISTS",
 	"files/list",
+	"files/download",
 	"files/create-folder",
 	"files/rename",
 	"files/chown",
@@ -119,10 +119,6 @@ var COMMAND_REQUESTS = []string{
 	"storage/stats",
 }
 
-var BINARY_REQUESTS_DOWNLOAD = []string{
-	"files/download",
-}
-
 var BINARY_REQUEST_UPLOAD = []string{
 	"files/upload",
 }
@@ -169,6 +165,11 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := FilesDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Delete(data, c)
+	case "files/download":
+		data := FilesDownloadRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return Download(data, c)
+
 	case "cluster/execute-helm-chart-task":
 		data := ClusterHelmRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -573,23 +574,6 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 // 	datagram.Err = "Pattern not found"
 // 	return datagram, nil
 // }
-
-func ExecuteBinaryRequestDownload(datagram structs.Datagram, c *websocket.Conn) (interface{}, *bufio.Reader, *int64) {
-	switch datagram.Pattern {
-	case "files/download":
-		data := FilesDownloadRequest{}
-		marshalUnmarshal(&datagram, &data)
-		reader, totalSize, err := Download(data, c)
-		if err != nil {
-			datagram.Err = err.Error()
-			return datagram, nil, utils.Pointer[int64](0)
-		}
-		return datagram, reader, &totalSize
-	}
-
-	datagram.Err = "Pattern not found"
-	return datagram, nil, nil
-}
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram, c *websocket.Conn) *FilesUploadRequest {
 	data := FilesUploadRequest{}

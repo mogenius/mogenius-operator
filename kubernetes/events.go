@@ -98,7 +98,7 @@ func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace
 	mogeniusPvs := []v1Core.PersistentVolumeClaim{}
 	for _, pvc := range allPvcs {
 		if pvc.Spec.StorageClassName != nil {
-			if *pvc.Spec.StorageClassName == "openebs-rwx" && pvc.Status.Phase == v1Core.ClaimBound {
+			if *pvc.Spec.StorageClassName == "openebs-kernel-nfs" && pvc.Status.Phase == v1Core.ClaimBound {
 				if pvc.Namespace != deleteVolumeNamespace && pvc.Name != deleteVolumeName {
 					mogeniusPvs = append(mogeniusPvs, pvc)
 				}

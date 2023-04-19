@@ -24,6 +24,16 @@ func Pointer[K any](val K) *K {
 	return &val
 }
 
+type ResponseError struct {
+	Error string `json:"error,omitempty"`
+}
+
+func CreateError(err error) ResponseError {
+	return ResponseError{
+		Error: err.Error(),
+	}
+}
+
 func Contains(s []string, str string) bool {
 	for _, v := range s {
 		if strings.Contains(str, v) {
@@ -80,6 +90,7 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 		return fmt.Sprintf("%s/%s_%s", CONFIG.Misc.DefaultMountPath, namespaceName, volumeName)
 	} else {
 		pwd, err := os.Getwd()
+		pwd += "/temp"
 		if err != nil {
 			logger.Log.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
 		} else {

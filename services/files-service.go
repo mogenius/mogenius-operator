@@ -1,12 +1,15 @@
 package services
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"io/fs"
+	"math"
+	"mime/multipart"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -28,19 +31,61 @@ func List(r FilesListRequest, c *websocket.Conn) []dtos.PersistentFileDto {
 	return result
 }
 
-func Download(r FilesDownloadRequest, c *websocket.Conn) (*bufio.Reader, int64, error) {
+func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
+	result := FilesDownloadResponse{
+		SizeInBytes: 0,
+	}
 	pathToFile, err := verify(&r.File)
 	if err != nil {
-		return nil, 0, fmt.Errorf("Download Error %s", err.Error())
+		result.Error = err.Error()
+		return result
 	}
 	file, err := os.Open(pathToFile)
-	info, err := file.Stat()
-	var totalSize int64 = 0
-	if err == nil {
-		totalSize = info.Size()
+	if err != nil {
+		result.Error = err.Error()
+		return result
 	}
-	reader := bufio.NewReader(file)
-	return reader, totalSize, err
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+	result.SizeInBytes = info.Size()
+
+	// SEND FILE TO HTTP
+	var requestBody strings.Builder
+	multiPartWriter := multipart.NewWriter(&requestBody)
+
+	fileWriter, err := multiPartWriter.CreateFormFile("file", file.Name())
+	if err != nil {
+		fmt.Printf("Error creating form file: %s", err)
+		result.Error = err.Error()
+		return result
+	}
+
+	_, err = io.Copy(fileWriter, file)
+	if err != nil {
+		fmt.Printf("Error copying file: %s", err)
+		result.Error = err.Error()
+		return result
+	}
+	multiPartWriter.Close()
+
+	response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), strings.NewReader(requestBody.String()))
+	if err != nil {
+		fmt.Printf("Error sending request: %s", err)
+		result.Error = err.Error()
+		return result
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != 200 {
+		result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
+	}
+
+	return result
 }
 
 func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
@@ -67,7 +112,7 @@ func CreateFolder(r FilesCreateFolderRequest, c *websocket.Conn) error {
 	if err != nil {
 		return err
 	}
-	err = os.Mkdir(pathToDir, fs.ModeDir)
+	err = os.Mkdir(pathToDir, 0777)
 	if err != nil {
 		return err
 	}
@@ -79,7 +124,11 @@ func Rename(r FilesRenameRequest, c *websocket.Conn) error {
 	if err != nil {
 		return err
 	}
-	err = os.Rename(pathToFile, "asdasd")
+
+	dir, _ := filepath.Split(pathToFile)
+	newPath := filepath.Join(dir, r.NewName)
+
+	err = os.Rename(pathToFile, newPath)
 	if err != nil {
 		return err
 	}
@@ -89,25 +138,26 @@ func Rename(r FilesRenameRequest, c *websocket.Conn) error {
 func Chown(r FilesChownRequest, c *websocket.Conn) interface{} {
 	pathToDir, err := verify(&r.File)
 	if err != nil {
-		return err
+		return utils.CreateError(err)
 	}
 
 	gid, err := strconv.Atoi(r.Gid)
 	if err != nil {
-		return err
+		return utils.CreateError(err)
 	}
 	uid, err := strconv.Atoi(r.Uid)
 	if err != nil {
-		return err
+		return utils.CreateError(err)
 	}
 
-	if gid > 0 && gid < 2^32 && uid > 0 && uid < 2^32 {
+	maxInt := int(math.Pow(2, 32))
+	if gid > 0 && gid < maxInt && uid > 0 && uid < maxInt {
 		err = os.Chown(pathToDir, uid, gid)
 		if err != nil {
-			return err
+			return utils.CreateError(err)
 		}
 	} else {
-		return fmt.Errorf("gid/uid > 0 and < 2^32")
+		return utils.CreateError(fmt.Errorf("gid/uid > 0 and < 2^32"))
 	}
 	return nil
 }
@@ -115,21 +165,20 @@ func Chown(r FilesChownRequest, c *websocket.Conn) interface{} {
 func Chmod(r FilesChmodRequest, c *websocket.Conn) interface{} {
 	pathToDir, err := verify(&r.File)
 	if err != nil {
-		return err
+		return utils.CreateError(err)
 	}
-	mode64, err := strconv.ParseUint(r.Mode, 10, 64)
+	// Convert the hexadecimal string to an integer
+	permissions, err := strconv.ParseUint(r.Mode, 16, 32)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse hex permissions: %w", err)
 	}
-	var mode32 fs.FileMode = fs.FileMode(mode64)
-	if mode64 > 0 && mode64 < 777 {
-		err = os.Chmod(pathToDir, mode32)
-		if err != nil {
-			return err
-		}
-	} else {
-		return fmt.Errorf("mode string must be > 0 and < 777")
+
+	// Set the file permissions using the integer value
+	err = os.Chmod(pathToDir, os.FileMode(permissions))
+	if err != nil {
+		return fmt.Errorf("failed to set file permissions: %w", err)
 	}
+
 	return nil
 }
 
@@ -156,13 +205,20 @@ func FilesListRequestExampleData() FilesListRequest {
 }
 
 type FilesDownloadRequest struct {
-	File dtos.PersistentFileRequestDto `json:"file"`
+	File   dtos.PersistentFileRequestDto `json:"file"`
+	PostTo string                        `json:"postTo"`
 }
 
 func FilesDownloadRequestExampleData() FilesDownloadRequest {
 	return FilesDownloadRequest{
-		File: dtos.PersistentFileDownloadDtoExampleData(),
+		File:   dtos.PersistentFileDownloadDtoExampleData(),
+		PostTo: "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
 	}
+}
+
+type FilesDownloadResponse struct {
+	SizeInBytes int64  `json:"sizeInBytes"`
+	Error       string `json:"error,omitempty"`
 }
 
 type FilesUploadRequest struct {
@@ -194,7 +250,7 @@ type FilesRenameRequest struct {
 
 func FilesRenameRequestExampleData() FilesRenameRequest {
 	return FilesRenameRequest{
-		File:    dtos.PersistentFileRequestDtoExampleData(),
+		File:    dtos.PersistentFileRequestNewFolderDtoExampleData(),
 		NewName: "newName",
 	}
 }
@@ -207,7 +263,7 @@ type FilesChownRequest struct {
 
 func FilesChownRequestExampleData() FilesChownRequest {
 	return FilesChownRequest{
-		File: dtos.PersistentFileRequestDtoExampleData(),
+		File: dtos.PersistentFileRequestNewFolderDtoExampleData(),
 		Uid:  "1234",
 		Gid:  "2344",
 	}
@@ -231,7 +287,7 @@ type FilesDeleteRequest struct {
 
 func FilesDeleteRequestExampleData() FilesDeleteRequest {
 	return FilesDeleteRequest{
-		File: dtos.PersistentFileRequestDtoExampleData(),
+		File: dtos.PersistentFileRequestNewFolderDtoExampleData(),
 	}
 }
 
@@ -265,10 +321,26 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 	if strings.Contains(data.Path, "~") {
 		return "", fmt.Errorf("path cannot contain '~'")
 	}
+
+	if strings.HasPrefix(data.Path, "/") {
+		data.Path = data.Path[1:len(data.Path)]
+	}
 	if data.Path == "/" {
 		data.Path = ""
 	}
 
-	pathToFile := fmt.Sprintf("%s/%s", utils.MountPath(data.VolumeNamespace, data.VolumeName, "/"), data.Path)
+	mountPath := utils.MountPath(data.VolumeNamespace, data.VolumeName, "/")
+	pathToFile := ""
+
+	if strings.HasSuffix(mountPath, "/") {
+		pathToFile = fmt.Sprintf("%s%s", mountPath, data.Path)
+	} else {
+		if data.Path == "" {
+			pathToFile = mountPath
+		} else {
+			pathToFile = fmt.Sprintf("%s/%s", mountPath, data.Path)
+		}
+	}
+
 	return pathToFile, nil
 }

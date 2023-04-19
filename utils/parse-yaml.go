@@ -5,7 +5,6 @@ import (
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
-	storage "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/kubectl/pkg/scheme"
 )
@@ -58,21 +57,21 @@ func InitContainerSecret() core.Secret {
 	return app
 }
 
-func InitNfsStorageClassMogenius() storage.StorageClass {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-nfs-storageclass.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+// func InitNfsStorageClassMogenius() storage.StorageClass {
+// 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-nfs-storageclass.yaml")
+// 	if err != nil {
+// 		panic(err.Error())
+// 	}
 
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+// 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
-	var app storage.StorageClass
-	_, _, err = s.Decode(yaml, nil, &app)
-	if err != nil {
-		panic(err)
-	}
-	return app
-}
+// 	var app storage.StorageClass
+// 	_, _, err = s.Decode(yaml, nil, &app)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return app
+// }
 
 func NfsPersistentVolumeClaimMogenius() core.PersistentVolumeClaim {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-nfs-pvc.yaml")
