@@ -271,8 +271,16 @@ func requestCmdFromCluster(pattern string) {
 			payload = nil
 		case "ClusterResourceInfo":
 			payload = nil
+		case "cluster/execute-helm-chart-task":
+			payload = services.ClusterHelmRequestExample()
+		case "cluster/uninstall-helm-chart":
+			payload = services.ClusterHelmUninstallRequestExample()
+		case "cluster/tcp-udp-configuration":
+			payload = nil
+
 		case "UpgradeK8sManager":
 			payload = services.K8sManagerUpgradeRequestExample()
+
 		case "files/list":
 			payload = services.FilesListRequestExampleData()
 		case "files/download":
@@ -289,10 +297,7 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.FilesChmodRequestExampleData()
 		case "files/delete":
 			payload = services.FilesDeleteRequestExampleData()
-		case "cluster/execute-helm-chart-task":
-			payload = services.ClusterHelmRequestExample()
-		case "cluster/uninstall-helm-chart":
-			payload = services.ClusterHelmUninstallRequestExample()
+
 		case "namespace/create":
 			payload = services.NamespaceCreateRequestExample()
 		case "namespace/delete":
@@ -315,6 +320,7 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.NamespaceBackupRequestExample()
 		case "namespace/restore":
 			payload = services.NamespaceRestoreRequestExample()
+
 		case "service/create":
 			payload = services.ServiceCreateRequestExample()
 		case "service/delete":
@@ -342,12 +348,6 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ServiceStartRequestExample()
 		case "service/update-service":
 			payload = services.ServiceUpdateRequestExample()
-		case "service/spectrum-bind":
-			payload = services.ServiceBindSpectrumRequestExample()
-		case "service/spectrum-unbind":
-			payload = services.ServiceUnbindSpectrumRequestExample()
-		case "service/spectrum-configmaps":
-			payload = nil
 
 		case "list/namespaces":
 			payload = services.K8sListRequestExample()

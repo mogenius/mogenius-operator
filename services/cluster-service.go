@@ -391,7 +391,7 @@ type ClusterHelmRequest struct {
 
 func ClusterHelmRequestExample() ClusterHelmRequest {
 	return ClusterHelmRequest{
-		Namespace:       "default",
+		Namespace:       "mogenius",
 		NamespaceId:     "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		HelmRepoName:    "bitnami",
 		HelmRepoUrl:     "https://charts.bitnami.com/bitnami",

@@ -3,11 +3,9 @@ package services
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
-	"strings"
 	"sync"
 	"time"
 
@@ -53,18 +51,18 @@ func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.NamespaceId, &r.StageId, &r.ServiceId, c)
 	job.Start(c)
-	job.AddCmd(kubernetes.SetImage(&job, r.StageK8sName, r.ServiceK8sName, r.ImageName, c, &wg))
+	job.AddCmd(mokubernetes.SetImage(&job, r.StageK8sName, r.ServiceK8sName, r.ImageName, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
 }
 
 func ServicePodIds(r ServiceGetPodIdsRequest, c *websocket.Conn) interface{} {
-	return kubernetes.PodIdsFor(r.Namespace, &r.ServiceId)
+	return mokubernetes.PodIdsFor(r.Namespace, &r.ServiceId)
 }
 
 func ServicePodExists(r ServicePodExistsRequest, c *websocket.Conn) interface{} {
-	return kubernetes.PodExists(r.K8sNamespace, r.K8sPod)
+	return mokubernetes.PodExists(r.K8sNamespace, r.K8sPod)
 }
 
 func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
@@ -134,56 +132,11 @@ func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
 	return job
 }
 
-func BindSpectrum(r ServiceBindSpectrumRequest, c *websocket.Conn) (interface{}, error) {
-	if r.ExternalPort < 9999 && r.ExternalPort > 65536 {
-		return nil, fmt.Errorf("port must be >9999 and <65536")
-	}
-	if r.InternalPort <= 0 && r.InternalPort > 65536 {
-		return nil, fmt.Errorf("port must be >9999 and <65536")
-	}
-	if r.Type != "TCP" && r.Type != "UDP" {
-		return nil, fmt.Errorf("type musst be TCP or UDP")
-	}
-
-	configMapName := fmt.Sprintf("%s-services", strings.ToLower(r.Type))
-	externalPortStr := fmt.Sprintf("%d", r.ExternalPort)
-	fullServiceName := fmt.Sprintf("%s/%s:%d", r.K8sNamespaceName, r.K8sServiceName, r.InternalPort)
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob(fmt.Sprintf("Bind: Port %d:%d/%s", r.InternalPort, r.ExternalPort, r.Type), r.NamespaceId, nil, nil, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.AddKeyToConfigMap(&job, "default", configMapName, externalPortStr, fullServiceName, c, &wg))
-	job.AddCmd(mokubernetes.AddPortToService(&job, "default", "nginx-ingress-ingress-nginx-controller", int32(r.ExternalPort), r.Type, c, &wg))
-	wg.Wait()
-	job.Finish(c)
-	return &job, nil
-}
-
-func UnbindSpectrum(r ServiceUnbindSpectrumRequest, c *websocket.Conn) (*structs.Job, error) {
-	if r.ExternalPort < 9999 && r.ExternalPort > 65536 {
-		return nil, fmt.Errorf("port must be >9999 and <65536")
-	}
-	if r.Type != "TCP" && r.Type != "UDP" {
-		return nil, fmt.Errorf("type musst be TCP or UDP")
-	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob(fmt.Sprintf("Unbind: Port %d/%s", r.ExternalPort, r.Type), r.NamespaceId, nil, nil, c)
-	job.Start(c)
-	configMapName := fmt.Sprintf("%s-services", strings.ToLower(r.Type))
-	externalPortStr := fmt.Sprintf("%d", r.ExternalPort)
-	job.AddCmd(mokubernetes.RemoveKeyFromConfigMap(&job, "default", configMapName, externalPortStr, c, &wg))
-	job.AddCmd(mokubernetes.RemovePortFromService(&job, "default", "nginx-ingress-ingress-nginx-controller", int32(r.ExternalPort), c, &wg))
-	wg.Wait()
-	job.Finish(c)
-	return &job, nil
-}
-
-func SpectrumConfigmaps(c *websocket.Conn) dtos.SpectrumConfigmapDto {
-	return dtos.SpectrumConfigmapDto{
-		IngressServices: mokubernetes.ServiceFor("default", "nginx-ingress-ingress-nginx-controller"),
-		TcpServices:     mokubernetes.ConfigMapFor("default", "tcp-services"),
-		UdpServices:     mokubernetes.ConfigMapFor("default", "udp-services"),
+func TcpUdpClusterConfiguration(c *websocket.Conn) dtos.TcpUdpClusterConfigurationDto {
+	return dtos.TcpUdpClusterConfigurationDto{
+		IngressServices: mokubernetes.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller"),
+		TcpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "tcp-services"),
+		UdpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "udp-services"),
 	}
 }
 
@@ -245,7 +198,7 @@ type ServiceGetPodIdsRequest struct {
 
 func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
 	return ServiceGetPodIdsRequest{
-		Namespace: "default",
+		Namespace: "mogenius",
 		ServiceId: "mo-",
 	}
 }
@@ -675,36 +628,36 @@ func ServiceUpdateRequestExample() ServiceUpdateRequest {
 	}
 }
 
-type ServiceBindSpectrumRequest struct {
-	K8sNamespaceName string `json:"k8sNamespaceName"`
-	K8sServiceName   string `json:"k8sServiceName"`
-	ExternalPort     int    `json:"externalPort"`
-	InternalPort     int    `json:"internalPort"`
-	Type             string `json:"type"`
-	NamespaceId      string `json:"namespaceId"`
-}
+// type ServiceBindSpectrumRequest struct {
+// 	K8sNamespaceName string `json:"k8sNamespaceName"`
+// 	K8sServiceName   string `json:"k8sServiceName"`
+// 	ExternalPort     int    `json:"externalPort"`
+// 	InternalPort     int    `json:"internalPort"`
+// 	Type             string `json:"type"`
+// 	NamespaceId      string `json:"namespaceId"`
+// }
 
-func ServiceBindSpectrumRequestExample() ServiceBindSpectrumRequest {
-	return ServiceBindSpectrumRequest{
-		K8sNamespaceName: "lalalal123",
-		K8sServiceName:   "lulululu123",
-		ExternalPort:     12345,
-		InternalPort:     80,
-		Type:             "TCP",
-		NamespaceId:      "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
-	}
-}
+// func ServiceBindSpectrumRequestExample() ServiceBindSpectrumRequest {
+// 	return ServiceBindSpectrumRequest{
+// 		K8sNamespaceName: "lalalal123",
+// 		K8sServiceName:   "lulululu123",
+// 		ExternalPort:     12345,
+// 		InternalPort:     80,
+// 		Type:             "TCP",
+// 		NamespaceId:      "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+// 	}
+// }
 
-type ServiceUnbindSpectrumRequest struct {
-	ExternalPort int    `json:"externalPort"`
-	Type         string `json:"type"`
-	NamespaceId  string `json:"namespaceId"`
-}
+// type ServiceUnbindSpectrumRequest struct {
+// 	ExternalPort int    `json:"externalPort"`
+// 	Type         string `json:"type"`
+// 	NamespaceId  string `json:"namespaceId"`
+// }
 
-func ServiceUnbindSpectrumRequestExample() ServiceUnbindSpectrumRequest {
-	return ServiceUnbindSpectrumRequest{
-		ExternalPort: 12345,
-		Type:         "TCP",
-		NamespaceId:  "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
-	}
-}
+// func ServiceUnbindSpectrumRequestExample() ServiceUnbindSpectrumRequest {
+// 	return ServiceUnbindSpectrumRequest{
+// 		ExternalPort: 12345,
+// 		Type:         "TCP",
+// 		NamespaceId:  "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
+// 	}
+// }

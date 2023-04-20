@@ -81,7 +81,7 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode != 200 {
+	if response.StatusCode < 200 || response.StatusCode > 299 {
 		result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
 	}
 

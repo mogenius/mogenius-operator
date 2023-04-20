@@ -167,7 +167,7 @@ type NamespacePodIdsRequest struct {
 
 func NamespacePodIdsRequestExample() NamespacePodIdsRequest {
 	return NamespacePodIdsRequest{
-		Namespace: "default",
+		Namespace: "mogenius",
 	}
 }
 
@@ -209,7 +209,7 @@ type NamespaceGatherAllResourcesRequest struct {
 
 func NamespaceGatherAllResourcesRequestExample() NamespaceGatherAllResourcesRequest {
 	return NamespaceGatherAllResourcesRequest{
-		NamespaceName: "default",
+		NamespaceName: "mogenius",
 	}
 }
 

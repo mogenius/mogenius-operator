@@ -34,6 +34,7 @@ var COMMAND_REQUESTS = []string{
 	"files/delete",
 	"cluster/execute-helm-chart-task",
 	"cluster/uninstall-helm-chart",
+	"cluster/tcp-udp-configuration",
 
 	"namespace/create",
 	"namespace/delete",
@@ -178,6 +179,9 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := ClusterHelmUninstallRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return DeleteHelmChart(data, c)
+	case "cluster/tcp-udp-configuration":
+		return TcpUdpClusterConfiguration(c)
+
 	case "namespace/create":
 		data := NamespaceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -276,24 +280,22 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := ServiceUpdateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return UpdateService(data, c)
-	case "service/spectrum-bind":
-		data := ServiceBindSpectrumRequest{}
-		marshalUnmarshal(&datagram, &data)
-		result, err := BindSpectrum(data, c)
-		if err != nil {
-			logger.Log.Error(err)
-		}
-		return result
-	case "service/spectrum-unbind":
-		data := ServiceUnbindSpectrumRequest{}
-		marshalUnmarshal(&datagram, &data)
-		result, err := UnbindSpectrum(data, c)
-		if err != nil {
-			logger.Log.Error(err)
-		}
-		return result
-	case "service/spectrum-configmaps":
-		return SpectrumConfigmaps(c)
+	// case "service/spectrum-bind":
+	// 	data := ServiceBindSpectrumRequest{}
+	// 	marshalUnmarshal(&datagram, &data)
+	// 	result, err := BindSpectrum(data, c)
+	// 	if err != nil {
+	// 		logger.Log.Error(err)
+	// 	}
+	// 	return result
+	// case "service/spectrum-unbind":
+	// 	data := ServiceUnbindSpectrumRequest{}
+	// 	marshalUnmarshal(&datagram, &data)
+	// 	result, err := UnbindSpectrum(data, c)
+	// 	if err != nil {
+	// 		logger.Log.Error(err)
+	// 	}
+	// 	return result
 	case "service/log-stream":
 		data := ServiceLogStreamRequest{}
 		marshalUnmarshal(&datagram, &data)

@@ -1,6 +1,6 @@
 package dtos
 
-type SpectrumConfigmapDto struct {
+type TcpUdpClusterConfigurationDto struct {
 	IngressServices interface{} `json:"ingressServices"`
 	TcpServices     interface{} `json:"tcpServices"`
 	UdpServices     interface{} `json:"udpServices"`

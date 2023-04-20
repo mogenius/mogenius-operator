@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -74,6 +75,9 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 			FieldManager: DEPLOYMENTNAME,
 		}
 
+		// bind/unbind ports globally
+		UpdateTcpUdpPorts(stage, service)
+
 		_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()), c)
@@ -92,6 +96,105 @@ func UpdateServiceWith(service *v1.Service) error {
 		return err
 	}
 	return nil
+}
+
+// func BindPort(job structs.Job, namespaceName string, serviceName string, port dtos.K8sPortsDto, c *websocket.Conn, wg *sync.WaitGroup) []structs.Command {
+// 	result := []structs.Command{}
+
+// 	if port.ExternalPort < 9999 && port.ExternalPort > 65536 {
+// 		logger.Log.Error("port must be >9999 and <65536")
+// 		return result
+// 	}
+// 	if port.InternalPort <= 0 && port.InternalPort > 65536 {
+// 		logger.Log.Error("port must be >9999 and <65536")
+// 		return result
+// 	}
+// 	if port.PortType != "TCP" && port.PortType != "UDP" {
+// 		logger.Log.Error("type musst be TCP or UDP")
+// 		return result
+// 	}
+
+// 	configMapName := fmt.Sprintf("%s-services", strings.ToLower(port.PortType))
+// 	externalPortStr := fmt.Sprintf("%d", port.ExternalPort)
+// 	fullServiceName := fmt.Sprintf("%s/%s:%d", namespaceName, serviceName, port.InternalPort)
+
+// 	result = append(result, *mokubernetes.AddKeyToConfigMap(&job, utils.CONFIG.Kubernetes.OwnNamespace, configMapName, externalPortStr, fullServiceName, c, wg))
+// 	result = append(result, *mokubernetes.AddPortToService(&job, utils.CONFIG.Kubernetes.OwnNamespace, "nginx-ingress-ingress-nginx-controller", int32(port.ExternalPort), port.PortType, c, wg))
+
+// 	return result
+// }
+
+// func UnbindPort(job structs.Job, port dtos.K8sPortsDto, c *websocket.Conn, wg *sync.WaitGroup) []structs.Command {
+// 	result := []structs.Command{}
+
+// 	if port.ExternalPort < 9999 && port.ExternalPort > 65536 {
+// 		logger.Log.Error("port must be >9999 and <65536")
+// 		return result
+// 	}
+// 	if port.PortType != "TCP" && port.PortType != "UDP" {
+// 		logger.Log.Error("type musst be TCP or UDP")
+// 		return result
+// 	}
+// 	configMapName := fmt.Sprintf("%s-services", strings.ToLower(port.PortType))
+// 	externalPortStr := fmt.Sprintf("%d", port.ExternalPort)
+// 	result = append(result, RemoveKeyFromConfigMap(&job, utils.CONFIG.Kubernetes.OwnNamespace, configMapName, externalPortStr, c, wg))
+// 	result = append(result, *mokubernetes.RemovePortFromService(&job, utils.CONFIG.Kubernetes.OwnNamespace, "nginx-ingress-ingress-nginx-controller", int32(port.ExternalPort), c, wg))
+// 	return result
+// }
+
+func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto) {
+	// 1. get configmap and ingress service
+	tcpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "tcp-services")
+	udpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "udp-services")
+	ingControllerService := ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller")
+
+	k8sName := fmt.Sprintf("%s/%s", stage.K8sName, service.K8sName)
+
+	// 2. Remove all entries for this service
+	for cmKey, cmValue := range tcpConfigmap.Data {
+		if strings.HasPrefix(cmValue, k8sName) {
+			delete(tcpConfigmap.Data, cmKey)
+		}
+	}
+	for cmKey, cmValue := range udpConfigmap.Data {
+		if strings.HasPrefix(cmValue, k8sName) {
+			delete(tcpConfigmap.Data, cmKey)
+		}
+	}
+	for index, port := range ingControllerService.Spec.Ports {
+		if strings.HasPrefix(port.Name, k8sName) {
+			ingControllerService.Spec.Ports = utils.Remove(ingControllerService.Spec.Ports, index)
+		}
+	}
+
+	// 3. Add all entries for this servive
+	for _, port := range service.Ports {
+		if port.Expose {
+			updated := false
+			if port.PortType == "TCP" {
+				tcpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+				updated = true
+			}
+			if port.PortType == "UDP" {
+				udpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+				updated = true
+			}
+
+			if updated {
+				ingControllerService.Spec.Ports = append(ingControllerService.Spec.Ports, v1.ServicePort{
+					Name:       fmt.Sprintf("%s-%d", k8sName, port.InternalPort),
+					Protocol:   v1.Protocol(port.PortType),
+					Port:       int32(port.ExternalPort),
+					TargetPort: intstr.FromInt(port.ExternalPort),
+				})
+			}
+		}
+	}
+
+	// 4. write results to k8s
+	UpdateK8sConfigMap(*tcpConfigmap)
+	UpdateK8sConfigMap(*udpConfigmap)
+	UpdateK8sService(*ingControllerService)
 }
 
 func RemovePortFromService(job *structs.Job, namespace string, serviceName string, port int32, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {

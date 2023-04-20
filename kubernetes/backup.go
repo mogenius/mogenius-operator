@@ -144,7 +144,7 @@ func ApplyUnstructured(ctx context.Context, dynamicClient dynamic.Interface, res
 	var dri dynamic.ResourceInterface
 	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
 		if unstructuredObj.GetNamespace() == "" {
-			unstructuredObj.SetNamespace("default")
+			unstructuredObj.SetNamespace(utils.CONFIG.Kubernetes.OwnNamespace)
 		}
 		dri = dynamicClient.Resource(mapping.Resource).Namespace(unstructuredObj.GetNamespace())
 	} else {

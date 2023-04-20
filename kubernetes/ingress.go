@@ -158,7 +158,7 @@ func createIngressRule(hostname string, serviceName string, port int32) *network
 
 func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) {
 	indexesToRemove := []int{}
-	service := ServiceFor("default", "nginx-ingress-ingress-nginx-controller")
+	service := ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller")
 	if service != nil {
 		portsDb := []dtos.NamespaceServicePortDto{}
 		for _, port := range ports {
@@ -196,7 +196,7 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 		}
 		logger.Log.Error("IngressController has no ports defined.")
 	}
-	logger.Log.Error("Could not load service default/nginx-ingress-ingress-nginx-controller.")
+	logger.Log.Error("Could not load service mogenius/mogenius-ingress-nginx-controller.")
 }
 
 func AllIngresses(namespaceName string) []v1.Ingress {
