@@ -15,3 +15,12 @@ func K8sPortsDtoExampleData() K8sPortsDto {
 		Expose:       true,
 	}
 }
+
+func K8sPortsDtoExternalExampleData() K8sPortsDto {
+	return K8sPortsDto{
+		PortType:     "TCP",
+		InternalPort: 6379,
+		ExternalPort: 12345,
+		Expose:       true,
+	}
+}

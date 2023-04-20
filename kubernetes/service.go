@@ -154,6 +154,13 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto) {
 	udpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "udp-services")
 	ingControllerService := ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller")
 
+	if tcpConfigmap.Data == nil {
+		tcpConfigmap.Data = make(map[string]string)
+	}
+	if udpConfigmap.Data == nil {
+		udpConfigmap.Data = make(map[string]string)
+	}
+
 	k8sName := fmt.Sprintf("%s/%s", stage.K8sName, service.K8sName)
 
 	// 2. Remove all entries for this service
