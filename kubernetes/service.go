@@ -195,7 +195,7 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto) {
 
 			if updated {
 				ingControllerService.Spec.Ports = append(ingControllerService.Spec.Ports, v1.ServicePort{
-					Name:       fmt.Sprintf("%s-%d", k8sName, port.InternalPort),
+					Name:       fmt.Sprintf("%s-%s-%d", stage.K8sName, service.K8sName, port.InternalPort),
 					Protocol:   v1.Protocol(port.PortType),
 					Port:       int32(port.ExternalPort),
 					TargetPort: intstr.FromInt(port.ExternalPort),
