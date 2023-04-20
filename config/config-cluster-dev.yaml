@@ -1,32 +1,32 @@
 kubernetes:
-  api_key: 94E23575-A689-4F88-8D67-215A274F4E6E
-  cluster_name: BenesTestCluster
+  api_key: YOUR_API_KEY
+  cluster_name: your-cluster-name
   own_namespace: mogenius
   cluster_mfa_id:
-  run_in_cluster: false
-  default_container_registry: mogenius.azurecr.io
+  run_in_cluster: true
+  default_container_registry: docker.io
 
 api_server:
-  proto: http
-  server: 127.0.0.1
+  proto: https
+  server: k8s-api.dev.mogenius.com
   path: /ws
   stream_path: /stream-data
-  ws_port: 8080
-  http_port: 8080
+  ws_port: 1337
+  http_port: 80
 
 event_server:
-  server: 127.0.0.1
+  server: k8s-api.dev.mogenius.com
   path: /ws
-  port: 8080
+  port: 1338
 
 misc:
-  stage: local
+  stage: dev
   default_mount_path: /mo-data
   storage_account: monfs
-  debug: true
+  debug: false
   log_kubernetes_events: false
   concurrent_connections: 1
   ignore_namespaces: ["kube-system", "default"]
   ignore_resources_backup: ["events.k8s.io/v1", "events.k8s.io/v1beta1", "metrics.k8s.io/v1beta1", "discovery.k8s.io/v1"]
-  check_for_updates: 3600
+  check_for_updates: 86400
   helm_index: https://helm.mogenius.com/public/index.yaml

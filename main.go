@@ -11,8 +11,11 @@ import (
 //go:embed config/config-local.yaml
 var DefaultConfigLocalFile string
 
-//go:embed config/config-cluster.yaml
-var DefaultConfigClusterFile string
+//go:embed config/config-cluster-dev.yaml
+var DefaultConfigClusterFileDev string
+
+//go:embed config/config-cluster-prod.yaml
+var DefaultConfigClusterFileProd string
 
 //go:embed yaml-templates
 var YamlTemplatesFolder embed.FS
@@ -20,7 +23,8 @@ var YamlTemplatesFolder embed.FS
 func main() {
 	utils.PrintLogo()
 	logger.Init()
-	utils.DefaultConfigClusterFile = DefaultConfigClusterFile
+	utils.DefaultConfigClusterFileDev = DefaultConfigClusterFileDev
+	utils.DefaultConfigClusterFileProd = DefaultConfigClusterFileProd
 	utils.DefaultConfigLocalFile = DefaultConfigLocalFile
 	utils.YamlTemplatesFolder = YamlTemplatesFolder
 	cmd.Execute()

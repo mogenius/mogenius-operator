@@ -39,6 +39,7 @@ type Config struct {
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws"`
 	} `yaml:"event_server"`
 	Misc struct {
+		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		LogKubernetesEvents   bool     `yaml:"log_kubernetes_events" env:"log-kubernetes-events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
 		StorageAccount        string   `yaml:"storage_account" env:"storage_account" env-description:"Azure Storage Account"`
@@ -52,7 +53,8 @@ type Config struct {
 }
 
 var DefaultConfigLocalFile string
-var DefaultConfigClusterFile string
+var DefaultConfigClusterFileDev string
+var DefaultConfigClusterFileProd string
 var CONFIG Config
 
 func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret ClusterSecret, loadClusterConfig bool) {
@@ -127,6 +129,7 @@ func PrintSettings() {
 	logger.Log.Infof("EventPort:                %d", CONFIG.EventServer.Port)
 	logger.Log.Infof("EventPath:                %s", CONFIG.EventServer.Path)
 
+	logger.Log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
 	logger.Log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
 	logger.Log.Infof("LogKubernetesEvents:      %t", CONFIG.Misc.LogKubernetesEvents)
 	logger.Log.Infof("StorageAccount:           %s", CONFIG.Misc.StorageAccount)
@@ -174,8 +177,14 @@ func WriteDefaultConfig(loadClusterConfig bool) {
 		logger.Log.Warning(err)
 	}
 
+	stage := os.Getenv("stage")
+
 	if loadClusterConfig {
-		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFile), 0755)
+		if stage == "prod" {
+			err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileProd), 0755)
+		} else {
+			err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileDev), 0755)
+		}
 	} else {
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	}

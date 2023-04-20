@@ -8,18 +8,19 @@ kubernetes:
 
 api_server:
   proto: https
-  server: k8s-api.dev.mogenius.com
+  server: k8s-api.mogenius.com
   path: /ws
   stream_path: /stream-data
   ws_port: 1337
   http_port: 80
 
 event_server:
-  server: k8s-api.dev.mogenius.com
+  server: k8s-api.mogenius.com
   path: /ws
   port: 1338
 
 misc:
+  stage: prod
   default_mount_path: /mo-data
   storage_account: monfs
   debug: false
