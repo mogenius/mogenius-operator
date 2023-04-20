@@ -30,7 +30,7 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		newService.Labels = MoUpdateLabels(&newService.Labels, &job.NamespaceId, &stage, &service)
 
 		// bind/unbind ports globally
-		UpdateTcpUdpPorts(stage, service)
+		UpdateTcpUdpPorts(stage, service, true)
 
 		_, err := serviceClient.Create(context.TODO(), &newService, MoCreateOptions())
 		if err != nil {
@@ -54,7 +54,7 @@ func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
 
 		// bind/unbind ports globally
-		UpdateTcpUdpPorts(stage, service)
+		UpdateTcpUdpPorts(stage, service, false)
 
 		err := serviceClient.Delete(context.TODO(), service.K8sName, metav1.DeleteOptions{})
 		if err != nil {
@@ -82,7 +82,7 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		}
 
 		// bind/unbind ports globally
-		UpdateTcpUdpPorts(stage, service)
+		UpdateTcpUdpPorts(stage, service, true)
 
 		_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
 		if err != nil {
@@ -148,7 +148,7 @@ func UpdateServiceWith(service *v1.Service) error {
 // 	return result
 // }
 
-func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto) {
+func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, additive bool) {
 	// 1. get configmap and ingress service
 	tcpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "tcp-services")
 	udpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "udp-services")
@@ -162,6 +162,7 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto) {
 	}
 
 	k8sName := fmt.Sprintf("%s/%s", stage.K8sName, service.K8sName)
+	k8sNameIngresss := fmt.Sprintf("%s-%s", stage.K8sName, service.K8sName)
 
 	// 2. Remove all entries for this service
 	for cmKey, cmValue := range tcpConfigmap.Data {
@@ -175,31 +176,33 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto) {
 		}
 	}
 	for index, port := range ingControllerService.Spec.Ports {
-		if strings.HasPrefix(port.Name, k8sName) {
+		if strings.HasPrefix(port.Name, k8sNameIngresss) {
 			ingControllerService.Spec.Ports = utils.Remove(ingControllerService.Spec.Ports, index)
 		}
 	}
 
 	// 3. Add all entries for this servive
-	for _, port := range service.Ports {
-		if port.Expose {
-			updated := false
-			if port.PortType == "TCP" {
-				tcpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
-				updated = true
-			}
-			if port.PortType == "UDP" {
-				udpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
-				updated = true
-			}
+	if additive {
+		for _, port := range service.Ports {
+			if port.Expose {
+				updated := false
+				if port.PortType == "TCP" {
+					tcpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+					updated = true
+				}
+				if port.PortType == "UDP" {
+					udpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+					updated = true
+				}
 
-			if updated {
-				ingControllerService.Spec.Ports = append(ingControllerService.Spec.Ports, v1.ServicePort{
-					Name:       fmt.Sprintf("%s-%s-%d", stage.K8sName, service.K8sName, port.InternalPort),
-					Protocol:   v1.Protocol(port.PortType),
-					Port:       int32(port.ExternalPort),
-					TargetPort: intstr.FromInt(port.ExternalPort),
-				})
+				if updated {
+					ingControllerService.Spec.Ports = append(ingControllerService.Spec.Ports, v1.ServicePort{
+						Name:       fmt.Sprintf("%s-%d", k8sNameIngresss, port.ExternalPort),
+						Protocol:   v1.Protocol(port.PortType),
+						Port:       int32(port.ExternalPort),
+						TargetPort: intstr.FromInt(port.ExternalPort),
+					})
+				}
 			}
 		}
 	}
