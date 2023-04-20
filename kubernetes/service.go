@@ -205,9 +205,18 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto) {
 	}
 
 	// 4. write results to k8s
-	UpdateK8sConfigMap(*tcpConfigmap)
-	UpdateK8sConfigMap(*udpConfigmap)
-	UpdateK8sService(*ingControllerService)
+	tcpResult := UpdateK8sConfigMap(*tcpConfigmap)
+	if tcpResult.Result != "" {
+		logger.Log.Error(tcpResult)
+	}
+	udpResult := UpdateK8sConfigMap(*udpConfigmap)
+	if udpResult.Result != "" {
+		logger.Log.Error(udpResult)
+	}
+	ingContrResult := UpdateK8sService(*ingControllerService)
+	if ingContrResult.Result != "" {
+		logger.Log.Error(ingContrResult)
+	}
 }
 
 func RemovePortFromService(job *structs.Job, namespace string, serviceName string, port int32, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
