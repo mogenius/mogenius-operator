@@ -16,7 +16,7 @@ api_server:
 
 event_server:
   server: 127.0.0.1
-  path: /ws
+  path: /ws-event
   port: 8080
 
 misc:

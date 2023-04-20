@@ -42,6 +42,12 @@ func Init(r *gin.Engine) {
 			wsHandler(c.Writer, c.Request, clusterName)
 		}
 	})
+	r.GET(utils.CONFIG.EventServer.Path, func(c *gin.Context) {
+		clusterName := validateHeader(c)
+		if clusterName != "" {
+			wsHandler(c.Writer, c.Request, clusterName)
+		}
+	})
 	r.POST(utils.CONFIG.ApiServer.StreamPath, func(c *gin.Context) {
 		clusterName := validateHeader(c)
 		if clusterName != "" {
@@ -82,7 +88,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 
 	defer removeConnection(connection)
 
-	addConnection(connection, clusterName)
+	if r.RequestURI == utils.CONFIG.ApiServer.Path {
+		addConnection(connection, clusterName)
+	}
 
 	for {
 		msgType, msg, err := connection.ReadMessage()

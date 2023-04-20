@@ -177,7 +177,7 @@ func WriteDefaultConfig(loadClusterConfig bool) {
 		logger.Log.Warning(err)
 	}
 
-	stage := os.Getenv("stage")
+	stage := os.Getenv("STAGE")
 
 	if loadClusterConfig {
 		if stage == "prod" {
