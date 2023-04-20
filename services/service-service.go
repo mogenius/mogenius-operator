@@ -41,6 +41,7 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Stage, r.Service, c, &wg))
+	job.AddCmd(mokubernetes.DeleteNetworkPolicyService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
