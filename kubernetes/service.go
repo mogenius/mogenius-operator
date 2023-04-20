@@ -29,6 +29,9 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 
 		newService.Labels = MoUpdateLabels(&newService.Labels, &job.NamespaceId, &stage, &service)
 
+		// bind/unbind ports globally
+		UpdateTcpUdpPorts(stage, service)
+
 		_, err := serviceClient.Create(context.TODO(), &newService, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()), c)
@@ -49,6 +52,9 @@ func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 
 		kubeProvider := NewKubeProvider()
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
+
+		// bind/unbind ports globally
+		UpdateTcpUdpPorts(stage, service)
 
 		err := serviceClient.Delete(context.TODO(), service.K8sName, metav1.DeleteOptions{})
 		if err != nil {
