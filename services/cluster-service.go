@@ -94,7 +94,7 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) interface{} 
 		var wg sync.WaitGroup
 		job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil, c)
 		job.Start(c)
-		job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeId, r.VolumeName, r.SizeInGb, c, &wg))
+		job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, c, &wg))
 		wg.Wait()
 		job.Finish(c)
 		return job
@@ -124,7 +124,6 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) interface{} 
 
 func StatsMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) NfsVolumeStatsResponse {
 	result := NfsVolumeStatsResponse{
-		VolumeId:   r.VolumeId,
 		VolumeName: r.VolumeName,
 		FreeBytes:  0,
 		UsedBytes:  0,
@@ -428,7 +427,6 @@ func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
 type NfsVolumeRequest struct {
 	NamespaceId   string `json:"namespaceId"`
 	NamespaceName string `json:"namespaceName"`
-	VolumeId      string `json:"volumeId"`
 	VolumeName    string `json:"volumeName"`
 	SizeInGb      int    `json:"sizeInGb"`
 }
@@ -437,14 +435,12 @@ func NfsVolumeRequestExample() NfsVolumeRequest {
 	return NfsVolumeRequest{
 		NamespaceId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		NamespaceName: "mogenius",
-		VolumeId:      "565D37BE-95C8-4069-A7F8-B61AB30DF250",
 		VolumeName:    "my-fancy-volume-name",
 		SizeInGb:      10,
 	}
 }
 
 type NfsVolumeStatsResponse struct {
-	VolumeId   string `json:"volumeId"`
 	VolumeName string `json:"volumeName"`
 	TotalBytes uint64 `json:"totalBytes"`
 	FreeBytes  uint64 `json:"freeBytes"`

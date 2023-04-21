@@ -36,7 +36,7 @@ var sendMutex sync.Mutex
 
 func Init(r *gin.Engine) {
 	// r.Use(user.AuthUserMiddleware())
-	r.GET(utils.CONFIG.ApiServer.Path, func(c *gin.Context) {
+	r.GET(utils.CONFIG.ApiServer.WS_Path, func(c *gin.Context) {
 		clusterName := validateHeader(c)
 		if clusterName != "" {
 			wsHandler(c.Writer, c.Request, clusterName)
@@ -88,7 +88,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 
 	defer removeConnection(connection)
 
-	if r.RequestURI == utils.CONFIG.ApiServer.Path {
+	if r.RequestURI == utils.CONFIG.ApiServer.WS_Path {
 		addConnection(connection, clusterName)
 	}
 
