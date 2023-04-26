@@ -25,6 +25,7 @@ var COMMAND_REQUESTS = []string{
 	"KubernetesEvent",
 	"UpgradeK8sManager",
 	"SERVICE_POD_EXISTS",
+	
 	"files/list",
 	"files/download",
 	"files/create-folder",

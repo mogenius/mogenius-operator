@@ -71,6 +71,16 @@ func CreateDatagram(pattern string, c *websocket.Conn) Datagram {
 	return datagram
 }
 
+func CreateDatagramAck(pattern string, id string, c *websocket.Conn) Datagram {
+	datagram := Datagram{
+		Id:         id,
+		Pattern:    pattern,
+		CreatedAt:  time.Now(),
+		Connection: c,
+	}
+	return datagram
+}
+
 func CreateEmptyDatagram() Datagram {
 	datagram := Datagram{
 		Id:         uuid.New().String(),
