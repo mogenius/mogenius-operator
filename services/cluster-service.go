@@ -88,7 +88,7 @@ func UninstallMogeniusNfsStorage(r NfsStorageInstallRequest, c *websocket.Conn) 
 	return job
 }
 
-func CreateMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) interface{} {
+func CreateMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) structs.DefaultResponse {
 	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
 	if nfsStatus.IsInstalled {
 		var wg sync.WaitGroup
@@ -97,14 +97,16 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) interface{} 
 		job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, c, &wg))
 		wg.Wait()
 		job.Finish(c)
-		return job
+		return job.DefaultReponse()
 	} else {
-		nfsStatus.Error = "Mogenius NFS storage has NOT been installed."
-		return nfsStatus
+		result := structs.DefaultResponse{}
+		result.Error = "Mogenius NFS storage has NOT been installed."
+		result.Success = false
+		return result
 	}
 }
 
-func DeleteMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) interface{} {
+func DeleteMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) structs.DefaultResponse {
 	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
 	if nfsStatus.IsInstalled {
 		var wg sync.WaitGroup
@@ -115,10 +117,12 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) interface{} 
 		job.Finish(c)
 		// update mogenius-k8s-manager volume mounts
 		mokubernetes.UpdateK8sManagerVolumeMounts(r.VolumeName, r.NamespaceName)
-		return job
+		return job.DefaultReponse()
 	} else {
-		nfsStatus.Error = "Mogenius NFS storage has NOT been installed."
-		return nfsStatus
+		result := structs.DefaultResponse{}
+		result.Error = "Mogenius NFS storage has NOT been installed."
+		result.Success = false
+		return result
 	}
 }
 

@@ -12,6 +12,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+type DefaultResponse struct {
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
 type Job struct {
 	Id                      string     `json:"id"`
 	NamespaceId             string     `json:"namespaceId"`
@@ -62,6 +67,19 @@ func (j *Job) Start(c *websocket.Conn) {
 	j.State = "STARTED"
 	j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
 	ReportStateToServer(j, nil, c)
+}
+
+func (j *Job) DefaultReponse() DefaultResponse {
+	dr := DefaultResponse{}
+	if j.State == "FAILED" {
+		dr.Success = false
+		if j.Message != "" {
+			dr.Error = j.Message
+		}
+	} else {
+		dr.Success = true
+	}
+	return dr
 }
 
 func (j *Job) Finish(c *websocket.Conn) {

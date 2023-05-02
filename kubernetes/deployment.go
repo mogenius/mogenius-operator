@@ -249,7 +249,7 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 	newDeployment.Spec.Template.Spec.Containers[0].Name = service.Name
 
 	// IMAGE
-	if service.App.Type == "CONTAINER_IMAGE" || service.App.Type == "CONTAINER_IMAGE_TEMPLATE" {
+	if service.ContainerImage != "" {
 		newDeployment.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
 		if service.ContainerImageCommand != "" {
 			newDeployment.Spec.Template.Spec.Containers[0].Command = utils.ParseJsonStringArray(service.ContainerImageCommand)
