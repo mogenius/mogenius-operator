@@ -26,12 +26,12 @@ type Config struct {
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
-		Proto      string `yaml:"proto" env:"api_proto" env-description:"Server protocol" env-default:"https"`
-		Server     string `yaml:"server" env:"api_server" env-description:"Server host" env-default:"127.0.0.1"`
-		WsPort     int    `yaml:"ws_port" env:"api_ws_port" env-description:"Server port" env-default:"8080"`
-		HttpPort   int    `yaml:"http_port" env:"api_http_port" env-description:"Server port" env-default:"8080"`
-		Path       string `yaml:"path" env:"api_path" env-description:"Server Path" env-default:"/ws"`
-		StreamPath string `yaml:"stream_path" env:"api_stream_path" env-description:"Server Path" env-default:"/stream-data"`
+		Ws_Proto    string `yaml:"ws_proto" env:"api_ws_proto" env-description:"Server Path" env-default:"ws"`
+		Ws_Server   string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:7011"`
+		WS_Path     string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
+		Http_Proto  string `yaml:"http_proto" env:"api_http_proto" env-description:"Server Path" env-default:"http"`
+		Http_Server string `yaml:"http_server" env:"api_http_server" env-description:"Server host" env-default:"127.0.0.1:1337"`
+		StreamPath  string `yaml:"stream_path" env:"api_stream_path" env-description:"Server Path" env-default:"/stream-data"`
 	} `yaml:"api_server"`
 	EventServer struct {
 		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1"`
@@ -118,11 +118,11 @@ func PrintSettings() {
 
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 
-	logger.Log.Infof("ApiProtocol:              %s", CONFIG.ApiServer.Proto)
-	logger.Log.Infof("ApiServer:                %s", CONFIG.ApiServer.Server)
-	logger.Log.Infof("ApiWsPort:                %d", CONFIG.ApiServer.WsPort)
-	logger.Log.Infof("ApiHttpPort:              %d", CONFIG.ApiServer.HttpPort)
-	logger.Log.Infof("ApiPath:                  %s", CONFIG.ApiServer.Path)
+	logger.Log.Infof("WsProto:                  %s", CONFIG.ApiServer.Ws_Proto)
+	logger.Log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
+	logger.Log.Infof("WsPath:                   %s", CONFIG.ApiServer.WS_Path)
+	logger.Log.Infof("HttpProto:                %s", CONFIG.ApiServer.Http_Proto)
+	logger.Log.Infof("HttoServer:               %s", CONFIG.ApiServer.Http_Server)
 	logger.Log.Infof("StreamPath:               %s", CONFIG.ApiServer.StreamPath)
 
 	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)

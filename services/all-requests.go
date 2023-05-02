@@ -25,7 +25,7 @@ var COMMAND_REQUESTS = []string{
 	"KubernetesEvent",
 	"UpgradeK8sManager",
 	"SERVICE_POD_EXISTS",
-	
+
 	"files/list",
 	"files/download",
 	"files/create-folder",
@@ -33,6 +33,7 @@ var COMMAND_REQUESTS = []string{
 	"files/chown",
 	"files/chmod",
 	"files/delete",
+
 	"cluster/execute-helm-chart-task",
 	"cluster/uninstall-helm-chart",
 	"cluster/tcp-udp-configuration",
@@ -510,7 +511,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 }
 
 func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *websocket.Conn) ServiceLogStreamResult {
-	requestURL := url.URL{Scheme: utils.CONFIG.ApiServer.Proto, Host: fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.HttpPort), Path: utils.CONFIG.ApiServer.StreamPath}
+	requestURL := url.URL{Scheme: utils.CONFIG.ApiServer.Http_Proto, Host: utils.CONFIG.ApiServer.Http_Server, Path: utils.CONFIG.ApiServer.StreamPath}
 	result := ServiceLogStreamResult{
 		Message: fmt.Sprintf("Initiated log-stream '%s' for '%s/%s'.", requestURL.String(), data.Namespace, data.PodId),
 	}

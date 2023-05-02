@@ -90,7 +90,7 @@ import (
 // 	return cmd
 // }
 
-func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName string, volumeId string, volumeName string, volumeSizeInGb int, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName string, volumeName string, volumeSizeInGb int, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Create PersistentVolume/Claim '%s'.", volumeName), job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {

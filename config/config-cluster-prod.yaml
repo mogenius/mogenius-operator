@@ -7,12 +7,12 @@ kubernetes:
   default_container_registry: docker.io
 
 api_server:
-  proto: https
-  server: k8s-api.mogenius.com
-  path: /ws
+  ws_proto: ws
+  ws_server: k8s-api.mogenius.com:1337
+  ws_path: /ws
+  http_proto: https
+  http_server: k8s-api.mogenius.com
   stream_path: /stream-data
-  ws_port: 1337
-  http_port: 80
 
 event_server:
   server: k8s-api.mogenius.com

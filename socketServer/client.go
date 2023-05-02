@@ -72,8 +72,7 @@ func StartK8sManager(runsInCluster bool) {
 }
 
 func startClient() {
-	host := fmt.Sprintf("%s:%d", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.WsPort)
-	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.ApiServer.Path}
+	connectionUrl := url.URL{Scheme: utils.CONFIG.ApiServer.Ws_Proto, Host: utils.CONFIG.ApiServer.Ws_Server, Path: utils.CONFIG.ApiServer.WS_Path}
 
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
 	if err != nil {

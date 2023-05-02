@@ -40,7 +40,7 @@ var testServerCmd = &cobra.Command{
 			})
 		})
 		socketServer.Init(router)
-		logger.Log.Noticef("Started WS server %s:%d 🚀", utils.CONFIG.ApiServer.Server, utils.CONFIG.ApiServer.HttpPort)
+		logger.Log.Noticef("Started WS server %s 🚀", utils.CONFIG.ApiServer.Ws_Server)
 
 		go socketServer.ReadInput()
 		router.Run()
