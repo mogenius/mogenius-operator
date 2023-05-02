@@ -19,16 +19,16 @@ func CreateNetworkPolicyNamespace(job *structs.Job, stage dtos.K8sStageDto, c *w
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
+		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.Name)
 		netpol := utils.InitNetPolNamespace()
-		netpol.ObjectMeta.Name = stage.K8sName
-		netpol.ObjectMeta.Namespace = stage.K8sName
+		netpol.ObjectMeta.Name = stage.Name
+		netpol.ObjectMeta.Namespace = stage.Name
 
-		netpol.Spec.PodSelector.MatchLabels["ns"] = stage.K8sName
-		netpol.Spec.Ingress[0].From[0].PodSelector.MatchLabels["ns"] = stage.K8sName
+		netpol.Spec.PodSelector.MatchLabels["ns"] = stage.Name
+		netpol.Spec.Ingress[0].From[0].PodSelector.MatchLabels["ns"] = stage.Name
 
 		netpol.Labels = MoUpdateLabels(&netpol.Labels, &job.NamespaceId, &stage, nil)
 
@@ -36,7 +36,7 @@ func CreateNetworkPolicyNamespace(job *structs.Job, stage dtos.K8sStageDto, c *w
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", stage.K8sName), c)
+			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", stage.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -47,16 +47,16 @@ func DeleteNetworkPolicyNamespace(job *structs.Job, stage dtos.K8sStageDto, c *w
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
+		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.Name)
 
-		err := netPolClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
+		err := netPolClient.Delete(context.TODO(), stage.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", stage.K8sName), c)
+			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", stage.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -67,13 +67,13 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", service.K8sName), c)
+		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", service.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
+		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.Name)
 		netpol := utils.InitNetPolService()
-		netpol.ObjectMeta.Name = service.K8sName
-		netpol.ObjectMeta.Namespace = stage.K8sName
+		netpol.ObjectMeta.Name = service.Name
+		netpol.ObjectMeta.Namespace = stage.Name
 		netpol.Spec.Ingress[0].Ports = []v1.NetworkPolicyPort{} //reset before using
 
 		for _, aPort := range service.Ports {
@@ -84,7 +84,7 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 				})
 			}
 		}
-		netpol.Spec.PodSelector.MatchLabels["app"] = service.K8sName
+		netpol.Spec.PodSelector.MatchLabels["app"] = service.Name
 
 		netpol.Labels = MoUpdateLabels(&netpol.Labels, &job.NamespaceId, &stage, &service)
 
@@ -92,7 +92,7 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", service.K8sName), c)
+			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", service.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -103,16 +103,16 @@ func DeleteNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.K8sName), c)
+		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.K8sName)
+		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(stage.Name)
 
-		err := netPolClient.Delete(context.TODO(), service.K8sName, metav1.DeleteOptions{})
+		err := netPolClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.K8sName), c)
+			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.Name), c)
 		}
 	}(cmd, wg)
 	return cmd

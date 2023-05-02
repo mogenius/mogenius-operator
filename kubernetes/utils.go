@@ -377,12 +377,11 @@ func MoUpdateLabels(labels *map[string]string, namespaceId *string, stage *dtos.
 	resultingLabels["createdBy"] = DEPLOYMENTNAME
 	if service != nil {
 		resultingLabels["mo-service-id"] = service.Id
-		resultingLabels["mo-service-id-short"] = service.ShortId
-		resultingLabels["mo-service-k8sname"] = service.K8sName
+		resultingLabels["mo-service-name"] = service.Name
 	}
 	if stage != nil {
 		resultingLabels["mo-stage-id"] = stage.Id
-		resultingLabels["mo-stage-k8sname"] = stage.K8sName
+		resultingLabels["mo-stage-name"] = stage.Name
 	}
 	if namespaceId != nil {
 		resultingLabels["mo-namespace-id"] = *namespaceId

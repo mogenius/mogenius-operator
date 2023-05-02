@@ -17,14 +17,14 @@ import (
 )
 
 func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", service.K8sName), job, c)
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", service.Name), job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.K8sName), c)
+		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
+		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.Name)
 		newService := generateService(stage, service)
 
 		newService.Labels = MoUpdateLabels(&newService.Labels, &job.NamespaceId, &stage, &service)
@@ -36,7 +36,7 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Created service '%s'.", stage.K8sName), c)
+			cmd.Success(fmt.Sprintf("Created service '%s'.", stage.Name), c)
 		}
 
 	}(cmd, wg)
@@ -48,19 +48,19 @@ func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting service '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Deleting service '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
+		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.Name)
 
 		// bind/unbind ports globally
 		UpdateTcpUdpPorts(stage, service, false)
 
-		err := serviceClient.Delete(context.TODO(), service.K8sName, metav1.DeleteOptions{})
+		err := serviceClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted service '%s'.", stage.K8sName), c)
+			cmd.Success(fmt.Sprintf("Deleted service '%s'.", stage.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -71,10 +71,10 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Update service '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Update service '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.K8sName)
+		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.Name)
 		updateService := generateService(stage, service)
 
 		updateOptions := metav1.UpdateOptions{
@@ -88,7 +88,7 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Updated service '%s'.", stage.K8sName), c)
+			cmd.Success(fmt.Sprintf("Updated service '%s'.", stage.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -154,6 +154,16 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, addit
 	udpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "udp-services")
 	ingControllerService := ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller")
 
+	if tcpConfigmap == nil {
+		logger.Log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "tcp-services")
+		return
+	}
+
+	if udpConfigmap == nil {
+		logger.Log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "udp-services")
+		return
+	}
+
 	if tcpConfigmap.Data == nil {
 		tcpConfigmap.Data = make(map[string]string)
 	}
@@ -161,8 +171,8 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, addit
 		udpConfigmap.Data = make(map[string]string)
 	}
 
-	k8sName := fmt.Sprintf("%s/%s", stage.K8sName, service.K8sName)
-	k8sNameIngresss := fmt.Sprintf("%s-%s", stage.K8sName, service.K8sName)
+	k8sName := fmt.Sprintf("%s/%s", stage.Name, service.Name)
+	k8sNameIngresss := fmt.Sprintf("%s-%s", stage.Name, service.Name)
 
 	// 2. Remove all entries for this service
 	for cmKey, cmValue := range tcpConfigmap.Data {
@@ -345,31 +355,31 @@ func DeleteK8sService(data v1.Service) K8sWorkloadResult {
 
 func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Service {
 	newService := utils.InitService()
-	newService.ObjectMeta.Name = service.K8sName
-	newService.ObjectMeta.Namespace = stage.K8sName
+	newService.ObjectMeta.Name = service.Name
+	newService.ObjectMeta.Namespace = stage.Name
 	newService.Spec.Ports = []v1.ServicePort{} // reset before using
 	for _, port := range service.Ports {
 		if port.PortType == "HTTPS" {
 			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
 				Port: int32(port.InternalPort),
-				Name: fmt.Sprintf("%d-%s", port.InternalPort, service.K8sName),
+				Name: fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
 			})
 		} else {
 			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
 				Port:     int32(port.InternalPort),
-				Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.K8sName),
+				Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
 				Protocol: v1.Protocol(port.PortType),
 			})
 			if port.ExternalPort != 0 {
 				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
 					Port:     int32(port.ExternalPort),
-					Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.K8sName),
+					Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.Name),
 					Protocol: v1.Protocol(port.PortType),
 				})
 			}
 		}
 	}
-	newService.Spec.Selector["app"] = service.K8sName
+	newService.Spec.Selector["app"] = service.Name
 
 	return newService
 }

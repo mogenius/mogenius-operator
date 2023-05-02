@@ -25,7 +25,7 @@ func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
 	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
 	if r.Service.App.Type == "DOCKER_TEMPLATE" {
 		initDocker(r.Service, job, c)
 	}
@@ -42,7 +42,7 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.DeleteNetworkPolicyService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -88,7 +88,7 @@ func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 	job.Start(c)
 	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -100,7 +100,7 @@ func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
 	job.Start(c)
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.NamespaceShortId, r.Stage, nil, nil, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -114,7 +114,7 @@ func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
 	job.AddCmd(mokubernetes.StartDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.NamespaceShortId, r.Stage, nil, nil, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -127,7 +127,7 @@ func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace.ShortId, r.Stage, nil, nil, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -584,34 +584,30 @@ func ServiceRestartRequestExample() ServiceRestartRequest {
 }
 
 type ServiceStopRequest struct {
-	NamespaceId      string             `json:"namespaceId"`
-	NamespaceShortId string             `json:"namespaceShortId"`
-	Stage            dtos.K8sStageDto   `json:"stage"`
-	Service          dtos.K8sServiceDto `json:"service"`
+	NamespaceId string             `json:"namespaceId"`
+	Stage       dtos.K8sStageDto   `json:"stage"`
+	Service     dtos.K8sServiceDto `json:"service"`
 }
 
 func ServiceStopRequestExample() ServiceStopRequest {
 	return ServiceStopRequest{
-		NamespaceId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceShortId: "y123as",
-		Stage:            dtos.K8sStageDtoExampleData(),
-		Service:          dtos.K8sServiceDtoExampleData(),
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       dtos.K8sStageDtoExampleData(),
+		Service:     dtos.K8sServiceDtoExampleData(),
 	}
 }
 
 type ServiceStartRequest struct {
-	NamespaceId      string             `json:"namespaceId"`
-	NamespaceShortId string             `json:"namespaceShortId"`
-	Stage            dtos.K8sStageDto   `json:"stage"`
-	Service          dtos.K8sServiceDto `json:"service"`
+	NamespaceId string             `json:"namespaceId"`
+	Stage       dtos.K8sStageDto   `json:"stage"`
+	Service     dtos.K8sServiceDto `json:"service"`
 }
 
 func ServiceStartRequestExample() ServiceStartRequest {
 	return ServiceStartRequest{
-		NamespaceId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceShortId: "y123as",
-		Stage:            dtos.K8sStageDtoExampleData(),
-		Service:          dtos.K8sServiceDtoExampleData(),
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       dtos.K8sStageDtoExampleData(),
+		Service:     dtos.K8sServiceDtoExampleData(),
 	}
 }
 

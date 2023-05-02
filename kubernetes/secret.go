@@ -20,13 +20,13 @@ func CreateSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating secret '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Creating secret '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
+		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
 		secret := utils.InitSecret()
-		secret.ObjectMeta.Name = service.K8sName
-		secret.ObjectMeta.Namespace = stage.K8sName
+		secret.ObjectMeta.Name = service.Name
+		secret.ObjectMeta.Namespace = stage.Name
 		delete(secret.StringData, "PRIVATE_KEY") // delete example data
 
 		for _, envVar := range service.EnvVars {
@@ -43,7 +43,7 @@ func CreateSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateSecret ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Created secret '%s'.", service.K8sName), c)
+			cmd.Success(fmt.Sprintf("Created secret '%s'.", service.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -54,20 +54,20 @@ func DeleteSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting secret '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Deleting secret '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
+		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
-		err := secretClient.Delete(context.TODO(), service.K8sName, deleteOptions)
+		err := secretClient.Delete(context.TODO(), service.Name, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted secret '%s'.", service.K8sName), c)
+			cmd.Success(fmt.Sprintf("Deleted secret '%s'.", service.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -78,13 +78,13 @@ func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, sta
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating Container secret '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Creating Container secret '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
+		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
 		secret := utils.InitContainerSecret()
-		secret.ObjectMeta.Name = "container-secret-" + stage.K8sName
-		secret.ObjectMeta.Namespace = stage.K8sName
+		secret.ObjectMeta.Name = "container-secret-" + stage.Name
+		secret.ObjectMeta.Namespace = stage.Name
 
 		authStr := fmt.Sprintf("%s:%s", namespace.ContainerRegistryUser, namespace.ContainerRegistryPat)
 		authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
@@ -100,7 +100,7 @@ func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, sta
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.K8sName), c)
+			cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -111,20 +111,20 @@ func DeleteContainerSecret(job *structs.Job, stage dtos.K8sStageDto, c *websocke
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting Container secret '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Deleting Container secret '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
+		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
-		err := secretClient.Delete(context.TODO(), "container-secret-"+stage.K8sName, deleteOptions)
+		err := secretClient.Delete(context.TODO(), "container-secret-"+stage.Name, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted Container secret '%s'.", stage.K8sName), c)
+			cmd.Success(fmt.Sprintf("Deleted Container secret '%s'.", stage.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -135,13 +135,13 @@ func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Updating secret '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Updating secret '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.K8sName)
+		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
 		secret := utils.InitSecret()
-		secret.ObjectMeta.Name = service.K8sName
-		secret.ObjectMeta.Namespace = stage.K8sName
+		secret.ObjectMeta.Name = service.Name
+		secret.ObjectMeta.Namespace = stage.Name
 		delete(secret.StringData, "PRIVATE_KEY") // delete example data
 
 		for _, envVar := range service.EnvVars {
@@ -160,7 +160,7 @@ func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Update secret '%s'.", service.K8sName), c)
+			cmd.Success(fmt.Sprintf("Update secret '%s'.", service.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -206,7 +206,7 @@ func DeleteK8sSecret(data v1.Secret) K8sWorkloadResult {
 
 func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {
 	provider := NewKubeProvider()
-	secret, err := provider.ClientSet.CoreV1().Secrets(stage.K8sName).Get(context.TODO(), "container-secret-"+stage.K8sName, metav1.GetOptions{})
+	secret, err := provider.ClientSet.CoreV1().Secrets(stage.Name).Get(context.TODO(), "container-secret-"+stage.Name, metav1.GetOptions{})
 	if err != nil {
 		return false
 	}

@@ -19,7 +19,7 @@ const (
 	INGRESS_PREFIX = "ingress"
 )
 
-func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStageDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Updating ingress setup.", job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -27,16 +27,16 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 		cmd.Start("Updating ingress setup.", c)
 
 		kubeProvider := NewKubeProvider()
-		ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(stage.K8sName)
+		ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(stage.Name)
 
 		applyOptions := metav1.ApplyOptions{
 			Force:        true,
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		ingressName := INGRESS_PREFIX + "-" + namespaceShortId
+		ingressName := INGRESS_PREFIX + "-" + stage.Name
 
-		config := networkingv1.Ingress(ingressName, stage.K8sName)
+		config := networkingv1.Ingress(ingressName, stage.Name)
 		config.WithAnnotations(map[string]string{
 			"kubernetes.io/ingress.class":                    "nginx",
 			"nginx.ingress.kubernetes.io/rewrite-target":     "/",
@@ -78,9 +78,11 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 				}
 
 				// 2. ALL CNAMES
-				spec.Rules = append(spec.Rules, *createIngressRule(service.FullHostname, service.K8sName, int32(port.InternalPort)))
+				if len(service.CNames) == 0 {
+					spec.Rules = append(spec.Rules, *createIngressRule(service.FullHostname, service.Name, int32(port.InternalPort)))
+				}
 				for _, cname := range service.CNames {
-					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.K8sName, int32(port.InternalPort)))
+					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.Name, int32(port.InternalPort)))
 					if !stage.CloudflareProxied {
 						tlsHosts = append(tlsHosts, cname)
 					}
@@ -94,7 +96,7 @@ func UpdateIngress(job *structs.Job, namespaceShortId string, stage dtos.K8sStag
 		if !stage.CloudflareProxied {
 			spec.TLS = append(spec.TLS, networkingv1.IngressTLSApplyConfiguration{
 				Hosts:      tlsHosts,
-				SecretName: &stage.K8sName,
+				SecretName: &stage.Name,
 			})
 		}
 

@@ -3,7 +3,7 @@ package version
 // IMPORTANT! DO NOT MODIFY THIS FILE BECAUSE SUBSCRIPTS ARE GOING TO FAIL IF YOU DO SO!
 
 var (
-	Ver            = "1.4.4"
+	Ver            = "1.4.5"
 	Branch         = ""
 	GitCommitHash  = "" // ldflags
 	BuildTimestamp = "" // ldflags

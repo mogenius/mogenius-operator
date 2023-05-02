@@ -19,13 +19,13 @@ func CreateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating ConfigMap '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Creating ConfigMap '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.K8sName)
+		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.Name)
 		configMap := utils.InitConfigMap()
-		configMap.ObjectMeta.Name = service.K8sName
-		configMap.ObjectMeta.Namespace = stage.K8sName
+		configMap.ObjectMeta.Name = service.Name
+		configMap.ObjectMeta.Namespace = stage.Name
 		delete(configMap.Data, "XXX") // delete example data
 
 		// TODO: WRITE STUFF INTO CONFIGMAP
@@ -35,7 +35,7 @@ func CreateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Created ConfigMap '%s'.", service.K8sName), c)
+			cmd.Success(fmt.Sprintf("Created ConfigMap '%s'.", service.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -46,20 +46,20 @@ func DeleteConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting configMap '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Deleting configMap '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.K8sName)
+		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
-		err := configMapClient.Delete(context.TODO(), service.K8sName, deleteOptions)
+		err := configMapClient.Delete(context.TODO(), service.Name, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted configMap '%s'.", service.K8sName), c)
+			cmd.Success(fmt.Sprintf("Deleted configMap '%s'.", service.Name), c)
 		}
 	}(cmd, wg)
 	return cmd
@@ -70,13 +70,13 @@ func UpdateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
-		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.K8sName)
+		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.Name)
 		configMap := utils.InitConfigMap()
-		configMap.ObjectMeta.Name = service.K8sName
-		configMap.ObjectMeta.Namespace = stage.K8sName
+		configMap.ObjectMeta.Name = service.Name
+		configMap.ObjectMeta.Namespace = stage.Name
 		delete(configMap.Data, "XXX") // delete example data
 
 		// TODO: WRITE STUFF INTO CONFIGMAP
@@ -89,7 +89,7 @@ func UpdateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Update configMap '%s'.", service.K8sName), c)
+			cmd.Success(fmt.Sprintf("Update configMap '%s'.", service.Name), c)
 		}
 	}(cmd, wg)
 	return cmd

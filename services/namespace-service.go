@@ -58,7 +58,7 @@ func ShutdownNamespace(r NamespaceShutdownRequest, c *websocket.Conn) structs.Jo
 	job.Start(c)
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.NamespaceShortId, r.Stage, nil, nil, c, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -146,18 +146,16 @@ func NamespaceDeleteRequestExample() NamespaceDeleteRequest {
 }
 
 type NamespaceShutdownRequest struct {
-	NamespaceId      string             `json:"namespaceId"`
-	NamespaceShortId string             `json:"namespaceShortId"`
-	Stage            dtos.K8sStageDto   `json:"stage"`
-	Service          dtos.K8sServiceDto `json:"service"`
+	NamespaceId string             `json:"namespaceId"`
+	Stage       dtos.K8sStageDto   `json:"stage"`
+	Service     dtos.K8sServiceDto `json:"service"`
 }
 
 func NamespaceShutdownRequestExample() NamespaceShutdownRequest {
 	return NamespaceShutdownRequest{
-		NamespaceId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceShortId: "y123as",
-		Stage:            dtos.K8sStageDtoExampleData(),
-		Service:          dtos.K8sServiceDtoExampleData(),
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       dtos.K8sStageDtoExampleData(),
+		Service:     dtos.K8sServiceDtoExampleData(),
 	}
 }
 

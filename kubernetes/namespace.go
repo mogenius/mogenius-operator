@@ -17,11 +17,11 @@ import (
 
 func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, c *websocket.Conn) *structs.Command {
 	cmd := structs.CreateCommand("Create Kubernetes namespace", job, c)
-	cmd.Start(fmt.Sprintf("Creating namespace '%s'.", stage.K8sName), c)
+	cmd.Start(fmt.Sprintf("Creating namespace '%s'.", stage.Name), c)
 
 	kubeProvider := NewKubeProvider()
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
-	newNamespace := applyconfcore.Namespace(stage.K8sName)
+	newNamespace := applyconfcore.Namespace(stage.Name)
 
 	applyOptions := metav1.ApplyOptions{
 		Force:        true,
@@ -29,7 +29,7 @@ func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dto
 	}
 
 	newNamespace.WithLabels(map[string]string{
-		"name": stage.K8sName,
+		"name": stage.Name,
 	})
 
 	_, err := namespaceClient.Apply(context.TODO(), newNamespace, applyOptions)
@@ -46,16 +46,16 @@ func DeleteNamespace(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting namespace '%s'.", stage.K8sName), c)
+		cmd.Start(fmt.Sprintf("Deleting namespace '%s'.", stage.Name), c)
 
 		kubeProvider := NewKubeProvider()
 		namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 
-		err := namespaceClient.Delete(context.TODO(), stage.K8sName, metav1.DeleteOptions{})
+		err := namespaceClient.Delete(context.TODO(), stage.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted namespace '%s'.", stage.K8sName), c)
+			cmd.Success(fmt.Sprintf("Deleted namespace '%s'.", stage.Name), c)
 		}
 	}(cmd, wg)
 	return cmd

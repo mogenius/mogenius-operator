@@ -3,9 +3,7 @@ package dtos
 type K8sServiceDto struct {
 	Id                                   string                `json:"id" validate:"required"`
 	DisplayName                          string                `json:"displayName" validate:"required"`
-	ShortId                              string                `json:"shortId" validate:"required"`
 	FullHostname                         string                `json:"fullHostname" validate:"required"`
-	K8sName                              string                `json:"k8sName" validate:"required"`
 	CNames                               []string              `json:"cNames" validate:"required"`
 	GitRepository                        string                `json:"gitRepository" validate:"required"`
 	GitBranch                            string                `json:"gitBranch" validate:"required"`
@@ -27,9 +25,6 @@ func K8sServiceDtoExampleData() K8sServiceDto {
 	return K8sServiceDto{
 		Id:                                   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		DisplayName:                          "displayName",
-		ShortId:                              "y123as",
-		FullHostname:                         "fullhostname.iltis.io",
-		K8sName:                              "k8sname-service",
 		CNames:                               []string{},
 		GitRepository:                        "gitRepository",
 		GitBranch:                            "main",
@@ -52,9 +47,7 @@ func K8sServiceContainerImageDtoExampleData() K8sServiceDto {
 	return K8sServiceDto{
 		Id:                                   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		DisplayName:                          "displayName",
-		ShortId:                              "y123as",
 		FullHostname:                         "fullhostname.iltis.io",
-		K8sName:                              "k8sname",
 		CNames:                               []string{},
 		GitRepository:                        "gitRepository",
 		GitBranch:                            "main",
