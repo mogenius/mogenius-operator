@@ -224,12 +224,14 @@ type FilesDownloadResponse struct {
 type FilesUploadRequest struct {
 	File        dtos.PersistentFileRequestDto `json:"file"`
 	SizeInBytes int64                         `json:"sizeInBytes"`
+	Id			string						  `json:"id"`
 }
 
 func FilesUploadRequestExampleData() FilesUploadRequest {
 	return FilesUploadRequest{
 		File:        dtos.PersistentFileUploadDtoExampleData(),
 		SizeInBytes: 21217588,
+		Id: 		 "1234567890",
 	}
 }
 

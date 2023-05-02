@@ -135,8 +135,13 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 					}
 					bar.Finish()
 					os.Remove(*preparedFileName)
+
+					var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id, c)
+					ack.Send()
+	
 					preparedFileName = nil
 					preparedFileRequest = nil
+
 					continue
 				}
 				if preparedFileName != nil {
@@ -166,6 +171,9 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 						sendMutex.Unlock()
 					} else if utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 						preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram, c)
+						
+						var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id, c)
+						ack.Send()
 					} else {
 						logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 					}
