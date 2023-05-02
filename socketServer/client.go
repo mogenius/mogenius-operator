@@ -101,7 +101,6 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	var preparedFileName *string
 	var preparedFileRequest *services.FilesUploadRequest
 	var openFile *os.File
-	var hasOpenStream = false
 	bar := progressbar.DefaultSilent(0)
 
 	go func() {
@@ -138,7 +137,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 					var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id, c)
 					ack.Send()
-	
+
 					preparedFileName = nil
 					preparedFileRequest = nil
 
@@ -171,7 +170,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 						sendMutex.Unlock()
 					} else if utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 						preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram, c)
-						
+
 						var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id, c)
 						ack.Send()
 					} else {
@@ -185,20 +184,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	// KEEP THE CONNECTION OPEN
 	ping(done, c, &sendMutex)
 
-	if hasOpenStream {
-		freeAdditionalConnectionOnDisconnect()
-	}
 	c.Close()
-}
-
-func startAdditionalConnection() {
-	maxGoroutines++
-	<-connectionGuard
-}
-
-func freeAdditionalConnectionOnDisconnect() {
-	maxGoroutines--
-	<-connectionGuard
 }
 
 func ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
@@ -217,6 +203,8 @@ func ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
 			if err != nil {
 				log.Println("pingTicker ERROR:", err)
 				return
+			} else {
+				fmt.Println("ping success") // TODO: REMOVE
 			}
 		case <-interrupt:
 			log.Println("interrupt")
