@@ -50,9 +50,9 @@ func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
 
 func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.NamespaceId, &r.StageId, &r.ServiceId, c)
+	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId, c)
 	job.Start(c)
-	job.AddCmd(mokubernetes.SetImage(&job, r.StageK8sName, r.ServiceK8sName, r.ImageName, c, &wg))
+	job.AddCmd(mokubernetes.SetImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, c, &wg))
 	wg.Wait()
 	job.Finish(c)
 	return job
@@ -217,22 +217,22 @@ func ServicePodExistsRequestExample() ServicePodExistsRequest {
 }
 
 type ServiceSetImageRequest struct {
+	ProjectId          string `json:"projectId"`
 	NamespaceId        string `json:"namespaceId"`
-	StageId            string `json:"stageId"`
 	ServiceId          string `json:"serviceId"`
-	StageK8sName       string `json:"stageK8sName"`
-	ServiceK8sName     string `json:"serviceK8sName"`
+	NamespaceName      string `json:"namespaceName"`
+	ServiceName        string `json:"serviceName"`
 	ServiceDisplayName string `json:"serviceDisplayName"`
 	ImageName          string `json:"imageName"`
 }
 
 func ServiceSetImageRequestExample() ServiceSetImageRequest {
 	return ServiceSetImageRequest{
-		NamespaceId:        "NAMESPACEID",
+		ProjectId:          "PROJECTID",
 		ServiceId:          "SERVICEID",
-		StageId:            "STAGEID",
-		StageK8sName:       "StageK8sName",
-		ServiceK8sName:     "ServiceK8sName",
+		NamespaceId:        "NAMESPACEID",
+		NamespaceName:      "NAMESPACENAMe",
+		ServiceName:        "SERVICENAME",
 		ServiceDisplayName: "ServiceDisplayName",
 		ImageName:          "nginx:latest",
 	}

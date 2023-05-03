@@ -290,6 +290,31 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 				},
 			})
 		}
+		if envVar.Type == "VOLUME_MOUNT" {
+			// VOLUMEMOUNT
+			// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
+			components := strings.Split(envVar.Value, ":")
+			if len(components) == 2 {
+				volumeName := components[0]    // e.g. MY_COOL_NAME
+				containerPath := components[1] // e.g. /mo-data
+				newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
+					MountPath: containerPath,
+					Name:      volumeName,
+				})
+
+				// VOLUME
+				newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
+					Name: volumeName,
+					VolumeSource: core.VolumeSource{
+						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+							ClaimName: volumeName,
+						},
+					},
+				})
+			} else {
+				logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY", envVar.Name, envVar.Value)
+			}
+		}
 	}
 
 	// IMAGE PULL SECRET
@@ -343,16 +368,16 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 	return newDeployment
 }
 
-func SetImage(job *structs.Job, stagek8sName string, serviceK8sName string, imageName string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
+func SetImage(job *structs.Job, namespaceName string, serviceName string, imageName string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job, c)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceK8sName), c)
+		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceName), c)
 
 		kubeProvider := NewKubeProvider()
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stagek8sName)
-		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceK8sName, metav1.GetOptions{})
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
+		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()), c)
 			return
@@ -366,7 +391,7 @@ func SetImage(job *structs.Job, stagek8sName string, serviceK8sName string, imag
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()), c)
 		} else {
-			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", serviceK8sName), c)
+			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", serviceName), c)
 		}
 	}(cmd, wg)
 	return cmd

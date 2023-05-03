@@ -438,7 +438,7 @@ type NfsVolumeRequest struct {
 func NfsVolumeRequestExample() NfsVolumeRequest {
 	return NfsVolumeRequest{
 		NamespaceId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceName: "mogenius",
+		NamespaceName: "bene-test",
 		VolumeName:    "my-fancy-volume-name",
 		SizeInGb:      10,
 	}
