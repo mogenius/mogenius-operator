@@ -32,12 +32,16 @@ func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, c *webs
 	cmds = append(cmds, addRepoCmd)
 	// AWS --set-string nfsStorageClass.backendStorageClass=gp2
 	// GCP --set-string nfsStorageClass.backendStorageClass=standard-rwo
+	// AZRUE --set-string nfsStorageClass.backendStorageClass=default
 	nfsStorageClassStr := ""
 	if clusterProvider == "AWS" {
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=gp2"
 	}
 	if clusterProvider == "GCP" {
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=standard-rwo"
+	}
+	if clusterProvider == "AZURE" {
+		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=default"
 	}
 	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm install mogenius-nfs-storage mo-openebs-nfs/nfs-provisioner -n %s --create-namespace --set analytics.enabled=false%s", utils.CONFIG.Kubernetes.OwnNamespace, nfsStorageClassStr), c, wg)
 	cmds = append(cmds, instRelCmd)

@@ -203,8 +203,6 @@ func ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
 			if err != nil {
 				log.Println("pingTicker ERROR:", err)
 				return
-			} else {
-				fmt.Println("ping success") // TODO: REMOVE
 			}
 		case <-interrupt:
 			log.Println("interrupt")

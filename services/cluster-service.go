@@ -424,7 +424,7 @@ type NfsStorageInstallRequest struct {
 func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
 	return NfsStorageInstallRequest{
 		NamespaceId:     "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		ClusterProvider: "GCP",
+		ClusterProvider: "AZURE",
 	}
 }
 

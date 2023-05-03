@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
@@ -53,7 +54,6 @@ func WatchEvents() {
 						reason := eventObj.Reason
 						count := eventObj.Count
 						if kind == "Pod" && reason == "Started" && strings.HasPrefix(message, "Started container nfs-server") {
-							// || (reason == "Killing" && strings.HasPrefix(message, "Stopping container nfs-server"))
 							err := UpdateK8sManagerVolumeMounts("", "")
 							if err != nil {
 								logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
@@ -130,7 +130,7 @@ func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace
 				Name: mopvc.Name,
 				VolumeSource: core.VolumeSource{
 					PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-						ClaimName: mopvc.Name,
+						ClaimName: fmt.Sprintf("nfs-%s", mopvc.Spec.VolumeName),
 					},
 				},
 			})
@@ -158,13 +158,11 @@ func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace
 	// 5: Redeploy on up
 	if hasBeenUpdated || eventsFirstStart || deleteVolumeName != "" {
 		lastMountedPaths = allMountedPaths
-		deploymentClient.Update(context.TODO(), ownDeployment, v1.UpdateOptions{})
+		_, err := deploymentClient.Update(context.TODO(), ownDeployment, v1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
 		eventsFirstStart = false
 	}
-
-	// 1. list all pvc
-	// 2. generate list of all volumes/volumemounts
-	// 3. check if volume has already been mounted
-	// 4. redeploy own deployment
 	return nil
 }
