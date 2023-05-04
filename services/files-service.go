@@ -233,8 +233,12 @@ func Chmod(r FilesChmodRequest, c *websocket.Conn) interface{} {
 	if err != nil {
 		return utils.CreateError(err)
 	}
-	// Convert the hexadecimal string to an integer
-	permissions, err := strconv.ParseUint(r.Mode, 16, 32)
+
+	// padding left leading zero if missing
+	var mod = fmt.Sprintf("%0*s", 4, r.Mode)
+	// Convert to base 8 (which is the traditional base for unix file modes)
+	// base 0, and it'll automatically choose base 8 due to the leading 0
+	permissions, err := strconv.ParseUint(mod, 0, 32)
 	if err != nil {
 		return fmt.Errorf("failed to parse hex permissions: %w", err)
 	}
