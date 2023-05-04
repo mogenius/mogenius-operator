@@ -293,6 +293,9 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.FilesListRequestExampleData()
 		case "files/download":
 			payload = services.FilesDownloadRequestExampleData()
+		case "files/download-folder":
+			payload = services.FilesDownloadDirectoryRequestExampleData()
+			pattern = "files/download"
 		case "files/upload":
 			payload = services.FilesUploadRequestExampleData()
 		case "files/create-folder":
@@ -474,6 +477,7 @@ func requestCmdFromCluster(pattern string) {
 func selectCommands() string {
 	allCommands := append([]string{}, services.COMMAND_REQUESTS...)
 	allCommands = append(allCommands, services.BINARY_REQUEST_UPLOAD...)
+	allCommands = append(allCommands, "files/download-folder")
 	for index, patternName := range allCommands {
 		fmt.Printf("%d: %s\n", index, patternName)
 	}

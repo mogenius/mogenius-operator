@@ -1,6 +1,8 @@
 package services
 
 import (
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
@@ -54,35 +56,99 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 	}
 	result.SizeInBytes = info.Size()
 
-	// SEND FILE TO HTTP
-	var requestBody strings.Builder
-	multiPartWriter := multipart.NewWriter(&requestBody)
+	if info.IsDir() {
+		// SEND ZIPPED DIR TO HTTP
+		var buf bytes.Buffer
+		zipWriter := zip.NewWriter(&buf)
 
-	fileWriter, err := multiPartWriter.CreateFormFile("file", file.Name())
-	if err != nil {
-		fmt.Printf("Error creating form file: %s", err)
-		result.Error = err.Error()
-		return result
-	}
+		// Add all files in a directory to the archive
+		err = filepath.Walk(pathToFile, func(filePath string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 
-	_, err = io.Copy(fileWriter, file)
-	if err != nil {
-		fmt.Printf("Error copying file: %s", err)
-		result.Error = err.Error()
-		return result
-	}
-	multiPartWriter.Close()
+			if info.IsDir() {
+				return nil
+			}
 
-	response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), strings.NewReader(requestBody.String()))
-	if err != nil {
-		fmt.Printf("Error sending request: %s", err)
-		result.Error = err.Error()
-		return result
-	}
-	defer response.Body.Close()
+			relPath, err := filepath.Rel(pathToFile, filePath)
+			if err != nil {
+				return err
+			}
 
-	if response.StatusCode < 200 || response.StatusCode > 299 {
-		result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
+			zipFile, err := zipWriter.Create(relPath)
+			if err != nil {
+				return err
+			}
+
+			srcFile, err := os.Open(filePath)
+			if err != nil {
+				return err
+			}
+			defer srcFile.Close()
+
+			_, err = io.Copy(zipFile, srcFile)
+			return err
+		})
+		if err != nil {
+			logger.Log.Errorf("directory zip walk files error: %s", err.Error())
+			result.Error = err.Error()
+			return result
+		}
+
+		// Close the zip archive
+		err = zipWriter.Close()
+		if err != nil {
+			logger.Log.Errorf("zip error: %s", err.Error())
+			result.Error = err.Error()
+			return result
+		}
+
+		result.SizeInBytes = int64(buf.Len())
+
+		// Upload the zip file
+		response, err := http.Post(r.PostTo, "application/zip", &buf)
+		if err != nil {
+			fmt.Printf("Error sending request: %s", err)
+			result.Error = err.Error()
+			return result
+		}
+		defer response.Body.Close()
+
+		if response.StatusCode < 200 || response.StatusCode > 299 {
+			result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
+		}
+	} else {
+		// SEND FILE TO HTTP
+		var requestBody strings.Builder
+		multiPartWriter := multipart.NewWriter(&requestBody)
+
+		fileWriter, err := multiPartWriter.CreateFormFile("file", file.Name())
+		if err != nil {
+			fmt.Printf("Error creating form file: %s", err)
+			result.Error = err.Error()
+			return result
+		}
+
+		_, err = io.Copy(fileWriter, file)
+		if err != nil {
+			fmt.Printf("Error copying file: %s", err)
+			result.Error = err.Error()
+			return result
+		}
+		multiPartWriter.Close()
+
+		response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), strings.NewReader(requestBody.String()))
+		if err != nil {
+			fmt.Printf("Error sending request: %s", err)
+			result.Error = err.Error()
+			return result
+		}
+		defer response.Body.Close()
+
+		if response.StatusCode < 200 || response.StatusCode > 299 {
+			result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
+		}
 	}
 
 	return result
@@ -216,6 +282,13 @@ func FilesDownloadRequestExampleData() FilesDownloadRequest {
 	}
 }
 
+func FilesDownloadDirectoryRequestExampleData() FilesDownloadRequest {
+	return FilesDownloadRequest{
+		File:   dtos.PersistentFileRequestNewFolderDtoExampleData(),
+		PostTo: "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+	}
+}
+
 type FilesDownloadResponse struct {
 	SizeInBytes int64  `json:"sizeInBytes"`
 	Error       string `json:"error,omitempty"`
@@ -224,14 +297,14 @@ type FilesDownloadResponse struct {
 type FilesUploadRequest struct {
 	File        dtos.PersistentFileRequestDto `json:"file"`
 	SizeInBytes int64                         `json:"sizeInBytes"`
-	Id			string						  `json:"id"`
+	Id          string                        `json:"id"`
 }
 
 func FilesUploadRequestExampleData() FilesUploadRequest {
 	return FilesUploadRequest{
 		File:        dtos.PersistentFileUploadDtoExampleData(),
 		SizeInBytes: 21217588,
-		Id: 		 "1234567890",
+		Id:          "1234567890",
 	}
 }
 
