@@ -240,7 +240,7 @@ func Chmod(r FilesChmodRequest, c *websocket.Conn) interface{} {
 	// base 0, and it'll automatically choose base 8 due to the leading 0
 	permissions, err := strconv.ParseUint(mod, 0, 32)
 	if err != nil {
-		return fmt.Errorf("failed to parse hex permissions: %w", err)
+		return fmt.Errorf("failed to parse oct permissions: %s %w", mod, err)
 	}
 
 	// Set the file permissions using the integer value
