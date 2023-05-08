@@ -77,6 +77,11 @@ func ZipExtract(source, destination string) ([]string, error) {
 		}
 	}()
 
+	err = os.MkdirAll(destination, 0755)
+	if err != nil {
+		return nil, err
+	}
+
 	var extractedFiles []string
 	for _, f := range r.File {
 		err := extractAndWriteFile(destination, f)
