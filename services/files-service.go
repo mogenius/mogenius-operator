@@ -54,15 +54,26 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 		result.Error = err.Error()
 		return result
 	}
-	result.SizeInBytes = info.Size()
+	
+	// Generate filename
+	filename := file.Name()
+	if info.IsDir() {
+		filename = file.Name() + ".zip" 
+	}
+	
+	// Create writer  and form-data header for zip and non-zip
+	buf := new(bytes.Buffer)
+	multiPartWriter := multipart.NewWriter(buf)
+	w, err := multiPartWriter.CreateFormFile("file", filename)
 
 	if info.IsDir() {
 		// SEND ZIPPED DIR TO HTTP
-		var buf bytes.Buffer
-		zipWriter := zip.NewWriter(&buf)
+		// var buf bytes.Buffer
+		zipWriter := zip.NewWriter(w)
 
 		// Add all files in a directory to the archive
 		err = filepath.Walk(pathToFile, func(filePath string, info os.FileInfo, err error) error {
+		// err = filepath.WalkDir(pathToFile, func(filePath string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
@@ -90,6 +101,7 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 			_, err = io.Copy(zipFile, srcFile)
 			return err
 		})
+
 		if err != nil {
 			logger.Log.Errorf("directory zip walk files error: %s", err.Error())
 			result.Error = err.Error()
@@ -106,49 +118,70 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 
 		result.SizeInBytes = int64(buf.Len())
 
-		// Upload the zip file
-		response, err := http.Post(r.PostTo, "application/zip", &buf)
-		if err != nil {
-			fmt.Printf("Error sending request: %s", err)
-			result.Error = err.Error()
-			return result
-		}
-		defer response.Body.Close()
+		// multiPartWriter.Close()
 
-		if response.StatusCode < 200 || response.StatusCode > 299 {
-			result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
-		}
+		// // Upload the zip file
+		// response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), buf)
+		// if err != nil {
+		// 	fmt.Printf("Error sending request: %s", err)
+		// 	result.Error = err.Error()
+		// 	return result
+		// }
+		// defer response.Body.Close()
+
+		// if response.StatusCode < 200 || response.StatusCode > 299 {
+		// 	result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
+		// }
+
 	} else {
 		// SEND FILE TO HTTP
-		var requestBody strings.Builder
-		multiPartWriter := multipart.NewWriter(&requestBody)
+		// var requestBody strings.Builder
+		// multiPartWriter := multipart.NewWriter(&requestBody)
 
-		fileWriter, err := multiPartWriter.CreateFormFile("file", file.Name())
+		// fileWriter, err := multiPartWriter.CreateFormFile("file", file.Name())
 		if err != nil {
 			fmt.Printf("Error creating form file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
 
-		_, err = io.Copy(fileWriter, file)
+		_, err = io.Copy(w, file)
 		if err != nil {
 			fmt.Printf("Error copying file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
-		multiPartWriter.Close()
 
-		response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), strings.NewReader(requestBody.String()))
-		if err != nil {
-			fmt.Printf("Error sending request: %s", err)
-			result.Error = err.Error()
-			return result
-		}
-		defer response.Body.Close()
+		result.SizeInBytes = info.Size()
 
-		if response.StatusCode < 200 || response.StatusCode > 299 {
-			result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
-		}
+		// multiPartWriter.Close()
+
+		// response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), buf)
+		// if err != nil {
+		// 	fmt.Printf("Error sending request: %s", err)
+		// 	result.Error = err.Error()
+		// 	return result
+		// }
+		// defer response.Body.Close()
+
+		// if response.StatusCode < 200 || response.StatusCode > 299 {
+		// 	result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
+		// }
+	}
+
+	multiPartWriter.Close()
+
+	// Upload the zip file
+	response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), buf)
+	if err != nil {
+		fmt.Printf("Error sending request: %s", err)
+		result.Error = err.Error()
+		return result
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode < 200 || response.StatusCode > 299 {
+		result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
 	}
 
 	return result
@@ -161,6 +194,13 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 		logger.Log.Error(err)
 	}
 	fmt.Printf("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, utils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
+
+	info, err := os.Stat(targetDestination)
+	if err != nil {
+		if !info.IsDir() {
+
+		}	
+	}
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
@@ -420,6 +460,8 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 			pathToFile = fmt.Sprintf("%s/%s", mountPath, data.Path)
 		}
 	}
+
+	
 
 	return pathToFile, nil
 }
