@@ -68,7 +68,6 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 
 	if info.IsDir() {
 		// SEND ZIPPED DIR TO HTTP
-		// var buf bytes.Buffer
 		zipWriter := zip.NewWriter(w)
 
 		// Add all files in a directory to the archive
@@ -134,7 +133,6 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 	result.SizeInBytes = int64(buf.Len())
 
 	multiPartWriter.Close()
-
 
 	// Upload the file
 	response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), buf)
