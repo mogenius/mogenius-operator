@@ -72,7 +72,6 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 
 		// Add all files in a directory to the archive
 		err = filepath.Walk(pathToFile, func(filePath string, info os.FileInfo, err error) error {
-		// err = filepath.WalkDir(pathToFile, func(filePath string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
