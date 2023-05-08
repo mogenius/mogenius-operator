@@ -115,30 +115,8 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 			result.Error = err.Error()
 			return result
 		}
-
-		result.SizeInBytes = int64(buf.Len())
-
-		// multiPartWriter.Close()
-
-		// // Upload the zip file
-		// response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), buf)
-		// if err != nil {
-		// 	fmt.Printf("Error sending request: %s", err)
-		// 	result.Error = err.Error()
-		// 	return result
-		// }
-		// defer response.Body.Close()
-
-		// if response.StatusCode < 200 || response.StatusCode > 299 {
-		// 	result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
-		// }
-
 	} else {
 		// SEND FILE TO HTTP
-		// var requestBody strings.Builder
-		// multiPartWriter := multipart.NewWriter(&requestBody)
-
-		// fileWriter, err := multiPartWriter.CreateFormFile("file", file.Name())
 		if err != nil {
 			fmt.Printf("Error creating form file: %s", err)
 			result.Error = err.Error()
@@ -151,27 +129,14 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 			result.Error = err.Error()
 			return result
 		}
-
-		result.SizeInBytes = info.Size()
-
-		// multiPartWriter.Close()
-
-		// response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), buf)
-		// if err != nil {
-		// 	fmt.Printf("Error sending request: %s", err)
-		// 	result.Error = err.Error()
-		// 	return result
-		// }
-		// defer response.Body.Close()
-
-		// if response.StatusCode < 200 || response.StatusCode > 299 {
-		// 	result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
-		// }
 	}
+
+	result.SizeInBytes = int64(buf.Len())
 
 	multiPartWriter.Close()
 
-	// Upload the zip file
+
+	// Upload the file
 	response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), buf)
 	if err != nil {
 		fmt.Printf("Error sending request: %s", err)
@@ -194,13 +159,6 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 		logger.Log.Error(err)
 	}
 	fmt.Printf("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, utils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
-
-	info, err := os.Stat(targetDestination)
-	if err != nil {
-		if !info.IsDir() {
-
-		}	
-	}
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
