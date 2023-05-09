@@ -2,7 +2,6 @@ package socketServer
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"io"
 	"log"
@@ -46,33 +45,6 @@ func Init(r *gin.Engine) {
 		clusterName := validateHeader(c)
 		if clusterName != "" {
 			wsHandler(c.Writer, c.Request, clusterName)
-		}
-	})
-	r.POST(utils.CONFIG.ApiServer.StreamPath, func(c *gin.Context) {
-		clusterName := validateHeader(c)
-		if clusterName != "" {
-			ctx := context.Background()
-			cancelCtx, _ := context.WithCancel(ctx)
-
-			reader := bufio.NewScanner(c.Request.Body)
-			for {
-				select {
-				case <-cancelCtx.Done():
-					fmt.Println("done")
-					return
-				default:
-					for reader.Scan() {
-						lastBytes := reader.Bytes()
-						fmt.Println(string(lastBytes))
-					}
-				}
-			}
-			// data, err := ioutil.ReadAll(c.Request.Body)
-			// if err != nil {
-			// 	fmt.Println(err.Error())
-			// }
-			fmt.Println(c.Request.Header)
-			// fmt.Println(string(data))
 		}
 	})
 }

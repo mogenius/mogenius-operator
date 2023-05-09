@@ -29,9 +29,6 @@ type Config struct {
 		Ws_Proto    string `yaml:"ws_proto" env:"api_ws_proto" env-description:"Server Path" env-default:"ws"`
 		Ws_Server   string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:7011"`
 		WS_Path     string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
-		Http_Proto  string `yaml:"http_proto" env:"api_http_proto" env-description:"Server Path" env-default:"http"`
-		Http_Server string `yaml:"http_server" env:"api_http_server" env-description:"Server host" env-default:"127.0.0.1:1337"`
-		StreamPath  string `yaml:"stream_path" env:"api_stream_path" env-description:"Server Path" env-default:"/stream-data"`
 	} `yaml:"api_server"`
 	EventServer struct {
 		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1"`
@@ -121,9 +118,6 @@ func PrintSettings() {
 	logger.Log.Infof("WsProto:                  %s", CONFIG.ApiServer.Ws_Proto)
 	logger.Log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
 	logger.Log.Infof("WsPath:                   %s", CONFIG.ApiServer.WS_Path)
-	logger.Log.Infof("HttpProto:                %s", CONFIG.ApiServer.Http_Proto)
-	logger.Log.Infof("HttoServer:               %s", CONFIG.ApiServer.Http_Server)
-	logger.Log.Infof("StreamPath:               %s", CONFIG.ApiServer.StreamPath)
 
 	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
 	logger.Log.Infof("EventPort:                %d", CONFIG.EventServer.Port)

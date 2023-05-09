@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -511,25 +510,32 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 }
 
 func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *websocket.Conn) ServiceLogStreamResult {
-	requestURL := url.URL{Scheme: utils.CONFIG.ApiServer.Http_Proto, Host: utils.CONFIG.ApiServer.Http_Server, Path: utils.CONFIG.ApiServer.StreamPath}
-	result := ServiceLogStreamResult{
-		Message: fmt.Sprintf("Initiated log-stream '%s' for '%s/%s'.", requestURL.String(), data.Namespace, data.PodId),
-	}
-
-	restReq, err := PodLogStream(data, c)
+	result := ServiceLogStreamResult{}
+	
+	url, err := url.Parse(data.PostTo)
 	if err != nil {
-		result.Message = err.Error()
-		logger.Log.Error(result.Message)
+		result.Error = err.Error()
+		result.Success = false
+		logger.Log.Error(result.Error)
 		return result
 	}
-
-	go streamData(restReq, requestURL.String())
-
+	
+	restReq, err := PodLogStream(data, c)
+	if err != nil {
+		result.Error = err.Error()
+		result.Success = false
+		logger.Log.Error(result.Error)
+		return result
+	}
+	
+	go streamData(restReq, url.String())
+	
+	result.Success = true
+	
 	return result
 }
 
 func streamData(restReq *rest.Request, toServerUrl string) {
-
 	ctx := context.Background()
 	cancelCtx, endGofunc := context.WithCancel(ctx)
 	stream, err := restReq.Stream(cancelCtx)
