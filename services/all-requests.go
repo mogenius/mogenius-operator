@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"io"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -535,6 +536,8 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *webso
 	return result
 }
 
+type Writer string
+
 func streamData(restReq *rest.Request, toServerUrl string) {
 	ctx := context.Background()
 	cancelCtx, endGofunc := context.WithCancel(ctx)
@@ -542,30 +545,96 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	if err != nil {
 		logger.Log.Error(err.Error())
 	}
-	defer func() {
-		if stream != nil {
-			stream.Close()
-		}
-		endGofunc()
-	}()
+
+	// defer func() {
+	// 	logger.Log.Info("debug: defer func")
+
+	// 	// if stream != nil {
+	// 	// 	stream.Close()
+	// 	// }
+	// 	// endGofunc()
+	// }()
+	
 	if err != nil {
 		logger.Log.Error(err.Error())
 	}
+
+	// buf := bufio.NewReader(stream)
 
 	req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
 	if err != nil {
 		logger.Log.Errorf("streamData client: could not create request: %s\n", err)
 	}
-	req.Header = utils.HttpHeader()
+
+	// req.Header = utils.HttpHeader()
+	header := utils.HttpHeader()
+	// header.Add("Content-Type", "text/plain")
+	req.Header = header
 
 	client := http.Client{
-		Timeout: 0 * time.Second, // no timeout
+		Timeout: time.Duration(0) * time.Second, // no timeout
 	}
 
-	_, err = client.Do(req)
+	var resp *http.Response
+
+	// ticker := time.NewTicker(1 * time.Second)
+	quit := make(chan struct{})
+	// go func() {
+	// 	for {
+	// 	select {
+	// 		case <- ticker.C:
+	// 			// 
+	// 		case <- quit:
+	// 			ticker.Stop()
+	// 			return
+	// 		}
+	// 	}
+	// }()
+
+	Timer := time.AfterFunc(30 * time.Second, func() { 
+		logger.Log.Info("async debug: func")
+		
+		if quit != nil {
+			close(quit)
+		}
+
+		if resp != nil {
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+		}
+
+		if req != nil {
+			req.Close = true
+		}
+
+		if stream != nil {
+			stream.Close()
+		}
+
+		endGofunc()
+	})
+	defer Timer.Stop()
+
+	logger.Log.Infof("stream data to: %s\n", toServerUrl)
+
+	resp, err = client.Do(req)
 	if err != nil {
 		logger.Log.Errorf("streamData client: error making http request: %s\n", err)
 	}
+
+	
+	//  defer func() {
+	// 	logger.Log.Info("defer debug: func")
+		
+	// 	if stream != nil {
+	// 		stream.Close()
+	// 	}
+	// 	endGofunc()
+
+	// 	io.Copy(io.Discard, resp.Body)
+
+	// 	resp.Body.Close()
+	// }()
 }
 
 // func ExecuteStreamRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, *rest.Request) {

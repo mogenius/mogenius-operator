@@ -259,12 +259,13 @@ type ServiceLogStreamRequest struct {
 	PostTo     	 string `json:"postTo"`
 }
 
-func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
+func 
+ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	return ServiceLogStreamRequest{
-		Namespace:    "gcp2-new-xrrllb-y0y3g6",
-		PodId:        "nginx-63uleb-686867bb6c-bsdvl",
+		Namespace:    "mogenius",
+		PodId:        "mogenius-ingress-nginx-defaultbackend-585b47559c-9w6j9",
 		SinceSeconds: -1,
-		PostTo: "http://localhost:8080/path/to/send/log?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+		PostTo: "http://127.0.0.1:1337/project-namespace-service/log-stream-callback?id=dff45a05-9c88-486a-8ab6-5cecabc2bfac",
 	}
 }
 
