@@ -3,8 +3,8 @@ package dtos
 type K8sNotificationDto struct {
 	Id          string  `json:"id"`
 	JobId       string  `json:"jobId"`
-	NamespaceId string  `json:"namespaceId"`
-	StageId     *string `json:"stageId,omitempty"`
+	ProjectId   string  `json:"projectId"`
+	NamespaceId *string `json:"namespaceId,omitempty"`
 	ServiceId   *string `json:"serviceId,omitempty"`
 	Title       string  `json:"title"`
 	Message     string  `json:"message"`

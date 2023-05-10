@@ -34,8 +34,8 @@ func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
 	return &dtos.K8sNotificationDto{
 		Id:          cmd.Id,
 		JobId:       cmd.JobId,
-		NamespaceId: cmd.NamespaceId,
-		StageId:     cmd.StageId,
+		ProjectId:   cmd.NamespaceId,
+		NamespaceId: cmd.StageId,
 		ServiceId:   cmd.ServiceId,
 		Title:       cmd.Title,
 		Message:     cmd.Message,

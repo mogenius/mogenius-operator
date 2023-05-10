@@ -35,8 +35,8 @@ func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
 	return &dtos.K8sNotificationDto{
 		Id:          job.Id,
 		JobId:       job.Id,
-		NamespaceId: job.NamespaceId,
-		StageId:     job.StageId,
+		ProjectId:   job.NamespaceId,
+		NamespaceId: job.StageId,
 		ServiceId:   job.ServiceId,
 		Title:       job.Title,
 		Message:     job.Message,
