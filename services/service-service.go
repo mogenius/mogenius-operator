@@ -253,18 +253,18 @@ func ServiceGetLogRequestExample() ServiceGetLogRequest {
 }
 
 type ServiceLogStreamRequest struct {
-	Id           string `json:"id"`
 	Namespace    string `json:"namespace"`
 	PodId        string `json:"podId"`
 	SinceSeconds int    `json:"sinceSeconds"`
+	PostTo     	 string `json:"postTo"`
 }
 
 func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	return ServiceLogStreamRequest{
-		Id:           "6BBE797E-D559-48B9-9810-1D25A7FF9167",
 		Namespace:    "gcp2-new-xrrllb-y0y3g6",
 		PodId:        "nginx-63uleb-686867bb6c-bsdvl",
 		SinceSeconds: -1,
+		PostTo: "http://localhost:8080/path/to/send/log?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
 	}
 }
 
@@ -549,8 +549,8 @@ func K8sDeletePersistentVolumeClaimRequestExample() K8sDeletePersistentVolumeCla
 }
 
 type ServiceLogStreamResult struct {
-	NamespaceId string `json:"namespaceId"`
-	Message     string `json:"message"`
+	Success     bool   `json:"success"`
+	Error       string `json:"error,omitempty"`
 }
 
 type ServiceResourceStatusRequest struct {

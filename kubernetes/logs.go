@@ -122,13 +122,18 @@ func GetLogError(namespace string, podId string) ServiceGetLogErrorResult {
 	return result
 }
 
-func StreamLog(namespace string, podId string, sindceSeconds int64) (*rest.Request, error) {
+func StreamLog(namespace string, podId string, sinceSeconds int64) (*rest.Request, error) {
 	kubeProvider := NewKubeProvider()
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
 
 	opts := v1.PodLogOptions{
 		Follow:    true,
 		TailLines: utils.Pointer[int64](2000),
+		Timestamps: true,
+	}
+
+	if sinceSeconds != -1 {
+		opts.SinceSeconds = &sinceSeconds
 	}
 
 	restReq := podClient.GetLogs(podId, &opts)
