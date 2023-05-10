@@ -263,9 +263,10 @@ func
 ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	return ServiceLogStreamRequest{
 		Namespace:    "mogenius",
-		PodId:        "mogenius-ingress-nginx-controller-57c74f8649-c4r6b",
+		PodId:        "mogenius-ingress-nginx-defaultbackend-585b47559c-9w6j9",
 		SinceSeconds: -1,
-		PostTo:       "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+		//PostTo:       "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+		PostTo:       "http://localhost:1337/project-namespace-service/log-stream-callback?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
 	}
 }
 

@@ -1,8 +1,9 @@
 package services
 
 import (
+	"bufio"
 	"context"
-	"io"
+	"fmt"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -536,8 +537,6 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *webso
 	return result
 }
 
-type Writer string
-
 func streamData(restReq *rest.Request, toServerUrl string) {
 	ctx := context.Background()
 	cancelCtx, endGofunc := context.WithCancel(ctx)
@@ -548,7 +547,6 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 
 	// defer func() {
 	// 	logger.Log.Info("debug: defer func")
-
 	// 	// if stream != nil {
 	// 	// 	stream.Close()
 	// 	// }
@@ -560,30 +558,58 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	}
 
 	// buf := bufio.NewReader(stream)
+	
+	go func() {
+		reader := bufio.NewScanner(stream)
+		for {
+			select {
+			case <-cancelCtx.Done():
+				fmt.Println("done")
+				return
+			default:
+				for reader.Scan() {
+					lastBytes := reader.Bytes()
+					fmt.Println(string(lastBytes))
+				}
+			}
+		}
+	}()
 
 	req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
 	if err != nil {
 		logger.Log.Errorf("streamData client: could not create request: %s\n", err)
 	}
 
+
+	var resp *http.Response
+
+	
+
+	// if f, ok := rw.(http.Flusher); ok {
+    //     f.Flush()
+    // }
+
+
 	// req.Header = utils.HttpHeader()
 	header := utils.HttpHeader()
-	// header.Add("Content-Type", "text/plain")
+
+	// header.Add("Cache-Control", "no-cache")
+	// header.Add("Connection", "keep-alive")
+	header.Add("Content-Type", "text/plain")
 	req.Header = header
 
 	client := http.Client{
 		Timeout: time.Duration(0) * time.Second, // no timeout
 	}
 
-	var resp *http.Response
-
-	// ticker := time.NewTicker(1 * time.Second)
-	quit := make(chan struct{})
+	// ticker := time.NewTicker(time.Duration(1) * time.Second)
+	// quit := make(chan struct{})
 	// go func() {
 	// 	for {
 	// 	select {
 	// 		case <- ticker.C:
 	// 			// 
+	// 			fmt.Println("HUHU")
 	// 		case <- quit:
 	// 			ticker.Stop()
 	// 			return
@@ -591,15 +617,14 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	// 	}
 	// }()
 
-	Timer := time.AfterFunc(30 * time.Second, func() { 
-		logger.Log.Info("async debug: func")
-		
-		if quit != nil {
-			close(quit)
-		}
+	var cleanup = func() {
+		// if quit != nil {
+		// 	close(quit)
+		// 	quit = nil
+		// }
 
 		if resp != nil {
-			io.Copy(io.Discard, resp.Body)
+			// io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()
 		}
 
@@ -612,8 +637,17 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		}
 
 		endGofunc()
+	}
+
+	time.AfterFunc(time.Duration(30) * time.Second, func() { 
+		logger.Log.Info("afterFunc async debug: func")
+		cleanup()
 	})
-	defer Timer.Stop()
+	
+	defer func() {
+		logger.Log.Info("defer async debug: func")
+		cleanup()
+	}()
 
 	logger.Log.Infof("stream data to: %s\n", toServerUrl)
 

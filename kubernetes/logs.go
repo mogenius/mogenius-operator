@@ -136,8 +136,8 @@ func StreamLog(namespace string, podId string, sinceSeconds int64) (*rest.Reques
 		// now := time.Unix(time.Now().Unix(), 0).Format(time.RFC3339)
 		// now := time.Now().Unix()
 		
-		now := int64(60)
-		opts.SinceSeconds = utils.Pointer(now)
+	now := int64(60)
+	opts.SinceSeconds = utils.Pointer(now)
 	// }
 
 	restReq := podClient.GetLogs(podId, &opts)
