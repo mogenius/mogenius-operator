@@ -84,7 +84,7 @@ func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
 
 func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
+	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id, c)
 	job.Start(c)
 	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Stage, r.Service, c, &wg))
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
@@ -256,16 +256,16 @@ type ServiceLogStreamRequest struct {
 	Namespace    string `json:"namespace"`
 	PodId        string `json:"podId"`
 	SinceSeconds int    `json:"sinceSeconds"`
-	PostTo     	 string `json:"postTo"`
+	PostTo       string `json:"postTo"`
 }
 
 func 
 ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	return ServiceLogStreamRequest{
 		Namespace:    "mogenius",
-		PodId:        "mogenius-ingress-nginx-defaultbackend-585b47559c-9w6j9",
+		PodId:        "mogenius-ingress-nginx-controller-57c74f8649-c4r6b",
 		SinceSeconds: -1,
-		PostTo: "http://127.0.0.1:1337/project-namespace-service/log-stream-callback?id=dff45a05-9c88-486a-8ab6-5cecabc2bfac",
+		PostTo:       "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
 	}
 }
 
@@ -550,8 +550,8 @@ func K8sDeletePersistentVolumeClaimRequestExample() K8sDeletePersistentVolumeCla
 }
 
 type ServiceLogStreamResult struct {
-	Success     bool   `json:"success"`
-	Error       string `json:"error,omitempty"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
 }
 
 type ServiceResourceStatusRequest struct {
@@ -571,16 +571,16 @@ func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
 }
 
 type ServiceRestartRequest struct {
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Stage     dtos.K8sStageDto     `json:"stage"`
-	Service   dtos.K8sServiceDto   `json:"service"`
+	NamespaceId string             `json:"namespaceId"`
+	Stage       dtos.K8sStageDto   `json:"stage"`
+	Service     dtos.K8sServiceDto `json:"service"`
 }
 
 func ServiceRestartRequestExample() ServiceRestartRequest {
 	return ServiceRestartRequest{
-		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Stage:     dtos.K8sStageDtoExampleData(),
-		Service:   dtos.K8sServiceDtoExampleData(),
+		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Stage:       dtos.K8sStageDtoExampleData(),
+		Service:     dtos.K8sServiceDtoExampleData(),
 	}
 }
 

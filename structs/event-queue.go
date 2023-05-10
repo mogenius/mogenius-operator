@@ -55,7 +55,7 @@ func connect(ctx context.Context) {
 	if err != nil {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
 	} else {
-		logger.Log.Infof("Connected to EventServer: %s \n", connection.RemoteAddr())
+		logger.Log.Infof("Connected to EventServer: %s \n", connectionUrl.String())
 		queueConnection = connection
 		observeConnection(queueConnection)
 	}
