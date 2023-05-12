@@ -187,6 +187,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, ex
 			}
 			logger.Log.Info("Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
 		} else {
+			clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
 			logger.Log.Info("Using existing mogenius secret.")
 		}
 	}
