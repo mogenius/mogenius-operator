@@ -164,20 +164,21 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, ex
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
 
 	if existingSecret == nil {
-		logger.Log.Info("Creating mogenius secret ...")
+		logger.Log.Info("Creating new mogenius secret ...")
 		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
 			logger.Log.Error(err)
 			return clusterSecret, err
 		}
-		logger.Log.Info("Created mogenius secret", result.GetObjectMeta().GetName(), ".")
+		logger.Log.Info("Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
 	} else {
 		if string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
 			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
 			logger.Log.Info("Updating existing mogenius secret ...")
 			// keep existing mfa-id if possible
 			if string(existingSecret.Data["cluster-mfa-id"]) != "" {
-				secret.StringData["cluster-mfa-id"] = string(existingSecret.Data["cluster-mfa-id"])
+				clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
+				secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 			}
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
