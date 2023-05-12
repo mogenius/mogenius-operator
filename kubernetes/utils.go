@@ -363,6 +363,12 @@ func MoCreateOptions() metav1.CreateOptions {
 	}
 }
 
+func MoUpdateOptions() metav1.UpdateOptions {
+	return metav1.UpdateOptions{
+		FieldManager: DEPLOYMENTNAME,
+	}
+}
+
 func MoUpdateLabels(labels *map[string]string, namespaceId *string, stage *dtos.K8sStageDto, service *dtos.K8sServiceDto) map[string]string {
 	resultingLabels := map[string]string{}
 

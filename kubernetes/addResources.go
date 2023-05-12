@@ -16,6 +16,7 @@ import (
 	applyconfapp "k8s.io/client-go/applyconfigurations/apps/v1"
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 	applyconfmeta "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 func Deploy() {
@@ -120,50 +121,8 @@ func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, err
 
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(NAMESPACE)
 
-	existingSecret, err := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
-	if existingSecret == nil || err != nil {
-		// CREATE NEW SECRET
-		apikey := os.Getenv("api_key")
-		if apikey == "" {
-			if runsInCluster {
-				logger.Log.Fatal("Environment Variable 'api_key' is missing.")
-			} else {
-				apikey = utils.CONFIG.Kubernetes.ApiKey
-			}
-		}
-		clusterName := os.Getenv("cluster_name")
-		if clusterName == "" {
-			if runsInCluster {
-				logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
-			} else {
-				clusterName = utils.CONFIG.Kubernetes.ClusterName
-			}
-		}
-
-		clusterSecret := utils.ClusterSecret{
-			ApiKey:       apikey,
-			ClusterMfaId: uuid.New().String(),
-			ClusterName:  clusterName,
-		}
-		secret := utils.InitSecret()
-		secret.ObjectMeta.Name = NAMESPACE
-		secret.ObjectMeta.Namespace = NAMESPACE
-		delete(secret.StringData, "PRIVATE_KEY") // delete example data
-		secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
-		secret.StringData["api-key"] = clusterSecret.ApiKey
-		secret.StringData["cluster-name"] = clusterSecret.ClusterName
-
-		logger.Log.Info("Creating mogenius secret ...")
-
-		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
-		if err != nil {
-			logger.Log.Error(err)
-			return clusterSecret, err
-		}
-		logger.Log.Info("Created mogenius secret", result.GetObjectMeta().GetName(), ".")
-
-		return clusterSecret, nil
-	}
+	existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+	writeMogeniusSecret(secretClient, runsInCluster, existingSecret)
 
 	logger.Log.Info("Using existing mogenius secret.")
 	return utils.ClusterSecret{
@@ -171,6 +130,71 @@ func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, err
 		ClusterMfaId: string(existingSecret.Data["cluster-mfa-id"]),
 		ClusterName:  string(existingSecret.Data["cluster-name"]),
 	}, nil
+}
+
+func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, existingSecret *core.Secret) (utils.ClusterSecret, error) {
+	// CREATE NEW SECRET
+	apikey := os.Getenv("api_key")
+	if apikey == "" {
+		if runsInCluster {
+			logger.Log.Fatal("Environment Variable 'api_key' is missing.")
+		} else {
+			apikey = utils.CONFIG.Kubernetes.ApiKey
+		}
+	}
+	clusterName := os.Getenv("cluster_name")
+	if clusterName == "" {
+		if runsInCluster {
+			logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
+		} else {
+			clusterName = utils.CONFIG.Kubernetes.ClusterName
+		}
+	}
+
+	clusterSecret := utils.ClusterSecret{
+		ApiKey:       apikey,
+		ClusterMfaId: uuid.New().String(),
+		ClusterName:  clusterName,
+	}
+
+	// This prevents lokal k8s-manager installations from overwriting cluster secrets
+	if !runsInCluster {
+		return clusterSecret, nil
+	}
+
+	secret := utils.InitSecret()
+	secret.ObjectMeta.Name = NAMESPACE
+	secret.ObjectMeta.Namespace = NAMESPACE
+	delete(secret.StringData, "PRIVATE_KEY") // delete example data
+	secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
+	secret.StringData["api-key"] = clusterSecret.ApiKey
+	secret.StringData["cluster-name"] = clusterSecret.ClusterName
+
+	if existingSecret == nil {
+		logger.Log.Info("Creating mogenius secret ...")
+		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+		if err != nil {
+			logger.Log.Error(err)
+			return clusterSecret, err
+		}
+		logger.Log.Info("Created mogenius secret", result.GetObjectMeta().GetName(), ".")
+	} else {
+		if string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
+			string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
+			string(existingSecret.Data["cluster-name"]) != clusterName {
+			logger.Log.Info("Updating mogenius secret ...")
+			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+			if err != nil {
+				logger.Log.Error(err)
+				return clusterSecret, err
+			}
+			logger.Log.Info("Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
+		} else {
+			logger.Log.Info("Using existing mogenius secret.")
+		}
+	}
+
+	return clusterSecret, nil
 }
 
 func addDeployment(kubeProvider *KubeProvider) {
