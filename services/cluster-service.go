@@ -137,7 +137,8 @@ func StatsMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) NfsVolumeStat
 	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "/")
 	usage, err := disk.Usage(mountPath)
 	if err != nil {
-		logger.Log.Errorf("StatsMogeniusNfsVolume Err: %s", err.Error())
+		logger.Log.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
+		return result
 	} else {
 		result.FreeBytes = usage.Free
 		result.UsedBytes = usage.Used

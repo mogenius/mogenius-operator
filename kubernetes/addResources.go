@@ -122,14 +122,7 @@ func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, err
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(NAMESPACE)
 
 	existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
-	writeMogeniusSecret(secretClient, runsInCluster, existingSecret)
-
-	logger.Log.Info("Using existing mogenius secret.")
-	return utils.ClusterSecret{
-		ApiKey:       string(existingSecret.Data["api-key"]),
-		ClusterMfaId: string(existingSecret.Data["cluster-mfa-id"]),
-		ClusterName:  string(existingSecret.Data["cluster-name"]),
-	}, nil
+	return writeMogeniusSecret(secretClient, runsInCluster, existingSecret)
 }
 
 func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, existingSecret *core.Secret) (utils.ClusterSecret, error) {
@@ -171,18 +164,22 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, ex
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
 
 	if existingSecret == nil {
-		logger.Log.Info("Creating mogenius secret ...")
+		logger.Log.Info("Creating new mogenius secret ...")
 		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
 			logger.Log.Error(err)
 			return clusterSecret, err
 		}
-		logger.Log.Info("Created mogenius secret", result.GetObjectMeta().GetName(), ".")
+		logger.Log.Info("Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
 	} else {
 		if string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
-			string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
-			string(existingSecret.Data["cluster-name"]) != clusterName {
-			logger.Log.Info("Updating mogenius secret ...")
+			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
+			logger.Log.Info("Updating existing mogenius secret ...")
+			// keep existing mfa-id if possible
+			if string(existingSecret.Data["cluster-mfa-id"]) != "" {
+				clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
+				secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
+			}
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
 				logger.Log.Error(err)
