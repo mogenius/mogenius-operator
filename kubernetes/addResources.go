@@ -173,9 +173,12 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, ex
 		logger.Log.Info("Created mogenius secret", result.GetObjectMeta().GetName(), ".")
 	} else {
 		if string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
-			string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
 			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
-			logger.Log.Info("Updating mogenius secret ...")
+			logger.Log.Info("Updating existing mogenius secret ...")
+			// keep existing mfa-id if possible
+			if string(existingSecret.Data["cluster-mfa-id"]) != "" {
+				secret.StringData["cluster-mfa-id"] = string(existingSecret.Data["cluster-mfa-id"])
+			}
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
 				logger.Log.Error(err)
