@@ -545,20 +545,10 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		logger.Log.Error(err.Error())
 	}
 
-	// defer func() {
-	// 	logger.Log.Info("debug: defer func")
-	// 	// if stream != nil {
-	// 	// 	stream.Close()
-	// 	// }
-	// 	// endGofunc()
-	// }()
-	
 	if err != nil {
 		logger.Log.Error(err.Error())
 	}
 
-	// buf := bufio.NewReader(stream)
-	
 	go func() {
 		reader := bufio.NewScanner(stream)
 		for {
@@ -580,21 +570,9 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		logger.Log.Errorf("streamData client: could not create request: %s\n", err)
 	}
 
-
 	var resp *http.Response
 
-	
-
-	// if f, ok := rw.(http.Flusher); ok {
-    //     f.Flush()
-    // }
-
-
-	// req.Header = utils.HttpHeader()
 	header := utils.HttpHeader()
-
-	// header.Add("Cache-Control", "no-cache")
-	// header.Add("Connection", "keep-alive")
 	header.Add("Content-Type", "text/plain")
 	req.Header = header
 
@@ -602,29 +580,8 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		Timeout: time.Duration(0) * time.Second, // no timeout
 	}
 
-	// ticker := time.NewTicker(time.Duration(1) * time.Second)
-	// quit := make(chan struct{})
-	// go func() {
-	// 	for {
-	// 	select {
-	// 		case <- ticker.C:
-	// 			// 
-	// 			fmt.Println("HUHU")
-	// 		case <- quit:
-	// 			ticker.Stop()
-	// 			return
-	// 		}
-	// 	}
-	// }()
-
 	var cleanup = func() {
-		// if quit != nil {
-		// 	close(quit)
-		// 	quit = nil
-		// }
-
 		if resp != nil {
-			// io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()
 		}
 
@@ -639,11 +596,6 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		endGofunc()
 	}
 
-	time.AfterFunc(time.Duration(30) * time.Second, func() { 
-		logger.Log.Info("afterFunc async debug: func")
-		cleanup()
-	})
-	
 	defer func() {
 		logger.Log.Info("defer async debug: func")
 		cleanup()
@@ -655,38 +607,7 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	if err != nil {
 		logger.Log.Errorf("streamData client: error making http request: %s\n", err)
 	}
-
-	
-	//  defer func() {
-	// 	logger.Log.Info("defer debug: func")
-		
-	// 	if stream != nil {
-	// 		stream.Close()
-	// 	}
-	// 	endGofunc()
-
-	// 	io.Copy(io.Discard, resp.Body)
-
-	// 	resp.Body.Close()
-	// }()
 }
-
-// func ExecuteStreamRequest(datagram structs.Datagram, c *websocket.Conn) (interface{}, *rest.Request) {
-// 	switch datagram.Pattern {
-// 	case "service/log-stream":
-// 		data := ServiceLogStreamRequest{}
-// 		marshalUnmarshal(&datagram, &data)
-// 		restReq, err := PodLogStream(data, c)
-// 		if err != nil {
-// 			datagram.Err = err.Error()
-// 			return datagram, nil
-// 		}
-// 		return data, restReq
-// 	}
-
-// 	datagram.Err = "Pattern not found"
-// 	return datagram, nil
-// }
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram, c *websocket.Conn) *FilesUploadRequest {
 	data := FilesUploadRequest{}
