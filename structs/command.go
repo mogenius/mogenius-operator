@@ -105,6 +105,25 @@ func ExecuteBashCommandSilent(title string, shellCmd string) {
 	}
 }
 
+func ExecuteBashCommandWithResponse(title string, shellCmd string) string {
+	returnStr, err := exec.Command("bash", "-c", shellCmd).Output()
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		exitCode := exitErr.ExitCode()
+		errorMsg := string(exitErr.Stderr)
+		logger.Log.Error(shellCmd)
+		logger.Log.Errorf("%d: %s", exitCode, errorMsg)
+		return errorMsg
+	} else if err != nil {
+		logger.Log.Errorf("ERROR: '%s': %s\n", title, err.Error())
+		return err.Error()
+	} else {
+		if utils.CONFIG.Misc.Debug {
+			logger.Log.Infof("SUCCESS '%s': %s\n", title, shellCmd)
+		}
+	}
+	return string(returnStr)
+}
+
 func (cmd *Command) Start(msg string, c *websocket.Conn) {
 	cmd.State = "STARTED"
 	cmd.Message = msg

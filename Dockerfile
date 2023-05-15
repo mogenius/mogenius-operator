@@ -56,6 +56,7 @@ RUN npm install -g @angular/cli
 RUN npm install -g @nestjs/cli
 RUN npm install -g gatsby-cli
 RUN npm install -g create-next-app next react react-dom
+RUN go install github.com/derailed/popeye@latest
 
 # Install HELM
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
