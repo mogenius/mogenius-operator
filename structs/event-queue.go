@@ -32,16 +32,6 @@ var queueConnection *websocket.Conn
 
 var dataQueue []EventData = []EventData{}
 
-func init() {
-	ticker := time.NewTicker(1 * time.Second)
-
-	go func() {
-		for range ticker.C {
-			processQueueNow()
-		}
-	}()
-}
-
 func ConnectToEventQueue() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -57,6 +47,15 @@ func ConnectToEventQueue() {
 
 		connectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			defer ticker.Stop()
+
+			go func() {
+				for range ticker.C {
+					processQueueNow()
+				}
+			}()
+
 			ctx := context.Background()
 			connect(ctx)
 			ctx.Done()
@@ -127,9 +126,10 @@ func processQueueNow() {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 
-	for i := 0; i < len(dataQueue); i++ {
-		element := dataQueue[i]
-		if queueConnection != nil {
+	if queueConnection != nil {
+		for i := 0; i < len(dataQueue); i++ {
+			element := dataQueue[i]
+
 			err := queueConnection.WriteJSON(element.Datagram)
 			if err == nil {
 				if element.K8sKind != "" && element.K8sReason != "" && element.K8sMessage != "" {
@@ -142,10 +142,10 @@ func processQueueNow() {
 				logger.Log.Error(err)
 				return
 			}
-		} else {
-			if utils.CONFIG.Misc.Debug {
-				logger.Log.Error("queueConnection is nil.")
-			}
+		}
+	} else {
+		if utils.CONFIG.Misc.Debug {
+			logger.Log.Error("queueConnection is nil.")
 		}
 	}
 }

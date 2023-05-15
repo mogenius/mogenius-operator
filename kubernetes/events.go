@@ -28,6 +28,12 @@ var eventsFirstStart = true
 func WatchEvents() {
 	kubeProvider := NewKubeProvider()
 
+	// INIT EXISTING VOLUMES
+	err := UpdateK8sManagerVolumeMounts("", "")
+	if err != nil {
+		logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
+	}
+
 	for {
 		// Create a watcher for all Kubernetes events
 		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
@@ -77,6 +83,11 @@ func WatchEvents() {
 }
 
 func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace string) error {
+	// EXIT if started locally
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		return nil
+	}
+
 	allMountedPaths := []string{}
 
 	time.Sleep(2 * time.Second)
