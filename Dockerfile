@@ -15,7 +15,7 @@ RUN apk add --no-cache \
     clang \
     llvm \
     libbpf-dev \
-    linux-headers 
+    linux-headers
 
 ARG COMMIT_HASH=NOT_SET
 ARG GIT_BRANCH=NOT_SET
@@ -56,13 +56,18 @@ RUN npm install -g @angular/cli
 RUN npm install -g @nestjs/cli
 RUN npm install -g gatsby-cli
 RUN npm install -g create-next-app next react react-dom
-RUN go install github.com/derailed/popeye@latest
 
 # Install HELM
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
 RUN chmod 700 get_helm.sh
 RUN ./get_helm.sh
 RUN rm get_helm.sh
+
+# Install Popeye
+RUN curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_x86_64.tar.gz
+RUN tar -xvf popeye.tar.gz popeye
+RUN chmod +x popeye
+RUN mv popeye /usr/local/bin/popeye
 
 WORKDIR /app
 
