@@ -59,18 +59,6 @@ func WatchEvents() {
 								logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
 							}
 						}
-						// if kind == "PersistentVolumeClaim" {
-						// 	if reason == "ProvisioningSucceeded" && strings.HasPrefix(message, "Successfully provisioned volume pvc-") {
-						// 		// 1. get pvc
-						// 		// 2. check if storageclass is "openebs-rwx"
-
-						// 	} else if reason == "ProvisioningSucceeded" && strings.HasPrefix(message, "Successfully provisioned volume pvc-") {
-
-						// 	}
-						// 	fmt.Println(eventObj)
-						// }
-						//fmt.Println(eventObj)
-
 						structs.EventServerSendData(datagram, kind, reason, message, count)
 					}
 				} else if event.Type == "ERROR" {

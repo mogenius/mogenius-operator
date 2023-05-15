@@ -130,10 +130,10 @@ func processQueueNow() {
 	for i := 0; i < len(dataQueue); i++ {
 		element := dataQueue[i]
 		if queueConnection != nil {
-			err := queueConnection.WriteJSON(element)
+			err := queueConnection.WriteJSON(element.Datagram)
 			if err == nil {
 				if element.K8sKind != "" && element.K8sReason != "" && element.K8sMessage != "" {
-					if utils.CONFIG.Misc.Debug && utils.CONFIG.Misc.LogKubernetesEvents {
+					if utils.CONFIG.Misc.LogKubernetesEvents || utils.CONFIG.Misc.Debug {
 						element.Datagram.DisplaySentSummaryEvent(element.K8sKind, element.K8sReason, element.K8sMessage, element.Count)
 					}
 				}
@@ -143,7 +143,9 @@ func processQueueNow() {
 				return
 			}
 		} else {
-			logger.Log.Error("queueConnection is nil.")
+			if utils.CONFIG.Misc.Debug {
+				logger.Log.Error("queueConnection is nil.")
+			}
 		}
 	}
 }
