@@ -169,7 +169,7 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, freshlyCreated bool, deploymentclient v1depl.DeploymentInterface) v1.Deployment {
 	previousDeployment, err := deploymentclient.Get(context.TODO(), service.Name, metav1.GetOptions{})
 	if err != nil {
-		logger.Log.Infof("No previous deployment found for %s/%s.", stage.Name, service.Name)
+		//logger.Log.Infof("No previous deployment found for %s/%s.", stage.Name, service.Name)
 		previousDeployment = nil
 	}
 
