@@ -15,6 +15,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type EventData struct {
+	Datagram   Datagram
+	K8sKind    string
+	K8sReason  string
+	K8sMessage string
+	Count      int32
+}
+
 const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
 
@@ -22,7 +30,17 @@ var eventSendMutex sync.Mutex
 
 var queueConnection *websocket.Conn
 
-var dataQueue []Datagram = []Datagram{}
+var dataQueue []EventData = []EventData{}
+
+func init() {
+	ticker := time.NewTicker(1 * time.Second)
+
+	go func() {
+		for range ticker.C {
+			processQueueNow()
+		}
+	}()
+}
 
 func ConnectToEventQueue() {
 	interrupt := make(chan os.Signal, 1)
@@ -94,16 +112,29 @@ func observeConnection(connection *websocket.Conn) {
 func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32) {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
-	dataQueue = append(dataQueue, datagram)
+
+	data := EventData{
+		Datagram:   datagram,
+		K8sKind:    k8sKind,
+		K8sReason:  k8sReason,
+		K8sMessage: k8sMessage,
+		Count:      count,
+	}
+	dataQueue = append(dataQueue, data)
+}
+
+func processQueueNow() {
+	eventSendMutex.Lock()
+	defer eventSendMutex.Unlock()
 
 	for i := 0; i < len(dataQueue); i++ {
 		element := dataQueue[i]
 		if queueConnection != nil {
 			err := queueConnection.WriteJSON(element)
 			if err == nil {
-				if k8sKind != "" && k8sReason != "" && k8sMessage != "" {
+				if element.K8sKind != "" && element.K8sReason != "" && element.K8sMessage != "" {
 					if utils.CONFIG.Misc.Debug && utils.CONFIG.Misc.LogKubernetesEvents {
-						datagram.DisplaySentSummaryEvent(k8sKind, k8sReason, k8sMessage, count)
+						element.Datagram.DisplaySentSummaryEvent(element.K8sKind, element.K8sReason, element.K8sMessage, element.Count)
 					}
 				}
 				dataQueue = RemoveIndex(dataQueue, i)
@@ -115,16 +146,9 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 			logger.Log.Error("queueConnection is nil.")
 		}
 	}
-
-	// check if everything worked out
-	if len(dataQueue) > 0 {
-		logger.Log.Warningf("queueConnection still has %d entries. Retrying after 1 sec ...\n", len(dataQueue))
-		time.Sleep(1000 * time.Millisecond)
-		EventServerSendData(datagram, k8sKind, k8sReason, k8sMessage, count) // DANGER: RECURSION
-	}
 }
 
-func RemoveIndex(s []Datagram, index int) []Datagram {
+func RemoveIndex(s []EventData, index int) []EventData {
 	if len(s) > index {
 		return append(s[:index], s[index+1:]...)
 	}
