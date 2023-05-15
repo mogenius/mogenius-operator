@@ -111,7 +111,16 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 				logger.Log.Error(err)
 				return
 			}
+		} else {
+			logger.Log.Error("queueConnection is nil.")
 		}
+	}
+
+	// check if everything worked out
+	if len(dataQueue) > 0 {
+		logger.Log.Warningf("queueConnection still has %d entries. Retrying after 1 sec ...\n", len(dataQueue))
+		time.Sleep(1000 * time.Millisecond)
+		EventServerSendData(datagram, k8sKind, k8sReason, k8sMessage, count) // DANGER: RECURSION
 	}
 }
 
