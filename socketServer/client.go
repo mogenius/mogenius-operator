@@ -32,7 +32,7 @@ import (
 const PingSeconds = 10
 
 var connectionCounter int = 0
-var maxGoroutines = 0
+var maxGoroutines = 1
 var connectionGuard chan struct{}
 
 func StartK8sManager(runsInCluster bool) {
@@ -51,7 +51,6 @@ func StartK8sManager(runsInCluster bool) {
 	updateCheck()
 	versionTicker()
 
-	maxGoroutines = utils.CONFIG.Misc.ConcurrentConnections
 	connectionGuard = make(chan struct{}, maxGoroutines)
 
 	for {
