@@ -176,17 +176,13 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, addit
 
 	// 2. Remove all entries for this service
 	for cmKey, cmValue := range tcpConfigmap.Data {
-		logger.Log.Infof("TCP %s - %s", cmKey, cmValue) // XXX REMOVE
 		if strings.HasPrefix(cmValue, k8sName) {
-			logger.Log.Infof("TCP DELETE %s - %s", cmKey, cmValue) // XXX REMOVE
 			delete(tcpConfigmap.Data, cmKey)
 		}
 	}
 	for cmKey, cmValue := range udpConfigmap.Data {
-		logger.Log.Infof("UDP %s - %s", cmKey, cmValue) // XXX REMOVE
 		if strings.HasPrefix(cmValue, k8sName) {
-			logger.Log.Infof("UDP DELETE %s - %s", cmKey, cmValue) // XXX REMOVE
-			delete(tcpConfigmap.Data, cmKey)
+			delete(udpConfigmap.Data, cmKey)
 		}
 	}
 	for index, port := range ingControllerService.Spec.Ports {
