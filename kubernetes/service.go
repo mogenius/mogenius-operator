@@ -357,25 +357,27 @@ func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Serv
 	newService := utils.InitService()
 	newService.ObjectMeta.Name = service.Name
 	newService.ObjectMeta.Namespace = stage.Name
-	newService.Spec.Ports = []v1.ServicePort{} // reset before using
-	for _, port := range service.Ports {
-		if port.PortType == "HTTPS" {
-			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-				Port: int32(port.InternalPort),
-				Name: fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
-			})
-		} else {
-			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-				Port:     int32(port.InternalPort),
-				Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
-				Protocol: v1.Protocol(port.PortType),
-			})
-			if port.ExternalPort != 0 {
+	if len(service.Ports) > 0 {
+		newService.Spec.Ports = []v1.ServicePort{} // reset before using
+		for _, port := range service.Ports {
+			if port.PortType == "HTTPS" {
 				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-					Port:     int32(port.ExternalPort),
-					Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.Name),
+					Port: int32(port.InternalPort),
+					Name: fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
+				})
+			} else {
+				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
+					Port:     int32(port.InternalPort),
+					Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
 					Protocol: v1.Protocol(port.PortType),
 				})
+				if port.ExternalPort != 0 {
+					newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
+						Port:     int32(port.ExternalPort),
+						Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.Name),
+						Protocol: v1.Protocol(port.PortType),
+					})
+				}
 			}
 		}
 	}
