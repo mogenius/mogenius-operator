@@ -133,10 +133,6 @@ func StreamLog(namespace string, podId string, sinceSeconds int64) (*rest.Reques
 	}
 
 	if sinceSeconds != -1 {
-		// now := time.Unix(time.Now().Unix(), 0).Format(time.RFC3339)
-		// now := time.Now().Unix()
-		
-		// now := int64(60)
 		opts.SinceSeconds = utils.Pointer(sinceSeconds)
 	}
 
