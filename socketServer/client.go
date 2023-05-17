@@ -35,6 +35,8 @@ var connectionCounter int = 0
 var maxGoroutines = 1
 var connectionGuard chan struct{}
 
+var CURRENT_CONNECTION *websocket.Conn
+
 func StartK8sManager(runsInCluster bool) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -74,6 +76,7 @@ func startClient() {
 	connectionUrl := url.URL{Scheme: utils.CONFIG.ApiServer.Ws_Proto, Host: utils.CONFIG.ApiServer.Ws_Server, Path: utils.CONFIG.ApiServer.WS_Path}
 
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
+	CURRENT_CONNECTION = connection
 	if err != nil {
 		logger.Log.Errorf("Connection (available: %d/%d) %s ... %s -> %s\n", connectionCounter, maxGoroutines, color.BlueString(connectionUrl.String()), color.RedString("FAIL 💥"), color.HiRedString(err.Error()))
 		return
@@ -83,6 +86,7 @@ func startClient() {
 	}
 	defer func() {
 		connection.Close()
+		CURRENT_CONNECTION = nil
 		if connectionCounter > 0 {
 			connectionCounter--
 		}

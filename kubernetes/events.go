@@ -6,6 +6,7 @@ import (
 	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/socketServer"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"reflect"
@@ -24,6 +25,8 @@ const CONCURRENTCONNECTIONS = 1
 var lastResourceVersion = ""
 var lastMountedPaths = []string{}
 var eventsFirstStart = true
+
+var waitList = []structs.WaitListEntry{}
 
 func WatchEvents() {
 	kubeProvider := NewKubeProvider()
@@ -65,6 +68,7 @@ func WatchEvents() {
 								logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
 							}
 						}
+						processWaitList(eventObj)
 						structs.EventServerSendData(datagram, kind, reason, message, count)
 					}
 				} else if event.Type == "ERROR" {
@@ -82,10 +86,34 @@ func WatchEvents() {
 	}
 }
 
+func AppendToWaitList(entry structs.WaitListEntry) {
+	waitList = append(waitList, entry)
+}
+
+func processWaitList(event *v1Core.Event) {
+	if event != nil {
+		message := event.Message
+		kind := event.InvolvedObject.Kind
+		reason := event.Reason
+
+		for index, waitListEntry := range waitList {
+			if waitListEntry.IsExpired() {
+				waitListEntry.Job.AddCmd(structs.CreateCommand("Operation timed out.", &waitListEntry.Job, socketServer.CURRENT_CONNECTION))
+				waitListEntry.Job.Finish(socketServer.CURRENT_CONNECTION)
+				utils.Remove(waitList, index)
+			}
+			if waitListEntry.WaitForKind == kind && waitListEntry.WaitForReason == reason && waitListEntry.WaitForMessage == message {
+				waitListEntry.Job.Finish(socketServer.CURRENT_CONNECTION)
+				utils.Remove(waitList, index)
+			}
+		}
+	}
+}
+
 func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace string) error {
 	// EXIT if started locally
 	if !utils.CONFIG.Kubernetes.RunInCluster {
-		return nil
+		// return nil
 	}
 
 	allMountedPaths := []string{}
