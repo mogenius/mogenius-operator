@@ -133,7 +133,7 @@ func StreamLog(namespace string, podId string, sinceSeconds int64) (*rest.Reques
 	}
 
 	if sinceSeconds != -1 {
-		opts.SinceSeconds = utils.Pointer(sinceSeconds)
+		opts.SinceSeconds = &sinceSeconds
 	}
 
 	restReq := podClient.GetLogs(podId, &opts)
