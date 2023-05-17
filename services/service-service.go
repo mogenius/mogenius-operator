@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
@@ -17,123 +16,123 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func CreateService(r ServiceCreateRequest, c *websocket.Conn) interface{} {
+func CreateService(r ServiceCreateRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
+	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id)
+	job.Start()
+	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
 	if r.Service.App.Type == "DOCKER_TEMPLATE" {
-		initDocker(r.Service, job, c)
+		initDocker(r.Service, job)
 	}
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func DeleteService(r ServiceDeleteRequest, c *websocket.Conn) interface{} {
+func DeleteService(r ServiceDeleteRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.DeleteNetworkPolicyService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
+	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id)
+	job.Start()
+	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.DeleteNetworkPolicyService(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func SetImage(r ServiceSetImageRequest, c *websocket.Conn) interface{} {
+func SetImage(r ServiceSetImageRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.SetImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, c, &wg))
+	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId)
+	job.Start()
+	job.AddCmd(mokubernetes.SetImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func ServicePodIds(r ServiceGetPodIdsRequest, c *websocket.Conn) interface{} {
+func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
 	return mokubernetes.PodIdsFor(r.Namespace, &r.ServiceId)
 }
 
-func ServicePodExists(r ServicePodExistsRequest, c *websocket.Conn) interface{} {
+func ServicePodExists(r ServicePodExistsRequest) interface{} {
 	return mokubernetes.PodExists(r.K8sNamespace, r.K8sPod)
 }
 
-func PodLog(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
+func PodLog(r ServiceGetLogRequest) interface{} {
 	return mokubernetes.GetLog(r.Namespace, r.PodId, r.Timestamp)
 }
 
-func PodLogError(r ServiceGetLogRequest, c *websocket.Conn) interface{} {
+func PodLogError(r ServiceGetLogRequest) interface{} {
 	return mokubernetes.GetLogError(r.Namespace, r.PodId)
 }
 
-func PodLogStream(r ServiceLogStreamRequest, c *websocket.Conn) (*rest.Request, error) {
+func PodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
 	return mokubernetes.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
 }
 
-func PodStatus(r ServiceResourceStatusRequest, c *websocket.Conn) interface{} {
+func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	return mokubernetes.PodStatus(r.Resource, r.Namespace, r.Name, r.StatusOnly)
 }
 
-func Restart(r ServiceRestartRequest, c *websocket.Conn) interface{} {
+func Restart(r ServiceRestartRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
+	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id)
+	job.Start()
+	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func StopService(r ServiceStopRequest, c *websocket.Conn) interface{} {
+func StopService(r ServiceStopRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
+	job := structs.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id)
+	job.Start()
+	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func StartService(r ServiceStartRequest, c *websocket.Conn) interface{} {
+func StartService(r ServiceStartRequest) interface{} {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Start Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.StartDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
+	job := structs.CreateJob("Start Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id)
+	job.Start()
+	job.AddCmd(mokubernetes.StartDeployment(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
+func UpdateService(r ServiceUpdateRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
+	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id)
+	job.Start()
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func TcpUdpClusterConfiguration(c *websocket.Conn) dtos.TcpUdpClusterConfigurationDto {
+func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 	return dtos.TcpUdpClusterConfigurationDto{
 		IngressServices: mokubernetes.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller"),
 		TcpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp"),
@@ -141,7 +140,7 @@ func TcpUdpClusterConfiguration(c *websocket.Conn) dtos.TcpUdpClusterConfigurati
 	}
 }
 
-func initDocker(service dtos.K8sServiceDto, job structs.Job, c *websocket.Conn) []*structs.Command {
+func initDocker(service dtos.K8sServiceDto, job structs.Job) []*structs.Command {
 	tempDir := "/temp"
 	gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
 
@@ -259,8 +258,7 @@ type ServiceLogStreamRequest struct {
 	PostTo       string `json:"postTo"`
 }
 
-func 
-ServiceLogStreamRequestExample() ServiceLogStreamRequest {
+func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	return ServiceLogStreamRequest{
 		Namespace:    "mogenius",
 		PodId:        "mogenius-ingress-nginx-defaultbackend-585b47559c-9w6j9",

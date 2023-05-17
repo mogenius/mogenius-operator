@@ -240,8 +240,6 @@ func listClusters() []string {
 }
 
 func requestCmdFromCluster(pattern string) {
-	var blockConnection = false
-
 	if len(connections) > 0 {
 		var payload interface{} = nil
 		switch pattern {
@@ -320,7 +318,6 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ServiceGetLogRequestExample()
 		case "service/log-stream":
 			payload = services.ServiceLogStreamRequestExample()
-			blockConnection = false
 		case "service/resource-status":
 			payload = services.ServiceResourceStatusRequestExample()
 		case "service/restart":
@@ -438,9 +435,10 @@ func requestCmdFromCluster(pattern string) {
 			payload = nil
 		}
 
-		firstConnection := selectRandomCluster(blockConnection)
-		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
-		datagram.Send()
+		firstConnection := selectRandomCluster(false)
+		datagram := structs.CreateDatagramFrom(pattern, payload)
+		firstConnection.Connection.WriteJSON(datagram)
+
 		// send file after pattern
 		if pattern == "files/upload" {
 			sendFile()

@@ -8,16 +8,15 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func UpgradeMyself(job *structs.Job, command string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Upgrade mogenius platform ...", job, c)
+func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Upgrade mogenius platform ...", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start("Upgrade mogenius platform ...", c)
+		cmd.Start("Upgrade mogenius platform ...")
 
 		kubeProvider := NewKubeProvider()
 		jobClient := kubeProvider.ClientSet.BatchV1().Jobs(NAMESPACE)
@@ -37,14 +36,14 @@ func UpgradeMyself(job *structs.Job, command string, c *websocket.Conn, wg *sync
 			// CREATE
 			_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()), c)
+				cmd.Fail(fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
 				return
 			}
 		} else {
 			// UPDATE
 			_, err = configmapClient.Update(context.TODO(), &configmap, metav1.UpdateOptions{})
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()), c)
+				cmd.Fail(fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()))
 				return
 			}
 		}
@@ -55,18 +54,18 @@ func UpgradeMyself(job *structs.Job, command string, c *websocket.Conn, wg *sync
 			// CREATE
 			_, err = jobClient.Create(context.TODO(), &job, MoCreateOptions())
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()), c)
+				cmd.Fail(fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()))
 				return
 			}
 		} else {
 			// UPDATE
 			_, err = jobClient.Update(context.TODO(), &job, metav1.UpdateOptions{})
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpgradeMyself (update_job) ERROR: %s", err.Error()), c)
+				cmd.Fail(fmt.Sprintf("UpgradeMyself (update_job) ERROR: %s", err.Error()))
 				return
 			}
 		}
-		cmd.Success("Upgraded platform successfully.", c)
+		cmd.Success("Upgraded platform successfully.")
 	}(cmd, wg)
 	return cmd
 }

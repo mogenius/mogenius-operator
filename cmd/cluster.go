@@ -32,6 +32,7 @@ var clusterCmd = &cobra.Command{
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, true)
 
 		go structs.ConnectToEventQueue()
+		go structs.ConnectToJobQueue()
 		go mokubernetes.WatchEvents()
 
 		structs.ExecuteBashCommandSilent("Git setup ...", `git config --global user.email "git@mogenius.com"; git config --global user.name "mogenius git-user"; git config --global init.defaultBranch main; git config --global advice.addIgnoredFile false;`)

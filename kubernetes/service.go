@@ -10,18 +10,17 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", service.Name), job, c)
+func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", service.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.Name), c)
+		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.Name)
@@ -34,21 +33,21 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 
 		_, err := serviceClient.Create(context.TODO(), &newService, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created service '%s'.", stage.Name), c)
+			cmd.Success(fmt.Sprintf("Created service '%s'.", stage.Name))
 		}
 
 	}(cmd, wg)
 	return cmd
 }
 
-func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete Service", job, c)
+func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Delete Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting service '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Deleting service '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.Name)
@@ -58,20 +57,20 @@ func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 
 		err := serviceClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted service '%s'.", stage.Name), c)
+			cmd.Success(fmt.Sprintf("Deleted service '%s'.", stage.Name))
 		}
 	}(cmd, wg)
 	return cmd
 }
 
-func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Update Service", job, c)
+func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Update Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Update service '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Update service '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.Name)
@@ -86,9 +85,9 @@ func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 
 		_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Updated service '%s'.", stage.Name), c)
+			cmd.Success(fmt.Sprintf("Updated service '%s'.", stage.Name))
 		}
 	}(cmd, wg)
 	return cmd
@@ -104,7 +103,7 @@ func UpdateServiceWith(service *v1.Service) error {
 	return nil
 }
 
-// func BindPort(job structs.Job, namespaceName string, serviceName string, port dtos.K8sPortsDto, c *websocket.Conn, wg *sync.WaitGroup) []structs.Command {
+// func BindPort(job structs.Job, namespaceName string, serviceName string, port dtos.K8sPortsDto, wg *sync.WaitGroup) []structs.Command {
 // 	result := []structs.Command{}
 
 // 	if port.ExternalPort < 9999 && port.ExternalPort > 65536 {
@@ -130,7 +129,7 @@ func UpdateServiceWith(service *v1.Service) error {
 // 	return result
 // }
 
-// func UnbindPort(job structs.Job, port dtos.K8sPortsDto, c *websocket.Conn, wg *sync.WaitGroup) []structs.Command {
+// func UnbindPort(job structs.Job, port dtos.K8sPortsDto, wg *sync.WaitGroup) []structs.Command {
 // 	result := []structs.Command{}
 
 // 	if port.ExternalPort < 9999 && port.ExternalPort > 65536 {
@@ -232,12 +231,12 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, addit
 	}
 }
 
-func RemovePortFromService(job *structs.Job, namespace string, serviceName string, port int32, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Remove Port from Service", job, c)
+func RemovePortFromService(job *structs.Job, namespace string, serviceName string, port int32, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Remove Port from Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Remove Port '%d'.", port), c)
+		cmd.Start(fmt.Sprintf("Remove Port '%d'.", port))
 
 		service := ServiceFor(namespace, serviceName)
 		if service != nil {
@@ -258,27 +257,27 @@ func RemovePortFromService(job *structs.Job, namespace string, serviceName strin
 				serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
 				_, err := serviceClient.Update(context.TODO(), service, updateOptions)
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()), c)
+					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
 					return
 				}
-				cmd.Success(fmt.Sprintf("Port %d successfully removed.", port), c)
+				cmd.Success(fmt.Sprintf("Port %d successfully removed.", port))
 				return
 			} else {
-				cmd.Success(fmt.Sprintf("Port %d was not contained in list.", port), c)
+				cmd.Success(fmt.Sprintf("Port %d was not contained in list.", port))
 				return
 			}
 		}
-		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, serviceName), c)
+		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, serviceName))
 	}(cmd, wg)
 	return cmd
 }
 
-func AddPortToService(job *structs.Job, namespace string, serviceName string, port int32, protocol string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Add Port to Service", job, c)
+func AddPortToService(job *structs.Job, namespace string, serviceName string, port int32, protocol string, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Add Port to Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Add Port '%d'.", port), c)
+		cmd.Start(fmt.Sprintf("Add Port '%d'.", port))
 
 		service := ServiceFor(namespace, serviceName)
 		if service != nil {
@@ -293,13 +292,13 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 			serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
 			_, err := serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("AddPortToService ERROR: %s", err.Error()), c)
+				cmd.Fail(fmt.Sprintf("AddPortToService ERROR: %s", err.Error()))
 				return
 			}
-			cmd.Success(fmt.Sprintf("Port %d added successfully removed.", port), c)
+			cmd.Success(fmt.Sprintf("Port %d added successfully removed.", port))
 			return
 		}
-		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, serviceName), c)
+		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, serviceName))
 	}(cmd, wg)
 	return cmd
 }

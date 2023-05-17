@@ -16,11 +16,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/gorilla/websocket"
 )
 
-func List(r FilesListRequest, c *websocket.Conn) []dtos.PersistentFileDto {
+func List(r FilesListRequest) []dtos.PersistentFileDto {
 	result := []dtos.PersistentFileDto{}
 	pathToFile, err := verify(&r.Folder)
 	if err != nil {
@@ -33,7 +31,7 @@ func List(r FilesListRequest, c *websocket.Conn) []dtos.PersistentFileDto {
 	return result
 }
 
-func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
+func Download(r FilesDownloadRequest) interface{} {
 	result := FilesDownloadResponse{
 		SizeInBytes: 0,
 	}
@@ -54,13 +52,13 @@ func Download(r FilesDownloadRequest, c *websocket.Conn) interface{} {
 		result.Error = err.Error()
 		return result
 	}
-	
+
 	// Generate filename
 	filename := file.Name()
 	if info.IsDir() {
-		filename = file.Name() + ".zip" 
+		filename = file.Name() + ".zip"
 	}
-	
+
 	// Create writer  and form-data header for zip and non-zip
 	buf := new(bytes.Buffer)
 	multiPartWriter := multipart.NewWriter(buf)
@@ -168,7 +166,7 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	return nil
 }
 
-func CreateFolder(r FilesCreateFolderRequest, c *websocket.Conn) error {
+func CreateFolder(r FilesCreateFolderRequest) error {
 	pathToDir, err := verify(&r.Folder)
 	if err != nil {
 		return err
@@ -180,7 +178,7 @@ func CreateFolder(r FilesCreateFolderRequest, c *websocket.Conn) error {
 	return nil
 }
 
-func Rename(r FilesRenameRequest, c *websocket.Conn) error {
+func Rename(r FilesRenameRequest) error {
 	pathToFile, err := verify(&r.File)
 	if err != nil {
 		return err
@@ -196,7 +194,7 @@ func Rename(r FilesRenameRequest, c *websocket.Conn) error {
 	return nil
 }
 
-func Chown(r FilesChownRequest, c *websocket.Conn) interface{} {
+func Chown(r FilesChownRequest) interface{} {
 	pathToDir, err := verify(&r.File)
 	if err != nil {
 		return utils.CreateError(err)
@@ -223,7 +221,7 @@ func Chown(r FilesChownRequest, c *websocket.Conn) interface{} {
 	return nil
 }
 
-func Chmod(r FilesChmodRequest, c *websocket.Conn) interface{} {
+func Chmod(r FilesChmodRequest) interface{} {
 	pathToDir, err := verify(&r.File)
 	if err != nil {
 		return utils.CreateError(err)
@@ -247,7 +245,7 @@ func Chmod(r FilesChmodRequest, c *websocket.Conn) interface{} {
 	return nil
 }
 
-func Delete(r FilesDeleteRequest, c *websocket.Conn) interface{} {
+func Delete(r FilesDeleteRequest) interface{} {
 	pathToDir, err := verify(&r.File)
 	if err != nil {
 		return err
@@ -415,8 +413,6 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 			pathToFile = fmt.Sprintf("%s/%s", mountPath, data.Path)
 		}
 	}
-
-	
 
 	return pathToFile, nil
 }

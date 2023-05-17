@@ -6,7 +6,6 @@ import (
 	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
-	"mogenius-k8s-manager/socketServer"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"reflect"
@@ -50,7 +49,7 @@ func WatchEvents() {
 		for event := range watcher.ResultChan() {
 			if event.Object != nil {
 				eventDto := dtos.CreateEvent(string(event.Type), event.Object)
-				datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto, nil)
+				datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
 
 				if reflect.TypeOf(event.Object).String() == "*v1.Event" {
 					var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
@@ -98,12 +97,12 @@ func processWaitList(event *v1Core.Event) {
 
 		for index, waitListEntry := range waitList {
 			if waitListEntry.IsExpired() {
-				waitListEntry.Job.AddCmd(structs.CreateCommand("Operation timed out.", &waitListEntry.Job, socketServer.CURRENT_CONNECTION))
-				waitListEntry.Job.Finish(socketServer.CURRENT_CONNECTION)
+				waitListEntry.Job.AddCmd(structs.CreateCommand("Operation timed out.", &waitListEntry.Job))
+				waitListEntry.Job.Finish()
 				utils.Remove(waitList, index)
 			}
 			if waitListEntry.WaitForKind == kind && waitListEntry.WaitForReason == reason && waitListEntry.WaitForMessage == message {
-				waitListEntry.Job.Finish(socketServer.CURRENT_CONNECTION)
+				waitListEntry.Job.Finish()
 				utils.Remove(waitList, index)
 			}
 		}
@@ -113,7 +112,7 @@ func processWaitList(event *v1Core.Event) {
 func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace string) error {
 	// EXIT if started locally
 	if !utils.CONFIG.Kubernetes.RunInCluster {
-		// return nil
+		return nil
 	}
 
 	allMountedPaths := []string{}

@@ -28,9 +28,9 @@ const CONCURRENTCONNECTIONS = 1
 
 var eventSendMutex sync.Mutex
 
-var queueConnection *websocket.Conn
+var eventQueueConnection *websocket.Conn
 
-var dataQueue []EventData = []EventData{}
+var eventDataQueue []EventData = []EventData{}
 
 func ConnectToEventQueue() {
 	interrupt := make(chan os.Signal, 1)
@@ -57,14 +57,14 @@ func ConnectToEventQueue() {
 			}()
 
 			ctx := context.Background()
-			connect(ctx)
+			connectEvent(ctx)
 			ctx.Done()
 			<-connectionGuard
 		}()
 	}
 }
 
-func connect(ctx context.Context) {
+func connectEvent(ctx context.Context) {
 	host := fmt.Sprintf("%s:%d", utils.CONFIG.EventServer.Server, utils.CONFIG.EventServer.Port)
 	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.EventServer.Path}
 
@@ -73,20 +73,20 @@ func connect(ctx context.Context) {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
 	} else {
 		logger.Log.Infof("Connected to EventServer: %s \n", connectionUrl.String())
-		queueConnection = connection
-		observeConnection(queueConnection)
+		eventQueueConnection = connection
+		observeEventConnection(eventQueueConnection)
 	}
 
 	defer func() {
 		// reset everything if connection dies
-		if queueConnection != nil {
-			queueConnection.Close()
+		if eventQueueConnection != nil {
+			eventQueueConnection.Close()
 		}
 		ctx.Done()
 	}()
 }
 
-func observeConnection(connection *websocket.Conn) {
+func observeEventConnection(connection *websocket.Conn) {
 	for {
 		if connection == nil {
 			return
@@ -119,25 +119,25 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 		K8sMessage: k8sMessage,
 		Count:      count,
 	}
-	dataQueue = append(dataQueue, data)
+	eventDataQueue = append(eventDataQueue, data)
 }
 
 func processQueueNow() {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 
-	if queueConnection != nil {
-		for i := 0; i < len(dataQueue); i++ {
-			element := dataQueue[i]
+	if eventQueueConnection != nil {
+		for i := 0; i < len(eventDataQueue); i++ {
+			element := eventDataQueue[i]
 
-			err := queueConnection.WriteJSON(element.Datagram)
+			err := eventQueueConnection.WriteJSON(element.Datagram)
 			if err == nil {
 				if element.K8sKind != "" && element.K8sReason != "" && element.K8sMessage != "" {
 					if utils.CONFIG.Misc.LogKubernetesEvents || utils.CONFIG.Misc.Debug {
 						element.Datagram.DisplaySentSummaryEvent(element.K8sKind, element.K8sReason, element.K8sMessage, element.Count)
 					}
 				}
-				dataQueue = RemoveIndex(dataQueue, i)
+				eventDataQueue = RemoveEventIndex(eventDataQueue, i)
 			} else {
 				logger.Log.Error(err)
 				return
@@ -150,7 +150,7 @@ func processQueueNow() {
 	}
 }
 
-func RemoveIndex(s []EventData, index int) []EventData {
+func RemoveEventIndex(s []EventData, index int) []EventData {
 	if len(s) > index {
 		return append(s[:index], s[index+1:]...)
 	}

@@ -20,7 +20,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/gorilla/websocket"
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
@@ -29,48 +28,48 @@ const DEBUG_AWS_ACCESS_KEY_ID = "ASIAZNXZOUKFCEK3TPOL"                          
 const DEBUG_AWS_SECRET_KEY = "xTsv35O30o87m6DuWOscHpKbxbXJeo0vS9iFkGwY"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // TEMP Credentials. Not security relevant
 const DEBUG_AWS_TOKEN = "IQoJb3JpZ2luX2VjELz//////////wEaDGV1LWNlbnRyYWwtMSJHMEUCIQCdZPuNWJCNJOSbMBhRtQb8W/0ylEV/ge1fiWFWgmD8ywIgEy/X2IAopx69LIGQQS+c2pRo4cSRFSslylRs8J7eUawq3AEIpf//////////ARABGgw2NDc5ODk0Njk4MzQiDPCjbP1jO5NAL96r2yqwAa3cCaeF8s1x2Zs8vAU+gRfK/tUZac8XjnJsjIxbmikiDPLuyPonsymuAd9D4ISK4fLeUU+BUU899fLHjIa2bWXRx1OrmGPIK3d/qBZF3pUPRid5AV8IRMiiP2sMI5RZzKpJfuWHH5WLknw0P7HYvusUlgAR4AgqPabHAE0c2Q1qaplJQrBXGeXCtMzs386OSPBQGogeBGn9Eu/l8QpySaA6RE3KgwvRELcvacMtmcdxMJ2H1aEGOpgBFNijTvMHK7D1pSOmvDfx9p9wSHZT/Red/G1CFWjUtV2H9+H4N+qrZTX2A4I9UGVEc+UlAQlIOAXPli2WTSPOdB7txbKsozU1YPVbi/gSZFXmGy8EFJml3bkg4HqSlozHLB/f1Ib81n9eWoUPOXp5SMwn6izW4ZZB3g8QSV6btOx2+s+Pm4BsLHICMhg3Rr0KI6ThnNhXcj8=" // TEMP Credentials. Not security relevant
 
-func UpgradeK8sManager(r K8sManagerUpgradeRequest, c *websocket.Conn) structs.Job {
+func UpgradeK8sManager(r K8sManagerUpgradeRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Upgrade mogenius platform", "UPGRADE", nil, nil, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.UpgradeMyself(&job, r.Command, c, &wg))
+	job := structs.CreateJob("Upgrade mogenius platform", "UPGRADE", nil, nil)
+	job.Start()
+	job.AddCmd(mokubernetes.UpgradeMyself(&job, r.Command, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func InstallHelmChart(r ClusterHelmRequest, c *websocket.Conn) structs.Job {
+func InstallHelmChart(r ClusterHelmRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil, c)
-	job.Start(c)
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, c, &wg))
+	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func DeleteHelmChart(r ClusterHelmUninstallRequest, c *websocket.Conn) structs.Job {
+func DeleteHelmChart(r ClusterHelmUninstallRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.DeleteHelmChart(&job, r.HelmReleaseName, c, &wg))
+	job := structs.CreateJob("Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmd(mokubernetes.DeleteHelmChart(&job, r.HelmReleaseName, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func InstallMogeniusNfsStorage(r NfsStorageInstallRequest, c *websocket.Conn) interface{} {
+func InstallMogeniusNfsStorage(r NfsStorageInstallRequest) interface{} {
 	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
 	if !nfsStatus.IsInstalled {
 		var wg sync.WaitGroup
-		job := structs.CreateJob("Install mogenius nfs-storage.", r.NamespaceId, nil, nil, c)
-		job.Start(c)
-		job.AddCmds(mokubernetes.InstallMogeniusNfsStorage(&job, r.ClusterProvider, c, &wg))
+		job := structs.CreateJob("Install mogenius nfs-storage.", r.NamespaceId, nil, nil)
+		job.Start()
+		job.AddCmds(mokubernetes.InstallMogeniusNfsStorage(&job, r.ClusterProvider, &wg))
 		wg.Wait()
-		job.Finish(c)
+		job.Finish()
 		return job
 	} else {
 		nfsStatus.Error = "Mogenius NFS storage has already been installed."
@@ -78,25 +77,25 @@ func InstallMogeniusNfsStorage(r NfsStorageInstallRequest, c *websocket.Conn) in
 	}
 }
 
-func UninstallMogeniusNfsStorage(r NfsStorageInstallRequest, c *websocket.Conn) interface{} {
+func UninstallMogeniusNfsStorage(r NfsStorageInstallRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Uninstall mogenius nfs-storage.", r.NamespaceId, nil, nil, c)
-	job.Start(c)
-	job.AddCmds(mokubernetes.UninstallMogeniusNfsStorage(&job, c, &wg))
+	job := structs.CreateJob("Uninstall mogenius nfs-storage.", r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.UninstallMogeniusNfsStorage(&job, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func CreateMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) structs.DefaultResponse {
+func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
 	if nfsStatus.IsInstalled {
 		var wg sync.WaitGroup
-		job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil, c)
-		job.Start(c)
-		job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, c, &wg))
+		job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil)
+		job.Start()
+		job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
 		wg.Wait()
-		job.Finish(c)
+		job.Finish()
 		return job.DefaultReponse()
 	} else {
 		result := structs.DefaultResponse{}
@@ -106,15 +105,15 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) structs.Defa
 	}
 }
 
-func DeleteMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) structs.DefaultResponse {
+func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
 	if nfsStatus.IsInstalled {
 		var wg sync.WaitGroup
-		job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, nil, nil, c)
-		job.Start(c)
-		job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, c, &wg))
+		job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, nil, nil)
+		job.Start()
+		job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, &wg))
 		wg.Wait()
-		job.Finish(c)
+		job.Finish()
 		// update mogenius-k8s-manager volume mounts
 		mokubernetes.UpdateK8sManagerVolumeMounts(r.VolumeName, r.NamespaceName)
 		return job.DefaultReponse()
@@ -126,7 +125,7 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) structs.Defa
 	}
 }
 
-func StatsMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) NfsVolumeStatsResponse {
+func StatsMogeniusNfsVolume(r NfsVolumeRequest) NfsVolumeStatsResponse {
 	result := NfsVolumeStatsResponse{
 		VolumeName: r.VolumeName,
 		FreeBytes:  0,
@@ -148,15 +147,15 @@ func StatsMogeniusNfsVolume(r NfsVolumeRequest, c *websocket.Conn) NfsVolumeStat
 	return result
 }
 
-func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest, c *websocket.Conn) NfsVolumeBackupResponse {
+func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest) NfsVolumeBackupResponse {
 	result := NfsVolumeBackupResponse{
 		VolumeName:  r.VolumeName,
 		DownloadUrl: "",
 	}
 
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create nfs-volume backup.", r.NamespaceId, nil, nil, c)
-	job.Start(c)
+	job := structs.CreateJob("Create nfs-volume backup.", r.NamespaceId, nil, nil)
+	job.Start()
 
 	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "")
 
@@ -166,19 +165,19 @@ func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest, c *websocket.Conn) NfsVol
 	}
 
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return result
 }
 
-func RestoreMogeniusNfsVolume(r NfsVolumeRestoreRequest, c *websocket.Conn) NfsVolumeRestoreResponse {
+func RestoreMogeniusNfsVolume(r NfsVolumeRestoreRequest) NfsVolumeRestoreResponse {
 	result := NfsVolumeRestoreResponse{
 		VolumeName: r.VolumeName,
 		Message:    "",
 	}
 
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restore nfs-volume backup.", r.NamespaceId, nil, nil, c)
-	job.Start(c)
+	job := structs.CreateJob("Restore nfs-volume backup.", r.NamespaceId, nil, nil)
+	job.Start()
 
 	result = UnzipAndReplaceFromS3(r.NamespaceName, r.VolumeName, r.BackupKey, result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
 	if result.Error != "" {
@@ -186,7 +185,7 @@ func RestoreMogeniusNfsVolume(r NfsVolumeRestoreRequest, c *websocket.Conn) NfsV
 	}
 
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return result
 }
 

@@ -9,16 +9,14 @@ import (
 	"mogenius-k8s-manager/utils"
 	"os"
 	"sync"
-
-	"github.com/gorilla/websocket"
 )
 
-func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
+func CreateNamespace(r NamespaceCreateRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.CreateNamespace(&job, r.Namespace, r.Stage, c))
+	job := structs.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil)
+	job.Start()
+	job.AddCmd(mokubernetes.CreateNamespace(&job, r.Namespace, r.Stage))
 	if r.Stage.StorageSizeInMb > 0 {
 		// dataRoot, err := os.Getwd()
 		// if err != nil {
@@ -27,48 +25,48 @@ func CreateNamespace(r NamespaceCreateRequest, c *websocket.Conn) structs.Job {
 		// if utils.CONFIG.Kubernetes.RunInCluster {
 		// 	dataRoot = "/"
 		// }
-		//job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), c, &wg))
-		job.AddCmd(mokubernetes.CreateNetworkPolicyNamespace(&job, r.Stage, c, &wg))
-		//job.AddCmd(mokubernetes.CreatePersistentVolumeClaim(&job, r.Stage, c, &wg))
+		//job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), &wg))
+		job.AddCmd(mokubernetes.CreateNetworkPolicyNamespace(&job, r.Stage, &wg))
+		//job.AddCmd(mokubernetes.CreatePersistentVolumeClaim(&job, r.Stage, &wg))
 		if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
-			job.AddCmd(mokubernetes.CreateContainerSecret(&job, r.Namespace, r.Stage, c, &wg))
+			job.AddCmd(mokubernetes.CreateContainerSecret(&job, r.Namespace, r.Stage, &wg))
 		}
 	}
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func DeleteNamespace(r NamespaceDeleteRequest, c *websocket.Conn) structs.Job {
+func DeleteNamespace(r NamespaceDeleteRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Stage, c, &wg))
-	//job.AddCmd(mokubernetes.DeletePersistentVolume(&job, r.Stage, c, &wg))
+	job := structs.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil)
+	job.Start()
+	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Stage, &wg))
+	//job.AddCmd(mokubernetes.DeletePersistentVolume(&job, r.Stage, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func ShutdownNamespace(r NamespaceShutdownRequest, c *websocket.Conn) structs.Job {
+func ShutdownNamespace(r NamespaceShutdownRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Shutdown Stage "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, nil, c)
-	job.Start(c)
-	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, c, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, c, &wg))
+	job := structs.CreateJob("Shutdown Stage "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, nil)
+	job.Start()
+	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
 	wg.Wait()
-	job.Finish(c)
+	job.Finish()
 	return job
 }
 
-func PodIds(r NamespacePodIdsRequest, c *websocket.Conn) interface{} {
+func PodIds(r NamespacePodIdsRequest) interface{} {
 	return kubernetes.PodIdsFor(r.Namespace, nil)
 }
 
-func ValidateClusterPods(r NamespaceValidateClusterPodsRequest, c *websocket.Conn) dtos.ValidateClusterPodsDto {
+func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClusterPodsDto {
 	inDbButNotInCluster := []string{}
 	clusterPodNames := mokubernetes.AllPodNames()
 	for index, dbPodName := range r.DbPodNames {
@@ -84,7 +82,7 @@ func ValidateClusterPods(r NamespaceValidateClusterPodsRequest, c *websocket.Con
 	}
 }
 
-func ValidateClusterPorts(r NamespaceValidatePortsRequest, c *websocket.Conn) interface{} {
+func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
 	logger.Log.Infof("CleanupIngressPorts: %d ports received from DB.", len(r.Ports))
 	if len(r.Ports) <= 0 {
 		logger.Log.Error("Received empty ports list. Something seems wrong. Skipping process.")
@@ -99,7 +97,7 @@ func ListAllNamespaces() []string {
 	return mokubernetes.ListAllNamespaceNames()
 }
 
-func StorageSize(r NamespaceStorageSizeRequest, c *websocket.Conn) map[string]int {
+func StorageSize(r NamespaceStorageSizeRequest) map[string]int {
 	// TODO: Implement for CephFS
 	result := make(map[string]int)
 	for _, v := range r.Stageids {

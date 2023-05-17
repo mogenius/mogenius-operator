@@ -9,7 +9,6 @@ import (
 	"mogenius-k8s-manager/utils"
 	"sync"
 
-	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	networkingv1 "k8s.io/client-go/applyconfigurations/networking/v1"
@@ -19,12 +18,12 @@ const (
 	INGRESS_PREFIX = "ingress"
 )
 
-func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Updating ingress setup.", job, c)
+func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Updating ingress setup.", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start("Updating ingress setup.", c)
+		cmd.Start("Updating ingress setup.")
 
 		kubeProvider := NewKubeProvider()
 		ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(stage.Name)
@@ -111,21 +110,21 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 			if existingIngress != nil && ingErr == nil {
 				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()), c)
+					cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName), c)
+					cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName))
 				}
 			} else {
-				cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName), c)
+				cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
 			}
 		} else {
 			_, err := ingressClient.Apply(context.TODO(), config, applyOptions)
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()), c)
+				cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()))
 				return
 			} else {
-				cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", ingressName), c)
+				cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", ingressName))
 			}
 		}
 	}(cmd, wg)

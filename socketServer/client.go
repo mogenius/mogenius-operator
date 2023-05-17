@@ -10,7 +10,6 @@ import (
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -31,12 +30,6 @@ import (
 
 const PingSeconds = 10
 
-var connectionCounter int = 0
-var maxGoroutines = 1
-var connectionGuard chan struct{}
-
-var CURRENT_CONNECTION *websocket.Conn
-
 func StartK8sManager(runsInCluster bool) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -53,54 +46,18 @@ func StartK8sManager(runsInCluster bool) {
 	updateCheck()
 	versionTicker()
 
-	connectionGuard = make(chan struct{}, maxGoroutines)
-
-	for {
-		select {
-		case <-interrupt:
-			log.Fatal("CTRL + C pressed. Terminating.")
-		case <-time.After(1000 * time.Millisecond):
+	for status := range structs.JobConnectionStatus {
+		if status {
+			log.Println("Connection is active")
+			done := make(chan struct{})
+			parseMessage(done, structs.JobQueueConnection)
+		} else {
+			log.Println("Connection is not active")
 		}
-
-		connectionGuard <- struct{}{} // would block if guard channel is already filled
-		go func() {
-			if connectionCounter < maxGoroutines {
-				startClient()
-			}
-			<-connectionGuard
-		}()
 	}
-}
-
-func startClient() {
-	connectionUrl := url.URL{Scheme: utils.CONFIG.ApiServer.Ws_Proto, Host: utils.CONFIG.ApiServer.Ws_Server, Path: utils.CONFIG.ApiServer.WS_Path}
-
-	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
-	CURRENT_CONNECTION = connection
-	if err != nil {
-		logger.Log.Errorf("Connection (available: %d/%d) %s ... %s -> %s\n", connectionCounter, maxGoroutines, color.BlueString(connectionUrl.String()), color.RedString("FAIL 💥"), color.HiRedString(err.Error()))
-		return
-	} else {
-		connectionCounter++
-		logger.Log.Infof("Connection (available: %d/%d) %s ... %s\n", connectionCounter, maxGoroutines, color.BlueString(connectionUrl.String()), color.GreenString("SUCCESS 🚀"))
-	}
-	defer func() {
-		connection.Close()
-		CURRENT_CONNECTION = nil
-		if connectionCounter > 0 {
-			connectionCounter--
-		}
-	}()
-
-	done := make(chan struct{})
-
-	parseMessage(done, connection)
-
-	logger.Log.Infof(color.BlueString("Connections Available: %d/%d"), connectionCounter-1, maxGoroutines)
 }
 
 func parseMessage(done chan struct{}, c *websocket.Conn) {
-	var sendMutex sync.Mutex
 	var preparedFileName *string
 	var preparedFileRequest *services.FilesUploadRequest
 	var openFile *os.File
@@ -138,7 +95,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 					bar.Finish()
 					os.Remove(*preparedFileName)
 
-					var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id, c)
+					var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
 					ack.Send()
 
 					preparedFileName = nil
@@ -166,15 +123,15 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 					if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
 						// ####### COMMAND
-						responsePayload := services.ExecuteCommandRequest(datagram, c)
-						result := structs.CreateDatagramRequest(datagram, responsePayload, c)
-						sendMutex.Lock()
+						responsePayload := services.ExecuteCommandRequest(datagram)
+						result := structs.CreateDatagramRequest(datagram, responsePayload)
+						structs.JobSendMutex.Lock()
 						result.Send()
-						sendMutex.Unlock()
+						structs.JobSendMutex.Unlock()
 					} else if utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
-						preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram, c)
+						preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
 
-						var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id, c)
+						var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
 						ack.Send()
 					} else {
 						logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)

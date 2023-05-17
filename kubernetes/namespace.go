@@ -9,15 +9,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, c *websocket.Conn) *structs.Command {
-	cmd := structs.CreateCommand("Create Kubernetes namespace", job, c)
-	cmd.Start(fmt.Sprintf("Creating namespace '%s'.", stage.Name), c)
+func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto) *structs.Command {
+	cmd := structs.CreateCommand("Create Kubernetes namespace", job)
+	cmd.Start(fmt.Sprintf("Creating namespace '%s'.", stage.Name))
 
 	kubeProvider := NewKubeProvider()
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
@@ -34,28 +33,28 @@ func CreateNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dto
 
 	_, err := namespaceClient.Apply(context.TODO(), newNamespace, applyOptions)
 	if err != nil {
-		cmd.Fail(fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()), c)
+		cmd.Fail(fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()))
 	} else {
-		cmd.Success(fmt.Sprintf("Created namespace '%s'.", newNamespace.Name), c)
+		cmd.Success(fmt.Sprintf("Created namespace '%s'.", newNamespace.Name))
 	}
 	return cmd
 }
 
-func DeleteNamespace(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete Kubernetes namespace", job, c)
+func DeleteNamespace(job *structs.Job, stage dtos.K8sStageDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Delete Kubernetes namespace", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting namespace '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Deleting namespace '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 
 		err := namespaceClient.Delete(context.TODO(), stage.Name, metav1.DeleteOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted namespace '%s'.", stage.Name), c)
+			cmd.Success(fmt.Sprintf("Deleted namespace '%s'.", stage.Name))
 		}
 	}(cmd, wg)
 	return cmd

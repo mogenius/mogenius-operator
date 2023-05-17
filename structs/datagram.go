@@ -4,89 +4,78 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/utils"
-	"sync"
 	"time"
 
 	"github.com/TylerBrock/colorjson"
 	"github.com/fatih/color"
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 )
 
-var sendMutex sync.Mutex
-
 type Datagram struct {
-	Id         string          `json:"id" validate:"required"`
-	Pattern    string          `json:"pattern" validate:"required"`
-	Payload    interface{}     `json:"payload,omitempty"`
-	Err        string          `json:"err,omitempty"`
-	CreatedAt  time.Time       `json:"-"`
-	Connection *websocket.Conn `json:"-"`
+	Id        string      `json:"id" validate:"required"`
+	Pattern   string      `json:"pattern" validate:"required"`
+	Payload   interface{} `json:"payload,omitempty"`
+	Err       string      `json:"err,omitempty"`
+	CreatedAt time.Time   `json:"-"`
 }
 
-func CreateDatagramRequest(request Datagram, data interface{}, c *websocket.Conn) Datagram {
+func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
 	datagram := Datagram{
-		Id:         request.Id,
-		Pattern:    request.Pattern,
-		Payload:    data,
-		CreatedAt:  request.CreatedAt,
-		Connection: c,
+		Id:        request.Id,
+		Pattern:   request.Pattern,
+		Payload:   data,
+		CreatedAt: request.CreatedAt,
 	}
 	return datagram
 }
 
-func CreateDatagramFromNotification(data *dtos.K8sNotificationDto, c *websocket.Conn) Datagram {
+func CreateDatagramFromNotification(data *dtos.K8sNotificationDto) Datagram {
 	created, err := time.Parse(time.RFC3339, data.StartedAt)
 	if err != nil {
 		created = time.Now()
 	}
 	datagram := Datagram{
-		Id:         uuid.New().String(),
-		Pattern:    "K8sNotificationDto",
-		Payload:    data,
-		CreatedAt:  created,
-		Connection: c,
+		Id:        uuid.New().String(),
+		Pattern:   "K8sNotificationDto",
+		Payload:   data,
+		CreatedAt: created,
 	}
 	return datagram
 }
 
-func CreateDatagramFrom(pattern string, data interface{}, c *websocket.Conn) Datagram {
+func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	datagram := Datagram{
-		Id:         uuid.New().String(),
-		Pattern:    pattern,
-		Payload:    data,
-		CreatedAt:  time.Now(),
-		Connection: c,
+		Id:        uuid.New().String(),
+		Pattern:   pattern,
+		Payload:   data,
+		CreatedAt: time.Now(),
 	}
 	return datagram
 }
 
-func CreateDatagram(pattern string, c *websocket.Conn) Datagram {
+func CreateDatagram(pattern string) Datagram {
 	datagram := Datagram{
-		Id:         uuid.New().String(),
-		Pattern:    pattern,
-		CreatedAt:  time.Now(),
-		Connection: c,
+		Id:        uuid.New().String(),
+		Pattern:   pattern,
+		CreatedAt: time.Now(),
 	}
 	return datagram
 }
 
-func CreateDatagramAck(pattern string, id string, c *websocket.Conn) Datagram {
+func CreateDatagramAck(pattern string, id string) Datagram {
 	datagram := Datagram{
-		Id:         id,
-		Pattern:    pattern,
-		CreatedAt:  time.Now(),
-		Connection: c,
+		Id:        id,
+		Pattern:   pattern,
+		CreatedAt: time.Now(),
 	}
 	return datagram
 }
 
 func CreateEmptyDatagram() Datagram {
 	datagram := Datagram{
-		Id:         uuid.New().String(),
-		Pattern:    "",
-		CreatedAt:  time.Now(),
-		Connection: nil,
+		Id:        uuid.New().String(),
+		Pattern:   "",
+		CreatedAt: time.Now(),
 	}
 	return datagram
 }
@@ -115,7 +104,7 @@ func (d *Datagram) DisplayReceiveSummary() {
 }
 
 func (d *Datagram) DisplaySentSummary() {
-	fmt.Printf("%s%s%s [%s] (%s)\n", utils.FillWith("SENT", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), d.Connection.RemoteAddr().String(), DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s%s%s (%s)\n", utils.FillWith("SENT", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
@@ -126,14 +115,7 @@ func (d *Datagram) DisplayStreamSummary() {
 	fmt.Printf("%s%s%s\n", utils.FillWith("STREAMING", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
 }
 
-func (d *Datagram) Send() error {
-	if d.Connection != nil {
-		sendMutex.Lock()
-		defer sendMutex.Unlock()
-		err := d.Connection.WriteJSON(d)
-		d.DisplaySentSummary()
-		return err
-	} else {
-		return fmt.Errorf("connection cannot be nil")
-	}
+func (d *Datagram) Send() {
+	JobServerSendData(*d)
+	d.DisplaySentSummary()
 }

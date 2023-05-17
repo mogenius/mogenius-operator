@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
-
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
@@ -20,12 +18,12 @@ import (
 	v1depl "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
-func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", stage.Name), job, c)
+func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", stage.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating Deployment '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Creating Deployment '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
@@ -35,21 +33,21 @@ func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 
 		_, err := deploymentClient.Create(context.TODO(), &newDeployment, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created deployment '%s'.", stage.Name), c)
+			cmd.Success(fmt.Sprintf("Created deployment '%s'.", stage.Name))
 		}
 
 	}(cmd, wg)
 	return cmd
 }
 
-func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Deleting Deployment '%s'.", service.Name), job, c)
+func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Deleting Deployment '%s'.", service.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting Deployment '%s'.", service.Name), c)
+		cmd.Start(fmt.Sprintf("Deleting Deployment '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
@@ -60,21 +58,21 @@ func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 
 		err := deploymentClient.Delete(context.TODO(), service.Name, deleteOptions)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted Deployment '%s'.", service.Name), c)
+			cmd.Success(fmt.Sprintf("Deleted Deployment '%s'.", service.Name))
 		}
 
 	}(cmd, wg)
 	return cmd
 }
 
-func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", stage.Name), job, c)
+func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", stage.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
@@ -86,21 +84,21 @@ func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 
 		_, err := deploymentClient.Update(context.TODO(), &newDeployment, updateOptions)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Updating deployment '%s'.", stage.Name), c)
+			cmd.Success(fmt.Sprintf("Updating deployment '%s'.", stage.Name))
 		}
 
 	}(cmd, wg)
 	return cmd
 }
 
-func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Starting Deployment", job, c)
+func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Starting Deployment", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Starting Deployment '%s'.", service.Name), c)
+		cmd.Start(fmt.Sprintf("Starting Deployment '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
@@ -108,20 +106,20 @@ func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 
 		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Started Deployment '%s'.", service.Name), c)
+			cmd.Success(fmt.Sprintf("Started Deployment '%s'.", service.Name))
 		}
 	}(cmd, wg)
 	return cmd
 }
 
-func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Stopping Deployment", job, c)
+func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Stopping Deployment", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Stopping Deployment '%s'.", service.Name), c)
+		cmd.Start(fmt.Sprintf("Stopping Deployment '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
@@ -130,20 +128,20 @@ func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 
 		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Stopped Deployment '%s'.", service.Name), c)
+			cmd.Success(fmt.Sprintf("Stopped Deployment '%s'.", service.Name))
 		}
 	}(cmd, wg)
 	return cmd
 }
 
-func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Restart Deployment", job, c)
+func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Restart Deployment", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Restarting Deployment '%s'.", service.Name), c)
+		cmd.Start(fmt.Sprintf("Restarting Deployment '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
@@ -158,9 +156,9 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 
 		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Restart Deployment '%s'.", service.Name), c)
+			cmd.Success(fmt.Sprintf("Restart Deployment '%s'.", service.Name))
 		}
 	}(cmd, wg)
 	return cmd
@@ -368,18 +366,18 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 	return newDeployment
 }
 
-func SetImage(job *structs.Job, namespaceName string, serviceName string, imageName string, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job, c)
+func SetImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceName), c)
+		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceName))
 
 		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
 		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
 			return
 		}
 
@@ -389,9 +387,9 @@ func SetImage(job *structs.Job, namespaceName string, serviceName string, imageN
 
 		_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", serviceName), c)
+			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", serviceName))
 		}
 	}(cmd, wg)
 	return cmd

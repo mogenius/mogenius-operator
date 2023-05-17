@@ -10,17 +10,16 @@ import (
 	"mogenius-k8s-manager/utils"
 	"sync"
 
-	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create Kubernetes secret", job, c)
+func CreateSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Create Kubernetes secret", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating secret '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Creating secret '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
@@ -41,20 +40,20 @@ func CreateSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 
 		_, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateSecret ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created secret '%s'.", service.Name), c)
+			cmd.Success(fmt.Sprintf("Created secret '%s'.", service.Name))
 		}
 	}(cmd, wg)
 	return cmd
 }
 
-func DeleteSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete Kubernetes secret", job, c)
+func DeleteSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Delete Kubernetes secret", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting secret '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Deleting secret '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
@@ -65,20 +64,20 @@ func DeleteSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 
 		err := secretClient.Delete(context.TODO(), service.Name, deleteOptions)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted secret '%s'.", service.Name), c)
+			cmd.Success(fmt.Sprintf("Deleted secret '%s'.", service.Name))
 		}
 	}(cmd, wg)
 	return cmd
 }
 
-func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create Container secret", job, c)
+func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Create Container secret", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating Container secret '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Creating Container secret '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
@@ -98,20 +97,20 @@ func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, sta
 
 		_, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.Name), c)
+			cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.Name))
 		}
 	}(cmd, wg)
 	return cmd
 }
 
-func DeleteContainerSecret(job *structs.Job, stage dtos.K8sStageDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete Container secret", job, c)
+func DeleteContainerSecret(job *structs.Job, stage dtos.K8sStageDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Delete Container secret", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting Container secret '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Deleting Container secret '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
@@ -122,20 +121,20 @@ func DeleteContainerSecret(job *structs.Job, stage dtos.K8sStageDto, c *websocke
 
 		err := secretClient.Delete(context.TODO(), "container-secret-"+stage.Name, deleteOptions)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted Container secret '%s'.", stage.Name), c)
+			cmd.Success(fmt.Sprintf("Deleted Container secret '%s'.", stage.Name))
 		}
 	}(cmd, wg)
 	return cmd
 }
 
-func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, c *websocket.Conn, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Update Kubernetes secret", job, c)
+func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Update Kubernetes secret", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Updating secret '%s'.", stage.Name), c)
+		cmd.Start(fmt.Sprintf("Updating secret '%s'.", stage.Name))
 
 		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
@@ -158,9 +157,9 @@ func UpdateSecrete(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 
 		_, err := secretClient.Update(context.TODO(), &secret, updateOptions)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()), c)
+			cmd.Fail(fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Update secret '%s'.", service.Name), c)
+			cmd.Success(fmt.Sprintf("Update secret '%s'.", service.Name))
 		}
 	}(cmd, wg)
 	return cmd

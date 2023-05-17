@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -45,7 +44,7 @@ func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
 	}
 }
 
-func CreateCommand(title string, job *Job, c *websocket.Conn) *Command {
+func CreateCommand(title string, job *Job) *Command {
 	cmd := Command{
 		Id:                      uuid.NewV4().String(),
 		JobId:                   job.Id,
@@ -62,16 +61,16 @@ func CreateCommand(title string, job *Job, c *websocket.Conn) *Command {
 		IgnoreError:             false,
 		Started:                 time.Now(),
 	}
-	ReportStateToServer(nil, &cmd, c)
+	ReportStateToServer(nil, &cmd)
 	return &cmd
 }
 
-func CreateBashCommand(title string, job *Job, shellCmd string, c *websocket.Conn, wg *sync.WaitGroup) *Command {
+func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
 	wg.Add(1)
-	cmd := CreateCommand(title, job, c)
+	cmd := CreateCommand(title, job)
 	go func(cmd *Command) {
 		defer wg.Done()
-		cmd.Start(title, c)
+		cmd.Start(title)
 
 		_, err := exec.Command("bash", "-c", shellCmd).Output()
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -79,11 +78,11 @@ func CreateBashCommand(title string, job *Job, shellCmd string, c *websocket.Con
 			errorMsg := string(exitErr.Stderr)
 			logger.Log.Error(shellCmd)
 			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
-			cmd.Fail(fmt.Sprintf("'%s' ERROR: %s", title, errorMsg), c)
+			cmd.Fail(fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
 		} else if err != nil {
 			logger.Log.Error("exec.Command: %s", err.Error())
 		} else {
-			cmd.Success(title, c)
+			cmd.Success(title)
 		}
 	}(cmd)
 	return cmd
@@ -124,23 +123,23 @@ func ExecuteBashCommandWithResponse(title string, shellCmd string) string {
 	return string(returnStr)
 }
 
-func (cmd *Command) Start(msg string, c *websocket.Conn) {
+func (cmd *Command) Start(msg string) {
 	cmd.State = "STARTED"
 	cmd.Message = msg
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
-	ReportStateToServer(nil, cmd, c)
+	ReportStateToServer(nil, cmd)
 }
 
-func (cmd *Command) Fail(error string, c *websocket.Conn) {
+func (cmd *Command) Fail(error string) {
 	cmd.State = "FAILED"
 	cmd.Message = error
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
-	ReportStateToServer(nil, cmd, c)
+	ReportStateToServer(nil, cmd)
 }
 
-func (cmd *Command) Success(msg string, c *websocket.Conn) {
+func (cmd *Command) Success(msg string) {
 	cmd.State = "SUCCEEDED"
 	cmd.Message = msg
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
-	ReportStateToServer(nil, cmd, c)
+	ReportStateToServer(nil, cmd)
 }

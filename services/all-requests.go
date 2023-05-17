@@ -15,7 +15,6 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
-	"github.com/gorilla/websocket"
 	"k8s.io/client-go/rest"
 )
 
@@ -129,10 +128,10 @@ var BINARY_REQUEST_UPLOAD = []string{
 	"files/upload",
 }
 
-func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interface{} {
+func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	switch datagram.Pattern {
 	case "K8sNotification":
-		return K8sNotification(datagram, c)
+		return K8sNotification(datagram)
 	case "ClusterStatus":
 		return mokubernetes.ClusterStatus()
 	case "ClusterResourceInfo":
@@ -146,75 +145,75 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	case "UpgradeK8sManager":
 		data := K8sManagerUpgradeRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return UpgradeK8sManager(data, c)
+		return UpgradeK8sManager(data)
 	case "files/list":
 		data := FilesListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return List(data, c)
+		return List(data)
 	case "files/create-folder":
 		data := FilesCreateFolderRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return CreateFolder(data, c)
+		return CreateFolder(data)
 	case "files/rename":
 		data := FilesRenameRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return Rename(data, c)
+		return Rename(data)
 	case "files/chown":
 		data := FilesChownRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return Chown(data, c)
+		return Chown(data)
 	case "files/chmod":
 		data := FilesChmodRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return Chmod(data, c)
+		return Chmod(data)
 	case "files/delete":
 		data := FilesDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return Delete(data, c)
+		return Delete(data)
 	case "files/download":
 		data := FilesDownloadRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return Download(data, c)
+		return Download(data)
 
 	case "cluster/execute-helm-chart-task":
 		data := ClusterHelmRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return InstallHelmChart(data, c)
+		return InstallHelmChart(data)
 	case "cluster/uninstall-helm-chart":
 		data := ClusterHelmUninstallRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return DeleteHelmChart(data, c)
+		return DeleteHelmChart(data)
 	case "cluster/tcp-udp-configuration":
-		return TcpUdpClusterConfiguration(c)
+		return TcpUdpClusterConfiguration()
 
 	case "namespace/create":
 		data := NamespaceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return CreateNamespace(data, c)
+		return CreateNamespace(data)
 	case "namespace/delete":
 		data := NamespaceDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return DeleteNamespace(data, c)
+		return DeleteNamespace(data)
 	case "namespace/shutdown":
 		data := NamespaceShutdownRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return ShutdownNamespace(data, c)
+		return ShutdownNamespace(data)
 	case "namespace/pod-ids":
 		data := NamespacePodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return PodIds(data, c)
+		return PodIds(data)
 	case "namespace/validate-cluster-pods":
 		data := NamespaceValidateClusterPodsRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return ValidateClusterPods(data, c)
+		return ValidateClusterPods(data)
 	case "namespace/validate-ports":
 		data := NamespaceValidatePortsRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return ValidateClusterPorts(data, c)
+		return ValidateClusterPorts(data)
 	case "namespace/storage-size":
 		data := NamespaceStorageSizeRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return StorageSize(data, c)
+		return StorageSize(data)
 	case "namespace/list-all":
 		return ListAllNamespaces()
 	case "namespace/gather-all-resources":
@@ -240,55 +239,55 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	case "service/create":
 		data := ServiceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return CreateService(data, c)
+		return CreateService(data)
 	case "service/delete":
 		data := ServiceDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return DeleteService(data, c)
+		return DeleteService(data)
 	case "service/pod-ids":
 		data := ServiceGetPodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return ServicePodIds(data, c)
+		return ServicePodIds(data)
 	case "SERVICE_POD_EXISTS":
 		data := ServicePodExistsRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return ServicePodExists(data, c)
+		return ServicePodExists(data)
 	case "service/set-image":
 		data := ServiceSetImageRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return SetImage(data, c)
+		return SetImage(data)
 	case "service/log":
 		data := ServiceGetLogRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return PodLog(data, c)
+		return PodLog(data)
 	case "service/log-error":
 		data := ServiceGetLogRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return PodLogError(data, c)
+		return PodLogError(data)
 	case "service/resource-status":
 		data := ServiceResourceStatusRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return PodStatus(data, c)
+		return PodStatus(data)
 	case "service/restart":
 		data := ServiceRestartRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return Restart(data, c)
+		return Restart(data)
 	case "service/stop":
 		data := ServiceStopRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return StopService(data, c)
+		return StopService(data)
 	case "service/start":
 		data := ServiceStartRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return StartService(data, c)
+		return StartService(data)
 	case "service/update-service":
 		data := ServiceUpdateRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return UpdateService(data, c)
+		return UpdateService(data)
 	// case "service/spectrum-bind":
 	// 	data := ServiceBindSpectrumRequest{}
 	// 	marshalUnmarshal(&datagram, &data)
-	// 	result, err := BindSpectrum(data, c)
+	// 	result, err := BindSpectrum(data)
 	// 	if err != nil {
 	// 		logger.Log.Error(err)
 	// 	}
@@ -296,7 +295,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	// case "service/spectrum-unbind":
 	// 	data := ServiceUnbindSpectrumRequest{}
 	// 	marshalUnmarshal(&datagram, &data)
-	// 	result, err := UnbindSpectrum(data, c)
+	// 	result, err := UnbindSpectrum(data)
 	// 	if err != nil {
 	// 		logger.Log.Error(err)
 	// 	}
@@ -304,7 +303,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	case "service/log-stream":
 		data := ServiceLogStreamRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return logStream(data, datagram, c)
+		return logStream(data, datagram)
 
 	case "list/namespaces":
 		data := K8sListRequest{}
@@ -370,47 +369,47 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	case "update/deployment":
 		data := K8sUpdateDeploymentRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateDeployment(data, c)
+		return K8sUpdateDeployment(data)
 	case "update/service":
 		data := K8sUpdateServiceRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateService(data, c)
+		return K8sUpdateService(data)
 	case "update/pod":
 		data := K8sUpdatePodRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdatePod(data, c)
+		return K8sUpdatePod(data)
 	case "update/ingress":
 		data := K8sUpdateIngressRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateIngress(data, c)
+		return K8sUpdateIngress(data)
 	case "update/configmap":
 		data := K8sUpdateConfigmapRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateConfigMap(data, c)
+		return K8sUpdateConfigMap(data)
 	case "update/secret":
 		data := K8sUpdateSecretRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateSecret(data, c)
+		return K8sUpdateSecret(data)
 	case "update/daemonset":
 		data := K8sUpdateDaemonSetRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateDaemonSet(data, c)
+		return K8sUpdateDaemonSet(data)
 	case "update/statefulset":
 		data := K8sUpdateStatefulSetRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateStatefulset(data, c)
+		return K8sUpdateStatefulset(data)
 	case "update/job":
 		data := K8sUpdateJobRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateJob(data, c)
+		return K8sUpdateJob(data)
 	case "update/cronjob":
 		data := K8sUpdateCronJobRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateCronJob(data, c)
+		return K8sUpdateCronJob(data)
 	case "update/replicaset":
 		data := K8sUpdateReplicaSetRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sUpdateReplicaSet(data, c)
+		return K8sUpdateReplicaSet(data)
 	case "update/persistentvolume":
 		data := K8sUpdatePersistentVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -423,51 +422,51 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	case "delete/namespace":
 		data := K8sDeleteNamespaceRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteNamespace(data, c)
+		return K8sDeleteNamespace(data)
 	case "delete/deployment":
 		data := K8sDeleteDeploymentRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteDeployment(data, c)
+		return K8sDeleteDeployment(data)
 	case "delete/service":
 		data := K8sDeleteServiceRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteService(data, c)
+		return K8sDeleteService(data)
 	case "delete/pod":
 		data := K8sDeletePodRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeletePod(data, c)
+		return K8sDeletePod(data)
 	case "delete/ingress":
 		data := K8sDeleteIngressRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteIngress(data, c)
+		return K8sDeleteIngress(data)
 	case "delete/configmap":
 		data := K8sDeleteConfigmapRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteConfigMap(data, c)
+		return K8sDeleteConfigMap(data)
 	case "delete/secret":
 		data := K8sDeleteSecretRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteSecret(data, c)
+		return K8sDeleteSecret(data)
 	case "delete/daemonset":
 		data := K8sDeleteDaemonsetRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteDaemonSet(data, c)
+		return K8sDeleteDaemonSet(data)
 	case "delete/statefulset":
 		data := K8sDeleteStatefulsetRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteStatefulset(data, c)
+		return K8sDeleteStatefulset(data)
 	case "delete/job":
 		data := K8sDeleteJobRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteJob(data, c)
+		return K8sDeleteJob(data)
 	case "delete/cronjob":
 		data := K8sDeleteCronjobRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteCronJob(data, c)
+		return K8sDeleteCronJob(data)
 	case "delete/replicaset":
 		data := K8sDeleteReplicasetRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return K8sDeleteReplicaSet(data, c)
+		return K8sDeleteReplicaSet(data)
 	case "delete/persistentvolume":
 		data := K8sDeletePersistentVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -480,33 +479,33 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	case "storage/enable":
 		data := NfsStorageInstallRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return InstallMogeniusNfsStorage(data, c)
+		return InstallMogeniusNfsStorage(data)
 	case "storage/disable":
 		data := NfsStorageInstallRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return UninstallMogeniusNfsStorage(data, c)
+		return UninstallMogeniusNfsStorage(data)
 	case "storage/check-if-installed":
 		return mokubernetes.CheckIfMogeniusNfsIsRunning()
 	case "storage/create-volume":
 		data := NfsVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return CreateMogeniusNfsVolume(data, c)
+		return CreateMogeniusNfsVolume(data)
 	case "storage/delete-volume":
 		data := NfsVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return DeleteMogeniusNfsVolume(data, c)
+		return DeleteMogeniusNfsVolume(data)
 	case "storage/backup-volume":
 		data := NfsVolumeBackupRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return BackupMogeniusNfsVolume(data, c)
+		return BackupMogeniusNfsVolume(data)
 	case "storage/restore-volume":
 		data := NfsVolumeRestoreRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return RestoreMogeniusNfsVolume(data, c)
+		return RestoreMogeniusNfsVolume(data)
 	case "storage/stats":
 		data := NfsVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return StatsMogeniusNfsVolume(data, c)
+		return StatsMogeniusNfsVolume(data)
 	case "popeye-console":
 		return PopeyeConsole()
 	}
@@ -515,7 +514,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 	return datagram
 }
 
-func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *websocket.Conn) ServiceLogStreamResult {
+func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceLogStreamResult {
 	result := ServiceLogStreamResult{}
 
 	url, err := url.Parse(data.PostTo)
@@ -526,7 +525,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *webso
 		return result
 	}
 
-	restReq, err := PodLogStream(data, c)
+	restReq, err := PodLogStream(data)
 	if err != nil {
 		result.Error = err.Error()
 		result.Success = false
@@ -554,21 +553,21 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	}
 
 	/*
-	go func() {
-		reader := bufio.NewScanner(stream)
-		for {
-			select {
-			case <-cancelCtx.Done():
-				fmt.Println("done")
-				return
-			default:
-				for reader.Scan() {
-					lastBytes := reader.Bytes()
-					fmt.Println(string(lastBytes))
+		go func() {
+			reader := bufio.NewScanner(stream)
+			for {
+				select {
+				case <-cancelCtx.Done():
+					fmt.Println("done")
+					return
+				default:
+					for reader.Scan() {
+						lastBytes := reader.Bytes()
+						fmt.Println(string(lastBytes))
+					}
 				}
 			}
-		}
-	}()
+		}()
 	*/
 
 	req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
@@ -619,14 +618,14 @@ func PopeyeConsole() string {
 	return structs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")
 }
 
-func ExecuteBinaryRequestUpload(datagram structs.Datagram, c *websocket.Conn) *FilesUploadRequest {
+func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
 	data := FilesUploadRequest{}
 	marshalUnmarshal(&datagram, &data)
 	return &data
 }
 
-func K8sNotification(d structs.Datagram, c *websocket.Conn) interface{} {
-	logger.Log.Infof("Received '%s' from %s", d.Pattern, c.RemoteAddr().String())
+func K8sNotification(d structs.Datagram) interface{} {
+	logger.Log.Infof("Received '%s'.", d.Pattern)
 	return nil
 }
 

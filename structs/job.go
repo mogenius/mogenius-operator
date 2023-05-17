@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -45,7 +44,7 @@ func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
 	}
 }
 
-func CreateJob(title string, namespaceId string, stageId *string, serviceId *string, c *websocket.Conn) Job {
+func CreateJob(title string, namespaceId string, stageId *string, serviceId *string) Job {
 	job := Job{
 		Id:                      uuid.NewV4().String(),
 		NamespaceId:             namespaceId,
@@ -59,14 +58,14 @@ func CreateJob(title string, namespaceId string, stageId *string, serviceId *str
 		ReportToNotificationSvc: true,
 		Started:                 time.Now(),
 	}
-	ReportStateToServer(&job, nil, c)
+	ReportStateToServer(&job, nil)
 	return job
 }
 
-func (j *Job) Start(c *websocket.Conn) {
+func (j *Job) Start() {
 	j.State = "STARTED"
 	j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
-	ReportStateToServer(j, nil, c)
+	ReportStateToServer(j, nil)
 }
 
 func (j *Job) DefaultReponse() DefaultResponse {
@@ -82,7 +81,7 @@ func (j *Job) DefaultReponse() DefaultResponse {
 	return dr
 }
 
-func (j *Job) Finish(c *websocket.Conn) {
+func (j *Job) Finish() {
 	var allSuccess = true
 	var failedCmd = ""
 	for _, cmd := range j.Commands {
@@ -103,7 +102,7 @@ func (j *Job) Finish(c *websocket.Conn) {
 		j.Message = fmt.Sprintf("%s FAILED.", failedCmd)
 		j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
 	}
-	ReportStateToServer(j, nil, c)
+	ReportStateToServer(j, nil)
 }
 
 func (j *Job) AddCmd(cmd *Command) {
@@ -114,34 +113,30 @@ func (j *Job) AddCmds(cmds []*Command) {
 	j.Commands = append(j.Commands, cmds...)
 }
 
-func ReportStateToServer(job *Job, cmd *Command, c *websocket.Conn) {
-	if c != nil {
-		var data *dtos.K8sNotificationDto = nil
-		typeName := ""
+func ReportStateToServer(job *Job, cmd *Command) {
+	var data *dtos.K8sNotificationDto = nil
+	typeName := ""
 
-		if cmd != nil {
-			typeName = "CMD"
-			if cmd.ReportToNotificationSvc && cmd.NamespaceId != "" {
-				data = K8sNotificationDtoFromCommand(cmd)
-			}
-		} else if job != nil {
-			typeName = "JOB"
-			if job.ReportToNotificationSvc && job.NamespaceId != "" {
-				data = K8sNotificationDtoFromJob(job)
-			}
-		} else {
-			logger.Log.Error("Job AND Command cannot be nil")
+	if cmd != nil {
+		typeName = "CMD"
+		if cmd.ReportToNotificationSvc && cmd.NamespaceId != "" {
+			data = K8sNotificationDtoFromCommand(cmd)
 		}
-
-		if data != nil {
-			stateLog(typeName, data)
-			result := CreateDatagramFromNotification(data, nil)
-			EventServerSendData(result, "", "", "", 1)
-		} else {
-			logger.Log.Error("Serialization failed.")
+	} else if job != nil {
+		typeName = "JOB"
+		if job.ReportToNotificationSvc && job.NamespaceId != "" {
+			data = K8sNotificationDtoFromJob(job)
 		}
 	} else {
-		logger.Log.Error("No connection to server.")
+		logger.Log.Error("Job AND Command cannot be nil")
+	}
+
+	if data != nil {
+		stateLog(typeName, data)
+		result := CreateDatagramFromNotification(data)
+		EventServerSendData(result, "", "", "", 1)
+	} else {
+		logger.Log.Error("Serialization failed.")
 	}
 }
 
