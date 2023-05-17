@@ -320,7 +320,7 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ServiceGetLogRequestExample()
 		case "service/log-stream":
 			payload = services.ServiceLogStreamRequestExample()
-			blockConnection = true
+			blockConnection = false
 		case "service/resource-status":
 			payload = services.ServiceResourceStatusRequestExample()
 		case "service/restart":
