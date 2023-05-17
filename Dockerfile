@@ -4,18 +4,18 @@ LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit
 
 ENV GOOS=linux
 
-RUN apk add --no-cache \
-    libpcap-dev \
-    g++ \
-    perl-utils \
-    curl \
-    build-base \
-    binutils-gold \
-    bash \
-    clang \
-    llvm \
-    libbpf-dev \
-    linux-headers 
+# RUN apk add --no-cache \
+    # libpcap-dev \
+    # g++ \
+    # perl-utils \
+    # curl \
+    # build-base \
+    # binutils-gold \
+    # bash 
+    # clang \
+    # llvm \
+    # libbpf-dev \
+    # linux-headers
 
 ARG COMMIT_HASH=NOT_SET
 ARG GIT_BRANCH=NOT_SET
@@ -42,26 +42,33 @@ RUN apk add --no-cache \
     git \
     curl \
     build-base \
-    libpcap-dev bash \
+    # libpcap-dev \
     nodejs \
     npm \
     coreutils \
-    ruby-dev \
+    # ruby-dev \
     openssl
 
-RUN gem install -N rails
-RUN gem install -N bundler
-RUN npm install -g @vue/cli
+# RUN gem install -N rails
+# RUN gem install -N bundler
+# RUN npm install -g @vue/cli
 RUN npm install -g @angular/cli
-RUN npm install -g @nestjs/cli
-RUN npm install -g gatsby-cli
-RUN npm install -g create-next-app next react react-dom
+# RUN npm install -g @nestjs/cli
+# RUN npm install -g gatsby-cli
+# RUN npm install -g create-next-app next react react-dom
 
 # Install HELM
 RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
 RUN chmod 700 get_helm.sh
 RUN ./get_helm.sh
 RUN rm get_helm.sh
+
+# Install Popeye
+RUN curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_x86_64.tar.gz
+RUN tar -xvf popeye.tar.gz popeye
+RUN chmod +x popeye
+RUN mv popeye /usr/local/bin/popeye
+RUN rm popeye.tar.gz
 
 WORKDIR /app
 

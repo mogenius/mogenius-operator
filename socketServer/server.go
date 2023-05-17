@@ -433,7 +433,11 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.NfsVolumeRestoreRequestExample()
 		case "storage/stats":
 			payload = services.NfsVolumeRequestExample()
+
+		case "popeye-console":
+			payload = nil
 		}
+
 		firstConnection := selectRandomCluster(blockConnection)
 		datagram := structs.CreateDatagramFrom(pattern, payload, firstConnection.Connection)
 		datagram.Send()

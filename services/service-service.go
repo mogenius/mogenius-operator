@@ -136,8 +136,8 @@ func UpdateService(r ServiceUpdateRequest, c *websocket.Conn) interface{} {
 func TcpUdpClusterConfiguration(c *websocket.Conn) dtos.TcpUdpClusterConfigurationDto {
 	return dtos.TcpUdpClusterConfigurationDto{
 		IngressServices: mokubernetes.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller"),
-		TcpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "tcp-services"),
-		UdpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "udp-services"),
+		TcpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp"),
+		UdpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp"),
 	}
 }
 
@@ -265,8 +265,7 @@ ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 		Namespace:    "mogenius",
 		PodId:        "mogenius-ingress-nginx-defaultbackend-585b47559c-9w6j9",
 		SinceSeconds: -1,
-		//PostTo:       "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
-		PostTo:       "http://localhost:1337/project-namespace-service/log-stream-callback?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+		PostTo:       "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
 	}
 }
 

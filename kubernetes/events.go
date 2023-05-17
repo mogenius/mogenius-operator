@@ -28,6 +28,12 @@ var eventsFirstStart = true
 func WatchEvents() {
 	kubeProvider := NewKubeProvider()
 
+	// INIT EXISTING VOLUMES
+	err := UpdateK8sManagerVolumeMounts("", "")
+	if err != nil {
+		logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
+	}
+
 	for {
 		// Create a watcher for all Kubernetes events
 		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
@@ -59,18 +65,6 @@ func WatchEvents() {
 								logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
 							}
 						}
-						// if kind == "PersistentVolumeClaim" {
-						// 	if reason == "ProvisioningSucceeded" && strings.HasPrefix(message, "Successfully provisioned volume pvc-") {
-						// 		// 1. get pvc
-						// 		// 2. check if storageclass is "openebs-rwx"
-
-						// 	} else if reason == "ProvisioningSucceeded" && strings.HasPrefix(message, "Successfully provisioned volume pvc-") {
-
-						// 	}
-						// 	fmt.Println(eventObj)
-						// }
-						//fmt.Println(eventObj)
-
 						structs.EventServerSendData(datagram, kind, reason, message, count)
 					}
 				} else if event.Type == "ERROR" {
@@ -89,6 +83,11 @@ func WatchEvents() {
 }
 
 func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace string) error {
+	// EXIT if started locally
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		return nil
+	}
+
 	allMountedPaths := []string{}
 
 	time.Sleep(2 * time.Second)
@@ -121,12 +120,12 @@ func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace
 			mountPath := utils.MountPath(mopvc.Namespace, mopvc.Name, "/")
 			allMountedPaths = append(allMountedPaths, mountPath)
 			// 3.1 Add VolumeMount
-			ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
+			ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = appendVolumeMountIfNotExists(ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
 				MountPath: mountPath,
 				Name:      mopvc.Name,
 			})
 			// 3.2 Add Volume
-			ownDeployment.Spec.Template.Spec.Volumes = append(ownDeployment.Spec.Template.Spec.Volumes, core.Volume{
+			ownDeployment.Spec.Template.Spec.Volumes = appendVolumeIfNotExists(ownDeployment.Spec.Template.Spec.Volumes, core.Volume{
 				Name: mopvc.Name,
 				VolumeSource: core.VolumeSource{
 					PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
@@ -165,4 +164,26 @@ func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace
 		eventsFirstStart = false
 	}
 	return nil
+}
+
+func appendVolumeMountIfNotExists(items []v1Core.VolumeMount, newItem v1Core.VolumeMount) []v1Core.VolumeMount {
+	for _, item := range items {
+		if item.Name == newItem.Name {
+			// The item is already in the slice, so return the original slice.
+			return items
+		}
+	}
+	// The item was not found, so add it to the slice.
+	return append(items, newItem)
+}
+
+func appendVolumeIfNotExists(items []v1Core.Volume, newItem v1Core.Volume) []v1Core.Volume {
+	for _, item := range items {
+		if item.Name == newItem.Name {
+			// The item is already in the slice, so return the original slice.
+			return items
+		}
+	}
+	// The item was not found, so add it to the slice.
+	return append(items, newItem)
 }

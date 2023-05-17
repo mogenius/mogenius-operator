@@ -121,6 +121,8 @@ var COMMAND_REQUESTS = []string{
 	"storage/backup-volume",
 	"storage/restore-volume",
 	"storage/stats",
+
+	"popeye-console",
 }
 
 var BINARY_REQUEST_UPLOAD = []string{
@@ -505,6 +507,8 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 		data := NfsVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StatsMogeniusNfsVolume(data, c)
+	case "popeye-console":
+		return PopeyeConsole()
 	}
 
 	datagram.Err = "Pattern not found"
@@ -513,7 +517,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, c *websocket.Conn) interfa
 
 func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *websocket.Conn) ServiceLogStreamResult {
 	result := ServiceLogStreamResult{}
-	
+
 	url, err := url.Parse(data.PostTo)
 	if err != nil {
 		result.Error = err.Error()
@@ -521,7 +525,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *webso
 		logger.Log.Error(result.Error)
 		return result
 	}
-	
+
 	restReq, err := PodLogStream(data, c)
 	if err != nil {
 		result.Error = err.Error()
@@ -529,11 +533,11 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram, c *webso
 		logger.Log.Error(result.Error)
 		return result
 	}
-	
+
 	go streamData(restReq, url.String())
-	
+
 	result.Success = true
-	
+
 	return result
 }
 
@@ -609,6 +613,10 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	if err != nil {
 		logger.Log.Errorf("streamData client: error making http request: %s\n", err)
 	}
+}
+
+func PopeyeConsole() string {
+	return structs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")
 }
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram, c *websocket.Conn) *FilesUploadRequest {

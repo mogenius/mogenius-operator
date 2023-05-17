@@ -190,6 +190,7 @@ func UpdateK8sConfigMap(data v1.ConfigMap) K8sWorkloadResult {
 	configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(data.Namespace)
 	_, err := configmapClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
+		logger.Log.Errorf("UpdateK8sConfigMap ERROR: %s", err.Error())
 		return WorkloadResult(err.Error())
 	}
 	return WorkloadResult("")
@@ -200,6 +201,7 @@ func DeleteK8sConfigmap(data v1.ConfigMap) K8sWorkloadResult {
 	configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(data.Namespace)
 	err := configmapClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
+		logger.Log.Errorf("DeleteK8sConfigmap ERROR: %s", err.Error())
 		return WorkloadResult(err.Error())
 	}
 	return WorkloadResult("")

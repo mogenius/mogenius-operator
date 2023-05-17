@@ -150,17 +150,17 @@ func UpdateServiceWith(service *v1.Service) error {
 
 func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, additive bool) {
 	// 1. get configmap and ingress service
-	tcpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "tcp-services")
-	udpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "udp-services")
+	tcpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp")
+	udpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp")
 	ingControllerService := ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller")
 
 	if tcpConfigmap == nil {
-		logger.Log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "tcp-services")
+		logger.Log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp")
 		return
 	}
 
 	if udpConfigmap == nil {
-		logger.Log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "udp-services")
+		logger.Log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp")
 		return
 	}
 
@@ -182,7 +182,7 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, addit
 	}
 	for cmKey, cmValue := range udpConfigmap.Data {
 		if strings.HasPrefix(cmValue, k8sName) {
-			delete(tcpConfigmap.Data, cmKey)
+			delete(udpConfigmap.Data, cmKey)
 		}
 	}
 	for index, port := range ingControllerService.Spec.Ports {
@@ -357,25 +357,27 @@ func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Serv
 	newService := utils.InitService()
 	newService.ObjectMeta.Name = service.Name
 	newService.ObjectMeta.Namespace = stage.Name
-	newService.Spec.Ports = []v1.ServicePort{} // reset before using
-	for _, port := range service.Ports {
-		if port.PortType == "HTTPS" {
-			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-				Port: int32(port.InternalPort),
-				Name: fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
-			})
-		} else {
-			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-				Port:     int32(port.InternalPort),
-				Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
-				Protocol: v1.Protocol(port.PortType),
-			})
-			if port.ExternalPort != 0 {
+	if len(service.Ports) > 0 {
+		newService.Spec.Ports = []v1.ServicePort{} // reset before using
+		for _, port := range service.Ports {
+			if port.PortType == "HTTPS" {
 				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-					Port:     int32(port.ExternalPort),
-					Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.Name),
+					Port: int32(port.InternalPort),
+					Name: fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
+				})
+			} else {
+				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
+					Port:     int32(port.InternalPort),
+					Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.Name),
 					Protocol: v1.Protocol(port.PortType),
 				})
+				if port.ExternalPort != 0 {
+					newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
+						Port:     int32(port.ExternalPort),
+						Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.Name),
+						Protocol: v1.Protocol(port.PortType),
+					})
+				}
 			}
 		}
 	}

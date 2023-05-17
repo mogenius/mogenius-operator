@@ -26,9 +26,9 @@ type Config struct {
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
-		Ws_Proto    string `yaml:"ws_proto" env:"api_ws_proto" env-description:"Server Path" env-default:"ws"`
-		Ws_Server   string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:7011"`
-		WS_Path     string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
+		Ws_Proto  string `yaml:"ws_proto" env:"api_ws_proto" env-description:"Server Path" env-default:"ws"`
+		Ws_Server string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:7011"`
+		WS_Path   string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
 	} `yaml:"api_server"`
 	EventServer struct {
 		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1"`
@@ -39,9 +39,7 @@ type Config struct {
 		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		LogKubernetesEvents   bool     `yaml:"log_kubernetes_events" env:"log-kubernetes-events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
-		StorageAccount        string   `yaml:"storage_account" env:"storage_account" env-description:"Azure Storage Account"`
 		DefaultMountPath      string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
-		ConcurrentConnections int      `yaml:"concurrent_connections" env:"concurrent_connections" env-description:"Concurrent connections to API server." env-default:"1"`
 		IgnoreNamespaces      []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
 		IgnoreResourcesBackup []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
 		CheckForUpdates       int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
@@ -126,9 +124,7 @@ func PrintSettings() {
 	logger.Log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
 	logger.Log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
 	logger.Log.Infof("LogKubernetesEvents:      %t", CONFIG.Misc.LogKubernetesEvents)
-	logger.Log.Infof("StorageAccount:           %s", CONFIG.Misc.StorageAccount)
 	logger.Log.Infof("DefaultMountPath:         %s", CONFIG.Misc.DefaultMountPath)
-	logger.Log.Infof("ConcurrentConnections:    %d", CONFIG.Misc.ConcurrentConnections)
 	logger.Log.Infof("IgnoreResourcesBackup:    %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
 	logger.Log.Infof("IgnoreNamespaces:         %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
 	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)

@@ -107,8 +107,8 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 		config.WithSpec(spec)
 
 		if len(spec.Rules) <= 0 {
-			existingIngress, _ := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
-			if existingIngress != nil {
+			existingIngress, ingErr := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+			if existingIngress != nil && ingErr == nil {
 				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
 					cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()), c)
