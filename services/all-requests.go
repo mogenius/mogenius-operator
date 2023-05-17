@@ -2,7 +2,10 @@ package services
 
 import (
 	// "bufio"
+
 	"context"
+	"io"
+
 	// "fmt"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
@@ -574,6 +577,10 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
 	if err != nil {
 		logger.Log.Errorf("streamData client: could not create request: %s\n", err)
+	}
+
+	req.GetBody = func() (io.ReadCloser, error) {
+		return stream, nil
 	}
 
 	var resp *http.Response
