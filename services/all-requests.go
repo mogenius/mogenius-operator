@@ -1,9 +1,9 @@
 package services
 
 import (
-	"bufio"
+	// "bufio"
 	"context"
-	"fmt"
+	// "fmt"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -549,6 +549,7 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		logger.Log.Error(err.Error())
 	}
 
+	/*
 	go func() {
 		reader := bufio.NewScanner(stream)
 		for {
@@ -564,6 +565,7 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 			}
 		}
 	}()
+	*/
 
 	req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
 	if err != nil {
