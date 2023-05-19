@@ -5,7 +5,7 @@ package cmd
 
 import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/socketServer"
+	socketclient "mogenius-k8s-manager/socket-client"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
@@ -39,7 +39,7 @@ var testClientCmd = &cobra.Command{
 
 		go mokubernetes.WatchEvents()
 
-		socketServer.StartK8sManager(false)
+		socketclient.StartK8sManager(false)
 	},
 }
 

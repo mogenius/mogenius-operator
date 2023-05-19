@@ -6,7 +6,7 @@ package cmd
 import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
-	"mogenius-k8s-manager/socketServer"
+	socketclient "mogenius-k8s-manager/socket-client"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
@@ -37,7 +37,7 @@ var clusterCmd = &cobra.Command{
 
 		structs.ExecuteBashCommandSilent("Git setup ...", `git config --global user.email "git@mogenius.com"; git config --global user.name "mogenius git-user"; git config --global init.defaultBranch main; git config --global advice.addIgnoredFile false;`)
 
-		socketServer.StartK8sManager(true)
+		socketclient.StartK8sManager(true)
 	},
 }
 

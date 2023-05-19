@@ -2,6 +2,7 @@ package structs
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -63,7 +64,9 @@ func connectJob(ctx context.Context) {
 		logger.Log.Infof("Connected to JobServer: %s  (%s)\n", connectionUrl.String(), connection.LocalAddr().String())
 		JobQueueConnection = connection
 		JobConnectionStatus <- true
-		observeJobConnection(JobQueueConnection)
+		done := make(chan struct{})
+		Ping(done, JobQueueConnection, &JobSendMutex)
+		fmt.Println("OMG")
 	}
 
 	defer func() {
@@ -76,33 +79,9 @@ func connectJob(ctx context.Context) {
 	}()
 }
 
-func observeJobConnection(connection *websocket.Conn) {
-	for {
-		if connection == nil {
-			return
-		}
-
-		msgType, _, err := connection.ReadMessage()
-		if err != nil {
-			logger.Log.Error("websocket read err:", err)
-			connection.Close()
-			return
-		}
-
-		switch msgType {
-		case websocket.CloseMessage:
-			logger.Log.Warning("Received websocket.CloseMessage.")
-			connection.Close()
-			return
-		}
-	}
-}
-
 func JobServerSendData(datagram Datagram) {
-	JobSendMutex.Lock()
-	defer JobSendMutex.Unlock()
-
 	jobDataQueue = append(jobDataQueue, datagram)
+	processJobNow()
 }
 
 func processJobNow() {
@@ -115,11 +94,6 @@ func processJobNow() {
 
 			err := JobQueueConnection.WriteJSON(element)
 			if err == nil {
-				// if element.K8sKind != "" && element.K8sReason != "" && element.K8sMessage != "" {
-				// 	if utils.CONFIG.Misc.LogKubernetesEvents || utils.CONFIG.Misc.Debug {
-				// 		element.Datagram.DisplaySentSummaryEvent(element.K8sKind, element.K8sReason, element.K8sMessage, element.Count)
-				// 	}
-				// }
 				jobDataQueue = RemoveJobIndex(jobDataQueue, i)
 			} else {
 				logger.Log.Error(err)

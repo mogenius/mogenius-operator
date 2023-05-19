@@ -1,4 +1,4 @@
-package socketServer
+package socketclient
 
 import (
 	"fmt"
@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -27,8 +26,6 @@ import (
 
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 )
-
-const PingSeconds = 10
 
 func StartK8sManager(runsInCluster bool) {
 	interrupt := make(chan os.Signal, 1)
@@ -65,125 +62,80 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	var openFile *os.File
 	bar := progressbar.DefaultSilent(0)
 
-	go func() {
-		defer func() {
-			close(done)
-		}()
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				return
-			} else {
-				rawDataStr := string(message)
-				if rawDataStr == "" {
-					continue
-				}
-				if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
-					preparedFileName = utils.Pointer(fmt.Sprintf("%s.zip", uuid.New().String()))
-					rawDataStr = strings.Replace(rawDataStr, "######START_UPLOAD######;", "", 1)
-					openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-					if preparedFileRequest != nil {
-						bar = progressbar.DefaultBytes(preparedFileRequest.SizeInBytes)
-					} else {
-						progressbar.DefaultBytes(0)
-					}
-				}
-				if strings.HasPrefix(rawDataStr, "######END_UPLOAD######;") {
-					openFile.Close()
-					if preparedFileName != nil && preparedFileRequest != nil {
-						services.Uploaded(*preparedFileName, *preparedFileRequest)
-					}
-					bar.Finish()
-					os.Remove(*preparedFileName)
-
-					var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
-					ack.Send()
-
-					preparedFileName = nil
-					preparedFileRequest = nil
-
-					continue
-				}
-				if preparedFileName != nil {
-					openFile.Write([]byte(rawDataStr))
-					bar.Add(len(rawDataStr))
-				} else {
-					datagram := structs.CreateEmptyDatagram()
-
-					var json = jsoniter.ConfigCompatibleWithStandardLibrary
-					jsonErr := json.Unmarshal([]byte(rawDataStr), &datagram)
-					if jsonErr != nil {
-						logger.Log.Errorf("%s", jsonErr.Error())
-					}
-
-					datagram.DisplayReceiveSummary()
-
-					if utils.CONFIG.Misc.Debug {
-						structs.PrettyPrint(datagram)
-					}
-
-					if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
-						// ####### COMMAND
-						responsePayload := services.ExecuteCommandRequest(datagram)
-						result := structs.CreateDatagramRequest(datagram, responsePayload)
-						structs.JobSendMutex.Lock()
-						result.Send()
-						structs.JobSendMutex.Unlock()
-					} else if utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
-						preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
-
-						var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
-						ack.Send()
-					} else {
-						logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
-					}
-				}
-			}
-		}
+	defer func() {
+		close(done)
 	}()
-
-	// KEEP THE CONNECTION OPEN
-	ping(done, c, &sendMutex)
-
-	c.Close()
-}
-
-func ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-
-	pingTicker := time.NewTicker(time.Second * PingSeconds)
-	defer pingTicker.Stop()
-
 	for {
-		select {
-		case <-done:
+		_, message, err := c.ReadMessage()
+		if err != nil {
+			log.Println("read:", err)
 			return
-		case <-pingTicker.C:
-			err := c.WriteMessage(websocket.PingMessage, nil)
-			if err != nil {
-				log.Println("pingTicker ERROR:", err)
-				return
+		} else {
+			rawDataStr := string(message)
+			if rawDataStr == "" {
+				continue
 			}
-		case <-interrupt:
-			log.Println("interrupt")
+			if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
+				preparedFileName = utils.Pointer(fmt.Sprintf("%s.zip", uuid.New().String()))
+				rawDataStr = strings.Replace(rawDataStr, "######START_UPLOAD######;", "", 1)
+				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				if err != nil {
+					logger.Log.Errorf("Cannot open uploadfile: '%s'.", err.Error())
+				}
+				if preparedFileRequest != nil {
+					bar = progressbar.DefaultBytes(preparedFileRequest.SizeInBytes)
+				} else {
+					progressbar.DefaultBytes(0)
+				}
+			}
+			if strings.HasPrefix(rawDataStr, "######END_UPLOAD######;") {
+				openFile.Close()
+				if preparedFileName != nil && preparedFileRequest != nil {
+					services.Uploaded(*preparedFileName, *preparedFileRequest)
+				}
+				bar.Finish()
+				os.Remove(*preparedFileName)
 
-			// Cleanly close the connection by sending a close message and then
-			// waiting (with timeout) for the server to close the connection.
-			sendMutex.Lock()
-			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			sendMutex.Unlock()
-			if err != nil {
-				log.Println("write close:", err)
-				return
+				var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
+				ack.Send()
+
+				preparedFileName = nil
+				preparedFileRequest = nil
+
+				continue
 			}
-			select {
-			case <-done:
-				log.Fatal("CTRL + C pressed. Terminating.")
-			case <-time.After(time.Second):
+			if preparedFileName != nil {
+				openFile.Write([]byte(rawDataStr))
+				bar.Add(len(rawDataStr))
+			} else {
+				datagram := structs.CreateEmptyDatagram()
+
+				var json = jsoniter.ConfigCompatibleWithStandardLibrary
+				jsonErr := json.Unmarshal([]byte(rawDataStr), &datagram)
+				if jsonErr != nil {
+					logger.Log.Errorf("%s", jsonErr.Error())
+				}
+
+				datagram.DisplayReceiveSummary()
+
+				if utils.CONFIG.Misc.Debug {
+					structs.PrettyPrint(datagram)
+				}
+
+				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
+					// ####### COMMAND
+					responsePayload := services.ExecuteCommandRequest(datagram)
+					result := structs.CreateDatagramRequest(datagram, responsePayload)
+					result.Send()
+				} else if utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
+					preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
+
+					var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
+					ack.Send()
+				} else {
+					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
+				}
 			}
-			return
 		}
 	}
 }

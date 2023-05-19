@@ -1,4 +1,4 @@
-package socketServer
+package socketserver
 
 import (
 	"bufio"
@@ -31,7 +31,7 @@ var upgrader = websocket.Upgrader{
 
 var validate = validator.New()
 var connections = make(map[string]*structs.ClusterConnection)
-var sendMutex sync.Mutex
+var serverSendMutex sync.Mutex
 
 func Init(r *gin.Engine) {
 	// r.Use(user.AuthUserMiddleware())
@@ -151,15 +151,15 @@ func validateHeader(c *gin.Context) string {
 }
 
 func addConnection(connection *websocket.Conn, clusterName string) {
-	sendMutex.Lock()
-	defer sendMutex.Unlock()
+	serverSendMutex.Lock()
+	defer serverSendMutex.Unlock()
 	remoteAddr := connection.RemoteAddr().String()
 	connections[remoteAddr] = &structs.ClusterConnection{ClusterName: clusterName, Connection: connection, AddedAt: time.Now()}
 }
 
 func removeConnection(connection *websocket.Conn) {
-	sendMutex.Lock()
-	defer sendMutex.Unlock()
+	serverSendMutex.Lock()
+	defer serverSendMutex.Unlock()
 	remoteAddr := connection.RemoteAddr().String()
 	connection.Close()
 	delete(connections, remoteAddr)
@@ -437,7 +437,9 @@ func requestCmdFromCluster(pattern string) {
 
 		firstConnection := selectRandomCluster(false)
 		datagram := structs.CreateDatagramFrom(pattern, payload)
+		serverSendMutex.Lock()
 		err := firstConnection.Connection.WriteJSON(datagram)
+		serverSendMutex.Unlock()
 		if err != nil {
 			logger.Log.Error(err.Error())
 		}
@@ -525,7 +527,7 @@ func sendFile() {
 		buf := make([]byte, 512)
 		bar := progressbar.DefaultBytes(totalSize)
 
-		sendMutex.Lock()
+		serverSendMutex.Lock()
 		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######START_UPLOAD######;"))
 		for {
 			chunk, err := reader.Read(buf)
@@ -543,7 +545,7 @@ func sendFile() {
 			logger.Log.Errorf("reading bytes error: %s", err.Error())
 		}
 		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######END_UPLOAD######;"))
-		sendMutex.Unlock()
+		serverSendMutex.Unlock()
 	} else {
 		logger.Log.Error("reader cannot be nil")
 		logger.Log.Error("file size cannot be nil")

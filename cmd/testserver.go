@@ -9,7 +9,7 @@ import (
 	"fmt"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
-	"mogenius-k8s-manager/socketServer"
+	socketserver "mogenius-k8s-manager/socket-server"
 	"mogenius-k8s-manager/utils"
 
 	"github.com/gin-gonic/gin"
@@ -65,10 +65,10 @@ var testServerCmd = &cobra.Command{
 			// fmt.Println(string(data))
 
 		})
-		socketServer.Init(router)
+		socketserver.Init(router)
 		logger.Log.Noticef("Started WS server %s 🚀", utils.CONFIG.ApiServer.Ws_Server)
 
-		go socketServer.ReadInput()
+		go socketserver.ReadInput()
 		router.Run()
 	},
 }
