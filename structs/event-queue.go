@@ -133,7 +133,7 @@ func processQueueNow() {
 			err := eventQueueConnection.WriteJSON(element.Datagram)
 			if err == nil {
 				if element.K8sKind != "" && element.K8sReason != "" && element.K8sMessage != "" {
-					if utils.CONFIG.Misc.LogKubernetesEvents || utils.CONFIG.Misc.Debug {
+					if utils.CONFIG.Misc.LogKubernetesEvents {
 						element.Datagram.DisplaySentSummaryEvent(element.K8sKind, element.K8sReason, element.K8sMessage, element.Count)
 					}
 				}

@@ -121,11 +121,11 @@ func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, err
 
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(NAMESPACE)
 
-	existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
-	return writeMogeniusSecret(secretClient, runsInCluster, existingSecret)
+	existingSecret, getErr := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+	return writeMogeniusSecret(secretClient, runsInCluster, existingSecret, getErr)
 }
 
-func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, existingSecret *core.Secret) (utils.ClusterSecret, error) {
+func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, existingSecret *core.Secret, getErr error) (utils.ClusterSecret, error) {
 	// CREATE NEW SECRET
 	apikey := os.Getenv("api_key")
 	if apikey == "" {
@@ -163,7 +163,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, ex
 	secret.StringData["api-key"] = clusterSecret.ApiKey
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
 
-	if existingSecret == nil {
+	if existingSecret == nil || getErr != nil {
 		logger.Log.Info("Creating new mogenius secret ...")
 		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {

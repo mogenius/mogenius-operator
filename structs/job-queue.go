@@ -47,7 +47,6 @@ func ConnectToJobQueue() {
 			ctx := context.Background()
 			connectJob(ctx)
 			ctx.Done()
-			JobConnectionStatus <- false
 			<-JobConnectionGuard
 		}()
 	}
@@ -61,7 +60,7 @@ func connectJob(ctx context.Context) {
 		logger.Log.Errorf("Connection to JobServer failed: %s\n", err.Error())
 		JobConnectionStatus <- false
 	} else {
-		logger.Log.Infof("Connected to JobServer: %s \n", connectionUrl.String())
+		logger.Log.Infof("Connected to JobServer: %s  (%s)\n", connectionUrl.String(), connection.LocalAddr().String())
 		JobQueueConnection = connection
 		JobConnectionStatus <- true
 		observeJobConnection(JobQueueConnection)
@@ -87,7 +86,6 @@ func observeJobConnection(connection *websocket.Conn) {
 		if err != nil {
 			logger.Log.Error("websocket read err:", err)
 			connection.Close()
-			JobConnectionStatus <- false
 			return
 		}
 
@@ -95,7 +93,6 @@ func observeJobConnection(connection *websocket.Conn) {
 		case websocket.CloseMessage:
 			logger.Log.Warning("Received websocket.CloseMessage.")
 			connection.Close()
-			JobConnectionStatus <- false
 			return
 		}
 	}

@@ -34,8 +34,9 @@ var testClientCmd = &cobra.Command{
 
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
 
-		go structs.ConnectToEventQueue()
+		//go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
+
 		go mokubernetes.WatchEvents()
 
 		socketServer.StartK8sManager(false)

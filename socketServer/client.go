@@ -48,13 +48,15 @@ func StartK8sManager(runsInCluster bool) {
 
 	for status := range structs.JobConnectionStatus {
 		if status {
-			log.Println("Connection is active")
+			// CONNECTED
 			done := make(chan struct{})
 			parseMessage(done, structs.JobQueueConnection)
 		} else {
-			log.Println("Connection is not active")
+			// DISCONNECTED
 		}
 	}
+
+	fmt.Println("omg")
 }
 
 func parseMessage(done chan struct{}, c *websocket.Conn) {

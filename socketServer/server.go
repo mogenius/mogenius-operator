@@ -146,7 +146,7 @@ func validateHeader(c *gin.Context) string {
 		return ""
 	}
 
-	logger.Log.Infof("New client connected %s/%s (Agent: %s)", clusterName, c.Request.RemoteAddr, userAgent)
+	logger.Log.Infof("New client connected %s -> %s (Agent: %s)", c.Request.RequestURI, c.Request.RemoteAddr, userAgent)
 	return clusterName
 }
 
@@ -437,7 +437,11 @@ func requestCmdFromCluster(pattern string) {
 
 		firstConnection := selectRandomCluster(false)
 		datagram := structs.CreateDatagramFrom(pattern, payload)
-		firstConnection.Connection.WriteJSON(datagram)
+		err := firstConnection.Connection.WriteJSON(datagram)
+		if err != nil {
+			logger.Log.Error(err.Error())
+		}
+		datagram.DisplayBeautiful()
 
 		// send file after pattern
 		if pattern == "files/upload" {
