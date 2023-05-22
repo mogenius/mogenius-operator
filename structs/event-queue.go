@@ -27,9 +27,7 @@ const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
 
 var eventSendMutex sync.Mutex
-
 var eventQueueConnection *websocket.Conn
-
 var eventDataQueue []EventData = []EventData{}
 
 func ConnectToEventQueue() {
@@ -52,7 +50,7 @@ func ConnectToEventQueue() {
 
 			go func() {
 				for range ticker.C {
-					processQueueNow()
+					processEventQueueNow()
 				}
 			}()
 
@@ -109,9 +107,6 @@ func observeEventConnection(connection *websocket.Conn) {
 }
 
 func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32) {
-	eventSendMutex.Lock()
-	defer eventSendMutex.Unlock()
-
 	data := EventData{
 		Datagram:   datagram,
 		K8sKind:    k8sKind,
@@ -120,9 +115,10 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 		Count:      count,
 	}
 	eventDataQueue = append(eventDataQueue, data)
+	processEventQueueNow()
 }
 
-func processQueueNow() {
+func processEventQueueNow() {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 
