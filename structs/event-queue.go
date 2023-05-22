@@ -72,7 +72,8 @@ func connectEvent(ctx context.Context) {
 	} else {
 		logger.Log.Infof("Connected to EventServer: %s \n", connectionUrl.String())
 		eventQueueConnection = connection
-		observeEventConnection(eventQueueConnection)
+		done := make(chan struct{})
+		Ping(done, eventQueueConnection, &eventSendMutex)
 	}
 
 	defer func() {
@@ -82,28 +83,6 @@ func connectEvent(ctx context.Context) {
 		}
 		ctx.Done()
 	}()
-}
-
-func observeEventConnection(connection *websocket.Conn) {
-	for {
-		if connection == nil {
-			return
-		}
-
-		msgType, _, err := connection.ReadMessage()
-		if err != nil {
-			logger.Log.Error("websocket read err:", err)
-			connection.Close()
-			return
-		}
-
-		switch msgType {
-		case websocket.CloseMessage:
-			logger.Log.Warning("Received websocket.CloseMessage.")
-			connection.Close()
-			return
-		}
-	}
 }
 
 func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32) {

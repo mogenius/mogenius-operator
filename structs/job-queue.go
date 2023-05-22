@@ -2,7 +2,6 @@ package structs
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -66,7 +65,6 @@ func connectJob(ctx context.Context) {
 		JobConnectionStatus <- true
 		done := make(chan struct{})
 		Ping(done, JobQueueConnection, &JobSendMutex)
-		fmt.Println("OMG")
 	}
 
 	defer func() {
