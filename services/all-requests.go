@@ -4,17 +4,13 @@ import (
 	// "bufio"
 
 	"context"
-	"io"
 
 	// "fmt"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
-	"net/http"
 	"net/url"
-	"time"
 
 	jsoniter "github.com/json-iterator/go"
 
@@ -573,52 +569,55 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		}()
 	*/
 
-	req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
-	if err != nil {
-		logger.Log.Errorf("streamData client: could not create request: %s\n", err)
-	}
+	structs.SendDataWs(toServerUrl, stream)
 
-	req.GetBody = func() (io.ReadCloser, error) {
-		return stream, nil
-	}
+	// req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
+	// if err != nil {
+	// 	logger.Log.Errorf("streamData client: could not create request: %s\n", err)
+	// }
 
-	var resp *http.Response
+	// req.GetBody = func() (io.ReadCloser, error) {
 
-	header := utils.HttpHeader()
-	header.Add("Content-Type", "text/plain")
-	req.Header = header
+	// 	// return stream, nil
+	// }
 
-	client := http.Client{
-		Timeout: time.Duration(0) * time.Second, // no timeout
-	}
+	// var resp *http.Response
 
-	var cleanup = func() {
-		if resp != nil {
-			resp.Body.Close()
-		}
+	// header := utils.HttpHeader()
+	// header.Add("Content-Type", "text/plain")
+	// req.Header = header
 
-		if req != nil {
-			req.Close = true
-		}
+	// client := http.Client{
+	// 	Timeout: time.Duration(0) * time.Second, // no timeout
+	// }
 
-		if stream != nil {
-			stream.Close()
-		}
+	// var cleanup = func() {
+	// 	if resp != nil {
+	// 		resp.Body.Close()
+	// 	}
 
-		endGofunc()
-	}
+	// 	if req != nil {
+	// 		req.Close = true
+	// 	}
 
-	defer func() {
-		logger.Log.Info("defer async debug: func")
-		cleanup()
-	}()
+	// 	if stream != nil {
+	// 		stream.Close()
+	// 	}
 
-	logger.Log.Infof("stream data to: %s\n", toServerUrl)
+	// 	endGofunc()
+	// }
 
-	resp, err = client.Do(req)
-	if err != nil {
-		logger.Log.Errorf("streamData client: error making http request: %s\n", err)
-	}
+	// defer func() {
+	// 	logger.Log.Info("defer async debug: func")
+	// 	cleanup()
+	// }()
+
+	// logger.Log.Infof("stream data to: %s\n", toServerUrl)
+
+	// resp, err = client.Do(req)
+	// if err != nil {
+	// 	logger.Log.Errorf("streamData client: error making http request: %s\n", err)
+	// }
 }
 
 func PopeyeConsole() string {

@@ -2,7 +2,10 @@ package structs
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 	"os"
 	"os/signal"
 	"sync"
@@ -48,6 +51,41 @@ func DurationStrSince(since time.Time) string {
 		durationStr = fmt.Sprintf("%d μs", duration)
 	}
 	return durationStr
+}
+
+func SendDataWs(sendToServer string, reader io.ReadCloser) {
+	connection, _, err := websocket.DefaultDialer.Dial(sendToServer, utils.HttpHeader())
+	if err != nil {
+		logger.Log.Errorf("Connection to Stream-Endpoint (%s) failed: %s\n", sendToServer, err.Error())
+	} else {
+		if connection != nil {
+			defer reader.Close()
+
+			buf := make([]byte, 1024)
+			for {
+				n, err := reader.Read(buf)
+				if err != nil {
+					if err != io.EOF {
+						logger.Log.Errorf("%s - EOF.", sendToServer)
+					}
+					break
+				}
+				err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
+				if err != nil {
+					logger.Log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
+				}
+			}
+		} else {
+			logger.Log.Errorf("%s - connection cannot be nil.", sendToServer)
+		}
+	}
+
+	defer func() {
+		// reset everything if connection dies
+		if connection != nil {
+			connection.Close()
+		}
+	}()
 }
 
 func Ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
