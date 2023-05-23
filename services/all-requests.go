@@ -570,6 +570,7 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	*/
 
 	structs.SendDataWs(toServerUrl, stream)
+	endGofunc()
 
 	// req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
 	// if err != nil {
