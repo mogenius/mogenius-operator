@@ -6,8 +6,10 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"strings"
 	"sync"
 
+	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -78,8 +80,12 @@ func CreateNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 		for _, aPort := range service.Ports {
 			if aPort.Expose {
 				port := intstr.FromInt(aPort.InternalPort)
+				proto := v1Core.ProtocolTCP // default
+				if strings.ToLower(aPort.PortType) == "udp" {
+					proto = v1Core.ProtocolUDP
+				}
 				netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
-					Port: &port,
+					Port: &port, Protocol: &proto,
 				})
 			}
 		}
