@@ -137,5 +137,5 @@ func NamespaceExists(namespaceName string) (bool, error) {
 	kubeProvider := NewKubeProvider()
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 	ns, err := namespaceClient.Get(context.TODO(), namespaceName, metav1.GetOptions{})
-	return ns != nil, err
+	return (ns != nil && err == nil), err
 }

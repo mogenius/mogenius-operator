@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
@@ -23,12 +24,15 @@ func CreateService(r ServiceCreateRequest) interface{} {
 
 	// check if namespace exists and CREATE IT IF NOT
 	nsExists, nsErr := mokubernetes.NamespaceExists(r.Stage.Name)
-	if !nsExists && nsErr == nil {
+	if nsErr != nil {
+		logger.Log.Warning(nsErr.Error())
+	}
+	if !nsExists {
 		nsReq := NamespaceCreateRequest{
 			Namespace: r.Namespace,
 			Stage:     r.Stage,
 		}
-		CreateNamespaceCmds(&job, nsReq, &wg)
+		job.AddCmds(CreateNamespaceCmds(&job, nsReq, &wg))
 	}
 
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, &wg))
