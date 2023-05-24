@@ -132,3 +132,10 @@ func DeleteK8sNamespace(data v1.Namespace) K8sWorkloadResult {
 	}
 	return WorkloadResult("")
 }
+
+func NamespaceExists(namespaceName string) (bool, error) {
+	kubeProvider := NewKubeProvider()
+	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
+	ns, err := namespaceClient.Get(context.TODO(), namespaceName, metav1.GetOptions{})
+	return ns != nil, err
+}

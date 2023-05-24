@@ -16,25 +16,21 @@ func CreateNamespace(r NamespaceCreateRequest) structs.Job {
 
 	job := structs.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil)
 	job.Start()
-	job.AddCmd(mokubernetes.CreateNamespace(&job, r.Namespace, r.Stage))
-	if r.Stage.StorageSizeInMb > 0 {
-		// dataRoot, err := os.Getwd()
-		// if err != nil {
-		// 	logger.Log.Error(err.Error())
-		// }
-		// if utils.CONFIG.Kubernetes.RunInCluster {
-		// 	dataRoot = "/"
-		// }
-		//job.AddCmd(structs.CreateBashCommand("Create storage", &job, fmt.Sprintf("mkdir -p %s/mo-data/%s", dataRoot, r.Stage.Id), &wg))
-		job.AddCmd(mokubernetes.CreateNetworkPolicyNamespace(&job, r.Stage, &wg))
-		//job.AddCmd(mokubernetes.CreatePersistentVolumeClaim(&job, r.Stage, &wg))
-		if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
-			job.AddCmd(mokubernetes.CreateContainerSecret(&job, r.Namespace, r.Stage, &wg))
-		}
-	}
+	job.AddCmds(CreateNamespaceCmds(&job, r, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
+}
+
+func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) []*structs.Command {
+	cmds := []*structs.Command{}
+	cmds = append(cmds, mokubernetes.CreateNamespace(job, r.Namespace, r.Stage))
+	cmds = append(cmds, mokubernetes.CreateNetworkPolicyNamespace(job, r.Stage, wg))
+
+	if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
+		cmds = append(cmds, mokubernetes.CreateContainerSecret(job, r.Namespace, r.Stage, wg))
+	}
+	return cmds
 }
 
 func DeleteNamespace(r NamespaceDeleteRequest) structs.Job {
@@ -43,7 +39,6 @@ func DeleteNamespace(r NamespaceDeleteRequest) structs.Job {
 	job := structs.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil)
 	job.Start()
 	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Stage, &wg))
-	//job.AddCmd(mokubernetes.DeletePersistentVolume(&job, r.Stage, &wg))
 	wg.Wait()
 	job.Finish()
 	return job

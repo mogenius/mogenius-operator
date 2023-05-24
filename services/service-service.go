@@ -20,6 +20,17 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id)
 	job.Start()
+
+	// check if namespace exists and CREATE IT IF NOT
+	nsExists, nsErr := mokubernetes.NamespaceExists(r.Stage.Name)
+	if !nsExists && nsErr == nil {
+		nsReq := NamespaceCreateRequest{
+			Namespace: r.Namespace,
+			Stage:     r.Stage,
+		}
+		CreateNamespaceCmds(&job, nsReq, &wg)
+	}
+
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, &wg))
