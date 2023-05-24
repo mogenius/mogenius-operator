@@ -27,7 +27,7 @@ func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGrou
 func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *sync.WaitGroup) []*structs.Command {
 	cmds := []*structs.Command{}
 
-	addRepoCmd := structs.CreateBashCommand("Install/Update helm repo.", job, "helm repo add mo-openebs-nfs https://openebs.github.io/dynamic-nfs-provisioner; helm repo update", wg)
+	addRepoCmd := structs.CreateBashCommand("Install/Update helm repo.", job, "helm repo add mogenius-nfs-storage https://openebs.github.io/dynamic-nfs-provisioner; helm repo update", wg)
 	cmds = append(cmds, addRepoCmd)
 
 	nfsStorageClassStr := ""
@@ -38,7 +38,7 @@ func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *syn
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=gp2"
 	case "GKE":
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=standard-rwo"
-	case "AZURE":
+	case "AKS":
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=default"
 	default:
 		// nothing to do
