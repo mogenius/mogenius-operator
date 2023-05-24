@@ -422,7 +422,7 @@ type NfsStorageInstallRequest struct {
 
 func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
 	return NfsStorageInstallRequest{
-		ClusterProvider: "AZURE",
+		ClusterProvider: "AKS",
 	}
 }
 

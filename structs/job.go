@@ -81,6 +81,11 @@ func (j *Job) DefaultReponse() DefaultResponse {
 	return dr
 }
 
+func (j *Job) Fail(msg string) {
+	j.State = "FAILED"
+	j.Message = msg
+}
+
 func (j *Job) Finish() {
 	var allSuccess = true
 	var failedCmd = ""
@@ -114,20 +119,30 @@ func (j *Job) AddCmds(cmds []*Command) {
 }
 
 func ReportStateToServer(job *Job, cmd *Command) {
+	skipEvent := false
 	var data *dtos.K8sNotificationDto = nil
 	typeName := ""
 
 	if cmd != nil {
 		typeName = "CMD"
-		if cmd.ReportToNotificationSvc && cmd.NamespaceId != "" {
-			data = K8sNotificationDtoFromCommand(cmd)
+		if cmd.ReportToNotificationSvc {
+			if cmd.NamespaceId != "" {
+				data = K8sNotificationDtoFromCommand(cmd)
+			} else {
+				skipEvent = true
+			}
 		}
 	} else if job != nil {
 		typeName = "JOB"
-		if job.ReportToNotificationSvc && job.NamespaceId != "" {
-			data = K8sNotificationDtoFromJob(job)
+		if job.ReportToNotificationSvc {
+			if job.NamespaceId != "" {
+				data = K8sNotificationDtoFromJob(job)
+			} else {
+				skipEvent = true
+			}
 		}
 	} else {
+		skipEvent = true
 		logger.Log.Error("Job AND Command cannot be nil")
 	}
 
@@ -136,7 +151,9 @@ func ReportStateToServer(job *Job, cmd *Command) {
 		result := CreateDatagramFromNotification(data)
 		EventServerSendData(result, "", "", "", 1)
 	} else {
-		logger.Log.Error("Serialization failed.")
+		if !skipEvent {
+			logger.Log.Error("Serialization failed.")
+		}
 	}
 }
 
