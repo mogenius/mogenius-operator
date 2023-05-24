@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
@@ -28,18 +29,20 @@ func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *syn
 
 	addRepoCmd := structs.CreateBashCommand("Install/Update helm repo.", job, "helm repo add mo-openebs-nfs https://openebs.github.io/dynamic-nfs-provisioner; helm repo update", wg)
 	cmds = append(cmds, addRepoCmd)
-	// AWS --set-string nfsStorageClass.backendStorageClass=gp2
-	// GCP --set-string nfsStorageClass.backendStorageClass=standard-rwo
-	// AZRUE --set-string nfsStorageClass.backendStorageClass=default
+
 	nfsStorageClassStr := ""
-	if clusterProvider == "AWS" {
+
+	// "BRING_YOUR_OWN", "EKS", "AKS", "GKE", "DOCKER_ENTERPRISE", "DOKS", "LINODE", "IBM", "ACK", "OKE", "OTC", "OPEN_SHIFT"
+	switch clusterProvider {
+	case "EKS":
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=gp2"
-	}
-	if clusterProvider == "GCP" {
+	case "GKE":
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=standard-rwo"
-	}
-	if clusterProvider == "AZURE" {
+	case "AZURE":
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=default"
+	default:
+		// nothing to do
+		logger.Log.Errorf("CLUSTERPROVIDER '%s' HAS NOT BEEN TESTED YET!", clusterProvider)
 	}
 	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm install mogenius-nfs-storage mo-openebs-nfs/nfs-provisioner -n %s --create-namespace --set analytics.enabled=false%s", utils.CONFIG.Kubernetes.OwnNamespace, nfsStorageClassStr), wg)
 	cmds = append(cmds, instRelCmd)

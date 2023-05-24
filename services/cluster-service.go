@@ -417,7 +417,7 @@ func ClusterHelmUninstallRequestExample() ClusterHelmUninstallRequest {
 }
 
 type NfsStorageInstallRequest struct {
-	ClusterProvider string `json:"ClusterProvider"` // AWS GCP AZURE
+	ClusterProvider string `json:"ClusterProvider"` // "BRING_YOUR_OWN", "EKS", "AKS", "GKE", "DOCKER_ENTERPRISE", "DOKS", "LINODE", "IBM", "ACK", "OKE", "OTC", "OPEN_SHIFT"
 }
 
 func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
