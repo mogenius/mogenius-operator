@@ -125,7 +125,7 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	}
 }
 
-func StatsMogeniusNfsVolume(r NfsVolumeRequest) NfsVolumeStatsResponse {
+func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 	result := NfsVolumeStatsResponse{
 		VolumeName: r.VolumeName,
 		FreeBytes:  0,
@@ -439,6 +439,18 @@ func NfsVolumeRequestExample() NfsVolumeRequest {
 		NamespaceName: "bene-test",
 		VolumeName:    "my-fancy-volume-name",
 		SizeInGb:      10,
+	}
+}
+
+type NfsVolumeStatsRequest struct {
+	NamespaceName string `json:"namespaceName"`
+	VolumeName    string `json:"volumeName"`
+}
+
+func NfsVolumeStasRequestExample() NfsVolumeStatsRequest {
+	return NfsVolumeStatsRequest{
+		NamespaceName: "bene-test",
+		VolumeName:    "my-fancy-volume-name",
 	}
 }
 

@@ -502,7 +502,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		marshalUnmarshal(&datagram, &data)
 		return RestoreMogeniusNfsVolume(data)
 	case "storage/stats":
-		data := NfsVolumeRequest{}
+		data := NfsVolumeStatsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StatsMogeniusNfsVolume(data)
 	case "popeye-console":
