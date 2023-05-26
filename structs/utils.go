@@ -61,22 +61,24 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 
 		buf := make([]byte, 1024)
 		for {
-			n, err := reader.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					logger.Log.Errorf("%s - EOF.", sendToServer)
-				}
-				break
-			}
-			if connection != nil {
-				err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
+			if reader != nil {
+				n, err := reader.Read(buf)
 				if err != nil {
-					logger.Log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
+					if err != io.EOF {
+						logger.Log.Errorf("%s - EOF.", sendToServer)
+					}
+					break
+				}
+				if connection != nil {
+					err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
+					if err != nil {
+						logger.Log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
+						return
+					}
+				} else {
+					logger.Log.Errorf("%s - connection cannot be nil.", sendToServer)
 					return
 				}
-			} else {
-				logger.Log.Errorf("%s - connection cannot be nil.", sendToServer)
-				return
 			}
 		}
 	}
