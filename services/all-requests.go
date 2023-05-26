@@ -43,7 +43,6 @@ var COMMAND_REQUESTS = []string{
 	"namespace/pod-ids",
 	"namespace/validate-cluster-pods",
 	"namespace/validate-ports",
-	"namespace/storage-size",
 	"namespace/list-all",
 	"namespace/gather-all-resources",
 	"namespace/backup",
@@ -119,6 +118,7 @@ var COMMAND_REQUESTS = []string{
 	"storage/backup-volume",
 	"storage/restore-volume",
 	"storage/stats",
+	"storage/namespace/stats",
 
 	"popeye-console",
 }
@@ -209,10 +209,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := NamespaceValidatePortsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ValidateClusterPorts(data)
-	case "namespace/storage-size":
-		data := NamespaceStorageSizeRequest{}
-		marshalUnmarshal(&datagram, &data)
-		return StorageSize(data)
 	case "namespace/list-all":
 		return ListAllNamespaces()
 	case "namespace/gather-all-resources":
@@ -505,6 +501,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := NfsVolumeStatsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StatsMogeniusNfsVolume(data)
+	case "storage/namespace/stats":
+		data := NfsNamespaceStatsRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return StatsMogeniusNfsNamespace(data)
 	case "popeye-console":
 		return PopeyeConsole()
 	}

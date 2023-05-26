@@ -291,8 +291,6 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.NamespaceValidateClusterPodsRequestExample()
 		case "namespace/validate-ports":
 			payload = services.NamespaceValidatePortsRequestExample()
-		case "namespace/storage-size":
-			payload = services.NamespaceStorageSizeRequestExample()
 		case "namespace/list-all":
 			payload = nil
 		case "namespace/gather-all-resources":
@@ -430,6 +428,8 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.NfsVolumeRestoreRequestExample()
 		case "storage/stats":
 			payload = services.NfsVolumeRequestExample()
+		case "storage/namespace/stats":
+			payload = services.NfsNamespaceStatsRequestExample()
 
 		case "popeye-console":
 			payload = nil

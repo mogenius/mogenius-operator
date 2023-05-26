@@ -147,6 +147,36 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 	return result
 }
 
+func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsResponse {
+	result := []NfsVolumeStatsResponse{}
+
+	// get all pvc for single namespace
+	pvcs := mokubernetes.AllPersistentVolumeClaims(r.NamespaceName)
+
+	for _, pvc := range pvcs {
+		entry := NfsVolumeStatsResponse{
+			VolumeName: pvc.Name,
+			FreeBytes:  0,
+			UsedBytes:  0,
+			TotalBytes: 0,
+		}
+
+		mountPath := utils.MountPath(r.NamespaceName, pvc.Name, "/")
+		usage, err := disk.Usage(mountPath)
+		if err != nil {
+			logger.Log.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
+			continue
+		} else {
+			entry.FreeBytes = usage.Free
+			entry.UsedBytes = usage.Used
+			entry.TotalBytes = usage.Total
+		}
+		logger.Log.Infof("💾: '%s' -> %s / %s (%s)", mountPath, utils.BytesToHumanReadable(int64(entry.UsedBytes)), utils.BytesToHumanReadable(int64(entry.TotalBytes)), fmt.Sprintf("%.1f%%", usage.UsedPercent))
+		result = append(result, entry)
+	}
+	return result
+}
+
 func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest) NfsVolumeBackupResponse {
 	result := NfsVolumeBackupResponse{
 		VolumeName:  r.VolumeName,
@@ -447,10 +477,20 @@ type NfsVolumeStatsRequest struct {
 	VolumeName    string `json:"volumeName"`
 }
 
-func NfsVolumeStasRequestExample() NfsVolumeStatsRequest {
+func NfsVolumeStatsRequestExample() NfsVolumeStatsRequest {
 	return NfsVolumeStatsRequest{
 		NamespaceName: "bene-test",
 		VolumeName:    "my-fancy-volume-name",
+	}
+}
+
+type NfsNamespaceStatsRequest struct {
+	NamespaceName string `json:"namespaceName"`
+}
+
+func NfsNamespaceStatsRequestExample() NfsNamespaceStatsRequest {
+	return NfsNamespaceStatsRequest{
+		NamespaceName: "bene-test",
 	}
 }
 

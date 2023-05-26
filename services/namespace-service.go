@@ -92,15 +92,6 @@ func ListAllNamespaces() []string {
 	return mokubernetes.ListAllNamespaceNames()
 }
 
-func StorageSize(r NamespaceStorageSizeRequest) map[string]int {
-	// TODO: Implement for CephFS
-	result := make(map[string]int)
-	for _, v := range r.Stageids {
-		result[v] = 0
-	}
-	return result
-}
-
 func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.NamespaceResourcesDto {
 	result := dtos.CreateNamespaceResourcesDto()
 	result.Pods = mokubernetes.AllPods(r.NamespaceName)
@@ -181,16 +172,6 @@ func NamespaceValidatePortsRequestExample() NamespaceValidatePortsRequest {
 		Ports: []dtos.NamespaceServicePortDto{
 			dtos.NamespaceServicePortDtoExampleData(),
 		},
-	}
-}
-
-type NamespaceStorageSizeRequest struct {
-	Stageids []string `json:"stageIds"`
-}
-
-func NamespaceStorageSizeRequestExample() NamespaceStorageSizeRequest {
-	return NamespaceStorageSizeRequest{
-		Stageids: []string{"stage1", "stage2", "stage3", "stage4", "stage5"},
 	}
 }
 
