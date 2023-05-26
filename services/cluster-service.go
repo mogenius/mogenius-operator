@@ -490,7 +490,7 @@ type NfsNamespaceStatsRequest struct {
 
 func NfsNamespaceStatsRequestExample() NfsNamespaceStatsRequest {
 	return NfsNamespaceStatsRequest{
-		NamespaceName: "bene-test",
+		NamespaceName: "test-bene-prod-a7fm72",
 	}
 }
 

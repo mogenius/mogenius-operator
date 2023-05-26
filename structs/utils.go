@@ -58,25 +58,26 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 	if err != nil {
 		logger.Log.Errorf("Connection to Stream-Endpoint (%s) failed: %s\n", sendToServer, err.Error())
 	} else {
-		if connection != nil {
-			defer reader.Close()
 
-			buf := make([]byte, 1024)
-			for {
-				n, err := reader.Read(buf)
-				if err != nil {
-					if err != io.EOF {
-						logger.Log.Errorf("%s - EOF.", sendToServer)
-					}
-					break
+		buf := make([]byte, 1024)
+		for {
+			n, err := reader.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					logger.Log.Errorf("%s - EOF.", sendToServer)
 				}
+				break
+			}
+			if connection != nil {
 				err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
 				if err != nil {
 					logger.Log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
+					return
 				}
+			} else {
+				logger.Log.Errorf("%s - connection cannot be nil.", sendToServer)
+				return
 			}
-		} else {
-			logger.Log.Errorf("%s - connection cannot be nil.", sendToServer)
 		}
 	}
 
@@ -84,6 +85,9 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 		// reset everything if connection dies
 		if connection != nil {
 			connection.Close()
+		}
+		if reader != nil {
+			reader.Close()
 		}
 	}()
 }
