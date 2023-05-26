@@ -2,7 +2,6 @@ package structs
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -63,8 +62,7 @@ func ConnectToEventQueue() {
 }
 
 func connectEvent(ctx context.Context) {
-	host := fmt.Sprintf("%s:%d", utils.CONFIG.EventServer.Server, utils.CONFIG.EventServer.Port)
-	connectionUrl := url.URL{Scheme: "ws", Host: host, Path: utils.CONFIG.EventServer.Path}
+	connectionUrl := url.URL{Scheme: "ws", Host: utils.CONFIG.EventServer.Server, Path: utils.CONFIG.EventServer.Path}
 
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
 	if err != nil {

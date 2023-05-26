@@ -7,14 +7,12 @@ kubernetes:
   default_container_registry: docker.io
 
 api_server:
-  ws_proto: ws
-  ws_server: k8s-api.mogenius.com:1337
+  ws_server: k8s-ws.mogenius.com
   ws_path: /ws
 
 event_server:
-  server: k8s-api.mogenius.com
+  server: k8s-dispatcher.mogenius.com
   path: /ws
-  port: 1338
 
 misc:
   stage: prod

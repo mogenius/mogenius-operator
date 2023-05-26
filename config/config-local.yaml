@@ -7,14 +7,12 @@ kubernetes:
   default_container_registry: mogenius.azurecr.io
 
 api_server:
-  ws_proto: ws
   ws_server: 127.0.0.1:8080
   ws_path: /ws
 
 event_server:
-  server: 127.0.0.1
+  server: 127.0.0.1:8080
   path: /ws-event
-  port: 8080
 
 misc:
   stage: local

@@ -26,13 +26,11 @@ type Config struct {
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
-		Ws_Proto  string `yaml:"ws_proto" env:"api_ws_proto" env-description:"Server Path" env-default:"ws"`
-		Ws_Server string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:7011"`
+		Ws_Server string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
 		WS_Path   string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
 	} `yaml:"api_server"`
 	EventServer struct {
-		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1"`
-		Port   int    `yaml:"port" env:"event_port" env-description:"Server port" env-default:"8080"`
+		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws"`
 	} `yaml:"event_server"`
 	Misc struct {
@@ -113,12 +111,10 @@ func PrintSettings() {
 
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 
-	logger.Log.Infof("WsProto:                  %s", CONFIG.ApiServer.Ws_Proto)
 	logger.Log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
 	logger.Log.Infof("WsPath:                   %s", CONFIG.ApiServer.WS_Path)
 
 	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
-	logger.Log.Infof("EventPort:                %d", CONFIG.EventServer.Port)
 	logger.Log.Infof("EventPath:                %s", CONFIG.EventServer.Path)
 
 	logger.Log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
