@@ -62,7 +62,7 @@ func ConnectToEventQueue() {
 }
 
 func connectEvent(ctx context.Context) {
-	connectionUrl := url.URL{Scheme: "ws", Host: utils.CONFIG.EventServer.Server, Path: utils.CONFIG.EventServer.Path}
+	connectionUrl := url.URL{Scheme: "wss", Host: utils.CONFIG.EventServer.Server, Path: utils.CONFIG.EventServer.Path}
 
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
 	if err != nil {
