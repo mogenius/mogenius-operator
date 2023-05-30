@@ -32,6 +32,7 @@ func main() {
 	utils.YamlTemplatesFolder = YamlTemplatesFolder
 
 	if utils.CONFIG.Misc.Debug {
+		logger.Log.Warning("Starting serice for pprof in localhost:6060")
 		go func() {
 			log.Println(http.ListenAndServe("localhost:6060", nil))
 		}()
