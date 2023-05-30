@@ -3,11 +3,9 @@ package main
 import (
 	"embed"
 	_ "embed"
-	"log"
 	"mogenius-k8s-manager/cmd"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
-	"net/http"
 	_ "net/http/pprof"
 )
 
@@ -30,13 +28,6 @@ func main() {
 	utils.DefaultConfigClusterFileProd = DefaultConfigClusterFileProd
 	utils.DefaultConfigLocalFile = DefaultConfigLocalFile
 	utils.YamlTemplatesFolder = YamlTemplatesFolder
-
-	if utils.CONFIG.Misc.Debug {
-		logger.Log.Warning("Starting serice for pprof in localhost:6060")
-		go func() {
-			log.Println(http.ListenAndServe("localhost:6060", nil))
-		}()
-	}
 
 	cmd.Execute()
 }

@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/version"
+	"net/http"
 	"os"
 	"strings"
 
@@ -99,6 +101,13 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 			}
 			logger.Log.Fatalf("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
 		}
+	}
+
+	if CONFIG.Misc.Debug {
+		logger.Log.Warning("Starting serice for pprof in localhost:6060")
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
 	}
 }
 
