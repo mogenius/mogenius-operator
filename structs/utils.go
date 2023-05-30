@@ -79,6 +79,8 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 					logger.Log.Errorf("%s - connection cannot be nil.", sendToServer)
 					return
 				}
+			} else {
+				return
 			}
 		}
 	}
