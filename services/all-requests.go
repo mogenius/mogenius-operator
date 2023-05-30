@@ -551,74 +551,8 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		logger.Log.Error(err.Error())
 	}
 
-	/*
-		go func() {
-			reader := bufio.NewScanner(stream)
-			for {
-				select {
-				case <-cancelCtx.Done():
-					fmt.Println("done")
-					return
-				default:
-					for reader.Scan() {
-						lastBytes := reader.Bytes()
-						fmt.Println(string(lastBytes))
-					}
-				}
-			}
-		}()
-	*/
-
 	structs.SendDataWs(toServerUrl, stream)
 	endGofunc()
-
-	// req, err := http.NewRequest(http.MethodPost, toServerUrl, stream)
-	// if err != nil {
-	// 	logger.Log.Errorf("streamData client: could not create request: %s\n", err)
-	// }
-
-	// req.GetBody = func() (io.ReadCloser, error) {
-
-	// 	// return stream, nil
-	// }
-
-	// var resp *http.Response
-
-	// header := utils.HttpHeader()
-	// header.Add("Content-Type", "text/plain")
-	// req.Header = header
-
-	// client := http.Client{
-	// 	Timeout: time.Duration(0) * time.Second, // no timeout
-	// }
-
-	// var cleanup = func() {
-	// 	if resp != nil {
-	// 		resp.Body.Close()
-	// 	}
-
-	// 	if req != nil {
-	// 		req.Close = true
-	// 	}
-
-	// 	if stream != nil {
-	// 		stream.Close()
-	// 	}
-
-	// 	endGofunc()
-	// }
-
-	// defer func() {
-	// 	logger.Log.Info("defer async debug: func")
-	// 	cleanup()
-	// }()
-
-	// logger.Log.Infof("stream data to: %s\n", toServerUrl)
-
-	// resp, err = client.Do(req)
-	// if err != nil {
-	// 	logger.Log.Errorf("streamData client: error making http request: %s\n", err)
-	// }
 }
 
 func PopeyeConsole() string {

@@ -65,9 +65,9 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 				n, err := reader.Read(buf)
 				if err != nil {
 					if err != io.EOF {
-						logger.Log.Errorf("%s - EOF.", sendToServer)
+						logger.Log.Errorf("Unexpected stop of stream: %s.", sendToServer)
 					}
-					break
+					return
 				}
 				if connection != nil {
 					err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
