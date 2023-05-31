@@ -292,11 +292,13 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 			// VOLUMEMOUNT
 			// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
 			components := strings.Split(envVar.Value, ":")
-			if len(components) == 2 {
+			if len(components) == 3 {
 				volumeName := components[0]    // e.g. MY_COOL_NAME
-				containerPath := components[1] // e.g. /mo-data
+				srcPath := components[1]       // e.g. /
+				containerPath := components[2] // e.g. /mo-data
 				newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
 					MountPath: containerPath,
+					SubPath:   srcPath,
 					Name:      volumeName,
 				})
 
@@ -310,7 +312,7 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 					},
 				})
 			} else {
-				logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY", envVar.Name, envVar.Value)
+				logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
 			}
 		}
 	}
