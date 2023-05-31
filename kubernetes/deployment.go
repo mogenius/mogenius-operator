@@ -296,8 +296,13 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 			components := strings.Split(envVar.Value, ":")
 			if len(components) == 3 {
 				volumeName := components[0]    // e.g. MY_COOL_NAME
-				srcPath := components[1]       // e.g. /
+				srcPath := components[1]       // e.g. subpath/to/heaven
 				containerPath := components[2] // e.g. /mo-data
+
+				// subPath must be relative
+				if strings.HasPrefix(srcPath, "/") {
+					srcPath = strings.Replace(srcPath, "/", "", 1)
+				}
 				newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
 					MountPath: containerPath,
 					SubPath:   srcPath,
