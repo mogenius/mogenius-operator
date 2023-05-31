@@ -272,6 +272,8 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 
 	// ENV VARS
 	newDeployment.Spec.Template.Spec.Containers[0].Env = []core.EnvVar{}
+	newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
+	newDeployment.Spec.Template.Spec.Volumes = []core.Volume{}
 	for _, envVar := range service.EnvVars {
 		if envVar.Type == "KEY_VAULT" ||
 			envVar.Type == "PLAINTEXT" ||
