@@ -331,42 +331,6 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
 	newDeployment.Spec.Template.Spec.Containers[0].SecurityContext = nil
 
-	// VOLUME MOUNT
-	newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
-	// XXX TODO -> TEMPORARY DISABLED
-	// if stage.StorageSizeInMb > 0 {
-	// 	for _, envVar := range service.EnvVars {
-	// 		if envVar.Type == "VOLUME_MOUNT" {
-	// 			components := strings.Split(envVar.Value, ":")
-	// 			storageSubDir := components[0]
-	// 			containerPath := components[1]
-	// 			newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
-	// 				MountPath: containerPath,
-	// 				SubPath:   storageSubDir,
-	// 				Name:      stage.K8sName,
-	// 			})
-	// 		}
-	// 	}
-	// 	// ALWAYS MOUNT MO_DATA
-	// 	newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
-	// 		MountPath: utils.CONFIG.Misc.DefaultMountPath,
-	// 		Name:      stage.K8sName,
-	// 	})
-	// }
-
-	// VOLUMES
-	newDeployment.Spec.Template.Spec.Volumes = []core.Volume{}
-	// XXX TODO -> TEMPORARY DISABLED
-	// if stage.StorageSizeInMb > 0 {
-	// 	newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
-	// 		Name: stage.K8sName,
-	// 		VolumeSource: core.VolumeSource{
-	// 			PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-	// 				ClaimName: stage.K8sName,
-	// 			},
-	// 		},
-	// 	})
-	// }
 	return newDeployment
 }
 
