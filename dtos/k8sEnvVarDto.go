@@ -13,3 +13,11 @@ func K8sEnvVarDtoExampleData() K8sEnvVarDto {
 		Type:  "PLAINTEXT",
 	}
 }
+
+func K8sEnvVarVolumeMountDtoExampleData() K8sEnvVarDto {
+	return K8sEnvVarDto{
+		Name:  "xxx name",
+		Value: "benetest:/:/test",
+		Type:  "VOLUME_MOUNT",
+	}
+}

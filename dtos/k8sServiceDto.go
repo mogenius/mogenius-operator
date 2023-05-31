@@ -37,7 +37,7 @@ func K8sServiceDtoExampleData() K8sServiceDto {
 		App:                                  K8sAppDtoDockerExampleData(),
 		Name:                                 "name",
 		K8sSettings:                          K8sServiceSettingsDtoExampleData(),
-		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData()},
+		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData(), K8sEnvVarVolumeMountDtoExampleData()},
 		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData(), K8sPortsDtoExternalExampleData()},
 		SwitchedOn:                           true,
 	}
