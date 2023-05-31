@@ -19,7 +19,7 @@ misc:
   default_mount_path: /mo-data
   debug: true
   log_kubernetes_events: false
-  ignore_namespaces: ["kube-system", "default"]
+  ignore_namespaces: ["kube-system"]
   ignore_resources_backup:
     [
       "events.k8s.io/v1",
