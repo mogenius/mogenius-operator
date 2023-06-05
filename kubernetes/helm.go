@@ -27,7 +27,7 @@ func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGrou
 func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *sync.WaitGroup) []*structs.Command {
 	cmds := []*structs.Command{}
 
-	addRepoCmd := structs.CreateBashCommand("Install/Update helm repo.", job, "helm repo add mogenius-nfs-storage https://openebs.github.io/dynamic-nfs-provisioner; helm repo update", wg)
+	addRepoCmd := structs.CreateBashCommand("Install/Update helm repo.", job, "sleep 1", wg)
 	cmds = append(cmds, addRepoCmd)
 
 	nfsStorageClassStr := ""
@@ -49,7 +49,7 @@ func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *syn
 		addRepoCmd.Fail(errMsg)
 		return cmds
 	}
-	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm install mogenius-nfs-storage mo-openebs-nfs/nfs-provisioner -n %s --create-namespace --set analytics.enabled=false%s", utils.CONFIG.Kubernetes.OwnNamespace, nfsStorageClassStr), wg)
+	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm repo add mo-openebs-nfs https://openebs.github.io/dynamic-nfs-provisioner; helm repo update; helm install mogenius-nfs-storage mo-openebs-nfs/nfs-provisioner -n %s --create-namespace --set analytics.enabled=false%s", utils.CONFIG.Kubernetes.OwnNamespace, nfsStorageClassStr), wg)
 	cmds = append(cmds, instRelCmd)
 
 	return cmds

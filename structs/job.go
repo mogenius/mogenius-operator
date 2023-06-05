@@ -115,7 +115,9 @@ func (j *Job) AddCmd(cmd *Command) {
 }
 
 func (j *Job) AddCmds(cmds []*Command) {
-	j.Commands = append(j.Commands, cmds...)
+	for _, cmd := range cmds {
+		j.AddCmd(cmd)
+	}
 }
 
 func ReportStateToServer(job *Job, cmd *Command) {
