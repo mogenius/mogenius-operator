@@ -78,8 +78,15 @@ var COMMAND_REQUESTS = []string{
 	"list/jobs",
 	"list/cronjobs",
 	"list/replicasets",
-	"list/persistentvolume",
-	"list/persistentvolumeclaim",
+	"list/persistent_volumes",
+	"list/persistent_volume_claims",
+	"list/horizontal_pod_autoscalers",
+	"list/events",
+	"list/certificates",
+	"list/certificaterequests",
+	"list/orders",
+	"list/issuers",
+	"list/clusterissuers",
 
 	"update/deployment",
 	"update/service",
@@ -92,8 +99,14 @@ var COMMAND_REQUESTS = []string{
 	"update/job",
 	"update/cronjob",
 	"update/replicaset",
-	"update/persistentvolume",
-	"update/persistentvolumeclaim",
+	"update/persistent_volume",
+	"update/persistent_volume_claim",
+	"update/horizontal_pod_autoscalers",
+	"update/certificates",
+	"update/certificaterequests",
+	"update/orders",
+	"update/issuers",
+	"update/clusterissuers",
 
 	"delete/namespace",
 	"delete/deployment",
@@ -107,8 +120,13 @@ var COMMAND_REQUESTS = []string{
 	"delete/job",
 	"delete/cronjob",
 	"delete/replicaset",
-	"delete/persistentvolume",
-	"delete/persistentvolumeclaim",
+	"delete/persistent_volume",
+	"delete/persistent_volume_claim",
+	"delete/certificates",
+	"delete/certificaterequests",
+	"delete/orders",
+	"delete/issuers",
+	"delete/clusterissuers",
 
 	"storage/enable",
 	"storage/disable",
@@ -352,14 +370,42 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllReplicasets(data.NamespaceName)
-	case "list/persistentvolume":
+	case "list/persistent_volumes":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllPersistentVolumes()
-	case "list/persistentvolumeclaim":
+	case "list/persistent_volume_claims":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllPersistentVolumeClaims(data.NamespaceName)
+	case "list/horizontal_pod_autoscalers":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllHpas(data.NamespaceName)
+	case "list/events":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllEvents(data.NamespaceName)
+	case "list/certificates":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllCertificates(data.NamespaceName)
+	case "list/certificaterequests":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllCertificateSigningRequests(data.NamespaceName)
+	case "list/orders":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllOrders(data.NamespaceName)
+	case "list/issuers":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllIssuer(data.NamespaceName)
+	case "list/clusterissuers":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllClusterIssuers()
 
 	case "update/deployment":
 		data := K8sUpdateDeploymentRequest{}
@@ -413,6 +459,30 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sUpdatePersistentVolumeClaimRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sPersistentVolumeClaim(*data.Data)
+	case "update/horizontal_pod_autoscalers":
+		data := K8sUpdateHPARequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sHpa(*data.Data)
+	case "update/certificates":
+		data := K8sUpdateCertificateRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sCertificate(*data.Data)
+	case "update/certificaterequests":
+		data := K8sUpdateCertificateRequestRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sCertificateSigningRequest(*data.Data)
+	case "update/orders":
+		data := K8sUpdateOrderRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sOrder(*data.Data)
+	case "update/issuers":
+		data := K8sUpdateIssuerRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sIssuer(*data.Data)
+	case "update/clusterissuers":
+		data := K8sUpdateClusterIssuerRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sClusterIssuer(*data.Data)
 
 	case "delete/namespace":
 		data := K8sDeleteNamespaceRequest{}
@@ -470,6 +540,30 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sDeletePersistentVolumeClaimRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sPersistentVolumeClaim(*data.Data)
+	case "delete/horizontal_pod_autoscalers":
+		data := K8sDeleteHPARequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sHpa(*data.Data)
+	case "delete/certificates":
+		data := K8sDeleteCertificateRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sCertificate(*data.Data)
+	case "delete/certificaterequests":
+		data := K8sDeleteCertificateRequestRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sCertificateSigningRequest(*data.Data)
+	case "delete/orders":
+		data := K8sDeleteOrderRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sOrder(*data.Data)
+	case "delete/issuers":
+		data := K8sDeleteIssuerRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sIssuer(*data.Data)
+	case "delete/clusterissuers":
+		data := K8sDeleteClusterIssuerRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sClusterIssuer(*data.Data)
 
 	case "storage/enable":
 		data := NfsStorageInstallRequest{}

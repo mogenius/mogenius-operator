@@ -10,7 +10,10 @@ import (
 	"sync"
 	"time"
 
+	v1cm "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
+	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	v1 "k8s.io/api/apps/v1"
+	v2 "k8s.io/api/autoscaling/v2"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -422,6 +425,66 @@ func K8sUpdatePersistentVolumeClaimRequestExample() K8sUpdatePersistentVolumeCla
 	}
 }
 
+type K8sUpdateHPARequest struct {
+	Data *v2.HorizontalPodAutoscaler `json:"data"`
+}
+
+func K8sUpdateHPARequestExample() K8sUpdateHPARequest {
+	return K8sUpdateHPARequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateCertificateRequest struct {
+	Data *cmapi.Certificate `json:"data"`
+}
+
+func K8sUpdateCertificateExample() K8sUpdateCertificateRequest {
+	return K8sUpdateCertificateRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateCertificateRequestRequest struct {
+	Data *cmapi.CertificateRequest `json:"data"`
+}
+
+func K8sUpdateCertificateRequestExample() K8sUpdateCertificateRequestRequest {
+	return K8sUpdateCertificateRequestRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateOrderRequest struct {
+	Data *v1cm.Order `json:"data"`
+}
+
+func K8sUpdateOrderExample() K8sUpdateOrderRequest {
+	return K8sUpdateOrderRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateIssuerRequest struct {
+	Data *cmapi.Issuer `json:"data"`
+}
+
+func K8sUpdateIssuerExample() K8sUpdateIssuerRequest {
+	return K8sUpdateIssuerRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateClusterIssuerRequest struct {
+	Data *cmapi.ClusterIssuer `json:"data"`
+}
+
+func K8sUpdateClusterIssuerExample() K8sUpdateClusterIssuerRequest {
+	return K8sUpdateClusterIssuerRequest{
+		Data: nil,
+	}
+}
+
 type K8sDeleteNamespaceRequest struct {
 	Data *core.Namespace `json:"data"`
 }
@@ -558,6 +621,66 @@ type K8sDeletePersistentVolumeClaimRequest struct {
 
 func K8sDeletePersistentVolumeClaimRequestExample() K8sDeletePersistentVolumeClaimRequest {
 	return K8sDeletePersistentVolumeClaimRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteHPARequest struct {
+	Data *v2.HorizontalPodAutoscaler `json:"data"`
+}
+
+func K8sDeleteHPAExample() K8sDeleteHPARequest {
+	return K8sDeleteHPARequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteCertificateRequest struct {
+	Data *cmapi.Certificate `json:"data"`
+}
+
+func K8sDeleteCertificateExample() K8sDeleteCertificateRequest {
+	return K8sDeleteCertificateRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteCertificateRequestRequest struct {
+	Data *cmapi.CertificateRequest `json:"data"`
+}
+
+func K8sDeleteCertificateRequestExample() K8sDeleteCertificateRequestRequest {
+	return K8sDeleteCertificateRequestRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteOrderRequest struct {
+	Data *v1cm.Order `json:"data"`
+}
+
+func K8sDeleteOrderExample() K8sDeleteOrderRequest {
+	return K8sDeleteOrderRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteIssuerRequest struct {
+	Data *cmapi.Issuer `json:"data"`
+}
+
+func K8sDeleteIssuerExample() K8sDeleteIssuerRequest {
+	return K8sDeleteIssuerRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteClusterIssuerRequest struct {
+	Data *cmapi.ClusterIssuer `json:"data"`
+}
+
+func K8sDeleteClusterIssuerExample() K8sDeleteClusterIssuerRequest {
+	return K8sDeleteClusterIssuerRequest{
 		Data: nil,
 	}
 }

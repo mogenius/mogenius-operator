@@ -353,9 +353,9 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.K8sListRequestExample()
 		case "list/replicasets":
 			payload = services.K8sListRequestExample()
-		case "list/persistentvolume":
+		case "list/persistent_volumes":
 			payload = services.K8sListRequestExample()
-		case "list/persistentvolumeclaim":
+		case "list/persistent_volume_claims":
 			payload = services.K8sListRequestExample()
 
 		case "update/deployment":

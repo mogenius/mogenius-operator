@@ -15,6 +15,7 @@ import (
 
 	core "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -213,4 +214,22 @@ func appendVolumeIfNotExists(items []v1Core.Volume, newItem v1Core.Volume) []v1C
 	}
 	// The item was not found, so add it to the slice.
 	return append(items, newItem)
+}
+
+func AllEvents(namespaceName string) []v1Core.Event {
+	result := []v1Core.Event{}
+
+	provider := NewKubeProvider()
+	eventList, err := provider.ClientSet.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllEvents ERROR: %s", err.Error())
+		return result
+	}
+
+	for _, event := range eventList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, event.ObjectMeta.Namespace) {
+			result = append(result, event)
+		}
+	}
+	return result
 }

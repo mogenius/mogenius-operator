@@ -40,6 +40,8 @@ func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *syn
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=standard-rwo"
 	case "AKS":
 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=default"
+	case "OTC":
+		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=csi-disk"
 	default:
 		// nothing to do
 		errMsg := fmt.Sprintf("CLUSTERPROVIDER '%s' HAS NOT BEEN TESTED YET!", clusterProvider)
