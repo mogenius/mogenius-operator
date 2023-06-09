@@ -41,6 +41,25 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
+          # probes
+          # restart after 30 seconds of failures
+          livenessProbe:
+            httpGet:
+              path: /healthz
+            failureThreshold: 6
+            periodSeconds: 5
+          # restart after 300 seconds of failures
+          startupProbe:
+            httpGet:
+              path: /healthz
+            failureThreshold: 30
+            periodSeconds: 10
+          # re-route traffic after 15 seconds of failures
+          readinessProbe:
+            httpGet:
+              path: /healthz
+            failureThreshold: 3
+            periodSeconds: 5
           # volumeMounts:
           # - mountPath: "/mo-data"
           #   name: data-volume
