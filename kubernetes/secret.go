@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"strings"
 	"sync"
 
 	v1 "k8s.io/api/core/v1"
@@ -85,9 +86,9 @@ func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, sta
 		secret.ObjectMeta.Name = "container-secret-" + stage.Name
 		secret.ObjectMeta.Namespace = stage.Name
 
-		authStr := fmt.Sprintf("%s:%s", namespace.ContainerRegistryUser, namespace.ContainerRegistryPat)
+		authStr := fmt.Sprintf("%s:%s", namespace.ContainerRegistryUser, strings.ReplaceAll(namespace.ContainerRegistryPat, "\n", ""))
 		authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
-		jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, namespace.ContainerRegistryUrl, namespace.ContainerRegistryUser, namespace.ContainerRegistryPat, authStrBase64)
+		jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, namespace.ContainerRegistryUrl, namespace.ContainerRegistryUser, strings.ReplaceAll(namespace.ContainerRegistryPat, "\n", ""), authStrBase64)
 
 		secretStringData := make(map[string]string)
 		secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
