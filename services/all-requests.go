@@ -24,6 +24,7 @@ var COMMAND_REQUESTS = []string{
 	"KubernetesEvent",
 	"UpgradeK8sManager",
 	"SERVICE_POD_EXISTS",
+	"SERVICE_PODS",
 
 	"files/list",
 	"files/download",
@@ -265,6 +266,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := ServicePodExistsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ServicePodExists(data)
+	case "SERVICE_PODS":
+		data := ServicePodsRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return ServicePodStatus(data)
 	case "service/set-image":
 		data := ServiceSetImageRequest{}
 		marshalUnmarshal(&datagram, &data)

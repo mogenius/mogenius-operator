@@ -99,6 +99,10 @@ func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	return mokubernetes.PodStatus(r.Resource, r.Namespace, r.Name, r.StatusOnly)
 }
 
+func ServicePodStatus(r ServicePodsRequest) interface{} {
+	return mokubernetes.ServicePodStatus(r.Namespace, r.ServiceName)
+}
+
 func Restart(r ServiceRestartRequest) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id)
@@ -230,6 +234,18 @@ func ServicePodExistsRequestExample() ServicePodExistsRequest {
 	return ServicePodExistsRequest{
 		K8sNamespace: "mogenius",
 		K8sPod:       "mogenius-traffic-collector-jfnjw",
+	}
+}
+
+type ServicePodsRequest struct {
+	Namespace   string `json:"namespace"`
+	ServiceName string `json:"serviceName"`
+}
+
+func ServicePodsRequestExample() ServicePodsRequest {
+	return ServicePodsRequest{
+		Namespace:   "mogenius",
+		ServiceName: "k8s",
 	}
 }
 
