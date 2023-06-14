@@ -88,6 +88,11 @@ var COMMAND_REQUESTS = []string{
 	"list/orders",
 	"list/issuers",
 	"list/clusterissuers",
+	"list/service_account",
+	"list/role",
+	"list/role_binding",
+	"list/cluster_role",
+	"list/cluster_role_binding",
 
 	"update/deployment",
 	"update/service",
@@ -108,6 +113,11 @@ var COMMAND_REQUESTS = []string{
 	"update/orders",
 	"update/issuers",
 	"update/clusterissuers",
+	"update/service_account",
+	"update/role",
+	"update/role_binding",
+	"update/cluster_role",
+	"update/cluster_role_binding",
 
 	"delete/namespace",
 	"delete/deployment",
@@ -128,6 +138,11 @@ var COMMAND_REQUESTS = []string{
 	"delete/orders",
 	"delete/issuers",
 	"delete/clusterissuers",
+	"delete/service_account",
+	"delete/role",
+	"delete/role_binding",
+	"delete/cluster_role",
+	"delete/cluster_role_binding",
 
 	"storage/enable",
 	"storage/disable",
@@ -411,6 +426,21 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllClusterIssuers()
+	case "list/service_account":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "list/role":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "list/role_binding":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "list/cluster_role":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "list/cluster_role_binding":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
 
 	case "update/deployment":
 		data := K8sUpdateDeploymentRequest{}
@@ -488,6 +518,21 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sUpdateClusterIssuerRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sClusterIssuer(*data.Data)
+	case "update/service_account":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "update/role":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "update/role_binding":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "update/cluster_role":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "update/cluster_role_binding":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
 
 	case "delete/namespace":
 		data := K8sDeleteNamespaceRequest{}
@@ -569,6 +614,21 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sDeleteClusterIssuerRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sClusterIssuer(*data.Data)
+	case "delete/service_account":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "delete/role":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "delete/role_binding":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "delete/cluster_role":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
+	case "delete/cluster_role_binding":
+		logger.Log.Warning("IMPLEMENT MEEEEEE")
+		return nil
 
 	case "storage/enable":
 		data := NfsStorageInstallRequest{}
