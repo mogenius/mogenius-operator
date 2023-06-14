@@ -14,7 +14,7 @@ func AllClusterIssuers() []cmapi.ClusterIssuer {
 	result := []cmapi.ClusterIssuer{}
 
 	provider := NewKubeProviderCertManager()
-	issuersList, err := provider.ClientSet.CertmanagerV1().ClusterIssuers().List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	issuersList, err := provider.ClientSet.CertmanagerV1().ClusterIssuers().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("AllIssuer ERROR: %s", err.Error())
 		return result
