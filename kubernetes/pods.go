@@ -23,7 +23,7 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 
 	pod, err := podClient.Get(context.TODO(), name, getOptions)
 	if err != nil {
-		logger.Log.Error("PodStatus Error: %s", err.Error())
+		logger.Log.Errorf("PodStatus Error: %s", err.Error())
 		return nil
 	}
 
