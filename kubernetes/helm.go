@@ -49,7 +49,7 @@ func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *syn
 		addRepoCmd.Fail(errMsg)
 		return cmds
 	}
-	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm repo add mo-openebs-nfs https://openebs.github.io/dynamic-nfs-provisioner; helm repo update; helm install mogenius-nfs-storage mo-openebs-nfs/nfs-provisioner -n %s --create-namespace --set analytics.enabled=false%s", utils.CONFIG.Kubernetes.OwnNamespace, nfsStorageClassStr), wg)
+	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm repo add mo-openebs-nfs https://openebs.github.io/dynamic-nfs-provisioner; helm repo update; helm install mogenius-nfs-storage mo-openebs-nfs/nfs-provisioner -n %s --set analytics.enabled=false%s", utils.CONFIG.Kubernetes.OwnNamespace, nfsStorageClassStr), wg)
 	cmds = append(cmds, instRelCmd)
 
 	return cmds
