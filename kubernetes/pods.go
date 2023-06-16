@@ -23,7 +23,7 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 
 	pod, err := podClient.Get(context.TODO(), name, getOptions)
 	if err != nil {
-		logger.Log.Error("PodStatus Error: %s", err.Error())
+		logger.Log.Errorf("PodStatus Error: %s", err.Error())
 		return nil
 	}
 
@@ -32,6 +32,29 @@ func PodStatus(resource string, namespace string, name string, statusOnly bool) 
 	}
 
 	return pod
+}
+
+func ServicePodStatus(namespace string, serviceName string) []v1.Pod {
+	result := []v1.Pod{}
+	kubeProvider := NewKubeProvider()
+
+	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
+
+	pods, err := podClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		logger.Log.Error("ServicePodStatus Error: %s", err.Error())
+		return result
+	}
+
+	for _, pod := range pods.Items {
+		if strings.Contains(pod.Name, serviceName) {
+			pod.ManagedFields = nil
+			pod.Spec = v1.PodSpec{}
+			result = append(result, pod)
+		}
+	}
+
+	return result
 }
 
 func PodExists(namespace string, name string) ServicePodExistsResult {

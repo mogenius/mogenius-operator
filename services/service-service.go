@@ -17,6 +17,7 @@ import (
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -97,6 +98,10 @@ func PodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
 
 func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	return mokubernetes.PodStatus(r.Resource, r.Namespace, r.Name, r.StatusOnly)
+}
+
+func ServicePodStatus(r ServicePodsRequest) interface{} {
+	return mokubernetes.ServicePodStatus(r.Namespace, r.ServiceName)
 }
 
 func Restart(r ServiceRestartRequest) interface{} {
@@ -230,6 +235,18 @@ func ServicePodExistsRequestExample() ServicePodExistsRequest {
 	return ServicePodExistsRequest{
 		K8sNamespace: "mogenius",
 		K8sPod:       "mogenius-traffic-collector-jfnjw",
+	}
+}
+
+type ServicePodsRequest struct {
+	Namespace   string `json:"namespace"`
+	ServiceName string `json:"serviceName"`
+}
+
+func ServicePodsRequestExample() ServicePodsRequest {
+	return ServicePodsRequest{
+		Namespace:   "mogenius",
+		ServiceName: "k8s",
 	}
 }
 
@@ -485,6 +502,56 @@ func K8sUpdateClusterIssuerExample() K8sUpdateClusterIssuerRequest {
 	}
 }
 
+type K8sUpdateServiceAccountRequest struct {
+	Data *core.ServiceAccount `json:"data"`
+}
+
+func K8sUpdateServiceAccountExample() K8sUpdateServiceAccountRequest {
+	return K8sUpdateServiceAccountRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateRoleRequest struct {
+	Data *rbac.Role `json:"data"`
+}
+
+func K8sUpdateRoleExample() K8sUpdateRoleRequest {
+	return K8sUpdateRoleRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateRoleBindingRequest struct {
+	Data *rbac.RoleBinding `json:"data"`
+}
+
+func K8sUpdateRoleBindingExample() K8sUpdateRoleBindingRequest {
+	return K8sUpdateRoleBindingRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateClusterRoleRequest struct {
+	Data *rbac.ClusterRole `json:"data"`
+}
+
+func K8sUpdateClusterRoleExample() K8sUpdateClusterRoleRequest {
+	return K8sUpdateClusterRoleRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateClusterRoleBindingRequest struct {
+	Data *rbac.ClusterRoleBinding `json:"data"`
+}
+
+func K8sUpdateClusterRoleBindingExample() K8sUpdateClusterRoleBindingRequest {
+	return K8sUpdateClusterRoleBindingRequest{
+		Data: nil,
+	}
+}
+
 type K8sDeleteNamespaceRequest struct {
 	Data *core.Namespace `json:"data"`
 }
@@ -681,6 +748,56 @@ type K8sDeleteClusterIssuerRequest struct {
 
 func K8sDeleteClusterIssuerExample() K8sDeleteClusterIssuerRequest {
 	return K8sDeleteClusterIssuerRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteServiceAccountRequest struct {
+	Data *core.ServiceAccount `json:"data"`
+}
+
+func K8sDeleteServiceAccountExample() K8sDeleteServiceAccountRequest {
+	return K8sDeleteServiceAccountRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteRoleRequest struct {
+	Data *rbac.Role `json:"data"`
+}
+
+func K8sDeleteRoleExample() K8sDeleteRoleRequest {
+	return K8sDeleteRoleRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteRoleBindingRequest struct {
+	Data *rbac.RoleBinding `json:"data"`
+}
+
+func K8sDeleteRoleBindingExample() K8sDeleteRoleBindingRequest {
+	return K8sDeleteRoleBindingRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteClusterRoleRequest struct {
+	Data *rbac.ClusterRole `json:"data"`
+}
+
+func K8sDeleteClusterRoleExample() K8sDeleteClusterRoleRequest {
+	return K8sDeleteClusterRoleRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteClusterRoleBindingRequest struct {
+	Data *rbac.ClusterRoleBinding `json:"data"`
+}
+
+func K8sDeleteClusterRoleBindingExample() K8sDeleteClusterRoleBindingRequest {
+	return K8sDeleteClusterRoleBindingRequest{
 		Data: nil,
 	}
 }

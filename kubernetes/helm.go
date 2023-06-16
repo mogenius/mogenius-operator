@@ -65,3 +65,41 @@ func UninstallMogeniusNfsStorage(job *structs.Job, wg *sync.WaitGroup) []*struct
 
 	return cmds
 }
+
+// func AllHelmCharts(namespaceName string) []cmapi.CertificateRequest {
+// 	result := []cmapi.CertificateRequest{}
+
+// 	provider := NewKubeProvider()
+// 	resources, err := provider.ClientSet.Discovery().ServerPreferredResources()
+// 	if err != nil {
+// 		logger.Log.Errorf("ServerPreferredResources Error: %s", err.Error())
+// 		return result
+// 	}
+
+// 	for _, certificate := range certificatesList.Items {
+// 		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, certificate.ObjectMeta.Namespace) {
+// 			result = append(result, certificate)
+// 		}
+// 	}
+// 	return result
+// }
+
+// func UpdateHelmChart(data cmapi.CertificateRequest) K8sWorkloadResult {
+// 	kubeProvider := NewKubeProviderCertManager()
+// 	certificateClient := kubeProvider.ClientSet.CertmanagerV1().CertificateRequests(data.Namespace)
+// 	_, err := certificateClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+// 	if err != nil {
+// 		return WorkloadResult(err.Error())
+// 	}
+// 	return WorkloadResult("")
+// }
+
+// func DeleteK8sHelmChart(data cmapi.CertificateRequest) K8sWorkloadResult {
+// 	kubeProvider := NewKubeProviderCertManager()
+// 	certificateClient := kubeProvider.ClientSet.CertmanagerV1().CertificateRequests(data.Namespace)
+// 	err := certificateClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+// 	if err != nil {
+// 		return WorkloadResult(err.Error())
+// 	}
+// 	return WorkloadResult("")
+// }

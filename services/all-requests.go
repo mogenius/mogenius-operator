@@ -24,6 +24,7 @@ var COMMAND_REQUESTS = []string{
 	"KubernetesEvent",
 	"UpgradeK8sManager",
 	"SERVICE_POD_EXISTS",
+	"SERVICE_PODS",
 
 	"files/list",
 	"files/download",
@@ -87,6 +88,11 @@ var COMMAND_REQUESTS = []string{
 	"list/orders",
 	"list/issuers",
 	"list/clusterissuers",
+	"list/service_account",
+	"list/role",
+	"list/role_binding",
+	"list/cluster_role",
+	"list/cluster_role_binding",
 
 	"update/deployment",
 	"update/service",
@@ -107,6 +113,11 @@ var COMMAND_REQUESTS = []string{
 	"update/orders",
 	"update/issuers",
 	"update/clusterissuers",
+	"update/service_account",
+	"update/role",
+	"update/role_binding",
+	"update/cluster_role",
+	"update/cluster_role_binding",
 
 	"delete/namespace",
 	"delete/deployment",
@@ -127,6 +138,11 @@ var COMMAND_REQUESTS = []string{
 	"delete/orders",
 	"delete/issuers",
 	"delete/clusterissuers",
+	"delete/service_account",
+	"delete/role",
+	"delete/role_binding",
+	"delete/cluster_role",
+	"delete/cluster_role_binding",
 
 	"storage/enable",
 	"storage/disable",
@@ -265,6 +281,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := ServicePodExistsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ServicePodExists(data)
+	case "SERVICE_PODS":
+		data := ServicePodsRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return ServicePodStatus(data)
 	case "service/set-image":
 		data := ServiceSetImageRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -406,6 +426,26 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllClusterIssuers()
+	case "list/service_account":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllServiceAccounts(data.NamespaceName)
+	case "list/role":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllRoles(data.NamespaceName)
+	case "list/role_binding":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllRoleBindings(data.NamespaceName)
+	case "list/cluster_role":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllClusterRoles(data.NamespaceName)
+	case "list/cluster_role_binding":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllClusterRoleBindings(data.NamespaceName)
 
 	case "update/deployment":
 		data := K8sUpdateDeploymentRequest{}
@@ -483,6 +523,26 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sUpdateClusterIssuerRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sClusterIssuer(*data.Data)
+	case "update/service_account":
+		data := K8sUpdateServiceAccountRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sServiceAccount(*data.Data)
+	case "update/role":
+		data := K8sUpdateRoleRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sRole(*data.Data)
+	case "update/role_binding":
+		data := K8sUpdateRoleBindingRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sRoleBinding(*data.Data)
+	case "update/cluster_role":
+		data := K8sUpdateClusterRoleRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sClusterRole(*data.Data)
+	case "update/cluster_role_binding":
+		data := K8sUpdateClusterRoleBindingRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sClusterRoleBinding(*data.Data)
 
 	case "delete/namespace":
 		data := K8sDeleteNamespaceRequest{}
@@ -564,6 +624,26 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sDeleteClusterIssuerRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sClusterIssuer(*data.Data)
+	case "delete/service_account":
+		data := K8sDeleteServiceAccountRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sServiceAccount(*data.Data)
+	case "delete/role":
+		data := K8sDeleteRoleRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sRole(*data.Data)
+	case "delete/role_binding":
+		data := K8sDeleteRoleBindingRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sRoleBinding(*data.Data)
+	case "delete/cluster_role":
+		data := K8sDeleteClusterRoleRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sClusterRole(*data.Data)
+	case "delete/cluster_role_binding":
+		data := K8sDeleteClusterRoleBindingRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sClusterRoleBinding(*data.Data)
 
 	case "storage/enable":
 		data := NfsStorageInstallRequest{}
