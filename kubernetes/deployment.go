@@ -15,6 +15,7 @@ import (
 	core "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	v1depl "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
@@ -219,6 +220,7 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 	}
 
 	// PORTS
+	var internalHttpPort *int
 	if len(service.Ports) > 0 {
 		newDeployment.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
 		for _, port := range service.Ports {
@@ -226,6 +228,10 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 				newDeployment.Spec.Template.Spec.Containers[0].Ports = append(newDeployment.Spec.Template.Spec.Containers[0].Ports, core.ContainerPort{
 					ContainerPort: int32(port.InternalPort),
 				})
+			}
+			if port.PortType == "HTTPS" {
+				tmp := int(port.InternalPort)
+				internalHttpPort = &tmp
 			}
 		}
 	} else {
@@ -336,6 +342,10 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 		newDeployment.Spec.Template.Spec.Containers[0].StartupProbe = nil
 		newDeployment.Spec.Template.Spec.Containers[0].LivenessProbe = nil
 		newDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
+	} else if internalHttpPort != nil {
+		newDeployment.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+		newDeployment.Spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+		newDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
 	}
 
 	// SECURITY CONTEXT
