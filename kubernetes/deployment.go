@@ -331,6 +331,13 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 		newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
 	}
 
+	// PROBES OFF
+	if !service.K8sSettings.ProbesOn {
+		newDeployment.Spec.Template.Spec.Containers[0].StartupProbe = nil
+		newDeployment.Spec.Template.Spec.Containers[0].LivenessProbe = nil
+		newDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
+	}
+
 	// SECURITY CONTEXT
 	// TODO wieder in betrieb nehmen
 	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
