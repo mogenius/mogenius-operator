@@ -115,6 +115,10 @@ func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace
 	if !utils.CONFIG.Kubernetes.RunInCluster {
 		return nil
 	}
+	// EXIT if AutoMountNfs is disabled
+	if !utils.CONFIG.Misc.AutoMountNfs {
+		return nil
+	}
 
 	allMountedPaths := []string{}
 

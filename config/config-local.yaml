@@ -18,6 +18,7 @@ misc:
   stage: local
   default_mount_path: /mo-data
   debug: true
+  auto_mount_nfs: true
   log_kubernetes_events: false
   ignore_namespaces: ["kube-system"]
   ignore_resources_backup:
