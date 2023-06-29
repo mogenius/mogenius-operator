@@ -705,19 +705,16 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		restartCount += containerStatus.RestartCount
 	}
-	logger.Log.Infof("Received '%d'.", restartCount)
-
+	logger.Log.Infof("Pod restartCount '%d'.", restartCount)
 
 	var previousResReq *rest.Request
 	if restartCount > 0 {
 		tmpPreviousResReq, err := PreviousPodLogStream(data)
 		if err != nil {
-			result.Error = err.Error()
-			result.Success = false
-			logger.Log.Error(result.Error)
-			return result
+			logger.Log.Error(err.Error())
+		} else {
+			previousResReq = tmpPreviousResReq
 		}
-		previousResReq = tmpPreviousResReq
 	}
 
 	restReq, err := PodLogStream(data)
