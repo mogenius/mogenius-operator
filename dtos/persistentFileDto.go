@@ -50,15 +50,17 @@ func PersistentFileDtoFrom(rootDir string, path string, d fs.DirEntry) Persisten
 
 	info, err := os.Stat(path)
 	if err != nil {
-		logger.Log.Warning("FileStat Err: %s", err.Error())
+		logger.Log.Warningf("FileStat Err: %s", err.Error())
 	}
 	var uid int = 0
 	var gid int = 0
 	var size int64 = 0
 	var createTime = time.Now().Format(time.RFC3339)
 	var modTime = time.Now().Format(time.RFC3339)
+	var filemode fs.FileMode = 0
 	//var mode = info.Mode().Perm()
 	if err == nil {
+		filemode = info.Mode().Perm()
 		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 			uid = int(stat.Uid)
 			gid = int(stat.Gid)
@@ -85,6 +87,6 @@ func PersistentFileDtoFrom(rootDir string, path string, d fs.DirEntry) Persisten
 		CreatedAt:    createTime,
 		ModifiedAt:   modTime,
 		Uid_gid:      uidGid,
-		Mode:         fmt.Sprintf("%o", info.Mode().Perm()),
+		Mode:         fmt.Sprintf("%o", filemode),
 	}
 }
