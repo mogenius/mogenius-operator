@@ -4,6 +4,7 @@ import (
 	// "bufio"
 
 	"context"
+	"io"
 
 	// "fmt"
 	"mogenius-k8s-manager/dtos"
@@ -698,6 +699,27 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 		return result
 	}
 
+	pod := mokubernetes.PodStatus(data.Namespace, data.PodId, false)
+	// Get the restart count
+	restartCount := int32(0)
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		restartCount += containerStatus.RestartCount
+	}
+	logger.Log.Infof("Received '%d'.", restartCount)
+
+
+	var previousResReq *rest.Request
+	if restartCount > 0 {
+		tmpPreviousResReq, err := PreviousPodLogStream(data)
+		if err != nil {
+			result.Error = err.Error()
+			result.Success = false
+			logger.Log.Error(result.Error)
+			return result
+		}
+		previousResReq = tmpPreviousResReq
+	}
+
 	restReq, err := PodLogStream(data)
 	if err != nil {
 		result.Error = err.Error()
@@ -706,7 +728,11 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 		return result
 	}
 
-	go streamData(restReq, url.String())
+	if previousResReq != nil {
+		go multiStreamData(previousResReq, restReq, url.String())
+	} else {
+		go streamData(restReq, url.String())
+	}
 
 	result.Success = true
 
@@ -721,13 +747,30 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		logger.Log.Error(err.Error())
 	}
 
+	structs.SendDataWs(toServerUrl, stream)
+	endGofunc()
+}
+
+func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, toServerUrl string) {
+	ctx := context.Background()
+	cancelCtx, endGofunc := context.WithCancel(ctx)
+
+	previousStream, err := previousRestReq.Stream(cancelCtx)
 	if err != nil {
 		logger.Log.Error(err.Error())
 	}
 
-	structs.SendDataWs(toServerUrl, stream)
+	stream, err := restReq.Stream(cancelCtx)
+	if err != nil {
+		logger.Log.Error(err.Error())
+	}
+
+	mergedStream := io.MultiReader(previousStream, stream)
+
+	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
 	endGofunc()
 }
+
 
 func PopeyeConsole() string {
 	return structs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")

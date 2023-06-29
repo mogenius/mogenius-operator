@@ -96,8 +96,12 @@ func PodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
 	return mokubernetes.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
 }
 
+func PreviousPodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
+	return mokubernetes.StreamPreviousLog(r.Namespace, r.PodId)
+}
+
 func PodStatus(r ServiceResourceStatusRequest) interface{} {
-	return mokubernetes.PodStatus(r.Resource, r.Namespace, r.Name, r.StatusOnly)
+	return mokubernetes.PodStatus(r.Namespace, r.Name, r.StatusOnly)
 }
 
 func ServicePodStatus(r ServicePodsRequest) interface{} {

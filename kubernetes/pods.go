@@ -15,7 +15,7 @@ type ServicePodExistsResult struct {
 	PodExists bool `json:"podExists"`
 }
 
-func PodStatus(resource string, namespace string, name string, statusOnly bool) *v1.Pod {
+func PodStatus(namespace string, name string, statusOnly bool) *v1.Pod {
 	kubeProvider := NewKubeProvider()
 	getOptions := metav1.GetOptions{}
 
