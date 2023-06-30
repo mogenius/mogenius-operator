@@ -61,68 +61,57 @@ func DeleteHelmChart(r ClusterHelmUninstallRequest) structs.Job {
 	return job
 }
 
-func InstallMogeniusNfsStorage(r NfsStorageInstallRequest) interface{} {
-	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
-	if !nfsStatus.IsInstalled {
-		var wg sync.WaitGroup
-		job := structs.CreateJob("Install mogenius nfs-storage.", "", nil, nil)
-		job.Start()
-		job.AddCmds(mokubernetes.InstallMogeniusNfsStorage(&job, r.ClusterProvider, &wg))
-		wg.Wait()
-		job.Finish()
-		return job
-	} else {
-		nfsStatus.Error = "Mogenius NFS storage has already been installed."
-		return nfsStatus
-	}
-}
+// func InstallMogeniusNfsStorage(r NfsStorageInstallRequest) interface{} {
+// 	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
+// 	if !nfsStatus.IsInstalled {
+// 		var wg sync.WaitGroup
+// 		job := structs.CreateJob("Install mogenius nfs-storage.", "", nil, nil)
+// 		job.Start()
+// 		job.AddCmds(mokubernetes.InstallMogeniusNfsStorage(&job, r.ClusterProvider, &wg))
+// 		wg.Wait()
+// 		job.Finish()
+// 		return job
+// 	} else {
+// 		nfsStatus.Error = "Mogenius NFS storage has already been installed."
+// 		return nfsStatus
+// 	}
+// }
 
-func UninstallMogeniusNfsStorage(r NfsStorageInstallRequest) interface{} {
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Uninstall mogenius nfs-storage.", "", nil, nil)
-	job.Start()
-	job.AddCmds(mokubernetes.UninstallMogeniusNfsStorage(&job, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
-}
+// func UninstallMogeniusNfsStorage(r NfsStorageInstallRequest) interface{} {
+// 	var wg sync.WaitGroup
+// 	job := structs.CreateJob("Uninstall mogenius nfs-storage.", "", nil, nil)
+// 	job.Start()
+// 	job.AddCmds(mokubernetes.UninstallMogeniusNfsStorage(&job, &wg))
+// 	wg.Wait()
+// 	job.Finish()
+// 	return job
+// }
 
 func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
-	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
-	if nfsStatus.IsInstalled {
-		var wg sync.WaitGroup
-		job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil)
-		job.Start()
-		job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
-		wg.Wait()
-		job.Finish()
-		return job.DefaultReponse()
-	} else {
-		result := structs.DefaultResponse{}
-		result.Error = "Mogenius NFS storage has NOT been installed."
-		result.Success = false
-		return result
-	}
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
+	job.AddCmd(mokubernetes.CreateMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
+	job.AddCmd(mokubernetes.CreateMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
+	wg.Wait()
+	job.Finish()
+	return job.DefaultReponse()
 }
 
 func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
-	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
-	if nfsStatus.IsInstalled {
-		var wg sync.WaitGroup
-		job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, nil, nil)
-		job.Start()
-		job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, &wg))
-		wg.Wait()
-		job.Finish()
-		// update mogenius-k8s-manager volume mounts
-		mokubernetes.UpdateK8sManagerVolumeMounts(r.VolumeName, r.NamespaceName)
-		return job.DefaultReponse()
-	} else {
-		result := structs.DefaultResponse{}
-		result.Error = "Mogenius NFS storage has NOT been installed."
-		result.Success = false
-		return result
-	}
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, &wg))
+	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolume(&job, r.VolumeName, &wg))
+	job.AddCmd(mokubernetes.DeleteMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
+	job.AddCmd(mokubernetes.DeleteMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
+	wg.Wait()
+	job.Finish()
+	// // update mogenius-k8s-manager volume mounts
+	// mokubernetes.UpdateK8sManagerVolumeMounts(r.VolumeName, r.NamespaceName)
+	return job.DefaultReponse()
 }
 
 func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {

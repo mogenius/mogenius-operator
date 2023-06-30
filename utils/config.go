@@ -45,6 +45,7 @@ type Config struct {
 		IgnoreResourcesBackup []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
 		CheckForUpdates       int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
 		HelmIndex             string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
+		ClusterProvider       string   `yaml:"cluster_provider" env:"cluster_provider" env-description:"Providers like AKS, EKS, GCP etc."`
 	} `yaml:"misc"`
 }
 
@@ -136,6 +137,7 @@ func PrintSettings() {
 	logger.Log.Infof("IgnoreNamespaces:         %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
 	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
+	logger.Log.Infof("ClusterProvider:          %s", CONFIG.Misc.ClusterProvider)
 }
 
 func PrintVersionInfo() {

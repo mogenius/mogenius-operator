@@ -423,27 +423,27 @@ func AllDeployments(namespaceName string) []v1.Deployment {
 	return result
 }
 
-func CheckIfMogeniusNfsIsRunning() MogeniusNfsInstallationStatus {
-	result := MogeniusNfsInstallationStatus{}
-	provider := NewKubeProvider()
+// func CheckIfMogeniusNfsIsRunning() MogeniusNfsInstallationStatus {
+// 	result := MogeniusNfsInstallationStatus{}
+// 	provider := NewKubeProvider()
 
-	deploymentList, err := provider.ClientSet.AppsV1().Deployments(NAMESPACE).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		logger.Log.Errorf("CheckIfMogeniusNfsIsRunning ERROR: %s", err.Error())
-		result.Error = err.Error()
-		result.IsInstalled = false
-		return result
-	}
+// 	deploymentList, err := provider.ClientSet.AppsV1().Deployments(NAMESPACE).List(context.TODO(), metav1.ListOptions{})
+// 	if err != nil {
+// 		logger.Log.Errorf("CheckIfMogeniusNfsIsRunning ERROR: %s", err.Error())
+// 		result.Error = err.Error()
+// 		result.IsInstalled = false
+// 		return result
+// 	}
 
-	// search all
-	for _, v := range deploymentList.Items {
-		if strings.Contains(v.Name, "mogenius-nfs-storage") {
-			result.IsInstalled = true
-			return result
-		}
-	}
+// 	// search all
+// 	for _, v := range deploymentList.Items {
+// 		if strings.Contains(v.Name, "mogenius-nfs-storage") {
+// 			result.IsInstalled = true
+// 			return result
+// 		}
+// 	}
 
-	result.Error = "No Deployment containing 'mogenius-nfs-storage' found."
-	result.IsInstalled = false
-	return result
-}
+// 	result.Error = "No Deployment containing 'mogenius-nfs-storage' found."
+// 	result.IsInstalled = false
+// 	return result
+// }

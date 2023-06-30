@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
@@ -10,10 +9,8 @@ import (
 	"mogenius-k8s-manager/utils"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
-	core "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,11 +28,11 @@ var waitList = []structs.WaitListEntry{}
 func WatchEvents() {
 	kubeProvider := NewKubeProvider()
 
-	// INIT EXISTING VOLUMES
-	err := UpdateK8sManagerVolumeMounts("", "")
-	if err != nil {
-		logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
-	}
+	// // INIT EXISTING VOLUMES
+	// err := UpdateK8sManagerVolumeMounts("", "")
+	// if err != nil {
+	// 	logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
+	// }
 
 	for {
 		// Create a watcher for all Kubernetes events
@@ -62,12 +59,12 @@ func WatchEvents() {
 						kind := eventObj.InvolvedObject.Kind
 						reason := eventObj.Reason
 						count := eventObj.Count
-						if kind == "Pod" && reason == "Started" && strings.HasPrefix(message, "Started container nfs-server") {
-							err := UpdateK8sManagerVolumeMounts("", "")
-							if err != nil {
-								logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
-							}
-						}
+						// if kind == "Pod" && reason == "Started" && strings.HasPrefix(message, "Started container nfs-server") {
+						// 	err := UpdateK8sManagerVolumeMounts("", "")
+						// 	if err != nil {
+						// 		logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
+						// 	}
+						// }
 						processWaitList(eventObj)
 						structs.EventServerSendData(datagram, kind, reason, message, count)
 					}
@@ -110,93 +107,93 @@ func processWaitList(event *v1Core.Event) {
 	}
 }
 
-func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace string) error {
-	// EXIT if started locally
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		return nil
-	}
-	// EXIT if AutoMountNfs is disabled
-	if !utils.CONFIG.Misc.AutoMountNfs {
-		return nil
-	}
+// func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace string) error {
+// 	// EXIT if started locally
+// 	if !utils.CONFIG.Kubernetes.RunInCluster {
+// 		return nil
+// 	}
+// 	// EXIT if AutoMountNfs is disabled
+// 	if !utils.CONFIG.Misc.AutoMountNfs {
+// 		return nil
+// 	}
 
-	allMountedPaths := []string{}
+// 	allMountedPaths := []string{}
 
-	time.Sleep(2 * time.Second)
+// 	time.Sleep(2 * time.Second)
 
-	// 1: LIST all matching PersistentVolumes
-	allPvcs := AllPersistentVolumeClaims("")
-	mogeniusPvs := []v1Core.PersistentVolumeClaim{}
-	for _, pvc := range allPvcs {
-		if pvc.Spec.StorageClassName != nil {
-			if *pvc.Spec.StorageClassName == "openebs-kernel-nfs" && pvc.Status.Phase == v1Core.ClaimBound {
-				if pvc.Namespace != deleteVolumeNamespace && pvc.Name != deleteVolumeName {
-					mogeniusPvs = append(mogeniusPvs, pvc)
-				}
-			}
-		}
-	}
+// 	// 1: LIST all matching PersistentVolumes
+// 	allPvcs := AllPersistentVolumeClaims("")
+// 	mogeniusPvs := []v1Core.PersistentVolumeClaim{}
+// 	for _, pvc := range allPvcs {
+// 		if pvc.Spec.StorageClassName != nil {
+// 			if *pvc.Spec.StorageClassName == "openebs-kernel-nfs" && pvc.Status.Phase == v1Core.ClaimBound {
+// 				if pvc.Namespace != deleteVolumeNamespace && pvc.Name != deleteVolumeName {
+// 					mogeniusPvs = append(mogeniusPvs, pvc)
+// 				}
+// 			}
+// 		}
+// 	}
 
-	// 2: Get own deployment for future update
-	kubeProvider := NewKubeProvider()
-	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
-	ownDeployment, err := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, v1.GetOptions{})
-	if err != nil {
-		return err
-	}
+// 	// 2: Get own deployment for future update
+// 	kubeProvider := NewKubeProvider()
+// 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
+// 	ownDeployment, err := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, v1.GetOptions{})
+// 	if err != nil {
+// 		return err
+// 	}
 
-	// 3: Update own Deployment
-	hasBeenUpdated := false
-	if len(mogeniusPvs) > 0 {
-		for _, mopvc := range mogeniusPvs {
-			mountPath := utils.MountPath(mopvc.Namespace, mopvc.Name, "/")
-			allMountedPaths = append(allMountedPaths, mountPath)
-			// 3.1 Add VolumeMount
-			ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = appendVolumeMountIfNotExists(ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
-				MountPath: mountPath,
-				Name:      mopvc.Name,
-			})
-			// 3.2 Add Volume
-			ownDeployment.Spec.Template.Spec.Volumes = appendVolumeIfNotExists(ownDeployment.Spec.Template.Spec.Volumes, core.Volume{
-				Name: mopvc.Name,
-				VolumeSource: core.VolumeSource{
-					PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-						ClaimName: fmt.Sprintf("nfs-%s", mopvc.Spec.VolumeName),
-					},
-				},
-			})
-		}
-	} else {
-		ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
-		ownDeployment.Spec.Template.Spec.Volumes = []core.Volume{}
-	}
+// 	// 3: Update own Deployment
+// 	hasBeenUpdated := false
+// 	if len(mogeniusPvs) > 0 {
+// 		for _, mopvc := range mogeniusPvs {
+// 			mountPath := utils.MountPath(mopvc.Namespace, mopvc.Name, "/")
+// 			allMountedPaths = append(allMountedPaths, mountPath)
+// 			// 3.1 Add VolumeMount
+// 			ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = appendVolumeMountIfNotExists(ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
+// 				MountPath: mountPath,
+// 				Name:      mopvc.Name,
+// 			})
+// 			// 3.2 Add Volume
+// 			ownDeployment.Spec.Template.Spec.Volumes = appendVolumeIfNotExists(ownDeployment.Spec.Template.Spec.Volumes, core.Volume{
+// 				Name: mopvc.Name,
+// 				VolumeSource: core.VolumeSource{
+// 					PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+// 						ClaimName: fmt.Sprintf("nfs-%s", mopvc.Spec.VolumeName),
+// 					},
+// 				},
+// 			})
+// 		}
+// 	} else {
+// 		ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
+// 		ownDeployment.Spec.Template.Spec.Volumes = []core.Volume{}
+// 	}
 
-	// List all mounts marking new ones
-	logger.Log.Infof("Currently mounted Volumes (%d):", len(lastMountedPaths))
-	for index, currentMountPath := range lastMountedPaths {
-		logger.Log.Infof("%d: %s", index+1, currentMountPath)
-	}
+// 	// List all mounts marking new ones
+// 	logger.Log.Infof("Currently mounted Volumes (%d):", len(lastMountedPaths))
+// 	for index, currentMountPath := range lastMountedPaths {
+// 		logger.Log.Infof("%d: %s", index+1, currentMountPath)
+// 	}
 
-	// check if something changed
-	diff := utils.Diff(allMountedPaths, lastMountedPaths)
-	if len(diff) > 0 {
-		for index, diffPath := range diff {
-			logger.Log.Infof("CHANGED (%d): %s", index+1, diffPath)
-		}
-		hasBeenUpdated = true
-	}
+// 	// check if something changed
+// 	diff := utils.Diff(allMountedPaths, lastMountedPaths)
+// 	if len(diff) > 0 {
+// 		for index, diffPath := range diff {
+// 			logger.Log.Infof("CHANGED (%d): %s", index+1, diffPath)
+// 		}
+// 		hasBeenUpdated = true
+// 	}
 
-	// 5: Redeploy on up
-	if hasBeenUpdated || eventsFirstStart || deleteVolumeName != "" {
-		lastMountedPaths = allMountedPaths
-		_, err := deploymentClient.Update(context.TODO(), ownDeployment, v1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
-		eventsFirstStart = false
-	}
-	return nil
-}
+// 	// 5: Redeploy on up
+// 	if hasBeenUpdated || eventsFirstStart || deleteVolumeName != "" {
+// 		lastMountedPaths = allMountedPaths
+// 		_, err := deploymentClient.Update(context.TODO(), ownDeployment, v1.UpdateOptions{})
+// 		if err != nil {
+// 			return err
+// 		}
+// 		eventsFirstStart = false
+// 	}
+// 	return nil
+// }
 
 func appendVolumeMountIfNotExists(items []v1Core.VolumeMount, newItem v1Core.VolumeMount) []v1Core.VolumeMount {
 	for _, item := range items {
