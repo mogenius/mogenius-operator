@@ -56,6 +56,29 @@ rm -rf ~/.helm/repository/cache/*
 helm repo update
 ```
 
+# ENV VARS
+| NAME                       | DEFAULT                                     | DESCRIPTION |
+| :---                       | :----                                       | ---: |
+| api_key                    | [your_key]                                  | Api Key to access the server     |
+| cluster_name               | [your_name]                                 | The Name of the Kubernetes Cluster.     | 
+| own_namespace              | mogenius                                    | The Namespace of mogenius platform.     | 
+| cluster_mfa_id             | [auto_generated]                            | UUID of the Kubernetes Cluster for MFA purpose.       | 
+| run_in_cluster             | true                                        | If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context.     | 
+| default_container_registry | docker.io                                   | Default Container Image Registry.    | 
+| api_ws_server              | 127.0.0.1:8080                              | This depends on your stage. local/dev/prod. Prod: "k8s-ws.mogenius.com"     | 
+| api_ws_path                | /ws                                         | The path of the api server.    | 
+| event_server               | 127.0.0.1:8080                              | This depends on your stage. local/dev/prod. Prod: "k8s-dispatcher.mogenius.com"     | 
+| event_path                 | /ws                                         | The path of the api server.     | 
+| stage                      | prod                                        | Stage environment    | 
+| log_kubernetes_events      | false                                       | If set to true, all kubernetes events will be logged to std-out.    | 
+| default_mount_path         | /mo-data                                    | The mogenius mounts will be attached to this folder inside the k8s-manager.   | 
+| ignore_namespaces          | ["kube-system"]                             | These namespaces will be ignored.   | 
+| auto_mount_nfs             | true                                        | If set to true, nfs pvc will automatically be mounted.      | 
+| ignore_resources_backup    | ["events.k8s.io/v1", "events.k8s.io/v1beta1", "metrics.k8s.io/v1beta1", "discovery.k8s.io/v1"]    |   List of all ignored resources while backup.     | 
+| check_for_updates          | 3600                                        | Time interval between update checks in seconds.      | 
+| helm_index                 | https://helm.mogenius.com/public/index.yaml | URL of the helm index file.      | 
+| cluster_provider           | BRING_YOUR_OWN                              | Cluster providers like AKS, EKS, GCP, BRING_YOUR_OWN etc. In this case BRING_YOUR_OWN means default.    | 
+
 # LINKS
 - [AIR](https://github.com/cosmtrek/air) - Live reload for Go apps
 

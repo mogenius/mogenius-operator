@@ -145,9 +145,6 @@ var COMMAND_REQUESTS = []string{
 	"delete/cluster_role",
 	"delete/cluster_role_binding",
 
-	"storage/enable",
-	"storage/disable",
-	"storage/check-if-installed",
 	"storage/create-volume",
 	"storage/delete-volume",
 	"storage/backup-volume",
@@ -646,16 +643,16 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sClusterRoleBinding(*data.Data)
 
-	case "storage/enable":
-		data := NfsStorageInstallRequest{}
-		marshalUnmarshal(&datagram, &data)
-		return InstallMogeniusNfsStorage(data)
-	case "storage/disable":
-		data := NfsStorageInstallRequest{}
-		marshalUnmarshal(&datagram, &data)
-		return UninstallMogeniusNfsStorage(data)
-	case "storage/check-if-installed":
-		return mokubernetes.CheckIfMogeniusNfsIsRunning()
+	// case "storage/enable":
+	// 	data := NfsStorageInstallRequest{}
+	// 	marshalUnmarshal(&datagram, &data)
+	// 	return InstallMogeniusNfsStorage(data)
+	// case "storage/disable":
+	// 	data := NfsStorageInstallRequest{}
+	// 	marshalUnmarshal(&datagram, &data)
+	// 	return UninstallMogeniusNfsStorage(data)
+	// case "storage/check-if-installed":
+	// 	return mokubernetes.CheckIfMogeniusNfsIsRunning()
 	case "storage/create-volume":
 		data := NfsVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)

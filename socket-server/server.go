@@ -416,10 +416,10 @@ func requestCmdFromCluster(pattern string) {
 		case "delete/persistentvolumeclaim":
 			payload = services.K8sDeletePersistentVolumeClaimRequestExample()
 
-		case "storage/enable":
-			payload = services.NfsStorageInstallRequestExample()
-		case "storage/disable":
-			payload = services.NfsStorageInstallRequestExample()
+		// case "storage/enable":
+		// 	payload = services.NfsStorageInstallRequestExample()
+		// case "storage/disable":
+		// 	payload = services.NfsStorageInstallRequestExample()
 		case "storage/create-volume":
 			payload = services.NfsVolumeRequestExample()
 		case "storage/delete-volume":

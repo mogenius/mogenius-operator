@@ -27,13 +27,13 @@ const CONCURRENTCONNECTIONS = 1
 
 var eventSendMutex sync.Mutex
 var eventQueueConnection *websocket.Conn
+var eventConnectionGuard = make(chan struct{}, CONCURRENTCONNECTIONS)
+var EventConnectionStatus chan bool = make(chan bool)
 var eventDataQueue []EventData = []EventData{}
 
 func ConnectToEventQueue() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
-
-	connectionGuard := make(chan struct{}, CONCURRENTCONNECTIONS)
 
 	for {
 		select {
@@ -42,7 +42,7 @@ func ConnectToEventQueue() {
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
-		connectionGuard <- struct{}{} // would block if guard channel is already filled
+		eventConnectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
 			ticker := time.NewTicker(1 * time.Second)
 			defer ticker.Stop()
@@ -56,7 +56,7 @@ func ConnectToEventQueue() {
 			ctx := context.Background()
 			connectEvent(ctx)
 			ctx.Done()
-			<-connectionGuard
+			<-eventConnectionGuard
 		}()
 	}
 }
@@ -71,9 +71,11 @@ func connectEvent(ctx context.Context) {
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
 	if err != nil {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
+		EventConnectionStatus <- false
 	} else {
-		logger.Log.Infof("Connected to EventServer: %s \n", connectionUrl.String())
+		logger.Log.Infof("Connected to EventServer: %s  (%s)\n", connectionUrl.String(), connection.LocalAddr().String())
 		eventQueueConnection = connection
+		EventConnectionStatus <- true
 		done := make(chan struct{})
 		Ping(done, eventQueueConnection, &eventSendMutex)
 	}
@@ -84,6 +86,7 @@ func connectEvent(ctx context.Context) {
 			eventQueueConnection.Close()
 		}
 		ctx.Done()
+		EventConnectionStatus <- false
 	}()
 }
 
@@ -122,7 +125,7 @@ func processEventQueueNow() {
 		}
 	} else {
 		if utils.CONFIG.Misc.Debug {
-			logger.Log.Error("queueConnection is nil.")
+			logger.Log.Error("eventQueueConnection is nil.")
 		}
 	}
 }

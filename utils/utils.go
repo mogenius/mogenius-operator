@@ -100,6 +100,27 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 	return defaultReturnValue
 }
 
+func StorageClassForClusterProvider(clusterProvider string) string {
+	var nfsStorageClassStr string = "default"
+	// TODO: "DOCKER_ENTERPRISE", "DOKS", "LINODE", "IBM", "ACK", "OKE", "OPEN_SHIFT"
+	switch clusterProvider {
+	case "EKS":
+		nfsStorageClassStr = "gp2"
+	case "GKE":
+		nfsStorageClassStr = "standard-rwo"
+	case "AKS":
+		nfsStorageClassStr = "default"
+	case "OTC":
+		nfsStorageClassStr = "csi-disk"
+	case "BRING_YOUR_OWN":
+		nfsStorageClassStr = "default"
+	default:
+		logger.Log.Errorf("CLUSTERPROVIDER '%s' HAS NOT BEEN TESTED YET! Returning 'default'.", clusterProvider)
+		nfsStorageClassStr = "default"
+	}
+	return nfsStorageClassStr
+}
+
 func OpenBrowser(url string) {
 	var err error
 
