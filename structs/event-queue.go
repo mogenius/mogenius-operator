@@ -73,7 +73,7 @@ func connectEvent(ctx context.Context) {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
 		EventConnectionStatus <- false
 	} else {
-		logger.Log.Infof("Connected to EventServer: %s \n", connectionUrl.String())
+		logger.Log.Infof("Connected to EventServer: %s  (%s)\n", connectionUrl.String(), connection.LocalAddr().String())
 		eventQueueConnection = connection
 		EventConnectionStatus <- true
 		done := make(chan struct{})
