@@ -5,6 +5,7 @@ import (
 
 	"context"
 	"io"
+	"strings"
 
 	// "fmt"
 	"mogenius-k8s-manager/dtos"
@@ -723,8 +724,10 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	}
 
 	if previousResReq != nil {
+		logger.Log.Infof("Logger try multiStreamData")
 		go multiStreamData(previousResReq, restReq, url.String())
-	} else {
+		} else {
+		logger.Log.Infof("Logger try streamData")
 		go streamData(restReq, url.String())
 	}
 
@@ -759,7 +762,11 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, toSer
 		logger.Log.Error(err.Error())
 	}
 
-	mergedStream := io.MultiReader(previousStream, stream)
+	phl := strings.NewReader("Previous log\n")
+	nl := strings.NewReader("\n")
+	chl := strings.NewReader("Current log\n")
+
+	mergedStream := io.MultiReader(phl, previousStream, nl, chl, stream)
 
 	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
 	endGofunc()
