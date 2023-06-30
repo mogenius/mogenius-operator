@@ -19,14 +19,15 @@ import (
 const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
 
-var lastResourceVersion = ""
-var lastMountedPaths = []string{}
-var eventsFirstStart = true
+// var lastMountedPaths = []string{}
+// var eventsFirstStart = true
 
 var waitList = []structs.WaitListEntry{}
 
 func WatchEvents() {
 	kubeProvider := NewKubeProvider()
+
+	var lastResourceVersion = ""
 
 	// // INIT EXISTING VOLUMES
 	// err := UpdateK8sManagerVolumeMounts("", "")
@@ -36,7 +37,7 @@ func WatchEvents() {
 
 	for {
 		// Create a watcher for all Kubernetes events
-		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
+		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion, ResourceVersionMatch: v1.ResourceVersionMatchNotOlderThan})
 		if err != nil {
 			log.Printf("Error creating watcher: %v", err)
 			time.Sleep(RETRYTIMEOUT * time.Second) // Wait for 5 seconds before retrying
@@ -79,6 +80,7 @@ func WatchEvents() {
 
 		// If the watcher channel is closed, wait for 5 seconds before retrying
 		logger.Log.Errorf("Watcher channel closed. Waiting before retrying with '%s' ...", lastResourceVersion)
+		watcher.Stop()
 		time.Sleep(RETRYTIMEOUT * time.Second)
 	}
 }
