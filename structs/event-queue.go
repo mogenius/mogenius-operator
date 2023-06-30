@@ -47,13 +47,16 @@ func ConnectToEventQueue() {
 			ticker := time.NewTicker(1 * time.Second)
 			defer ticker.Stop()
 
+			ctx := context.Background()
 			go func() {
 				for range ticker.C {
-					processEventQueueNow()
+					err := processEventQueueNow()
+					if err != nil {
+						ctx.Done()
+						<-eventConnectionGuard
+					}
 				}
 			}()
-
-			ctx := context.Background()
 			connectEvent(ctx)
 			ctx.Done()
 			<-eventConnectionGuard
@@ -102,7 +105,7 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 	processEventQueueNow()
 }
 
-func processEventQueueNow() {
+func processEventQueueNow() error {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 
@@ -120,7 +123,7 @@ func processEventQueueNow() {
 				eventDataQueue = RemoveEventIndex(eventDataQueue, i)
 			} else {
 				logger.Log.Error(err)
-				return
+				return err
 			}
 		}
 	} else {
@@ -128,6 +131,7 @@ func processEventQueueNow() {
 			logger.Log.Error("eventQueueConnection is nil.")
 		}
 	}
+	return nil
 }
 
 func RemoveEventIndex(s []EventData, index int) []EventData {
