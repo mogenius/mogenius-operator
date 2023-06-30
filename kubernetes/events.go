@@ -14,7 +14,6 @@ import (
 	v1Core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
 )
 
 const RETRYTIMEOUT time.Duration = 3
@@ -38,13 +37,7 @@ func WatchEvents() {
 
 	for {
 		// Create a watcher for all Kubernetes events
-		var err error
-		var watcher watch.Interface
-		if lastResourceVersion == "" {
-			watcher, err = kubeProvider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
-		} else {
-			watcher, err = kubeProvider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion, ResourceVersionMatch: v1.ResourceVersionMatchNotOlderThan})
-		}
+		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
 
 		if err != nil || watcher == nil {
 			log.Printf("Error creating watcher: %v", err)
