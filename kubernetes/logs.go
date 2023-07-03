@@ -139,3 +139,16 @@ func StreamLog(namespace string, podId string, sinceSeconds int64) (*rest.Reques
 	restReq := podClient.GetLogs(podId, &opts)
 	return restReq, nil
 }
+
+func StreamPreviousLog(namespace string, podId string) (*rest.Request, error) {
+	kubeProvider := NewKubeProvider()
+	podClient := kubeProvider.ClientSet.CoreV1().Pods(namespace)
+
+	opts := v1.PodLogOptions{
+		Previous: true,
+		Timestamps: true,
+	}
+
+	restReq := podClient.GetLogs(podId, &opts)
+	return restReq, nil
+}

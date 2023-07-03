@@ -4,6 +4,8 @@ import (
 	// "bufio"
 
 	"context"
+	"io"
+	"strings"
 
 	// "fmt"
 	"mogenius-k8s-manager/dtos"
@@ -14,6 +16,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -695,6 +698,19 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 		return result
 	}
 
+	pod := mokubernetes.PodStatus(data.Namespace, data.PodId, false)
+	terminatedState := mokubernetes.LastTerminatedStateIfAny(pod)
+	
+	var previousResReq *rest.Request
+	if terminatedState != nil {
+		tmpPreviousResReq, err := PreviousPodLogStream(data)
+		if err != nil {
+			logger.Log.Error(err.Error())
+		} else {
+			previousResReq = tmpPreviousResReq
+		}
+	}
+
 	restReq, err := PodLogStream(data)
 	if err != nil {
 		result.Error = err.Error()
@@ -703,7 +719,13 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 		return result
 	}
 
-	go streamData(restReq, url.String())
+	if terminatedState != nil {
+		logger.Log.Infof("Logger try multiStreamData")
+		go multiStreamData(previousResReq, restReq, terminatedState, url.String())
+	} else {
+		logger.Log.Infof("Logger try streamData")
+		go streamData(restReq, url.String())
+	}
 
 	result.Success = true
 
@@ -718,13 +740,45 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 		logger.Log.Error(err.Error())
 	}
 
-	if err != nil {
-		logger.Log.Error(err.Error())
-	}
-
 	structs.SendDataWs(toServerUrl, stream)
 	endGofunc()
 }
+
+func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, terminatedState *v1.ContainerStateTerminated, toServerUrl string) {
+	ctx := context.Background()
+	cancelCtx, endGofunc := context.WithCancel(ctx)
+
+	lastState := mokubernetes.LastTerminatedStateToString(terminatedState)
+
+	var previousStream io.ReadCloser
+	if previousRestReq != nil {
+		tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
+		if err != nil {
+			logger.Log.Error(err.Error())
+			reader := strings.NewReader("")
+			nopCloser := io.NopCloser(reader)
+			previousStream = nopCloser
+		} else {
+			previousStream = tmpPreviousStream
+		}
+	}
+
+	stream, err := restReq.Stream(cancelCtx)
+	if err != nil {
+		logger.Log.Error(err.Error())
+	}
+	
+	nl := strings.NewReader("\n")
+	previousState := strings.NewReader(lastState)
+	headlineLastLog := strings.NewReader("Last Log:\n")
+	headlineCurrentLog := strings.NewReader("Current Log:\n")
+
+	mergedStream := io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, headlineCurrentLog, nl, stream)
+
+	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
+	endGofunc()
+}
+
 
 func PopeyeConsole() string {
 	return structs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")
