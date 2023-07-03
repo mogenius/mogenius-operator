@@ -16,6 +16,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -698,15 +699,19 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	}
 
 	pod := mokubernetes.PodStatus(data.Namespace, data.PodId, false)
-	// Get the restart count
-	restartCount := int32(0)
-	for _, containerStatus := range pod.Status.ContainerStatuses {
-		restartCount += containerStatus.RestartCount
-	}
-	logger.Log.Infof("Pod restartCount '%d'.", restartCount)
 
+	
+	// Get the restart count
+	// restartCount := int32(0)
+	// for _, containerStatus := range pod.Status.ContainerStatuses {
+	// 	restartCount += containerStatus.RestartCount
+	// }
+	// logger.Log.Infof("Pod restartCount '%d'.", restartCount)
+		
+	terminatedState := mokubernetes.LastTerminatedStateIfAny(pod)
+	
 	var previousResReq *rest.Request
-	if restartCount > 0 {
+	if terminatedState != nil {
 		tmpPreviousResReq, err := PreviousPodLogStream(data)
 		if err != nil {
 			logger.Log.Error(err.Error())
@@ -723,10 +728,10 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 		return result
 	}
 
-	if previousResReq != nil {
+	if terminatedState != nil {
 		logger.Log.Infof("Logger try multiStreamData")
-		go multiStreamData(previousResReq, restReq, url.String())
-		} else {
+		go multiStreamData(previousResReq, restReq, terminatedState, url.String())
+	} else {
 		logger.Log.Infof("Logger try streamData")
 		go streamData(restReq, url.String())
 	}
@@ -748,25 +753,34 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	endGofunc()
 }
 
-func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, toServerUrl string) {
+func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, terminatedState *v1.ContainerStateTerminated, toServerUrl string) {
 	ctx := context.Background()
 	cancelCtx, endGofunc := context.WithCancel(ctx)
 
-	previousStream, err := previousRestReq.Stream(cancelCtx)
-	if err != nil {
-		logger.Log.Error(err.Error())
+	lastState := mokubernetes.LastTerminatedStateToString(terminatedState)
+
+	var previousStream io.ReadCloser
+	if previousRestReq != nil {
+		tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
+		if err != nil {
+			logger.Log.Error(err.Error())
+			reader := strings.NewReader("")
+			nopCloser := io.NopCloser(reader)
+			previousStream = nopCloser
+		} else {
+			previousStream = tmpPreviousStream
+		}
 	}
 
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
 		logger.Log.Error(err.Error())
 	}
+	
+	previousState := strings.NewReader(lastState)
+	nl := strings.NewReader("\n\n")
 
-	phl := strings.NewReader("Previous log\n")
-	nl := strings.NewReader("\n")
-	chl := strings.NewReader("Current log\n")
-
-	mergedStream := io.MultiReader(phl, previousStream, nl, chl, stream)
+	mergedStream := io.MultiReader(previousState, previousStream, nl, stream)
 
 	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
 	endGofunc()

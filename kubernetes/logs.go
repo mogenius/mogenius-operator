@@ -146,6 +146,7 @@ func StreamPreviousLog(namespace string, podId string) (*rest.Request, error) {
 
 	opts := v1.PodLogOptions{
 		Previous: true,
+		Timestamps: true,
 	}
 
 	restReq := podClient.GetLogs(podId, &opts)

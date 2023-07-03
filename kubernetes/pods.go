@@ -1,7 +1,9 @@
 package kubernetes
 
 import (
+	"bytes"
 	"context"
+	"html/template"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"sort"
@@ -32,6 +34,45 @@ func PodStatus(namespace string, name string, statusOnly bool) *v1.Pod {
 	}
 
 	return pod
+}
+
+func LastTerminatedStateIfAny(pod *v1.Pod) *v1.ContainerStateTerminated {
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		state := containerStatus.LastTerminationState
+
+		if state.Terminated != nil {
+			return state.Terminated
+		}
+	}
+
+	return nil
+}
+
+func LastTerminatedStateToString(terminatedState *v1.ContainerStateTerminated) string {
+	if terminatedState == nil {
+		return "Last State:	nil"
+	}
+
+	tpl, err := template.New("state").Parse(	
+		"Last State:	Terminated\n" +
+		"  Reason:		{{.Reason}}\n" +
+		"  Message:		{{.Message}}\n" +
+		"  Exit Code:	{{.ExitCode}}\n" +
+		"  Started:		{{.StartedAt}}\n" +
+		"  Finished:	{{.FinishedAt}}\n")
+	if err != nil {
+		logger.Log.Error(err.Error())
+		return ""
+	}
+	
+	buf := bytes.Buffer{}
+	err = tpl.Execute(&buf, terminatedState)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		return ""
+	}
+
+	return buf.String()
 }
 
 func ServicePodStatus(namespace string, serviceName string) []v1.Pod {
