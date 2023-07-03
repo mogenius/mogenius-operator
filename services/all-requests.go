@@ -699,15 +699,6 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	}
 
 	pod := mokubernetes.PodStatus(data.Namespace, data.PodId, false)
-
-	
-	// Get the restart count
-	// restartCount := int32(0)
-	// for _, containerStatus := range pod.Status.ContainerStatuses {
-	// 	restartCount += containerStatus.RestartCount
-	// }
-	// logger.Log.Infof("Pod restartCount '%d'.", restartCount)
-		
 	terminatedState := mokubernetes.LastTerminatedStateIfAny(pod)
 	
 	var previousResReq *rest.Request
