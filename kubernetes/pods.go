@@ -50,7 +50,7 @@ func LastTerminatedStateIfAny(pod *v1.Pod) *v1.ContainerStateTerminated {
 
 func LastTerminatedStateToString(terminatedState *v1.ContainerStateTerminated) string {
 	if terminatedState == nil {
-		return "Last State:	nil"
+		return "Last State:	nil\n"
 	}
 
 	tpl, err := template.New("state").Parse(	
