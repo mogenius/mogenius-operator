@@ -96,7 +96,7 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 	}()
 }
 
-func Ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
+func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 	interrupt := make(chan os.Signal, 1)
 	defer close(interrupt)
 	signal.Notify(interrupt, os.Interrupt)
@@ -105,16 +105,13 @@ func Ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
 
 	for {
 		select {
-		case <-done:
-			pingTicker.Stop()
-			return
 		case <-pingTicker.C:
 			sendMutex.Lock()
 			err := c.WriteMessage(websocket.PingMessage, nil)
 			sendMutex.Unlock()
 			if err != nil {
 				log.Println("pingTicker ERROR:", err)
-				return
+				return err
 			}
 		case <-interrupt:
 			log.Println("interrupt")
@@ -126,14 +123,12 @@ func Ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
 			sendMutex.Unlock()
 			if err != nil {
 				log.Println("write close:", err)
-				return
+				return err
 			}
 			select {
-			case <-done:
-				log.Fatal("CTRL + C pressed. Terminating.")
 			case <-time.After(time.Second):
 			}
-			return
+			return nil
 		}
 	}
 }

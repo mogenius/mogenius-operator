@@ -1,7 +1,7 @@
 package structs
 
 import (
-	"context"
+	"fmt"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -27,14 +27,21 @@ const CONCURRENTCONNECTIONS = 1
 
 var eventSendMutex sync.Mutex
 var eventQueueConnection *websocket.Conn
-var eventConnectionGuard = make(chan struct{}, CONCURRENTCONNECTIONS)
-var EventConnectionStatus chan bool = make(chan bool)
 var eventDataQueue []EventData = []EventData{}
 
 func ConnectToEventQueue() {
 	interrupt := make(chan os.Signal, 1)
 	defer close(interrupt)
 	signal.Notify(interrupt, os.Interrupt)
+
+	ticker := time.NewTicker(1 * time.Second)
+
+	// ALWAYS PROCESS_EVENT_QUEUE
+	go func() {
+		for range ticker.C {
+			_ = processEventQueueNow()
+		}
+	}()
 
 	for {
 		select {
@@ -43,39 +50,20 @@ func ConnectToEventQueue() {
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
-		eventConnectionGuard <- struct{}{} // would block if guard channel is already filled
-		go func() {
-			ticker := time.NewTicker(1 * time.Second)
-			quit := make(chan struct{})
-
-			ctx := context.Background()
-			go func() {
-				for {
-					select {
-					case <-ticker.C:
-						err := processEventQueueNow()
-						if err != nil {
-							ctx.Done()
-							<-eventConnectionGuard
-						}
-					case <-quit:
-						// close go routine
-						<-eventConnectionGuard
-						return
-					}
-				}
-			}()
-			connectEvent(ctx)
-			ctx.Done()
-			<-eventConnectionGuard
-
-			ticker.Stop()
-			close(quit)
-		}()
+		// connect
+		connectEvent()
+		time.Sleep(3 * time.Second)
 	}
 }
 
-func connectEvent(ctx context.Context) {
+func connectEvent() {
+	defer func() {
+		// reset everything if connection dies
+		if eventQueueConnection != nil {
+			eventQueueConnection.Close()
+		}
+	}()
+
 	scheme := "wss"
 	if utils.CONFIG.Misc.Stage == "local" {
 		scheme = "ws"
@@ -85,23 +73,13 @@ func connectEvent(ctx context.Context) {
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
 	if err != nil {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
-		EventConnectionStatus <- false
+		return
 	} else {
 		logger.Log.Infof("Connected to EventServer: %s  (%s)\n", connectionUrl.String(), connection.LocalAddr().String())
 		eventQueueConnection = connection
-		EventConnectionStatus <- true
-		done := make(chan struct{})
-		Ping(done, eventQueueConnection, &eventSendMutex)
+		Ping(eventQueueConnection, &eventSendMutex)
+		return
 	}
-
-	defer func() {
-		// reset everything if connection dies
-		if eventQueueConnection != nil {
-			eventQueueConnection.Close()
-		}
-		ctx.Done()
-		EventConnectionStatus <- false
-	}()
 }
 
 func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32) {
@@ -139,8 +117,9 @@ func processEventQueueNow() error {
 		}
 	} else {
 		if utils.CONFIG.Misc.Debug {
-			logger.Log.Error("eventQueueConnection is nil.")
+			// logger.Log.Error("eventQueueConnection is nil.")
 		}
+		return fmt.Errorf("eventQueueConnection is nil")
 	}
 	return nil
 }

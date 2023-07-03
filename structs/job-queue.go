@@ -77,8 +77,7 @@ func connectJob(ctx context.Context) {
 		logger.Log.Infof("Connected to JobServer: %s  (%s)\n", connectionUrl.String(), connection.LocalAddr().String())
 		JobQueueConnection = connection
 		JobConnectionStatus <- true
-		done := make(chan struct{})
-		Ping(done, JobQueueConnection, &JobSendMutex)
+		Ping(JobQueueConnection, &JobSendMutex)
 	}
 
 	defer func() {
