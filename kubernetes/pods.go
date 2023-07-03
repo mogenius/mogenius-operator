@@ -3,11 +3,11 @@ package kubernetes
 import (
 	"bytes"
 	"context"
-	"html/template"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"sort"
 	"strings"
+	"text/template"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

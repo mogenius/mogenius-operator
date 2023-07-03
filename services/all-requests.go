@@ -768,7 +768,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 		logger.Log.Error(err.Error())
 	}
 	
-	nl := strings.NewReader(" \n")
+	nl := strings.NewReader("\n")
 	previousState := strings.NewReader(lastState)
 	headlineLastLog := strings.NewReader("Last Log:\n")
 	headlineCurrentLog := strings.NewReader("Current Log:\n")
