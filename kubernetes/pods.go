@@ -50,16 +50,16 @@ func LastTerminatedStateIfAny(pod *v1.Pod) *v1.ContainerStateTerminated {
 
 func LastTerminatedStateToString(terminatedState *v1.ContainerStateTerminated) string {
 	if terminatedState == nil {
-		return "Last State:	nil\n"
+		return "Last State:	   nil\n"
 	}
 
 	tpl, err := template.New("state").Parse(	
-		"Last State:	Terminated\n" +
-		"  Reason:		{{.Reason}}\n" +
-		"  Message:		{{.Message}}\n" +
-		"  Exit Code:	{{.ExitCode}}\n" +
-		"  Started:		{{.StartedAt}}\n" +
-		"  Finished:	{{.FinishedAt}}\n")
+		"Last State:    Terminated\n" +
+		"  Reason:      {{.Reason}}\n" +
+		"  Message:     {{.Message}}\n" +
+		"  Exit Code:   {{.ExitCode}}\n" +
+		"  Started:     {{.StartedAt}}\n" +
+		"  Finished:    {{.FinishedAt}}\n")
 	if err != nil {
 		logger.Log.Error(err.Error())
 		return ""

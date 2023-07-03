@@ -779,8 +779,10 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	
 	previousState := strings.NewReader(lastState)
 	nl := strings.NewReader("\n")
+	headlineLastLog := strings.NewReader("Last Log:\n")
+	headlineCurrentLog := strings.NewReader("Current Log:\n")
 
-	mergedStream := io.MultiReader(previousState, nl, previousStream, nl, nl, stream)
+	mergedStream := io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, headlineCurrentLog, nl, stream)
 
 	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
 	endGofunc()
