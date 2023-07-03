@@ -5,6 +5,7 @@ kubernetes:
   cluster_mfa_id:
   run_in_cluster: false
   default_container_registry: mogenius.azurecr.io
+  k8s_nfs_server_name: mo-nfs-server
 
 api_server:
   ws_server: 127.0.0.1:8080

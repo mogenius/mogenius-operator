@@ -39,6 +39,7 @@ func ConnectToJobQueue() {
 			defer ticker.Stop()
 
 			go func() {
+				defer ticker.Stop()
 				for range ticker.C {
 					processJobNow()
 				}

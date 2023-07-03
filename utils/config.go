@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/version"
 	"net/http"
@@ -26,6 +25,7 @@ type Config struct {
 		ClusterMfaId             string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"UUID of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster             bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
+		K8sNfsServerName         string `yaml:"k8s_nfs_server_name" env:"k8s_nfs_server_name" env-description:"Determines the name of the nfs server." env-default:"mo-nfs-server"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
 		Ws_Server string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
@@ -108,7 +108,22 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 	if CONFIG.Misc.Debug {
 		logger.Log.Warning("Starting serice for pprof in localhost:6060")
 		go func() {
-			log.Println(http.ListenAndServe("localhost:6060", nil))
+			logger.Log.Info(http.ListenAndServe("localhost:6060", nil))
+			logger.Log.Info("1. Portforward mogenius-k8s-manager to 6060")
+			logger.Log.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
+			logger.Log.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
+			logger.Log.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
+			logger.Log.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
+			logger.Log.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
+			logger.Log.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
+			logger.Log.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
+			logger.Log.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
+			logger.Log.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
+			logger.Log.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
+			logger.Log.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
+			logger.Log.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
+			logger.Log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
+			logger.Log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
 		}()
 	}
 }
@@ -119,6 +134,7 @@ func PrintSettings() {
 	logger.Log.Infof("ClusterMfaId:             %s", CONFIG.Kubernetes.ClusterMfaId)
 	logger.Log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
+	logger.Log.Infof("K8sNfsServerName:         %s", CONFIG.Kubernetes.K8sNfsServerName)
 
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 

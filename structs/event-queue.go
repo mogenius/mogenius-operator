@@ -49,6 +49,7 @@ func ConnectToEventQueue() {
 
 			ctx := context.Background()
 			go func() {
+				defer ticker.Stop()
 				for range ticker.C {
 					err := processEventQueueNow()
 					if err != nil {
