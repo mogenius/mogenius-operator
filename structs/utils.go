@@ -98,14 +98,15 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 
 func Ping(done chan struct{}, c *websocket.Conn, sendMutex *sync.Mutex) {
 	interrupt := make(chan os.Signal, 1)
+	defer close(interrupt)
 	signal.Notify(interrupt, os.Interrupt)
 
 	pingTicker := time.NewTicker(time.Second * PingSeconds)
-	defer pingTicker.Stop()
 
 	for {
 		select {
 		case <-done:
+			pingTicker.Stop()
 			return
 		case <-pingTicker.C:
 			sendMutex.Lock()

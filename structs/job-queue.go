@@ -24,6 +24,7 @@ var JobConnectionStatus chan bool = make(chan bool)
 
 func ConnectToJobQueue() {
 	interrupt := make(chan os.Signal, 1)
+	defer close(interrupt)
 	signal.Notify(interrupt, os.Interrupt)
 
 	for {
@@ -36,12 +37,17 @@ func ConnectToJobQueue() {
 		JobConnectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
 			ticker := time.NewTicker(1 * time.Second)
-			defer ticker.Stop()
+			quit := make(chan struct{})
 
 			go func() {
-				defer ticker.Stop()
-				for range ticker.C {
-					processJobNow()
+				for {
+					select {
+					case <-ticker.C:
+						processJobNow()
+					case <-quit:
+						// close go routine
+						return
+					}
 				}
 			}()
 
@@ -49,6 +55,9 @@ func ConnectToJobQueue() {
 			connectJob(ctx)
 			ctx.Done()
 			<-JobConnectionGuard
+
+			ticker.Stop()
+			close(quit)
 		}()
 	}
 }

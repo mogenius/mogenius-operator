@@ -33,6 +33,7 @@ var eventDataQueue []EventData = []EventData{}
 
 func ConnectToEventQueue() {
 	interrupt := make(chan os.Signal, 1)
+	defer close(interrupt)
 	signal.Notify(interrupt, os.Interrupt)
 
 	for {
@@ -45,22 +46,31 @@ func ConnectToEventQueue() {
 		eventConnectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
 			ticker := time.NewTicker(1 * time.Second)
-			defer ticker.Stop()
+			quit := make(chan struct{})
 
 			ctx := context.Background()
 			go func() {
-				defer ticker.Stop()
-				for range ticker.C {
-					err := processEventQueueNow()
-					if err != nil {
-						ctx.Done()
+				for {
+					select {
+					case <-ticker.C:
+						err := processEventQueueNow()
+						if err != nil {
+							ctx.Done()
+							<-eventConnectionGuard
+						}
+					case <-quit:
+						// close go routine
 						<-eventConnectionGuard
+						return
 					}
 				}
 			}()
 			connectEvent(ctx)
 			ctx.Done()
 			<-eventConnectionGuard
+
+			ticker.Stop()
+			close(quit)
 		}()
 	}
 }
