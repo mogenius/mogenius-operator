@@ -121,6 +121,22 @@ func InitMogeniusNfsService() core.Service {
 	return service
 }
 
+func InitMogeniusNfsK8sService() core.Service {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-k8s-nfs-service.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var service core.Service
+	_, _, err = s.Decode(yaml, nil, &service)
+	if err != nil {
+		panic(err)
+	}
+	return service
+}
+
 func InitSecret() core.Secret {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/secret.yaml")
 	if err != nil {

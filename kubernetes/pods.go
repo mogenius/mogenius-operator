@@ -37,11 +37,13 @@ func PodStatus(namespace string, name string, statusOnly bool) *v1.Pod {
 }
 
 func LastTerminatedStateIfAny(pod *v1.Pod) *v1.ContainerStateTerminated {
-	for _, containerStatus := range pod.Status.ContainerStatuses {
-		state := containerStatus.LastTerminationState
+	if pod != nil {
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			state := containerStatus.LastTerminationState
 
-		if state.Terminated != nil {
-			return state.Terminated
+			if state.Terminated != nil {
+				return state.Terminated
+			}
 		}
 	}
 
@@ -53,18 +55,18 @@ func LastTerminatedStateToString(terminatedState *v1.ContainerStateTerminated) s
 		return "Last State:	   nil\n"
 	}
 
-	tpl, err := template.New("state").Parse(	
+	tpl, err := template.New("state").Parse(
 		"Last State:    Terminated\n" +
-		"  Reason:      {{.Reason}}\n" +
-		"  Message:     {{.Message}}\n" +
-		"  Exit Code:   {{.ExitCode}}\n" +
-		"  Started:     {{.StartedAt}}\n" +
-		"  Finished:    {{.FinishedAt}}\n")
+			"  Reason:      {{.Reason}}\n" +
+			"  Message:     {{.Message}}\n" +
+			"  Exit Code:   {{.ExitCode}}\n" +
+			"  Started:     {{.StartedAt}}\n" +
+			"  Finished:    {{.FinishedAt}}\n")
 	if err != nil {
 		logger.Log.Error(err.Error())
 		return ""
 	}
-	
+
 	buf := bytes.Buffer{}
 	err = tpl.Execute(&buf, terminatedState)
 	if err != nil {

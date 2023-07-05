@@ -25,7 +25,6 @@ type Config struct {
 		ClusterMfaId             string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"UUID of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster             bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
-		K8sNfsServerName         string `yaml:"k8s_nfs_server_name" env:"k8s_nfs_server_name" env-description:"Determines the name of the nfs server." env-default:"mo-nfs-server"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
 		Ws_Server string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
@@ -134,8 +133,6 @@ func PrintSettings() {
 	logger.Log.Infof("ClusterMfaId:             %s", CONFIG.Kubernetes.ClusterMfaId)
 	logger.Log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
-	logger.Log.Infof("K8sNfsServerName:         %s", CONFIG.Kubernetes.K8sNfsServerName)
-
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 
 	logger.Log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)

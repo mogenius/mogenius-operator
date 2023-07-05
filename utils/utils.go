@@ -7,6 +7,7 @@ import (
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/version"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -212,3 +213,58 @@ func HttpHeader() http.Header {
 		"x-app-version":    []string{version.Ver},
 		"x-cluster-name":   []string{CONFIG.Kubernetes.ClusterName}}
 }
+
+// parseIPs parses a slice of IP address strings into a slice of net.IP.
+func parseIPs(ips []string) ([]net.IP, error) {
+	var parsed []net.IP
+	for _, ip := range ips {
+		parsedIP := net.ParseIP(ip)
+		if parsedIP == nil {
+			return nil, fmt.Errorf("invalid IP address: %s", ip)
+		}
+		parsed = append(parsed, parsedIP.To4())
+	}
+	return parsed, nil
+}
+
+// // FindSmallestSubnet finds the smallest subnet that includes all given IP addresses.
+// func FindSmallestSubnet(ipStrings []string) *net.IPNet {
+// 	ips, err := parseIPs(ipStrings)
+// 	if err != nil {
+// 		fmt.Println("Error parsing IP addresses:", err)
+// 		return nil
+// 	}
+
+// 	sort.Slice(ips, func(i, j int) bool {
+// 		return bytes.Compare(ips[i], ips[j]) < 0
+// 	})
+// 	minIP, maxIP := ips[0], ips[len(ips)-1]
+
+// 	mask := net.CIDRMask(commonPrefixLen(minIP, maxIP), 32)
+// 	return &net.IPNet{IP: minIP, Mask: mask}
+// }
+
+// func LastIpMinusOne(network *net.IPNet) net.IP {
+// 	var ip net.IP
+// 	for i := 0; i < len(network.IP); i++ {
+// 		ip = append(ip, network.IP[i]|(^network.Mask[i]))
+// 	}
+// 	if ip4 := ip.To4(); ip4 != nil {
+// 		ip4[3]--
+// 		return ip4
+// 	}
+// 	ip[15]--
+// 	return ip
+// }
+
+// // commonPrefixLen finds the length of the common prefix of a and b in bits.
+// func commonPrefixLen(a, b net.IP) (cpl int) {
+// 	for i := 0; i < 4; i++ {
+// 		diff := uint(a[i] ^ b[i])
+// 		for diff != 0 {
+// 			diff >>= 1
+// 			cpl++
+// 		}
+// 	}
+// 	return 32 - cpl
+// }

@@ -32,7 +32,13 @@ var testClientCmd = &cobra.Command{
 			ClusterName:  "",
 		}
 
+		// nfsServiceIp, err := mokubernetes.CreateNfsServiceIfNotExist(false)
+		// if err != nil {
+		// 	logger.Log.Fatalf("Error retrieving nfs service IP. Aborting: %s.", err.Error())
+		// }
+
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
+		// mokubernetes.CheckIfDeploymentUpdateIsRequiredForNfs(nfsServiceIp, false)
 
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()

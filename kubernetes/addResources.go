@@ -106,6 +106,122 @@ func applyNamespace(kubeProvider *KubeProvider) {
 	logger.Log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
+// func CreateNfsServiceIfNotExist(runsInCluster bool) (string, error) {
+// 	var kubeProvider *KubeProvider
+// 	var err error
+// 	if runsInCluster {
+// 		kubeProvider, err = NewKubeProviderInCluster()
+// 	} else {
+// 		kubeProvider, err = NewKubeProviderLocal()
+// 	}
+
+// 	if err != nil {
+// 		logger.Log.Errorf("CreateNfsServiceIfNotExist ERROR: %s", err.Error())
+// 	}
+
+// 	serviceClient := kubeProvider.ClientSet.CoreV1().Services(NAMESPACE)
+
+// 	// GET NFS SERVICE
+// 	nfsServerService, getErr := serviceClient.Get(context.TODO(), utils.K8SNFS_SERVICE_NAME, metav1.GetOptions{})
+// 	if getErr != nil && !apierrors.IsNotFound(getErr) {
+// 		return "", fmt.Errorf("CreateNfsServiceIfNotExist ERROR: %s", err)
+// 	}
+
+// 	// SERVICE EXISTS -> GET CLUSTERIP
+// 	if nfsServerService != nil && getErr == nil {
+// 		if nfsServerService.Spec.ClusterIP != "" {
+// 			return nfsServerService.Spec.ClusterIP, nil
+// 		}
+// 	}
+// 	// // DETERMINE IP RANGE OF THE CLUSTER
+// 	// allServicesClient := kubeProvider.ClientSet.CoreV1().Services("")
+// 	// services, err := allServicesClient.List(context.TODO(), metav1.ListOptions{})
+// 	// if err != nil {
+// 	// 	return fmt.Errorf("CreateNfsServiceIfNotExist (IP) ERROR: %s", err.Error())
+// 	// }
+// 	// ips := []string{}
+// 	// for _, service := range services.Items {
+// 	// 	ips = append(ips, service.Spec.ClusterIP)
+// 	// }
+// 	// commonSubnet := utils.FindSmallestSubnet(ips)
+// 	// if commonSubnet != nil {
+// 	// 	logger.Log.Infof("🕸️ Cluster Common Service Subnet: %s\n", commonSubnet.String())
+// 	// 	logger.Log.Infof("Last possible IP for NFS-Service -> %s\n", utils.LastIpMinusOne(commonSubnet))
+// 	// }
+
+// 	// NOT FOUND CREATE IT
+// 	if apierrors.IsNotFound(getErr) {
+// 		service := utils.InitMogeniusNfsK8sService()
+// 		createdService, createError := serviceClient.Create(context.TODO(), &service, metav1.CreateOptions{})
+// 		if createError != nil {
+// 			return "", fmt.Errorf("CreateNfsServiceIfNotExist (SERVICE_CREATE) ERROR: %s", createError.Error())
+// 		}
+// 		if createdService != nil {
+// 			return createdService.Spec.ClusterIP, nil
+// 		}
+// 	}
+
+// 	return "", fmt.Errorf("IP COULD NOT BE DETERMINED")
+// }
+
+// func CheckIfDeploymentUpdateIsRequiredForNfs(nfsServerIp string, runsInCluster bool) {
+// 	updateRequired := false
+
+// 	var kubeProvider *KubeProvider
+// 	var err error
+// 	if runsInCluster {
+// 		kubeProvider, err = NewKubeProviderInCluster()
+// 	} else {
+// 		kubeProvider, err = NewKubeProviderLocal()
+// 	}
+
+// 	if err != nil {
+// 		logger.Log.Errorf("checkIfDeploymentUpdateIsRequiredForNfs ERROR: %s", err.Error())
+// 	}
+
+// 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
+
+// 	k8sMgrDeployment, getErr := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
+// 	if getErr != nil {
+// 		logger.Log.Errorf("checkIfDeploymentUpdateIsRequiredForNfs (SERVICE_GET) ERROR: %s", getErr.Error())
+// 		return
+// 	}
+
+// 	if len(k8sMgrDeployment.Spec.Template.Spec.Volumes) >= 1 {
+// 		if k8sMgrDeployment.Spec.Template.Spec.Volumes[0].NFS.Server != nfsServerIp {
+// 			updateRequired = true
+// 		}
+// 	} else {
+// 		updateRequired = true
+// 	}
+
+// 	if updateRequired {
+// 		logger.Log.Notice("k8s-manager will update itself (volume/volume_mount) to contact the nfs-server.")
+// 		k8sMgrDeployment.Spec.Template.Spec.Volumes = []core.Volume{}
+// 		k8sMgrDeployment.Spec.Template.Spec.Volumes = append(k8sMgrDeployment.Spec.Template.Spec.Volumes, core.Volume{
+// 			Name: "nfs",
+// 			VolumeSource: core.VolumeSource{
+// 				NFS: &core.NFSVolumeSource{
+// 					Path:   "/exports",
+// 					Server: nfsServerIp,
+// 				},
+// 			},
+// 		})
+// 		k8sMgrDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
+// 		k8sMgrDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(k8sMgrDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
+// 			Name:      "nfs",
+// 			MountPath: utils.CONFIG.Misc.DefaultMountPath,
+// 		})
+// 		_, updateErr := deploymentClient.Update(context.TODO(), k8sMgrDeployment, metav1.UpdateOptions{})
+// 		if updateErr != nil {
+// 			logger.Log.Errorf("checkIfDeploymentUpdateIsRequiredForNfs (UPDATE_K8S_DEPL) ERROR: %s", getErr.Error())
+// 			return
+// 		}
+// 		return
+// 	}
+// 	logger.Log.Info("k8s-manager (volume/volume_mount) are configured correctly.")
+// }
+
 func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, error) {
 	var kubeProvider *KubeProvider
 	var err error

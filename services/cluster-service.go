@@ -93,9 +93,18 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	job.Start()
 	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
 	job.AddCmd(mokubernetes.CreateMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
-	job.AddCmd(mokubernetes.CreateMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
 	wg.Wait()
 	job.Finish()
+
+	nfsService := mokubernetes.CreateMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg)
+
+	// mount nfs server in k8s-manager
+	if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
+		title := fmt.Sprintf("Mount '%s' into k8s-manager", r.VolumeName)
+		shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s/%s", nfsService.Spec.ClusterIP, utils.CONFIG.Misc.DefaultMountPath, r.VolumeName)
+		structs.ExecuteBashCommandWithResponse(title, shellCmd)
+	}
+
 	return job.DefaultReponse()
 }
 
@@ -109,8 +118,14 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
 	wg.Wait()
 	job.Finish()
-	// // update mogenius-k8s-manager volume mounts
-	// mokubernetes.UpdateK8sManagerVolumeMounts(r.VolumeName, r.NamespaceName)
+
+	// umount nfs server in k8s-manager
+	if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
+		title := fmt.Sprintf("Mount '%s' into k8s-manager", r.VolumeName)
+		shellCmd := fmt.Sprintf("umount %s/%s", utils.CONFIG.Misc.DefaultMountPath, r.VolumeName)
+		structs.ExecuteBashCommandWithResponse(title, shellCmd)
+	}
+
 	return job.DefaultReponse()
 }
 

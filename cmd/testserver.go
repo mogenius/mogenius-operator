@@ -30,7 +30,13 @@ var testServerCmd = &cobra.Command{
 			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
 
+		// nfsServiceIp, err := mokubernetes.CreateNfsServiceIfNotExist(false)
+		// if err != nil {
+		// 	logger.Log.Fatalf("Error retrieving nfs service IP. Aborting: %s.", err.Error())
+		// }
+
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
+		// mokubernetes.CheckIfDeploymentUpdateIsRequiredForNfs(nfsServiceIp, false)
 
 		if !utils.CONFIG.Misc.Debug {
 			gin.SetMode(gin.ReleaseMode)

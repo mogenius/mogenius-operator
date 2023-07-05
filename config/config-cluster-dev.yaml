@@ -5,7 +5,6 @@ kubernetes:
   cluster_mfa_id:
   run_in_cluster: true
   default_container_registry: docker.io
-  k8s_nfs_server_name: mo-nfs-server
 
 api_server:
   ws_server: k8s-ws.dev.mogenius.com
@@ -19,6 +18,7 @@ misc:
   stage: dev
   default_mount_path: /mo-data
   debug: true
+  auto_mount_nfs: true
   log_kubernetes_events: false
   ignore_namespaces: ["kube-system"]
   ignore_resources_backup:

@@ -5,7 +5,6 @@ kubernetes:
   cluster_mfa_id:
   run_in_cluster: true
   default_container_registry: docker.io
-  k8s_nfs_server_name: mo-nfs-server
 
 api_server:
   ws_server: k8s-ws.mogenius.com
