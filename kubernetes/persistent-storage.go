@@ -91,7 +91,7 @@ func DeleteMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 // 	return cmd
 // }
 
-func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, wg *sync.WaitGroup) *structs.Command {
+func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, namespaceName string, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Delete PersistentVolume '%s'.", volumeName), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -100,11 +100,26 @@ func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, wg *
 
 		kubeProvider := NewKubeProvider()
 		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumes()
-		err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
+
+		// LIST ALL PV
+		pvList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(fmt.Sprintf("Deleted PersistentVolume '%s'.", volumeName))
+		}
+		// FIND VOLUME WITH THE RIGHT CLAIM AND DELETE IT
+		for _, pv := range pvList.Items {
+			if pv.Spec.ClaimRef != nil {
+				if pv.Spec.ClaimRef.Name == volumeName && pv.Spec.ClaimRef.Namespace == namespaceName {
+					err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
+					if err != nil {
+						cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
+						return
+					} else {
+						cmd.Success(fmt.Sprintf("Deleted PersistentVolume '%s'.", volumeName))
+						return
+					}
+				}
+			}
 		}
 	}(cmd, wg)
 	return cmd

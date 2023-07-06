@@ -115,7 +115,7 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, nil, nil)
 	job.Start()
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, &wg))
-	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolume(&job, r.VolumeName, &wg))
+	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolume(&job, r.VolumeName, r.NamespaceName, &wg))
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
 	wg.Wait()
