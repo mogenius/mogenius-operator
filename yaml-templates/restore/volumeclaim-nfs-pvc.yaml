@@ -5,6 +5,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
+  persistentVolumeReclaimPolicy: Delete
   storageClassName: ""
   resources:
     requests:

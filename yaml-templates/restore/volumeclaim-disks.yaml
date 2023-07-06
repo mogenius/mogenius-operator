@@ -7,6 +7,7 @@ spec:
   volumeName: XXXXXXXXXXXXX
   accessModes:
     - ReadWriteMany
+  persistentVolumeReclaimPolicy: Delete
   resources:
     requests:
       storage: 1Gi

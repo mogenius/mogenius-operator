@@ -48,7 +48,8 @@ RUN apk add --no-cache \
     npm \
     coreutils \
     # ruby-dev \
-    openssl
+    openssl \
+    nfs-utils
 
 # RUN gem install -N rails
 # RUN gem install -N bundler

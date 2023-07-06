@@ -6,6 +6,7 @@ metadata:
 spec:
   accessModes:
   - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
   storageClassName: managed-csi
   resources:
     requests:
