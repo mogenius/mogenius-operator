@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -104,7 +105,12 @@ func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, name
 		// LIST ALL PV
 		pvList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
+			if apierrors.IsNotFound(err) {
+				// IN CASE: NOT FOUND -> IT HAS ALREADY BEEN DELETED. e.g. by the provisioneer
+				cmd.Success(fmt.Sprintf("Deleted PersistentVolume '%s'.", volumeName))
+			} else {
+				cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
+			}
 		}
 		// FIND VOLUME WITH THE RIGHT CLAIM AND DELETE IT
 		for _, pv := range pvList.Items {
