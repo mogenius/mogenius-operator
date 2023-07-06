@@ -70,7 +70,7 @@ func connectEvent() {
 	}
 	connectionUrl := url.URL{Scheme: scheme, Host: utils.CONFIG.EventServer.Server, Path: utils.CONFIG.EventServer.Path}
 
-	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
+	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
 		logger.Log.Errorf("Connection to EventServer failed: %s\n", err.Error())
 		return

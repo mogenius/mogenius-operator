@@ -300,9 +300,9 @@ type ServiceLogStreamRequest struct {
 func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	return ServiceLogStreamRequest{
 		Namespace:    "mogenius",
-		PodId:        "mogenius-ingress-nginx-defaultbackend-585b47559c-9w6j9",
+		PodId:        "mogenius-k8s-manager-8576c46478-lv6gn",
 		SinceSeconds: -1,
-		PostTo:       "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+		PostTo:       "ws://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
 	}
 }
 

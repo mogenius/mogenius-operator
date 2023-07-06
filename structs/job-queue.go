@@ -69,7 +69,7 @@ func connectJob(ctx context.Context) {
 	}
 	connectionUrl := url.URL{Scheme: scheme, Host: utils.CONFIG.ApiServer.Ws_Server, Path: utils.CONFIG.ApiServer.WS_Path}
 
-	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader())
+	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
 		logger.Log.Errorf("Connection to JobServer failed: %s\n", err.Error())
 		JobConnectionStatus <- false

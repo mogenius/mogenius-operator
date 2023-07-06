@@ -205,11 +205,11 @@ func Remove[T any](slice []T, s int) []T {
 	return append(slice[:s], slice[s+1:]...)
 }
 
-func HttpHeader() http.Header {
+func HttpHeader(additionalName string) http.Header {
 	return http.Header{
 		"x-authorization":  []string{CONFIG.Kubernetes.ApiKey},
 		"x-cluster-mfa-id": []string{CONFIG.Kubernetes.ClusterMfaId},
-		"x-app":            []string{APP_NAME},
+		"x-app":            []string{fmt.Sprintf("%s%s", APP_NAME, additionalName)},
 		"x-app-version":    []string{version.Ver},
 		"x-cluster-name":   []string{CONFIG.Kubernetes.ClusterName}}
 }

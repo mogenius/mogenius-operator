@@ -54,7 +54,8 @@ func DurationStrSince(since time.Time) string {
 }
 
 func SendDataWs(sendToServer string, reader io.ReadCloser) {
-	connection, _, err := websocket.DefaultDialer.Dial(sendToServer, utils.HttpHeader())
+	header := utils.HttpHeader("-logs")
+	connection, _, err := websocket.DefaultDialer.Dial(sendToServer, header)
 	if err != nil {
 		logger.Log.Errorf("Connection to Stream-Endpoint (%s) failed: %s\n", sendToServer, err.Error())
 	} else {
