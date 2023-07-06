@@ -214,6 +214,30 @@ func HttpHeader(additionalName string) http.Header {
 		"x-cluster-name":   []string{CONFIG.Kubernetes.ClusterName}}
 }
 
+func CreateDirIfNotExist(dir string) {
+	_, err := os.Stat(dir)
+
+	// If directory does not exist create it
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll(dir, 0755)
+		if errDir != nil {
+			logger.Log.Error(err.Error())
+		}
+	}
+}
+
+func DeleteDirIfExist(dir string) {
+	_, err := os.Stat(dir)
+
+	// If directory does not exist create it
+	if os.IsExist(err) {
+		errDir := os.RemoveAll(dir)
+		if errDir != nil {
+			logger.Log.Error(err.Error())
+		}
+	}
+}
+
 // parseIPs parses a slice of IP address strings into a slice of net.IP.
 func parseIPs(ips []string) ([]net.IP, error) {
 	var parsed []net.IP

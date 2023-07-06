@@ -101,7 +101,9 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	// mount nfs server in k8s-manager
 	if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
 		title := fmt.Sprintf("Mount '%s' into k8s-manager", r.VolumeName)
-		shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s/%s", nfsService.Spec.ClusterIP, utils.CONFIG.Misc.DefaultMountPath, r.VolumeName)
+		mountDir := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, r.VolumeName)
+		shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", nfsService.Spec.ClusterIP, mountDir)
+		utils.CreateDirIfNotExist(mountDir)
 		structs.ExecuteBashCommandWithResponse(title, shellCmd)
 	}
 
@@ -122,8 +124,10 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	// umount nfs server in k8s-manager
 	if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
 		title := fmt.Sprintf("Mount '%s' into k8s-manager", r.VolumeName)
-		shellCmd := fmt.Sprintf("umount %s/%s", utils.CONFIG.Misc.DefaultMountPath, r.VolumeName)
+		mountDir := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, r.VolumeName)
+		shellCmd := fmt.Sprintf("umount %s", mountDir)
 		structs.ExecuteBashCommandWithResponse(title, shellCmd)
+		utils.DeleteDirIfExist(mountDir)
 	}
 
 	return job.DefaultReponse()
