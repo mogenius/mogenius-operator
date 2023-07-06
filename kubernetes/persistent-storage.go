@@ -118,7 +118,12 @@ func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, name
 				if pv.Spec.ClaimRef.Name == volumeName && pv.Spec.ClaimRef.Namespace == namespaceName {
 					err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
 					if err != nil {
-						cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
+						if apierrors.IsNotFound(err) {
+							// IN CASE: NOT FOUND -> IT HAS ALREADY BEEN DELETED. e.g. by the provisioneer
+							cmd.Success(fmt.Sprintf("Deleted PersistentVolume '%s'.", volumeName))
+						} else {
+							cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
+						}
 						return
 					} else {
 						cmd.Success(fmt.Sprintf("Deleted PersistentVolume '%s'.", volumeName))
