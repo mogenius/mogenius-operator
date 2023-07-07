@@ -266,6 +266,11 @@ func GetVolumeMountsForK8sManager() ([]Volume, error) {
 
 	// Add headers to the http request
 	req.Header = HttpHeader("")
+	// TODO: REMOVE - THIS IS JUST FOR DEBUGGING
+	// if CONFIG.Misc.Debug && CONFIG.Misc.Stage == "local" {
+	// 	req.Header["x-authorization"] = []string{"mo_7bf5c2b5-d7bc-4f0e-b8fc-b29d09108928_0hkga6vjum3p1mvezith"}
+	// 	req.Header["x-cluster-mfa-id"] = []string{"a141bd85-c986-402c-9475-5bdc4679293b"}
+	// }
 
 	// Send the request and get a response
 	resp, err := client.Do(req)

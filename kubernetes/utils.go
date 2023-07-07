@@ -466,6 +466,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 			for _, srv := range services {
 				if strings.Contains(srv.Name, volumeName) {
 					service = &srv
+					break
 				}
 			}
 		}
