@@ -5,6 +5,7 @@ package cmd
 
 import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/logger"
 	socketclient "mogenius-k8s-manager/socket-client"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -32,13 +33,18 @@ var testClientCmd = &cobra.Command{
 			ClusterName:  "",
 		}
 
-		// nfsServiceIp, err := mokubernetes.CreateNfsServiceIfNotExist(false)
-		// if err != nil {
-		// 	logger.Log.Fatalf("Error retrieving nfs service IP. Aborting: %s.", err.Error())
-		// }
-
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
-		// mokubernetes.CheckIfDeploymentUpdateIsRequiredForNfs(nfsServiceIp, false)
+
+		// INIT MOUNTS
+		if utils.CONFIG.Misc.AutoMountNfs {
+			volumesToMount, err := utils.GetVolumeMountsForK8sManager()
+			if err != nil && utils.CONFIG.Misc.Stage != "local" {
+				logger.Log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
+			}
+			for _, vol := range volumesToMount {
+				mokubernetes.Mount(vol.Namespace.Name, vol.VolumeName, nil)
+			}
+		}
 
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()

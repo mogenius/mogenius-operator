@@ -25,18 +25,24 @@ var testServerCmd = &cobra.Command{
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
 
+		// SETUP SECRET
 		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(false)
 		if err != nil {
 			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
 
-		// nfsServiceIp, err := mokubernetes.CreateNfsServiceIfNotExist(false)
-		// if err != nil {
-		// 	logger.Log.Fatalf("Error retrieving nfs service IP. Aborting: %s.", err.Error())
-		// }
-
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
-		// mokubernetes.CheckIfDeploymentUpdateIsRequiredForNfs(nfsServiceIp, false)
+
+		// INIT MOUNTS
+		if utils.CONFIG.Misc.AutoMountNfs {
+			volumesToMount, err := utils.GetVolumeMountsForK8sManager()
+			if err != nil && utils.CONFIG.Misc.Stage != "local" {
+				logger.Log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
+			}
+			for _, vol := range volumesToMount {
+				mokubernetes.Mount(vol.Namespace.Name, vol.VolumeName, nil)
+			}
+		}
 
 		if !utils.CONFIG.Misc.Debug {
 			gin.SetMode(gin.ReleaseMode)

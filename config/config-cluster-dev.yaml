@@ -7,6 +7,7 @@ kubernetes:
   default_container_registry: docker.io
 
 api_server:
+  http_server: https://platform-api.dev.mogenius.com
   ws_server: k8s-ws.dev.mogenius.com
   ws_path: /ws
 

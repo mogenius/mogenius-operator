@@ -29,13 +29,18 @@ var clusterCmd = &cobra.Command{
 			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
 
-		// nfsServiceIp, err := mokubernetes.CreateNfsServiceIfNotExist(true)
-		// if err != nil {
-		// 	logger.Log.Fatalf("Error retrieving nfs service IP. Aborting: %s.", err.Error())
-		// }
-
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, true)
-		// mokubernetes.CheckIfDeploymentUpdateIsRequiredForNfs(nfsServiceIp, true)
+
+		// INIT MOUNTS
+		if utils.CONFIG.Misc.AutoMountNfs {
+			volumesToMount, err := utils.GetVolumeMountsForK8sManager()
+			if err != nil && utils.CONFIG.Misc.Stage != "local" {
+				logger.Log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
+			}
+			for _, vol := range volumesToMount {
+				mokubernetes.Mount(vol.Namespace.Name, vol.VolumeName, nil)
+			}
+		}
 
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()

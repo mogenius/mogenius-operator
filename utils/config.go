@@ -27,8 +27,9 @@ type Config struct {
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
-		Ws_Server string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
-		WS_Path   string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
+		Http_Server string `yaml:"http_server" env:"api_http_server" env-description:"Server host" env-default:"https://platform-api.mogenius.com"`
+		Ws_Server   string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
+		WS_Path     string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
 	} `yaml:"api_server"`
 	EventServer struct {
 		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
@@ -135,6 +136,7 @@ func PrintSettings() {
 	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 
+	logger.Log.Infof("HttpServer:               %s", CONFIG.ApiServer.Http_Server)
 	logger.Log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
 	logger.Log.Infof("WsPath:                   %s", CONFIG.ApiServer.WS_Path)
 

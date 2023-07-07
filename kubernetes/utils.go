@@ -9,6 +9,7 @@ import (
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"path/filepath"
+	"strings"
 	"time"
 
 	cmclientset "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
@@ -454,4 +455,46 @@ func MoUpdateLabels(labels *map[string]string, namespaceId *string, stage *dtos.
 	}
 
 	return resultingLabels
+}
+
+// mount nfs server in k8s-manager
+func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
+	go func() {
+		var service *v1.Service = nfsService
+		if service == nil {
+			services := AllServices(volumeNamespace)
+			for _, srv := range services {
+				if strings.Contains(srv.Name, volumeName) {
+					service = &srv
+				}
+			}
+		}
+		if service != nil {
+			if nfsService != nil {
+				time.Sleep(15 * time.Second)
+			}
+			if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
+				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
+				mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
+				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
+				utils.CreateDirIfNotExist(mountDir)
+				structs.ExecuteBashCommandWithResponse(title, shellCmd)
+			}
+		} else {
+			logger.Log.Warningf("No CluserIP for '%s/%s' nfs-server-service found.", volumeNamespace, volumeName)
+		}
+	}()
+}
+
+// umount nfs server in k8s-manager
+func Umount(volumeNamespace string, volumeName string) {
+	go func() {
+		if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
+			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
+			mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
+			shellCmd := fmt.Sprintf("umount %s", mountDir)
+			structs.ExecuteBashCommandWithResponse(title, shellCmd)
+			utils.DeleteDirIfExist(mountDir)
+		}
+	}()
 }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"embed"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/version"
@@ -27,6 +28,18 @@ func Pointer[K any](val K) *K {
 
 type ResponseError struct {
 	Error string `json:"error,omitempty"`
+}
+
+type Volume struct {
+	Namespace  NamespaceDisplayName `json:"namespace"`
+	VolumeName string               `json:"volumeName"`
+	SizeInGb   int                  `json:"sizeInGb"`
+}
+
+type NamespaceDisplayName struct {
+	DisplayName string `json:"displayName"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 func CreateError(err error) ResponseError {
@@ -236,6 +249,40 @@ func DeleteDirIfExist(dir string) {
 			logger.Log.Error(err.Error())
 		}
 	}
+}
+
+func GetVolumeMountsForK8sManager() ([]Volume, error) {
+	result := []Volume{}
+
+	// Create an http client
+	client := &http.Client{}
+
+	// Create a new request using http
+	url := fmt.Sprintf("%s/storage/k8s/cluster-project-storage/list", CONFIG.ApiServer.Http_Server)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return result, err
+	}
+
+	// Add headers to the http request
+	req.Header = HttpHeader("")
+
+	// Send the request and get a response
+	resp, err := client.Do(req)
+	if err != nil {
+		return result, err
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return result, err
+	}
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err = json.Unmarshal(body, &result)
+	return result, err
 }
 
 // parseIPs parses a slice of IP address strings into a slice of net.IP.
