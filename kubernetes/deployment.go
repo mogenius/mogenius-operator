@@ -316,14 +316,20 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 				})
 
 				// VOLUME
-				newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
-					Name: volumeName,
-					VolumeSource: core.VolumeSource{
-						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-							ClaimName: volumeName,
+				nfsService := ServiceForNfsVolume(stage.Name, volumeName)
+				if nfsService != nil {
+					newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
+						Name: volumeName,
+						VolumeSource: core.VolumeSource{
+							NFS: &core.NFSVolumeSource{
+								Path:   "/exports",
+								Server: nfsService.Spec.ClusterIP,
+							},
 						},
-					},
-				})
+					})
+				} else {
+					logger.Log.Errorf("No Volume found for  '%s/%s'!!!", stage.Name, volumeName)
+				}
 			} else {
 				logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
 			}

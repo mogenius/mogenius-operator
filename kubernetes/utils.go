@@ -462,13 +462,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 	go func() {
 		var service *v1.Service = nfsService
 		if service == nil {
-			services := AllServices(volumeNamespace)
-			for _, srv := range services {
-				if strings.Contains(srv.Name, volumeName) {
-					service = &srv
-					break
-				}
-			}
+			service = ServiceForNfsVolume(volumeNamespace, volumeName)
 		}
 		if service != nil {
 			if nfsService != nil {
@@ -485,6 +479,16 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 			logger.Log.Warningf("No CluserIP for '%s/%s' nfs-server-service found.", volumeNamespace, volumeName)
 		}
 	}()
+}
+
+func ServiceForNfsVolume(volumeNamespace string, volumeName string) *v1.Service {
+	services := AllServices(volumeNamespace)
+	for _, srv := range services {
+		if strings.Contains(srv.Name, volumeName) {
+			return &srv
+		}
+	}
+	return nil
 }
 
 // umount nfs server in k8s-manager
