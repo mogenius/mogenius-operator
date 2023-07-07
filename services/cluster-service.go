@@ -144,6 +144,11 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsResponse {
 	result := []NfsVolumeStatsResponse{}
 
+	if r.NamespaceName == "null" || r.NamespaceName == "" {
+		logger.Log.Errorf("StatsMogeniusNfsNamespace Err: namespaceName cannot be null or empty.")
+		return result
+	}
+
 	// get all pvc for single namespace
 	pvcs := mokubernetes.AllPersistentVolumeClaims(r.NamespaceName)
 
@@ -158,7 +163,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 		mountPath := utils.MountPath(r.NamespaceName, pvc.Name, "/")
 		usage, err := disk.Usage(mountPath)
 		if err != nil {
-			logger.Log.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
+			logger.Log.Errorf("StatsMogeniusNfsNamespace Err: %s %s", mountPath, err.Error())
 			continue
 		} else {
 			entry.FreeBytes = usage.Free
