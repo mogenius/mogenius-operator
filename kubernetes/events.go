@@ -7,11 +7,11 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
-	"reflect"
 	"strconv"
 	"time"
 
 	v1Core "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,18 +28,14 @@ func WatchEvents() {
 	kubeProvider := NewKubeProvider()
 
 	var lastResourceVersion = ""
-
-	// // INIT EXISTING VOLUMES
-	// err := UpdateK8sManagerVolumeMounts("", "")
-	// if err != nil {
-	// 	logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
-	// }
-
 	for {
 		// Create a watcher for all Kubernetes events
 		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
 
 		if err != nil || watcher == nil {
+			if apierrors.IsGone(err) {
+				lastResourceVersion = ""
+			}
 			log.Printf("Error creating watcher: %v", err)
 			time.Sleep(RETRYTIMEOUT * time.Second) // Wait for 5 seconds before retrying
 			continue
@@ -51,22 +47,16 @@ func WatchEvents() {
 				eventDto := dtos.CreateEvent(string(event.Type), event.Object)
 				datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
 
-				if reflect.TypeOf(event.Object).String() == "*v1.Event" {
-					var eventObj *v1Core.Event = event.Object.(*v1Core.Event)
-					currentVersion, _ := strconv.Atoi(eventObj.ObjectMeta.ResourceVersion)
-					lastVersion, _ := strconv.Atoi(lastResourceVersion)
-					if currentVersion > lastVersion {
+				eventObj, isEvent := event.Object.(*v1Core.Event)
+				if isEvent {
+					currentVersion, errCrreuntVer := strconv.Atoi(eventObj.ObjectMeta.ResourceVersion)
+					lastVersion, errLastVer := strconv.Atoi(lastResourceVersion)
+					if errCrreuntVer == nil && errLastVer == nil && currentVersion > lastVersion {
 						lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
 						message := eventObj.Message
 						kind := eventObj.InvolvedObject.Kind
 						reason := eventObj.Reason
 						count := eventObj.Count
-						// if kind == "Pod" && reason == "Started" && strings.HasPrefix(message, "Started container nfs-server") {
-						// 	err := UpdateK8sManagerVolumeMounts("", "")
-						// 	if err != nil {
-						// 		logger.Log.Errorf("UpdateK8sManagerVolumeMounts ERROR: %s", err.Error())
-						// 	}
-						// }
 						processWaitList(eventObj)
 						structs.EventServerSendData(datagram, kind, reason, message, count)
 					}
@@ -75,6 +65,8 @@ func WatchEvents() {
 					logger.Log.Errorf("WATCHER (%d): '%s'", errObj.Code, errObj.Message)
 					logger.Log.Error("WATCHER: Reset lastResourceVersion to empty.")
 					lastResourceVersion = ""
+					time.Sleep(RETRYTIMEOUT * time.Second) // Wait for 5 seconds before retrying
+					break
 				}
 			}
 		}
