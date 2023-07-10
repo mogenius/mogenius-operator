@@ -96,6 +96,7 @@ var COMMAND_REQUESTS = []string{
 	"list/role_binding",
 	"list/cluster_role",
 	"list/cluster_role_binding",
+	"list/volume_attachment",
 
 	"update/deployment",
 	"update/service",
@@ -121,6 +122,7 @@ var COMMAND_REQUESTS = []string{
 	"update/role_binding",
 	"update/cluster_role",
 	"update/cluster_role_binding",
+	"update/volume_attachment",
 
 	"delete/namespace",
 	"delete/deployment",
@@ -146,6 +148,7 @@ var COMMAND_REQUESTS = []string{
 	"delete/role_binding",
 	"delete/cluster_role",
 	"delete/cluster_role_binding",
+	"delete/volume_attachment",
 
 	"storage/create-volume",
 	"storage/delete-volume",
@@ -446,6 +449,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllClusterRoleBindings(data.NamespaceName)
+	case "list/volume_attachment":
+		return mokubernetes.AllVolumeAttachments()
 
 	case "update/deployment":
 		data := K8sUpdateDeploymentRequest{}
@@ -543,6 +548,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sUpdateClusterRoleBindingRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sClusterRoleBinding(*data.Data)
+	case "update/volume_attachment":
+		data := K8sUpdateVolumeAttachmentRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sVolumeAttachment(*data.Data)
 
 	case "delete/namespace":
 		data := K8sDeleteNamespaceRequest{}
@@ -644,6 +653,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sDeleteClusterRoleBindingRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sClusterRoleBinding(*data.Data)
+	case "delete/volume_attachment":
+		data := K8sDeleteVolumeAttachmentRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sVolumeAttachment(*data.Data)
 
 	// case "storage/enable":
 	// 	data := NfsStorageInstallRequest{}
@@ -700,7 +713,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 
 	pod := mokubernetes.PodStatus(data.Namespace, data.PodId, false)
 	terminatedState := mokubernetes.LastTerminatedStateIfAny(pod)
-	
+
 	var previousResReq *rest.Request
 	if terminatedState != nil {
 		tmpPreviousResReq, err := PreviousPodLogStream(data)
@@ -767,7 +780,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	if err != nil {
 		logger.Log.Error(err.Error())
 	}
-	
+
 	nl := strings.NewReader("\n")
 	previousState := strings.NewReader(lastState)
 	headlineLastLog := strings.NewReader("Last Log:\n")
@@ -778,7 +791,6 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
 	endGofunc()
 }
-
 
 func PopeyeConsole() string {
 	return structs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")

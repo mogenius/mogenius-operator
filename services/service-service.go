@@ -18,6 +18,7 @@ import (
 	core "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
+	storage "k8s.io/api/storage/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -556,6 +557,16 @@ func K8sUpdateClusterRoleBindingExample() K8sUpdateClusterRoleBindingRequest {
 	}
 }
 
+type K8sUpdateVolumeAttachmentRequest struct {
+	Data *storage.VolumeAttachment `json:"data"`
+}
+
+func K8sUpdateVolumeAttachmentExample() K8sUpdateVolumeAttachmentRequest {
+	return K8sUpdateVolumeAttachmentRequest{
+		Data: nil,
+	}
+}
+
 type K8sDeleteNamespaceRequest struct {
 	Data *core.Namespace `json:"data"`
 }
@@ -802,6 +813,16 @@ type K8sDeleteClusterRoleBindingRequest struct {
 
 func K8sDeleteClusterRoleBindingExample() K8sDeleteClusterRoleBindingRequest {
 	return K8sDeleteClusterRoleBindingRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteVolumeAttachmentRequest struct {
+	Data *storage.VolumeAttachment `json:"data"`
+}
+
+func K8sDeleteVolumeAttachmentExample() K8sDeleteVolumeAttachmentRequest {
+	return K8sDeleteVolumeAttachmentRequest{
 		Data: nil,
 	}
 }
