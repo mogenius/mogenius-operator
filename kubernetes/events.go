@@ -39,6 +39,8 @@ func WatchEvents() {
 			log.Printf("Error creating watcher: %v", err)
 			time.Sleep(RETRYTIMEOUT * time.Second) // Wait for 5 seconds before retrying
 			continue
+		} else {
+			logger.Log.Notice("Watcher connected successfully. Start watching events...")
 		}
 
 		// Start watching events
@@ -50,14 +52,14 @@ func WatchEvents() {
 				eventObj, isEvent := event.Object.(*v1Core.Event)
 				if isEvent {
 					currentVersion, errCrreuntVer := strconv.Atoi(eventObj.ObjectMeta.ResourceVersion)
-					lastVersion, errLastVer := strconv.Atoi(lastResourceVersion)
-					if errCrreuntVer == nil && errLastVer == nil && currentVersion > lastVersion {
+					lastVersion, _ := strconv.Atoi(lastResourceVersion)
+					if errCrreuntVer == nil && currentVersion > lastVersion {
 						lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
 						message := eventObj.Message
 						kind := eventObj.InvolvedObject.Kind
 						reason := eventObj.Reason
 						count := eventObj.Count
-						processWaitList(eventObj)
+						// processWaitList(eventObj)
 						structs.EventServerSendData(datagram, kind, reason, message, count)
 					}
 				} else if event.Type == "ERROR" {
@@ -78,29 +80,29 @@ func WatchEvents() {
 	}
 }
 
-func AppendToWaitList(entry structs.WaitListEntry) {
-	waitList = append(waitList, entry)
-}
+// func AppendToWaitList(entry structs.WaitListEntry) {
+// 	waitList = append(waitList, entry)
+// }
 
-func processWaitList(event *v1Core.Event) {
-	if event != nil {
-		message := event.Message
-		kind := event.InvolvedObject.Kind
-		reason := event.Reason
+// func processWaitList(event *v1Core.Event) {
+// 	if event != nil {
+// 		message := event.Message
+// 		kind := event.InvolvedObject.Kind
+// 		reason := event.Reason
 
-		for index, waitListEntry := range waitList {
-			if waitListEntry.IsExpired() {
-				waitListEntry.Job.AddCmd(structs.CreateCommand("Operation timed out.", &waitListEntry.Job))
-				waitListEntry.Job.Finish()
-				utils.Remove(waitList, index)
-			}
-			if waitListEntry.WaitForKind == kind && waitListEntry.WaitForReason == reason && waitListEntry.WaitForMessage == message {
-				waitListEntry.Job.Finish()
-				utils.Remove(waitList, index)
-			}
-		}
-	}
-}
+// 		for index, waitListEntry := range waitList {
+// 			if waitListEntry.IsExpired() {
+// 				waitListEntry.Job.AddCmd(structs.CreateCommand("Operation timed out.", &waitListEntry.Job))
+// 				waitListEntry.Job.Finish()
+// 				utils.Remove(waitList, index)
+// 			}
+// 			if waitListEntry.WaitForKind == kind && waitListEntry.WaitForReason == reason && waitListEntry.WaitForMessage == message {
+// 				waitListEntry.Job.Finish()
+// 				utils.Remove(waitList, index)
+// 			}
+// 		}
+// 	}
+// }
 
 // func UpdateK8sManagerVolumeMounts(deleteVolumeName string, deleteVolumeNamespace string) error {
 // 	// EXIT if started locally

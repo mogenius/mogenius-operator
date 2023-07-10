@@ -19,7 +19,7 @@ var jobDataQueue []Datagram = []Datagram{}
 // Public
 var JobSendMutex sync.Mutex
 var JobQueueConnection *websocket.Conn
-var JobConnectionGuard = make(chan struct{}, CONCURRENTCONNECTIONS)
+var JobConnectionGuard = make(chan struct{}, 1)
 var JobConnectionStatus chan bool = make(chan bool)
 
 func ConnectToJobQueue() {

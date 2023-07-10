@@ -23,7 +23,6 @@ type EventData struct {
 }
 
 const RETRYTIMEOUT time.Duration = 3
-const CONCURRENTCONNECTIONS = 1
 
 var eventSendMutex sync.Mutex
 var eventQueueConnection *websocket.Conn
