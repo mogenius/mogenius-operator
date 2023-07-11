@@ -40,6 +40,10 @@ func CreateService(r ServiceCreateRequest) interface{} {
 		job.AddCmds(CreateNamespaceCmds(&job, nsReq, &wg))
 	}
 
+	if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
+		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Namespace, r.Stage, &wg))
+	}
+
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, &wg))
@@ -151,6 +155,9 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id)
 	job.Start()
+	if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
+		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Namespace, r.Stage, &wg))
+	}
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Stage, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, &wg))
