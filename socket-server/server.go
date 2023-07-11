@@ -359,6 +359,49 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.K8sListRequestExample()
 		case "list/persistent_volume_claims":
 			payload = services.K8sListRequestExample()
+		case "list/volume_attachments":
+			payload = services.K8sListRequestExample()
+		case "list/storage_class":
+			payload = services.K8sListRequestExample()
+		case "list/network_policy":
+			payload = services.K8sListRequestExample()
+
+		case "describe/namespace":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/deployment":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/service":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/pod":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/ingresse":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/configmap":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/secret":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/node":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/daemonset":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/statefulset":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/job":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/cronjob":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/replicaset":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/persistent_volume":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/persistent_volume_claim":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/volume_attachment":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/storage_class":
+			payload = services.K8sDescribeRequestExample()
+		case "describe/network_policy":
+			payload = services.K8sDescribeRequestExample()
 
 		case "update/deployment":
 			payload = services.K8sUpdateDeploymentRequestExample()
@@ -386,6 +429,10 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.K8sUpdatePersistentVolumeRequestExample()
 		case "update/persistentvolumeclaim":
 			payload = services.K8sUpdatePersistentVolumeClaimRequestExample()
+		case "update/storage_class":
+			payload = services.K8sUpdateStorageClassExample()
+		case "update/network_policy":
+			payload = services.K8sUpdateNetworkPolicyExample()
 
 		case "delete/namespace":
 			payload = services.K8sDeleteNamespaceRequestExample()
@@ -415,6 +462,10 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.K8sDeletePersistentVolumeRequestExample()
 		case "delete/persistentvolumeclaim":
 			payload = services.K8sDeletePersistentVolumeClaimRequestExample()
+		case "delete/network_policy":
+			payload = services.K8sDeleteNetworkPolicyExample()
+		case "delete/storage_class":
+			payload = services.K8sDeleteStorageClassExample()
 
 		// case "storage/enable":
 		// 	payload = services.NfsStorageInstallRequestExample()

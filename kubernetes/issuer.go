@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"os/exec"
 
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -46,4 +47,15 @@ func DeleteK8sIssuer(data cmapi.Issuer) K8sWorkloadResult {
 		return WorkloadResult(err.Error())
 	}
 	return WorkloadResult("")
+}
+
+func DescribeK8sIssuer(namespace string, name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "issuer", name, "-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }

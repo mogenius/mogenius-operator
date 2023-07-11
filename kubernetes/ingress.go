@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"os/exec"
 	"sync"
 
 	v1 "k8s.io/api/networking/v1"
@@ -236,4 +237,15 @@ func DeleteK8sIngress(data v1.Ingress) K8sWorkloadResult {
 		return WorkloadResult(err.Error())
 	}
 	return WorkloadResult("")
+}
+
+func DescribeK8sIngress(namespace string, name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "ingress", name, "-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }

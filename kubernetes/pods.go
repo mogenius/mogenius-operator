@@ -5,6 +5,7 @@ import (
 	"context"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"os/exec"
 	"sort"
 	"strings"
 	"text/template"
@@ -196,6 +197,17 @@ func DeleteK8sPod(data v1.Pod) K8sWorkloadResult {
 		return WorkloadResult(err.Error())
 	}
 	return WorkloadResult("")
+}
+
+func DescribeK8sPod(namespace string, name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "pod", name, "-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }
 
 func filterStatus(pod *v1.Pod) {

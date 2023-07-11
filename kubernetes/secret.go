@@ -8,9 +8,11 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"os/exec"
 	"sync"
 
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -72,17 +74,20 @@ func DeleteSecret(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServ
 	return cmd
 }
 
-func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, wg *sync.WaitGroup) *structs.Command {
+func CreateOrUpdateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, stage dtos.K8sStageDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Create Container secret", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating Container secret '%s'.", stage.Name))
 
+		secretName := "container-secret-" + stage.Name
+
 		kubeProvider := NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(stage.Name)
+
 		secret := utils.InitContainerSecret()
-		secret.ObjectMeta.Name = "container-secret-" + stage.Name
+		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = stage.Name
 
 		authStr := fmt.Sprintf("%s:%s", namespace.ContainerRegistryUser, namespace.ContainerRegistryPat)
@@ -95,11 +100,22 @@ func CreateContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, sta
 
 		secret.Labels = MoUpdateLabels(&secret.Labels, &job.NamespaceId, &stage, nil)
 
-		_, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
-		} else {
+		// Check if exists
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		if err == nil {
+			// UPDATED
 			cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.Name))
+		}
+		if apierrors.IsNotFound(err) {
+			_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+			if err != nil {
+				cmd.Fail(fmt.Sprintf("CreateContainerSecret (create) ERROR: %s", err.Error()))
+			} else {
+				// CREATED
+				cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.Name))
+			}
+		} else {
+			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
 		}
 	}(cmd, wg)
 	return cmd
@@ -201,6 +217,17 @@ func DeleteK8sSecret(data v1.Secret) K8sWorkloadResult {
 		return WorkloadResult(err.Error())
 	}
 	return WorkloadResult("")
+}
+
+func DescribeK8sSecret(namespace string, name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "secret", name, "-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }
 
 func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {

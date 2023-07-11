@@ -28,7 +28,7 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 	cmds = append(cmds, mokubernetes.CreateNetworkPolicyNamespace(job, r.Stage, wg))
 
 	if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
-		cmds = append(cmds, mokubernetes.CreateContainerSecret(job, r.Namespace, r.Stage, wg))
+		cmds = append(cmds, mokubernetes.CreateOrUpdateContainerSecret(job, r.Namespace, r.Stage, wg))
 	}
 	return cmds
 }

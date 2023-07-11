@@ -97,6 +97,39 @@ var COMMAND_REQUESTS = []string{
 	"list/cluster_role",
 	"list/cluster_role_binding",
 	"list/volume_attachment",
+	"list/network_policy",
+	"list/storage_class",
+
+	"describe/namespace",
+	"describe/deployment",
+	"describe/service",
+	"describe/pod",
+	"describe/ingresse",
+	"describe/configmap",
+	"describe/secret",
+	"describe/node",
+	"describe/daemonset",
+	"describe/statefulset",
+	"describe/job",
+	"describe/cronjob",
+	"describe/replicaset",
+	"describe/persistent_volume",
+	"describe/persistent_volume_claim",
+	"describe/horizontal_pod_autoscaler",
+	"describe/event",
+	"describe/certificate",
+	"describe/certificaterequest",
+	"describe/order",
+	"describe/issuer",
+	"describe/clusterissuer",
+	"describe/service_account",
+	"describe/role",
+	"describe/role_binding",
+	"describe/cluster_role",
+	"describe/cluster_role_binding",
+	"describe/volume_attachment",
+	"describe/network_policy",
+	"describe/storage_class",
 
 	"update/deployment",
 	"update/service",
@@ -123,6 +156,8 @@ var COMMAND_REQUESTS = []string{
 	"update/cluster_role",
 	"update/cluster_role_binding",
 	"update/volume_attachment",
+	"update/network_policy",
+	"update/storage_class",
 
 	"delete/namespace",
 	"delete/deployment",
@@ -149,6 +184,8 @@ var COMMAND_REQUESTS = []string{
 	"delete/cluster_role",
 	"delete/cluster_role_binding",
 	"delete/volume_attachment",
+	"delete/network_policy",
+	"delete/storage_class",
 
 	"storage/create-volume",
 	"storage/delete-volume",
@@ -451,6 +488,135 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return mokubernetes.AllClusterRoleBindings(data.NamespaceName)
 	case "list/volume_attachment":
 		return mokubernetes.AllVolumeAttachments()
+	case "list/network_policy":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllNetworkPolicies(data.NamespaceName)
+	case "list/storage_class":
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllStorageClasses()
+
+	case "describe/namespace":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sNamespace(data.NamespaceName)
+	case "describe/deployment":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sDeployment(data.NamespaceName, data.ResourceName)
+	case "describe/service":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sService(data.NamespaceName, data.ResourceName)
+	case "describe/pod":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sPod(data.NamespaceName, data.ResourceName)
+	case "describe/ingress":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sIngress(data.NamespaceName, data.ResourceName)
+	case "describe/configmap":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sConfigmap(data.NamespaceName, data.ResourceName)
+	case "describe/secret":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sSecret(data.NamespaceName, data.ResourceName)
+	case "describe/node":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sNode(data.ResourceName)
+	case "describe/daemonset":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sDaemonSet(data.NamespaceName, data.ResourceName)
+	case "describe/statefulset":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sStatefulset(data.NamespaceName, data.ResourceName)
+	case "describe/job":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sJob(data.NamespaceName, data.ResourceName)
+	case "describe/cronjob":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sCronJob(data.NamespaceName, data.ResourceName)
+	case "describe/replicaset":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sReplicaset(data.NamespaceName, data.ResourceName)
+	case "describe/persistent_volume":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sPersistentVolume(data.ResourceName)
+	case "describe/persistent_volume_claim":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sPersistentVolumeClaim(data.NamespaceName, data.ResourceName)
+	case "describe/horizontal_pod_autoscaler":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sHpa(data.NamespaceName, data.ResourceName)
+	case "describe/event":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sEvent(data.NamespaceName, data.ResourceName)
+	case "describe/certificate":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sCertificate(data.NamespaceName, data.ResourceName)
+	case "describe/certificaterequest":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sCertificateSigningRequest(data.ResourceName)
+	case "describe/order":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sOrder(data.NamespaceName, data.ResourceName)
+	case "describe/issuer":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sIssuer(data.NamespaceName, data.ResourceName)
+	case "describe/clusterissuer":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sClusterIssuer(data.ResourceName)
+	case "describe/service_account":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sServiceAccount(data.NamespaceName, data.ResourceName)
+	case "describe/role":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sRole(data.NamespaceName, data.ResourceName)
+	case "describe/role_binding":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sRoleBinding(data.NamespaceName, data.ResourceName)
+	case "describe/cluster_role":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sClusterRole(data.ResourceName)
+	case "describe/cluster_role_binding":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sClusterRoleBinding(data.ResourceName)
+	case "describe/volume_attachment":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sVolumeAttachment(data.ResourceName)
+	case "describe/network_policy":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sNetworkPolicy(data.NamespaceName, data.ResourceName)
+	case "describe/storage_class":
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sStorageClass(data.ResourceName)
 
 	case "update/deployment":
 		data := K8sUpdateDeploymentRequest{}
@@ -552,6 +718,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sUpdateVolumeAttachmentRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sVolumeAttachment(*data.Data)
+	case "update/network_policy":
+		data := K8sUpdateNetworkPolicyRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sNetworkPolicy(*data.Data)
+	case "update/storage_class":
+		data := K8sUpdateStorageClassRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sStorageClass(*data.Data)
 
 	case "delete/namespace":
 		data := K8sDeleteNamespaceRequest{}
@@ -657,6 +831,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sDeleteVolumeAttachmentRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sVolumeAttachment(*data.Data)
+	case "delete/network_policy":
+		data := K8sDeleteNetworkPolicyRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sNetworkPolicy(*data.Data)
+	case "delete/storage_class":
+		data := K8sDeleteStorageClassRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sStorageClass(*data.Data)
 
 	// case "storage/enable":
 	// 	data := NfsStorageInstallRequest{}

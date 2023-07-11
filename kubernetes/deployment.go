@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -427,6 +428,17 @@ func AllDeployments(namespaceName string) []v1.Deployment {
 		}
 	}
 	return result
+}
+
+func DescribeK8sDeployment(namespace string, name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "deployment", name, "-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }
 
 // func CheckIfMogeniusNfsIsRunning() MogeniusNfsInstallationStatus {

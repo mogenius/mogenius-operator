@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"os/exec"
 	"sync"
 
 	v1 "k8s.io/api/core/v1"
@@ -204,4 +205,15 @@ func DeleteK8sConfigmap(data v1.ConfigMap) K8sWorkloadResult {
 		return WorkloadResult(err.Error())
 	}
 	return WorkloadResult("")
+}
+
+func DescribeK8sConfigmap(namespace string, name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "configmap", name, "-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }

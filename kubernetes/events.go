@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"os/exec"
 	"strconv"
 	"time"
 
@@ -230,4 +231,15 @@ func AllEvents(namespaceName string) []v1Core.Event {
 		}
 	}
 	return result
+}
+
+func DescribeK8sEvent(namespace string, name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "event", name, "-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }

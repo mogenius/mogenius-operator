@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"os/exec"
 
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -46,4 +47,15 @@ func DeleteK8sReplicaset(data v1.ReplicaSet) K8sWorkloadResult {
 		return WorkloadResult(err.Error())
 	}
 	return WorkloadResult("")
+}
+
+func DescribeK8sReplicaset(namespace string, name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "replicaset", name, "-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }

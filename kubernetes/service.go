@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"os/exec"
 	"strings"
 	"sync"
 
@@ -350,6 +351,17 @@ func DeleteK8sService(data v1.Service) K8sWorkloadResult {
 		return WorkloadResult(err.Error())
 	}
 	return WorkloadResult("")
+}
+
+func DescribeK8sService(namespace string, name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "service", name, "-n", namespace)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }
 
 func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Service {

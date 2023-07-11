@@ -313,7 +313,19 @@ type K8sListRequest struct {
 
 func K8sListRequestExample() K8sListRequest {
 	return K8sListRequest{
-		NamespaceName: "mo7-behrang-prod-vbtv0w",
+		NamespaceName: "",
+	}
+}
+
+type K8sDescribeRequest struct {
+	NamespaceName string `json:"namespaceName"`
+	ResourceName  string `json:"resourceName"`
+}
+
+func K8sDescribeRequestExample() K8sDescribeRequest {
+	return K8sDescribeRequest{
+		NamespaceName: "mogenius",
+		ResourceName:  "mogenius-k8s-manager",
 	}
 }
 
@@ -563,6 +575,26 @@ type K8sUpdateVolumeAttachmentRequest struct {
 
 func K8sUpdateVolumeAttachmentExample() K8sUpdateVolumeAttachmentRequest {
 	return K8sUpdateVolumeAttachmentRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateNetworkPolicyRequest struct {
+	Data *netv1.NetworkPolicy `json:"data"`
+}
+
+func K8sUpdateNetworkPolicyExample() K8sUpdateNetworkPolicyRequest {
+	return K8sUpdateNetworkPolicyRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateStorageClassRequest struct {
+	Data *storage.StorageClass `json:"data"`
+}
+
+func K8sUpdateStorageClassExample() K8sUpdateStorageClassRequest {
+	return K8sUpdateStorageClassRequest{
 		Data: nil,
 	}
 }
@@ -823,6 +855,26 @@ type K8sDeleteVolumeAttachmentRequest struct {
 
 func K8sDeleteVolumeAttachmentExample() K8sDeleteVolumeAttachmentRequest {
 	return K8sDeleteVolumeAttachmentRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteNetworkPolicyRequest struct {
+	Data *netv1.NetworkPolicy `json:"data"`
+}
+
+func K8sDeleteNetworkPolicyExample() K8sDeleteNetworkPolicyRequest {
+	return K8sDeleteNetworkPolicyRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteStorageClassRequest struct {
+	Data *storage.StorageClass `json:"data"`
+}
+
+func K8sDeleteStorageClassExample() K8sDeleteStorageClassRequest {
+	return K8sDeleteStorageClassRequest{
 		Data: nil,
 	}
 }

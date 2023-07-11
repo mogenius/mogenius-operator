@@ -3,6 +3,8 @@ package kubernetes
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/logger"
+	"os/exec"
 )
 
 func GetNodeStats() []dtos.NodeStat {
@@ -31,4 +33,15 @@ func GetNodeStats() []dtos.NodeStat {
 		nodeStat.PrintPretty()
 	}
 	return result
+}
+
+func DescribeK8sNode(name string) K8sWorkloadResult {
+	cmd := exec.Command("kubectl", "describe", "node", name)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		return WorkloadResult(err.Error())
+	}
+	return WorkloadResult(string(output))
 }
