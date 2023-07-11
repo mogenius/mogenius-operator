@@ -105,17 +105,18 @@ func CreateOrUpdateContainerSecret(job *structs.Job, namespace dtos.K8sNamespace
 		if err == nil {
 			// UPDATED
 			cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.Name))
-		}
-		if apierrors.IsNotFound(err) {
-			_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
-			if err != nil {
-				cmd.Fail(fmt.Sprintf("CreateContainerSecret (create) ERROR: %s", err.Error()))
-			} else {
-				// CREATED
-				cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.Name))
-			}
 		} else {
-			cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
+			if apierrors.IsNotFound(err) {
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("CreateContainerSecret (create) ERROR: %s", err.Error()))
+				} else {
+					// CREATED
+					cmd.Success(fmt.Sprintf("Created Container secret '%s'.", stage.Name))
+				}
+			} else {
+				cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
+			}
 		}
 	}(cmd, wg)
 	return cmd
