@@ -88,7 +88,7 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 					}
 				}
 			}
-			if !stage.CloudflareProxied {
+			if !stage.CloudflareProxied && len(service.CNames) == 0 {
 				tlsHosts = append(tlsHosts, service.FullHostname)
 			}
 

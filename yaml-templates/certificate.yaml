@@ -8,5 +8,5 @@ spec:
   - your-dns-name.your-domain.com
   issuerRef:
     kind: ClusterIssuer
-    name: letsencrypt-prod
+    name: letsencrypt-cluster-issuer
   secretName: XXX
