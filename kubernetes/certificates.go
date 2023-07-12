@@ -29,6 +29,10 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 		if apierrors.IsNotFound(err) {
 			createNew = true
 		}
+		if apierrors.IsForbidden(err) {
+			logger.Log.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
+			return
+		}
 	}
 
 	// 2. Check if new Names have been added
@@ -38,6 +42,9 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 				foundNewHostNames = true
 			}
 		}
+	} else {
+		// cert is missing so create a new one
+		foundNewHostNames = true
 	}
 
 	// 3. Update the certificate if new Hostnames are beeing added.
@@ -60,12 +67,11 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 				cert := utils.InitCertificate()
 				cert.Name = namespaceName
 				cert.Namespace = namespaceName
-				cert.Spec.DNSNames = hostNames
 				cert.Spec.SecretName = namespaceName
+				cert.Spec.DNSNames = hostNames
 			} else {
 				cert.Spec.DNSNames = hostNames
 			}
-			cert.Spec.DNSNames = hostNames
 			provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Update(context.TODO(), cert, metav1.UpdateOptions{})
 
 			if utils.CONFIG.Misc.Debug {
