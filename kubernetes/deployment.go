@@ -460,6 +460,12 @@ func DescribeK8sDeployment(namespace string, name string) K8sWorkloadResult {
 	return WorkloadResult(string(output), nil)
 }
 
+func NewK8sDeployment() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitDeploymentYaml(),
+		"A Deployment provides declarative updates for Pods and ReplicaSets. You describe a desired state in a Deployment, and the Deployment controller changes the actual state to the desired state at a controlled rate. In this example, a Deployment named 'my-app-deployment' is created. It will create 3 replicas of the pod, each running a single container from the 'my-app-image:1.0.0' image and exposing port 8080.")
+}
+
 // func CheckIfMogeniusNfsIsRunning() MogeniusNfsInstallationStatus {
 // 	result := MogeniusNfsInstallationStatus{}
 // 	provider := NewKubeProvider()

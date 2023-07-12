@@ -60,3 +60,9 @@ func DescribeK8sOrder(namespace string, name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sOrder() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitOrderYaml(),
+		"An ORDER is referring to a Custom Resource Definition (CRD) or a resource from the Kubernetes extension cert-manager. Order is a resource used to represent an order with an ACME server (like Let's Encrypt) for a TLS certificate. Once an Order resource is created, cert-manager will attempt to fulfill the Order by obtaining a certificate.")
+}

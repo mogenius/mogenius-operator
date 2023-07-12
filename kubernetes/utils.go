@@ -38,6 +38,11 @@ type K8sWorkloadResult struct {
 	Error  interface{} `json:"error"`
 }
 
+type K8sNewWorkload struct {
+	YamlString  string `json:"yamlString"`
+	Description string `json:"description"`
+}
+
 type MogeniusNfsInstallationStatus struct {
 	Error       string `json:"error,omitempty"`
 	IsInstalled bool   `json:"isInstalled"`
@@ -69,6 +74,13 @@ func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
 	return K8sWorkloadResult{
 		Result: result,
 		Error:  error,
+	}
+}
+
+func NewWorkload(yaml string, description string) K8sNewWorkload {
+	return K8sNewWorkload{
+		YamlString:  yaml,
+		Description: description,
 	}
 }
 

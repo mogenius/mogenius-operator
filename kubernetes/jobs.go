@@ -60,3 +60,9 @@ func DescribeK8sJob(namespace string, name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sJobs() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitJobsYaml(),
+		"A Job creates one or more Pods and ensures that a specified number of them successfully terminate. As pods successfully complete, the Job tracks the successful completions. In this example, a Job named 'my-job' is created. It will create a pod that runs a single container using the 'busybox' image. When the container starts, it will run the command sh -c 'echo Hello, mogenius! && sleep 30'. If the job fails, Kubernetes will try to restart it up to 4 times.")
+}

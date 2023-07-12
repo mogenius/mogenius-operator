@@ -60,3 +60,9 @@ func DescribeK8sStatefulset(namespace string, name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sStatefulset() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitStatefulsetYaml(),
+		"StatefulSets are intended to be used with stateful applications and distributed systems. They manage the deployment and scaling of a set of Pods and provide guarantees about the ordering and uniqueness of these Pods. In this example, a StatefulSet named 'web' is created, which runs 3 replicas of the nginx container. Each pod is available through the service named 'nginx', and each has a single PersistentVolumeClaim, 'www', which requests a 1Gi storage volume.")
+}

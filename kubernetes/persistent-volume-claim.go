@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,4 +71,10 @@ func DescribeK8sPersistentVolumeClaim(namespace string, name string) K8sWorkload
 		return WorkloadResult(nil, string(output))
 	}
 	return WorkloadResult(string(output), nil)
+}
+
+func NewK8sPersistentVolumeClaim() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitPersistentVolumeClaimYaml(),
+		"A PersistentVolumeClaim (PVC) is a request for storage by a user. It is similar to a Pod. Pods consume node resources, and PVCs consume PersistentVolume resources.")
 }

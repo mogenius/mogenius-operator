@@ -61,3 +61,9 @@ func DescribeK8sServiceAccount(namespace string, name string) K8sWorkloadResult 
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sServiceAccount() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitServiceAccountExampleYaml(),
+		"A ServiceAccount is an object within Kubernetes that provides an identity for processes that run in a Pod. In this example, a service account named 'my-serviceaccount' is created in the 'my-namespace' namespace. If the namespace field is omitted, Kubernetes will assume the default namespace. ServiceAccounts aren't just limited to the following fields. They can have secrets and imagePullSecrets associated with them. The secrets field is used to attach arbitrary secrets to the service account which can then be mounted into pods. The imagePullSecrets field is used to specify Docker registry credentials.")
+}

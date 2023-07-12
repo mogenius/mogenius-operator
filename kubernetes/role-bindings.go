@@ -61,3 +61,9 @@ func DescribeK8sRoleBinding(namespace string, name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sRoleBinding() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitRoleBindingYaml(),
+		"RoleBindings in Kubernetes provide a way to bind a Role or ClusterRole to a set of subjects (which can be Users, Groups, or ServiceAccounts) within a particular namespace. In this example, a RoleBinding named 'read-pods' is created in the 'default' namespace. This RoleBinding binds the Role 'pod-reader' to the user 'jane'.")
+}

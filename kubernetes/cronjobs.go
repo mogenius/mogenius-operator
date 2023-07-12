@@ -61,3 +61,9 @@ func DescribeK8sCronJob(namespace string, name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sCronJob() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitCronJobYaml(),
+		"A CronJob creates Jobs on a repeating schedule, like the cron utility in Unix-like systems. In this example, a CronJob named 'my-cronjob' is created. It runs a Job every minute. Each Job creates a Pod with a single container from the 'my-cronjob-image' image.")
+}

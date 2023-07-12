@@ -60,3 +60,9 @@ func DescribeK8sIssuer(namespace string, name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sIssuer() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitIssuerYaml(),
+		"An Issuer is a custom resource definition (CRD) in cert-manager, which is a native Kubernetes certificate management controller. It represents a certificate authority (CA) that can generate signed certificates. In this example, an Issuer named 'example-issuer' is created. This issuer uses the Let's Encrypt staging server for the ACME protocol. It will use the secret 'example-issuer-account-key' to store the ACME account's private key and uses HTTP-01 challenge for domain validation.")
+}

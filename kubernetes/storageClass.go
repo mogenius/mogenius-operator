@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 	"os/exec"
 
 	storage "k8s.io/api/storage/v1"
@@ -97,4 +98,10 @@ func DescribeK8sStorageClass(name string) K8sWorkloadResult {
 		return WorkloadResult(nil, string(output))
 	}
 	return WorkloadResult(string(output), nil)
+}
+
+func NewK8sStorageClass() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitStorageClassYaml(),
+		"A StorageClass provides a way for administrators to describe the 'classes' of storage they offer. Different classes might map to quality-of-service levels, backup policies, or arbitrary policies determined by the cluster administrators. Please note, the above example uses kubernetes.io/aws-ebs as the provisioner which means this StorageClass is specific to AWS EBS volumes. The parameters may vary based on the provisioner.")
 }

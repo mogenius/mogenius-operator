@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,4 +57,10 @@ func DescribeK8sPersistentVolume(name string) K8sWorkloadResult {
 		return WorkloadResult(nil, string(output))
 	}
 	return WorkloadResult(string(output), nil)
+}
+
+func NewK8sVolume() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitPersistentVolumeYaml(),
+		"A PersistentVolume (PV) is a piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes. It is a resource in the cluster just like a node is a cluster resource. In this example, a PersistentVolume named 'my-pv' is created with a capacity of 10Gi, it uses the local directory /data/my-pv on the host for storage. Please note, that hostPath is a simple type of storage and useful for development and testing. For production usage, you might want to use a more robust solution like networked storage (NFS, iSCSI, GlusterFS, etc) or cloud-provided storage (AWS EBS, GCE Persistent Disk, Azure Disk, etc).")
 }

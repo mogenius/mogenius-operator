@@ -60,3 +60,9 @@ func DescribeK8sHpa(namespace string, name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sHpa() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitHpaYaml(),
+		"The Horizontal Pod Autoscaler automatically scales the number of pods in a replication controller, deployment, or replica set based on observed CPU utilization. In this example, an HPA named 'example-hpa' is created. It will automatically scale the number of pods in the deployment named 'my-app-deployment' between 1 and 10, aiming to target an average CPU utilization across all Pods of 50%.")
+}

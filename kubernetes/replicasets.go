@@ -78,3 +78,9 @@ func DescribeK8sReplicaset(namespace string, name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sReplicaSet() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitReplicaSetYaml(),
+		"A ReplicaSet's purpose is to maintain a stable set of replica Pods running at any given time. It's often used to guarantee the availability of a specified number of identical Pods. In this example, a ReplicaSet named 'my-replicaset' is created to ensure that exactly three Pods with labels app=myapp and tier=frontend are running at all times. Please note, although ReplicaSets are a powerful tool for maintaining sets of pods, Deployments are a higher-level concept that manage ReplicaSets and provide declarative updates to Pods along with a lot of other useful features. Hence, it's recommended to use Deployments instead of directly using ReplicaSets, unless you require custom update orchestration or don't require updates at all.")
+}

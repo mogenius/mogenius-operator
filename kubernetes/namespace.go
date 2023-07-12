@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"os/exec"
 	"strings"
 	"sync"
@@ -149,4 +150,10 @@ func NamespaceExists(namespaceName string) (bool, error) {
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 	ns, err := namespaceClient.Get(context.TODO(), namespaceName, metav1.GetOptions{})
 	return (ns != nil && err == nil), err
+}
+
+func NewK8sNamespace() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitNamespaceYaml(),
+		"A Namespace is a way to divide cluster resources between multiple users. They are intended for use in environments with many users spread across multiple teams, or projects. In this example, a Namespace named 'my-namespace' is created. Namespaces provide a scope for names. Names of resources need to be unique within a namespace but not across namespaces. Namespaces can not be nested inside one another and each Kubernetes resource can only be in one namespace.")
 }

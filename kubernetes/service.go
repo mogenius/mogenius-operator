@@ -370,6 +370,12 @@ func DescribeK8sService(namespace string, name string) K8sWorkloadResult {
 	return WorkloadResult(string(output), nil)
 }
 
+func NewK8sService() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitServiceExampleYaml(),
+		"A Kubernetes Service is an abstraction which defines a logical set of Pods and a policy by which to access them. The set of Pods targeted by a Service is usually determined by a selector. In this example, the service named 'my-service' listens on port 80, and forwards the requests to port 9376 on the pods which have the label app=MyApp.")
+}
+
 func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Service {
 	newService := utils.InitService()
 	newService.ObjectMeta.Name = service.Name

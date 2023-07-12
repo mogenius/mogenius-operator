@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 
 	storage "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,4 +55,10 @@ func DescribeK8sVolumeAttachment(name string) K8sWorkloadResult {
 		return WorkloadResult(nil, string(output))
 	}
 	return WorkloadResult(string(output), nil)
+}
+
+func NewK8sVolumeAttachment() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitVolumeAttachmentYaml(),
+		"The VolumeAttachment kind in Kubernetes provides a mechanism for attaching external volumes to a node. It's typically used by the Container Storage Interface (CSI) to allow for the dynamic provisioning of volumes, but it can be used in more general scenarios as well. However, please note that this is a lower-level construct, and it's usually better to use higher-level abstractions like PersistentVolumeClaim or StorageClass unless you have a very specific reason to directly create VolumeAttachment objects.")
 }

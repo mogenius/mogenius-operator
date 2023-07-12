@@ -61,3 +61,9 @@ func DescribeK8sClusterRole(name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sClusterRole() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitClusterRoleYaml(),
+		"A ClusterRole is a non-namespaced resource that defines permissions for accessing cluster-level resources in Kubernetes. In this example, a ClusterRole named 'my-cluster-role' is created. It grants permissions to access and perform various actions on pods and deployments including get, list, watch, create, update, and delete. It also grants permissions to access roles and rolebindings (from the 'rbac.authorization.k8s.io' API group) including get, list, and watch.")
+}

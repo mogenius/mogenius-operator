@@ -78,3 +78,9 @@ func DescribeK8sDaemonSet(namespace string, name string) K8sWorkloadResult {
 	}
 	return WorkloadResult(string(output), nil)
 }
+
+func NewK8sDaemonSet() K8sNewWorkload {
+	return NewWorkload(
+		utils.InitDaemonsetYaml(),
+		"A DaemonSet ensures that all (or some) nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to them. As nodes are removed from the cluster, those Pods are garbage collected. In this example, a DaemonSet named 'my-daemonset' is created. It ensures that each node in the cluster runs a Pod with a single container from the 'my-daemonset-image' image and exposing port 8080.")
+}

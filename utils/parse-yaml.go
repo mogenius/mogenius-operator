@@ -10,6 +10,13 @@ import (
 	"k8s.io/kubectl/pkg/scheme"
 )
 
+func InitPersistentVolumeYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/volume-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitPersistentVolume() core.PersistentVolume {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/volume-nfs-pv.yaml")
 	if err != nil {
@@ -26,6 +33,13 @@ func InitPersistentVolume() core.PersistentVolume {
 	return app
 }
 
+func InitPersistentVolumeClaimYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/pvc-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitPersistentVolumeClaim() core.PersistentVolumeClaim {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/volumeclaim-cephfs.yaml")
 	if err != nil {
@@ -42,6 +56,13 @@ func InitPersistentVolumeClaim() core.PersistentVolumeClaim {
 	return app
 }
 
+func InitContainerSecretYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/container-secret.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitContainerSecret() core.Secret {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/container-secret.yaml")
 	if err != nil {
@@ -138,6 +159,13 @@ func InitMogeniusNfsK8sService() core.Service {
 	return service
 }
 
+func InitSecretYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/secret-sample.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitSecret() core.Secret {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/secret.yaml")
 	if err != nil {
@@ -154,6 +182,13 @@ func InitSecret() core.Secret {
 	return app
 }
 
+func InitConfigMapYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/configmap-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitConfigMap() core.ConfigMap {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/configmap.yaml")
 	if err != nil {
@@ -170,6 +205,13 @@ func InitConfigMap() core.ConfigMap {
 	return app
 }
 
+func InitDeploymentYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/deployment-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitDeployment() v1.Deployment {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/deployment.yaml")
 	if err != nil {
@@ -186,6 +228,13 @@ func InitDeployment() v1.Deployment {
 	return app
 }
 
+func InitIngressYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/ingress.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitIngress() netv1.Ingress {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/ingress.yaml")
 	if err != nil {
@@ -202,6 +251,13 @@ func InitIngress() netv1.Ingress {
 	return app
 }
 
+func InitNetPolNamespaceYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/network-policy-namespace.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitNetPolNamespace() netv1.NetworkPolicy {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/network-policy-namespace.yaml")
 	if err != nil {
@@ -218,6 +274,13 @@ func InitNetPolNamespace() netv1.NetworkPolicy {
 	return app
 }
 
+func InitNetPolServiceYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/network-policy-service.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitNetPolService() netv1.NetworkPolicy {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/network-policy-service.yaml")
 	if err != nil {
@@ -234,6 +297,13 @@ func InitNetPolService() netv1.NetworkPolicy {
 	return app
 }
 
+func InitCertificateYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/certificate-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitCertificate() cmapi.Certificate {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/certificate.yaml")
 	if err != nil {
@@ -250,6 +320,13 @@ func InitCertificate() cmapi.Certificate {
 	return app
 }
 
+func InitServiceYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/service.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
 func InitService() core.Service {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/service.yaml")
 	if err != nil {
@@ -296,4 +373,180 @@ func InitUpgradeJob() v1job.Job {
 		panic(err)
 	}
 	return app
+}
+
+func InitVolumeAttachmentYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/volumeattachment.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitStorageClassYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/storageclass.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitStatefulsetYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/statefulset.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitServiceExampleYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/service-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitServiceAccountExampleYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/serviceaccount-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitRoleYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/role-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitRoleBindingYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/rolebinding-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitReplicaSetYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/replicaset-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitPodYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/pod-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitOrderYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/order-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitNetPolYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/netpol-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitNamespaceYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/namespace-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitJobsYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/job-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitIssuerYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/issuer-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitIngresYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/ingress-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitHpaYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/hpa-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitDaemonsetYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/daemonset-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitCertificateSigningRequestYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/csr-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitCronJobYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/cronjob-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitClusterIssuerYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/cluster-issuer-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitClusterRoleYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/cluster-role-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitClusterRoleBindingYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/cluster-role-binding-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
 }
