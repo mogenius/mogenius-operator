@@ -66,7 +66,8 @@ func DescribeK8sNode(name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(nil, err)
+		logger.Log.Errorf("Error: %s", string(output))
+		return WorkloadResult(nil, string(output))
 	}
 	return WorkloadResult(string(output), nil)
 }

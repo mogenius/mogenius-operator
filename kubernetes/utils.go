@@ -35,7 +35,7 @@ var (
 
 type K8sWorkloadResult struct {
 	Result interface{} `json:"result"`
-	Error  error       `json:"error"`
+	Error  interface{} `json:"error"`
 }
 
 type MogeniusNfsInstallationStatus struct {
@@ -65,7 +65,7 @@ func init() {
 	}
 }
 
-func WorkloadResult(result interface{}, error error) K8sWorkloadResult {
+func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
 	return K8sWorkloadResult{
 		Result: result,
 		Error:  error,
