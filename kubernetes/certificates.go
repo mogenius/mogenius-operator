@@ -32,9 +32,11 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 	}
 
 	// 2. Check if new Names have been added
-	for _, hostName := range hostNames {
-		if !utils.Contains(cert.Spec.DNSNames, hostName) {
-			foundNewHostNames = true
+	if cert != nil {
+		for _, hostName := range hostNames {
+			if !utils.Contains(cert.Spec.DNSNames, hostName) {
+				foundNewHostNames = true
+			}
 		}
 	}
 
