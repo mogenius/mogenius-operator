@@ -106,6 +106,9 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 
 		config.WithSpec(spec)
 
+		// BEFORE UPDATING INGRESS WE SETUP THE CERTIFICATES FOR ALL HOSTNAMES
+		UpdateNamespaceCertificate(stage.Name, tlsHosts)
+
 		if len(spec.Rules) <= 0 {
 			existingIngress, ingErr := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
 			if existingIngress != nil && ingErr == nil {

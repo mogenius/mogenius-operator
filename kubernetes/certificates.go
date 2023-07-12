@@ -8,10 +8,92 @@ import (
 	"mogenius-k8s-manager/utils"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllCertificates(namespaceName string) K8sWorkloadResult {
+func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
+	if len(hostNames) >= 0 {
+		return
+	}
+
+	foundNewHostNames := false
+	createNew := false
+
+	// 1. Get Certificate for Namespace (NAMESPACE AND RESOURCE NAME ARE IDENTICAL)
+	cert, err := GetCertificate(namespaceName, namespaceName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			createNew = true
+		}
+	}
+
+	// 2. Check if new Names have been added
+	for _, hostName := range hostNames {
+		if !utils.Contains(cert.Spec.DNSNames, hostName) {
+			foundNewHostNames = true
+		}
+	}
+
+	// 3. Update the certificate if new Hostnames are beeing added.
+	if foundNewHostNames {
+		provider := NewKubeProviderCertManager()
+		if createNew {
+			cert := utils.InitCertificate()
+			cert.Name = namespaceName
+			cert.Namespace = namespaceName
+			cert.Spec.DNSNames = hostNames
+			cert.Spec.SecretName = namespaceName
+			provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Create(context.TODO(), &cert, metav1.CreateOptions{})
+
+			if utils.CONFIG.Misc.Debug {
+				logger.Log.Info("Certificate has been created because something changed.")
+			}
+			return
+		} else {
+			cert.Spec.DNSNames = hostNames
+			provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Update(context.TODO(), cert, metav1.UpdateOptions{})
+
+			if utils.CONFIG.Misc.Debug {
+				logger.Log.Info("Certificate has been updated because something changed.")
+			}
+			return
+		}
+	}
+	if utils.CONFIG.Misc.Debug {
+		logger.Log.Info("Certificate has NOT been updated/created because nothing changed.")
+	}
+}
+
+func AllCertificates(namespaceName string) []cmapi.Certificate {
+	result := []cmapi.Certificate{}
+
+	provider := NewKubeProviderCertManager()
+	certificatesList, err := provider.ClientSet.CertmanagerV1().Certificates(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllCertificates ERROR: %s", err.Error())
+		return result
+	}
+
+	for _, certificate := range certificatesList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, certificate.ObjectMeta.Namespace) {
+			result = append(result, certificate)
+		}
+	}
+	return result
+}
+
+func GetCertificate(namespaceName string, resourceName string) (*cmapi.Certificate, error) {
+	provider := NewKubeProviderCertManager()
+	certificate, err := provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Get(context.TODO(), resourceName, metav1.GetOptions{})
+	if err != nil {
+		logger.Log.Errorf("AllCertificates ERROR: %s", err.Error())
+		return nil, err
+	}
+	return certificate, nil
+}
+
+func AllK8sCertificates(namespaceName string) K8sWorkloadResult {
 	result := []cmapi.Certificate{}
 
 	provider := NewKubeProviderCertManager()

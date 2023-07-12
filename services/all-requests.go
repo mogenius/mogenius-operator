@@ -449,7 +449,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case "list/certificates":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllCertificates(data.NamespaceName)
+		return mokubernetes.AllK8sCertificates(data.NamespaceName)
 	case "list/certificaterequests":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)

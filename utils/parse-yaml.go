@@ -1,6 +1,7 @@
 package utils
 
 import (
+	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
@@ -226,6 +227,22 @@ func InitNetPolService() netv1.NetworkPolicy {
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var app netv1.NetworkPolicy
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitCertificate() cmapi.Certificate {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/certificate.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app cmapi.Certificate
 	_, _, err = s.Decode(yaml, nil, &app)
 	if err != nil {
 		panic(err)
