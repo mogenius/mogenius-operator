@@ -14,8 +14,9 @@ import (
 )
 
 func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
-	logger.Log.Noticef("Updating Ingress for [%s] ...", strings.Join(hostNames, ", "))
-
+	if utils.CONFIG.Misc.Debug {
+		logger.Log.Noticef("Updating Ingress for [%s] ...", strings.Join(hostNames, ", "))
+	}
 	if len(hostNames) <= 0 {
 		return
 	}
