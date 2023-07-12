@@ -54,6 +54,15 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 			}
 			return
 		} else {
+			if cert == nil {
+				cert := utils.InitCertificate()
+				cert.Name = namespaceName
+				cert.Namespace = namespaceName
+				cert.Spec.DNSNames = hostNames
+				cert.Spec.SecretName = namespaceName
+			} else {
+				cert.Spec.DNSNames = hostNames
+			}
 			cert.Spec.DNSNames = hostNames
 			provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Update(context.TODO(), cert, metav1.UpdateOptions{})
 
@@ -90,7 +99,7 @@ func GetCertificate(namespaceName string, resourceName string) (*cmapi.Certifica
 	provider := NewKubeProviderCertManager()
 	certificate, err := provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Get(context.TODO(), resourceName, metav1.GetOptions{})
 	if err != nil {
-		logger.Log.Errorf("AllCertificates ERROR: %s", err.Error())
+		logger.Log.Errorf("GetCertificate ERROR: %s", err.Error())
 		return nil, err
 	}
 	return certificate, nil
