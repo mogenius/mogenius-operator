@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"os/exec"
+	"strings"
 
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -13,7 +14,9 @@ import (
 )
 
 func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
-	if len(hostNames) >= 0 {
+	logger.Log.Noticef("Updating Ingress for [%s] ...", strings.Join(hostNames, ", "))
+
+	if len(hostNames) <= 0 {
 		return
 	}
 
