@@ -92,14 +92,12 @@ func ListAllNamespace() []v1.Namespace {
 		return result
 	}
 
-	for _, ns := range namespaceList.Items {
-		result = append(result, ns)
-	}
+	result = append(result, namespaceList.Items...)
 
 	return result
 }
 
-func ListK8sNamespaces(namespaceName string) []v1.Namespace {
+func ListK8sNamespaces(namespaceName string) K8sWorkloadResult {
 	result := []v1.Namespace{}
 
 	kubeProvider := NewKubeProvider()
@@ -108,7 +106,7 @@ func ListK8sNamespaces(namespaceName string) []v1.Namespace {
 	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("ListAllNamespace ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, ns := range namespaceList.Items {
@@ -121,7 +119,7 @@ func ListK8sNamespaces(namespaceName string) []v1.Namespace {
 		}
 	}
 
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func DeleteK8sNamespace(data v1.Namespace) K8sWorkloadResult {
@@ -129,9 +127,9 @@ func DeleteK8sNamespace(data v1.Namespace) K8sWorkloadResult {
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 	err := namespaceClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sNamespace(name string) K8sWorkloadResult {
@@ -140,9 +138,9 @@ func DescribeK8sNamespace(name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }
 
 func NamespaceExists(namespaceName string) (bool, error) {

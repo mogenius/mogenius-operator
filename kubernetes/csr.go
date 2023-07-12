@@ -11,14 +11,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllCertificateSigningRequests(namespaceName string) []cmapi.CertificateRequest {
+func AllCertificateSigningRequests(namespaceName string) K8sWorkloadResult {
 	result := []cmapi.CertificateRequest{}
 
 	provider := NewKubeProviderCertManager()
 	certificatesList, err := provider.ClientSet.CertmanagerV1().CertificateRequests(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllCertificateSigningRequests ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, certificate := range certificatesList.Items {
@@ -26,7 +26,7 @@ func AllCertificateSigningRequests(namespaceName string) []cmapi.CertificateRequ
 			result = append(result, certificate)
 		}
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sCertificateSigningRequest(data cmapi.CertificateRequest) K8sWorkloadResult {
@@ -34,9 +34,9 @@ func UpdateK8sCertificateSigningRequest(data cmapi.CertificateRequest) K8sWorklo
 	certificateClient := kubeProvider.ClientSet.CertmanagerV1().CertificateRequests(data.Namespace)
 	_, err := certificateClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sCertificateSigningRequest(data cmapi.CertificateRequest) K8sWorkloadResult {
@@ -44,9 +44,9 @@ func DeleteK8sCertificateSigningRequest(data cmapi.CertificateRequest) K8sWorklo
 	certificateClient := kubeProvider.ClientSet.CertmanagerV1().CertificateRequests(data.Namespace)
 	err := certificateClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sCertificateSigningRequest(name string) K8sWorkloadResult {
@@ -55,7 +55,7 @@ func DescribeK8sCertificateSigningRequest(name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

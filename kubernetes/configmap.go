@@ -185,15 +185,33 @@ func AllConfigmaps(namespaceName string) []v1.ConfigMap {
 	return result
 }
 
+func AllK8sConfigmaps(namespaceName string) K8sWorkloadResult {
+	result := []v1.ConfigMap{}
+
+	provider := NewKubeProvider()
+	configmapList, err := provider.ClientSet.CoreV1().ConfigMaps(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllConfigmaps ERROR: %s", err.Error())
+		return WorkloadResult(nil, err)
+	}
+
+	for _, configmap := range configmapList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, configmap.ObjectMeta.Namespace) {
+			result = append(result, configmap)
+		}
+	}
+	return WorkloadResult(result, nil)
+}
+
 func UpdateK8sConfigMap(data v1.ConfigMap) K8sWorkloadResult {
 	kubeProvider := NewKubeProvider()
 	configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(data.Namespace)
 	_, err := configmapClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		logger.Log.Errorf("UpdateK8sConfigMap ERROR: %s", err.Error())
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sConfigmap(data v1.ConfigMap) K8sWorkloadResult {
@@ -202,9 +220,9 @@ func DeleteK8sConfigmap(data v1.ConfigMap) K8sWorkloadResult {
 	err := configmapClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		logger.Log.Errorf("DeleteK8sConfigmap ERROR: %s", err.Error())
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sConfigmap(namespace string, name string) K8sWorkloadResult {
@@ -213,7 +231,7 @@ func DescribeK8sConfigmap(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

@@ -333,14 +333,19 @@ func AllServices(namespaceName string) []v1.Service {
 	return result
 }
 
+func AllK8sServices(namespaceName string) K8sWorkloadResult {
+	results := AllServices(namespaceName)
+	return WorkloadResult(results, nil)
+}
+
 func UpdateK8sService(data v1.Service) K8sWorkloadResult {
 	kubeProvider := NewKubeProvider()
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services(data.ObjectMeta.Namespace)
 	_, err := serviceClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sService(data v1.Service) K8sWorkloadResult {
@@ -348,9 +353,9 @@ func DeleteK8sService(data v1.Service) K8sWorkloadResult {
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services(data.ObjectMeta.Namespace)
 	err := serviceClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sService(namespace string, name string) K8sWorkloadResult {
@@ -359,9 +364,9 @@ func DescribeK8sService(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }
 
 func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Service {

@@ -215,14 +215,14 @@ func appendVolumeIfNotExists(items []v1Core.Volume, newItem v1Core.Volume) []v1C
 	return append(items, newItem)
 }
 
-func AllEvents(namespaceName string) []v1Core.Event {
+func AllEvents(namespaceName string) K8sWorkloadResult {
 	result := []v1Core.Event{}
 
 	provider := NewKubeProvider()
 	eventList, err := provider.ClientSet.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllEvents ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, event := range eventList.Items {
@@ -230,7 +230,7 @@ func AllEvents(namespaceName string) []v1Core.Event {
 			result = append(result, event)
 		}
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func DescribeK8sEvent(namespace string, name string) K8sWorkloadResult {
@@ -239,7 +239,7 @@ func DescribeK8sEvent(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

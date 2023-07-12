@@ -29,14 +29,32 @@ func AllDaemonsets(namespaceName string) []v1.DaemonSet {
 	return result
 }
 
+func AllK8sDaemonsets(namespaceName string) K8sWorkloadResult {
+	result := []v1.DaemonSet{}
+
+	provider := NewKubeProvider()
+	daemonsetList, err := provider.ClientSet.AppsV1().DaemonSets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllDaemonsets ERROR: %s", err.Error())
+		return WorkloadResult(nil, err)
+	}
+
+	for _, daemonset := range daemonsetList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, daemonset.ObjectMeta.Namespace) {
+			result = append(result, daemonset)
+		}
+	}
+	return WorkloadResult(result, nil)
+}
+
 func UpdateK8sDaemonSet(data v1.DaemonSet) K8sWorkloadResult {
 	kubeProvider := NewKubeProvider()
 	daemonSetClient := kubeProvider.ClientSet.AppsV1().DaemonSets(data.Namespace)
 	_, err := daemonSetClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sDaemonSet(data v1.DaemonSet) K8sWorkloadResult {
@@ -44,9 +62,9 @@ func DeleteK8sDaemonSet(data v1.DaemonSet) K8sWorkloadResult {
 	daemonSetClient := kubeProvider.ClientSet.AppsV1().DaemonSets(data.Namespace)
 	err := daemonSetClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sDaemonSet(namespace string, name string) K8sWorkloadResult {
@@ -55,7 +73,7 @@ func DescribeK8sDaemonSet(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

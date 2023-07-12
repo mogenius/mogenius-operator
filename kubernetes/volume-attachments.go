@@ -10,18 +10,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllVolumeAttachments() []storage.VolumeAttachment {
+func AllVolumeAttachments() K8sWorkloadResult {
 	result := []storage.VolumeAttachment{}
 
 	provider := NewKubeProvider()
 	volAttachList, err := provider.ClientSet.StorageV1().VolumeAttachments().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("AllCertificateSigningRequests ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	result = append(result, volAttachList.Items...)
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sVolumeAttachment(data storage.VolumeAttachment) K8sWorkloadResult {
@@ -29,9 +29,9 @@ func UpdateK8sVolumeAttachment(data storage.VolumeAttachment) K8sWorkloadResult 
 	volAttachClient := kubeProvider.ClientSet.StorageV1().VolumeAttachments()
 	_, err := volAttachClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sVolumeAttachment(data storage.VolumeAttachment) K8sWorkloadResult {
@@ -39,9 +39,9 @@ func DeleteK8sVolumeAttachment(data storage.VolumeAttachment) K8sWorkloadResult 
 	volAttachClient := kubeProvider.ClientSet.StorageV1().VolumeAttachments()
 	err := volAttachClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sVolumeAttachment(name string) K8sWorkloadResult {
@@ -50,7 +50,7 @@ func DescribeK8sVolumeAttachment(name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

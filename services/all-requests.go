@@ -385,35 +385,35 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case "list/deployments":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllDeployments(data.NamespaceName)
+		return mokubernetes.AllK8sDeployments(data.NamespaceName)
 	case "list/services":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllServices(data.NamespaceName)
+		return mokubernetes.AllK8sServices(data.NamespaceName)
 	case "list/pods":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllPods(data.NamespaceName)
+		return mokubernetes.AllK8sPods(data.NamespaceName)
 	case "list/ingresses":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllIngresses(data.NamespaceName)
+		return mokubernetes.AllK8sIngresses(data.NamespaceName)
 	case "list/configmaps":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllConfigmaps(data.NamespaceName)
+		return mokubernetes.AllK8sConfigmaps(data.NamespaceName)
 	case "list/secrets":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllSecrets(data.NamespaceName)
+		return mokubernetes.AllK8sSecrets(data.NamespaceName)
 	case "list/nodes":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.ListNodes()
+		return mokubernetes.ListK8sNodes()
 	case "list/daemonsets":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllDaemonsets(data.NamespaceName)
+		return mokubernetes.AllK8sDaemonsets(data.NamespaceName)
 	case "list/statefulsets":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -429,7 +429,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case "list/replicasets":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllReplicasets(data.NamespaceName)
+		return mokubernetes.AllK8sReplicasets(data.NamespaceName)
 	case "list/persistent_volumes":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
@@ -437,7 +437,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case "list/persistent_volume_claims":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllPersistentVolumeClaims(data.NamespaceName)
+		return mokubernetes.AllK8sPersistentVolumeClaims(data.NamespaceName)
 	case "list/horizontal_pod_autoscalers":
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)

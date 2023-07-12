@@ -11,14 +11,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllOrders(namespaceName string) []v1.Order {
+func AllOrders(namespaceName string) K8sWorkloadResult {
 	result := []v1.Order{}
 
 	provider := NewKubeProviderCertManager()
 	orderList, err := provider.ClientSet.AcmeV1().Orders(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllCertificateSigningRequests ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, certificate := range orderList.Items {
@@ -26,7 +26,7 @@ func AllOrders(namespaceName string) []v1.Order {
 			result = append(result, certificate)
 		}
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sOrder(data v1.Order) K8sWorkloadResult {
@@ -34,9 +34,9 @@ func UpdateK8sOrder(data v1.Order) K8sWorkloadResult {
 	orderClient := kubeProvider.ClientSet.AcmeV1().Orders(data.Namespace)
 	_, err := orderClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sOrder(data v1.Order) K8sWorkloadResult {
@@ -44,9 +44,9 @@ func DeleteK8sOrder(data v1.Order) K8sWorkloadResult {
 	orderClient := kubeProvider.ClientSet.AcmeV1().Orders(data.Namespace)
 	err := orderClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sOrder(namespace string, name string) K8sWorkloadResult {
@@ -55,7 +55,7 @@ func DescribeK8sOrder(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

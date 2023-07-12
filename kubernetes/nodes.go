@@ -1,10 +1,14 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 	"os/exec"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func GetNodeStats() []dtos.NodeStat {
@@ -35,13 +39,34 @@ func GetNodeStats() []dtos.NodeStat {
 	return result
 }
 
+func ListK8sNodes() K8sWorkloadResult {
+	var provider *KubeProvider
+	var err error
+	if !utils.CONFIG.Kubernetes.RunInCluster {
+		provider, err = NewKubeProviderLocal()
+	} else {
+		provider, err = NewKubeProviderInCluster()
+	}
+	if err != nil {
+		logger.Log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
+		return WorkloadResult(nil, err)
+	}
+
+	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		logger.Log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
+		return WorkloadResult(nil, err)
+	}
+	return WorkloadResult(nodeMetricsList.Items, nil)
+}
+
 func DescribeK8sNode(name string) K8sWorkloadResult {
 	cmd := exec.Command("kubectl", "describe", "node", name)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

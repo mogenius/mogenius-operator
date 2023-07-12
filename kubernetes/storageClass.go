@@ -51,20 +51,20 @@ import (
 // 	return cmd
 // }
 
-func AllStorageClasses() []storage.StorageClass {
+func AllStorageClasses() K8sWorkloadResult {
 	result := []storage.StorageClass{}
 
 	provider := NewKubeProvider()
 	scList, err := provider.ClientSet.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("AllStorageClasses ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, pv := range scList.Items {
 		result = append(result, pv)
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sStorageClass(data storage.StorageClass) K8sWorkloadResult {
@@ -72,9 +72,9 @@ func UpdateK8sStorageClass(data storage.StorageClass) K8sWorkloadResult {
 	scClient := kubeProvider.ClientSet.StorageV1().StorageClasses()
 	_, err := scClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sStorageClass(data storage.StorageClass) K8sWorkloadResult {
@@ -82,9 +82,9 @@ func DeleteK8sStorageClass(data storage.StorageClass) K8sWorkloadResult {
 	scClient := kubeProvider.ClientSet.StorageV1().StorageClasses()
 	err := scClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sStorageClass(name string) K8sWorkloadResult {
@@ -93,7 +93,7 @@ func DescribeK8sStorageClass(name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

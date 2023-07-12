@@ -134,6 +134,11 @@ func AllPods(namespaceName string) []v1.Pod {
 	return result
 }
 
+func AllK8sPods(namespaceName string) K8sWorkloadResult {
+	result := AllPods(namespaceName)
+	return WorkloadResult(result, nil)
+}
+
 func AllPodNames() []string {
 	result := []string{}
 	allPods := AllPods("")
@@ -184,9 +189,9 @@ func UpdateK8sPod(data v1.Pod) K8sWorkloadResult {
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(data.Namespace)
 	_, err := podClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sPod(data v1.Pod) K8sWorkloadResult {
@@ -194,9 +199,9 @@ func DeleteK8sPod(data v1.Pod) K8sWorkloadResult {
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(data.Namespace)
 	err := podClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sPod(namespace string, name string) K8sWorkloadResult {
@@ -205,9 +210,9 @@ func DescribeK8sPod(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }
 
 func filterStatus(pod *v1.Pod) {

@@ -125,14 +125,14 @@ func DeleteNetworkPolicyService(job *structs.Job, stage dtos.K8sStageDto, servic
 	return cmd
 }
 
-func AllNetworkPolicies(namespaceName string) []v1.NetworkPolicy {
+func AllNetworkPolicies(namespaceName string) K8sWorkloadResult {
 	result := []v1.NetworkPolicy{}
 
 	provider := NewKubeProvider()
 	netPolist, err := provider.ClientSet.NetworkingV1().NetworkPolicies(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllNetworkPolicies ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, netpol := range netPolist.Items {
@@ -140,7 +140,7 @@ func AllNetworkPolicies(namespaceName string) []v1.NetworkPolicy {
 			result = append(result, netpol)
 		}
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sNetworkPolicy(data v1.NetworkPolicy) K8sWorkloadResult {
@@ -148,9 +148,9 @@ func UpdateK8sNetworkPolicy(data v1.NetworkPolicy) K8sWorkloadResult {
 	netpolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(data.Namespace)
 	_, err := netpolClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sNetworkPolicy(data v1.NetworkPolicy) K8sWorkloadResult {
@@ -158,9 +158,9 @@ func DeleteK8sNetworkPolicy(data v1.NetworkPolicy) K8sWorkloadResult {
 	netpolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(data.Namespace)
 	err := netpolClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sNetworkPolicy(namespace string, name string) K8sWorkloadResult {
@@ -169,7 +169,7 @@ func DescribeK8sNetworkPolicy(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

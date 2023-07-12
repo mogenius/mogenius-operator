@@ -12,14 +12,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllCronjobs(namespaceName string) []v1job.CronJob {
+func AllCronjobs(namespaceName string) K8sWorkloadResult {
 	result := []v1job.CronJob{}
 
 	provider := NewKubeProvider()
 	cronJobList, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllCronjobs ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, cronJob := range cronJobList.Items {
@@ -27,7 +27,7 @@ func AllCronjobs(namespaceName string) []v1job.CronJob {
 			result = append(result, cronJob)
 		}
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sCronJob(data v1.CronJob) K8sWorkloadResult {
@@ -35,9 +35,9 @@ func UpdateK8sCronJob(data v1.CronJob) K8sWorkloadResult {
 	cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(data.Namespace)
 	_, err := cronJobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
@@ -45,9 +45,9 @@ func DeleteK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
 	jobClient := kubeProvider.ClientSet.BatchV1().CronJobs(data.Namespace)
 	err := jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sCronJob(namespace string, name string) K8sWorkloadResult {
@@ -56,7 +56,7 @@ func DescribeK8sCronJob(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

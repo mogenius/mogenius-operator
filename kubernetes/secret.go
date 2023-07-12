@@ -188,7 +188,7 @@ func AllSecrets(namespaceName string) []v1.Secret {
 	provider := NewKubeProvider()
 	secretList, err := provider.ClientSet.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
-		logger.Log.Errorf("AllSecrets podMetricsList ERROR: %s", err.Error())
+		logger.Log.Errorf("AllSecrets ERROR: %s", err.Error())
 		return result
 	}
 
@@ -200,14 +200,32 @@ func AllSecrets(namespaceName string) []v1.Secret {
 	return result
 }
 
+func AllK8sSecrets(namespaceName string) K8sWorkloadResult {
+	result := []v1.Secret{}
+
+	provider := NewKubeProvider()
+	secretList, err := provider.ClientSet.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllSecrets ERROR: %s", err.Error())
+		return WorkloadResult(nil, err)
+	}
+
+	for _, secret := range secretList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, secret.ObjectMeta.Namespace) {
+			result = append(result, secret)
+		}
+	}
+	return WorkloadResult(result, nil)
+}
+
 func UpdateK8sSecret(data v1.Secret) K8sWorkloadResult {
 	kubeProvider := NewKubeProvider()
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(data.Namespace)
 	_, err := secretClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sSecret(data v1.Secret) K8sWorkloadResult {
@@ -215,9 +233,9 @@ func DeleteK8sSecret(data v1.Secret) K8sWorkloadResult {
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(data.Namespace)
 	err := secretClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sSecret(namespace string, name string) K8sWorkloadResult {
@@ -226,9 +244,9 @@ func DescribeK8sSecret(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }
 
 func ContainerSecretDoesExistForStage(stage dtos.K8sStageDto) bool {

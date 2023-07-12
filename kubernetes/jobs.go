@@ -11,14 +11,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllJobs(namespaceName string) []v1job.Job {
+func AllJobs(namespaceName string) K8sWorkloadResult {
 	result := []v1job.Job{}
 
 	provider := NewKubeProvider()
 	jobList, err := provider.ClientSet.BatchV1().Jobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllJobs ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, job := range jobList.Items {
@@ -26,7 +26,7 @@ func AllJobs(namespaceName string) []v1job.Job {
 			result = append(result, job)
 		}
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sJob(data v1job.Job) K8sWorkloadResult {
@@ -34,9 +34,9 @@ func UpdateK8sJob(data v1job.Job) K8sWorkloadResult {
 	jobClient := kubeProvider.ClientSet.BatchV1().Jobs(data.Namespace)
 	_, err := jobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sJob(data v1job.Job) K8sWorkloadResult {
@@ -44,9 +44,9 @@ func DeleteK8sJob(data v1job.Job) K8sWorkloadResult {
 	jobClient := kubeProvider.ClientSet.BatchV1().Jobs(data.Namespace)
 	err := jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sJob(namespace string, name string) K8sWorkloadResult {
@@ -55,7 +55,7 @@ func DescribeK8sJob(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

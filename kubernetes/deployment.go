@@ -397,9 +397,9 @@ func UpdateK8sDeployment(data v1.Deployment) K8sWorkloadResult {
 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(data.Namespace)
 	_, err := deploymentClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sDeployment(data v1.Deployment) K8sWorkloadResult {
@@ -407,9 +407,9 @@ func DeleteK8sDeployment(data v1.Deployment) K8sWorkloadResult {
 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(data.Namespace)
 	err := deploymentClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func AllDeployments(namespaceName string) []v1.Deployment {
@@ -430,15 +430,33 @@ func AllDeployments(namespaceName string) []v1.Deployment {
 	return result
 }
 
+func AllK8sDeployments(namespaceName string) K8sWorkloadResult {
+	result := []v1.Deployment{}
+
+	provider := NewKubeProvider()
+	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		logger.Log.Errorf("AllDeployments ERROR: %s", err.Error())
+		return WorkloadResult(nil, err)
+	}
+
+	for _, deployment := range deploymentList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, deployment.ObjectMeta.Namespace) {
+			result = append(result, deployment)
+		}
+	}
+	return WorkloadResult(result, nil)
+}
+
 func DescribeK8sDeployment(namespace string, name string) K8sWorkloadResult {
 	cmd := exec.Command("kubectl", "describe", "deployment", name, "-n", namespace)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }
 
 // func CheckIfMogeniusNfsIsRunning() MogeniusNfsInstallationStatus {

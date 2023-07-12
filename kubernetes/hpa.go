@@ -11,14 +11,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllHpas(namespaceName string) []v2.HorizontalPodAutoscaler {
+func AllHpas(namespaceName string) K8sWorkloadResult {
 	result := []v2.HorizontalPodAutoscaler{}
 
 	provider := NewKubeProvider()
 	hpaList, err := provider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllHpas ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, hpa := range hpaList.Items {
@@ -26,7 +26,7 @@ func AllHpas(namespaceName string) []v2.HorizontalPodAutoscaler {
 			result = append(result, hpa)
 		}
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sHpa(data v2.HorizontalPodAutoscaler) K8sWorkloadResult {
@@ -34,9 +34,9 @@ func UpdateK8sHpa(data v2.HorizontalPodAutoscaler) K8sWorkloadResult {
 	hpaClient := kubeProvider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(data.Namespace)
 	_, err := hpaClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sHpa(data v2.HorizontalPodAutoscaler) K8sWorkloadResult {
@@ -44,9 +44,9 @@ func DeleteK8sHpa(data v2.HorizontalPodAutoscaler) K8sWorkloadResult {
 	hpaClient := kubeProvider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(data.Namespace)
 	err := hpaClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sHpa(namespace string, name string) K8sWorkloadResult {
@@ -55,7 +55,7 @@ func DescribeK8sHpa(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

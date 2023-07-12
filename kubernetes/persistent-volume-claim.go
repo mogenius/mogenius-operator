@@ -19,11 +19,25 @@ func AllPersistentVolumeClaims(namespaceName string) []core.PersistentVolumeClai
 		logger.Log.Errorf("AllPersistentVolumeClaims ERROR: %s", err.Error())
 		return result
 	}
+	result = append(result, pvList.Items...)
+
+	return result
+}
+
+func AllK8sPersistentVolumeClaims(namespaceName string) K8sWorkloadResult {
+	result := []core.PersistentVolumeClaim{}
+
+	provider := NewKubeProvider()
+	pvList, err := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		logger.Log.Errorf("AllPersistentVolumeClaims ERROR: %s", err.Error())
+		return WorkloadResult(nil, err)
+	}
 
 	for _, pv := range pvList.Items {
 		result = append(result, pv)
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sPersistentVolumeClaim(data core.PersistentVolumeClaim) K8sWorkloadResult {
@@ -31,9 +45,9 @@ func UpdateK8sPersistentVolumeClaim(data core.PersistentVolumeClaim) K8sWorkload
 	pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(data.Namespace)
 	_, err := pvcClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sPersistentVolumeClaim(data core.PersistentVolumeClaim) K8sWorkloadResult {
@@ -41,9 +55,9 @@ func DeleteK8sPersistentVolumeClaim(data core.PersistentVolumeClaim) K8sWorkload
 	pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(data.Namespace)
 	err := pvcClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sPersistentVolumeClaim(namespace string, name string) K8sWorkloadResult {
@@ -52,7 +66,7 @@ func DescribeK8sPersistentVolumeClaim(namespace string, name string) K8sWorkload
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

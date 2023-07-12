@@ -12,14 +12,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllRoles(namespaceName string) []v1.Role {
+func AllRoles(namespaceName string) K8sWorkloadResult {
 	result := []v1.Role{}
 
 	provider := NewKubeProvider()
 	rolesList, err := provider.ClientSet.RbacV1().Roles(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("AllRoles ERROR: %s", err.Error())
-		return result
+		return WorkloadResult(nil, err)
 	}
 
 	for _, role := range rolesList.Items {
@@ -27,7 +27,7 @@ func AllRoles(namespaceName string) []v1.Role {
 			result = append(result, role)
 		}
 	}
-	return result
+	return WorkloadResult(result, nil)
 }
 
 func UpdateK8sRole(data v1.Role) K8sWorkloadResult {
@@ -35,9 +35,9 @@ func UpdateK8sRole(data v1.Role) K8sWorkloadResult {
 	roleClient := kubeProvider.ClientSet.RbacV1().Roles(data.Namespace)
 	_, err := roleClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sRole(data v1.Role) K8sWorkloadResult {
@@ -45,9 +45,9 @@ func DeleteK8sRole(data v1.Role) K8sWorkloadResult {
 	roleClient := kubeProvider.ClientSet.RbacV1().Roles(data.Namespace)
 	err := roleClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sRoleBinding(namespace string, name string) K8sWorkloadResult {
@@ -56,7 +56,7 @@ func DescribeK8sRoleBinding(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }

@@ -219,14 +219,32 @@ func AllIngresses(namespaceName string) []v1.Ingress {
 	return result
 }
 
+func AllK8sIngresses(namespaceName string) K8sWorkloadResult {
+	result := []v1.Ingress{}
+
+	provider := NewKubeProvider()
+	ingressList, err := provider.ClientSet.NetworkingV1().Ingresses(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllIngresses ERROR: %s", err.Error())
+		return WorkloadResult(nil, err)
+	}
+
+	for _, ingress := range ingressList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, ingress.ObjectMeta.Namespace) {
+			result = append(result, ingress)
+		}
+	}
+	return WorkloadResult(result, nil)
+}
+
 func UpdateK8sIngress(data v1.Ingress) K8sWorkloadResult {
 	kubeProvider := NewKubeProvider()
 	ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(data.Namespace)
 	_, err := ingressClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DeleteK8sIngress(data v1.Ingress) K8sWorkloadResult {
@@ -234,9 +252,9 @@ func DeleteK8sIngress(data v1.Ingress) K8sWorkloadResult {
 	ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(data.Namespace)
 	err := ingressClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult("")
+	return WorkloadResult(nil, nil)
 }
 
 func DescribeK8sIngress(namespace string, name string) K8sWorkloadResult {
@@ -245,7 +263,7 @@ func DescribeK8sIngress(namespace string, name string) K8sWorkloadResult {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		return WorkloadResult(err.Error())
+		return WorkloadResult(nil, err)
 	}
-	return WorkloadResult(string(output))
+	return WorkloadResult(string(output), nil)
 }
