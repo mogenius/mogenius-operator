@@ -50,9 +50,11 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 			}
 			error_page 400 401 403 404 405 406 408 413 417 500 502 503 504 @custom;`,
 		})
-		// if !stage.CloudflareProxied {
-		// 	config.Annotations["cert-manager.io/cluster-issuer"] = "letsencrypt-cluster-issuer"
-		// }
+
+		// remove the issuer if cloudflare takes over controll over certificate
+		if stage.CloudflareProxied {
+			delete(config.Annotations, "cert-manager.io/cluster-issuer")
+		}
 
 		spec := networkingv1.IngressSpec()
 		tlsHosts := []string{}
