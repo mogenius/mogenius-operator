@@ -243,251 +243,244 @@ func requestCmdFromCluster(pattern string) {
 	if len(connections) > 0 {
 		var payload interface{} = nil
 		switch pattern {
-		case "K8sNotification":
+		case services.PAT_K8SNOTIFICATION:
 			payload = nil
-		case "ClusterStatus":
+		case services.PAT_CLUSTERSTATUS:
 			payload = nil
-		case "ClusterResourceInfo":
+		case services.PAT_CLUSTERRESOURCEINFO:
 			payload = nil
-		case "cluster/execute-helm-chart-task":
+		case services.PAT_CLUSTER_EXECUTE_HELM_CHART_TASK:
 			payload = services.ClusterHelmRequestExample()
-		case "cluster/uninstall-helm-chart":
+		case services.PAT_CLUSTER_UNINSTALL_HELM_CHART:
 			payload = services.ClusterHelmUninstallRequestExample()
-		case "cluster/tcp-udp-configuration":
+		case services.PAT_CLUSTER_TCP_UDP_CONFIGURATION:
 			payload = nil
 
-		case "UpgradeK8sManager":
+		case services.PAT_UPGRADEK8SMANAGER:
 			payload = services.K8sManagerUpgradeRequestExample()
 
-		case "files/list":
+		case services.PAT_FILES_LIST:
 			payload = services.FilesListRequestExampleData()
-		case "files/download":
+		case services.PAT_FILES_DOWNLOAD:
 			payload = services.FilesDownloadRequestExampleData()
-		case "files/download-folder":
-			payload = services.FilesDownloadDirectoryRequestExampleData()
-			pattern = "files/download"
-		case "files/upload":
+		case services.PAT_FILES_UPLOAD:
 			payload = services.FilesUploadRequestExampleData()
-		case "files/create-folder":
+		case services.PAT_FILES_CREATE_FOLDER:
 			payload = services.FilesCreateFolderRequestExampleData()
-		case "files/rename":
+		case services.PAT_FILES_RENAME:
 			payload = services.FilesRenameRequestExampleData()
-		case "files/chown":
+		case services.PAT_FILES_CHOWN:
 			payload = services.FilesChownRequestExampleData()
-		case "files/chmod":
+		case services.PAT_FILES_CHMOD:
 			payload = services.FilesChmodRequestExampleData()
-		case "files/delete":
+		case services.PAT_FILES_DELETE:
 			payload = services.FilesDeleteRequestExampleData()
 
-		case "namespace/create":
+		case services.PAT_NAMESPACE_CREATE:
 			payload = services.NamespaceCreateRequestExample()
-		case "namespace/delete":
+		case services.PAT_NAMESPACE_DELETE:
 			payload = services.NamespaceDeleteRequestExample()
-		case "namespace/shutdown":
+		case services.PAT_NAMESPACE_SHUTDOWN:
 			payload = services.NamespaceShutdownRequestExample()
-		case "namespace/pod-ids":
+		case services.PAT_NAMESPACE_POD_IDS:
 			payload = services.NamespacePodIdsRequestExample()
-		case "namespace/validate-cluster-pods":
+		case services.PAT_NAMESPACE_VALIDATE_CLUSTER_PODS:
 			payload = services.NamespaceValidateClusterPodsRequestExample()
-		case "namespace/validate-ports":
+		case services.PAT_NAMESPACE_VALIDATE_PORTS:
 			payload = services.NamespaceValidatePortsRequestExample()
-		case "namespace/list-all":
+		case services.PAT_NAMESPACE_LIST_ALL:
 			payload = nil
-		case "namespace/gather-all-resources":
+		case services.PAT_NAMESPACE_GATHER_ALL_RESOURCES:
 			payload = services.NamespaceGatherAllResourcesRequestExample()
-		case "namespace/backup":
+		case services.PAT_NAMESPACE_BACKUP:
 			payload = services.NamespaceBackupRequestExample()
-		case "namespace/restore":
+		case services.PAT_NAMESPACE_RESTORE:
 			payload = services.NamespaceRestoreRequestExample()
 
-		case "service/create":
+		case services.PAT_SERVICE_CREATE:
 			payload = services.ServiceCreateRequestExample()
-		case "service/delete":
+		case services.PAT_SERVICE_DELETE:
 			payload = services.ServiceDeleteRequestExample()
-		case "service/pod-ids":
+		case services.PAT_SERVICE_POD_IDS:
 			payload = services.ServiceGetPodIdsRequestExample()
-		case "SERVICE_POD_EXISTS":
+		case services.PAT_SERVICE_POD_EXISTS:
 			payload = services.ServicePodExistsRequestExample()
-		case "SERVICE_PODS":
+		case services.PAT_SERVICE_PODS:
 			payload = services.ServicePodsRequestExample()
-		case "service/set-image":
+		case services.PAT_SERVICE_SET_IMAGE:
 			payload = services.ServiceSetImageRequestExample()
-		case "service/log":
+		case services.PAT_SERVICE_LOG:
 			payload = services.ServiceGetLogRequestExample()
-		case "service/log-error":
+		case services.PAT_SERVICE_LOG_ERROR:
 			payload = services.ServiceGetLogRequestExample()
-		case "service/log-stream":
+		case services.PAT_SERVICE_LOG_STREAM:
 			payload = services.ServiceLogStreamRequestExample()
-		case "service/resource-status":
+		case services.PAT_SERVICE_RESOURCE_STATUS:
 			payload = services.ServiceResourceStatusRequestExample()
-		case "service/restart":
+		case services.PAT_SERVICE_RESTART:
 			payload = services.ServiceRestartRequestExample()
-		case "service/stop":
+		case services.PAT_SERVICE_STOP:
 			payload = services.ServiceStopRequestExample()
-		case "service/start":
+		case services.PAT_SERVICE_START:
 			payload = services.ServiceStartRequestExample()
-		case "service/update-service":
+		case services.PAT_SERVICE_UPDATE_SERVICE:
 			payload = services.ServiceUpdateRequestExample()
 
-		case "list/create-templates":
+		case services.PAT_LIST_CREATE_TEMPLATES:
 			payload = nil
 
-		case "list/namespaces":
+		case services.PAT_LIST_NAMESPACES:
 			payload = services.K8sListRequestExample()
-		case "list/deployments":
+		case services.PAT_LIST_DEPLOYMENTS:
 			payload = services.K8sListRequestExample()
-		case "list/services":
+		case services.PAT_LIST_SERVICES:
 			payload = services.K8sListRequestExample()
-		case "list/pods":
+		case services.PAT_LIST_PODS:
 			payload = services.K8sListRequestExample()
-		case "list/ingresses":
+		case services.PAT_LIST_INGRESSES:
 			payload = services.K8sListRequestExample()
-		case "list/configmaps":
+		case services.PAT_LIST_CONFIGMAPS:
 			payload = services.K8sListRequestExample()
-		case "list/secrets":
+		case services.PAT_LIST_SECRETS:
 			payload = services.K8sListRequestExample()
-		case "list/nodes":
+		case services.PAT_LIST_NODES:
 			payload = services.K8sListRequestExample()
-		case "list/daemonsets":
+		case services.PAT_LIST_DAEMONSETS:
 			payload = services.K8sListRequestExample()
-		case "list/statefulsets":
+		case services.PAT_LIST_STATEFULSETS:
 			payload = services.K8sListRequestExample()
-		case "list/jobs":
+		case services.PAT_LIST_JOBS:
 			payload = services.K8sListRequestExample()
-		case "list/cronjobs":
+		case services.PAT_LIST_CRONJOBS:
 			payload = services.K8sListRequestExample()
-		case "list/replicasets":
+		case services.PAT_LIST_REPLICASETS:
 			payload = services.K8sListRequestExample()
-		case "list/persistent_volumes":
+		case services.PAT_LIST_PERSISTENT_VOLUMES:
 			payload = services.K8sListRequestExample()
-		case "list/persistent_volume_claims":
+		case services.PAT_LIST_PERSISTENT_VOLUME_CLAIMS:
 			payload = services.K8sListRequestExample()
-		case "list/volume_attachments":
+		case services.PAT_LIST_VOLUME_ATTACHMENT:
 			payload = services.K8sListRequestExample()
-		case "list/storage_class":
+		case services.PAT_LIST_STORAGE_CLASS:
 			payload = services.K8sListRequestExample()
-		case "list/network_policy":
+		case services.PAT_LIST_NETWORK_POLICY:
 			payload = services.K8sListRequestExample()
 
-		case "describe/namespace":
+		case services.PAT_DESCRIBE_NAMESPACE:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/deployment":
+		case services.PAT_DESCRIBE_DEPLOYMENT:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/service":
+		case services.PAT_DESCRIBE_SERVICE:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/pod":
+		case services.PAT_DESCRIBE_POD:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/ingresse":
+		case services.PAT_DESCRIBE_INGRESS:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/configmap":
+		case services.PAT_DESCRIBE_CONFIGMAP:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/secret":
+		case services.PAT_DESCRIBE_SECRET:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/node":
+		case services.PAT_DESCRIBE_NODE:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/daemonset":
+		case services.PAT_DESCRIBE_DAEMONSET:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/statefulset":
+		case services.PAT_DESCRIBE_STATEFULSET:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/job":
+		case services.PAT_DESCRIBE_JOB:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/cronjob":
+		case services.PAT_DESCRIBE_CRONJOB:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/replicaset":
+		case services.PAT_DESCRIBE_REPLICASET:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/persistent_volume":
+		case services.PAT_DESCRIBE_PERSISTENT_VOLUME:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/persistent_volume_claim":
+		case services.PAT_DESCRIBE_PERSISTENT_VOLUME_CLAIM:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/volume_attachment":
+		case services.PAT_DESCRIBE_VOLUME_ATTACHMENT:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/storage_class":
+		case services.PAT_DESCRIBE_STORAGE_CLASS:
 			payload = services.K8sDescribeRequestExample()
-		case "describe/network_policy":
+		case services.PAT_DESCRIBE_NETWORK_POLICY:
 			payload = services.K8sDescribeRequestExample()
 
-		case "update/deployment":
+		case services.PAT_UPDATE_DEPLOYMENT:
 			payload = services.K8sUpdateDeploymentRequestExample()
-		case "update/service":
+		case services.PAT_UPDATE_SERVICE:
 			payload = services.K8sUpdateServiceRequestExample()
-		case "update/pod":
+		case services.PAT_UPDATE_POD:
 			payload = services.K8sUpdatePodRequestExample()
-		case "update/ingress":
+		case services.PAT_UPDATE_INGRESS:
 			payload = services.K8sUpdateIngressRequestExample()
-		case "update/configmap":
+		case services.PAT_UPDATE_CONFIGMAP:
 			payload = services.K8sUpdateConfigmapRequestExample()
-		case "update/secret":
+		case services.PAT_UPDATE_SECRET:
 			payload = services.K8sUpdateSecretRequestExample()
-		case "update/daemonset":
+		case services.PAT_UPDATE_DAEMONSET:
 			payload = services.K8sUpdateDaemonsetRequestExample()
-		case "update/statefulset":
+		case services.PAT_UPDATE_STATEFULSET:
 			payload = services.K8sUpdateStatefulSetRequestExample()
-		case "update/job":
+		case services.PAT_UPDATE_JOB:
 			payload = services.K8sUpdateJobRequestExample()
-		case "update/cronjob":
+		case services.PAT_UPDATE_CRONJOB:
 			payload = services.K8sUpdateCronJobRequestExample()
-		case "update/replicaset":
+		case services.PAT_UPDATE_REPLICASET:
 			payload = services.K8sUpdateReplicaSetRequestExample()
-		case "update/persistentvolume":
+		case services.PAT_UPDATE_PERSISTENT_VOLUME:
 			payload = services.K8sUpdatePersistentVolumeRequestExample()
-		case "update/persistentvolumeclaim":
+		case services.PAT_UPDATE_PERSISTENT_VOLUME_CLAIM:
 			payload = services.K8sUpdatePersistentVolumeClaimRequestExample()
-		case "update/storage_class":
+		case services.PAT_UPDATE_STORAGE_CLASS:
 			payload = services.K8sUpdateStorageClassExample()
-		case "update/network_policy":
+		case services.PAT_UPDATE_NETWORK_POLICY:
 			payload = services.K8sUpdateNetworkPolicyExample()
 
-		case "delete/namespace":
+		case services.PAT_DELETE_NAMESPACE:
 			payload = services.K8sDeleteNamespaceRequestExample()
-		case "delete/deployment":
+		case services.PAT_DELETE_DEPLOYMENT:
 			payload = services.K8sDeleteDeploymentRequestExample()
-		case "delete/service":
+		case services.PAT_DELETE_SERVICE:
 			payload = services.K8sDeleteServiceRequestExample()
-		case "delete/pod":
+		case services.PAT_DELETE_POD:
 			payload = services.K8sDeletePodRequestExample()
-		case "delete/ingress":
+		case services.PAT_DELETE_INGRESS:
 			payload = services.K8sDeleteIngressRequestExample()
-		case "delete/configmap":
+		case services.PAT_DELETE_CONFIGMAP:
 			payload = services.K8sDeleteConfigmapRequestExample()
-		case "delete/secret":
+		case services.PAT_DELETE_SECRET:
 			payload = services.K8sDeleteSecretRequestExample()
-		case "delete/daemonset":
+		case services.PAT_DELETE_DAEMONSET:
 			payload = services.K8sDeleteDaemonsetRequestExample()
-		case "delete/statefulset":
+		case services.PAT_DELETE_STATEFULSET:
 			payload = services.K8sDeleteStatefulsetRequestExample()
-		case "delete/job":
+		case services.PAT_DELETE_JOB:
 			payload = services.K8sDeleteJobRequestExample()
-		case "delete/cronjob":
+		case services.PAT_DELETE_CRONJOB:
 			payload = services.K8sDeleteCronjobRequestExample()
-		case "delete/replicaset":
+		case services.PAT_DELETE_REPLICASET:
 			payload = services.K8sDeleteReplicaSetRequestExample()
-		case "delete/persistentvolume":
+		case services.PAT_DELETE_PERSISTENT_VOLUME:
 			payload = services.K8sDeletePersistentVolumeRequestExample()
-		case "delete/persistentvolumeclaim":
+		case services.PAT_DELETE_PERSISTENT_VOLUME_CLAIM:
 			payload = services.K8sDeletePersistentVolumeClaimRequestExample()
-		case "delete/network_policy":
+		case services.PAT_DELETE_NETWORK_POLICY:
 			payload = services.K8sDeleteNetworkPolicyExample()
-		case "delete/storage_class":
+		case services.PAT_DELETE_STORAGE_CLASS:
 			payload = services.K8sDeleteStorageClassExample()
 
-		// case "storage/enable":
-		// 	payload = services.NfsStorageInstallRequestExample()
-		// case "storage/disable":
-		// 	payload = services.NfsStorageInstallRequestExample()
-		case "storage/create-volume":
+		case services.PAT_STORAGE_CREATE_VOLUME:
 			payload = services.NfsVolumeRequestExample()
-		case "storage/delete-volume":
+		case services.PAT_STORAGE_DELETE_VOLUME:
 			payload = services.NfsVolumeRequestExample()
-		case "storage/backup-volume":
+		case services.PAT_STORAGE_BACKUP_VOLUME:
 			payload = services.NfsVolumeBackupRequestExample()
-		case "storage/restore-volume":
+		case services.PAT_STORAGE_RESTORE_VOLUME:
 			payload = services.NfsVolumeRestoreRequestExample()
-		case "storage/stats":
+		case services.PAT_STORAGE_STATS:
 			payload = services.NfsVolumeRequestExample()
-		case "storage/namespace/stats":
+		case services.PAT_STORAGE_NAMESPACE_STATS:
 			payload = services.NfsNamespaceStatsRequestExample()
 
-		case "popeye-console":
+		case services.PAT_POPEYE_CONSOLE:
 			payload = nil
 		}
 
@@ -502,7 +495,7 @@ func requestCmdFromCluster(pattern string) {
 		datagram.DisplayBeautiful()
 
 		// send file after pattern
-		if pattern == "files/upload" {
+		if pattern == services.PAT_FILES_UPLOAD {
 			sendFile()
 		}
 		return
@@ -513,7 +506,6 @@ func requestCmdFromCluster(pattern string) {
 func selectCommands() string {
 	allCommands := append([]string{}, services.COMMAND_REQUESTS...)
 	allCommands = append(allCommands, services.BINARY_REQUEST_UPLOAD...)
-	allCommands = append(allCommands, "files/download-folder")
 	for index, patternName := range allCommands {
 		fmt.Printf("%d: %s\n", index, patternName)
 	}

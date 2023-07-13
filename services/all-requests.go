@@ -20,225 +20,13 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-var COMMAND_REQUESTS = []string{
-	"K8sNotification",
-	"ClusterStatus",
-	"ClusterResourceInfo",
-	"KubernetesEvent",
-	"UpgradeK8sManager",
-	"SERVICE_POD_EXISTS",
-	"SERVICE_PODS",
-
-	"files/list",
-	"files/download",
-	"files/create-folder",
-	"files/rename",
-	"files/chown",
-	"files/chmod",
-	"files/delete",
-
-	"cluster/execute-helm-chart-task",
-	"cluster/uninstall-helm-chart",
-	"cluster/tcp-udp-configuration",
-
-	"namespace/create",
-	"namespace/delete",
-	"namespace/shutdown",
-	"namespace/pod-ids",
-	"namespace/validate-cluster-pods",
-	"namespace/validate-ports",
-	"namespace/list-all",
-	"namespace/gather-all-resources",
-	"namespace/backup",
-	"namespace/restore",
-
-	"service/create",
-	"service/delete",
-	"service/pod-ids",
-	"service/set-image",
-	"service/log",
-	"service/log-error",
-	"service/resource-status",
-	"service/restart",
-	"service/stop",
-	"service/start",
-	"service/update-service",
-	"service/spectrum-bind",
-	"service/spectrum-unbind",
-	"service/spectrum-configmaps",
-
-	"service/log-stream",
-
-	"list/create-templates",
-
-	"list/namespaces",
-	"list/deployments",
-	"list/services",
-	"list/pods",
-	"list/ingresses",
-	"list/configmaps",
-	"list/secrets",
-	"list/nodes",
-	"list/daemonsets",
-	"list/statefulsets",
-	"list/jobs",
-	"list/cronjobs",
-	"list/replicasets",
-	"list/persistent_volumes",
-	"list/persistent_volume_claims",
-	"list/horizontal_pod_autoscalers",
-	"list/events",
-	"list/certificates",
-	"list/certificaterequests",
-	"list/orders",
-	"list/issuers",
-	"list/clusterissuers",
-	"list/service_account",
-	"list/role",
-	"list/role_binding",
-	"list/cluster_role",
-	"list/cluster_role_binding",
-	"list/volume_attachment",
-	"list/network_policy",
-	"list/storage_class",
-
-	"create/namespace",
-	"create/deployment",
-	"create/service",
-	"create/pod",
-	"create/ingress",
-	"create/configmap",
-	"create/secret",
-	"create/daemonset",
-	"create/statefulset",
-	"create/job",
-	"create/cronjob",
-	"create/replicaset",
-	"create/persistent_volume",
-	"create/persistent_volume_claim",
-	"create/horizontal_pod_autoscaler",
-	"create/certificate",
-	"create/certificaterequest",
-	"create/order",
-	"create/issuer",
-	"create/clusterissuer",
-	"create/service_account",
-	"create/role",
-	"create/role_binding",
-	"create/cluster_role",
-	"create/cluster_role_binding",
-	"create/volume_attachment",
-	"create/network_policy",
-	"create/storage_class",
-
-	"describe/namespace",
-	"describe/deployment",
-	"describe/service",
-	"describe/pod",
-	"describe/ingresse",
-	"describe/configmap",
-	"describe/secret",
-	"describe/node",
-	"describe/daemonset",
-	"describe/statefulset",
-	"describe/job",
-	"describe/cronjob",
-	"describe/replicaset",
-	"describe/persistent_volume",
-	"describe/persistent_volume_claim",
-	"describe/horizontal_pod_autoscaler",
-	"describe/event",
-	"describe/certificate",
-	"describe/certificaterequest",
-	"describe/order",
-	"describe/issuer",
-	"describe/clusterissuer",
-	"describe/service_account",
-	"describe/role",
-	"describe/role_binding",
-	"describe/cluster_role",
-	"describe/cluster_role_binding",
-	"describe/volume_attachment",
-	"describe/network_policy",
-	"describe/storage_class",
-
-	"update/deployment",
-	"update/service",
-	"update/pod",
-	"update/ingress",
-	"update/configmap",
-	"update/secret",
-	"update/daemonset",
-	"update/statefulset",
-	"update/job",
-	"update/cronjob",
-	"update/replicaset",
-	"update/persistent_volume",
-	"update/persistent_volume_claim",
-	"update/horizontal_pod_autoscalers",
-	"update/certificates",
-	"update/certificaterequests",
-	"update/orders",
-	"update/issuers",
-	"update/clusterissuers",
-	"update/service_account",
-	"update/role",
-	"update/role_binding",
-	"update/cluster_role",
-	"update/cluster_role_binding",
-	"update/volume_attachment",
-	"update/network_policy",
-	"update/storage_class",
-
-	"delete/namespace",
-	"delete/deployment",
-	"delete/service",
-	"delete/pod",
-	"delete/ingress",
-	"delete/configmap",
-	"delete/secret",
-	"delete/daemonset",
-	"delete/statefulset",
-	"delete/job",
-	"delete/cronjob",
-	"delete/replicaset",
-	"delete/persistent_volume",
-	"delete/persistent_volume_claim",
-	"delete/certificates",
-	"delete/certificaterequests",
-	"delete/orders",
-	"delete/issuers",
-	"delete/clusterissuers",
-	"delete/service_account",
-	"delete/role",
-	"delete/role_binding",
-	"delete/cluster_role",
-	"delete/cluster_role_binding",
-	"delete/volume_attachment",
-	"delete/network_policy",
-	"delete/storage_class",
-
-	"storage/create-volume",
-	"storage/delete-volume",
-	"storage/backup-volume",
-	"storage/restore-volume",
-	"storage/stats",
-	"storage/namespace/stats",
-
-	"popeye-console",
-}
-
-var BINARY_REQUEST_UPLOAD = []string{
-	"files/upload",
-}
-
 func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	switch datagram.Pattern {
-	case "K8sNotification":
+	case PAT_K8SNOTIFICATION:
 		return K8sNotification(datagram)
-	case "ClusterStatus":
+	case PAT_CLUSTERSTATUS:
 		return mokubernetes.ClusterStatus()
-	case "ClusterResourceInfo":
+	case PAT_CLUSTERRESOURCEINFO:
 		nodeStats := mokubernetes.GetNodeStats()
 		loadBalancerExternalIps := mokubernetes.GetClusterExternalIps()
 		result := dtos.ClusterResourceInfoDto{
@@ -246,81 +34,81 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			LoadBalancerExternalIps: loadBalancerExternalIps,
 		}
 		return result
-	case "UpgradeK8sManager":
+	case PAT_UPGRADEK8SMANAGER:
 		data := K8sManagerUpgradeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return UpgradeK8sManager(data)
-	case "files/list":
+	case PAT_FILES_LIST:
 		data := FilesListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return List(data)
-	case "files/create-folder":
+	case PAT_FILES_CREATE_FOLDER:
 		data := FilesCreateFolderRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return CreateFolder(data)
-	case "files/rename":
+	case PAT_FILES_RENAME:
 		data := FilesRenameRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Rename(data)
-	case "files/chown":
+	case PAT_FILES_CHOWN:
 		data := FilesChownRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Chown(data)
-	case "files/chmod":
+	case PAT_FILES_CHMOD:
 		data := FilesChmodRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Chmod(data)
-	case "files/delete":
+	case PAT_FILES_DELETE:
 		data := FilesDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Delete(data)
-	case "files/download":
+	case PAT_FILES_DOWNLOAD:
 		data := FilesDownloadRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Download(data)
 
-	case "cluster/execute-helm-chart-task":
+	case PAT_CLUSTER_EXECUTE_HELM_CHART_TASK:
 		data := ClusterHelmRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return InstallHelmChart(data)
-	case "cluster/uninstall-helm-chart":
+	case PAT_CLUSTER_UNINSTALL_HELM_CHART:
 		data := ClusterHelmUninstallRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return DeleteHelmChart(data)
-	case "cluster/tcp-udp-configuration":
+	case PAT_CLUSTER_TCP_UDP_CONFIGURATION:
 		return TcpUdpClusterConfiguration()
 
-	case "namespace/create":
+	case PAT_NAMESPACE_CREATE:
 		data := NamespaceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return CreateNamespace(data)
-	case "namespace/delete":
+	case PAT_NAMESPACE_DELETE:
 		data := NamespaceDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return DeleteNamespace(data)
-	case "namespace/shutdown":
+	case PAT_NAMESPACE_SHUTDOWN:
 		data := NamespaceShutdownRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ShutdownNamespace(data)
-	case "namespace/pod-ids":
+	case PAT_NAMESPACE_POD_IDS:
 		data := NamespacePodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return PodIds(data)
-	case "namespace/validate-cluster-pods":
+	case PAT_NAMESPACE_VALIDATE_CLUSTER_PODS:
 		data := NamespaceValidateClusterPodsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ValidateClusterPods(data)
-	case "namespace/validate-ports":
+	case PAT_NAMESPACE_VALIDATE_PORTS:
 		data := NamespaceValidatePortsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ValidateClusterPorts(data)
-	case "namespace/list-all":
+	case PAT_NAMESPACE_LIST_ALL:
 		return ListAllNamespaces()
-	case "namespace/gather-all-resources":
+	case PAT_NAMESPACE_GATHER_ALL_RESOURCES:
 		data := NamespaceGatherAllResourcesRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ListAllResourcesForNamespace(data)
-	case "namespace/backup":
+	case PAT_NAMESPACE_BACKUP:
 		data := NamespaceBackupRequest{}
 		marshalUnmarshal(&datagram, &data)
 		result, err := mokubernetes.BackupNamespace(data.NamespaceName)
@@ -328,7 +116,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err.Error()
 		}
 		return result
-	case "namespace/restore":
+	case PAT_NAMESPACE_RESTORE:
 		data := NamespaceRestoreRequest{}
 		marshalUnmarshal(&datagram, &data)
 		result, err := mokubernetes.RestoreNamespace(data.YamlData, data.NamespaceName)
@@ -336,564 +124,554 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err.Error()
 		}
 		return result
-	case "service/create":
+	case PAT_SERVICE_CREATE:
 		data := ServiceCreateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return CreateService(data)
-	case "service/delete":
+	case PAT_SERVICE_DELETE:
 		data := ServiceDeleteRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return DeleteService(data)
-	case "service/pod-ids":
+	case PAT_SERVICE_POD_IDS:
 		data := ServiceGetPodIdsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ServicePodIds(data)
-	case "SERVICE_POD_EXISTS":
+	case PAT_SERVICE_POD_EXISTS:
 		data := ServicePodExistsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ServicePodExists(data)
-	case "SERVICE_PODS":
+	case PAT_SERVICE_PODS:
 		data := ServicePodsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return ServicePodStatus(data)
-	case "service/set-image":
+	case PAT_SERVICE_SET_IMAGE:
 		data := ServiceSetImageRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return SetImage(data)
-	case "service/log":
+	case PAT_SERVICE_LOG:
 		data := ServiceGetLogRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return PodLog(data)
-	case "service/log-error":
+	case PAT_SERVICE_LOG_ERROR:
 		data := ServiceGetLogRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return PodLogError(data)
-	case "service/resource-status":
+	case PAT_SERVICE_RESOURCE_STATUS:
 		data := ServiceResourceStatusRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return PodStatus(data)
-	case "service/restart":
+	case PAT_SERVICE_RESTART:
 		data := ServiceRestartRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return Restart(data)
-	case "service/stop":
+	case PAT_SERVICE_STOP:
 		data := ServiceStopRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StopService(data)
-	case "service/start":
+	case PAT_SERVICE_START:
 		data := ServiceStartRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StartService(data)
-	case "service/update-service":
+	case PAT_SERVICE_UPDATE_SERVICE:
 		data := ServiceUpdateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return UpdateService(data)
 
-	case "service/log-stream":
+	case PAT_SERVICE_LOG_STREAM:
 		data := ServiceLogStreamRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return logStream(data, datagram)
 
-	case "list/create-templates":
+	case PAT_LIST_CREATE_TEMPLATES:
 		return mokubernetes.ListCreateTemplates()
 
-	case "list/namespaces":
+	case PAT_LIST_NAMESPACES:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.ListK8sNamespaces(data.NamespaceName)
-	case "list/deployments":
+	case PAT_LIST_DEPLOYMENTS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sDeployments(data.NamespaceName)
-	case "list/services":
+	case PAT_LIST_SERVICES:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sServices(data.NamespaceName)
-	case "list/pods":
+	case PAT_LIST_PODS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sPods(data.NamespaceName)
-	case "list/ingresses":
+	case PAT_LIST_INGRESSES:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sIngresses(data.NamespaceName)
-	case "list/configmaps":
+	case PAT_LIST_CONFIGMAPS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sConfigmaps(data.NamespaceName)
-	case "list/secrets":
+	case PAT_LIST_SECRETS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sSecrets(data.NamespaceName)
-	case "list/nodes":
+	case PAT_LIST_NODES:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.ListK8sNodes()
-	case "list/daemonsets":
+	case PAT_LIST_DAEMONSETS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sDaemonsets(data.NamespaceName)
-	case "list/statefulsets":
+	case PAT_LIST_STATEFULSETS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllStatefulSets(data.NamespaceName)
-	case "list/jobs":
+	case PAT_LIST_JOBS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllJobs(data.NamespaceName)
-	case "list/cronjobs":
+	case PAT_LIST_CRONJOBS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllCronjobs(data.NamespaceName)
-	case "list/replicasets":
+	case PAT_LIST_REPLICASETS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sReplicasets(data.NamespaceName)
-	case "list/persistent_volumes":
+	case PAT_LIST_PERSISTENT_VOLUMES:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllPersistentVolumes()
-	case "list/persistent_volume_claims":
+	case PAT_LIST_PERSISTENT_VOLUME_CLAIMS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sPersistentVolumeClaims(data.NamespaceName)
-	case "list/horizontal_pod_autoscalers":
+	case PAT_LIST_HORIZONTAL_POD_AUTOSCALERS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllHpas(data.NamespaceName)
-	case "list/events":
+	case PAT_LIST_EVENTS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllEvents(data.NamespaceName)
-	case "list/certificates":
+	case PAT_LIST_CERTIFICATES:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllK8sCertificates(data.NamespaceName)
-	case "list/certificaterequests":
+	case PAT_LIST_CERTIFICATEREQUESTS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllCertificateSigningRequests(data.NamespaceName)
-	case "list/orders":
+	case PAT_LIST_ORDERS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllOrders(data.NamespaceName)
-	case "list/issuers":
+	case PAT_LIST_ISSUERS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllIssuer(data.NamespaceName)
-	case "list/clusterissuers":
+	case PAT_LIST_CLUSTERISSUERS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllClusterIssuers()
-	case "list/service_account":
+	case PAT_LIST_SERVICE_ACCOUNT:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllServiceAccounts(data.NamespaceName)
-	case "list/role":
+	case PAT_LIST_ROLE:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllRoles(data.NamespaceName)
-	case "list/role_binding":
+	case PAT_LIST_ROLE_BINDING:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllRoleBindings(data.NamespaceName)
-	case "list/cluster_role":
+	case PAT_LIST_CLUSTER_ROLE:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllClusterRoles(data.NamespaceName)
-	case "list/cluster_role_binding":
+	case PAT_LIST_CLUSTER_ROLE_BINDING:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllClusterRoleBindings(data.NamespaceName)
-	case "list/volume_attachment":
+	case PAT_LIST_VOLUME_ATTACHMENT:
 		return mokubernetes.AllVolumeAttachments()
-	case "list/network_policy":
+	case PAT_LIST_NETWORK_POLICY:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllNetworkPolicies(data.NamespaceName)
-	case "list/storage_class":
+	case PAT_LIST_STORAGE_CLASS:
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllStorageClasses()
 
-	case "describe/namespace":
+	case PAT_DESCRIBE_NAMESPACE:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sNamespace(data.NamespaceName)
-	case "describe/deployment":
+		return mokubernetes.DescribeK8sNamespace(data.ResourceName)
+	case PAT_DESCRIBE_DEPLOYMENT:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sDeployment(data.NamespaceName, data.ResourceName)
-	case "describe/service":
+	case PAT_DESCRIBE_SERVICE:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sService(data.NamespaceName, data.ResourceName)
-	case "describe/pod":
+	case PAT_DESCRIBE_POD:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sPod(data.NamespaceName, data.ResourceName)
-	case "describe/ingress":
+	case PAT_DESCRIBE_INGRESS:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sIngress(data.NamespaceName, data.ResourceName)
-	case "describe/configmap":
+	case PAT_DESCRIBE_CONFIGMAP:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sConfigmap(data.NamespaceName, data.ResourceName)
-	case "describe/secret":
+	case PAT_DESCRIBE_SECRET:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sSecret(data.NamespaceName, data.ResourceName)
-	case "describe/node":
+	case PAT_DESCRIBE_NODE:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sNode(data.ResourceName)
-	case "describe/daemonset":
+	case PAT_DESCRIBE_DAEMONSET:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sDaemonSet(data.NamespaceName, data.ResourceName)
-	case "describe/statefulset":
+	case PAT_DESCRIBE_STATEFULSET:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sStatefulset(data.NamespaceName, data.ResourceName)
-	case "describe/job":
+	case PAT_DESCRIBE_JOB:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sJob(data.NamespaceName, data.ResourceName)
-	case "describe/cronjob":
+	case PAT_DESCRIBE_CRONJOB:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sCronJob(data.NamespaceName, data.ResourceName)
-	case "describe/replicaset":
+	case PAT_DESCRIBE_REPLICASET:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sReplicaset(data.NamespaceName, data.ResourceName)
-	case "describe/persistent_volume":
+	case PAT_DESCRIBE_PERSISTENT_VOLUME:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sPersistentVolume(data.ResourceName)
-	case "describe/persistent_volume_claim":
+	case PAT_DESCRIBE_PERSISTENT_VOLUME_CLAIM:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sPersistentVolumeClaim(data.NamespaceName, data.ResourceName)
-	case "describe/horizontal_pod_autoscaler":
+	case PAT_DESCRIBE_HORIZONTAL_POD_AUTOSCALER:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sHpa(data.NamespaceName, data.ResourceName)
-	case "describe/event":
+	case PAT_DESCRIBE_EVENT:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sEvent(data.NamespaceName, data.ResourceName)
-	case "describe/certificate":
+	case PAT_DESCRIBE_CERTIFICATE:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sCertificate(data.NamespaceName, data.ResourceName)
-	case "describe/certificaterequest":
+	case PAT_DESCRIBE_CERTIFICATEREQUEST:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sCertificateSigningRequest(data.ResourceName)
-	case "describe/order":
+	case PAT_DESCRIBE_ORDER:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sOrder(data.NamespaceName, data.ResourceName)
-	case "describe/issuer":
+	case PAT_DESCRIBE_ISSUER:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sIssuer(data.NamespaceName, data.ResourceName)
-	case "describe/clusterissuer":
+	case PAT_DESCRIBE_CLUSTERISSUER:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sClusterIssuer(data.ResourceName)
-	case "describe/service_account":
+	case PAT_DESCRIBE_SERVICE_ACCOUNT:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sServiceAccount(data.NamespaceName, data.ResourceName)
-	case "describe/role":
+	case PAT_DESCRIBE_ROLE:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sRole(data.NamespaceName, data.ResourceName)
-	case "describe/role_binding":
+	case PAT_DESCRIBE_ROLE_BINDING:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sRoleBinding(data.NamespaceName, data.ResourceName)
-	case "describe/cluster_role":
+	case PAT_DESCRIBE_CLUSTER_ROLE:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sClusterRole(data.ResourceName)
-	case "describe/cluster_role_binding":
+	case PAT_DESCRIBE_CLUSTER_ROLE_BINDING:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sClusterRoleBinding(data.ResourceName)
-	case "describe/volume_attachment":
+	case PAT_DESCRIBE_VOLUME_ATTACHMENT:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sVolumeAttachment(data.ResourceName)
-	case "describe/network_policy":
+	case PAT_DESCRIBE_NETWORK_POLICY:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sNetworkPolicy(data.NamespaceName, data.ResourceName)
-	case "describe/storage_class":
+	case PAT_DESCRIBE_STORAGE_CLASS:
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sStorageClass(data.ResourceName)
 
-	case "update/deployment":
+	case PAT_UPDATE_DEPLOYMENT:
 		data := K8sUpdateDeploymentRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateDeployment(data)
-	case "update/service":
+	case PAT_UPDATE_SERVICE:
 		data := K8sUpdateServiceRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateService(data)
-	case "update/pod":
+	case PAT_UPDATE_POD:
 		data := K8sUpdatePodRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdatePod(data)
-	case "update/ingress":
+	case PAT_UPDATE_INGRESS:
 		data := K8sUpdateIngressRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateIngress(data)
-	case "update/configmap":
+	case PAT_UPDATE_CONFIGMAP:
 		data := K8sUpdateConfigmapRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateConfigMap(data)
-	case "update/secret":
+	case PAT_UPDATE_SECRET:
 		data := K8sUpdateSecretRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateSecret(data)
-	case "update/daemonset":
+	case PAT_UPDATE_DAEMONSET:
 		data := K8sUpdateDaemonSetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateDaemonSet(data)
-	case "update/statefulset":
+	case PAT_UPDATE_STATEFULSET:
 		data := K8sUpdateStatefulSetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateStatefulset(data)
-	case "update/job":
+	case PAT_UPDATE_JOB:
 		data := K8sUpdateJobRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateJob(data)
-	case "update/cronjob":
+	case PAT_UPDATE_CRONJOB:
 		data := K8sUpdateCronJobRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateCronJob(data)
-	case "update/replicaset":
+	case PAT_UPDATE_REPLICASET:
 		data := K8sUpdateReplicaSetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sUpdateReplicaSet(data)
-	case "update/persistentvolume":
+	case PAT_UPDATE_PERSISTENT_VOLUME:
 		data := K8sUpdatePersistentVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sPersistentVolume(*data.Data)
-	case "update/persistentvolumeclaim":
+	case PAT_UPDATE_PERSISTENT_VOLUME_CLAIM:
 		data := K8sUpdatePersistentVolumeClaimRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sPersistentVolumeClaim(*data.Data)
-	case "update/horizontal_pod_autoscalers":
+	case PAT_UPDATE_HORIZONTAL_POD_AUTOSCALERS:
 		data := K8sUpdateHPARequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sHpa(*data.Data)
-	case "update/certificates":
+	case PAT_UPDATE_CERTIFICATES:
 		data := K8sUpdateCertificateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sCertificate(*data.Data)
-	case "update/certificaterequests":
+	case PAT_UPDATE_CERTIFICATEREQUESTS:
 		data := K8sUpdateCertificateRequestRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sCertificateSigningRequest(*data.Data)
-	case "update/orders":
+	case PAT_UPDATE_ORDERS:
 		data := K8sUpdateOrderRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sOrder(*data.Data)
-	case "update/issuers":
+	case PAT_UPDATE_ISSUERS:
 		data := K8sUpdateIssuerRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sIssuer(*data.Data)
-	case "update/clusterissuers":
+	case PAT_UPDATE_CLUSTERISSUERS:
 		data := K8sUpdateClusterIssuerRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sClusterIssuer(*data.Data)
-	case "update/service_account":
+	case PAT_UPDATE_SERVICE_ACCOUNT:
 		data := K8sUpdateServiceAccountRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sServiceAccount(*data.Data)
-	case "update/role":
+	case PAT_UPDATE_ROLE:
 		data := K8sUpdateRoleRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sRole(*data.Data)
-	case "update/role_binding":
+	case PAT_UPDATE_ROLE_BINDING:
 		data := K8sUpdateRoleBindingRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sRoleBinding(*data.Data)
-	case "update/cluster_role":
+	case PAT_UPDATE_CLUSTER_ROLE:
 		data := K8sUpdateClusterRoleRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sClusterRole(*data.Data)
-	case "update/cluster_role_binding":
+	case PAT_UPDATE_CLUSTER_ROLE_BINDING:
 		data := K8sUpdateClusterRoleBindingRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sClusterRoleBinding(*data.Data)
-	case "update/volume_attachment":
+	case PAT_UPDATE_VOLUME_ATTACHMENT:
 		data := K8sUpdateVolumeAttachmentRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sVolumeAttachment(*data.Data)
-	case "update/network_policy":
+	case PAT_UPDATE_NETWORK_POLICY:
 		data := K8sUpdateNetworkPolicyRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sNetworkPolicy(*data.Data)
-	case "update/storage_class":
+	case PAT_UPDATE_STORAGE_CLASS:
 		data := K8sUpdateStorageClassRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sStorageClass(*data.Data)
 
-	case "delete/namespace":
+	case PAT_DELETE_NAMESPACE:
 		data := K8sDeleteNamespaceRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteNamespace(data)
-	case "delete/deployment":
+	case PAT_DELETE_DEPLOYMENT:
 		data := K8sDeleteDeploymentRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteDeployment(data)
-	case "delete/service":
+	case PAT_DELETE_SERVICE:
 		data := K8sDeleteServiceRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteService(data)
-	case "delete/pod":
+	case PAT_DELETE_POD:
 		data := K8sDeletePodRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeletePod(data)
-	case "delete/ingress":
+	case PAT_DELETE_INGRESS:
 		data := K8sDeleteIngressRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteIngress(data)
-	case "delete/configmap":
+	case PAT_DELETE_CONFIGMAP:
 		data := K8sDeleteConfigmapRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteConfigMap(data)
-	case "delete/secret":
+	case PAT_DELETE_SECRET:
 		data := K8sDeleteSecretRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteSecret(data)
-	case "delete/daemonset":
+	case PAT_DELETE_DAEMONSET:
 		data := K8sDeleteDaemonsetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteDaemonSet(data)
-	case "delete/statefulset":
+	case PAT_DELETE_STATEFULSET:
 		data := K8sDeleteStatefulsetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteStatefulset(data)
-	case "delete/job":
+	case PAT_DELETE_JOB:
 		data := K8sDeleteJobRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteJob(data)
-	case "delete/cronjob":
+	case PAT_DELETE_CRONJOB:
 		data := K8sDeleteCronjobRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteCronJob(data)
-	case "delete/replicaset":
+	case PAT_DELETE_REPLICASET:
 		data := K8sDeleteReplicasetRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return K8sDeleteReplicaSet(data)
-	case "delete/persistentvolume":
+	case PAT_DELETE_PERSISTENT_VOLUME:
 		data := K8sDeletePersistentVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sPersistentVolume(*data.Data)
-	case "delete/persistentvolumeclaim":
+	case PAT_DELETE_PERSISTENT_VOLUME_CLAIM:
 		data := K8sDeletePersistentVolumeClaimRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sPersistentVolumeClaim(*data.Data)
-	case "delete/horizontal_pod_autoscalers":
+	case PAT_DELETE_HORIZONTAL_POD_AUTOSCALERS:
 		data := K8sDeleteHPARequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sHpa(*data.Data)
-	case "delete/certificates":
+	case PAT_DELETE_CERTIFICATES:
 		data := K8sDeleteCertificateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sCertificate(*data.Data)
-	case "delete/certificaterequests":
+	case PAT_DELETE_CERTIFICATEREQUESTS:
 		data := K8sDeleteCertificateRequestRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sCertificateSigningRequest(*data.Data)
-	case "delete/orders":
+	case PAT_DELETE_ORDERS:
 		data := K8sDeleteOrderRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sOrder(*data.Data)
-	case "delete/issuers":
+	case PAT_DELETE_ISSUERS:
 		data := K8sDeleteIssuerRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sIssuer(*data.Data)
-	case "delete/clusterissuers":
+	case PAT_DELETE_CLUSTERISSUERS:
 		data := K8sDeleteClusterIssuerRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sClusterIssuer(*data.Data)
-	case "delete/service_account":
+	case PAT_DELETE_SERVICE_ACCOUNT:
 		data := K8sDeleteServiceAccountRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sServiceAccount(*data.Data)
-	case "delete/role":
+	case PAT_DELETE_ROLE:
 		data := K8sDeleteRoleRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sRole(*data.Data)
-	case "delete/role_binding":
+	case PAT_DELETE_ROLE_BINDING:
 		data := K8sDeleteRoleBindingRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sRoleBinding(*data.Data)
-	case "delete/cluster_role":
+	case PAT_DELETE_CLUSTER_ROLE:
 		data := K8sDeleteClusterRoleRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sClusterRole(*data.Data)
-	case "delete/cluster_role_binding":
+	case PAT_DELETE_CLUSTER_ROLE_BINDING:
 		data := K8sDeleteClusterRoleBindingRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sClusterRoleBinding(*data.Data)
-	case "delete/volume_attachment":
+	case PAT_DELETE_VOLUME_ATTACHMENT:
 		data := K8sDeleteVolumeAttachmentRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sVolumeAttachment(*data.Data)
-	case "delete/network_policy":
+	case PAT_DELETE_NETWORK_POLICY:
 		data := K8sDeleteNetworkPolicyRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sNetworkPolicy(*data.Data)
-	case "delete/storage_class":
+	case PAT_DELETE_STORAGE_CLASS:
 		data := K8sDeleteStorageClassRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sStorageClass(*data.Data)
 
-	// case "storage/enable":
-	// 	data := NfsStorageInstallRequest{}
-	// 	marshalUnmarshal(&datagram, &data)
-	// 	return InstallMogeniusNfsStorage(data)
-	// case "storage/disable":
-	// 	data := NfsStorageInstallRequest{}
-	// 	marshalUnmarshal(&datagram, &data)
-	// 	return UninstallMogeniusNfsStorage(data)
-	// case "storage/check-if-installed":
-	// 	return mokubernetes.CheckIfMogeniusNfsIsRunning()
-	case "storage/create-volume":
+	case PAT_STORAGE_CREATE_VOLUME:
 		data := NfsVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return CreateMogeniusNfsVolume(data)
-	case "storage/delete-volume":
+	case PAT_STORAGE_DELETE_VOLUME:
 		data := NfsVolumeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return DeleteMogeniusNfsVolume(data)
-	case "storage/backup-volume":
+	case PAT_STORAGE_BACKUP_VOLUME:
 		data := NfsVolumeBackupRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return BackupMogeniusNfsVolume(data)
-	case "storage/restore-volume":
+	case PAT_STORAGE_RESTORE_VOLUME:
 		data := NfsVolumeRestoreRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return RestoreMogeniusNfsVolume(data)
-	case "storage/stats":
+	case PAT_STORAGE_STATS:
 		data := NfsVolumeStatsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StatsMogeniusNfsVolume(data)
-	case "storage/namespace/stats":
+	case PAT_STORAGE_NAMESPACE_STATS:
 		data := NfsNamespaceStatsRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return StatsMogeniusNfsNamespace(data)
-	case "popeye-console":
+	case PAT_POPEYE_CONSOLE:
 		return PopeyeConsole()
 	}
 

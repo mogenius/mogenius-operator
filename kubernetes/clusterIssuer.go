@@ -50,7 +50,7 @@ func DeleteK8sClusterIssuer(data cmapi.ClusterIssuer) K8sWorkloadResult {
 }
 
 func DescribeK8sClusterIssuer(name string) K8sWorkloadResult {
-	cmd := exec.Command("kubectl", "describe", "ingress", name)
+	cmd := exec.Command("kubectl", "describe", "clusterissuer", name)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
