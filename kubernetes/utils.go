@@ -39,6 +39,7 @@ type K8sWorkloadResult struct {
 }
 
 type K8sNewWorkload struct {
+	Name        string `json:"name"`
 	YamlString  string `json:"yamlString"`
 	Description string `json:"description"`
 }
@@ -77,8 +78,9 @@ func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
 	}
 }
 
-func NewWorkload(yaml string, description string) K8sNewWorkload {
+func NewWorkload(name string, yaml string, description string) K8sNewWorkload {
 	return K8sNewWorkload{
+		Name:        name,
 		YamlString:  yaml,
 		Description: description,
 	}
@@ -516,4 +518,40 @@ func Umount(volumeNamespace string, volumeName string) {
 			utils.DeleteDirIfExist(mountDir)
 		}
 	}()
+}
+
+func ListCreateTemplates() []K8sNewWorkload {
+	result := []K8sNewWorkload{}
+
+	result = append(result,
+		NewK8sCertificate(),
+		NewK8sCertificateSigningRequest(),
+		NewK8sClusterIssuer(),
+		NewK8sClusterRole(),
+		NewK8sClusterRoleBinding(),
+		NewK8sConfigmap(),
+		NewK8sCronJob(),
+		NewK8sDaemonSet(),
+		NewK8sDeployment(),
+		NewK8sHpa(),
+		NewK8sIngress(),
+		NewK8sIssuer(),
+		NewK8sJob(),
+		NewK8sNamespace(),
+		NewK8sNetPol(),
+		NewK8sOrder(),
+		NewK8sPersistentVolumeClaim(),
+		NewK8sPod(),
+		NewK8sReplicaSet(),
+		NewK8sRole(),
+		NewK8sRoleBinding(),
+		NewK8sSecret(),
+		NewK8sService(),
+		NewK8sServiceAccount(),
+		NewK8sStatefulset(),
+		NewK8sStorageClass(),
+		NewK8sVolume(),
+		NewK8sVolumeAttachment())
+
+	return result
 }

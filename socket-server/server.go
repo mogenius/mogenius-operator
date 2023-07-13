@@ -329,6 +329,9 @@ func requestCmdFromCluster(pattern string) {
 		case "service/update-service":
 			payload = services.ServiceUpdateRequestExample()
 
+		case "list/create-templates":
+			payload = nil
+
 		case "list/namespaces":
 			payload = services.K8sListRequestExample()
 		case "list/deployments":

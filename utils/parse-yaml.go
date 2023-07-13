@@ -471,7 +471,7 @@ func InitNamespaceYaml() string {
 	return string(yaml)
 }
 
-func InitJobsYaml() string {
+func InitJobYaml() string {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/job-example.yaml")
 	if err != nil {
 		return err.Error()

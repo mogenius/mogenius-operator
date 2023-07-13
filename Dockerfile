@@ -16,7 +16,7 @@ ENV GOOS=linux
     # llvm \
     # libbpf-dev \
     # linux-headers
-RUN apk add --no-cache nfs-utils
+RUN apk add --no-cache nfs-utils curl
 
 RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
     && chmod +x kubectl \

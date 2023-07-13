@@ -69,6 +69,8 @@ var COMMAND_REQUESTS = []string{
 
 	"service/log-stream",
 
+	"list/create-templates",
+
 	"list/namespaces",
 	"list/deployments",
 	"list/services",
@@ -99,6 +101,35 @@ var COMMAND_REQUESTS = []string{
 	"list/volume_attachment",
 	"list/network_policy",
 	"list/storage_class",
+
+	"create/namespace",
+	"create/deployment",
+	"create/service",
+	"create/pod",
+	"create/ingress",
+	"create/configmap",
+	"create/secret",
+	"create/daemonset",
+	"create/statefulset",
+	"create/job",
+	"create/cronjob",
+	"create/replicaset",
+	"create/persistent_volume",
+	"create/persistent_volume_claim",
+	"create/horizontal_pod_autoscaler",
+	"create/certificate",
+	"create/certificaterequest",
+	"create/order",
+	"create/issuer",
+	"create/clusterissuer",
+	"create/service_account",
+	"create/role",
+	"create/role_binding",
+	"create/cluster_role",
+	"create/cluster_role_binding",
+	"create/volume_attachment",
+	"create/network_policy",
+	"create/storage_class",
 
 	"describe/namespace",
 	"describe/deployment",
@@ -357,26 +388,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := ServiceUpdateRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return UpdateService(data)
-	// case "service/spectrum-bind":
-	// 	data := ServiceBindSpectrumRequest{}
-	// 	marshalUnmarshal(&datagram, &data)
-	// 	result, err := BindSpectrum(data)
-	// 	if err != nil {
-	// 		logger.Log.Error(err)
-	// 	}
-	// 	return result
-	// case "service/spectrum-unbind":
-	// 	data := ServiceUnbindSpectrumRequest{}
-	// 	marshalUnmarshal(&datagram, &data)
-	// 	result, err := UnbindSpectrum(data)
-	// 	if err != nil {
-	// 		logger.Log.Error(err)
-	// 	}
-	// 	return result
+
 	case "service/log-stream":
 		data := ServiceLogStreamRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return logStream(data, datagram)
+
+	case "list/create-templates":
+		return mokubernetes.ListCreateTemplates()
 
 	case "list/namespaces":
 		data := K8sListRequest{}
