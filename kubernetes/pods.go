@@ -218,6 +218,7 @@ func DescribeK8sPod(namespace string, name string) K8sWorkloadResult {
 
 func NewK8sPod() K8sNewWorkload {
 	return NewWorkload(
+		RES_POD,
 		utils.InitPodYaml(),
 		"A Pod is the smallest and simplest unit in the Kubernetes object model that you create or deploy. It represents a single instance of a running process in a cluster and can contain one or more containers. In this example, a pod named 'my-pod' is created with a single container running the 'busybox' image. When the container starts, it runs the command sh -c 'echo Hello, Kubernetes! && sleep 3600', which prints 'Hello, Mogenius!' and then sleeps for 1 hour.")
 }

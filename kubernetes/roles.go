@@ -64,6 +64,7 @@ func DescribeK8sRole(namespace string, name string) K8sWorkloadResult {
 
 func NewK8sRole() K8sNewWorkload {
 	return NewWorkload(
+		RES_ROLE,
 		utils.InitRoleYaml(),
 		"Roles in Kubernetes provide a mechanism to define authorizations within a particular namespace. In this example, a Role named 'pod-reader' is created in the 'default' namespace. This Role has permissions to 'get', 'watch', and 'list' Pods. Please note, Roles define permissions within a specific namespace. If you want to define permissions cluster-wide, you would use a ClusterRole instead of a Role.")
 }

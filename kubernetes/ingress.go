@@ -276,6 +276,7 @@ func DescribeK8sIngress(namespace string, name string) K8sWorkloadResult {
 
 func NewK8sIngress() K8sNewWorkload {
 	return NewWorkload(
+		RES_INGRESS,
 		utils.InitIngresYaml(),
 		"An Ingress is a collection of rules that allow inbound connections to reach the cluster services. In this example, an Ingress named 'example-ingress' is created. It will route traffic that comes in on 'myapp.mydomain.com' with a URL path that starts with '/testpath' to the service named 'test' on port 80.")
 }

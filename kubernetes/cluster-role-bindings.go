@@ -64,6 +64,7 @@ func DescribeK8sClusterRoleBinding(name string) K8sWorkloadResult {
 
 func NewK8sClusterRoleBinding() K8sNewWorkload {
 	return NewWorkload(
+		RES_CLUSTER_ROLE_BINDING,
 		utils.InitClusterRoleBindingYaml(),
 		"A ClusterRoleBinding binds a ClusterRole to a group of subjects, granting them the permissions defined by the ClusterRole at the cluster level. In this example, a ClusterRoleBinding named 'my-cluster-role-binding' is created. It binds the ClusterRole named 'my-cluster-role' to the group named 'my-group' in the 'rbac.authorization.k8s.io' API group.")
 }

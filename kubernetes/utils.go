@@ -22,6 +22,39 @@ import (
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
+const (
+	RES_NAMESPACE                 string = "namespace"
+	RES_POD                       string = "pod"
+	RES_DEPLOYMENT                string = "deployment"
+	RES_SERVICE                   string = "service"
+	RES_INGRESS                   string = "ingress"
+	RES_CONFIGMAP                 string = "configmap"
+	RES_SECRET                    string = "secret"
+	RES_NODE                      string = "node"
+	RES_DAEMON_SET                string = "daemon_set"
+	RES_STATEFUL_SET              string = "stateful_set"
+	RES_JOB                       string = "job"
+	RES_CRON_JOB                  string = "cron_job"
+	RES_REPLICA_SET               string = "replica_set"
+	RES_PERSISTENT_VOLUME         string = "persistent_volume"
+	RES_PERSISTENT_VOLUME_CLAIM   string = "persistent_volume_claim"
+	RES_HORIZONTAL_POD_AUTOSCALER string = "horizontal_pod_autoscaler"
+	RES_EVENT                     string = "event"
+	RES_CERTIFICATE               string = "certificate"
+	RES_CERTIFICATE_REQUEST       string = "certificaterequest"
+	RES_ORDER                     string = "orders"
+	RES_ISSUER                    string = "issuer"
+	RES_CLUSTER_ISSUER            string = "clusterissuer"
+	RES_SERVICE_ACCOUNT           string = "service_account"
+	RES_ROLE                      string = "role"
+	RES_ROLE_BINDING              string = "role_binding"
+	RES_CLUSTER_ROLE              string = "cluster_role"
+	RES_CLUSTER_ROLE_BINDING      string = "cluster_role_binding"
+	RES_VOLUME_ATTACHMENT         string = "volume_attachment"
+	RES_NETWORK_POLICY            string = "network_policy"
+	RES_STORAGECLASS              string = "storageclass"
+)
+
 var (
 	NAMESPACE       = utils.CONFIG.Kubernetes.OwnNamespace
 	DEPLOYMENTNAME  = "mogenius-k8s-manager"

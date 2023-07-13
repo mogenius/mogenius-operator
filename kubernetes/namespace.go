@@ -154,6 +154,7 @@ func NamespaceExists(namespaceName string) (bool, error) {
 
 func NewK8sNamespace() K8sNewWorkload {
 	return NewWorkload(
+		RES_NAMESPACE,
 		utils.InitNamespaceYaml(),
 		"A Namespace is a way to divide cluster resources between multiple users. They are intended for use in environments with many users spread across multiple teams, or projects. In this example, a Namespace named 'my-namespace' is created. Namespaces provide a scope for names. Names of resources need to be unique within a namespace but not across namespaces. Namespaces can not be nested inside one another and each Kubernetes resource can only be in one namespace.")
 }

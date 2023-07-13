@@ -102,6 +102,7 @@ func DescribeK8sStorageClass(name string) K8sWorkloadResult {
 
 func NewK8sStorageClass() K8sNewWorkload {
 	return NewWorkload(
+		RES_STORAGECLASS,
 		utils.InitStorageClassYaml(),
 		"A StorageClass provides a way for administrators to describe the 'classes' of storage they offer. Different classes might map to quality-of-service levels, backup policies, or arbitrary policies determined by the cluster administrators. Please note, the above example uses kubernetes.io/aws-ebs as the provisioner which means this StorageClass is specific to AWS EBS volumes. The parameters may vary based on the provisioner.")
 }

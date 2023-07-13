@@ -63,6 +63,7 @@ func DescribeK8sClusterIssuer(name string) K8sWorkloadResult {
 
 func NewK8sClusterIssuer() K8sNewWorkload {
 	return NewWorkload(
+		RES_CLUSTER_ISSUER,
 		utils.InitClusterIssuerYaml(),
 		"A ClusterIssuer is a custom resource definition (CRD) in cert-manager, which is a native Kubernetes certificate management controller. It represents a certificate authority (CA) that can generate signed certificates at the cluster level. In this example, a ClusterIssuer named 'my-cluster-issuer' is created. This issuer uses the Let's Encrypt ACME server for the ACME protocol. It will use the secret 'my-cluster-issuer-account-key' to store the ACME account's private key and uses the HTTP-01 challenge for domain validation with the nginx ingress class.")
 }

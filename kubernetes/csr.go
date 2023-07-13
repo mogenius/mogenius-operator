@@ -63,6 +63,7 @@ func DescribeK8sCertificateSigningRequest(name string) K8sWorkloadResult {
 
 func NewK8sCertificateSigningRequest() K8sNewWorkload {
 	return NewWorkload(
+		RES_CERTIFICATE_REQUEST,
 		utils.InitCertificateSigningRequestYaml(),
 		"A CertificateSigningRequest is used to request a digital certificate based on a newly created or existing private key. In this example, a CSR named 'mycsr' is created with a specific certificate request (which should be your own, the one provided here is a placeholder), the standard Kubernetes signer, and for client auth usage. Please note that this example contains a placeholder for spec.request. You would need to replace this with the base64-encoded representation of your actual certificate signing request.")
 }

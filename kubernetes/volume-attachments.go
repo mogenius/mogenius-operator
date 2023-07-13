@@ -59,6 +59,7 @@ func DescribeK8sVolumeAttachment(name string) K8sWorkloadResult {
 
 func NewK8sVolumeAttachment() K8sNewWorkload {
 	return NewWorkload(
+		RES_VOLUME_ATTACHMENT,
 		utils.InitVolumeAttachmentYaml(),
 		"The VolumeAttachment kind in Kubernetes provides a mechanism for attaching external volumes to a node. It's typically used by the Container Storage Interface (CSI) to allow for the dynamic provisioning of volumes, but it can be used in more general scenarios as well. However, please note that this is a lower-level construct, and it's usually better to use higher-level abstractions like PersistentVolumeClaim or StorageClass unless you have a very specific reason to directly create VolumeAttachment objects.")
 }

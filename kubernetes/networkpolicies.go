@@ -177,6 +177,7 @@ func DescribeK8sNetworkPolicy(namespace string, name string) K8sWorkloadResult {
 
 func NewK8sNetPol() K8sNewWorkload {
 	return NewWorkload(
+		RES_NETWORK_POLICY,
 		utils.InitNetPolYaml(),
 		"A NetworkPolicy is a specification of how selections of pods are allowed to communicate with each other and other network endpoints. n this example, a NetworkPolicy named 'my-network-policy' is created. It applies to all Pods with the label role=db in the default namespace, and it sets both inbound and outbound rules.")
 }

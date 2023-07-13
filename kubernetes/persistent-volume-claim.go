@@ -75,6 +75,7 @@ func DescribeK8sPersistentVolumeClaim(namespace string, name string) K8sWorkload
 
 func NewK8sPersistentVolumeClaim() K8sNewWorkload {
 	return NewWorkload(
+		RES_PERSISTENT_VOLUME_CLAIM,
 		utils.InitPersistentVolumeClaimYaml(),
 		"A PersistentVolumeClaim (PVC) is a request for storage by a user. It is similar to a Pod. Pods consume node resources, and PVCs consume PersistentVolume resources.")
 }

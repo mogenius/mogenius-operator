@@ -252,6 +252,7 @@ func DescribeK8sSecret(namespace string, name string) K8sWorkloadResult {
 
 func NewK8sSecret() K8sNewWorkload {
 	return NewWorkload(
+		RES_SECRET,
 		utils.InitSecretYaml(),
 		"A Secret is an object that contains a small amount of sensitive data such as a password, a token, or a key. In this example, a secret named 'my-secret' is created with two pieces of data: username and password. The values are arbitrary and must be base64 encoded. Please note, the Secret data is not encrypted, it's just base64 encoded. So it's not secure to store highly sensitive information. You should consider additional layer of protection such as using Kubernetes RBAC to restrict access to Secrets, and/or use solutions like sealed secrets, HashiCorp Vault, or other Kubernetes native solutions like the secrets-store-csi-driver project.")
 }

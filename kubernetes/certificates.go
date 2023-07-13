@@ -166,6 +166,7 @@ func DescribeK8sCertificate(namespace string, name string) K8sWorkloadResult {
 
 func NewK8sCertificate() K8sNewWorkload {
 	return NewWorkload(
+		RES_CERTIFICATE,
 		utils.InitCertificateYaml(),
 		"A Certificate resource in cert-manager is used to request, manage, and store TLS certificates from certificate authorities. In this example, a Certificate named 'my-certificate' is created. It requests a TLS certificate for the domain names 'example.com' and 'www.example.com'. The certificate will be issued and managed by the ClusterIssuer named 'my-cluster-issuer'. The resulting certificate will be stored in a Secret named 'my-certificate-secret'. Please note that this is a simplified example, and the actual configuration may vary depending on the specific certificate authority and issuer being used. Always refer to the documentation for the certificate manager you are using and follow the guidelines provided by the certificate authority.")
 }
