@@ -303,6 +303,32 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sListRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.AllStorageClasses()
+	case PAT_LIST_CUSTOM_RESOURCE_DEFINITIONS:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		// TODO: sdk not giving crds. on hold
+		return nil
+	case PAT_LIST_ENDPOINTS:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllEndpoints(data.NamespaceName)
+	case PAT_LIST_LEASES:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllLeases(data.NamespaceName)
+	case PAT_LIST_PRIORITYCLASSES:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllPriorityClasses(data.NamespaceName)
+	case PAT_LIST_VOLUMESNAPSHOTS:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		// TODO: sdk not giving crds. on hold
+		return nil
+	case PAT_LIST_RESOURCEQUOTAS:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllResourceQuotas(data.NamespaceName)
 
 	case PAT_DESCRIBE_NAMESPACE:
 		data := K8sDescribeRequest{}
@@ -424,6 +450,31 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sDescribeRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DescribeK8sStorageClass(data.ResourceName)
+	case PAT_DESCRIBE_CUSTOM_RESOURCE_DEFINITIONS:
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sCustomResourceDefinition(data.ResourceName)
+	case PAT_DESCRIBE_ENDPOINTS:
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sEndpoint(data.NamespaceName, data.ResourceName)
+	case PAT_DESCRIBE_LEASES:
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sLease(data.NamespaceName, data.ResourceName)
+	case PAT_DESCRIBE_PRIORITYCLASSES:
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.AllPriorityClasses(data.ResourceName)
+	case PAT_DESCRIBE_VOLUMESNAPSHOTS:
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		// TODO: sdk not giving crds. on hold
+		return nil
+	case PAT_DESCRIBE_RESOURCEQUOTAS:
+		data := K8sDescribeRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DescribeK8sResourceQuota(data.NamespaceName, data.ResourceName)
 
 	case PAT_UPDATE_DEPLOYMENT:
 		data := K8sUpdateDeploymentRequest{}
@@ -533,6 +584,32 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sUpdateStorageClassRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.UpdateK8sStorageClass(*data.Data)
+	case PAT_UPDATE_CUSTOM_RESOURCE_DEFINITIONS:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		// TODO: sdk not giving crds. on hold
+		return nil
+	case PAT_UPDATE_ENDPOINTS:
+		data := K8sUpdateEndpointRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sEndpoint(*data.Data)
+	case PAT_UPDATE_LEASES:
+		data := K8sUpdateLeaseRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sLease(*data.Data)
+	case PAT_UPDATE_PRIORITYCLASSES:
+		data := K8sUpdatePriorityClassRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sPriorityClass(*data.Data)
+	case PAT_UPDATE_VOLUMESNAPSHOTS:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		// TODO: sdk not giving crds. on hold
+		return nil
+	case PAT_UPDATE_RESOURCEQUOTAS:
+		data := K8sUpdateResourceQuotaRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.UpdateK8sResourceQuota(*data.Data)
 
 	case PAT_DELETE_NAMESPACE:
 		data := K8sDeleteNamespaceRequest{}
@@ -646,6 +723,32 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sDeleteStorageClassRequest{}
 		marshalUnmarshal(&datagram, &data)
 		return mokubernetes.DeleteK8sStorageClass(*data.Data)
+	case PAT_DELETE_CUSTOM_RESOURCE_DEFINITIONS:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		// TODO: sdk not giving crds. on hold
+		return nil
+	case PAT_DELETE_ENDPOINTS:
+		data := K8sDeleteEndpointRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sEndpoint(*data.Data)
+	case PAT_DELETE_LEASES:
+		data := K8sDeleteLeaseRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sLease(*data.Data)
+	case PAT_DELETE_PRIORITYCLASSES:
+		data := K8sDeletePriorityClassRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sPriorityClass(*data.Data)
+	case PAT_DELETE_VOLUMESNAPSHOTS:
+		data := K8sListRequest{}
+		marshalUnmarshal(&datagram, &data)
+		// TODO: sdk not giving crds. on hold
+		return nil
+	case PAT_DELETE_RESOURCEQUOTAS:
+		data := K8sDeleteResourceQuotaRequest{}
+		marshalUnmarshal(&datagram, &data)
+		return mokubernetes.DeleteK8sResourceQuota(*data.Data)
 
 	case PAT_STORAGE_CREATE_VOLUME:
 		data := NfsVolumeRequest{}

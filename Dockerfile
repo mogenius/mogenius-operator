@@ -73,9 +73,9 @@ RUN mv popeye /usr/local/bin/popeye
 RUN rm popeye.tar.gz
 
 # Install kubectl
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
-&& chmod +x kubectl \
-&& mv kubectl /usr/local/bin/kubectl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+RUN chmod +x kubectl
+RUN mv kubectl /usr/local/bin/kubectl
 
 WORKDIR /app
 

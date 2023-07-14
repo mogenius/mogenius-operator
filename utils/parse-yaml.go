@@ -550,3 +550,43 @@ func InitClusterRoleBindingYaml() string {
 	}
 	return string(yaml)
 }
+
+func InitLeaseYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/lease-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitCustomResourceDefinitionYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/crd-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitPriorityClassYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/priorityclass-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitEndPointYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/endpoint-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}
+
+func InitResourceQuotaYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/resourcequota-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}

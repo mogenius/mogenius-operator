@@ -12,27 +12,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllRoles(namespaceName string) K8sWorkloadResult {
-	result := []v1.Role{}
+func AllRoleBindings(namespaceName string) K8sWorkloadResult {
+	result := []v1.RoleBinding{}
 
 	provider := NewKubeProvider()
-	rolesList, err := provider.ClientSet.RbacV1().Roles(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	rolesList, err := provider.ClientSet.RbacV1().RoleBindings(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		logger.Log.Errorf("AllRoles ERROR: %s", err.Error())
+		logger.Log.Errorf("AllBindings ERROR: %s", err.Error())
 		return WorkloadResult(nil, err)
 	}
 
-	for _, role := range rolesList.Items {
-		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, role.ObjectMeta.Namespace) {
-			result = append(result, role)
+	for _, roleBinding := range rolesList.Items {
+		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, roleBinding.ObjectMeta.Namespace) {
+			result = append(result, roleBinding)
 		}
 	}
 	return WorkloadResult(result, nil)
 }
 
-func UpdateK8sRole(data v1.Role) K8sWorkloadResult {
+func UpdateK8sRoleBinding(data v1.RoleBinding) K8sWorkloadResult {
 	kubeProvider := NewKubeProvider()
-	roleClient := kubeProvider.ClientSet.RbacV1().Roles(data.Namespace)
+	roleClient := kubeProvider.ClientSet.RbacV1().RoleBindings(data.Namespace)
 	_, err := roleClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(nil, err)
@@ -40,9 +40,9 @@ func UpdateK8sRole(data v1.Role) K8sWorkloadResult {
 	return WorkloadResult(nil, nil)
 }
 
-func DeleteK8sRole(data v1.Role) K8sWorkloadResult {
+func DeleteK8sRoleBinding(data v1.RoleBinding) K8sWorkloadResult {
 	kubeProvider := NewKubeProvider()
-	roleClient := kubeProvider.ClientSet.RbacV1().Roles(data.Namespace)
+	roleClient := kubeProvider.ClientSet.RbacV1().RoleBindings(data.Namespace)
 	err := roleClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return WorkloadResult(nil, err)

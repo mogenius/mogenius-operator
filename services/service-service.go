@@ -15,9 +15,11 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	v2 "k8s.io/api/autoscaling/v2"
 	v1job "k8s.io/api/batch/v1"
+	coordination "k8s.io/api/coordination/v1"
 	core "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
+	scheduling "k8s.io/api/scheduling/v1"
 	storage "k8s.io/api/storage/v1"
 	"k8s.io/client-go/rest"
 )
@@ -606,6 +608,46 @@ func K8sUpdateStorageClassExample() K8sUpdateStorageClassRequest {
 	}
 }
 
+type K8sUpdatePriorityClassRequest struct {
+	Data *scheduling.PriorityClass `json:"data"`
+}
+
+func K8sUpdatePriorityClassExample() K8sUpdatePriorityClassRequest {
+	return K8sUpdatePriorityClassRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateEndpointRequest struct {
+	Data *core.Endpoints `json:"data"`
+}
+
+func K8sUpdateEndpointExample() K8sUpdateEndpointRequest {
+	return K8sUpdateEndpointRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateLeaseRequest struct {
+	Data *coordination.Lease `json:"data"`
+}
+
+func K8sUpdateLeaseExample() K8sUpdateLeaseRequest {
+	return K8sUpdateLeaseRequest{
+		Data: nil,
+	}
+}
+
+type K8sUpdateResourceQuotaRequest struct {
+	Data *core.ResourceQuota `json:"data"`
+}
+
+func K8sUpdateResourceQuotaExample() K8sUpdateResourceQuotaRequest {
+	return K8sUpdateResourceQuotaRequest{
+		Data: nil,
+	}
+}
+
 type K8sDeleteNamespaceRequest struct {
 	Data *core.Namespace `json:"data"`
 }
@@ -885,6 +927,56 @@ func K8sDeleteStorageClassExample() K8sDeleteStorageClassRequest {
 		Data: nil,
 	}
 }
+
+type K8sDeleteLeaseRequest struct {
+	Data *coordination.Lease `json:"data"`
+}
+
+func K8sDeleteLeaseExample() K8sDeleteLeaseRequest {
+	return K8sDeleteLeaseRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeletePriorityClassRequest struct {
+	Data *scheduling.PriorityClass `json:"data"`
+}
+
+func K8sDeletePriorityClassExample() K8sDeletePriorityClassRequest {
+	return K8sDeletePriorityClassRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteEndpointRequest struct {
+	Data *core.Endpoints `json:"data"`
+}
+
+func K8sDeleteEndpointExample() K8sDeleteEndpointRequest {
+	return K8sDeleteEndpointRequest{
+		Data: nil,
+	}
+}
+
+type K8sDeleteResourceQuotaRequest struct {
+	Data *core.ResourceQuota `json:"data"`
+}
+
+func K8sDeleteResourceQuotaExample() K8sDeleteResourceQuotaRequest {
+	return K8sDeleteResourceQuotaRequest{
+		Data: nil,
+	}
+}
+
+// type K8sDeleteVolumeSnapshotRequest struct {
+// 	Data *storagesnap. `json:"data"`
+// }
+
+// func K8sDeleteVolumeSnapshotExample() K8sDeleteVolumeSnapshotRequest {
+// 	return K8sDeleteVolumeSnapshotRequest{
+// 		Data: nil,
+// 	}
+// }
 
 type ServiceLogStreamResult struct {
 	Success bool   `json:"success"`
