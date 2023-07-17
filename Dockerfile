@@ -49,7 +49,9 @@ RUN apk add --no-cache \
     coreutils \
     # ruby-dev \
     openssl \
-    nfs-utils
+    nfs-utils \
+    buildah \
+    fuse-overlayfs
 
 # RUN gem install -N rails
 # RUN gem install -N bundler

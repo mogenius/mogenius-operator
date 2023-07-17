@@ -590,3 +590,11 @@ func InitResourceQuotaYaml() string {
 	}
 	return string(yaml)
 }
+
+func InitVolumeSnapshotYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/volumesnapshot-example.yaml")
+	if err != nil {
+		return err.Error()
+	}
+	return string(yaml)
+}

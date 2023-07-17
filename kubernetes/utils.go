@@ -12,10 +12,8 @@ import (
 	"strings"
 	"time"
 
-	cmclientset "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -93,16 +91,6 @@ type KubeProviderMetrics struct {
 	ClientConfig rest.Config
 }
 
-type KubeProvider struct {
-	ClientSet    *kubernetes.Clientset
-	ClientConfig rest.Config
-}
-
-type KubeProviderCertManager struct {
-	ClientSet    *cmclientset.Clientset
-	ClientConfig rest.Config
-}
-
 func init() {
 	// SETUP DOWNFAULT VALUE
 	if NAMESPACE == "" {
@@ -123,154 +111,6 @@ func NewWorkload(name string, yaml string, description string) K8sNewWorkload {
 		YamlString:  yaml,
 		Description: description,
 	}
-}
-
-func NewKubeProvider() *KubeProvider {
-	var kubeProvider *KubeProvider
-	var err error
-	if utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderInCluster()
-	} else {
-		kubeProvider, err = NewKubeProviderLocal()
-	}
-
-	if err != nil {
-		logger.Log.Errorf("ERROR: %s", err.Error())
-	}
-	return kubeProvider
-}
-
-func NewKubeProviderCertManager() *KubeProviderCertManager {
-	var kubeProvider *KubeProviderCertManager
-	var err error
-	if utils.CONFIG.Kubernetes.RunInCluster {
-		kubeProvider, err = NewKubeProviderCertManagerInCluster()
-	} else {
-		kubeProvider, err = NewKubeProviderCertManagerLocal()
-	}
-
-	if err != nil {
-		logger.Log.Errorf("ERROR: %s", err.Error())
-	}
-	return kubeProvider
-}
-
-func NewKubeProviderLocal() (*KubeProvider, error) {
-	var kubeconfig string = ""
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	}
-
-	restConfig, errConfig := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if errConfig != nil {
-		panic(errConfig.Error())
-	}
-
-	clientSet, errClientSet := kubernetes.NewForConfig(restConfig)
-	if errClientSet != nil {
-		panic(errClientSet.Error())
-	}
-
-	return &KubeProvider{
-		ClientSet:    clientSet,
-		ClientConfig: *restConfig,
-	}, nil
-}
-
-func NewKubeProviderInCluster() (*KubeProvider, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return &KubeProvider{
-		ClientSet:    clientset,
-		ClientConfig: *config,
-	}, nil
-}
-
-func NewKubeProviderCertManagerLocal() (*KubeProviderCertManager, error) {
-	var kubeconfig string = ""
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	}
-
-	restConfig, errConfig := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if errConfig != nil {
-		panic(errConfig.Error())
-	}
-
-	cmClientset, err := cmclientset.NewForConfig(restConfig)
-	if err != nil {
-		logger.Log.Panicf("Failed to create cert-manager clientset: %v\n", err)
-	}
-
-	return &KubeProviderCertManager{
-		ClientSet:    cmClientset,
-		ClientConfig: *restConfig,
-	}, nil
-}
-
-func NewKubeProviderCertManagerInCluster() (*KubeProviderCertManager, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	clientset, err := cmclientset.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return &KubeProviderCertManager{
-		ClientSet:    clientset,
-		ClientConfig: *config,
-	}, nil
-}
-
-func NewKubeProviderMetricsLocal() (*KubeProviderMetrics, error) {
-	kubeconfig := getKubeConfig()
-
-	restConfig, errConfig := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if errConfig != nil {
-		panic(errConfig.Error())
-	}
-
-	clientSet, errClientSet := metricsv.NewForConfig(restConfig)
-	if errClientSet != nil {
-		panic(errClientSet.Error())
-	}
-
-	//logger.Log.Debugf("K8s client config (init with .kube/config), host: %s", restConfig.Host)
-
-	return &KubeProviderMetrics{
-		ClientSet:    clientSet,
-		ClientConfig: *restConfig,
-	}, nil
-}
-
-func NewKubeProviderMetricsInCluster() (*KubeProviderMetrics, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	clientset, err := metricsv.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	//logger.Log.Debugf("K8s client config (init InCluster), host: %s", config.Host)
-
-	return &KubeProviderMetrics{
-		ClientSet:    clientset,
-		ClientConfig: *config,
-	}, nil
 }
 
 func CurrentContextName() string {
