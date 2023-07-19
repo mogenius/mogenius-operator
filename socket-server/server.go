@@ -467,6 +467,21 @@ func requestCmdFromCluster(pattern string) {
 		case services.PAT_DELETE_STORAGE_CLASS:
 			payload = services.K8sDeleteStorageClassExample()
 
+		case services.PAT_BUILDER_STATUS:
+			payload = nil
+		case services.PAT_BUILD_INFOS:
+			payload = structs.BuildJobExample()
+		case services.PAT_BUILD_LIST:
+			payload = nil
+		case services.PAT_BUILD_ADD:
+			payload = structs.BuildJobExample()
+		case services.PAT_BUILD_SCAN:
+			payload = structs.BuildJobExample()
+		case services.PAT_BUILD_CANCEL:
+			payload = structs.BuildJobExample()
+		case services.PAT_BUILD_DELETE:
+			payload = structs.BuildJobExample()
+
 		case services.PAT_STORAGE_CREATE_VOLUME:
 			payload = services.NfsVolumeRequestExample()
 		case services.PAT_STORAGE_DELETE_VOLUME:

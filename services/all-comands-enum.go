@@ -236,6 +236,14 @@ const (
 	PAT_STORAGE_STATS           string = "storage/stats"
 	PAT_STORAGE_NAMESPACE_STATS string = "storage/namespace/stats"
 
+	PAT_BUILDER_STATUS string = "build/builder-status"
+	PAT_BUILD_INFOS    string = "build/info"
+	PAT_BUILD_LIST     string = "build/list"
+	PAT_BUILD_ADD      string = "build/add"
+	PAT_BUILD_SCAN     string = "build/scan"
+	PAT_BUILD_CANCEL   string = "build/cancel"
+	PAT_BUILD_DELETE   string = "build/delete"
+
 	PAT_POPEYE_CONSOLE string = "popeye_console"
 
 	PAT_FILES_UPLOAD string = "files/upload"
@@ -480,6 +488,14 @@ var COMMAND_REQUESTS = []string{
 	PAT_STORAGE_RESTORE_VOLUME,
 	PAT_STORAGE_STATS,
 	PAT_STORAGE_NAMESPACE_STATS,
+
+	PAT_BUILDER_STATUS,
+	PAT_BUILD_INFOS,
+	PAT_BUILD_LIST,
+	PAT_BUILD_ADD,
+	PAT_BUILD_SCAN,
+	PAT_BUILD_CANCEL,
+	PAT_BUILD_DELETE,
 
 	PAT_POPEYE_CONSOLE,
 }

@@ -71,7 +71,7 @@ func connectJob(ctx context.Context) {
 
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
-		logger.Log.Errorf("Connection to JobServer failed: %s\n", err.Error())
+		logger.Log.Errorf("Connection to JobServer failed (%s): %s\n", connectionUrl.String(), err.Error())
 		JobConnectionStatus <- false
 	} else {
 		logger.Log.Infof("Connected to JobServer: %s  (%s)\n", connectionUrl.String(), connection.LocalAddr().String())

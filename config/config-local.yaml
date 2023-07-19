@@ -13,7 +13,7 @@ api_server:
 
 event_server:
   server: 127.0.0.1:8080
-  path: /ws-event
+  path: /ws
 
 misc:
   stage: local

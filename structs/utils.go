@@ -6,6 +6,7 @@ import (
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"net/url"
 	"os"
 	"os/signal"
 	"sync"
@@ -16,6 +17,45 @@ import (
 )
 
 const PingSeconds = 10
+
+func MarshalUnmarshal(datagram *Datagram, data interface{}) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	bytes, err := json.Marshal(datagram.Payload)
+	if err != nil {
+		datagram.Err = err.Error()
+		return
+	}
+	err = json.Unmarshal(bytes, data)
+	if err != nil {
+		datagram.Err = err.Error()
+	}
+}
+
+func UnmarshalJob(dst *BuildJob, data []byte) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(data, dst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func UnmarshalJobListEntry(dst *BuildJobListEntry, data []byte) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(data, dst)
+	if err != nil {
+		return err
+	}
+	if dst != nil {
+		u, err := url.Parse(dst.GitRepo)
+		if err != nil {
+			dst.GitRepo = ""
+		} else {
+			dst.GitRepo = fmt.Sprintf("%s%s", u.Host, u.Path)
+		}
+	}
+	return nil
+}
 
 func PrettyPrint(i interface{}) {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -30,7 +70,7 @@ func PrettyPrintString(i interface{}) string {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	iJson, err := json.MarshalIndent(i, "", "  ")
 	if err != nil {
-		log.Fatalf(err.Error())
+		logger.Log.Error(err.Error())
 	}
 	return string(iJson)
 }

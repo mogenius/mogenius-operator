@@ -4,6 +4,7 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
+	"mogenius-k8s-manager/builder"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	socketclient "mogenius-k8s-manager/socket-client"
@@ -23,6 +24,8 @@ var clusterCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
+
+		builder.Init()
 
 		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(true)
 		if err != nil {
