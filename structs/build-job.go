@@ -1,6 +1,8 @@
 package structs
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	BUILD_STATE_FAILED    string = "FAILED"
@@ -8,6 +10,7 @@ const (
 	BUILD_STATE_STARTED   string = "STARTED"
 	BUILD_STATE_PENDING   string = "PENDING"
 	BUILD_STATE_CANCELED  string = "CANCELED"
+	BUILD_STATE_TIMEOUT   string = "TIMEOUT"
 )
 
 type BuildJob struct {
@@ -31,7 +34,7 @@ type BuildJob struct {
 	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
 	StartTimestamp        string `json:"startTimestamp"`
 	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
-	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING
+	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING, TIMEOUT
 	StartedAt             string `json:"startedAt"`
 	DurationMs            int    `json:"durationMs"`
 	BuildId               int    `json:"buildId"`
@@ -111,10 +114,12 @@ type BuildScanResult struct {
 
 type BuildCancelResult struct {
 	Result string `json:"result"`
+	Error  string `json:"error"`
 }
 
 type BuildDeleteResult struct {
 	Result string `json:"result"`
+	Error  string `json:"error"`
 }
 
 type BuildJobInfos struct {

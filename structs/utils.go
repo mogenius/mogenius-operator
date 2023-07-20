@@ -1,6 +1,8 @@
 package structs
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gookit/color"
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -61,9 +64,9 @@ func PrettyPrint(i interface{}) {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	iJson, err := json.MarshalIndent(i, "", "  ")
 	if err != nil {
-		log.Fatalf(err.Error())
+		logger.Log.Error(err.Error())
 	}
-	fmt.Printf("%s\n", string(iJson))
+	PrettyPrintJSON(iJson)
 }
 
 func PrettyPrintString(i interface{}) string {
@@ -73,6 +76,72 @@ func PrettyPrintString(i interface{}) string {
 		logger.Log.Error(err.Error())
 	}
 	return string(iJson)
+}
+
+func PrettyPrintJSON(input []byte) {
+	var raw json.RawMessage
+	err := json.Unmarshal(input, &raw)
+	if err != nil {
+		logger.Log.Error(err.Error())
+	}
+
+	var buf bytes.Buffer
+	err = json.Indent(&buf, raw, "", "  ")
+	if err != nil {
+		logger.Log.Error(err.Error())
+	}
+
+	colorizeString(buf.String())
+}
+
+func colorizeString(prettyData string) {
+	var rawData interface{}
+	err := json.Unmarshal([]byte(prettyData), &rawData)
+	if err != nil {
+		log.Fatalln("Error unmarshalling JSON:", err)
+	}
+
+	colorize(rawData, "", false)
+	fmt.Println()
+}
+
+func colorize(data interface{}, prefix string, isKey bool) {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		colorizeMap(v, prefix)
+	case []interface{}:
+		colorizeArray(v, prefix)
+	case string:
+		if isKey {
+			color.FgLightCyan.Printf("%s\"%s\"", prefix, v)
+		} else {
+			color.FgLightYellow.Printf("\"%s\"", v)
+		}
+	default:
+		fmt.Print(v)
+	}
+}
+
+func colorizeMap(m map[string]interface{}, prefix string) {
+	fmt.Print("{\n")
+	newPrefix := prefix + "  "
+	for k, v := range m {
+		colorize(k, newPrefix, true)
+		color.FgWhite.Print(": ")
+		colorize(v, newPrefix, false)
+		color.FgWhite.Print(",\n")
+	}
+	fmt.Printf("%s}", prefix)
+}
+
+func colorizeArray(a []interface{}, prefix string) {
+	fmt.Print("[\n")
+	newPrefix := prefix + "  "
+	for _, v := range a {
+		colorize(v, newPrefix, false)
+		color.FgWhite.Print(",\n")
+	}
+	fmt.Printf("%s]", prefix)
 }
 
 func MilliSecSince(since time.Time) int64 {

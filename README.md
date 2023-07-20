@@ -78,6 +78,8 @@ helm repo update
 | check_for_updates          | 3600                                        | Time interval between update checks in seconds.      | 
 | helm_index                 | https://helm.mogenius.com/public/index.yaml | URL of the helm index file.      | 
 | cluster_provider           | BRING_YOUR_OWN                              | Cluster providers like AKS, EKS, GCP, BRING_YOUR_OWN etc. In this case BRING_YOUR_OWN means default.    | 
+| max_build_time             | 3600                                        | Timeout after when builds will be canceled in seconds.  (1h default)
+| max_scan_time              | 200                                         | Timeout after when vulnerability scans will be canceled in seconds.
 
 # LINKS
 - [AIR](https://github.com/cosmtrek/air) - Live reload for Go apps

@@ -32,3 +32,7 @@ misc:
   check_for_updates: 86400
   helm_index: https://helm.mogenius.com/public/index.yaml
   cluster_provider: BRING_YOUR_OWN 
+
+builder:
+  max_build_time: 3600   # 1 hour
+  max_scan_time: 200     # seconds

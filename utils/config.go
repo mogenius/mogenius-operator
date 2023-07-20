@@ -47,6 +47,10 @@ type Config struct {
 		HelmIndex             string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
 		ClusterProvider       string   `yaml:"cluster_provider" env:"cluster_provider" env-description:"Providers like AKS, EKS, GCP etc."`
 	} `yaml:"misc"`
+	Builder struct {
+		BuildTimeout int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
+		ScanTimeout  int `yaml:"max_scan_time" env:"max_build_time" env-description:"Seconds until the vulnerability scan will be canceled." env-default:"200"`
+	} `yaml:"builder"`
 }
 
 var DefaultConfigLocalFile string
@@ -153,6 +157,8 @@ func PrintSettings() {
 	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
 	logger.Log.Infof("ClusterProvider:          %s", CONFIG.Misc.ClusterProvider)
+
+	logger.Log.Infof("ClusterProvider:          %d", CONFIG.Builder.BuildTimeout)
 }
 
 func PrintVersionInfo() {

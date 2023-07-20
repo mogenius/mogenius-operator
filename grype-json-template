@@ -1,3 +1,4 @@
 PackageName,Version,FixedInVersion,ID,Severity,Url,Description
 {{- range .Matches}}
 '{{.Artifact.Name}}','{{.Artifact.Version}}','{{ .Vulnerability.Fix.Versions | join ", " }}','{{.Vulnerability.ID}}','{{.Vulnerability.Severity}}','{{.Vulnerability.DataSource}}','{{.Vulnerability.Description}}'
+{{- end}}
