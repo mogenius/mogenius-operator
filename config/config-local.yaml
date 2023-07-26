@@ -38,3 +38,9 @@ misc:
 builder:
   max_build_time: 3600   # 1 hour
   max_scan_time: 200     # seconds
+
+git:
+  user_email: git@mogenius.com
+  user_name: mogenius git-user
+  default_branch: main
+  add_ignored_file: false

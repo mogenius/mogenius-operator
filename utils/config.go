@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
@@ -55,6 +54,12 @@ type Config struct {
 		BuildTimeout int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
 		ScanTimeout  int `yaml:"max_scan_time" env:"max_build_time" env-description:"Seconds until the vulnerability scan will be canceled." env-default:"200"`
 	} `yaml:"builder"`
+	Git struct {
+		GitUserEmail      string `yaml:"git_user_email" env:"git_user_email" env-description:"Email address which is used when interacting with git." env-default:"git@mogenius.com"`
+		GitUserName       string `yaml:"git_user_name" env:"git_user_name" env-description:"User name which is used when interacting with git." env-default:"mogenius git-user"`
+		GitDefaultBranch  string `yaml:"git_default_branch" env:"git_default_branch" env-description:"Default branch name which is used when creating a repository." env-default:"main"`
+		GitAddIgnoredFile string `yaml:"git_add_ignored_file" env:"git_add_ignored_file" env-description:"Gits behaviour when adding ignored files." env-default:"false"`
+	} `yaml:"git"`
 }
 
 var DefaultConfigLocalFile string
@@ -137,8 +142,8 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 }
 
 func PrintSettings() {
-	COLOR := color.New(color.FgWhite, color.BgGreen).SprintFunc()
-	logger.Log.Infof(COLOR("KUBERNETES"))
+	fmt.Println("")
+	logger.Log.Infof("KUBERNETES")
 	logger.Log.Infof("OwnNamespace:             %s", CONFIG.Kubernetes.OwnNamespace)
 	logger.Log.Infof("ClusterName:              %s", CONFIG.Kubernetes.ClusterName)
 	logger.Log.Infof("ClusterMfaId:             %s", CONFIG.Kubernetes.ClusterMfaId)
@@ -148,18 +153,18 @@ func PrintSettings() {
 	logger.Log.Infof("BboltDbPath:              %s", CONFIG.Kubernetes.BboltDbPath)
 
 	fmt.Println("")
-	logger.Log.Infof(COLOR("API"))
+	logger.Log.Infof("API")
 	logger.Log.Infof("HttpServer:               %s", CONFIG.ApiServer.Http_Server)
 	logger.Log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
 	logger.Log.Infof("WsPath:                   %s", CONFIG.ApiServer.WS_Path)
 
 	fmt.Println("")
-	logger.Log.Infof(COLOR("EVENTS"))
+	logger.Log.Infof("EVENTS")
 	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
 	logger.Log.Infof("EventPath:                %s", CONFIG.EventServer.Path)
 
 	fmt.Println("")
-	logger.Log.Infof(COLOR("MISC"))
+	logger.Log.Infof("MISC")
 	logger.Log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
 	logger.Log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
 	logger.Log.Infof("AutoMountNfs:             %t", CONFIG.Misc.AutoMountNfs)
@@ -172,11 +177,19 @@ func PrintSettings() {
 	logger.Log.Infof("ClusterProvider:          %s", CONFIG.Misc.ClusterProvider)
 	logger.Log.Infof("NfsPodPrefix:             %s", CONFIG.Misc.NfsPodPrefix)
 	logger.Log.Infof("ClusterProvider:          %d", CONFIG.Builder.BuildTimeout)
+
 	fmt.Println("")
+	logger.Log.Infof("GIT")
+	logger.Log.Infof("GitUserEmail:             %s", CONFIG.Git.GitUserEmail)
+	logger.Log.Infof("GitUserName:              %s", CONFIG.Git.GitUserName)
+	logger.Log.Infof("GitDefaultBranch:         %s", CONFIG.Git.GitDefaultBranch)
+	logger.Log.Infof("GitAddIgnoredFile:        %s", CONFIG.Git.GitAddIgnoredFile)
+
 	fmt.Println("")
 }
 
 func PrintVersionInfo() {
+	fmt.Println("")
 	logger.Log.Infof("Version:     %s", version.Ver)
 	logger.Log.Infof("Branch:      %s", version.Branch)
 	logger.Log.Infof("Hash:        %s", version.GitCommitHash)

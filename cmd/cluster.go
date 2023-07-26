@@ -49,7 +49,10 @@ var clusterCmd = &cobra.Command{
 		go structs.ConnectToJobQueue()
 		go mokubernetes.WatchEvents()
 
-		structs.ExecuteBashCommandSilent("Git setup ...", `git config --global user.email "git@mogenius.com"; git config --global user.name "mogenius git-user"; git config --global init.defaultBranch main; git config --global advice.addIgnoredFile false;`)
+		structs.ExecuteBashCommandSilent("Git setup (1/4) ...", `git config --global user.email "git@mogenius.com"`)
+		structs.ExecuteBashCommandSilent("Git setup (2/4) ...", `git config --global user.name "mogenius git-user"`)
+		structs.ExecuteBashCommandSilent("Git setup (3/4) ...", `git config --global init.defaultBranch main`)
+		structs.ExecuteBashCommandSilent("Git setup (4/4) ...", `git config --global advice.addIgnoredFile false;`)
 
 		socketclient.StartK8sManager(true)
 	},
