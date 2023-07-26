@@ -14,7 +14,7 @@ import (
 func CreateNamespace(r NamespaceCreateRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Create cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil)
+	job := structs.CreateJob("Create cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, nil)
 	job.Start()
 	job.AddCmds(CreateNamespaceCmds(&job, r, &wg))
 	wg.Wait()
@@ -24,11 +24,11 @@ func CreateNamespace(r NamespaceCreateRequest) structs.Job {
 
 func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) []*structs.Command {
 	cmds := []*structs.Command{}
-	cmds = append(cmds, mokubernetes.CreateNamespace(job, r.Namespace, r.Stage))
-	cmds = append(cmds, mokubernetes.CreateNetworkPolicyNamespace(job, r.Stage, wg))
+	cmds = append(cmds, mokubernetes.CreateNamespace(job, r.Project, r.Namespace))
+	cmds = append(cmds, mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, wg))
 
-	if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
-		cmds = append(cmds, mokubernetes.CreateOrUpdateContainerSecret(job, r.Namespace, r.Stage, wg))
+	if r.Project.ContainerRegistryUser != "" && r.Project.ContainerRegistryPat != "" {
+		cmds = append(cmds, mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg))
 	}
 	return cmds
 }
@@ -36,9 +36,9 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 func DeleteNamespace(r NamespaceDeleteRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Delete cloudspace "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, nil)
+	job := structs.CreateJob("Delete cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, nil)
 	job.Start()
-	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Stage, &wg))
+	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Namespace, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -47,11 +47,11 @@ func DeleteNamespace(r NamespaceDeleteRequest) structs.Job {
 func ShutdownNamespace(r NamespaceShutdownRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Shutdown Stage "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, nil)
+	job := structs.CreateJob("Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, nil)
 	job.Start()
-	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
+	job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -106,40 +106,40 @@ func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.Nam
 }
 
 type NamespaceCreateRequest struct {
+	Project   dtos.K8sProjectDto   `json:"project"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Stage     dtos.K8sStageDto     `json:"stage"`
 }
 
 func NamespaceCreateRequestExample() NamespaceCreateRequest {
 	return NamespaceCreateRequest{
+		Project:   dtos.K8sProjectDtoExampleData(),
 		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Stage:     dtos.K8sStageDtoExampleData(),
 	}
 }
 
 type NamespaceDeleteRequest struct {
+	Project   dtos.K8sProjectDto   `json:"project"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Stage     dtos.K8sStageDto     `json:"stage"`
 }
 
 func NamespaceDeleteRequestExample() NamespaceDeleteRequest {
 	return NamespaceDeleteRequest{
+		Project:   dtos.K8sProjectDtoExampleData(),
 		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Stage:     dtos.K8sStageDtoExampleData(),
 	}
 }
 
 type NamespaceShutdownRequest struct {
-	NamespaceId string             `json:"namespaceId"`
-	Stage       dtos.K8sStageDto   `json:"stage"`
-	Service     dtos.K8sServiceDto `json:"service"`
+	ProjectId string               `json:"projectId"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func NamespaceShutdownRequestExample() NamespaceShutdownRequest {
 	return NamespaceShutdownRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       dtos.K8sStageDtoExampleData(),
-		Service:     dtos.K8sServiceDtoExampleData(),
+		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
 

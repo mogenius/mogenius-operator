@@ -14,22 +14,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Create Kubernetes ConfigMap", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating ConfigMap '%s'.", stage.Name))
+		cmd.Start(fmt.Sprintf("Creating ConfigMap '%s'.", namespace.Name))
 
 		kubeProvider := NewKubeProvider()
-		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.Name)
+		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 		configMap := utils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.Name
-		configMap.ObjectMeta.Namespace = stage.Name
+		configMap.ObjectMeta.Namespace = namespace.Name
 		delete(configMap.Data, "XXX") // delete example data
 
 		// TODO: WRITE STUFF INTO CONFIGMAP
-		configMap.Labels = MoUpdateLabels(&configMap.Labels, &job.NamespaceId, &stage, &service)
+		configMap.Labels = MoUpdateLabels(&configMap.Labels, job.ProjectId, &namespace, &service)
 
 		_, err := configMapClient.Create(context.TODO(), &configMap, MoCreateOptions())
 		if err != nil {
@@ -41,15 +41,15 @@ func CreateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 	return cmd
 }
 
-func DeleteConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Delete Kubernetes configMap", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting configMap '%s'.", stage.Name))
+		cmd.Start(fmt.Sprintf("Deleting configMap '%s'.", namespace.Name))
 
 		kubeProvider := NewKubeProvider()
-		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.Name)
+		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
@@ -65,18 +65,18 @@ func DeleteConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 	return cmd
 }
 
-func UpdateConfigMap(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", stage.Name))
+		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", namespace.Name))
 
 		kubeProvider := NewKubeProvider()
-		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(stage.Name)
+		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 		configMap := utils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.Name
-		configMap.ObjectMeta.Namespace = stage.Name
+		configMap.ObjectMeta.Namespace = namespace.Name
 		delete(configMap.Data, "XXX") // delete example data
 
 		// TODO: WRITE STUFF INTO CONFIGMAP

@@ -325,7 +325,7 @@ func MoUpdateOptions() metav1.UpdateOptions {
 	}
 }
 
-func MoUpdateLabels(labels *map[string]string, namespaceId *string, stage *dtos.K8sStageDto, service *dtos.K8sServiceDto) map[string]string {
+func MoUpdateLabels(labels *map[string]string, projectId string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto) map[string]string {
 	resultingLabels := map[string]string{}
 
 	// transfer existing values
@@ -341,13 +341,12 @@ func MoUpdateLabels(labels *map[string]string, namespaceId *string, stage *dtos.
 		resultingLabels["mo-service-id"] = service.Id
 		resultingLabels["mo-service-name"] = service.Name
 	}
-	if stage != nil {
-		resultingLabels["mo-stage-id"] = stage.Id
-		resultingLabels["mo-stage-name"] = stage.Name
+	if namespace != nil {
+		resultingLabels["mo-namespace-id"] = namespace.Id
+		resultingLabels["mo-namespace-name"] = namespace.Name
 	}
-	if namespaceId != nil {
-		resultingLabels["mo-namespace-id"] = *namespaceId
-	}
+
+	resultingLabels["mo-project-id"] = projectId
 
 	return resultingLabels
 }
@@ -379,7 +378,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 func ServiceForNfsVolume(volumeNamespace string, volumeName string) *v1.Service {
 	services := AllServices(volumeNamespace)
 	for _, srv := range services {
-		if strings.Contains(srv.Name, volumeName) {
+		if strings.Contains(srv.Name, fmt.Sprint("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)) {
 			return &srv
 		}
 	}

@@ -20,31 +20,31 @@ import (
 	v1depl "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
-func CreateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", stage.Name), job)
+func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating Deployment '%s'.", stage.Name))
+		cmd.Start(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name))
 
 		kubeProvider := NewKubeProvider()
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
-		newDeployment := generateDeployment(stage, service, true, deploymentClient)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		newDeployment := generateDeployment(namespace, service, true, deploymentClient)
 
-		newDeployment.Labels = MoUpdateLabels(&newDeployment.Labels, &job.NamespaceId, &stage, &service)
+		newDeployment.Labels = MoUpdateLabels(&newDeployment.Labels, job.ProjectId, &namespace, &service)
 
 		_, err := deploymentClient.Create(context.TODO(), &newDeployment, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created deployment '%s'.", stage.Name))
+			cmd.Success(fmt.Sprintf("Created deployment '%s'.", namespace.Name))
 		}
 
 	}(cmd, wg)
 	return cmd
 }
 
-func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Deleting Deployment '%s'.", service.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -52,7 +52,7 @@ func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		cmd.Start(fmt.Sprintf("Deleting Deployment '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
@@ -69,16 +69,16 @@ func DeleteDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 	return cmd
 }
 
-func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", stage.Name), job)
+func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", namespace.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", stage.Name))
+		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", namespace.Name))
 
 		kubeProvider := NewKubeProvider()
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
-		newDeployment := generateDeployment(stage, service, false, deploymentClient)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		newDeployment := generateDeployment(namespace, service, false, deploymentClient)
 
 		updateOptions := metav1.UpdateOptions{
 			FieldManager: DEPLOYMENTNAME,
@@ -88,14 +88,14 @@ func UpdateDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8s
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Updating deployment '%s'.", stage.Name))
+			cmd.Success(fmt.Sprintf("Updating deployment '%s'.", namespace.Name))
 		}
 
 	}(cmd, wg)
 	return cmd
 }
 
-func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Starting Deployment", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -103,8 +103,8 @@ func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 		cmd.Start(fmt.Sprintf("Starting Deployment '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
-		deployment := generateDeployment(stage, service, false, deploymentClient)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		deployment := generateDeployment(namespace, service, false, deploymentClient)
 
 		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
@@ -116,7 +116,7 @@ func StartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sS
 	return cmd
 }
 
-func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Stopping Deployment", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -124,8 +124,8 @@ func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 		cmd.Start(fmt.Sprintf("Stopping Deployment '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
-		deployment := generateDeployment(stage, service, false, deploymentClient)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		deployment := generateDeployment(namespace, service, false, deploymentClient)
 		deployment.Spec.Replicas = utils.Pointer[int32](0)
 
 		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
@@ -138,7 +138,7 @@ func StopDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSe
 	return cmd
 }
 
-func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Restart Deployment", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -146,8 +146,8 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 		cmd.Start(fmt.Sprintf("Restarting Deployment '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(stage.Name)
-		deployment := generateDeployment(stage, service, false, deploymentClient)
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		deployment := generateDeployment(namespace, service, false, deploymentClient)
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
 		if deployment.ObjectMeta.Annotations == nil {
 			deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
@@ -166,10 +166,10 @@ func RestartDeployment(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8
 	return cmd
 }
 
-func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, freshlyCreated bool, deploymentclient v1depl.DeploymentInterface) v1.Deployment {
+func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, deploymentclient v1depl.DeploymentInterface) v1.Deployment {
 	previousDeployment, err := deploymentclient.Get(context.TODO(), service.Name, metav1.GetOptions{})
 	if err != nil {
-		//logger.Log.Infof("No previous deployment found for %s/%s.", stage.Name, service.Name)
+		//logger.Log.Infof("No previous deployment found for %s/%s.", namespace.Name, service.Name)
 		previousDeployment = nil
 	}
 
@@ -189,11 +189,11 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 
 	newDeployment := utils.InitDeployment()
 	newDeployment.ObjectMeta.Name = service.Name
-	newDeployment.ObjectMeta.Namespace = stage.Name
+	newDeployment.ObjectMeta.Namespace = namespace.Name
 	newDeployment.Spec.Selector.MatchLabels["app"] = service.Name
-	newDeployment.Spec.Selector.MatchLabels["ns"] = stage.Name
+	newDeployment.Spec.Selector.MatchLabels["ns"] = namespace.Name
 	newDeployment.Spec.Template.ObjectMeta.Labels["app"] = service.Name
-	newDeployment.Spec.Template.ObjectMeta.Labels["ns"] = stage.Name
+	newDeployment.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
 
 	// STRATEGY
 	if service.K8sSettings.DeploymentStrategy != "" {
@@ -317,7 +317,7 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 				})
 
 				// VOLUME
-				nfsService := ServiceForNfsVolume(stage.Name, volumeName)
+				nfsService := ServiceForNfsVolume(namespace.Name, volumeName)
 				if nfsService != nil {
 					newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
 						Name: volumeName,
@@ -329,7 +329,7 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 						},
 					})
 				} else {
-					logger.Log.Errorf("No Volume found for  '%s/%s'!!!", stage.Name, volumeName)
+					logger.Log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
 				}
 			} else {
 				logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
@@ -338,8 +338,8 @@ func generateDeployment(stage dtos.K8sStageDto, service dtos.K8sServiceDto, fres
 	}
 
 	// IMAGE PULL SECRET
-	if ContainerSecretDoesExistForStage(stage) {
-		containerSecretName := "container-secret-" + stage.Name
+	if ContainerSecretDoesExistForStage(namespace) {
+		containerSecretName := "container-secret-" + namespace.Name
 		newDeployment.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
 		newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
 	}

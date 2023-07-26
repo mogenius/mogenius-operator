@@ -15,8 +15,8 @@ import (
 type Command struct {
 	Id                      string  `json:"id"`
 	JobId                   string  `json:"jobId"`
-	NamespaceId             string  `json:"namespaceId"`
-	StageId                 *string `json:"stageId,omitempty"`
+	ProjectId               string  `json:"projectId"`
+	NamespaceId             *string `json:"namespaceId,omitempty"`
 	ServiceId               *string `json:"serviceId,omitempty"`
 	Title                   string  `json:"title"`
 	Message                 string  `json:"message,omitempty"`
@@ -33,8 +33,8 @@ func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
 	return &dtos.K8sNotificationDto{
 		Id:          cmd.Id,
 		JobId:       cmd.JobId,
-		ProjectId:   cmd.NamespaceId,
-		NamespaceId: cmd.StageId,
+		ProjectId:   cmd.ProjectId,
+		NamespaceId: cmd.NamespaceId,
 		ServiceId:   cmd.ServiceId,
 		Title:       cmd.Title,
 		Message:     cmd.Message,
@@ -48,10 +48,10 @@ func CreateCommand(title string, job *Job) *Command {
 	cmd := Command{
 		Id:                      uuid.NewV4().String(),
 		JobId:                   job.Id,
-		StageId:                 job.StageId,
+		ProjectId:               job.ProjectId,
+		NamespaceId:             job.NamespaceId,
 		ServiceId:               job.ServiceId,
 		Title:                   title,
-		NamespaceId:             job.NamespaceId,
 		Message:                 "",
 		StartedAt:               time.Now().Format(time.RFC3339),
 		State:                   "PENDING",

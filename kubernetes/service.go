@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", service.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -24,71 +24,71 @@ func CreateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sSer
 		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.Name))
 
 		kubeProvider := NewKubeProvider()
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.Name)
-		newService := generateService(stage, service)
+		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace.Name)
+		newService := generateService(namespace, service)
 
-		newService.Labels = MoUpdateLabels(&newService.Labels, &job.NamespaceId, &stage, &service)
+		newService.Labels = MoUpdateLabels(&newService.Labels, job.ProjectId, &namespace, &service)
 
 		// bind/unbind ports globally
-		UpdateTcpUdpPorts(stage, service, true)
+		UpdateTcpUdpPorts(namespace, service, true)
 
 		_, err := serviceClient.Create(context.TODO(), &newService, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created service '%s'.", stage.Name))
+			cmd.Success(fmt.Sprintf("Created service '%s'.", namespace.Name))
 		}
 
 	}(cmd, wg)
 	return cmd
 }
 
-func DeleteService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Delete Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting service '%s'.", stage.Name))
+		cmd.Start(fmt.Sprintf("Deleting service '%s'.", namespace.Name))
 
 		kubeProvider := NewKubeProvider()
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.Name)
+		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace.Name)
 
 		// bind/unbind ports globally
-		UpdateTcpUdpPorts(stage, service, false)
+		UpdateTcpUdpPorts(namespace, service, false)
 
 		err := serviceClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted service '%s'.", stage.Name))
+			cmd.Success(fmt.Sprintf("Deleted service '%s'.", namespace.Name))
 		}
 	}(cmd, wg)
 	return cmd
 }
 
-func UpdateService(job *structs.Job, stage dtos.K8sStageDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Update Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Update service '%s'.", stage.Name))
+		cmd.Start(fmt.Sprintf("Update service '%s'.", namespace.Name))
 
 		kubeProvider := NewKubeProvider()
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(stage.Name)
-		updateService := generateService(stage, service)
+		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace.Name)
+		updateService := generateService(namespace, service)
 
 		updateOptions := metav1.UpdateOptions{
 			FieldManager: DEPLOYMENTNAME,
 		}
 
 		// bind/unbind ports globally
-		UpdateTcpUdpPorts(stage, service, true)
+		UpdateTcpUdpPorts(namespace, service, true)
 
 		_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Updated service '%s'.", stage.Name))
+			cmd.Success(fmt.Sprintf("Updated service '%s'.", namespace.Name))
 		}
 	}(cmd, wg)
 	return cmd
@@ -148,7 +148,7 @@ func UpdateServiceWith(service *v1.Service) error {
 // 	return result
 // }
 
-func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, additive bool) {
+func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, additive bool) {
 	// 1. get configmap and ingress service
 	tcpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp")
 	udpConfigmap := ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp")
@@ -171,8 +171,8 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, addit
 		udpConfigmap.Data = make(map[string]string)
 	}
 
-	k8sName := fmt.Sprintf("%s/%s", stage.Name, service.Name)
-	k8sNameIngresss := fmt.Sprintf("%s-%s", stage.Name, service.Name)
+	k8sName := fmt.Sprintf("%s/%s", namespace.Name, service.Name)
+	k8sNameIngresss := fmt.Sprintf("%s-%s", namespace.Name, service.Name)
 
 	// 2. Remove all entries for this service
 	for cmKey, cmValue := range tcpConfigmap.Data {
@@ -377,10 +377,10 @@ func NewK8sService() K8sNewWorkload {
 		"A Kubernetes Service is an abstraction which defines a logical set of Pods and a policy by which to access them. The set of Pods targeted by a Service is usually determined by a selector. In this example, the service named 'my-service' listens on port 80, and forwards the requests to port 9376 on the pods which have the label app=MyApp.")
 }
 
-func generateService(stage dtos.K8sStageDto, service dtos.K8sServiceDto) v1.Service {
+func generateService(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) v1.Service {
 	newService := utils.InitService()
 	newService.ObjectMeta.Name = service.Name
-	newService.ObjectMeta.Namespace = stage.Name
+	newService.ObjectMeta.Namespace = namespace.Name
 	if len(service.Ports) > 0 {
 		newService.Spec.Ports = []v1.ServicePort{} // reset before using
 		for _, port := range service.Ports {

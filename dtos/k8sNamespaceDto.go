@@ -1,6 +1,6 @@
 package dtos
 
-type K8sNamespaceDto struct {
+type K8sProjectDto struct {
 	Id                    string `json:"id" validate:"required"`
 	DisplayName           string `json:"displayName" validate:"required"`
 	GitAccessToken        string `json:"gitAccessToken" validate:"required"`
@@ -12,8 +12,8 @@ type K8sNamespaceDto struct {
 	ContainerRegistryPat  string `json:"containerRegistryPat" validate:"required"`
 }
 
-func K8sNamespaceDtoExampleData() K8sNamespaceDto {
-	return K8sNamespaceDto{
+func K8sProjectDtoExampleData() K8sProjectDto {
+	return K8sProjectDto{
 		Id:                    "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		DisplayName:           "displayName",
 		GitAccessToken:        "gitAccessToken",

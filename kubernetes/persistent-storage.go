@@ -30,7 +30,7 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		storageClass := utils.StorageClassForClusterProvider(utils.CONFIG.Misc.ClusterProvider)
 
 		pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
-		pvc.Name = volumeName
+		pvc.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 		pvc.Namespace = namespaceName
 		pvc.Spec.StorageClassName = utils.Pointer(storageClass)
 		pvc.Spec.Resources.Requests = v1.ResourceList{}
@@ -57,7 +57,7 @@ func DeleteMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 
 		kubeProvider := NewKubeProvider()
 		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
-		err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
+		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 		} else {
@@ -115,8 +115,8 @@ func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, name
 		// FIND VOLUME WITH THE RIGHT CLAIM AND DELETE IT
 		for _, pv := range pvList.Items {
 			if pv.Spec.ClaimRef != nil {
-				if pv.Spec.ClaimRef.Name == volumeName && pv.Spec.ClaimRef.Namespace == namespaceName {
-					err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
+				if pv.Spec.ClaimRef.Name == fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName) && pv.Spec.ClaimRef.Namespace == namespaceName {
+					err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 					if err != nil {
 						if apierrors.IsNotFound(err) {
 							// IN CASE: NOT FOUND -> IT HAS ALREADY BEEN DELETED. e.g. by the provisioneer
@@ -141,9 +141,9 @@ func CreateMogeniusNfsService(job *structs.Job, namespaceName string, volumeName
 	cmd.Start(fmt.Sprintf("Creating PersistentVolume Service '%s'.", volumeName))
 
 	service := utils.InitMogeniusNfsService()
-	service.Name = volumeName
+	service.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 	service.Namespace = namespaceName
-	service.Spec.Selector["app"] = volumeName
+	service.Spec.Selector["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 
 	kubeProvider := NewKubeProvider()
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespaceName)
@@ -166,7 +166,7 @@ func DeleteMogeniusNfsService(job *structs.Job, namespaceName string, volumeName
 
 		kubeProvider := NewKubeProvider()
 		pvcClient := kubeProvider.ClientSet.CoreV1().Services(namespaceName)
-		err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
+		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsService ERROR: %s", err.Error()))
 		} else {
@@ -184,13 +184,13 @@ func CreateMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		cmd.Start(fmt.Sprintf("Creating PersistentVolume Deployment '%s'.", volumeName))
 
 		deployment := utils.InitMogeniusNfsDeployment()
-		deployment.Name = volumeName
+		deployment.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 		deployment.Namespace = namespaceName
 		deployment.Spec.Template.Labels = make(map[string]string)
-		deployment.Spec.Template.Labels["app"] = volumeName
+		deployment.Spec.Template.Labels["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 		deployment.Spec.Selector.MatchLabels = make(map[string]string)
-		deployment.Spec.Selector.MatchLabels["app"] = volumeName
-		deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName = volumeName
+		deployment.Spec.Selector.MatchLabels["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
+		deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 
 		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
@@ -213,7 +213,7 @@ func DeleteMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 
 		kubeProvider := NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
-		err := deploymentClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
+		err := deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsDeployment ERROR: %s", err.Error()))
 		} else {
@@ -222,114 +222,3 @@ func DeleteMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 	}(cmd, wg)
 	return cmd
 }
-
-// func CreateMogeniusNfsPersistentVolumeClaimForK8sManager(job *structs.Job, volumeName string, volumeSizeInGb int) error {
-// 	logger.Log.Infof("Creating PersistentVolumeClaim for k8s-manager '%s'.", volumeName)
-// 	storageClass := utils.StorageClassForClusterProvider(utils.CONFIG.Misc.ClusterProvider)
-
-// 	pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
-// 	pvc.Name = volumeName
-// 	pvc.Namespace = utils.CONFIG.Kubernetes.OwnNamespace
-// 	pvc.Spec.StorageClassName = utils.Pointer(storageClass)
-// 	pvc.Spec.Resources.Requests = v1.ResourceList{}
-// 	pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
-
-// 	kubeProvider := NewKubeProvider()
-// 	pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(pvc.Namespace)
-// 	_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
-// 	if err != nil {
-// 		logger.Log.Errorf("CreateMogeniusNfsPersistentVolumeClaimForK8sManager  ERROR: %s", err.Error())
-// 		return err
-// 	} else {
-// 		logger.Log.Infof("Created PersistentVolumeClaim for k8s-manager '%s'.", volumeName)
-// 	}
-// 	return nil
-// }
-
-// func DeleteMogeniusNfsPersistentVolumeClaimK8sManager(job *structs.Job, volumeName string) error {
-// 	logger.Log.Infof("Deleting PersistentVolumeClaim '%s'.", volumeName)
-
-// 	kubeProvider := NewKubeProvider()
-// 	pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(utils.CONFIG.Kubernetes.OwnNamespace)
-// 	err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
-// 	if err != nil {
-// 		logger.Log.Infof("DeleteMogeniusNfsPersistentVolumeClaimK8sManager ERROR: %s", err.Error())
-// 		return err
-// 	} else {
-// 		logger.Log.Infof("Deleted PersistentVolumeClaim for k8s-manager '%s'.", volumeName)
-// 	}
-// 	return nil
-// }
-
-// func AddMogeniusK8sManagerNfsServerDeployment(nfsServiceClusterIp string, volumeName string) error {
-// 	logger.Log.Infof("Adding volume and mount to %s '%s'.", utils.K8SNFS_SERVER_NAME, volumeName)
-
-// 	kubeProvider := NewKubeProvider()
-// 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(utils.CONFIG.Kubernetes.OwnNamespace)
-
-// 	// Get Deployment
-// 	nfsServerDepl, deplErr := deploymentClient.Get(context.TODO(), utils.K8SNFS_SERVER_NAME, metav1.GetOptions{})
-// 	if deplErr != nil {
-// 		logger.Log.Infof("AddMogeniusK8sManagerNfsServerDeployment GET DEPLOYMENT ERROR: %s", deplErr.Error())
-// 		return deplErr
-// 	}
-
-// 	// Update Deployment
-// 	nfsServerDepl.Spec.Template.Spec.Containers[0].VolumeMounts = append(nfsServerDepl.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
-// 		MountPath: fmt.Sprintf("/exports/%s", volumeName),
-// 		SubPath:   "",
-// 		Name:      volumeName,
-// 	})
-// 	nfsServerDepl.Spec.Template.Spec.Volumes = append(nfsServerDepl.Spec.Template.Spec.Volumes, core.Volume{
-// 		Name: volumeName,
-// 		VolumeSource: core.VolumeSource{
-// 			NFS: &core.NFSVolumeSource{
-// 				Path:   "/exports",
-// 				Server: nfsServiceClusterIp,
-// 			},
-// 		},
-// 	})
-// 	_, err := deploymentClient.Update(context.TODO(), nfsServerDepl, metav1.UpdateOptions{})
-// 	if err != nil {
-// 		logger.Log.Infof("AddMogeniusK8sManagerNfsServerDeployment ERROR: %s", err.Error())
-// 		return err
-// 	} else {
-// 		logger.Log.Infof("Added volume and mount to %s '%s'.", utils.K8SNFS_SERVER_NAME, volumeName)
-// 	}
-// 	return nil
-// }
-
-// func RemoveMogeniusK8sManagerNfsServerDeployment(volumeName string) error {
-// 	logger.Log.Infof("Remove volume and mount from %s '%s'.", utils.K8SNFS_SERVER_NAME, volumeName)
-
-// 	kubeProvider := NewKubeProvider()
-// 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(utils.CONFIG.Kubernetes.OwnNamespace)
-
-// 	// Get Deployment
-// 	nfsServerDepl, deplErr := deploymentClient.Get(context.TODO(), utils.K8SNFS_SERVER_NAME, metav1.GetOptions{})
-// 	if deplErr != nil {
-// 		logger.Log.Infof("RemoveMogeniusK8sManagerNfsServerDeployment GET DEPLOYMENT ERROR: %s", deplErr.Error())
-// 		return deplErr
-// 	}
-
-// 	// REMOVE VOLUME AND VOLUME MOUNT FROM Deployment
-// 	for index, mount := range nfsServerDepl.Spec.Template.Spec.Containers[0].VolumeMounts {
-// 		if mount.Name == volumeName {
-// 			nfsServerDepl.Spec.Template.Spec.Containers[0].VolumeMounts = utils.Remove(nfsServerDepl.Spec.Template.Spec.Containers[0].VolumeMounts, index)
-// 		}
-// 	}
-// 	for index, volume := range nfsServerDepl.Spec.Template.Spec.Volumes {
-// 		if volume.Name == volumeName {
-// 			nfsServerDepl.Spec.Template.Spec.Volumes = utils.Remove(nfsServerDepl.Spec.Template.Spec.Volumes, index)
-// 		}
-// 	}
-
-// 	_, err := deploymentClient.Update(context.TODO(), nfsServerDepl, metav1.UpdateOptions{})
-// 	if err != nil {
-// 		logger.Log.Infof("RemoveMogeniusK8sManagerNfsServerDeployment ERROR: %s", err.Error())
-// 		return err
-// 	} else {
-// 		logger.Log.Infof("Removed volume and mount from %s '%s'.", utils.K8SNFS_SERVER_NAME, volumeName)
-// 	}
-// 	return nil
-// }

@@ -19,7 +19,7 @@ const (
 	INGRESS_PREFIX = "ingress"
 )
 
-func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Updating ingress setup.", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -27,16 +27,16 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 		cmd.Start("Updating ingress setup.")
 
 		kubeProvider := NewKubeProvider()
-		ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(stage.Name)
+		ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
 
 		applyOptions := metav1.ApplyOptions{
 			Force:        true,
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		ingressName := INGRESS_PREFIX + "-" + stage.Name
+		ingressName := INGRESS_PREFIX + "-" + namespace.Name
 
-		config := networkingv1.Ingress(ingressName, stage.Name)
+		config := networkingv1.Ingress(ingressName, namespace.Name)
 		config.WithAnnotations(map[string]string{
 			"kubernetes.io/ingress.class":                    "nginx",
 			"nginx.ingress.kubernetes.io/rewrite-target":     "/",
@@ -52,7 +52,7 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 		})
 
 		// remove the issuer if cloudflare takes over controll over certificate
-		if stage.CloudflareProxied {
+		if namespace.CloudflareProxied {
 			delete(config.Annotations, "cert-manager.io/cluster-issuer")
 		}
 
@@ -60,7 +60,7 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 		tlsHosts := []string{}
 
 		// 1. All Services
-		for _, service := range stage.Services {
+		for _, service := range namespace.Services {
 			// SKIP service if marked for delete
 			if skipForDelete != nil && skipForDelete.Id == service.Id {
 				continue
@@ -85,20 +85,20 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 				}
 				for _, cname := range service.CNames {
 					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.Name, int32(port.InternalPort)))
-					if !stage.CloudflareProxied {
+					if !namespace.CloudflareProxied {
 						tlsHosts = append(tlsHosts, cname)
 					}
 				}
 			}
-			if !stage.CloudflareProxied && len(service.CNames) == 0 {
+			if !namespace.CloudflareProxied && len(service.CNames) == 0 {
 				tlsHosts = append(tlsHosts, service.FullHostname)
 			}
 
 		}
-		if !stage.CloudflareProxied {
+		if !namespace.CloudflareProxied {
 			spec.TLS = append(spec.TLS, networkingv1.IngressTLSApplyConfiguration{
 				Hosts:      tlsHosts,
-				SecretName: &stage.Name,
+				SecretName: &namespace.Name,
 			})
 		}
 
@@ -109,7 +109,7 @@ func UpdateIngress(job *structs.Job, stage dtos.K8sStageDto, redirectTo *string,
 		config.WithSpec(spec)
 
 		// BEFORE UPDATING INGRESS WE SETUP THE CERTIFICATES FOR ALL HOSTNAMES
-		UpdateNamespaceCertificate(stage.Name, tlsHosts)
+		UpdateNamespaceCertificate(namespace.Name, tlsHosts)
 
 		if len(spec.Rules) <= 0 {
 			existingIngress, ingErr := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})

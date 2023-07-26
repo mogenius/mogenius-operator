@@ -26,31 +26,31 @@ import (
 
 func CreateService(r ServiceCreateRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id)
+	job := structs.CreateJob("Create Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
 
 	// check if namespace exists and CREATE IT IF NOT
-	nsExists, nsErr := mokubernetes.NamespaceExists(r.Stage.Name)
+	nsExists, nsErr := mokubernetes.NamespaceExists(r.Namespace.Name)
 	if nsErr != nil {
 		logger.Log.Warning(nsErr.Error())
 	}
 	if !nsExists {
 		nsReq := NamespaceCreateRequest{
+			Project:   r.Project,
 			Namespace: r.Namespace,
-			Stage:     r.Stage,
 		}
 		job.AddCmds(CreateNamespaceCmds(&job, nsReq, &wg))
 	}
 
-	if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
-		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Namespace, r.Stage, &wg))
+	if r.Project.ContainerRegistryUser != "" && r.Project.ContainerRegistryPat != "" {
+		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
 	}
 
-	job.AddCmd(mokubernetes.CreateSecret(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.CreateService(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
+	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	if r.Service.App.Type == "DOCKER_TEMPLATE" {
 		initDocker(r.Service, job)
 	}
@@ -61,13 +61,13 @@ func CreateService(r ServiceCreateRequest) interface{} {
 
 func DeleteService(r ServiceDeleteRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id)
+	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
-	job.AddCmd(mokubernetes.DeleteService(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.DeleteNetworkPolicyService(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
+	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.DeleteNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -117,11 +117,11 @@ func ServicePodStatus(r ServicePodsRequest) interface{} {
 
 func Restart(r ServiceRestartRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restart Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id)
+	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
-	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
+	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -129,11 +129,11 @@ func Restart(r ServiceRestartRequest) interface{} {
 
 func StopService(r ServiceStopRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Stop Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id)
+	job := structs.CreateJob("Stop Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
-	job.AddCmd(mokubernetes.StopDeployment(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
+	job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -142,12 +142,12 @@ func StopService(r ServiceStopRequest) interface{} {
 func StartService(r ServiceStartRequest) interface{} {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Start Service "+r.Stage.DisplayName, r.NamespaceId, &r.Stage.Id, &r.Service.Id)
+	job := structs.CreateJob("Start Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
-	job.AddCmd(mokubernetes.StartDeployment(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
+	job.AddCmd(mokubernetes.StartDeployment(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -155,15 +155,15 @@ func StartService(r ServiceStartRequest) interface{} {
 
 func UpdateService(r ServiceUpdateRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Update Service "+r.Namespace.DisplayName+"/"+r.Stage.DisplayName, r.Namespace.Id, &r.Stage.Id, &r.Service.Id)
+	job := structs.CreateJob("Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
-	if r.Namespace.ContainerRegistryUser != "" && r.Namespace.ContainerRegistryPat != "" {
-		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Namespace, r.Stage, &wg))
+	if r.Project.ContainerRegistryUser != "" && r.Project.ContainerRegistryPat != "" {
+		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
 	}
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Stage, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Stage, nil, nil, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -201,29 +201,29 @@ func initDocker(service dtos.K8sServiceDto, job structs.Job) []*structs.Command 
 }
 
 type ServiceCreateRequest struct {
+	Project   dtos.K8sProjectDto   `json:"project"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Stage     dtos.K8sStageDto     `json:"stage"`
 	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func ServiceCreateRequestExample() ServiceCreateRequest {
 	return ServiceCreateRequest{
+		Project:   dtos.K8sProjectDtoExampleData(),
 		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Stage:     dtos.K8sStageDtoExampleData(),
 		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
 
 type ServiceDeleteRequest struct {
+	Project   dtos.K8sProjectDto   `json:"project"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Stage     dtos.K8sStageDto     `json:"stage"`
 	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func ServiceDeleteRequestExample() ServiceDeleteRequest {
 	return ServiceDeleteRequest{
+		Project:   dtos.K8sProjectDtoExampleData(),
 		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Stage:     dtos.K8sStageDtoExampleData(),
 		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
@@ -1000,91 +1000,57 @@ func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
 }
 
 type ServiceRestartRequest struct {
-	NamespaceId string             `json:"namespaceId"`
-	Stage       dtos.K8sStageDto   `json:"stage"`
-	Service     dtos.K8sServiceDto `json:"service"`
+	ProjectId string               `json:"projectId"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func ServiceRestartRequestExample() ServiceRestartRequest {
 	return ServiceRestartRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       dtos.K8sStageDtoExampleData(),
-		Service:     dtos.K8sServiceDtoExampleData(),
+		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
 
 type ServiceStopRequest struct {
-	NamespaceId string             `json:"namespaceId"`
-	Stage       dtos.K8sStageDto   `json:"stage"`
-	Service     dtos.K8sServiceDto `json:"service"`
+	ProjectId string               `json:"projectId"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func ServiceStopRequestExample() ServiceStopRequest {
 	return ServiceStopRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       dtos.K8sStageDtoExampleData(),
-		Service:     dtos.K8sServiceDtoExampleData(),
+		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
 
 type ServiceStartRequest struct {
-	NamespaceId string             `json:"namespaceId"`
-	Stage       dtos.K8sStageDto   `json:"stage"`
-	Service     dtos.K8sServiceDto `json:"service"`
+	ProjectId string               `json:"projectId"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func ServiceStartRequestExample() ServiceStartRequest {
 	return ServiceStartRequest{
-		NamespaceId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Stage:       dtos.K8sStageDtoExampleData(),
-		Service:     dtos.K8sServiceDtoExampleData(),
+		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
 
 type ServiceUpdateRequest struct {
+	Project   dtos.K8sProjectDto   `json:"project"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Stage     dtos.K8sStageDto     `json:"stage"`
 	Service   dtos.K8sServiceDto   `json:"service"`
 }
 
 func ServiceUpdateRequestExample() ServiceUpdateRequest {
 	return ServiceUpdateRequest{
+		Project:   dtos.K8sProjectDtoExampleData(),
 		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Stage:     dtos.K8sStageDtoExampleData(),
 		Service:   dtos.K8sServiceDtoExampleData(),
 	}
 }
-
-// type ServiceBindSpectrumRequest struct {
-// 	K8sNamespaceName string `json:"k8sNamespaceName"`
-// 	K8sServiceName   string `json:"k8sServiceName"`
-// 	ExternalPort     int    `json:"externalPort"`
-// 	InternalPort     int    `json:"internalPort"`
-// 	Type             string `json:"type"`
-// 	NamespaceId      string `json:"namespaceId"`
-// }
-
-// func ServiceBindSpectrumRequestExample() ServiceBindSpectrumRequest {
-// 	return ServiceBindSpectrumRequest{
-// 		K8sNamespaceName: "lalalal123",
-// 		K8sServiceName:   "lulululu123",
-// 		ExternalPort:     12345,
-// 		InternalPort:     80,
-// 		Type:             "TCP",
-// 		NamespaceId:      "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
-// 	}
-// }
-
-// type ServiceUnbindSpectrumRequest struct {
-// 	ExternalPort int    `json:"externalPort"`
-// 	Type         string `json:"type"`
-// 	NamespaceId  string `json:"namespaceId"`
-// }
-
-// func ServiceUnbindSpectrumRequestExample() ServiceUnbindSpectrumRequest {
-// 	return ServiceUnbindSpectrumRequest{
-// 		ExternalPort: 12345,
-// 		Type:         "TCP",
-// 		NamespaceId:  "DAF08780-9C55-4A56-BF3C-471FEEE93C41",
-// 	}
-// }

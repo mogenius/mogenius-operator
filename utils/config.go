@@ -46,6 +46,7 @@ type Config struct {
 		CheckForUpdates       int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
 		HelmIndex             string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
 		ClusterProvider       string   `yaml:"cluster_provider" env:"cluster_provider" env-description:"Providers like AKS, EKS, GCP etc."`
+		NfsPodPrefix          string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
 	} `yaml:"misc"`
 	Builder struct {
 		BuildTimeout int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
@@ -157,6 +158,7 @@ func PrintSettings() {
 	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
 	logger.Log.Infof("ClusterProvider:          %s", CONFIG.Misc.ClusterProvider)
+	logger.Log.Infof("NfsPodPrefix:             %s", CONFIG.Misc.NfsPodPrefix)
 
 	logger.Log.Infof("ClusterProvider:          %d", CONFIG.Builder.BuildTimeout)
 }

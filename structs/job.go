@@ -18,8 +18,8 @@ type DefaultResponse struct {
 
 type Job struct {
 	Id                      string     `json:"id"`
-	NamespaceId             string     `json:"namespaceId"`
-	StageId                 *string    `json:"stageId,omitempty"`
+	ProjectId               string     `json:"projectId"`
+	NamespaceId             *string    `json:"namespaceId,omitempty"`
 	ServiceId               *string    `json:"serviceId,omitempty"`
 	Title                   string     `json:"title"`
 	Message                 string     `json:"message"`
@@ -34,8 +34,8 @@ func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
 	return &dtos.K8sNotificationDto{
 		Id:          job.Id,
 		JobId:       job.Id,
-		ProjectId:   job.NamespaceId,
-		NamespaceId: job.StageId,
+		ProjectId:   job.ProjectId,
+		NamespaceId: job.NamespaceId,
 		ServiceId:   job.ServiceId,
 		Title:       job.Title,
 		Message:     job.Message,
@@ -44,9 +44,10 @@ func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
 	}
 }
 
-func CreateJob(title string, namespaceId string, stageId *string, serviceId *string) Job {
+func CreateJob(title string, projectId string, namespaceId *string, serviceId *string) Job {
 	job := Job{
 		Id:                      uuid.NewV4().String(),
+		ProjectId:               projectId,
 		NamespaceId:             namespaceId,
 		ServiceId:               serviceId,
 		Title:                   title,
@@ -127,7 +128,7 @@ func ReportStateToServer(job *Job, cmd *Command) {
 	if cmd != nil {
 		typeName = "CMD"
 		if cmd.ReportToNotificationSvc {
-			if cmd.NamespaceId != "" {
+			if cmd.NamespaceId != nil {
 				data = K8sNotificationDtoFromCommand(cmd)
 			} else {
 				skipEvent = true
@@ -136,7 +137,7 @@ func ReportStateToServer(job *Job, cmd *Command) {
 	} else if job != nil {
 		typeName = "JOB"
 		if job.ReportToNotificationSvc {
-			if job.NamespaceId != "" {
+			if job.NamespaceId != nil {
 				data = K8sNotificationDtoFromJob(job)
 			} else {
 				skipEvent = true
