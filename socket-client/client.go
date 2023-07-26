@@ -68,7 +68,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
-			log.Println("read:", err)
+			logger.Log.Errorf("%s -> %s", &structs.JobConnectionUrl, err.Error())
 			return
 		} else {
 			rawDataStr := string(message)

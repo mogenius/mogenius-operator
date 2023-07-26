@@ -755,8 +755,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := structs.BuildJobStatusRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		return builder.BuildJobInfos(data.BuildId)
-	case PAT_BUILD_LIST:
-		return builder.List()
+	case PAT_BUILD_LIST_ALL:
+		return builder.ListAll()
+	case PAT_BUILD_LIST_BY_PROJECT:
+		data := structs.ListBuildByProjectIdRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return builder.ListByProjectId(data.ProjectId)
 	case PAT_BUILD_ADD:
 		data := structs.BuildJob{}
 		structs.MarshalUnmarshal(&datagram, &data)

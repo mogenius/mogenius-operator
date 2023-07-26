@@ -219,16 +219,16 @@ func UpdateTcpUdpPorts(stage dtos.K8sStageDto, service dtos.K8sServiceDto, addit
 
 	// 4. write results to k8s
 	tcpResult := UpdateK8sConfigMap(*tcpConfigmap)
-	if tcpResult.Result != "" {
-		logger.Log.Error(tcpResult)
+	if tcpResult.Error != nil {
+		logger.Log.Errorf("UpdateK8sConfigMap: %s", tcpResult)
 	}
 	udpResult := UpdateK8sConfigMap(*udpConfigmap)
-	if udpResult.Result != "" {
-		logger.Log.Error(udpResult)
+	if udpResult.Error != nil {
+		logger.Log.Errorf("UpdateK8sConfigMap: %s", udpResult)
 	}
 	ingContrResult := UpdateK8sService(*ingControllerService)
-	if ingContrResult.Result != "" {
-		logger.Log.Error(ingContrResult)
+	if ingContrResult.Error != nil {
+		logger.Log.Errorf("UpdateK8sConfigMap: %s", ingContrResult)
 	}
 }
 

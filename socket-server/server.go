@@ -471,8 +471,10 @@ func requestCmdFromCluster(pattern string) {
 			payload = nil
 		case services.PAT_BUILD_INFOS:
 			payload = structs.BuildJobExample()
-		case services.PAT_BUILD_LIST:
+		case services.PAT_BUILD_LIST_ALL:
 			payload = nil
+		case services.PAT_BUILD_LIST_BY_PROJECT:
+			payload = structs.ListBuildByProjectIdRequestExample()
 		case services.PAT_BUILD_ADD:
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_SCAN:

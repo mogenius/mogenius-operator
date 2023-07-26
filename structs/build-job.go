@@ -1,7 +1,10 @@
 package structs
 
 import (
+	"mogenius-k8s-manager/logger"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -68,7 +71,7 @@ type BuildJobListEntry struct {
 func BuildJobExample() BuildJob {
 	return BuildJob{
 		JobId:                 "na8ggegq2p0pepbvjldlger",
-		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9f",
+		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
 		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
 		Namespace:             "benegeilomat-prod-cp4wh9",
 		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8305",
@@ -103,6 +106,16 @@ func BuildJobStatusRequestExample() BuildJobStatusRequest {
 	}
 }
 
+type ListBuildByProjectIdRequest struct {
+	ProjectId string `json:"projectId"`
+}
+
+func ListBuildByProjectIdRequestExample() ListBuildByProjectIdRequest {
+	return ListBuildByProjectIdRequest{
+		ProjectId: "6dbd5930-e3f0-4594-9888-2003c6325f9a",
+	}
+}
+
 type BuildAddResult struct {
 	BuildId int `json:"buildId"`
 }
@@ -123,25 +136,59 @@ type BuildDeleteResult struct {
 }
 
 type BuildJobInfos struct {
-	BuildId int    `json:"buildId"`
-	Clone   string `json:"clone"`
-	Ls      string `json:"ls"`
-	Login   string `json:"login"`
-	Build   string `json:"build"`
-	Push    string `json:"push"`
-	Scan    string `json:"scan"`
+	BuildId int               `json:"buildId"`
+	Clone   BuildJobInfoEntry `json:"clone"`
+	Ls      BuildJobInfoEntry `json:"ls"`
+	Login   BuildJobInfoEntry `json:"login"`
+	Build   BuildJobInfoEntry `json:"build"`
+	Push    BuildJobInfoEntry `json:"push"`
+	Scan    BuildJobInfoEntry `json:"scan"`
+}
+
+type BuildJobInfoEntry struct {
+	State  string `json:"state"`
+	Result string `json:"result"`
 }
 
 func CreateBuildJobInfos(buildId int, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
 	result := BuildJobInfos{}
 
 	result.BuildId = buildId
-	result.Clone = string(clone)
-	result.Ls = string(ls)
-	result.Login = string(login)
-	result.Build = string(build)
-	result.Push = string(push)
-	result.Scan = string(scan)
+	result.Clone = createBuildJobEntryFromData(clone)
+	result.Ls = createBuildJobEntryFromData(ls)
+	result.Login = createBuildJobEntryFromData(login)
+	result.Build = createBuildJobEntryFromData(build)
+	result.Push = createBuildJobEntryFromData(push)
+	result.Scan = createBuildJobEntryFromData(scan)
 
 	return result
+}
+
+func createBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
+	result := BuildJobInfoEntry{}
+
+	if data != nil {
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
+		err := json.Unmarshal(data, &result)
+		if err != nil {
+			logger.Log.Errorf("createBuildJobEntryFromData ERR: %s", err.Error())
+		}
+	}
+
+	return result
+}
+
+func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte) []byte {
+	entry := BuildJobInfoEntry{
+		State:  state,
+		Result: string(cmdOutput),
+	}
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	bytes, err := json.Marshal(entry)
+	if err != nil {
+		logger.Log.Errorf("createBuildJobInfoEntryBytes ERR: %s", err.Error())
+	}
+	return bytes
+
 }

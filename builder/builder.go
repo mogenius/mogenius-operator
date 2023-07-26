@@ -87,18 +87,22 @@ func ProcessQueue() {
 		case <-ctx.Done():
 			logger.Log.Errorf("BUILD TIMEOUT (after %ds)! (%s)", utils.CONFIG.Builder.BuildTimeout, ctx.Err())
 			job.State = structs.BUILD_STATE_TIMEOUT
+			buildJob.State = structs.BUILD_STATE_TIMEOUT
 			saveJob(buildJob)
 		case result := <-currentBuildChannel:
 			switch result {
 			case structs.BUILD_STATE_CANCELED:
-				logger.Log.Warningf("Build '%d' CANCELED successfuly. (Took: %dms)", buildJob.BuildId, job.DurationMs)
+				logger.Log.Warningf("Build '%d' CANCELED successfuly. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
+			case structs.BUILD_STATE_FAILED:
+				logger.Log.Errorf("Build '%d' FAILDED. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
 			case structs.BUILD_STATE_SUCCEEDED:
-				logger.Log.Noticef("Build '%d' finished successfuly. (Took: %dms)", buildJob.BuildId, job.DurationMs)
+				logger.Log.Noticef("Build '%d' finished successfuly. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
 			default:
 				logger.Log.Errorf("Unhandled channelMsg for '%d': %s", buildJob.BuildId, result)
 			}
 
 			job.State = result
+			buildJob.State = result
 			saveJob(buildJob)
 		}
 
@@ -136,6 +140,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	err := executeCmd(cloneCmd, PREFIX_GIT_CLONE, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("git clone --progress -b %s --single-branch %s %s", buildJob.GitBranch, buildJob.GitRepo, workingDir))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", PREFIX_GIT_CLONE, err.Error())
+		done <- structs.BUILD_STATE_FAILED
 		return
 	}
 
@@ -144,6 +149,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	err = executeCmd(lsCmd, PREFIX_LS, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("ls -lisa %s", workingDir))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", PREFIX_LS, err.Error())
+		done <- structs.BUILD_STATE_FAILED
 		return
 	}
 
@@ -153,12 +159,14 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 		err = executeCmd(loginCmd, PREFIX_LOGIN, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
+			done <- structs.BUILD_STATE_FAILED
 			return
 		}
 	} else {
 		err = executeCmd(loginCmd, PREFIX_LOGIN, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("buildah login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
+			done <- structs.BUILD_STATE_FAILED
 			return
 		}
 	}
@@ -169,12 +177,14 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 		err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman build -f %s %s -t %s -t %s %s", buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
+			done <- structs.BUILD_STATE_FAILED
 			return
 		}
 	} else {
 		err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("buildah bud -f %s %s -t %s -t %s %s", buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
+			done <- structs.BUILD_STATE_FAILED
 			return
 		}
 	}
@@ -185,17 +195,20 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman push %s", tagName))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+			done <- structs.BUILD_STATE_FAILED
 			return
 		}
 		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman push %s", latestTagName))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+			done <- structs.BUILD_STATE_FAILED
 			return
 		}
 	} else {
 		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("buildah push %s %s", tagName, latestTagName))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+			done <- structs.BUILD_STATE_FAILED
 			return
 		}
 	}
@@ -211,20 +224,6 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 	result := structs.BuildScanResult{Result: fmt.Sprintf("Scan of '%s' started ...", imageName), Error: ""}
 
 	go func() {
-		// scanresult=$(grype ${{ parameters.containerRegistryPath }}/$(imageName):$(tag) --add-cpes-if-none -t /home/build/jsontemplate -o template | base64 -w 0)
-		//     echo '{
-		//       "projectId": "${{ parameters.projectId }}",
-		//       "serviceId": "${{ parameters.serviceId }}",
-		//       "buildId": "$(tag)",
-		//       "buildState": "FINISHED",
-		//       "vulnerabilities": '\""$scanresult"\"'
-		//     }' > vulnadata.json
-		//     cat vulnadata.json
-		//     curl -v --header "Content-Type: application/json" \
-		//     --header "apitoken: $(API_KEY)" \
-		//     --data @vulnadata.json \
-		//     https://platform-api.mogenius.com/azure-pipeline-event/scan-from-pipeline
-
 		job.Start()
 
 		latestTagName := fmt.Sprintf("podman:%s/%s:latest", buildJob.ContainerRegistryPath, imageName)
@@ -242,7 +241,6 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 				if err != nil {
 					logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
 					result.Error = err.Error()
-					// TODO: EVENT SCHICKEN
 					return
 				}
 			} else {
@@ -250,7 +248,6 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 				if err != nil {
 					logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
 					result.Error = err.Error()
-					// TODO: EVENT SCHICKEN
 					return
 				}
 			}
@@ -262,7 +259,6 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
 			result.Error = err.Error()
-			// TODO: EVENT SCHICKEN
 			return
 		}
 
@@ -382,7 +378,7 @@ func Delete(buildNo int) structs.BuildDeleteResult {
 	return structs.BuildDeleteResult{Result: fmt.Sprintf("Build '%d' deleted successfuly (or has been deleted before).", buildNo)}
 }
 
-func List() []structs.BuildJobListEntry {
+func ListAll() []structs.BuildJobListEntry {
 	result := []structs.BuildJobListEntry{}
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUCKET_NAME))
@@ -404,6 +400,18 @@ func List() []structs.BuildJobListEntry {
 	return result
 }
 
+func ListByProjectId(projectId string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListAll()
+	for _, queueEntry := range list {
+		if queueEntry.ProjectId == projectId {
+			result = append(result, queueEntry)
+		}
+	}
+	return result
+}
+
 func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob, saveLog bool, timeoutCtx *context.Context, name string, arg ...string) error {
 	startTime := time.Now()
 
@@ -412,13 +420,16 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 	}
 
 	cmd := exec.CommandContext(*timeoutCtx, name, arg...)
-	cmdOutput, err := cmd.CombinedOutput()
+	cmdOutput, execErr := cmd.CombinedOutput()
 	elapsedTime := time.Since(startTime)
 
 	job.DurationMs = int(elapsedTime.Milliseconds()) + job.DurationMs + 1 // adding one ms as default penelty for every step (sometimes the steps take lass time. only microseconds)
-	if err != nil {
-		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+	if execErr != nil {
+		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), execErr)
 		logger.Log.Errorf("Error: %s", string(cmdOutput))
+		if reportCmd != nil {
+			reportCmd.Fail(execErr.Error())
+		}
 	}
 	if utils.CONFIG.Misc.Debug {
 		logger.Log.Noticef("%s%d: %dms", prefix, job.BuildId, job.DurationMs)
@@ -426,22 +437,28 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 		logger.Log.Infof("%s%d: %s", prefix, job.BuildId, string(cmdOutput))
 	}
 	if saveLog {
-		err = db.Update(func(tx *bolt.Tx) error {
+		err := db.Update(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket([]byte(BUCKET_NAME))
-			if reportCmd != nil {
+			if reportCmd != nil && execErr == nil {
 				reportCmd.Success(reportCmd.Message)
 			}
-			return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), []byte(cmdOutput))
+			if reportCmd != nil {
+				entry := structs.CreateBuildJobInfoEntryBytes(reportCmd.State, cmdOutput)
+				return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), entry)
+			}
+			return nil
 		})
-	}
-	if err != nil {
-		logger.Log.Errorf("ErrorExecuteCmd: %s", err.Error())
-		if reportCmd != nil {
-			reportCmd.Fail(err.Error())
+		if err != nil {
+			return err
 		}
-		return err
 	}
-	return nil
+
+	if execErr != nil {
+		logger.Log.Errorf("ErrorExecuteCmd: %s", execErr.Error())
+		return execErr
+	}
+
+	return execErr
 }
 
 func updateState(buildJob structs.BuildJob, newState string) {
@@ -518,43 +535,3 @@ func printAllEntries(prefix string) {
 		logger.Log.Errorf("printAllEntries: %s", err.Error())
 	}
 }
-
-// func sendBuildNotification[T any](notificationUrl string, data T) {
-// 	// https://platform-api.mogenius.com/azure-pipeline-event/create-from-pipeline
-// 	// https://platform-api.mogenius.com/azure-pipeline-event/scan-from-pipeline
-
-// 	client := &http.Client{}
-
-// 	url := fmt.Sprintf("%s%s", utils.CONFIG.ApiServer.Http_Server, notificationUrl)
-
-// 	payloadBytes, err := json.Marshal(data)
-// 	if err != nil {
-// 		logger.Log.Errorf("sendBuildNotification ERROR: %s", err.Error())
-// 		return
-// 	}
-// 	body := bytes.NewReader(payloadBytes)
-
-// 	req, err := http.NewRequest("POST", url, body)
-// 	if err != nil {
-// 		logger.Log.Errorf("sendBuildNotification ERROR: %s", err.Error())
-// 	}
-
-// 	req.Header = utils.HttpHeader("")
-// 	req.Header.Add("Content-Type", "application/json")
-
-// 	// TODO: REMOVE - THIS IS JUST FOR DEBUGGING
-// 	// if CONFIG.Misc.Debug && CONFIG.Misc.Stage == "local" {
-// 	// 	req.Header["x-authorization"] = []string{"mo_7bf5c2b5-d7bc-4f0e-b8fc-b29d09108928_0hkga6vjum3p1mvezith"}
-// 	// 	req.Header["x-cluster-mfa-id"] = []string{"a141bd85-c986-402c-9475-5bdc4679293b"}
-// 	// }
-
-// 	resp, err := client.Do(req)
-// 	if err != nil {
-// 		logger.Log.Errorf("sendBuildNotification ERROR: %s", err.Error())
-// 	}
-// 	defer resp.Body.Close()
-
-// 	if resp.StatusCode != 200 {
-// 		logger.Log.Errorf("%s (%d): %s", url, resp.StatusCode, resp.Status)
-// 	}
-// }

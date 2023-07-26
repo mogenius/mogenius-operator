@@ -48,7 +48,6 @@ func CreateJob(title string, namespaceId string, stageId *string, serviceId *str
 	job := Job{
 		Id:                      uuid.NewV4().String(),
 		NamespaceId:             namespaceId,
-		StageId:                 stageId,
 		ServiceId:               serviceId,
 		Title:                   title,
 		Message:                 "",

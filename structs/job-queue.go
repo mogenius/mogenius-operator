@@ -21,6 +21,7 @@ var JobSendMutex sync.Mutex
 var JobQueueConnection *websocket.Conn
 var JobConnectionGuard = make(chan struct{}, 1)
 var JobConnectionStatus chan bool = make(chan bool)
+var JobConnectionUrl url.URL = url.URL{}
 
 func ConnectToJobQueue() {
 	interrupt := make(chan os.Signal, 1)
@@ -67,14 +68,14 @@ func connectJob(ctx context.Context) {
 	if utils.CONFIG.Misc.Stage == "local" {
 		scheme = "ws"
 	}
-	connectionUrl := url.URL{Scheme: scheme, Host: utils.CONFIG.ApiServer.Ws_Server, Path: utils.CONFIG.ApiServer.WS_Path}
+	JobConnectionUrl = url.URL{Scheme: scheme, Host: utils.CONFIG.ApiServer.Ws_Server, Path: utils.CONFIG.ApiServer.WS_Path}
 
-	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader(""))
+	connection, _, err := websocket.DefaultDialer.Dial(JobConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
-		logger.Log.Errorf("Connection to JobServer failed (%s): %s\n", connectionUrl.String(), err.Error())
+		logger.Log.Errorf("Connection to JobServer failed (%s): %s\n", JobConnectionUrl.String(), err.Error())
 		JobConnectionStatus <- false
 	} else {
-		logger.Log.Infof("Connected to JobServer: %s  (%s)\n", connectionUrl.String(), connection.LocalAddr().String())
+		logger.Log.Infof("Connected to JobServer: %s  (%s)\n", JobConnectionUrl.String(), connection.LocalAddr().String())
 		JobQueueConnection = connection
 		JobConnectionStatus <- true
 		Ping(JobQueueConnection, &JobSendMutex)
