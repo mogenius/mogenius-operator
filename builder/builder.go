@@ -34,9 +34,7 @@ var currentBuildChannel chan string
 var currentBuildJob *structs.BuildJob
 
 func Init() {
-	// Open the my.db data file in your current directory.
-	// It will be created if it doesn't exist.
-	database, err := bolt.Open("mogenius.db", 0600, nil)
+	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbPath, 0600, nil)
 	if err != nil {
 		logger.Log.Fatal(err)
 	}
@@ -51,6 +49,7 @@ func Init() {
 	if err != nil {
 		logger.Log.Errorf("Error creating bucket ('%s'): %s", BUCKET_NAME, err)
 	}
+	logger.Log.Noticef("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbPath)
 }
 
 func ProcessQueue() {

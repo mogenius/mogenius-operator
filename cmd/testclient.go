@@ -23,8 +23,6 @@ var testClientCmd = &cobra.Command{
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
 
-		builder.Init()
-
 		// clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(false)
 		// if err != nil {
 		// 	logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
@@ -37,6 +35,8 @@ var testClientCmd = &cobra.Command{
 		}
 
 		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
+
+		builder.Init()
 
 		// INIT MOUNTS
 		if utils.CONFIG.Misc.AutoMountNfs {

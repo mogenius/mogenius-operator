@@ -5,6 +5,7 @@ kubernetes:
   cluster_mfa_id:
   run_in_cluster: false
   default_container_registry: mogenius.azurecr.io
+  bbolt_db_path: mogenius.db
 
 api_server:
   http_server: https://platform-api.dev.mogenius.com
@@ -13,7 +14,7 @@ api_server:
 
 event_server:
   server: 127.0.0.1:8080
-  path: /ws
+  path: /ws-event
 
 misc:
   stage: local

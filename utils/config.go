@@ -1,12 +1,14 @@
 package utils
 
 import (
+	"fmt"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/version"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
@@ -25,6 +27,7 @@ type Config struct {
 		ClusterMfaId             string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"UUID of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster             bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
+		BboltDbPath              string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
 		Http_Server string `yaml:"http_server" env:"api_http_server" env-description:"Server host" env-default:"https://platform-api.mogenius.com"`
@@ -111,7 +114,7 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 	}
 
 	if CONFIG.Misc.Debug {
-		logger.Log.Warning("Starting serice for pprof in localhost:6060")
+		logger.Log.Notice("Starting serice for pprof in localhost:6060")
 		go func() {
 			logger.Log.Info(http.ListenAndServe("localhost:6060", nil))
 			logger.Log.Info("1. Portforward mogenius-k8s-manager to 6060")
@@ -134,20 +137,29 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 }
 
 func PrintSettings() {
+	COLOR := color.New(color.FgWhite, color.BgGreen).SprintFunc()
+	logger.Log.Infof(COLOR("KUBERNETES"))
 	logger.Log.Infof("OwnNamespace:             %s", CONFIG.Kubernetes.OwnNamespace)
 	logger.Log.Infof("ClusterName:              %s", CONFIG.Kubernetes.ClusterName)
 	logger.Log.Infof("ClusterMfaId:             %s", CONFIG.Kubernetes.ClusterMfaId)
 	logger.Log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
+	logger.Log.Infof("BboltDbPath:              %s", CONFIG.Kubernetes.BboltDbPath)
 
+	fmt.Println("")
+	logger.Log.Infof(COLOR("API"))
 	logger.Log.Infof("HttpServer:               %s", CONFIG.ApiServer.Http_Server)
 	logger.Log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
 	logger.Log.Infof("WsPath:                   %s", CONFIG.ApiServer.WS_Path)
 
+	fmt.Println("")
+	logger.Log.Infof(COLOR("EVENTS"))
 	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
 	logger.Log.Infof("EventPath:                %s", CONFIG.EventServer.Path)
 
+	fmt.Println("")
+	logger.Log.Infof(COLOR("MISC"))
 	logger.Log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
 	logger.Log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
 	logger.Log.Infof("AutoMountNfs:             %t", CONFIG.Misc.AutoMountNfs)
@@ -159,8 +171,9 @@ func PrintSettings() {
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
 	logger.Log.Infof("ClusterProvider:          %s", CONFIG.Misc.ClusterProvider)
 	logger.Log.Infof("NfsPodPrefix:             %s", CONFIG.Misc.NfsPodPrefix)
-
 	logger.Log.Infof("ClusterProvider:          %d", CONFIG.Builder.BuildTimeout)
+	fmt.Println("")
+	fmt.Println("")
 }
 
 func PrintVersionInfo() {
