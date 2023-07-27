@@ -142,7 +142,6 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 }
 
 func PrintSettings() {
-	fmt.Println("")
 	logger.Log.Infof("KUBERNETES")
 	logger.Log.Infof("OwnNamespace:             %s", CONFIG.Kubernetes.OwnNamespace)
 	logger.Log.Infof("ClusterName:              %s", CONFIG.Kubernetes.ClusterName)
@@ -150,20 +149,17 @@ func PrintSettings() {
 	logger.Log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
-	logger.Log.Infof("BboltDbPath:              %s", CONFIG.Kubernetes.BboltDbPath)
+	logger.Log.Infof("BboltDbPath:              %s\n\n", CONFIG.Kubernetes.BboltDbPath)
 
-	fmt.Println("")
 	logger.Log.Infof("API")
 	logger.Log.Infof("HttpServer:               %s", CONFIG.ApiServer.Http_Server)
 	logger.Log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
 	logger.Log.Infof("WsPath:                   %s", CONFIG.ApiServer.WS_Path)
 
-	fmt.Println("")
 	logger.Log.Infof("EVENTS")
 	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
-	logger.Log.Infof("EventPath:                %s", CONFIG.EventServer.Path)
+	logger.Log.Infof("EventPath:                %s\n\n", CONFIG.EventServer.Path)
 
-	fmt.Println("")
 	logger.Log.Infof("MISC")
 	logger.Log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
 	logger.Log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
@@ -176,16 +172,13 @@ func PrintSettings() {
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
 	logger.Log.Infof("ClusterProvider:          %s", CONFIG.Misc.ClusterProvider)
 	logger.Log.Infof("NfsPodPrefix:             %s", CONFIG.Misc.NfsPodPrefix)
-	logger.Log.Infof("ClusterProvider:          %d", CONFIG.Builder.BuildTimeout)
+	logger.Log.Infof("ClusterProvider:          %d\n\n", CONFIG.Builder.BuildTimeout)
 
-	fmt.Println("")
 	logger.Log.Infof("GIT")
 	logger.Log.Infof("GitUserEmail:             %s", CONFIG.Git.GitUserEmail)
 	logger.Log.Infof("GitUserName:              %s", CONFIG.Git.GitUserName)
 	logger.Log.Infof("GitDefaultBranch:         %s", CONFIG.Git.GitDefaultBranch)
-	logger.Log.Infof("GitAddIgnoredFile:        %s", CONFIG.Git.GitAddIgnoredFile)
-
-	fmt.Println("")
+	logger.Log.Infof("GitAddIgnoredFile:        %s\n\n", CONFIG.Git.GitAddIgnoredFile)
 }
 
 func PrintVersionInfo() {

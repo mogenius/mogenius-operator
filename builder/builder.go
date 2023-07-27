@@ -64,6 +64,8 @@ func ProcessQueue() {
 				if job.State == structs.BUILD_STATE_PENDING {
 					jobsToBuild = append(jobsToBuild, job)
 				}
+			} else {
+				logger.Log.Errorf("ProcessQueue (unmarshall) ERR: %s", err.Error())
 			}
 		}
 		return nil
@@ -315,6 +317,10 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 func Add(buildJob structs.BuildJob) structs.BuildAddResult {
 	nextBuildId := -1
 
+	if buildJob.InjectDockerEnvVars == "" {
+		buildJob.InjectDockerEnvVars = "--build-arg PLACEHOLDER=MOGENIUS"
+	}
+
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUCKET_NAME))
 
@@ -336,7 +342,6 @@ func Add(buildJob structs.BuildJob) structs.BuildAddResult {
 			}
 		}
 		buildJob.BuildId = int(nextBuildId)
-
 		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(structs.PrettyPrintString(buildJob)))
 	})
 	if err != nil {

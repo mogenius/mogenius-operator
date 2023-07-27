@@ -4,6 +4,7 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
+	"fmt"
 	"mogenius-k8s-manager/builder"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -49,10 +50,10 @@ var clusterCmd = &cobra.Command{
 		go structs.ConnectToJobQueue()
 		go mokubernetes.WatchEvents()
 
-		structs.ExecuteBashCommandSilent("Git setup (1/4) ...", `git config --global user.email "git@mogenius.com"`)
-		structs.ExecuteBashCommandSilent("Git setup (2/4) ...", `git config --global user.name "mogenius git-user"`)
-		structs.ExecuteBashCommandSilent("Git setup (3/4) ...", `git config --global init.defaultBranch main`)
-		structs.ExecuteBashCommandSilent("Git setup (4/4) ...", `git config --global advice.addIgnoredFile false;`)
+		structs.ExecuteBashCommandSilent("Git setup (1/4) ...", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
+		structs.ExecuteBashCommandSilent("Git setup (2/4) ...", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
+		structs.ExecuteBashCommandSilent("Git setup (3/4) ...", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
+		structs.ExecuteBashCommandSilent("Git setup (4/4) ...", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
 
 		socketclient.StartK8sManager(true)
 	},

@@ -774,7 +774,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		return builder.Cancel(data.BuildId)
 	case PAT_BUILD_DELETE:
-		data := structs.BuildJob{}
+		data := structs.BuildJobStatusRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		return builder.Delete(data.BuildId)
 

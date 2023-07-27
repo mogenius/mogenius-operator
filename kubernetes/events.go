@@ -23,7 +23,7 @@ const CONCURRENTCONNECTIONS = 1
 // var lastMountedPaths = []string{}
 // var eventsFirstStart = true
 
-var waitList = []structs.WaitListEntry{}
+//var waitList = []structs.WaitListEntry{}
 
 func WatchEvents() {
 	kubeProvider := NewKubeProvider()
@@ -52,16 +52,22 @@ func WatchEvents() {
 
 				eventObj, isEvent := event.Object.(*v1Core.Event)
 				if isEvent {
-					currentVersion, errCrreuntVer := strconv.Atoi(eventObj.ObjectMeta.ResourceVersion)
+					currentVersion, errCurrentVer := strconv.Atoi(eventObj.ObjectMeta.ResourceVersion)
 					lastVersion, _ := strconv.Atoi(lastResourceVersion)
-					if errCrreuntVer == nil && currentVersion > lastVersion {
+					if errCurrentVer == nil {
 						lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
 						message := eventObj.Message
 						kind := eventObj.InvolvedObject.Kind
 						reason := eventObj.Reason
 						count := eventObj.Count
-						// processWaitList(eventObj)
-						structs.EventServerSendData(datagram, kind, reason, message, count)
+						if currentVersion > lastVersion {
+
+							// processWaitList(eventObj)
+							structs.EventServerSendData(datagram, kind, reason, message, count)
+						} else {
+							logger.Log.Errorf("Versions are out of order: %d / %d", lastVersion, currentVersion)
+							logger.Log.Errorf("%s/%s -> %s (Count: %d)\n", kind, reason, message, count)
+						}
 					}
 				} else if event.Type == "ERROR" {
 					var errObj *v1.Status = event.Object.(*v1.Status)
