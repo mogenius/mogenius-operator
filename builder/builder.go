@@ -182,7 +182,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 			return
 		}
 	} else {
-		err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("buildah bud -f temp/%d/%s %s -t %s -t %s %s", buildJob.BuildId, buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
+		err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; buildah bud -f %s %s -t %s -t %s %s", workingDir, buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
 			done <- structs.BUILD_STATE_FAILED
