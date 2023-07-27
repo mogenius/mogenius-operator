@@ -89,8 +89,8 @@ USER mogee
 
 WORKDIR /home/mogee
 
-COPY --from=builder ["/home/mogee/bin/mogenius-k8s-manager", "."]
-COPY --from=builder ["/home/mogee/grype-json-template", "."]
+COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
+COPY --from=builder ["/app/grype-json-template", "."]
 
 ENV GIN_MODE=release
 
