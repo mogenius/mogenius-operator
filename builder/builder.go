@@ -104,6 +104,7 @@ func ProcessQueue() {
 
 			job.State = result
 			buildJob.State = result
+			job.Finish()
 			saveJob(buildJob)
 		}
 
@@ -179,7 +180,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	// BUILD
 	buildCmd := structs.CreateCommand("Building container ...", &job)
 	// if utils.CONFIG.Misc.Stage == "local" {
-	err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman build -f %s %s -t %s -t %s %s", buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
+	err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; podman build -f %s %s -t %s -t %s %s", workingDir, buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
 		done <- structs.BUILD_STATE_FAILED
@@ -217,7 +218,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	// 		return
 	// 	}
 	// }
-	job.Finish()
+
 	// SCAN
 	Scan(*buildJob, false)
 }
