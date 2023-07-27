@@ -38,8 +38,6 @@ RUN GOOS=linux GOARCH=amd64 go build -ldflags="-extldflags= \
 
 
 FROM alpine:latest
-RUN adduser -D mogee
-USER mogee
 
 RUN apk add --no-cache \
     bash \
@@ -85,6 +83,9 @@ RUN mv kubectl /usr/local/bin/kubectl
 
 # Install grype
 RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+RUN adduser -D mogee
+USER mogee
 
 WORKDIR /home/mogee
 
