@@ -50,7 +50,8 @@ RUN apk add --no-cache \
     # ruby-dev \
     openssl \
     nfs-utils \
-    buildah \
+    # buildah \
+    podman \
     fuse-overlayfs
 
 # RUN gem install -N rails

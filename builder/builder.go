@@ -121,7 +121,9 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 
 	defer func() {
 		// reset everything if done
-		executeCmd(nil, PREFIX_CLEANUP, buildJob, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+		if !utils.CONFIG.Misc.Debug {
+			executeCmd(nil, PREFIX_CLEANUP, buildJob, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+		}
 		done <- structs.BUILD_STATE_SUCCEEDED
 	}()
 
@@ -134,7 +136,9 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	latestTagName := fmt.Sprintf("%s/%s:latest", buildJob.ContainerRegistryPath, imageName)
 
 	// CLEANUP
-	executeCmd(nil, PREFIX_CLEANUP, buildJob, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir)) // CLEANUP FIRST
+	if !utils.CONFIG.Misc.Debug {
+		executeCmd(nil, PREFIX_CLEANUP, buildJob, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+	}
 
 	// CLONE
 	cloneCmd := structs.CreateCommand("Cloning repository ...", &job)
@@ -156,63 +160,63 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 
 	// LOGIN
 	loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job)
-	if utils.CONFIG.Misc.Stage == "local" {
-		err = executeCmd(loginCmd, PREFIX_LOGIN, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
-			done <- structs.BUILD_STATE_FAILED
-			return
-		}
-	} else {
-		err = executeCmd(loginCmd, PREFIX_LOGIN, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("buildah login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
-			done <- structs.BUILD_STATE_FAILED
-			return
-		}
+	// if utils.CONFIG.Misc.Stage == "local" {
+	err = executeCmd(loginCmd, PREFIX_LOGIN, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
+	if err != nil {
+		logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
+		done <- structs.BUILD_STATE_FAILED
+		return
 	}
+	// } else {
+	// 	err = executeCmd(loginCmd, PREFIX_LOGIN, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("buildah login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
+	// 	if err != nil {
+	// 		logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
+	// 		done <- structs.BUILD_STATE_FAILED
+	// 		return
+	// 	}
+	// }
 
 	// BUILD
 	buildCmd := structs.CreateCommand("Building container ...", &job)
-	if utils.CONFIG.Misc.Stage == "local" {
-		err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman build -f %s %s -t %s -t %s %s", buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
-			done <- structs.BUILD_STATE_FAILED
-			return
-		}
-	} else {
-		err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; buildah bud -f %s %s -t %s -t %s %s", workingDir, buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
-			done <- structs.BUILD_STATE_FAILED
-			return
-		}
+	// if utils.CONFIG.Misc.Stage == "local" {
+	err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman build -f %s %s -t %s -t %s %s", buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
+	if err != nil {
+		logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
+		done <- structs.BUILD_STATE_FAILED
+		return
 	}
+	// } else {
+	// 	err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; buildah bud -f %s %s -t %s -t %s %s", workingDir, buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
+	// 	if err != nil {
+	// 		logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
+	// 		done <- structs.BUILD_STATE_FAILED
+	// 		return
+	// 	}
+	// }
 
 	// PUSH
 	pushCmd := structs.CreateCommand("Pushing container ...", &job)
-	if utils.CONFIG.Misc.Stage == "local" {
-		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman push %s", tagName))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
-			done <- structs.BUILD_STATE_FAILED
-			return
-		}
-		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman push %s", latestTagName))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
-			done <- structs.BUILD_STATE_FAILED
-			return
-		}
-	} else {
-		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("buildah push %s %s", tagName, latestTagName))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
-			done <- structs.BUILD_STATE_FAILED
-			return
-		}
+	// if utils.CONFIG.Misc.Stage == "local" {
+	err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman push %s", tagName))
+	if err != nil {
+		logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+		done <- structs.BUILD_STATE_FAILED
+		return
 	}
+	err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman push %s", latestTagName))
+	if err != nil {
+		logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+		done <- structs.BUILD_STATE_FAILED
+		return
+	}
+	// } else {
+	// 	err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("buildah push %s %s", tagName, latestTagName))
+	// 	if err != nil {
+	// 		logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+	// 		done <- structs.BUILD_STATE_FAILED
+	// 		return
+	// 	}
+	// }
 	job.Finish()
 	// SCAN
 	Scan(*buildJob, false)
