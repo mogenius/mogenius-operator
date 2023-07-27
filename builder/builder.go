@@ -193,7 +193,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// SCAN
-	Scan(*buildJob, false)
+	// Scan(*buildJob, false)
 }
 
 func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
