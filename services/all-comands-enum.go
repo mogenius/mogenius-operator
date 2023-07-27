@@ -32,20 +32,17 @@ const (
 	PAT_NAMESPACE_BACKUP                string = "namespace/backup"
 	PAT_NAMESPACE_RESTORE               string = "namespace/restore"
 
-	PAT_SERVICE_CREATE              string = "service/create"
-	PAT_SERVICE_DELETE              string = "service/delete"
-	PAT_SERVICE_POD_IDS             string = "service/pod-ids"
-	PAT_SERVICE_SET_IMAGE           string = "service/set-image"
-	PAT_SERVICE_LOG                 string = "service/log"
-	PAT_SERVICE_LOG_ERROR           string = "service/log-error"
-	PAT_SERVICE_RESOURCE_STATUS     string = "service/resource-status"
-	PAT_SERVICE_RESTART             string = "service/restart"
-	PAT_SERVICE_STOP                string = "service/stop"
-	PAT_SERVICE_START               string = "service/start"
-	PAT_SERVICE_UPDATE_SERVICE      string = "service/update-service"
-	PAT_SERVICE_SPECTRUM_BIND       string = "service/spectrum-bind"
-	PAT_SERVICE_SPECTRUM_UNBIND     string = "service/spectrum-unbind"
-	PAT_SERVICE_SPECTRUM_CONFIGMAPS string = "service/spectrum-configmaps"
+	PAT_SERVICE_CREATE          string = "service/create"
+	PAT_SERVICE_DELETE          string = "service/delete"
+	PAT_SERVICE_POD_IDS         string = "service/pod-ids"
+	PAT_SERVICE_SET_IMAGE       string = "service/set-image"
+	PAT_SERVICE_LOG             string = "service/log"
+	PAT_SERVICE_LOG_ERROR       string = "service/log-error"
+	PAT_SERVICE_RESOURCE_STATUS string = "service/resource-status"
+	PAT_SERVICE_RESTART         string = "service/restart"
+	PAT_SERVICE_STOP            string = "service/stop"
+	PAT_SERVICE_START           string = "service/start"
+	PAT_SERVICE_UPDATE_SERVICE  string = "service/update-service"
 
 	PAT_SERVICE_LOG_STREAM string = "service/log-stream"
 
@@ -297,9 +294,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_STOP,
 	PAT_SERVICE_START,
 	PAT_SERVICE_UPDATE_SERVICE,
-	PAT_SERVICE_SPECTRUM_BIND,
-	PAT_SERVICE_SPECTRUM_UNBIND,
-	PAT_SERVICE_SPECTRUM_CONFIGMAPS,
 
 	PAT_SERVICE_LOG_STREAM,
 
