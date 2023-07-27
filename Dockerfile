@@ -38,6 +38,9 @@ RUN GOOS=linux GOARCH=amd64 go build -ldflags="-extldflags= \
 
 
 FROM alpine:latest
+RUN adduser -D mogee
+USER mogee
+
 RUN apk add --no-cache \
     bash \
     git \
@@ -83,11 +86,11 @@ RUN mv kubectl /usr/local/bin/kubectl
 # Install grype
 RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
-WORKDIR /app
+WORKDIR /home/mogee
 
-COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
-COPY --from=builder ["/app/grype-json-template", "."]
+COPY --from=builder ["/home/mogee/bin/mogenius-k8s-manager", "."]
+COPY --from=builder ["/home/mogee/grype-json-template", "."]
 
 ENV GIN_MODE=release
 
-ENTRYPOINT [ "/app/mogenius-k8s-manager", "cluster" ]
+ENTRYPOINT [ "/home/mogee/mogenius-k8s-manager", "cluster" ]
