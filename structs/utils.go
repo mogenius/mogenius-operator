@@ -180,11 +180,21 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 					return
 				}
 				if connection != nil {
+					str := string(buf[:n])
+					logger.Log.Infof("Send data ws: %s.", str)
+					
 					err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
 					if err != nil {
 						logger.Log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
 						return
 					}
+
+					// if conn, ok := connection.UnderlyingConn().(*net.TCPConn); ok {
+					// 	err := conn.SetWriteBuffer(0)
+					// 	if err != nil {
+					// 		log.Println("Error flushing connection:", err)
+					// 	}
+					// }
 				} else {
 					logger.Log.Errorf("%s - connection cannot be nil.", sendToServer)
 					return
