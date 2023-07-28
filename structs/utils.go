@@ -177,7 +177,15 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 	if err != nil {
 		logger.Log.Errorf("Connection to Stream-Endpoint (%s) failed: %s\n", sendToServer, err.Error())
 	} else {
-		time.Sleep(500 * time.Millisecond)
+		// API send ack when it is ready to receive messages.
+		connection.SetReadDeadline(time.Now().Add(2 * time.Second))
+		_, ack, err := connection.ReadMessage()
+		if err != nil {
+			logger.Log.Errorf("Error reading ack message: %s.", err)
+			return
+		}
+
+		logger.Log.Infof("Received ack: %s.", string(ack))
 
 		buf := make([]byte, 1024)
 		for {
