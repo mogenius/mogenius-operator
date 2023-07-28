@@ -84,7 +84,7 @@ RUN mv kubectl /usr/local/bin/kubectl
 # Install grype
 RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
-# RUN adduser -s /bin/bash -D mogee
+RUN adduser -s /bin/bash -D mogee
 # USER mogee
 
 # WORKDIR /home/mogee
