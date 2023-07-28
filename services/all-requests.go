@@ -878,7 +878,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 		tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 		if err != nil {
 			logger.Log.Error(err.Error())
-			reader := strings.NewReader("")
+			reader := strings.NewReader(err.Error())
 			nopCloser := io.NopCloser(reader)
 			previousStream = nopCloser
 		} else {
@@ -889,6 +889,9 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
 		logger.Log.Error(err.Error())
+		reader := strings.NewReader(err.Error())
+		nopCloser := io.NopCloser(reader)
+		stream = nopCloser
 	}
 
 	nl := strings.NewReader("\n")
@@ -896,12 +899,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	headlineLastLog := strings.NewReader("Last Log:\n")
 	headlineCurrentLog := strings.NewReader("Current Log:\n")
 
-	var mergedStream io.Reader
-	if previousStream == nil {
-		mergedStream = io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, headlineCurrentLog, nl, stream)
-	} else {
-		mergedStream = io.MultiReader(previousState, nl, headlineLastLog, nl, headlineCurrentLog, nl, stream)
-	}
+	mergedStream := io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, headlineCurrentLog, nl, stream)
 
 	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
 	endGofunc()
