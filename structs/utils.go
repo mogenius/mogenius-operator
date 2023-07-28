@@ -168,6 +168,7 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 	if err != nil {
 		logger.Log.Errorf("Connection to Stream-Endpoint (%s) failed: %s\n", sendToServer, err.Error())
 	} else {
+		time.Sleep(500 * time.Millisecond)
 
 		buf := make([]byte, 1024)
 		for {
