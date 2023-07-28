@@ -878,9 +878,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 		tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 		if err != nil {
 			logger.Log.Error(err.Error())
-			reader := strings.NewReader(err.Error())
-			nopCloser := io.NopCloser(reader)
-			previousStream = nopCloser
+			previousStream = io.NopCloser(strings.NewReader(err.Error()))
 		} else {
 			previousStream = tmpPreviousStream
 		}
@@ -889,9 +887,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
 		logger.Log.Error(err.Error())
-		reader := strings.NewReader(err.Error())
-		nopCloser := io.NopCloser(reader)
-		stream = nopCloser
+		stream = io.NopCloser(strings.NewReader(err.Error()))
 	}
 
 	nl := strings.NewReader("\n")
