@@ -274,8 +274,26 @@ func BuilderStatus() structs.BuilderStatus {
 				if job.State == structs.BUILD_STATE_PENDING {
 					result.QueuedBuilds++
 				}
+				if job.State == structs.BUILD_STATE_FAILED {
+					result.FailedBuilds++
+				}
+				if job.State == structs.BUILD_STATE_CANCELED {
+					result.CanceledBuilds++
+				}
+				if job.State == structs.BUILD_STATE_SUCCEEDED {
+					result.FinishedBuilds++
+				}
 			}
 		}
+		prefixScan := []byte(PREFIX_SCAN)
+		for k, jobData := c.Seek(prefixScan); k != nil && bytes.HasPrefix(k, prefixScan); k, jobData = c.Next() {
+			scan := structs.BuildScanResult{}
+			err := structs.UnmarshalScan(&scan, jobData)
+			if err == nil {
+				result.TotalScans++
+			}
+		}
+
 		return nil
 	})
 
