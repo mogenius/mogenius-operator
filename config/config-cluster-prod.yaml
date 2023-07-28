@@ -5,7 +5,7 @@ kubernetes:
   cluster_mfa_id:
   run_in_cluster: true
   default_container_registry: docker.io
-  bbolt_db_path: /home/mogee/db/mogenius.db
+  bbolt_db_path: /db/mogenius.db
 
 api_server:
   http_server: https://platform-api.mogenius.com

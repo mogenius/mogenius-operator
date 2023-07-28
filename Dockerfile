@@ -84,14 +84,14 @@ RUN mv kubectl /usr/local/bin/kubectl
 # Install grype
 RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
-RUN adduser -D mogee
-USER mogee
+# RUN adduser -s /bin/bash -D mogee
+# USER mogee
 
-WORKDIR /home/mogee
+# WORKDIR /home/mogee
 
 COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
 COPY --from=builder ["/app/grype-json-template", "."]
 
 ENV GIN_MODE=release
 
-ENTRYPOINT [ "/home/mogee/mogenius-k8s-manager", "cluster" ]
+ENTRYPOINT [ "/app/mogenius-k8s-manager", "cluster" ]
