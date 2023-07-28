@@ -175,7 +175,7 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 	header := utils.HttpHeader("-logs")
 	connection, _, err := websocket.DefaultDialer.Dial(sendToServer, header)
 	if err != nil {
-		logger.Log.Errorf("Connection to Stream-Endpoint (%s) failed: %s\n", sendToServer, err.Error())
+		logger.Log.Errorf("Connection to stream endpoint (%s) failed: %s\n", sendToServer, err.Error())
 	} else {
 		// API send ack when it is ready to receive messages.
 		connection.SetReadDeadline(time.Now().Add(2 * time.Second))
@@ -185,7 +185,7 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 			return
 		}
 
-		logger.Log.Infof("Received ack: %s.", string(ack))
+		logger.Log.Infof("Ready ack from stream endpoint: %s.", string(ack))
 
 		buf := make([]byte, 1024)
 		for {
@@ -198,8 +198,9 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 					return
 				}
 				if connection != nil {
-					str := string(buf[:n])
-					logger.Log.Infof("Send data ws: %s.", str)
+					// debugging
+					// str := string(buf[:n])
+					// logger.Log.Infof("Send data ws: %s.", str)
 
 					err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
 					if err != nil {
