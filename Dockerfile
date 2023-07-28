@@ -87,7 +87,7 @@ RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh |
 RUN adduser -s /bin/bash -D mogee
 # USER mogee
 
-# WORKDIR /home/mogee
+WORKDIR /app
 
 COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
 COPY --from=builder ["/app/grype-json-template", "."]
