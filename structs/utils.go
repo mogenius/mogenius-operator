@@ -43,6 +43,15 @@ func UnmarshalJob(dst *BuildJob, data []byte) error {
 	return nil
 }
 
+func UnmarshalScan(dst *BuildScanResult, data []byte) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(data, dst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UnmarshalJobListEntry(dst *BuildJobListEntry, data []byte) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(data, dst)
@@ -183,7 +192,7 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 				if connection != nil {
 					str := string(buf[:n])
 					logger.Log.Infof("Send data ws: %s.", str)
-					
+
 					err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
 					if err != nil {
 						logger.Log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
