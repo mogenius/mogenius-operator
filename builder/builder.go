@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/google/uuid"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -205,12 +206,18 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 	go func() {
 		job.Start()
 
-		latestTagName := fmt.Sprintf("podman:%s/%s:latest", buildJob.ContainerRegistryPath, imageName)
+		exportName := fmt.Sprintf("%s.tar", uuid.New().String())
+		latestTagName := fmt.Sprintf("%s/%s:latest", buildJob.ContainerRegistryPath, imageName)
 		pwd, _ := os.Getwd()
 		grypeTemplate := fmt.Sprintf("%s/grype-json-template", pwd)
 
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
-		defer cancel()
+
+		defer func() {
+			// DELETE TAR AFTER FINISH
+			executeCmd(nil, PREFIX_CLEANUP, &buildJob, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("rm -f %s", exportName))
+			cancel()
+		}()
 
 		// LOGIN
 		if login {
@@ -223,9 +230,9 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 			}
 		}
 
-		// START PODMAN VM
-		startVmCmd := structs.CreateCommand("Starting VM for podman ...", &job)
-		err := executeCmd(startVmCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", "podman machine start")
+		// EXPORT TO TAR
+		exportTarCmd := structs.CreateCommand("Scanning for vulnerabilities ...", &job)
+		err := executeCmd(exportTarCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("podman save -o %s %s", exportName, latestTagName))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
 			result.Error = err.Error()
@@ -234,16 +241,7 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 
 		// SCAN
 		scanCmd := structs.CreateCommand("Scanning for vulnerabilities ...", &job)
-		err = executeCmd(scanCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("grype %s --add-cpes-if-none -q -o template -t %s", latestTagName, grypeTemplate))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
-			result.Error = err.Error()
-			return
-		}
-
-		// STOP PODMAN VM
-		stopVmCmd := structs.CreateCommand("Stopping VM for podman ...", &job)
-		err = executeCmd(stopVmCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", "podman machine stop")
+		err = executeCmd(scanCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("grype %s --add-cpes-if-none -q -o template -t %s", exportName, grypeTemplate))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
 			result.Error = err.Error()
