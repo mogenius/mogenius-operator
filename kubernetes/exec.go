@@ -6,7 +6,6 @@ import (
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
-	"os"
 	"os/exec"
 
 	"github.com/gorilla/websocket"
@@ -23,15 +22,15 @@ func ExecTest() error {
 
 	// Create an *exec.Cmd
 	cmd := exec.Command("kubectl", execCmd...)
-	cmd.StdoutPipe()
-	cmd.StdinPipe()
+	// cmdStdout, _ := cmd.StdoutPipe()
+	// cmdStdin, _ := cmd.StdinPipe()
 
 	// Assign os.Stdin, os.Stdout, and os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Stdin = os.Stdin
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 
-	// go sendData(cmdStdin, cmdStdout)
+	go sendData(cmd.Stdin, cmd.Stdout)
 
 	// Run the command
 	err := cmd.Run()
@@ -85,7 +84,7 @@ func ExecTest() error {
 // 	return err
 // }
 
-func sendData(cmdStdin io.WriteCloser, cmdStdout io.ReadCloser) {
+func sendData(cmdStdin io.Reader, cmdStdout io.Writer) {
 	// Create a dialer
 	dialer := websocket.DefaultDialer
 
@@ -101,7 +100,7 @@ func sendData(cmdStdin io.WriteCloser, cmdStdout io.ReadCloser) {
 		// Forward stdout to the WebSocket
 		buf := make([]byte, 1024)
 		for {
-			n, err := cmdStdout.Read(buf)
+			n, err := cmdStdin.Read(buf)
 			if err != nil {
 				log.Println(err)
 				return
@@ -123,7 +122,7 @@ func sendData(cmdStdin io.WriteCloser, cmdStdout io.ReadCloser) {
 			break
 		}
 
-		_, err = cmdStdin.Write(message)
+		_, err = cmdStdout.Write(message)
 		if err != nil {
 			log.Println(err)
 			break
