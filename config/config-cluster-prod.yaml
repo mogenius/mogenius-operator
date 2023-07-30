@@ -16,6 +16,10 @@ event_server:
   server: k8s-dispatcher.mogenius.com
   path: /ws
 
+shell_server:
+  server: XXX.mogenius.com
+  path: /ws
+
 misc:
   stage: prod
   default_mount_path: /mo-data

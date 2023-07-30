@@ -35,8 +35,12 @@ type Config struct {
 	} `yaml:"api_server"`
 	EventServer struct {
 		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
-		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws"`
+		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
 	} `yaml:"event_server"`
+	ShellServer struct {
+		Server string `yaml:"server" env:"shell_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
+		Path   string `yaml:"path" env:"shell_path" env-description:"Server Path" env-default:"/ws-shell"`
+	} `yaml:"shell_server"`
 	Misc struct {
 		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
@@ -159,6 +163,10 @@ func PrintSettings() {
 	logger.Log.Infof("EVENTS")
 	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
 	logger.Log.Infof("EventPath:                %s\n\n", CONFIG.EventServer.Path)
+
+	logger.Log.Infof("SHELL")
+	logger.Log.Infof("ShellServer:              %s", CONFIG.ShellServer.Server)
+	logger.Log.Infof("ShellPath:                %s\n\n", CONFIG.ShellServer.Path)
 
 	logger.Log.Infof("MISC")
 	logger.Log.Infof("Stage:                    %s", CONFIG.Misc.Stage)

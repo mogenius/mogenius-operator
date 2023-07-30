@@ -16,6 +16,10 @@ event_server:
   server: 127.0.0.1:8080
   path: /ws-event
 
+shell_server:
+  server: 127.0.0.1:8080
+  path: /ws-shell
+
 misc:
   stage: local
   default_mount_path: /mo-data

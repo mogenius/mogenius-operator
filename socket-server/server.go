@@ -33,6 +33,8 @@ var validate = validator.New()
 var connections = make(map[string]*structs.ClusterConnection)
 var serverSendMutex sync.Mutex
 
+//var stopReadingInput bool = false
+
 func Init(r *gin.Engine) {
 	// r.Use(user.AuthUserMiddleware())
 	r.GET(utils.CONFIG.ApiServer.WS_Path, func(c *gin.Context) {
@@ -47,6 +49,68 @@ func Init(r *gin.Engine) {
 			wsHandler(c.Writer, c.Request, clusterName)
 		}
 	})
+	r.GET(utils.CONFIG.ShellServer.Path, func(c *gin.Context) {
+		clusterName := validateHeader(c)
+		if clusterName != "" {
+			wsShellHandler(c.Writer, c.Request, clusterName)
+		}
+	})
+}
+
+func wsShellHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
+	connection, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		logger.Log.Error("websocket connection err:", err)
+		return
+	}
+	defer func() {
+		connection.Close()
+		//go ReadInput()
+	}()
+
+	go func() {
+		// Forward stdout to the WebSocket
+		//stopReadingInput = true
+		buf := make([]byte, 1024)
+		for {
+			n, err := os.Stdin.Read(buf)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			err = connection.WriteMessage(websocket.TextMessage, buf[:n])
+			if err != nil {
+				log.Println(err)
+				return
+			}
+		}
+	}()
+
+	for {
+		_, msg, err := connection.ReadMessage()
+		if err != nil {
+			logger.Log.Error("websocket read err:", err)
+			break
+		}
+
+		os.Stdout.Write(msg)
+
+		// switch msgType {
+		// case websocket.BinaryMessage:
+		// 	fmt.Print(string(msg))
+		// case websocket.TextMessage:
+		// 	fmt.Print(string(msg))
+		// case websocket.CloseMessage:
+		// 	logger.Log.Warning("Received websocket.CloseMessage.")
+		// case websocket.PingMessage:
+		// 	logger.Log.Warning("Received websocket.PingMessage.")
+		// case websocket.PongMessage:
+		// 	logger.Log.Warning("Received websocket.PongMessage.")
+		// default:
+		// 	logger.Log.Warningf("Received unknown messageType '%d' via websocket.", msgType)
+		// }
+	}
 }
 
 // should handle more errors
@@ -185,6 +249,9 @@ func ReadInput() {
 	defer tty.Close()
 
 	for {
+		// if stopReadingInput {
+		// 	break
+		// }
 		r, err := tty.ReadRune()
 		if err != nil {
 			log.Fatal(err)
@@ -496,6 +563,9 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.NfsVolumeRequestExample()
 		case services.PAT_STORAGE_NAMESPACE_STATS:
 			payload = services.NfsNamespaceStatsRequestExample()
+
+		case services.PAT_EXEC_SHELL:
+			payload = nil
 
 		case services.PAT_POPEYE_CONSOLE:
 			payload = nil
