@@ -94,7 +94,8 @@ func wsShellHandler(w http.ResponseWriter, r *http.Request, clusterName string) 
 			break
 		}
 
-		os.Stdout.Write(msg)
+		fmt.Print(string(msg))
+		// os.Stdout.Write(msg)
 
 		// switch msgType {
 		// case websocket.BinaryMessage:
