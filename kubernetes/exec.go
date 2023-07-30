@@ -22,15 +22,15 @@ func ExecTest() error {
 
 	// Create an *exec.Cmd
 	cmd := exec.Command("kubectl", execCmd...)
-	// cmdStdout, _ := cmd.StdoutPipe()
-	// cmdStdin, _ := cmd.StdinPipe()
+	cmdStdout, _ := cmd.StdoutPipe()
+	cmdStdin, _ := cmd.StdinPipe()
 
 	// Assign os.Stdin, os.Stdout, and os.Stderr
 	// cmd.Stdin = os.Stdin
 	// cmd.Stdout = os.Stdout
 	// cmd.Stderr = os.Stderr
 
-	go sendData(cmd.Stdin, cmd.Stdout)
+	go sendData(cmdStdout, cmdStdin)
 
 	// Run the command
 	err := cmd.Run()
@@ -84,7 +84,7 @@ func ExecTest() error {
 // 	return err
 // }
 
-func sendData(cmdStdin io.Reader, cmdStdout io.Writer) {
+func sendData(cmdStdin io.ReadCloser, cmdStdout io.WriteCloser) {
 	// Create a dialer
 	dialer := websocket.DefaultDialer
 
