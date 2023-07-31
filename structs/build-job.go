@@ -74,7 +74,7 @@ func BuildJobExample() BuildJob {
 		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
 		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
 		Namespace:             "benegeilomat-prod-cp4wh9",
-		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8305",
+		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
 		ServiceName:           "lalalalalalala",
 		GitRepo:               "https://x-access-token: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@github.com/beneiltis/bene.git",
 		GitBranch:             "main",
@@ -113,7 +113,7 @@ type BuildServicesStatusRequest struct {
 
 func BuildServicesStatusRequestExample() BuildServicesStatusRequest {
 	return BuildServicesStatusRequest{
-		ServiceIds: []string{"XXX", "YYY", "ZZZ"},
+		ServiceIds: []string{"XXX", "ef7af4d2-8939-4c94-bbe1-a3e7018e8306", "ZZZ"},
 		MaxResults: 14,
 	}
 }
@@ -125,7 +125,7 @@ type BuildServiceRequest struct {
 
 func BuildServiceRequestExample() BuildServiceRequest {
 	return BuildServiceRequest{
-		ServiceId:  "XXX",
+		ServiceId:  "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
 		MaxResults: 12,
 	}
 }

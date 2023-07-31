@@ -370,7 +370,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 				structs.ExecuteBashCommandWithResponse(title, shellCmd)
 			}
 		} else {
-			logger.Log.Warningf("No CluserIP for '%s/%s' nfs-server-service found.", volumeNamespace, volumeName)
+			logger.Log.Warningf("No CluserIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
 		}
 	}()
 }
@@ -378,7 +378,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 func ServiceForNfsVolume(volumeNamespace string, volumeName string) *v1.Service {
 	services := AllServices(volumeNamespace)
 	for _, srv := range services {
-		if strings.Contains(srv.Name, fmt.Sprint("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)) {
+		if strings.Contains(srv.Name, fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)) {
 			return &srv
 		}
 	}
