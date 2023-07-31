@@ -51,7 +51,6 @@ var testServerCmd = &cobra.Command{
 			gin.SetMode(gin.ReleaseMode)
 		}
 		router := gin.Default()
-		router.Static("/test", "/Users/bene/git/mo/mogenius-k8s-manager/public")
 		router.POST("path/to/send/data", func(c *gin.Context) {
 			ctx := context.Background()
 			cancelCtx, _ := context.WithCancel(ctx)
