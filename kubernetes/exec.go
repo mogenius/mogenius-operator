@@ -18,7 +18,7 @@ func ExecTest() error {
 	namespace := "mogenius"
 	podName := "mogenius-k8s-manager-6dcf5df696-8bsf4"
 	container := "mogenius-k8s-manager"
-	execCmd := []string{"exec", "--stdin", "--tty", "-n", namespace, "--container", container, podName, "--", "/bin/sh"} // /bin/sh
+	execCmd := []string{"exec", "--stdin", "--tty", "-n", namespace, "--container", container, podName, "--", "ifconfig"} // /bin/sh
 
 	// Create an *exec.Cmd
 	cmd := exec.Command("kubectl", execCmd...)
