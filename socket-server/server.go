@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
@@ -19,6 +20,7 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/mattn/go-tty"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -38,13 +40,13 @@ func Init(r *gin.Engine) {
 	r.GET(utils.CONFIG.ApiServer.WS_Path, func(c *gin.Context) {
 		clusterName := validateHeader(c)
 		if clusterName != "" {
-			wsHandler(c.Writer, c.Request, clusterName, true)
+			wsHandler(c.Writer, c.Request, clusterName)
 		}
 	})
 	r.GET(utils.CONFIG.EventServer.Path, func(c *gin.Context) {
 		clusterName := validateHeader(c)
 		if clusterName != "" {
-			wsHandler(c.Writer, c.Request, clusterName, false)
+			wsHandler(c.Writer, c.Request, clusterName)
 		}
 	})
 	r.GET(utils.CONFIG.ShellServer.Path, func(c *gin.Context) {
@@ -90,7 +92,7 @@ func wsShellHandler(w http.ResponseWriter, r *http.Request, clusterName string) 
 }
 
 // should handle more errors
-func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string, exec bool) {
+func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 
 	connection, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -102,15 +104,6 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string, exec 
 
 	if r.RequestURI == utils.CONFIG.ApiServer.WS_Path {
 		addConnection(connection, clusterName)
-	}
-
-	if exec {
-		fmt.Println("XXX FIREEEEEEE")
-		firstConnection := selectRandomCluster(false)
-		datagram := structs.CreateDatagramFrom(services.PAT_EXEC_SHELL, nil)
-		serverSendMutex.Lock()
-		firstConnection.Connection.WriteJSON(datagram)
-		serverSendMutex.Unlock()
 	}
 
 	for {
@@ -225,45 +218,45 @@ func printShortcuts() {
 }
 
 func ReadInput() {
-	// printShortcuts()
+	printShortcuts()
 
-	// tty, err := tty.Open()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer tty.Close()
+	tty, err := tty.Open()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer tty.Close()
 
-	// for {
-	// 	// if stopReadingInput {
-	// 	// 	break
-	// 	// }
-	// 	r, err := tty.ReadRune()
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	switch string(r) {
-	// 	case "h":
-	// 		printShortcuts()
-	// 	case "s":
-	// 		cmd := selectCommands()
-	// 		if cmd != "" {
-	// 			requestCmdFromCluster(cmd)
-	// 		} else {
-	// 			printShortcuts()
-	// 		}
-	// 	case "l":
-	// 		listClusters()
-	// 	case "c":
-	// 		closeBlockedConnection()
-	// 	case "k":
-	// 		closeAllConnections()
-	// 	case "q":
-	// 		os.Exit(0)
-	// 	default:
-	// 		logger.Log.Errorf("Unrecognized character '%s'.", r)
-	// 		printShortcuts()
-	// 	}
-	// }
+	for {
+		// if stopReadingInput {
+		// 	break
+		// }
+		r, err := tty.ReadRune()
+		if err != nil {
+			log.Fatal(err)
+		}
+		switch string(r) {
+		case "h":
+			printShortcuts()
+		case "s":
+			cmd := selectCommands()
+			if cmd != "" {
+				requestCmdFromCluster(cmd)
+			} else {
+				printShortcuts()
+			}
+		case "l":
+			listClusters()
+		case "c":
+			closeBlockedConnection()
+		case "k":
+			closeAllConnections()
+		case "q":
+			os.Exit(0)
+		default:
+			logger.Log.Errorf("Unrecognized character '%s'.", r)
+			printShortcuts()
+		}
+	}
 }
 
 func closeBlockedConnection() {
