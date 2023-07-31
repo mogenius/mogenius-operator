@@ -242,6 +242,8 @@ const (
 	PAT_BUILD_CANCEL          string = "build/cancel"
 	PAT_BUILD_DELETE          string = "build/delete"
 
+	PAT_EXEC_SHELL string = "exec/shell"
+
 	PAT_POPEYE_CONSOLE string = "popeye_console"
 
 	PAT_FILES_UPLOAD string = "files/upload"
@@ -492,6 +494,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_BUILD_SCAN,
 	PAT_BUILD_CANCEL,
 	PAT_BUILD_DELETE,
+
+	PAT_EXEC_SHELL,
 
 	PAT_POPEYE_CONSOLE,
 }

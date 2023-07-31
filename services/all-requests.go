@@ -779,6 +779,11 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		return builder.Delete(data.BuildId)
 
+	case PAT_EXEC_SHELL:
+		// data := structs.BuildJobStatusRequest{}
+		// structs.MarshalUnmarshal(&datagram, &data)
+		return mokubernetes.ExecTest()
+
 	case PAT_STORAGE_CREATE_VOLUME:
 		data := NfsVolumeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

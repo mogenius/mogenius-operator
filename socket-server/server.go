@@ -47,6 +47,46 @@ func Init(r *gin.Engine) {
 			wsHandler(c.Writer, c.Request, clusterName)
 		}
 	})
+	r.GET(utils.CONFIG.ShellServer.Path, func(c *gin.Context) {
+		clusterName := validateHeader(c)
+		if clusterName != "" {
+			wsShellHandler(c.Writer, c.Request, clusterName)
+		}
+	})
+}
+
+func wsShellHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		logger.Log.Error("websocket connection err:", err)
+		return
+	}
+	defer c.Close()
+
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			text := scanner.Text()
+			if err := c.WriteMessage(websocket.TextMessage, []byte(text)); err != nil {
+				fmt.Println("Error writing message:", err)
+				return
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Println("Error reading from stdin:", err)
+			return
+		}
+	}()
+
+	for {
+		_, msg, err := c.ReadMessage()
+		if err != nil {
+			fmt.Println("Error reading from WebSocket:", err)
+			break
+		}
+
+		fmt.Println(string(msg))
+	}
 }
 
 // should handle more errors
@@ -496,6 +536,9 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.NfsVolumeRequestExample()
 		case services.PAT_STORAGE_NAMESPACE_STATS:
 			payload = services.NfsNamespaceStatsRequestExample()
+
+		case services.PAT_EXEC_SHELL:
+			payload = nil
 
 		case services.PAT_POPEYE_CONSOLE:
 			payload = nil
