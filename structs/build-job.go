@@ -76,7 +76,7 @@ func BuildJobExample() BuildJob {
 		Namespace:             "benegeilomat-prod-cp4wh9",
 		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8305",
 		ServiceName:           "lalalalalalala",
-		GitRepo:               "https://x-access-token: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@github.com/beneiltis/lalalalalalala.git",
+		GitRepo:               "https://x-access-token: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@github.com/beneiltis/bene.git",
 		GitBranch:             "main",
 		GitCommitAuthor:       "mogenius git-user",
 		GitCommitHash:         "abe52a64e682cedf77f131e595119f6c2f6a1c84",

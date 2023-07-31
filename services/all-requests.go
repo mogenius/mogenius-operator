@@ -4,6 +4,7 @@ import (
 	// "bufio"
 
 	"context"
+	"fmt"
 	"io"
 	"strings"
 
@@ -883,9 +884,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 		tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 		if err != nil {
 			logger.Log.Error(err.Error())
-			reader := strings.NewReader("")
-			nopCloser := io.NopCloser(reader)
-			previousStream = nopCloser
+			previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 		} else {
 			previousStream = tmpPreviousStream
 		}
@@ -894,6 +893,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
 		logger.Log.Error(err.Error())
+		stream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 	}
 
 	nl := strings.NewReader("\n")

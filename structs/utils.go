@@ -43,6 +43,15 @@ func UnmarshalJob(dst *BuildJob, data []byte) error {
 	return nil
 }
 
+func UnmarshalScan(dst *BuildScanResult, data []byte) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(data, dst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UnmarshalJobListEntry(dst *BuildJobListEntry, data []byte) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(data, dst)
@@ -166,8 +175,17 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 	header := utils.HttpHeader("-logs")
 	connection, _, err := websocket.DefaultDialer.Dial(sendToServer, header)
 	if err != nil {
-		logger.Log.Errorf("Connection to Stream-Endpoint (%s) failed: %s\n", sendToServer, err.Error())
+		logger.Log.Errorf("Connection to stream endpoint (%s) failed: %s\n", sendToServer, err.Error())
 	} else {
+		// API send ack when it is ready to receive messages.
+		connection.SetReadDeadline(time.Now().Add(2 * time.Second))
+		_, ack, err := connection.ReadMessage()
+		if err != nil {
+			logger.Log.Errorf("Error reading ack message: %s.", err)
+			return
+		}
+
+		logger.Log.Infof("Ready ack from stream endpoint: %s.", string(ack))
 
 		buf := make([]byte, 1024)
 		for {
@@ -180,11 +198,22 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 					return
 				}
 				if connection != nil {
+					// debugging
+					// str := string(buf[:n])
+					// logger.Log.Infof("Send data ws: %s.", str)
+
 					err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
 					if err != nil {
 						logger.Log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
 						return
 					}
+
+					// if conn, ok := connection.UnderlyingConn().(*net.TCPConn); ok {
+					// 	err := conn.SetWriteBuffer(0)
+					// 	if err != nil {
+					// 		log.Println("Error flushing connection:", err)
+					// 	}
+					// }
 				} else {
 					logger.Log.Errorf("%s - connection cannot be nil.", sendToServer)
 					return
