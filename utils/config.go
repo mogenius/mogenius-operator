@@ -31,14 +31,17 @@ type Config struct {
 	ApiServer struct {
 		Http_Server string `yaml:"http_server" env:"api_http_server" env-description:"Server host" env-default:"https://platform-api.mogenius.com"`
 		Ws_Server   string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
+		Ws_Scheme   string `yaml:"ws_server_scheme" env:"api_ws_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
 		WS_Path     string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
 	} `yaml:"api_server"`
 	EventServer struct {
 		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
+		Scheme string `yaml:"scheme" env:"event_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
 	} `yaml:"event_server"`
 	ShellServer struct {
 		Server string `yaml:"server" env:"shell_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
+		Scheme string `yaml:"scheme" env:"shell_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
 		Path   string `yaml:"path" env:"shell_path" env-description:"Server Path" env-default:"/ws-shell"`
 	} `yaml:"shell_server"`
 	Misc struct {
@@ -158,14 +161,17 @@ func PrintSettings() {
 	logger.Log.Infof("API")
 	logger.Log.Infof("HttpServer:               %s", CONFIG.ApiServer.Http_Server)
 	logger.Log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
+	logger.Log.Infof("WsScheme:                 %s", CONFIG.ApiServer.Ws_Scheme)
 	logger.Log.Infof("WsPath:                   %s", CONFIG.ApiServer.WS_Path)
 
 	logger.Log.Infof("EVENTS")
 	logger.Log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
+	logger.Log.Infof("EventScheme:              %s", CONFIG.EventServer.Scheme)
 	logger.Log.Infof("EventPath:                %s\n\n", CONFIG.EventServer.Path)
 
 	logger.Log.Infof("SHELL")
 	logger.Log.Infof("ShellServer:              %s", CONFIG.ShellServer.Server)
+	logger.Log.Infof("ShellScheme:              %s", CONFIG.ShellServer.Scheme)
 	logger.Log.Infof("ShellPath:                %s\n\n", CONFIG.ShellServer.Path)
 
 	logger.Log.Infof("MISC")

@@ -106,6 +106,30 @@ func BuildJobStatusRequestExample() BuildJobStatusRequest {
 	}
 }
 
+type BuildServicesStatusRequest struct {
+	ServiceIds []string `json:"serviceIds"`
+	MaxResults int      `json:"maxResults"`
+}
+
+func BuildServicesStatusRequestExample() BuildServicesStatusRequest {
+	return BuildServicesStatusRequest{
+		ServiceIds: []string{"XXX", "YYY", "ZZZ"},
+		MaxResults: 14,
+	}
+}
+
+type BuildServiceRequest struct {
+	ServiceId  string `json:"serviceId"`
+	MaxResults int    `json:"maxResults,omitempty"`
+}
+
+func BuildServiceRequestExample() BuildServiceRequest {
+	return BuildServiceRequest{
+		ServiceId:  "XXX",
+		MaxResults: 12,
+	}
+}
+
 type ListBuildByProjectIdRequest struct {
 	ProjectId string `json:"projectId"`
 }

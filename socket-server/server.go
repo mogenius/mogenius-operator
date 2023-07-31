@@ -523,6 +523,12 @@ func requestCmdFromCluster(pattern string) {
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_DELETE:
 			payload = structs.BuildJobExample()
+		case services.PAT_BUILD_LAST_JOB_OF_SERVICES:
+			payload = structs.BuildServicesStatusRequestExample()
+		case services.PAT_BUILD_JOB_LIST_OF_SERVICE:
+			payload = structs.BuildServiceRequestExample()
+		case services.PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
+			payload = structs.BuildServiceRequestExample()
 
 		case services.PAT_STORAGE_CREATE_VOLUME:
 			payload = services.NfsVolumeRequestExample()

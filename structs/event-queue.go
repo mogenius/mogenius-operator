@@ -63,11 +63,7 @@ func connectEvent() {
 		}
 	}()
 
-	scheme := "wss"
-	if utils.CONFIG.Misc.Stage == "local" {
-		scheme = "ws"
-	}
-	connectionUrl := url.URL{Scheme: scheme, Host: utils.CONFIG.EventServer.Server, Path: utils.CONFIG.EventServer.Path}
+	connectionUrl := url.URL{Scheme: utils.CONFIG.EventServer.Scheme, Host: utils.CONFIG.EventServer.Server, Path: utils.CONFIG.EventServer.Path}
 
 	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
