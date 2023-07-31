@@ -33,8 +33,6 @@ var validate = validator.New()
 var connections = make(map[string]*structs.ClusterConnection)
 var serverSendMutex sync.Mutex
 
-//var stopReadingInput bool = false
-
 func Init(r *gin.Engine) {
 	// r.Use(user.AuthUserMiddleware())
 	r.GET(utils.CONFIG.ApiServer.WS_Path, func(c *gin.Context) {
@@ -227,9 +225,6 @@ func ReadInput() {
 	defer tty.Close()
 
 	for {
-		// if stopReadingInput {
-		// 	break
-		// }
 		r, err := tty.ReadRune()
 		if err != nil {
 			log.Fatal(err)
