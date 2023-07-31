@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/utils"
 	"time"
 
-	"github.com/TylerBrock/colorjson"
 	"github.com/fatih/color"
 	"github.com/google/uuid"
 )
@@ -91,11 +90,12 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
 	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), DurationStrSince(d.CreatedAt))
 
-	f := colorjson.NewFormatter()
-	f.Indent = 2
-	s, _ := f.Marshal(d.Payload)
+	// f := colorjson.NewFormatter()
+	// f.Indent = 2
+	// s, _ := f.Marshal(d.Payload)
+	// PrettyPrintString(d.Payload)
 
-	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), string(s))
+	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), PrettyPrintString(d.Payload))
 }
 
 func (d *Datagram) DisplayReceiveSummary() {

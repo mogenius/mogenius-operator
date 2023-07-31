@@ -64,11 +64,7 @@ func ConnectToJobQueue() {
 }
 
 func connectJob(ctx context.Context) {
-	scheme := "wss"
-	if utils.CONFIG.Misc.Stage == "local" {
-		scheme = "ws"
-	}
-	JobConnectionUrl = url.URL{Scheme: scheme, Host: utils.CONFIG.ApiServer.Ws_Server, Path: utils.CONFIG.ApiServer.WS_Path}
+	JobConnectionUrl = url.URL{Scheme: utils.CONFIG.ApiServer.Ws_Scheme, Host: utils.CONFIG.ApiServer.Ws_Server, Path: utils.CONFIG.ApiServer.WS_Path}
 
 	connection, _, err := websocket.DefaultDialer.Dial(JobConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {

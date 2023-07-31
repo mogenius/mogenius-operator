@@ -10,14 +10,17 @@ kubernetes:
 api_server:
   http_server: https://platform-api.dev.mogenius.com
   ws_server: 127.0.0.1:8080
+  ws_server_scheme: ws
   ws_path: /ws
 
 event_server:
   server: 127.0.0.1:8080
+  scheme: ws
   path: /ws-event
 
 shell_server:
   server: 127.0.0.1:8080
+  scheme: ws
   path: /ws-shell
 
 misc:

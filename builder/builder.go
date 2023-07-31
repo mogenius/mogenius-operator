@@ -419,6 +419,80 @@ func ListByProjectId(projectId string) []structs.BuildJobListEntry {
 	return result
 }
 
+func ListByServiceId(serviceId string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListAll()
+	for _, queueEntry := range list {
+		if queueEntry.ServiceId == serviceId {
+			result = append(result, queueEntry)
+		}
+	}
+	return result
+}
+
+func ListByServiceIds(serviceIds []string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListAll()
+	for _, queueEntry := range list {
+		if utils.Contains(serviceIds, queueEntry.ServiceId) {
+			result = append(result, queueEntry)
+		}
+	}
+	return result
+}
+
+func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListByServiceId(serviceId)
+	for i := len(list) - 1; i >= 0; i-- {
+		if len(result) < maxResults {
+			result = append(result, list[i])
+		}
+	}
+	return result
+}
+
+func LastNJobsPerServices(maxResults int, serviceIds []string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListByServiceIds(serviceIds)
+	for i := len(list) - 1; i >= 0; i-- {
+		if len(result) < maxResults {
+			result = append(result, list[i])
+		}
+	}
+	return result
+}
+
+func LastJobForService(serviceId string) structs.BuildJobListEntry {
+	result := structs.BuildJobListEntry{}
+
+	list := ListByServiceId(serviceId)
+	if len(list) > 0 {
+		result = list[len(list)-1]
+	}
+	return result
+}
+
+func LastBuildForService(serviceId string) structs.BuildJobInfos {
+	result := structs.BuildJobInfos{}
+
+	var lastJob *structs.BuildJobListEntry
+	list := ListByServiceId(serviceId)
+	if len(list) > 0 {
+		lastJob = &list[len(list)-1]
+	}
+
+	if lastJob != nil {
+		result = BuildJobInfos(lastJob.BuildId)
+	}
+
+	return result
+}
+
 func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob, saveLog bool, timeoutCtx *context.Context, name string, arg ...string) error {
 	startTime := time.Now()
 
