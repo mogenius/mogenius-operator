@@ -500,6 +500,10 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 		reportCmd.Start(reportCmd.Message)
 	}
 
+	// Prioritize the command to 10 (which is lower the default 0)
+	// this means the command will get execution time after the paret process
+	arg = append([]string{"nice -n 10"}, arg...)
+
 	cmd := exec.CommandContext(*timeoutCtx, name, arg...)
 	cmdOutput, execErr := cmd.CombinedOutput()
 	elapsedTime := time.Since(startTime)
