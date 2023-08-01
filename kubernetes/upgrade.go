@@ -11,6 +11,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func ClusterForceReconnect() bool {
+	// restart deployments/daemonsets for
+	// - traffic
+	// - podstats
+	// - k8s-manager
+
+	return true
+}
+
 func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Upgrade mogenius platform ...", job)
 	wg.Add(1)

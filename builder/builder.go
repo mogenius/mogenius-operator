@@ -104,6 +104,7 @@ func ProcessQueue() {
 			}
 
 			job.State = result
+			buildJob.EndTimestamp = time.Now().Format(time.RFC3339)
 			buildJob.State = result
 			job.Finish()
 			saveJob(buildJob)
@@ -304,13 +305,21 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 	result := structs.BuildJobInfos{}
 	db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUCKET_NAME))
+
+		queueEntry := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildId)))
+		job := structs.BuildJob{}
+		err := structs.UnmarshalJob(&job, queueEntry)
+		if err != nil {
+			return err
+		}
+
 		clone := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_GIT_CLONE, buildId)))
 		ls := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LS, buildId)))
 		login := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LOGIN, buildId)))
 		build := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_BUILD, buildId)))
 		push := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_PUSH, buildId)))
 		scan := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_SCAN, buildId)))
-		result = structs.CreateBuildJobInfos(buildId, clone, ls, login, build, push, scan)
+		result = structs.CreateBuildJobInfos(job, clone, ls, login, build, push, scan)
 		return nil
 	})
 

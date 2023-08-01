@@ -1,13 +1,14 @@
 package services
 
 const (
-	PAT_K8SNOTIFICATION     string = "K8sNotification"
-	PAT_CLUSTERSTATUS       string = "ClusterStatus"
-	PAT_CLUSTERRESOURCEINFO string = "ClusterResourceInfo"
-	PAT_KUBERNETESEVENT     string = "KubernetesEvent"
-	PAT_UPGRADEK8SMANAGER   string = "UpgradeK8sManager"
-	PAT_SERVICE_POD_EXISTS  string = "SERVICE_POD_EXISTS"
-	PAT_SERVICE_PODS        string = "SERVICE_PODS"
+	PAT_K8SNOTIFICATION         string = "K8sNotification"
+	PAT_CLUSTERSTATUS           string = "ClusterStatus"
+	PAT_CLUSTERRESOURCEINFO     string = "ClusterResourceInfo"
+	PAT_KUBERNETESEVENT         string = "KubernetesEvent"
+	PAT_UPGRADEK8SMANAGER       string = "UpgradeK8sManager"
+	PAT_SERVICE_POD_EXISTS      string = "SERVICE_POD_EXISTS"
+	PAT_SERVICE_PODS            string = "SERVICE_PODS"
+	PAT_CLUSTER_FORCE_RECONNECT string = "ClusterForceReconnect"
 
 	PAT_FILES_LIST          string = "files/list"
 	PAT_FILES_DOWNLOAD      string = "files/download"
@@ -264,6 +265,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_UPGRADEK8SMANAGER,
 	PAT_SERVICE_POD_EXISTS,
 	PAT_SERVICE_PODS,
+	PAT_CLUSTER_FORCE_RECONNECT,
 
 	PAT_FILES_LIST,
 	PAT_FILES_DOWNLOAD,

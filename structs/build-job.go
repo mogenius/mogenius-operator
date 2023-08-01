@@ -36,6 +36,7 @@ type BuildJob struct {
 	ContainerRegistryPat  string `json:"containerRegistryPat"`
 	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
 	StartTimestamp        string `json:"startTimestamp"`
+	EndTimestamp          string `json:"endTimestamp"`
 	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
 	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING, TIMEOUT
 	StartedAt             string `json:"startedAt"`
@@ -91,6 +92,7 @@ func BuildJobExample() BuildJob {
 		InjectDockerEnvVars:   "--build-arg PLACEHOLDER=MOGENIUS",
 		State:                 BUILD_STATE_PENDING,
 		StartedAt:             time.Now().Format(time.RFC3339),
+		EndTimestamp:          time.Now().Format(time.RFC3339),
 		DurationMs:            0,
 		BuildId:               1,
 	}
@@ -160,13 +162,15 @@ type BuildDeleteResult struct {
 }
 
 type BuildJobInfos struct {
-	BuildId int               `json:"buildId"`
-	Clone   BuildJobInfoEntry `json:"clone"`
-	Ls      BuildJobInfoEntry `json:"ls"`
-	Login   BuildJobInfoEntry `json:"login"`
-	Build   BuildJobInfoEntry `json:"build"`
-	Push    BuildJobInfoEntry `json:"push"`
-	Scan    BuildJobInfoEntry `json:"scan"`
+	BuildId    int               `json:"buildId"`
+	Clone      BuildJobInfoEntry `json:"clone"`
+	Ls         BuildJobInfoEntry `json:"ls"`
+	Login      BuildJobInfoEntry `json:"login"`
+	Build      BuildJobInfoEntry `json:"build"`
+	Push       BuildJobInfoEntry `json:"push"`
+	Scan       BuildJobInfoEntry `json:"scan"`
+	StartTime  string            `json:"startTime"`
+	FinishTime string            `json:"finishTime"`
 }
 
 type BuildJobInfoEntry struct {
@@ -174,10 +178,12 @@ type BuildJobInfoEntry struct {
 	Result string `json:"result"`
 }
 
-func CreateBuildJobInfos(buildId int, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
+func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
 	result := BuildJobInfos{}
 
-	result.BuildId = buildId
+	result.BuildId = job.BuildId
+	result.StartTime = job.StartedAt
+	result.FinishTime = job.EndTimestamp
 	result.Clone = createBuildJobEntryFromData(clone)
 	result.Ls = createBuildJobEntryFromData(ls)
 	result.Login = createBuildJobEntryFromData(login)

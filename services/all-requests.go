@@ -38,6 +38,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sManagerUpgradeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		return UpgradeK8sManager(data)
+
+	case PAT_CLUSTER_FORCE_RECONNECT:
+		return mokubernetes.ClusterForceReconnect()
+
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
