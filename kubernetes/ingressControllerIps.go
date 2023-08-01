@@ -43,8 +43,8 @@ func GetClusterExternalIps() []string {
 
 	// check if traefik is used
 	if services != nil && len(services.Items) <= 0 {
-		labelSelector := "app.kubernetes.io/name=traefik"
-		services, err = kubeProvider.ClientSet.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+		traefikSelector := "app.kubernetes.io/name=traefik"
+		services, err = kubeProvider.ClientSet.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: traefikSelector})
 	}
 
 	for _, service := range services.Items {
