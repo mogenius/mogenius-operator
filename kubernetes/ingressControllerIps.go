@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,7 +42,7 @@ func GetClusterExternalIps() []string {
 	services, err := kubeProvider.ClientSet.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 
 	// check if traefik is used
-	if apierrors.IsNotFound(err) {
+	if err != nil {
 		labelSelector := "app.kubernetes.io/name=traefik"
 		services, err = kubeProvider.ClientSet.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	}
