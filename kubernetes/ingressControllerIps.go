@@ -41,12 +41,6 @@ func GetClusterExternalIps() []string {
 	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/name=ingress-nginx"
 	services, err := kubeProvider.ClientSet.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 
-	// check if traefik is used
-	if services != nil && len(services.Items) <= 0 {
-		traefikSelector := "app.kubernetes.io/name=traefik"
-		services, err = kubeProvider.ClientSet.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: traefikSelector})
-	}
-
 	for _, service := range services.Items {
 		for _, ingress := range service.Status.LoadBalancer.Ingress {
 			fmt.Println(ingress.IP)
@@ -58,5 +52,24 @@ func GetClusterExternalIps() []string {
 		fmt.Println("Error:", err)
 		return result
 	}
+
+	// check if traefik is used
+	if len(result) <= 0 {
+		traefikSelector := "app.kubernetes.io/name=traefik"
+		services, err := kubeProvider.ClientSet.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: traefikSelector})
+
+		for _, service := range services.Items {
+			for _, ingress := range service.Status.LoadBalancer.Ingress {
+				fmt.Println(ingress.IP)
+				result = append(result, ingress.IP)
+			}
+		}
+
+		if err != nil {
+			fmt.Println("Error:", err)
+			return result
+		}
+	}
+
 	return result
 }
