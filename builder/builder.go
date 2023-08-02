@@ -513,6 +513,13 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 	// this means the command will get execution time after the paret process
 	// arg = append([]string{"nice -n 10"}, arg...)
 
+	// TIMESTAMP EVERY LINE
+	if utils.CONFIG.Misc.Stage != "local" {
+		// PREFIX LINE BUFFER (otherwise the timestamp will be set only in the first line)
+		arg[len(arg)-1] = fmt.Sprintf("%s %s", "stdbuf -oL", arg[len(arg)-1])
+	}
+	arg[len(arg)-1] = fmt.Sprintf("%s %s", arg[len(arg)-1], `| while IFS= read -r line; do printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$line"; done`)
+
 	cmd := exec.CommandContext(*timeoutCtx, name, arg...)
 	cmdOutput, execErr := cmd.CombinedOutput()
 	elapsedTime := time.Since(startTime)
