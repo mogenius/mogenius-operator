@@ -537,7 +537,7 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 				reportCmd.Success(reportCmd.Message)
 			}
 			if reportCmd != nil {
-				entry := structs.CreateBuildJobInfoEntryBytes(reportCmd.State, cmdOutput)
+				entry := structs.CreateBuildJobInfoEntryBytes(reportCmd.State, cmdOutput, startTime, time.Now())
 				return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), entry)
 			}
 			return nil

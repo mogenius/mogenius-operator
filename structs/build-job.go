@@ -174,8 +174,10 @@ type BuildJobInfos struct {
 }
 
 type BuildJobInfoEntry struct {
-	State  string `json:"state"`
-	Result string `json:"result"`
+	State      string `json:"state"`
+	Result     string `json:"result"`
+	StartTime  string `json:"startTime"`
+	FinishTime string `json:"finishTime"`
 }
 
 func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
@@ -208,10 +210,12 @@ func createBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 	return result
 }
 
-func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte) []byte {
+func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
 	entry := BuildJobInfoEntry{
-		State:  state,
-		Result: string(cmdOutput),
+		State:      state,
+		Result:     string(cmdOutput),
+		StartTime:  startTime.Format(time.RFC3339),
+		FinishTime: finishTime.Format(time.RFC3339),
 	}
 
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
