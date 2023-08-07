@@ -50,6 +50,18 @@
       "args": ["cluster", "-d"],
       "asRoot": false,
       "console": "integratedTerminal"
+    },
+    {
+      "name": "Attach remote :2345",
+      "type": "go",
+      "request": "attach",
+      "mode": "remote",
+      "remotePath": "",
+      "port": 2345,
+      "host": "127.0.0.1",
+      "showLog": true,
+      "trace": "log",
+      "logOutput": "rpc"
     }
   ]
 }
