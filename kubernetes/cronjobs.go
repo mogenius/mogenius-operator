@@ -2,16 +2,404 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
+	"strings"
+	"sync"
+	"time"
 
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
-	v1 "k8s.io/api/batch/v1"
+	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
+	core "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 )
 
+type CronJob struct {}
+
+func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name), job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name))
+
+		kubeProvider := NewKubeProvider()
+		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		newCronJob := generateCronJob(namespace, service, true, cronJobClient)
+
+		newCronJob.Labels = MoUpdateLabels(&newCronJob.Labels, job.ProjectId, &namespace, &service)
+
+		_, err := cronJobClient.Create(context.TODO(), &newCronJob, MoCreateOptions())
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("CreateCronJob ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(fmt.Sprintf("Created CronJob '%s'.", namespace.Name))
+		}
+
+	}(cmd, wg)
+	return cmd
+}
+
+func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Deleting CronJob '%s'.", service.Name), job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Deleting CronJob '%s'.", service.Name))
+
+		kubeProvider := NewKubeProvider()
+		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
+
+		deleteOptions := metav1.DeleteOptions{
+			GracePeriodSeconds: utils.Pointer[int64](5),
+		}
+
+		err := cronJobClient.Delete(context.TODO(), service.Name, deleteOptions)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("DeleteCronJob ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(fmt.Sprintf("Deleted CronJob '%s'.", service.Name))
+		}
+
+	}(cmd, wg)
+	return cmd
+}
+
+func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Updating CronJob '%s'.", namespace.Name), job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Updating CronJob '%s'.", namespace.Name))
+
+		kubeProvider := NewKubeProvider()
+		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		newCronJob := generateCronJob(namespace, service, false, cronJobClient)
+
+		updateOptions := metav1.UpdateOptions{
+			FieldManager: DEPLOYMENTNAME,
+		}
+
+		_, err := cronJobClient.Update(context.TODO(), &newCronJob, updateOptions)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("UpdatingCronJob ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(fmt.Sprintf("Updating CronJob '%s'.", namespace.Name))
+		}
+
+	}(cmd, wg)
+	return cmd
+}
+
+func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Starting CronJob", job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Starting CronJob '%s'.", service.Name))
+
+		kubeProvider := NewKubeProvider()
+		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		cronJob := generateCronJob(namespace, service, false, cronJobClient)
+
+		_, err := cronJobClient.Update(context.TODO(), &cronJob, metav1.UpdateOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("StartingCronJob ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(fmt.Sprintf("Started CronJob '%s'.", service.Name))
+		}
+	}(cmd, wg)
+	return cmd
+}
+
+func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Stopping CronJob", job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Stopping CronJob '%s'.", service.Name))
+
+		kubeProvider := NewKubeProvider()
+		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		cronJob := generateCronJob(namespace, service, false, cronJobClient)
+		suspend := true
+		cronJob.Spec.Suspend = &suspend
+
+		_, err := cronJobClient.Update(context.TODO(), &cronJob, metav1.UpdateOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("StopCronJob ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(fmt.Sprintf("Stopped CronJob '%s'.", service.Name))
+		}
+	}(cmd, wg)
+	return cmd
+}
+
+func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Restart CronJob", job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Restarting CronJob '%s'.", service.Name))
+
+		kubeProvider := NewKubeProvider()
+		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		cronJob := generateCronJob(namespace, service, false, cronJobClient)
+		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
+		if cronJob.ObjectMeta.Annotations == nil {
+			cronJob.Spec.JobTemplate.ObjectMeta.Annotations = map[string]string{}
+			cronJob.Spec.JobTemplate.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+		} else {
+			cronJob.Spec.JobTemplate.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+		}
+
+		_, err := cronJobClient.Update(context.TODO(), &cronJob, metav1.UpdateOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("RestartCronJob ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(fmt.Sprintf("Restart CronJob '%s'.", service.Name))
+		}
+	}(cmd, wg)
+	return cmd
+}
+
+func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, cronjobclient batchv1.CronJobInterface) v1job.CronJob {
+
+	return utils.InitCronJob()
+
+	previousDeployment, err := deploymentclient.Get(context.TODO(), service.Name, metav1.GetOptions{})
+	if err != nil {
+		//logger.Log.Infof("No previous deployment found for %s/%s.", namespace.Name, service.Name)
+		previousDeployment = nil
+	}
+
+	// SANITIZE
+	if service.K8sSettings.LimitCpuCores <= 0 {
+		service.K8sSettings.LimitCpuCores = 0.1
+	}
+	if service.K8sSettings.LimitMemoryMB <= 0 {
+		service.K8sSettings.LimitMemoryMB = 16
+	}
+	if service.K8sSettings.EphemeralStorageMB <= 0 {
+		service.K8sSettings.EphemeralStorageMB = 100
+	}
+	if service.K8sSettings.ReplicaCount < 0 {
+		service.K8sSettings.ReplicaCount = 0
+	}
+
+	newDeployment := utils.InitDeployment()
+	newDeployment.ObjectMeta.Name = service.Name
+	newDeployment.ObjectMeta.Namespace = namespace.Name
+	newDeployment.Spec.Selector.MatchLabels["app"] = service.Name
+	newDeployment.Spec.Selector.MatchLabels["ns"] = namespace.Name
+	newDeployment.Spec.Template.ObjectMeta.Labels["app"] = service.Name
+	newDeployment.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
+
+	// STRATEGY
+	if service.K8sSettings.DeploymentStrategy != "" {
+		if service.K8sSettings.DeploymentStrategy != "rolling" {
+			newDeployment.Spec.Strategy.Type = v1.RollingUpdateDeploymentStrategyType
+		} else {
+			newDeployment.Spec.Strategy.Type = v1.RecreateDeploymentStrategyType
+		}
+	} else {
+		newDeployment.Spec.Strategy.Type = v1.RecreateDeploymentStrategyType
+	}
+
+	// SWITCHED ON
+	if service.SwitchedOn {
+		newDeployment.Spec.Replicas = utils.Pointer(service.K8sSettings.ReplicaCount)
+	} else {
+		newDeployment.Spec.Replicas = utils.Pointer[int32](0)
+	}
+
+	// PAUSE
+	if freshlyCreated && service.App.Type == "DOCKER_TEMPLATE" {
+		newDeployment.Spec.Paused = true
+	} else {
+		newDeployment.Spec.Paused = false
+	}
+
+	// PORTS
+	var internalHttpPort *int
+	if len(service.Ports) > 0 {
+		newDeployment.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
+		for _, port := range service.Ports {
+			if port.Expose {
+				newDeployment.Spec.Template.Spec.Containers[0].Ports = append(newDeployment.Spec.Template.Spec.Containers[0].Ports, core.ContainerPort{
+					ContainerPort: int32(port.InternalPort),
+				})
+			}
+			if port.PortType == "HTTPS" {
+				tmp := int(port.InternalPort)
+				internalHttpPort = &tmp
+			}
+		}
+	} else {
+		newDeployment.Spec.Template.Spec.Containers[0].Ports = nil
+	}
+
+	// RESOURCES
+	limits := core.ResourceList{}
+	limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
+	limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
+	limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+	newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = limits
+	requests := core.ResourceList{}
+	requests["cpu"] = resource.MustParse("1m")
+	requests["memory"] = resource.MustParse("1Mi")
+	requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+	newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests = requests
+
+	newDeployment.Spec.Template.Spec.Containers[0].Name = service.Name
+
+	// IMAGE
+	if service.ContainerImage != "" {
+		newDeployment.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
+		if service.ContainerImageCommand != "" {
+			newDeployment.Spec.Template.Spec.Containers[0].Command = utils.ParseJsonStringArray(service.ContainerImageCommand)
+		}
+		if service.ContainerImageCommandArgs != "" {
+			newDeployment.Spec.Template.Spec.Containers[0].Args = utils.ParseJsonStringArray(service.ContainerImageCommandArgs)
+		}
+		if service.ContainerImageRepoSecretDecryptValue != "" {
+			newDeployment.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
+			newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{
+				Name: fmt.Sprintf("%s-container-secret", service.Name),
+			})
+		}
+	} else {
+		// this will be setup UNTIL the buildserver overwrites the image with the real one.
+		if previousDeployment != nil {
+			newDeployment.Spec.Template.Spec.Containers[0].Image = previousDeployment.Spec.Template.Spec.Containers[0].Image
+		} else {
+			newDeployment.Spec.Template.Spec.Containers[0].Image = "ghcr.io/mogenius/mo-default-backend:latest"
+		}
+	}
+
+	// ENV VARS
+	newDeployment.Spec.Template.Spec.Containers[0].Env = []core.EnvVar{}
+	newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
+	newDeployment.Spec.Template.Spec.Volumes = []core.Volume{}
+	for _, envVar := range service.EnvVars {
+		if envVar.Type == "KEY_VAULT" ||
+			envVar.Type == "PLAINTEXT" ||
+			envVar.Type == "HOSTNAME" {
+			newDeployment.Spec.Template.Spec.Containers[0].Env = append(newDeployment.Spec.Template.Spec.Containers[0].Env, core.EnvVar{
+				Name: envVar.Name,
+				ValueFrom: &core.EnvVarSource{
+					SecretKeyRef: &core.SecretKeySelector{
+						Key: envVar.Name,
+						LocalObjectReference: core.LocalObjectReference{
+							Name: service.Name,
+						},
+					},
+				},
+			})
+		}
+		if envVar.Type == "VOLUME_MOUNT" {
+			// VOLUMEMOUNT
+			// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
+			components := strings.Split(envVar.Value, ":")
+			if len(components) == 3 {
+				volumeName := components[0]    // e.g. MY_COOL_NAME
+				srcPath := components[1]       // e.g. subpath/to/heaven
+				containerPath := components[2] // e.g. /mo-data
+
+				// subPath must be relative
+				if strings.HasPrefix(srcPath, "/") {
+					srcPath = strings.Replace(srcPath, "/", "", 1)
+				}
+				newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
+					MountPath: containerPath,
+					SubPath:   srcPath,
+					Name:      volumeName,
+				})
+
+				// VOLUME
+				nfsService := ServiceForNfsVolume(namespace.Name, volumeName)
+				if nfsService != nil {
+					newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
+						Name: volumeName,
+						VolumeSource: core.VolumeSource{
+							NFS: &core.NFSVolumeSource{
+								Path:   "/exports",
+								Server: nfsService.Spec.ClusterIP,
+							},
+						},
+					})
+				} else {
+					logger.Log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
+				}
+			} else {
+				logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
+			}
+		}
+	}
+
+	// IMAGE PULL SECRET
+	if ContainerSecretDoesExistForStage(namespace) {
+		containerSecretName := "container-secret-" + namespace.Name
+		newDeployment.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
+		newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
+	}
+
+	// PROBES OFF
+	if !service.K8sSettings.ProbesOn {
+		newDeployment.Spec.Template.Spec.Containers[0].StartupProbe = nil
+		newDeployment.Spec.Template.Spec.Containers[0].LivenessProbe = nil
+		newDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
+	} else if internalHttpPort != nil {
+		newDeployment.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+		newDeployment.Spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+		newDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+	}
+
+	// SECURITY CONTEXT
+	// TODO wieder in betrieb nehmen
+	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
+	newDeployment.Spec.Template.Spec.Containers[0].SecurityContext = nil
+
+	return newDeployment
+}
+/*
+func SetImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceName))
+
+		kubeProvider := NewKubeProvider()
+		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
+		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
+			return
+		}
+
+		// SET NEW IMAGE
+		deploymentToUpdate.Spec.Template.Spec.Containers[0].Image = imageName
+		deploymentToUpdate.Spec.Paused = false
+
+		_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", serviceName))
+		}
+	}(cmd, wg)
+	return cmd
+}
+*/
 func AllCronjobs(namespaceName string) K8sWorkloadResult {
 	result := []v1job.CronJob{}
 
@@ -30,7 +418,7 @@ func AllCronjobs(namespaceName string) K8sWorkloadResult {
 	return WorkloadResult(result, nil)
 }
 
-func UpdateK8sCronJob(data v1.CronJob) K8sWorkloadResult {
+func UpdateK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
 	kubeProvider := NewKubeProvider()
 	cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(data.Namespace)
 	_, err := cronJobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
