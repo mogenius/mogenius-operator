@@ -13,7 +13,6 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
-	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -172,15 +171,12 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 }
 
 func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, cronjobclient batchv1.CronJobInterface) v1job.CronJob {
-
-	return utils.InitCronJob()
-
-	previousDeployment, err := deploymentclient.Get(context.TODO(), service.Name, metav1.GetOptions{})
+	previousCronjob, err := cronjobclient.Get(context.TODO(), service.Name, metav1.GetOptions{})
 	if err != nil {
-		//logger.Log.Infof("No previous deployment found for %s/%s.", namespace.Name, service.Name)
-		previousDeployment = nil
+		//logger.Log.Infof("No previous cronjob found for %s/%s.", namespace.Name, service.Name)
+		previousCronjob = nil
 	}
-
+	
 	// SANITIZE
 	if service.K8sSettings.LimitCpuCores <= 0 {
 		service.K8sSettings.LimitCpuCores = 0.1
@@ -194,47 +190,37 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	if service.K8sSettings.ReplicaCount < 0 {
 		service.K8sSettings.ReplicaCount = 0
 	}
-
-	newDeployment := utils.InitDeployment()
-	newDeployment.ObjectMeta.Name = service.Name
-	newDeployment.ObjectMeta.Namespace = namespace.Name
-	newDeployment.Spec.Selector.MatchLabels["app"] = service.Name
-	newDeployment.Spec.Selector.MatchLabels["ns"] = namespace.Name
-	newDeployment.Spec.Template.ObjectMeta.Labels["app"] = service.Name
-	newDeployment.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
-
+	
+	
+	newCronJob := utils.InitCronJob()
+	newCronJob.ObjectMeta.Name = service.Name
+	newCronJob.ObjectMeta.Namespace = namespace.Name
+	newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["app"] = service.Name
+	newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["ns"] = namespace.Name
+	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["app"] = service.Name
+	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
+	
 	// STRATEGY
-	if service.K8sSettings.DeploymentStrategy != "" {
-		if service.K8sSettings.DeploymentStrategy != "rolling" {
-			newDeployment.Spec.Strategy.Type = v1.RollingUpdateDeploymentStrategyType
-		} else {
-			newDeployment.Spec.Strategy.Type = v1.RecreateDeploymentStrategyType
-		}
-	} else {
-		newDeployment.Spec.Strategy.Type = v1.RecreateDeploymentStrategyType
-	}
+	// not implemented
 
-	// SWITCHED ON
-	if service.SwitchedOn {
-		newDeployment.Spec.Replicas = utils.Pointer(service.K8sSettings.ReplicaCount)
-	} else {
-		newDeployment.Spec.Replicas = utils.Pointer[int32](0)
-	}
-
-	// PAUSE
+	// SUSPEND -> SWITCHED ON 
+	newCronJob.Spec.Suspend = utils.Pointer(service.SwitchedOn)
+	
+	// SUSPEND -> PAUSE
 	if freshlyCreated && service.App.Type == "DOCKER_TEMPLATE" {
-		newDeployment.Spec.Paused = true
+		newCronJob.Spec.JobTemplate.Spec.Suspend = utils.Pointer(service.SwitchedOn && true)
 	} else {
-		newDeployment.Spec.Paused = false
+		newCronJob.Spec.JobTemplate.Spec.Suspend = utils.Pointer(false)
 	}
-
+	
 	// PORTS
 	var internalHttpPort *int
 	if len(service.Ports) > 0 {
-		newDeployment.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
+		// newDeployment.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
 		for _, port := range service.Ports {
 			if port.Expose {
-				newDeployment.Spec.Template.Spec.Containers[0].Ports = append(newDeployment.Spec.Template.Spec.Containers[0].Ports, core.ContainerPort{
+				newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports, core.ContainerPort{
 					ContainerPort: int32(port.InternalPort),
 				})
 			}
@@ -244,7 +230,7 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 			}
 		}
 	} else {
-		newDeployment.Spec.Template.Spec.Containers[0].Ports = nil
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = nil
 	}
 
 	// RESOURCES
@@ -252,48 +238,49 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
 	limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
 	limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
-	newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = limits
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Limits = limits
 	requests := core.ResourceList{}
 	requests["cpu"] = resource.MustParse("1m")
 	requests["memory"] = resource.MustParse("1Mi")
 	requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
-	newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests = requests
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Requests = requests
 
-	newDeployment.Spec.Template.Spec.Containers[0].Name = service.Name
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Name = service.Name
+
 
 	// IMAGE
 	if service.ContainerImage != "" {
-		newDeployment.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
 		if service.ContainerImageCommand != "" {
-			newDeployment.Spec.Template.Spec.Containers[0].Command = utils.ParseJsonStringArray(service.ContainerImageCommand)
+			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Command = utils.ParseJsonStringArray(service.ContainerImageCommand)
 		}
 		if service.ContainerImageCommandArgs != "" {
-			newDeployment.Spec.Template.Spec.Containers[0].Args = utils.ParseJsonStringArray(service.ContainerImageCommandArgs)
+			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args = utils.ParseJsonStringArray(service.ContainerImageCommandArgs)
 		}
 		if service.ContainerImageRepoSecretDecryptValue != "" {
-			newDeployment.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
-			newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{
+			newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
+			newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{
 				Name: fmt.Sprintf("%s-container-secret", service.Name),
 			})
 		}
 	} else {
 		// this will be setup UNTIL the buildserver overwrites the image with the real one.
-		if previousDeployment != nil {
-			newDeployment.Spec.Template.Spec.Containers[0].Image = previousDeployment.Spec.Template.Spec.Containers[0].Image
+		if previousCronjob != nil {
+			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = previousCronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image
 		} else {
-			newDeployment.Spec.Template.Spec.Containers[0].Image = "ghcr.io/mogenius/mo-default-backend:latest"
+			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = "ghcr.io/mogenius/mo-default-backend:latest"
 		}
 	}
 
 	// ENV VARS
-	newDeployment.Spec.Template.Spec.Containers[0].Env = []core.EnvVar{}
-	newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
-	newDeployment.Spec.Template.Spec.Volumes = []core.Volume{}
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env = []core.EnvVar{}
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes = []core.Volume{}
 	for _, envVar := range service.EnvVars {
 		if envVar.Type == "KEY_VAULT" ||
 			envVar.Type == "PLAINTEXT" ||
 			envVar.Type == "HOSTNAME" {
-			newDeployment.Spec.Template.Spec.Containers[0].Env = append(newDeployment.Spec.Template.Spec.Containers[0].Env, core.EnvVar{
+				newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env, core.EnvVar{
 				Name: envVar.Name,
 				ValueFrom: &core.EnvVarSource{
 					SecretKeyRef: &core.SecretKeySelector{
@@ -318,7 +305,7 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 				if strings.HasPrefix(srcPath, "/") {
 					srcPath = strings.Replace(srcPath, "/", "", 1)
 				}
-				newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
+				newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].VolumeMounts = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
 					MountPath: containerPath,
 					SubPath:   srcPath,
 					Name:      volumeName,
@@ -327,7 +314,7 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 				// VOLUME
 				nfsService := ServiceForNfsVolume(namespace.Name, volumeName)
 				if nfsService != nil {
-					newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
+					newCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes, core.Volume{
 						Name: volumeName,
 						VolumeSource: core.VolumeSource{
 							NFS: &core.NFSVolumeSource{
@@ -348,27 +335,27 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	// IMAGE PULL SECRET
 	if ContainerSecretDoesExistForStage(namespace) {
 		containerSecretName := "container-secret-" + namespace.Name
-		newDeployment.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
-		newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
 	}
 
 	// PROBES OFF
 	if !service.K8sSettings.ProbesOn {
-		newDeployment.Spec.Template.Spec.Containers[0].StartupProbe = nil
-		newDeployment.Spec.Template.Spec.Containers[0].LivenessProbe = nil
-		newDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].StartupProbe = nil
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].LivenessProbe = nil
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
 	} else if internalHttpPort != nil {
-		newDeployment.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
-		newDeployment.Spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
-		newDeployment.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
 	}
 
 	// SECURITY CONTEXT
 	// TODO wieder in betrieb nehmen
 	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
-	newDeployment.Spec.Template.Spec.Containers[0].SecurityContext = nil
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].SecurityContext = nil
 
-	return newDeployment
+	return newCronJob
 }
 /*
 func SetImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {

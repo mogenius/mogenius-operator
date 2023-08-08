@@ -47,6 +47,7 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	}
 
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
+	// @todo; ae: distinguish deployment or cronjob
 	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
