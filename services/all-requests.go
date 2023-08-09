@@ -131,10 +131,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_SERVICE_CREATE:
 		data := ServiceCreateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
+		data.Service.ApplyDefaults()
 		return CreateService(data)
 	case PAT_SERVICE_DELETE:
 		data := ServiceDeleteRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
+		data.Service.ApplyDefaults()
 		return DeleteService(data)
 	case PAT_SERVICE_POD_IDS:
 		data := ServiceGetPodIdsRequest{}
@@ -167,18 +169,22 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_SERVICE_RESTART:
 		data := ServiceRestartRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
+		data.Service.ApplyDefaults()
 		return Restart(data)
 	case PAT_SERVICE_STOP:
 		data := ServiceStopRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
+		data.Service.ApplyDefaults()
 		return StopService(data)
 	case PAT_SERVICE_START:
 		data := ServiceStartRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
+		data.Service.ApplyDefaults()
 		return StartService(data)
 	case PAT_SERVICE_UPDATE_SERVICE:
 		data := ServiceUpdateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
+		data.Service.ApplyDefaults()
 		return UpdateService(data)
 
 	case PAT_SERVICE_LOG_STREAM:

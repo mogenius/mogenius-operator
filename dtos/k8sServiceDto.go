@@ -7,6 +7,7 @@ const (
 	GitRepository           K8sServiceTypeEnum = "GIT_REPOSITORY"
 	ContainerImageTemplate  K8sServiceTypeEnum = "CONTAINER_IMAGE_TEMPLATE"
 	ContainerImage          K8sServiceTypeEnum = "CONTAINER_IMAGE"
+	K8SDeployment           K8sServiceTypeEnum = "K8S_DEPLOYMENT"
 	K8SCronJob              K8sServiceTypeEnum = "K8S_CRON_JOB"
 )
 
@@ -29,14 +30,14 @@ type K8sServiceDto struct {
 	EnvVars                              []K8sEnvVarDto        `json:"envVars" validate:"required"`
 	Ports                                []K8sPortsDto         `json:"ports" validate:"required"`
 	SwitchedOn                           bool                  `json:"switchedOn" validate:"required"`
-	// CronJobSchedule                      string                `json:"schedule,omitempty"`
-	// ServiceType                          K8sServiceTypeEnum    `json:"serviceType,omitempty"`
+	CronJobSchedule                      string                `json:"schedule,omitempty"`
+	ServiceType                          K8sServiceTypeEnum    `json:"serviceType,omitempty"`
 }
 
 func (dto *K8sServiceDto) ApplyDefaults() {
-	// if dto.ServiceType == "" {
-	// 	p.Country = "Unknown"
-	// }
+	if dto.ServiceType == "" {
+		dto.ServiceType = K8SDeployment
+	} 
 }
 
 func K8sServiceDtoExampleData() K8sServiceDto {
