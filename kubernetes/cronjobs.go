@@ -17,7 +17,6 @@ import (
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 )
 
@@ -214,7 +213,6 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	}
 	
 	// PORTS
-	var internalHttpPort *int
 	if len(service.Ports) > 0 {
 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
 		// newDeployment.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
@@ -223,10 +221,6 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 				newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports, core.ContainerPort{
 					ContainerPort: int32(port.InternalPort),
 				})
-			}
-			if port.PortType == "HTTPS" {
-				tmp := int(port.InternalPort)
-				internalHttpPort = &tmp
 			}
 		}
 	} else {
@@ -340,16 +334,8 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	}
 
 	// PROBES OFF
-	if !service.K8sSettings.ProbesOn {
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].StartupProbe = nil
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].LivenessProbe = nil
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
-	} else if internalHttpPort != nil {
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
-	}
-
+	// not implemented
+	
 	// SECURITY CONTEXT
 	// TODO wieder in betrieb nehmen
 	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
