@@ -84,7 +84,7 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 	case "XYZ":
 		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
 	default:
-		job.AddCmd(mokubernetes.SetImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
+		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
 	}
 	
 	wg.Wait()
