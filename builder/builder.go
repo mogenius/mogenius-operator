@@ -104,6 +104,7 @@ func ProcessQueue() {
 			}
 
 			job.State = result
+			buildJob.EndTimestamp = time.Now().Format(time.RFC3339)
 			buildJob.State = result
 			job.Finish()
 			saveJob(buildJob)
@@ -304,13 +305,21 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 	result := structs.BuildJobInfos{}
 	db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUCKET_NAME))
+
+		queueEntry := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildId)))
+		job := structs.BuildJob{}
+		err := structs.UnmarshalJob(&job, queueEntry)
+		if err != nil {
+			return err
+		}
+
 		clone := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_GIT_CLONE, buildId)))
 		ls := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LS, buildId)))
 		login := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LOGIN, buildId)))
 		build := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_BUILD, buildId)))
 		push := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_PUSH, buildId)))
 		scan := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_SCAN, buildId)))
-		result = structs.CreateBuildJobInfos(buildId, clone, ls, login, build, push, scan)
+		result = structs.CreateBuildJobInfos(job, clone, ls, login, build, push, scan)
 		return nil
 	})
 
@@ -419,12 +428,97 @@ func ListByProjectId(projectId string) []structs.BuildJobListEntry {
 	return result
 }
 
+func ListByServiceId(serviceId string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListAll()
+	for _, queueEntry := range list {
+		if queueEntry.ServiceId == serviceId {
+			result = append(result, queueEntry)
+		}
+	}
+	return result
+}
+
+func ListByServiceIds(serviceIds []string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListAll()
+	for _, queueEntry := range list {
+		if utils.Contains(serviceIds, queueEntry.ServiceId) {
+			result = append(result, queueEntry)
+		}
+	}
+	return result
+}
+
+func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListByServiceId(serviceId)
+	for i := len(list) - 1; i >= 0; i-- {
+		if len(result) < maxResults {
+			result = append(result, list[i])
+		}
+	}
+	return result
+}
+
+func LastNJobsPerServices(maxResults int, serviceIds []string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListByServiceIds(serviceIds)
+	for i := len(list) - 1; i >= 0; i-- {
+		if len(result) < maxResults {
+			result = append(result, list[i])
+		}
+	}
+	return result
+}
+
+func LastJobForService(serviceId string) structs.BuildJobListEntry {
+	result := structs.BuildJobListEntry{}
+
+	list := ListByServiceId(serviceId)
+	if len(list) > 0 {
+		result = list[len(list)-1]
+	}
+	return result
+}
+
+func LastBuildForService(serviceId string) structs.BuildJobInfos {
+	result := structs.BuildJobInfos{}
+
+	var lastJob *structs.BuildJobListEntry
+	list := ListByServiceId(serviceId)
+	if len(list) > 0 {
+		lastJob = &list[len(list)-1]
+	}
+
+	if lastJob != nil {
+		result = BuildJobInfos(lastJob.BuildId)
+	}
+
+	return result
+}
+
 func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob, saveLog bool, timeoutCtx *context.Context, name string, arg ...string) error {
 	startTime := time.Now()
 
 	if reportCmd != nil {
 		reportCmd.Start(reportCmd.Message)
 	}
+
+	// Prioritize the command to 10 (which is lower the default 0)
+	// this means the command will get execution time after the paret process
+	// arg = append([]string{"nice -n 10"}, arg...)
+
+	// TIMESTAMP EVERY LINE
+	// if utils.CONFIG.Misc.Stage != "local" {
+	// 	// PREFIX LINE BUFFER (otherwise the timestamp will be set only in the first line)
+	// 	arg[len(arg)-1] = fmt.Sprintf("%s %s", "stdbuf -oL", arg[len(arg)-1])
+	// }
+	// arg[len(arg)-1] = fmt.Sprintf("%s %s", arg[len(arg)-1], `| while IFS= read -r line; do printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$line"; done`)
 
 	cmd := exec.CommandContext(*timeoutCtx, name, arg...)
 	cmdOutput, execErr := cmd.CombinedOutput()
@@ -450,7 +544,7 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 				reportCmd.Success(reportCmd.Message)
 			}
 			if reportCmd != nil {
-				entry := structs.CreateBuildJobInfoEntryBytes(reportCmd.State, cmdOutput)
+				entry := structs.CreateBuildJobInfoEntryBytes(reportCmd.State, cmdOutput, startTime, time.Now())
 				return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), entry)
 			}
 			return nil

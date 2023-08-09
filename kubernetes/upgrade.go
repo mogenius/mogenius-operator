@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
@@ -10,6 +11,31 @@ import (
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func ClusterForceReconnect() bool {
+	// restart deployments/daemonsets for
+	// - traffic
+	// - podstats
+	// - k8s-manager
+
+	kubeProvider := NewKubeProvider()
+	podClient := kubeProvider.ClientSet.CoreV1().Pods(utils.CONFIG.Kubernetes.OwnNamespace)
+
+	podsToKill := []string{}
+	podsToKill = append(podsToKill, AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-traffic-collector")...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-pod-stats-collector")...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-k8s-manager")...)
+
+	for _, podName := range podsToKill {
+		logger.Log.Warningf("Restarting %s ...", podName)
+		err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{})
+		if err != nil {
+			logger.Log.Errorf("ClusterForceReconnect ERR: %s", err.Error())
+		}
+	}
+
+	return true
+}
 
 func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Upgrade mogenius platform ...", job)

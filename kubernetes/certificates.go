@@ -21,7 +21,7 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 		return
 	}
 
-	foundNewHostNames := false
+	foundChanges := false
 	createNew := false
 
 	// 1. Get Certificate for Namespace (NAMESPACE AND RESOURCE NAME ARE IDENTICAL)
@@ -38,18 +38,17 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 
 	// 2. Check if new Names have been added
 	if cert != nil {
-		for _, hostName := range hostNames {
-			if !utils.Contains(cert.Spec.DNSNames, hostName) {
-				foundNewHostNames = true
-			}
+		diff := utils.Diff(hostNames, cert.Spec.DNSNames)
+		if len(diff) > 0 {
+			foundChanges = true
 		}
 	} else {
 		// cert is missing so create a new one
-		foundNewHostNames = true
+		foundChanges = true
 	}
 
 	// 3. Update the certificate if new Hostnames are beeing added.
-	if foundNewHostNames {
+	if foundChanges {
 		provider := NewKubeProviderCertManager()
 		if createNew {
 			cert := utils.InitCertificate()

@@ -148,6 +148,17 @@ func AllPodNames() []string {
 	return result
 }
 
+func AllPodNamesForLabel(namespace string, labelKey string, labelValue string) []string {
+	result := []string{}
+	allPods := AllPods(namespace)
+	for _, pod := range allPods {
+		if pod.Labels[labelKey] == labelValue {
+			result = append(result, pod.ObjectMeta.Name)
+		}
+	}
+	return result
+}
+
 func PodIdsFor(namespace string, serviceId *string) []string {
 	result := []string{}
 

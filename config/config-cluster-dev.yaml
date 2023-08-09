@@ -10,10 +10,17 @@ kubernetes:
 api_server:
   http_server: https://platform-api.dev.mogenius.com
   ws_server: k8s-ws.dev.mogenius.com
+  ws_server_scheme: wss
   ws_path: /ws
 
 event_server:
   server: k8s-dispatcher.dev.mogenius.com
+  scheme: wss
+  path: /ws
+
+shell_server:
+  server: XXX.dev.mogenius.com
+  scheme: wss
   path: /ws
 
 misc:

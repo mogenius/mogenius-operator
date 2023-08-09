@@ -1,13 +1,14 @@
 package services
 
 const (
-	PAT_K8SNOTIFICATION     string = "K8sNotification"
-	PAT_CLUSTERSTATUS       string = "ClusterStatus"
-	PAT_CLUSTERRESOURCEINFO string = "ClusterResourceInfo"
-	PAT_KUBERNETESEVENT     string = "KubernetesEvent"
-	PAT_UPGRADEK8SMANAGER   string = "UpgradeK8sManager"
-	PAT_SERVICE_POD_EXISTS  string = "SERVICE_POD_EXISTS"
-	PAT_SERVICE_PODS        string = "SERVICE_PODS"
+	PAT_K8SNOTIFICATION         string = "K8sNotification"
+	PAT_CLUSTERSTATUS           string = "ClusterStatus"
+	PAT_CLUSTERRESOURCEINFO     string = "ClusterResourceInfo"
+	PAT_KUBERNETESEVENT         string = "KubernetesEvent"
+	PAT_UPGRADEK8SMANAGER       string = "UpgradeK8sManager"
+	PAT_SERVICE_POD_EXISTS      string = "SERVICE_POD_EXISTS"
+	PAT_SERVICE_PODS            string = "SERVICE_PODS"
+	PAT_CLUSTER_FORCE_RECONNECT string = "ClusterForceReconnect"
 
 	PAT_FILES_LIST          string = "files/list"
 	PAT_FILES_DOWNLOAD      string = "files/download"
@@ -233,14 +234,19 @@ const (
 	PAT_STORAGE_STATS           string = "storage/stats"
 	PAT_STORAGE_NAMESPACE_STATS string = "storage/namespace/stats"
 
-	PAT_BUILDER_STATUS        string = "build/builder-status"
-	PAT_BUILD_INFOS           string = "build/info"
-	PAT_BUILD_LIST_ALL        string = "build/list-all"
-	PAT_BUILD_LIST_BY_PROJECT string = "build/list-by-project"
-	PAT_BUILD_ADD             string = "build/add"
-	PAT_BUILD_SCAN            string = "build/scan"
-	PAT_BUILD_CANCEL          string = "build/cancel"
-	PAT_BUILD_DELETE          string = "build/delete"
+	PAT_BUILDER_STATUS                 string = "build/builder-status"
+	PAT_BUILD_INFOS                    string = "build/info"
+	PAT_BUILD_LIST_ALL                 string = "build/list-all"
+	PAT_BUILD_LIST_BY_PROJECT          string = "build/list-by-project"
+	PAT_BUILD_ADD                      string = "build/add"
+	PAT_BUILD_SCAN                     string = "build/scan"
+	PAT_BUILD_CANCEL                   string = "build/cancel"
+	PAT_BUILD_DELETE                   string = "build/delete"
+	PAT_BUILD_LAST_JOB_OF_SERVICES     string = "build/last-job-of-services"
+	PAT_BUILD_JOB_LIST_OF_SERVICE      string = "build/job-list-of-service"
+	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE string = "build/last-job-info-of-service"
+
+	PAT_EXEC_SHELL string = "exec/shell"
 
 	PAT_POPEYE_CONSOLE string = "popeye_console"
 
@@ -259,6 +265,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_UPGRADEK8SMANAGER,
 	PAT_SERVICE_POD_EXISTS,
 	PAT_SERVICE_PODS,
+	PAT_CLUSTER_FORCE_RECONNECT,
 
 	PAT_FILES_LIST,
 	PAT_FILES_DOWNLOAD,
@@ -492,6 +499,11 @@ var COMMAND_REQUESTS = []string{
 	PAT_BUILD_SCAN,
 	PAT_BUILD_CANCEL,
 	PAT_BUILD_DELETE,
+	PAT_BUILD_LAST_JOB_OF_SERVICES,
+	PAT_BUILD_JOB_LIST_OF_SERVICE,
+	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE,
+
+	PAT_EXEC_SHELL,
 
 	PAT_POPEYE_CONSOLE,
 }

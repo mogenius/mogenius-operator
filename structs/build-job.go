@@ -36,6 +36,7 @@ type BuildJob struct {
 	ContainerRegistryPat  string `json:"containerRegistryPat"`
 	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
 	StartTimestamp        string `json:"startTimestamp"`
+	EndTimestamp          string `json:"endTimestamp"`
 	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
 	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING, TIMEOUT
 	StartedAt             string `json:"startedAt"`
@@ -74,7 +75,7 @@ func BuildJobExample() BuildJob {
 		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
 		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
 		Namespace:             "benegeilomat-prod-cp4wh9",
-		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8305",
+		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
 		ServiceName:           "lalalalalalala",
 		GitRepo:               "https://x-access-token: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@github.com/beneiltis/bene.git",
 		GitBranch:             "main",
@@ -91,6 +92,7 @@ func BuildJobExample() BuildJob {
 		InjectDockerEnvVars:   "--build-arg PLACEHOLDER=MOGENIUS",
 		State:                 BUILD_STATE_PENDING,
 		StartedAt:             time.Now().Format(time.RFC3339),
+		EndTimestamp:          time.Now().Format(time.RFC3339),
 		DurationMs:            0,
 		BuildId:               1,
 	}
@@ -103,6 +105,30 @@ type BuildJobStatusRequest struct {
 func BuildJobStatusRequestExample() BuildJobStatusRequest {
 	return BuildJobStatusRequest{
 		BuildId: 1234,
+	}
+}
+
+type BuildServicesStatusRequest struct {
+	ServiceIds []string `json:"serviceIds"`
+	MaxResults int      `json:"maxResults"`
+}
+
+func BuildServicesStatusRequestExample() BuildServicesStatusRequest {
+	return BuildServicesStatusRequest{
+		ServiceIds: []string{"XXX", "ef7af4d2-8939-4c94-bbe1-a3e7018e8306", "ZZZ"},
+		MaxResults: 14,
+	}
+}
+
+type BuildServiceRequest struct {
+	ServiceId  string `json:"serviceId"`
+	MaxResults int    `json:"maxResults,omitempty"`
+}
+
+func BuildServiceRequestExample() BuildServiceRequest {
+	return BuildServiceRequest{
+		ServiceId:  "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
+		MaxResults: 12,
 	}
 }
 
@@ -136,24 +162,30 @@ type BuildDeleteResult struct {
 }
 
 type BuildJobInfos struct {
-	BuildId int               `json:"buildId"`
-	Clone   BuildJobInfoEntry `json:"clone"`
-	Ls      BuildJobInfoEntry `json:"ls"`
-	Login   BuildJobInfoEntry `json:"login"`
-	Build   BuildJobInfoEntry `json:"build"`
-	Push    BuildJobInfoEntry `json:"push"`
-	Scan    BuildJobInfoEntry `json:"scan"`
+	BuildId    int               `json:"buildId"`
+	Clone      BuildJobInfoEntry `json:"clone"`
+	Ls         BuildJobInfoEntry `json:"ls"`
+	Login      BuildJobInfoEntry `json:"login"`
+	Build      BuildJobInfoEntry `json:"build"`
+	Push       BuildJobInfoEntry `json:"push"`
+	Scan       BuildJobInfoEntry `json:"scan"`
+	StartTime  string            `json:"startTime"`
+	FinishTime string            `json:"finishTime"`
 }
 
 type BuildJobInfoEntry struct {
-	State  string `json:"state"`
-	Result string `json:"result"`
+	State      string `json:"state"`
+	Result     string `json:"result"`
+	StartTime  string `json:"startTime"`
+	FinishTime string `json:"finishTime"`
 }
 
-func CreateBuildJobInfos(buildId int, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
+func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
 	result := BuildJobInfos{}
 
-	result.BuildId = buildId
+	result.BuildId = job.BuildId
+	result.StartTime = job.StartedAt
+	result.FinishTime = job.EndTimestamp
 	result.Clone = createBuildJobEntryFromData(clone)
 	result.Ls = createBuildJobEntryFromData(ls)
 	result.Login = createBuildJobEntryFromData(login)
@@ -178,10 +210,12 @@ func createBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 	return result
 }
 
-func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte) []byte {
+func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
 	entry := BuildJobInfoEntry{
-		State:  state,
-		Result: string(cmdOutput),
+		State:      state,
+		Result:     string(cmdOutput),
+		StartTime:  startTime.Format(time.RFC3339),
+		FinishTime: finishTime.Format(time.RFC3339),
 	}
 
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary

@@ -38,6 +38,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := K8sManagerUpgradeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		return UpgradeK8sManager(data)
+
+	case PAT_CLUSTER_FORCE_RECONNECT:
+		return mokubernetes.ClusterForceReconnect()
+
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -778,6 +782,23 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := structs.BuildJobStatusRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		return builder.Delete(data.BuildId)
+	case PAT_BUILD_LAST_JOB_OF_SERVICES:
+		data := structs.BuildServicesStatusRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return builder.LastNJobsPerServices(data.MaxResults, data.ServiceIds)
+	case PAT_BUILD_JOB_LIST_OF_SERVICE:
+		data := structs.BuildServiceRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return builder.LastNJobsPerService(data.MaxResults, data.ServiceId)
+	case PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
+		data := structs.BuildServiceRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return builder.LastBuildForService(data.ServiceId)
+
+	case PAT_EXEC_SHELL:
+		// data := structs.BuildJobStatusRequest{}
+		// structs.MarshalUnmarshal(&datagram, &data)
+		return mokubernetes.ExecTest()
 
 	case PAT_STORAGE_CREATE_VOLUME:
 		data := NfsVolumeRequest{}
