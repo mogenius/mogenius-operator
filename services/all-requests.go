@@ -153,6 +153,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_SERVICE_SET_IMAGE:
 		data := ServiceSetImageRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
+		data.ApplyDefaults()
 		return SetImage(data)
 	case PAT_SERVICE_LOG:
 		data := ServiceGetLogRequest{}

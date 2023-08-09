@@ -79,9 +79,8 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId)
 	job.Start()
 
-	// @todo; ae: service type!
-	switch "SERVICE_TYPE" {
-	case "XYZ":
+	switch r.ServiceType {
+	case dtos.K8SCronJob:
 		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
 	default:
 		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
@@ -274,15 +273,22 @@ func ServicePodsRequestExample() ServicePodsRequest {
 }
 
 type ServiceSetImageRequest struct {
-	ProjectId          string `json:"projectId"`
-	NamespaceId        string `json:"namespaceId"`
-	ServiceId          string `json:"serviceId"`
-	NamespaceName      string `json:"namespaceName"`
-	ServiceName        string `json:"serviceName"`
-	ServiceDisplayName string `json:"serviceDisplayName"`
-	ImageName          string `json:"imageName"`
-	// @todo: ae: service type
+	ProjectId          string                     `json:"projectId"`
+	NamespaceId        string                     `json:"namespaceId"`
+	ServiceId          string                     `json:"serviceId"`
+	NamespaceName      string                     `json:"namespaceName"`
+	ServiceName        string                     `json:"serviceName"`
+	ServiceDisplayName string                     `json:"serviceDisplayName"`
+	ImageName          string                     `json:"imageName"`
+	ServiceType        dtos.K8sServiceTypeEnum    `json:"serviceType,omitempty"`
 }
+
+func (service *ServiceSetImageRequest) ApplyDefaults() {
+	if service.ServiceType == "" {
+		service.ServiceType = dtos.K8SDeployment
+	} 
+}
+
 
 func ServiceSetImageRequestExample() ServiceSetImageRequest {
 	return ServiceSetImageRequest{
