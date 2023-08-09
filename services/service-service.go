@@ -47,8 +47,14 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	}
 
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
-	// @todo; ae: distinguish deployment or cronjob
-	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.CreateCronJob(&job, r.Namespace, r.Service, &wg))
+	}
+
 	job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
@@ -80,10 +86,10 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 	job.Start()
 
 	switch r.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
 	case dtos.K8SCronJob:
 		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
-	default:
-		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
 	}
 	
 	wg.Wait()

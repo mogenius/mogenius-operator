@@ -30,7 +30,7 @@ type K8sServiceDto struct {
 	EnvVars                              []K8sEnvVarDto        `json:"envVars" validate:"required"`
 	Ports                                []K8sPortsDto         `json:"ports" validate:"required"`
 	SwitchedOn                           bool                  `json:"switchedOn" validate:"required"`
-	CronJobSchedule                      string                `json:"schedule,omitempty"`
+	CronJobSchedule                      string                `json:"cronJobSchedule,omitempty"`
 	ServiceType                          K8sServiceTypeEnum    `json:"serviceType,omitempty"`
 }
 
