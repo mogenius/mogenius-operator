@@ -357,36 +357,36 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 
 	return newCronJob
 }
-/*
-func SetImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job)
+
+func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Set CronJob Image '%s'", imageName), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceName))
+		cmd.Start(fmt.Sprintf("Set Image in CronJob '%s'.", serviceName))
 
 		kubeProvider := NewKubeProvider()
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
-		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+		cronjobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespaceName)
+		cronjobToUpdate, err := cronjobClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
+			cmd.Fail(fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
 			return
 		}
 
 		// SET NEW IMAGE
-		deploymentToUpdate.Spec.Template.Spec.Containers[0].Image = imageName
-		deploymentToUpdate.Spec.Paused = false
+		cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = imageName
+		// cronjobToUpdate.Spec.JobTemplate.Spec.Suspend = utils.Pointer(false)
 
-		_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
+		_, err = cronjobClient.Update(context.TODO(), cronjobToUpdate, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
+			cmd.Fail(fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", serviceName))
+			cmd.Success(fmt.Sprintf("Set new image in CronJob '%s'.", serviceName))
 		}
 	}(cmd, wg)
 	return cmd
 }
-*/
+
 func AllCronjobs(namespaceName string) K8sWorkloadResult {
 	result := []v1job.CronJob{}
 

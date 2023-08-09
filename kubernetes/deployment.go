@@ -363,7 +363,7 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 	return newDeployment
 }
 
-func SetImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
+func SetDeploymentImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {

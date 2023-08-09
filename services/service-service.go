@@ -78,7 +78,15 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId)
 	job.Start()
-	job.AddCmd(mokubernetes.SetImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
+
+	// @todo; ae: service type!
+	switch "SERVICE_TYPE" {
+	case "XYZ":
+		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
+	default:
+		job.AddCmd(mokubernetes.SetImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
+	}
+	
 	wg.Wait()
 	job.Finish()
 	return job
@@ -273,6 +281,7 @@ type ServiceSetImageRequest struct {
 	ServiceName        string `json:"serviceName"`
 	ServiceDisplayName string `json:"serviceDisplayName"`
 	ImageName          string `json:"imageName"`
+	// @todo: ae: service type
 }
 
 func ServiceSetImageRequestExample() ServiceSetImageRequest {
