@@ -20,8 +20,6 @@ import (
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 )
 
-type CronJob struct {}
-
 func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name), job)
 	wg.Add(1)
