@@ -365,6 +365,8 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ServiceStartRequestExample()
 		case services.PAT_SERVICE_UPDATE_SERVICE:
 			payload = services.ServiceUpdateRequestExample()
+		case services.PAT_SERVICE_TRIGGER_JOB:
+			payload = services.ServiceTriggerJobRequestExample()
 
 		case services.PAT_LIST_CREATE_TEMPLATES:
 			payload = nil

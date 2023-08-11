@@ -136,6 +136,25 @@ func ServicePodStatus(r ServicePodsRequest) interface{} {
 	return mokubernetes.ServicePodStatus(r.Namespace, r.ServiceName)
 }
 
+func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
+	var wg sync.WaitGroup
+
+	job := structs.CreateJob("Trigger Job Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
+	job.Start()
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		// do nothing
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.TriggerJobFromCronjob(&job, r.Namespace, r.Service, &wg))
+		job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	}
+
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
 func Restart(r ServiceRestartRequest) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
@@ -1116,5 +1135,19 @@ func ServiceUpdateRequestExample() ServiceUpdateRequest {
 		Project:   dtos.K8sProjectDtoExampleData(),
 		Namespace: dtos.K8sNamespaceDtoExampleData(),
 		Service:   dtos.K8sServiceDtoExampleData(),
+	}
+}
+
+type ServiceTriggerJobRequest struct {
+	ProjectId string               `json:"projectId"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Service   dtos.K8sServiceDto   `json:"service"`
+}
+
+func ServiceTriggerJobRequestExample() ServiceStartRequest {
+	return ServiceStartRequest{
+		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Service:   dtos.K8sServiceCronJobExampleData(),
 	}
 }

@@ -104,7 +104,6 @@ func K8sServiceCronJobExampleData() K8sServiceDto {
 		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData()},
 		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData()},
 		SwitchedOn:                           true,
-		// CronJobSchedule:                      "*/5 * */1 * *",
-		// ServiceType:                          "",
+		ServiceType:                          "K8S_CRONJOB",
 	}
 }
