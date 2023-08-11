@@ -20,6 +20,41 @@ import (
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 )
 
+func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Trigger Job from CronJob '%s'.", namespace.Name), job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Trigger Job from CronJob '%s'.", namespace.Name))
+
+		kubeProvider := NewKubeProvider()
+		
+		// get cronjob
+		cronjobs := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		cronjob, err := cronjobs.Get(context.TODO(), service.Name, metav1.GetOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("Failed get CronJob for trigger ERROR: %s", err.Error()))
+			return
+		}
+	
+		// convert cronjob to job
+		jobs := kubeProvider.ClientSet.BatchV1().Jobs(namespace.Name);
+		jobSpec := &v1job.Job{
+			ObjectMeta: cronjob.Spec.JobTemplate.ObjectMeta,
+			Spec: cronjob.Spec.JobTemplate.Spec,
+		}
+
+		// create job
+		_, err = jobs.Create(context.TODO(), jobSpec, metav1.CreateOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("Failed create Job via CronJob trigger ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(fmt.Sprintf("Triggered Job from CronJob '%s'.", namespace.Name))
+		}
+	}(cmd, wg)
+	return cmd
+}
+
 func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name), job)
 	wg.Add(1)
