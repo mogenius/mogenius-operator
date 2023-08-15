@@ -90,12 +90,14 @@ RUN adduser -s /bin/bash -D mogee
 
 WORKDIR /app
 
-COPY --from=builder ["/go/bin/dlv", "."]
+# COPY --from=builder ["/go/bin/dlv", "."]
 COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
 COPY --from=builder ["/app/grype-json-template", "."]
 
 # ENV GIN_MODE=release
 
 # CMD ["--listen=:2345", "--continue", "--headless", "--log", "--log-output=debugger,debuglineerr,gdbwire,lldbout,rpc", "--accept-multiclient", "--api-version=2", "exec", "/app/mogenius-k8s-manager", "--", "cluster"]
-CMD ["--continue", "--listen=:2345", "--headless", "--accept-multiclient", "--api-version=2", "exec", "/app/mogenius-k8s-manager", "--", "cluster"]
-ENTRYPOINT [ "/app/dlv" ]
+# CMD ["--continue", "--listen=:2345", "--headless", "--accept-multiclient", "--api-version=2", "exec", "/app/mogenius-k8s-manager", "--", "cluster"]
+# ENTRYPOINT [ "/app/dlv" ]
+
+ENTRYPOINT [ "/app/mogenius-k8s-manager", "cluster" ]
