@@ -17,6 +17,7 @@ ENV GOOS=linux
     # libbpf-dev \
     # linux-headers
 RUN apk add --no-cache nfs-utils
+RUN apk add --no-cache build-base
 
 ARG COMMIT_HASH=NOT_SET
 ARG GIT_BRANCH=NOT_SET
