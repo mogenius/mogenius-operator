@@ -128,6 +128,10 @@ func StorageClassForClusterProvider(clusterProvider string) string {
 		nfsStorageClassStr = "csi-disk"
 	case "BRING_YOUR_OWN":
 		nfsStorageClassStr = "default"
+	case "DOCKER_DESKTOP":
+		nfsStorageClassStr = "hostpath"
+	case "K3S":
+		nfsStorageClassStr = "local-path"
 	default:
 		logger.Log.Errorf("CLUSTERPROVIDER '%s' HAS NOT BEEN TESTED YET! Returning 'default'.", clusterProvider)
 		nfsStorageClassStr = "default"
@@ -150,7 +154,7 @@ func OpenBrowser(url string) {
 	}
 
 	if err != nil {
-		fmt.Errorf("error while opening browser, %v", err)
+		logger.Log.Errorf("error while opening browser, %s", err.Error())
 	}
 }
 
