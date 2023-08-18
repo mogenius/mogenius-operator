@@ -22,6 +22,8 @@ import (
 	scheduling "k8s.io/api/scheduling/v1"
 	storage "k8s.io/api/storage/v1"
 	"k8s.io/client-go/rest"
+
+	punq "github.com/mogenius/punq/kubernetes"
 )
 
 func CreateService(r ServiceCreateRequest) interface{} {
@@ -30,7 +32,7 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	job.Start()
 
 	// check if namespace exists and CREATE IT IF NOT
-	nsExists, nsErr := mokubernetes.NamespaceExists(r.Namespace.Name)
+	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name)
 	if nsErr != nil {
 		logger.Log.Warning(nsErr.Error())
 	}
@@ -84,35 +86,35 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 }
 
 func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
-	return mokubernetes.PodIdsFor(r.Namespace, &r.ServiceId)
+	return punq.PodIdsFor(r.Namespace, &r.ServiceId)
 }
 
 func ServicePodExists(r ServicePodExistsRequest) interface{} {
-	return mokubernetes.PodExists(r.K8sNamespace, r.K8sPod)
+	return punq.PodExists(r.K8sNamespace, r.K8sPod)
 }
 
 func PodLog(r ServiceGetLogRequest) interface{} {
-	return mokubernetes.GetLog(r.Namespace, r.PodId, r.Timestamp)
+	return punq.GetLog(r.Namespace, r.PodId, r.Timestamp)
 }
 
 func PodLogError(r ServiceGetLogRequest) interface{} {
-	return mokubernetes.GetLogError(r.Namespace, r.PodId)
+	return punq.GetLogError(r.Namespace, r.PodId)
 }
 
 func PodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
-	return mokubernetes.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
+	return punq.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
 }
 
 func PreviousPodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
-	return mokubernetes.StreamPreviousLog(r.Namespace, r.PodId)
+	return punq.StreamPreviousLog(r.Namespace, r.PodId)
 }
 
 func PodStatus(r ServiceResourceStatusRequest) interface{} {
-	return mokubernetes.PodStatus(r.Namespace, r.Name, r.StatusOnly)
+	return punq.PodStatus(r.Namespace, r.Name, r.StatusOnly)
 }
 
 func ServicePodStatus(r ServicePodsRequest) interface{} {
-	return mokubernetes.ServicePodStatus(r.Namespace, r.ServiceName)
+	return punq.ServicePodStatus(r.Namespace, r.ServiceName)
 }
 
 func Restart(r ServiceRestartRequest) interface{} {
@@ -171,9 +173,9 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 
 func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 	return dtos.TcpUdpClusterConfigurationDto{
-		IngressServices: mokubernetes.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller"),
-		TcpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp"),
-		UdpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp"),
+		IngressServices: punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller"),
+		TcpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp"),
+		UdpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp"),
 	}
 }
 

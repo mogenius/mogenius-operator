@@ -7,6 +7,8 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 
+	punq "github.com/mogenius/punq/kubernetes"
+
 	"github.com/google/uuid"
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -20,7 +22,7 @@ import (
 )
 
 func Deploy() {
-	provider, err := NewKubeProviderLocal()
+	provider, err := punq.NewKubeProviderLocal()
 	if err != nil {
 		panic(err)
 	}
@@ -34,7 +36,7 @@ func Deploy() {
 	}
 }
 
-func addRbac(kubeProvider *KubeProvider) error {
+func addRbac(kubeProvider *punq.KubeProvider) error {
 	serviceAccount := &core.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: SERVICEACCOUNTNAME,
@@ -88,7 +90,7 @@ func addRbac(kubeProvider *KubeProvider) error {
 	return nil
 }
 
-func applyNamespace(kubeProvider *KubeProvider) {
+func applyNamespace(kubeProvider *punq.KubeProvider) {
 	serviceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 
 	namespace := applyconfcore.Namespace(NAMESPACE)
@@ -223,12 +225,12 @@ func applyNamespace(kubeProvider *KubeProvider) {
 // }
 
 func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, error) {
-	var kubeProvider *KubeProvider
+	var kubeProvider *punq.KubeProvider
 	var err error
 	if runsInCluster {
-		kubeProvider, err = NewKubeProviderInCluster()
+		kubeProvider, err = punq.NewKubeProviderInCluster()
 	} else {
-		kubeProvider, err = NewKubeProviderLocal()
+		kubeProvider, err = punq.NewKubeProviderLocal()
 	}
 
 	if err != nil {
@@ -311,7 +313,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, ex
 	return clusterSecret, nil
 }
 
-func addDeployment(kubeProvider *KubeProvider) {
+func addDeployment(kubeProvider *punq.KubeProvider) {
 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
 
 	deploymentContainer := applyconfcore.Container()

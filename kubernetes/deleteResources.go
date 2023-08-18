@@ -5,11 +5,12 @@ import (
 
 	"mogenius-k8s-manager/logger"
 
+	punq "github.com/mogenius/punq/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Remove() {
-	provider, err := NewKubeProviderLocal()
+	provider, err := punq.NewKubeProviderLocal()
 	if err != nil {
 		panic(err)
 	}
@@ -20,7 +21,7 @@ func Remove() {
 	// secret is not deleted on purpose
 }
 
-func removeDeployment(kubeProvider *KubeProvider) {
+func removeDeployment(kubeProvider *punq.KubeProvider) {
 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
 
 	// DELETE Deployment
@@ -34,7 +35,7 @@ func removeDeployment(kubeProvider *KubeProvider) {
 	logger.Log.Info("Deleted mogenius-k8s-manager deployment.")
 }
 
-func removeRbac(kubeProvider *KubeProvider) {
+func removeRbac(kubeProvider *punq.KubeProvider) {
 	// CREATE RBAC
 	logger.Log.Info("Deleting mogenius-k8s-manager RBAC ...")
 	err := kubeProvider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Delete(context.TODO(), SERVICEACCOUNTNAME, metav1.DeleteOptions{})

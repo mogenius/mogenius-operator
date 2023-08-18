@@ -15,6 +15,8 @@ import (
 
 	realJson "encoding/json"
 
+	punq "github.com/mogenius/punq/kubernetes"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -80,7 +82,7 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 	sortWithPreference(unstructList)
 
 	// SEND DATA TO K8S
-	provider := NewKubeProvider()
+	provider := punq.NewKubeProvider()
 	//create namespace not existing
 	if len(unstructList) > 0 {
 		namespaceClient := provider.ClientSet.CoreV1().Namespaces()
@@ -267,7 +269,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	allResources := structs.NewUniqueStringArray()
 	usedResources := structs.NewUniqueStringArray()
 
-	provider := NewKubeProvider()
+	provider := punq.NewKubeProvider()
 
 	// Get a list of all resource types in the cluster
 	resourceList, err := provider.ClientSet.Discovery().ServerPreferredResources()

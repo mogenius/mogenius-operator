@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -14,6 +13,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	punq "github.com/mogenius/punq/kubernetes"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -150,7 +151,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 	}
 
 	// get all pvc for single namespace
-	pvcs := mokubernetes.AllPersistentVolumeClaims(r.NamespaceName)
+	pvcs := punq.AllPersistentVolumeClaims(r.NamespaceName)
 
 	for _, pvc := range pvcs {
 		entry := NfsVolumeStatsResponse{
@@ -306,7 +307,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 			return nil
 		}
 
-		fileBytes, err := ioutil.ReadFile(path)
+		fileBytes, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
