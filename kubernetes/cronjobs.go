@@ -186,10 +186,10 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		cronJob := generateCronJob(namespace, service, false, cronJobClient)
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
 		if cronJob.ObjectMeta.Annotations == nil {
-			cronJob.Spec.JobTemplate.ObjectMeta.Annotations = map[string]string{}
-			cronJob.Spec.JobTemplate.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			cronJob.ObjectMeta.Annotations = map[string]string{}
+			cronJob.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		} else {
-			cronJob.Spec.JobTemplate.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			cronJob.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		}
 
 		_, err := cronJobClient.Update(context.TODO(), &cronJob, metav1.UpdateOptions{})
@@ -227,8 +227,9 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	newCronJob := utils.InitCronJob()
 	newCronJob.ObjectMeta.Name = service.Name
 	newCronJob.ObjectMeta.Namespace = namespace.Name
-	newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["app"] = service.Name
-	newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["ns"] = namespace.Name
+	// not supported for cron job
+	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["app"] = service.Name
+	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["ns"] = namespace.Name
 	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["app"] = service.Name
 	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
 	

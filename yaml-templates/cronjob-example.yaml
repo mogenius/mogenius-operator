@@ -1,7 +1,8 @@
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: my-cronjob
+  namspace: my-namespace
 spec:
   schedule: "*/5 * * * *"
   suspend: false
@@ -10,9 +11,13 @@ spec:
   failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
-      backOffLimit: 6
+      backoffLimit: 6
       activeDeadlineSeconds: 600
       template:
+        metadata:
+          labels:
+            app: my-app
+            ns: my-namespace
         spec:
           containers:
             - name: task
@@ -23,28 +28,3 @@ spec:
                 - -c
                 - date; echo 'Hello World from mogenius';
           restartPolicy: OnFailure
-# -- Example
-# spec:
-#   completions: 12
-#   parallelism: 3
-#   template:
-#     spec:
-#       restartPolicy: Never
-#       containers:
-#       - name: main
-#         image: docker.io/library/bash:5
-#         command: ["bash"]        # example command simulating a bug which triggers the FailJob action
-#         args:
-#         - -c
-#         - echo "Hello world!" && sleep 5 && exit 42
-#   backoffLimit: 6
-#   podFailurePolicy:
-#     rules:
-#     - action: FailJob
-#       onExitCodes:
-#         containerName: main      # optional
-#         operator: In             # one of: In, NotIn
-#         values: [42]
-#     - action: Ignore             # one of: Ignore, FailJob, Count
-#       onPodConditions:
-#       - type: DisruptionTarget   # indicates Pod disruption
