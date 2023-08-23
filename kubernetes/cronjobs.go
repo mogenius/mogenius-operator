@@ -237,14 +237,22 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 
 	// SUSPEND -> SWITCHED ON 
 	newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
-	
+
 	// SUSPEND -> PAUSE
 	// if freshlyCreated && service.App.Type == "DOCKER_TEMPLATE" {
 	// 	newCronJob.Spec.Suspend = utils.Pointer(service.SwitchedOn && true)
 	// } else {
 	// 	newCronJob.Spec.Suspend = utils.Pointer(false)
 	// }
-	
+
+	// CRON_JOB SETTINGS
+	if service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds > 0 {
+		newCronJob.Spec.JobTemplate.Spec.ActiveDeadlineSeconds = utils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
+	}
+	if service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit > 0 {
+		newCronJob.Spec.JobTemplate.Spec.BackoffLimit= utils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
+	}
+
 	// PORTS
 	if len(service.Ports) > 0 {
 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}

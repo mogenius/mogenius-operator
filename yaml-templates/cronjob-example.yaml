@@ -7,8 +7,8 @@ spec:
   schedule: "*/5 * * * *"
   suspend: false
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 2
-  failedJobsHistoryLimit: 2
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       backoffLimit: 6
