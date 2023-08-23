@@ -246,6 +246,8 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	// }
 
 	// CRON_JOB SETTINGS
+	newCronJob.Spec.Schedule = service.K8sSettings.K8sCronJobSettingsDto.Schedule
+	
 	if service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds > 0 {
 		newCronJob.Spec.JobTemplate.Spec.ActiveDeadlineSeconds = utils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
 	}
