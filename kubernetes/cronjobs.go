@@ -284,6 +284,8 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 
 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Name = service.Name
 
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Command = []string{}
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args = []string{}
 
 	// IMAGE
 	if service.ContainerImage != "" {
