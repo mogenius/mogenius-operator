@@ -21,7 +21,8 @@ spec:
         spec:
           containers:
             - name: task
-              image: busybox
+              image: busybox:latest
+              imagePullPolicy: IfNotPresent
               command:
                 - /bin/sh
               args:
