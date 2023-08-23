@@ -43,6 +43,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 			ObjectMeta: cronjob.Spec.JobTemplate.ObjectMeta,
 			Spec: cronjob.Spec.JobTemplate.Spec,
 		}
+		jobSpec.Name = service.Name
 
 		// create job
 		_, err = jobs.Create(context.TODO(), jobSpec, metav1.CreateOptions{})
