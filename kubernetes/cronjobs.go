@@ -238,9 +238,16 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	// not implemented
 
 	// SUSPEND -> SWITCHED ON 
-	newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
-
+	// newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
+	
 	// SUSPEND -> PAUSE
+	if freshlyCreated && 
+		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepository || 
+		service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepositoryTemplate) {
+		newCronJob.Spec.Suspend = utils.Pointer(true)
+	} else {
+		newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
+	}
 	// if freshlyCreated && service.App.Type == "DOCKER_TEMPLATE" {
 	// 	newCronJob.Spec.Suspend = utils.Pointer(service.SwitchedOn && true)
 	// } else {
@@ -408,7 +415,7 @@ func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string,
 
 		// SET NEW IMAGE
 		cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = imageName
-		// cronjobToUpdate.Spec.Suspend = utils.Pointer(false)
+		cronjobToUpdate.Spec.Suspend = utils.Pointer(false)
 
 		_, err = cronjobClient.Update(context.TODO(), cronjobToUpdate, metav1.UpdateOptions{})
 		if err != nil {
