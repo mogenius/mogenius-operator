@@ -12,6 +12,7 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
@@ -55,7 +56,7 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: utils.Pointer[int64](5),
+			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
 		err := deploymentClient.Delete(context.TODO(), service.Name, deleteOptions)
@@ -126,7 +127,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		kubeProvider := punq.NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
 		deployment := generateDeployment(namespace, service, false, deploymentClient)
-		deployment.Spec.Replicas = utils.Pointer[int32](0)
+		deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
 
 		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
@@ -208,9 +209,9 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 
 	// SWITCHED ON
 	if service.SwitchedOn {
-		newDeployment.Spec.Replicas = utils.Pointer(service.K8sSettings.ReplicaCount)
+		newDeployment.Spec.Replicas = punqUtils.Pointer(service.K8sSettings.ReplicaCount)
 	} else {
-		newDeployment.Spec.Replicas = utils.Pointer[int32](0)
+		newDeployment.Spec.Replicas = punqUtils.Pointer[int32](0)
 	}
 
 	// PAUSE
@@ -257,10 +258,10 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 	if service.ContainerImage != "" {
 		newDeployment.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
 		if service.ContainerImageCommand != "" {
-			newDeployment.Spec.Template.Spec.Containers[0].Command = utils.ParseJsonStringArray(service.ContainerImageCommand)
+			newDeployment.Spec.Template.Spec.Containers[0].Command = punqUtils.ParseJsonStringArray(service.ContainerImageCommand)
 		}
 		if service.ContainerImageCommandArgs != "" {
-			newDeployment.Spec.Template.Spec.Containers[0].Args = utils.ParseJsonStringArray(service.ContainerImageCommandArgs)
+			newDeployment.Spec.Template.Spec.Containers[0].Args = punqUtils.ParseJsonStringArray(service.ContainerImageCommandArgs)
 		}
 		if service.ContainerImageRepoSecretDecryptValue != "" {
 			newDeployment.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}

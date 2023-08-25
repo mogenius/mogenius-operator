@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/logger"
-	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"sort"
@@ -16,6 +15,8 @@ import (
 	realJson "encoding/json"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -265,9 +266,9 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	result := NamespaceBackupResponse{
 		NamespaceName: namespace,
 	}
-	skippedGroups := structs.NewUniqueStringArray()
-	allResources := structs.NewUniqueStringArray()
-	usedResources := structs.NewUniqueStringArray()
+	skippedGroups := punqStructs.NewUniqueStringArray()
+	allResources := punqStructs.NewUniqueStringArray()
+	usedResources := punqStructs.NewUniqueStringArray()
 
 	provider := punq.NewKubeProvider()
 
@@ -280,7 +281,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	output := ""
 	// Iterate over each resource type and backup all resources in the namespace
 	for _, resource := range resourceList {
-		if utils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, resource.GroupVersion) {
+		if punqUtils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, resource.GroupVersion) {
 			continue
 		}
 		gv, _ := schema.ParseGroupVersion(resource.GroupVersion)
@@ -294,7 +295,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 				skippedGroups.Add(aApiResource.Name)
 				continue
 			}
-			if utils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, aApiResource.Name) {
+			if punqUtils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, aApiResource.Name) {
 				continue
 			}
 

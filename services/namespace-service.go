@@ -5,11 +5,11 @@ import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"os"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func CreateNamespace(r NamespaceCreateRequest) structs.Job {
@@ -66,10 +66,10 @@ func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClu
 	inDbButNotInCluster := []string{}
 	clusterPodNames := punq.AllPodNames()
 	for index, dbPodName := range r.DbPodNames {
-		if !utils.Contains(clusterPodNames, dbPodName) {
+		if !punqUtils.Contains(clusterPodNames, dbPodName) {
 			inDbButNotInCluster = append(inDbButNotInCluster, dbPodName)
 		} else {
-			clusterPodNames = utils.Remove(clusterPodNames, index)
+			clusterPodNames = punqUtils.Remove(clusterPodNames, index)
 		}
 	}
 	return dtos.ValidateClusterPodsDto{

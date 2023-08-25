@@ -15,6 +15,7 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -138,7 +139,7 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 		result.UsedBytes = usage.Used
 		result.TotalBytes = usage.Total
 	}
-	logger.Log.Infof("💾: '%s' -> %s / %s (%s)", mountPath, utils.BytesToHumanReadable(int64(result.UsedBytes)), utils.BytesToHumanReadable(int64(result.TotalBytes)), fmt.Sprintf("%.1f%%", usage.UsedPercent))
+	logger.Log.Infof("💾: '%s' -> %s / %s (%s)", mountPath, punqUtils.BytesToHumanReadable(int64(result.UsedBytes)), punqUtils.BytesToHumanReadable(int64(result.TotalBytes)), fmt.Sprintf("%.1f%%", usage.UsedPercent))
 	return result
 }
 
@@ -171,7 +172,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 			entry.UsedBytes = usage.Used
 			entry.TotalBytes = usage.Total
 		}
-		logger.Log.Infof("💾: '%s' -> %s / %s (%s)", mountPath, utils.BytesToHumanReadable(int64(entry.UsedBytes)), utils.BytesToHumanReadable(int64(entry.TotalBytes)), fmt.Sprintf("%.1f%%", usage.UsedPercent))
+		logger.Log.Infof("💾: '%s' -> %s / %s (%s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), fmt.Sprintf("%.1f%%", usage.UsedPercent))
 		result = append(result, entry)
 	}
 	return result
@@ -280,7 +281,7 @@ func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey st
 		}
 	}
 
-	msg := fmt.Sprintf("Successfully restored volume (%s) from S3!\n", utils.BytesToHumanReadable(downloadedBytes))
+	msg := fmt.Sprintf("Successfully restored volume (%s) from S3!\n", punqUtils.BytesToHumanReadable(downloadedBytes))
 	logger.Log.Info(msg)
 	result.Message = msg
 
@@ -382,7 +383,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 		result.Bytes = *headObj.ContentLength
 	}
 
-	logger.Log.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", utils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
+	logger.Log.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", punqUtils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
 
 	return result
 }

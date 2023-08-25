@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -59,7 +60,7 @@ func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: utils.Pointer[int64](5),
+			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
 		err := secretClient.Delete(context.TODO(), service.Name, deleteOptions)
@@ -131,7 +132,7 @@ func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg 
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: utils.Pointer[int64](5),
+			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
 		err := secretClient.Delete(context.TODO(), "container-secret-"+namespace.Name, deleteOptions)

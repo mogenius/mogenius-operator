@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -33,7 +34,7 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
 		pvc.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 		pvc.Namespace = namespaceName
-		pvc.Spec.StorageClassName = utils.Pointer(storageClass)
+		pvc.Spec.StorageClassName = punqUtils.Pointer(storageClass)
 		pvc.Spec.Resources.Requests = v1.ResourceList{}
 		pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
 

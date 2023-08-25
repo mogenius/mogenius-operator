@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -50,7 +51,7 @@ func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: utils.Pointer[int64](5),
+			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
 		err := configMapClient.Delete(context.TODO(), service.Name, deleteOptions)

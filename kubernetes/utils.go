@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
-	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"path/filepath"
@@ -13,6 +12,8 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -88,9 +89,9 @@ func CurrentContextName() string {
 }
 
 func Hostname() string {
-	provider, error := punq.NewKubeProviderInCluster()
-	if error != nil {
-		fmt.Println("Error:", error)
+	provider := punq.NewKubeProvider()
+	if provider == nil {
+		logger.Log.Fatal("error creating kubeprovider")
 	}
 
 	return provider.ClientConfig.Host
@@ -126,9 +127,9 @@ func ClusterStatus() dtos.ClusterStatusDto {
 		Pods:                  len(result),
 		CpuInMilliCores:       int(cpu),
 		CpuLimitInMilliCores:  int(cpuLimit),
-		Memory:                utils.BytesToHumanReadable(memory),
-		MemoryLimit:           utils.BytesToHumanReadable(memoryLimit),
-		EphemeralStorageLimit: utils.BytesToHumanReadable(ephemeralStorageLimit),
+		Memory:                punqUtils.BytesToHumanReadable(memory),
+		MemoryLimit:           punqUtils.BytesToHumanReadable(memoryLimit),
+		EphemeralStorageLimit: punqUtils.BytesToHumanReadable(ephemeralStorageLimit),
 	}
 }
 
@@ -146,15 +147,9 @@ func listAllPods() []v1.Pod {
 }
 
 func ListNodes() []v1.Node {
-	var provider *punq.KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = punq.NewKubeProviderLocal()
-	} else {
-		provider, err = punq.NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
+	var provider *punq.KubeProvider = punq.NewKubeProvider()
+	if provider == nil {
+		logger.Log.Fatal("error creating kubeprovider")
 		return []v1.Node{}
 	}
 
@@ -166,16 +161,10 @@ func ListNodes() []v1.Node {
 	return nodeMetricsList.Items
 }
 
-func podStats(pods map[string]v1.Pod) ([]structs.Stats, error) {
-	var provider *punq.KubeProviderMetrics
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = punq.NewKubeProviderMetricsLocal()
-	} else {
-		provider, err = punq.NewKubeProviderMetricsInCluster()
-	}
-	if err != nil {
-		panic(err)
+func podStats(pods map[string]v1.Pod) ([]punqStructs.Stats, error) {
+	var provider *punq.KubeProviderMetrics = punq.NewKubeProviderMetrics()
+	if provider == nil {
+		logger.Log.Fatal("error creating kubeprovider")
 	}
 
 	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
@@ -183,13 +172,13 @@ func podStats(pods map[string]v1.Pod) ([]structs.Stats, error) {
 		return nil, err
 	}
 
-	var result []structs.Stats
+	var result []punqStructs.Stats
 	// I HATE THIS BUT I DONT SEE ANY OTHER SOLUTION! SPEND HOURS (to find something better) ON THIS UGGLY SHIT!!!!
 
 	for _, podMetrics := range podMetricsList.Items {
 		var pod = pods[podMetrics.Name]
 
-		var entry = structs.Stats{}
+		var entry = punqStructs.Stats{}
 		entry.Cluster = utils.CONFIG.Kubernetes.ClusterName
 		entry.Namespace = podMetrics.Namespace
 		entry.PodName = podMetrics.Name
@@ -321,8 +310,8 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
 				mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
-				utils.CreateDirIfNotExist(mountDir)
-				structs.ExecuteBashCommandWithResponse(title, shellCmd)
+				punqUtils.CreateDirIfNotExist(mountDir)
+				punqStructs.ExecuteBashCommandWithResponse(title, shellCmd)
 			}
 		} else {
 			logger.Log.Warningf("No CluserIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
@@ -347,8 +336,8 @@ func Umount(volumeNamespace string, volumeName string) {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
-			structs.ExecuteBashCommandWithResponse(title, shellCmd)
-			utils.DeleteDirIfExist(mountDir)
+			punqStructs.ExecuteBashCommandWithResponse(title, shellCmd)
+			punqUtils.DeleteDirIfExist(mountDir)
 		}
 	}()
 }

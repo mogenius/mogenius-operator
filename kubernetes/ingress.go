@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	networkingv1 "k8s.io/client-go/applyconfigurations/networking/v1"
@@ -192,7 +193,7 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 			logger.Log.Infof("Following indexes will be remove: %v", indexesToRemove)
 			if len(indexesToRemove) > 0 {
 				for _, indexToRemove := range indexesToRemove {
-					service.Spec.Ports = utils.Remove(service.Spec.Ports, indexToRemove)
+					service.Spec.Ports = punqUtils.Remove(service.Spec.Ports, indexToRemove)
 				}
 				logger.Log.Infof("%d indexes successfully remove.", len(indexesToRemove))
 

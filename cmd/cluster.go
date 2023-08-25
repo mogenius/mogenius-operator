@@ -12,6 +12,8 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
+	punq "github.com/mogenius/punq/structs"
+
 	"github.com/spf13/cobra"
 )
 
@@ -50,10 +52,10 @@ var clusterCmd = &cobra.Command{
 		go structs.ConnectToJobQueue()
 		go mokubernetes.WatchEvents()
 
-		structs.ExecuteBashCommandSilent("Git setup (1/4) ...", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
-		structs.ExecuteBashCommandSilent("Git setup (2/4) ...", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
-		structs.ExecuteBashCommandSilent("Git setup (3/4) ...", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
-		structs.ExecuteBashCommandSilent("Git setup (4/4) ...", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
+		punq.ExecuteBashCommandSilent("Git setup (1/4) ...", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
+		punq.ExecuteBashCommandSilent("Git setup (2/4) ...", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
+		punq.ExecuteBashCommandSilent("Git setup (3/4) ...", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
+		punq.ExecuteBashCommandSilent("Git setup (4/4) ...", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
 
 		socketclient.StartK8sManager(true)
 	},

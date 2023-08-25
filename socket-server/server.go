@@ -21,6 +21,7 @@ import (
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/mattn/go-tty"
+	punqUtils "github.com/mogenius/punq/utils"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -132,8 +133,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 				logger.Log.Errorf("Invalid datagram: %s", datagramValidationError.Error())
 				continue
 			} else {
-				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) ||
-					utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
+				if punqUtils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) ||
+					punqUtils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 					if datagram.Pattern == "namespace/backup" {
 						backupData := datagram.Payload.(map[string]interface{})["data"].(string)
 						name := datagram.Payload.(map[string]interface{})["namespaceName"].(string)
@@ -149,7 +150,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 						}
 					} else if datagram.Pattern != "KubernetesEvent" {
 						RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
-						fmt.Printf("%s\n", RECEIVCOLOR(utils.FillWith("RECEIVED", 22, " ")))
+						fmt.Printf("%s\n", RECEIVCOLOR(punqUtils.FillWith("RECEIVED", 22, " ")))
 						datagram.DisplayBeautiful()
 					}
 				} else {

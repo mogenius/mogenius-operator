@@ -10,9 +10,9 @@ import (
 )
 
 func Remove() {
-	provider, err := punq.NewKubeProviderLocal()
-	if err != nil {
-		panic(err)
+	provider := punq.NewKubeProvider()
+	if provider == nil {
+		panic("error creating kubeprovider.")
 	}
 
 	// namespace is not deleted on purpose

@@ -17,6 +17,7 @@ import (
 
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
+	punqStructs "github.com/mogenius/punq/structs"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -292,13 +293,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		return punq.AllRoleBindings(data.NamespaceName)
 	case PAT_LIST_CLUSTER_ROLE:
-		data := K8sListRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		return punq.AllClusterRoles(data.NamespaceName)
+		return punq.AllClusterRoles()
 	case PAT_LIST_CLUSTER_ROLE_BINDING:
-		data := K8sListRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		return punq.AllClusterRoleBindings(data.NamespaceName)
+		return punq.AllClusterRoleBindings()
 	case PAT_LIST_VOLUME_ATTACHMENT:
 		return punq.AllVolumeAttachments()
 	case PAT_LIST_NETWORK_POLICY:
@@ -323,9 +320,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		return punq.AllLeases(data.NamespaceName)
 	case PAT_LIST_PRIORITYCLASSES:
-		data := K8sListRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		return punq.AllPriorityClasses(data.NamespaceName)
+		return punq.AllPriorityClasses()
 	case PAT_LIST_VOLUMESNAPSHOTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -411,7 +406,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_DESCRIBE_CERTIFICATEREQUEST:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return punq.DescribeK8sCertificateSigningRequest(data.ResourceName)
+		return punq.DescribeK8sCertificateSigningRequest(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_ORDER:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -469,9 +464,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		return punq.DescribeK8sLease(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_PRIORITYCLASSES:
-		data := K8sDescribeRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		return punq.AllPriorityClasses(data.ResourceName)
+		return punq.AllPriorityClasses()
 	case PAT_DESCRIBE_VOLUMESNAPSHOTS:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -926,7 +919,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 }
 
 func PopeyeConsole() string {
-	return structs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")
+	return punqStructs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")
 }
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {

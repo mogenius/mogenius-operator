@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +39,7 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 
 	// 2. Check if new Names have been added
 	if cert != nil {
-		diff := utils.Diff(hostNames, cert.Spec.DNSNames)
+		diff := punqUtils.Diff(hostNames, cert.Spec.DNSNames)
 		if len(diff) > 0 {
 			foundChanges = true
 		}

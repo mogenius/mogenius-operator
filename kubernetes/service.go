@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -187,7 +188,7 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 	}
 	for index, port := range ingControllerService.Spec.Ports {
 		if strings.HasPrefix(port.Name, k8sNameIngresss) {
-			ingControllerService.Spec.Ports = utils.Remove(ingControllerService.Spec.Ports, index)
+			ingControllerService.Spec.Ports = punqUtils.Remove(ingControllerService.Spec.Ports, index)
 		}
 	}
 
@@ -244,7 +245,7 @@ func RemovePortFromService(job *structs.Job, namespace string, serviceName strin
 			wasModified := false
 			for index, aPort := range service.Spec.Ports {
 				if aPort.Port == port {
-					service.Spec.Ports = utils.Remove(service.Spec.Ports, index)
+					service.Spec.Ports = punqUtils.Remove(service.Spec.Ports, index)
 					wasModified = true
 					break
 				}

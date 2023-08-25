@@ -11,12 +11,13 @@ import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	socketserver "mogenius-k8s-manager/socket-server"
-	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
+
+	punqStructs "github.com/mogenius/punq/structs"
 )
 
 // testCmd represents the test command
@@ -78,7 +79,7 @@ var testServerCmd = &cobra.Command{
 			if err != nil {
 				fmt.Println(err.Error())
 			}
-			structs.PrettyPrintJSON(data)
+			punqStructs.PrettyPrintJSON(data)
 
 		})
 		socketserver.Init(router)
