@@ -49,6 +49,9 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	if r.Project.ContainerRegistryUser != "" && r.Project.ContainerRegistryPat != "" {
 		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
 	}
+	if r.Service.ContainerImageRepoSecretDecryptValue != "" {
+		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
+	}
 
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
@@ -163,6 +166,9 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	job.Start()
 	if r.Project.ContainerRegistryUser != "" && r.Project.ContainerRegistryPat != "" {
 		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
+	}
+	if r.Service.ContainerImageRepoSecretDecryptValue != "" {
+		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
 	}
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Namespace, r.Service, &wg))

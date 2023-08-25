@@ -121,6 +121,50 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 	return cmd
 }
 
+func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Create Container secret for service", job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Creating Container secret '%s' for service.", namespace.Name))
+
+		secretName := "container-secret-service-" + service.Name
+
+		kubeProvider := punq.NewKubeProvider()
+		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
+
+		secret := utils.InitContainerSecret()
+		secret.ObjectMeta.Name = secretName
+		secret.ObjectMeta.Namespace = namespace.Name
+
+		secretStringData := make(map[string]string)
+		secretStringData[".dockerconfigjson"] = service.ContainerImageRepoSecretDecryptValue
+		secret.StringData = secretStringData
+
+		secret.Labels = MoUpdateLabels(&secret.Labels, job.ProjectId, &namespace, nil)
+
+		// Check if exists
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		if err == nil {
+			// UPDATED
+			cmd.Success(fmt.Sprintf("Created Container secret '%s' for service.", namespace.Name))
+		} else {
+			if apierrors.IsNotFound(err) {
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("CreateContainerSecret (create) ERROR: %s", err.Error()))
+				} else {
+					// CREATED
+					cmd.Success(fmt.Sprintf("Created Container secret '%s' for service.", namespace.Name))
+				}
+			} else {
+				cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
+			}
+		}
+	}(cmd, wg)
+	return cmd
+}
+
 func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Delete Container secret", job)
 	wg.Add(1)

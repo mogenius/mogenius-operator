@@ -266,7 +266,7 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 		if service.ContainerImageRepoSecretDecryptValue != "" {
 			newDeployment.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
 			newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{
-				Name: fmt.Sprintf("%s-container-secret", service.Name),
+				Name: fmt.Sprintf("container-secret-service-%s", service.Name),
 			})
 		}
 	} else {
@@ -339,7 +339,7 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 	}
 
 	// IMAGE PULL SECRET
-	if ContainerSecretDoesExistForStage(namespace) {
+	if ContainerSecretDoesExistForStage(namespace) && service.ContainerImageRepoSecretDecryptValue == "" {
 		containerSecretName := "container-secret-" + namespace.Name
 		newDeployment.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
 		newDeployment.Spec.Template.Spec.ImagePullSecrets = append(newDeployment.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
