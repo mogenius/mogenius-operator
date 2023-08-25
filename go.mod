@@ -2,10 +2,6 @@ module mogenius-k8s-manager
 
 go 1.21
 
-toolchain go1.21.0
-
-//replace github.com/mogenius/mo-go/utils => /Users/bene/git/mo/mo-go/utils
-
 require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/aws/aws-sdk-go v1.44.238
