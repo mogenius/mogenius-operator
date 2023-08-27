@@ -59,6 +59,8 @@ stages:
               VERSION=$(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
               echo $(CR_PAT) | docker login ghcr.io -u beneiltis --password-stdin
               docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/$(packageName):$VERSION -t ghcr.io/mogenius/$(packageName):latest .
+              curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+              grype --add-cpes-if-none --fail-on critical ghcr.io/mogenius/$(packageName):latest
               docker image push ghcr.io/mogenius/$(packageName):$VERSION; docker image push ghcr.io/mogenius/$(packageName):latest
             timeoutInMinutes: 10
             name: dockerBuildPush
