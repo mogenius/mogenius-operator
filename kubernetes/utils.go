@@ -5,58 +5,19 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
-	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"path/filepath"
 	"strings"
 	"time"
 
+	punq "github.com/mogenius/punq/kubernetes"
+	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
-)
-
-const (
-	RES_NAMESPACE                   string = "namespace"
-	RES_POD                         string = "pod"
-	RES_DEPLOYMENT                  string = "deployment"
-	RES_SERVICE                     string = "service"
-	RES_INGRESS                     string = "ingress"
-	RES_CONFIGMAP                   string = "configmap"
-	RES_SECRET                      string = "secret"
-	RES_NODE                        string = "node"
-	RES_DAEMON_SET                  string = "daemon_set"
-	RES_STATEFUL_SET                string = "stateful_set"
-	RES_JOB                         string = "job"
-	RES_CRON_JOB                    string = "cron_job"
-	RES_REPLICA_SET                 string = "replica_set"
-	RES_PERSISTENT_VOLUME           string = "persistent_volume"
-	RES_PERSISTENT_VOLUME_CLAIM     string = "persistent_volume_claim"
-	RES_HORIZONTAL_POD_AUTOSCALER   string = "horizontal_pod_autoscaler"
-	RES_EVENT                       string = "event"
-	RES_CERTIFICATE                 string = "certificate"
-	RES_CERTIFICATE_REQUEST         string = "certificaterequest"
-	RES_ORDER                       string = "orders"
-	RES_ISSUER                      string = "issuer"
-	RES_CLUSTER_ISSUER              string = "clusterissuer"
-	RES_SERVICE_ACCOUNT             string = "service_account"
-	RES_ROLE                        string = "role"
-	RES_ROLE_BINDING                string = "role_binding"
-	RES_CLUSTER_ROLE                string = "cluster_role"
-	RES_CLUSTER_ROLE_BINDING        string = "cluster_role_binding"
-	RES_VOLUME_ATTACHMENT           string = "volume_attachment"
-	RES_NETWORK_POLICY              string = "network_policy"
-	RES_STORAGECLASS                string = "storageclass"
-	RES_CUSTOM_RESOURCE_DEFINITIONS string = "crds"
-	RES_ENDPOINTS                   string = "endpoints"
-	RES_LEASES                      string = "leases"
-	RES_PRIORITYCLASSES             string = "priorityclasses"
-	RES_VOLUMESNAPSHOTS             string = "volumesnapshots"
-	RES_RESOURCEQUOTAS              string = "resourcequotas"
 )
 
 var (
@@ -84,11 +45,6 @@ type K8sNewWorkload struct {
 type MogeniusNfsInstallationStatus struct {
 	Error       string `json:"error,omitempty"`
 	IsInstalled bool   `json:"isInstalled"`
-}
-
-type KubeProviderMetrics struct {
-	ClientSet    *metricsv.Clientset
-	ClientConfig rest.Config
 }
 
 func init() {
@@ -133,9 +89,9 @@ func CurrentContextName() string {
 }
 
 func Hostname() string {
-	provider, error := NewKubeProviderInCluster()
-	if error != nil {
-		fmt.Println("Error:", error)
+	provider := punq.NewKubeProvider()
+	if provider == nil {
+		logger.Log.Fatal("error creating kubeprovider")
 	}
 
 	return provider.ClientConfig.Host
@@ -171,16 +127,16 @@ func ClusterStatus() dtos.ClusterStatusDto {
 		Pods:                  len(result),
 		CpuInMilliCores:       int(cpu),
 		CpuLimitInMilliCores:  int(cpuLimit),
-		Memory:                utils.BytesToHumanReadable(memory),
-		MemoryLimit:           utils.BytesToHumanReadable(memoryLimit),
-		EphemeralStorageLimit: utils.BytesToHumanReadable(ephemeralStorageLimit),
+		Memory:                punqUtils.BytesToHumanReadable(memory),
+		MemoryLimit:           punqUtils.BytesToHumanReadable(memoryLimit),
+		EphemeralStorageLimit: punqUtils.BytesToHumanReadable(ephemeralStorageLimit),
 	}
 }
 
 func listAllPods() []v1.Pod {
 	var result []v1.Pod
 
-	kubeProvider := NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider()
 	pods, err := kubeProvider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
 
 	if err != nil {
@@ -191,15 +147,9 @@ func listAllPods() []v1.Pod {
 }
 
 func ListNodes() []v1.Node {
-	var provider *KubeProvider
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderLocal()
-	} else {
-		provider, err = NewKubeProviderInCluster()
-	}
-	if err != nil {
-		logger.Log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
+	var provider *punq.KubeProvider = punq.NewKubeProvider()
+	if provider == nil {
+		logger.Log.Fatal("error creating kubeprovider")
 		return []v1.Node{}
 	}
 
@@ -211,16 +161,10 @@ func ListNodes() []v1.Node {
 	return nodeMetricsList.Items
 }
 
-func podStats(pods map[string]v1.Pod) ([]structs.Stats, error) {
-	var provider *KubeProviderMetrics
-	var err error
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = NewKubeProviderMetricsLocal()
-	} else {
-		provider, err = NewKubeProviderMetricsInCluster()
-	}
-	if err != nil {
-		panic(err)
+func podStats(pods map[string]v1.Pod) ([]punqStructs.Stats, error) {
+	var provider *punq.KubeProviderMetrics = punq.NewKubeProviderMetrics()
+	if provider == nil {
+		logger.Log.Fatal("error creating kubeprovider")
 	}
 
 	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
@@ -228,13 +172,13 @@ func podStats(pods map[string]v1.Pod) ([]structs.Stats, error) {
 		return nil, err
 	}
 
-	var result []structs.Stats
+	var result []punqStructs.Stats
 	// I HATE THIS BUT I DONT SEE ANY OTHER SOLUTION! SPEND HOURS (to find something better) ON THIS UGGLY SHIT!!!!
 
 	for _, podMetrics := range podMetricsList.Items {
 		var pod = pods[podMetrics.Name]
 
-		var entry = structs.Stats{}
+		var entry = punqStructs.Stats{}
 		entry.Cluster = utils.CONFIG.Kubernetes.ClusterName
 		entry.Namespace = podMetrics.Namespace
 		entry.PodName = podMetrics.Name
@@ -366,8 +310,8 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
 				mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
-				utils.CreateDirIfNotExist(mountDir)
-				structs.ExecuteBashCommandWithResponse(title, shellCmd)
+				punqUtils.CreateDirIfNotExist(mountDir)
+				punqStructs.ExecuteBashCommandWithResponse(title, shellCmd)
 			}
 		} else {
 			logger.Log.Warningf("No CluserIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
@@ -376,7 +320,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 }
 
 func ServiceForNfsVolume(volumeNamespace string, volumeName string) *v1.Service {
-	services := AllServices(volumeNamespace)
+	services := punq.AllServices(volumeNamespace)
 	for _, srv := range services {
 		if strings.Contains(srv.Name, fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)) {
 			return &srv
@@ -392,44 +336,8 @@ func Umount(volumeNamespace string, volumeName string) {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
-			structs.ExecuteBashCommandWithResponse(title, shellCmd)
-			utils.DeleteDirIfExist(mountDir)
+			punqStructs.ExecuteBashCommandWithResponse(title, shellCmd)
+			punqUtils.DeleteDirIfExist(mountDir)
 		}
 	}()
-}
-
-func ListCreateTemplates() []K8sNewWorkload {
-	result := []K8sNewWorkload{}
-
-	result = append(result,
-		NewK8sCertificate(),
-		NewK8sCertificateSigningRequest(),
-		NewK8sClusterIssuer(),
-		NewK8sClusterRole(),
-		NewK8sClusterRoleBinding(),
-		NewK8sConfigmap(),
-		NewK8sCronJob(),
-		NewK8sDaemonSet(),
-		NewK8sDeployment(),
-		NewK8sHpa(),
-		NewK8sIngress(),
-		NewK8sIssuer(),
-		NewK8sJob(),
-		NewK8sNamespace(),
-		NewK8sNetPol(),
-		NewK8sOrder(),
-		NewK8sPersistentVolumeClaim(),
-		NewK8sPod(),
-		NewK8sReplicaSet(),
-		NewK8sRole(),
-		NewK8sRoleBinding(),
-		NewK8sSecret(),
-		NewK8sService(),
-		NewK8sServiceAccount(),
-		NewK8sStatefulset(),
-		NewK8sStorageClass(),
-		NewK8sVolume(),
-		NewK8sVolumeAttachment())
-
-	return result
 }

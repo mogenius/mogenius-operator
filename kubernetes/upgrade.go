@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	punq "github.com/mogenius/punq/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -18,13 +19,13 @@ func ClusterForceReconnect() bool {
 	// - podstats
 	// - k8s-manager
 
-	kubeProvider := NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider()
 	podClient := kubeProvider.ClientSet.CoreV1().Pods(utils.CONFIG.Kubernetes.OwnNamespace)
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-traffic-collector")...)
-	podsToKill = append(podsToKill, AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-pod-stats-collector")...)
-	podsToKill = append(podsToKill, AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-k8s-manager")...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-traffic-collector")...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-pod-stats-collector")...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-k8s-manager")...)
 
 	for _, podName := range podsToKill {
 		logger.Log.Warningf("Restarting %s ...", podName)
@@ -44,7 +45,7 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *struct
 		defer wg.Done()
 		cmd.Start("Upgrade mogenius platform ...")
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		jobClient := kubeProvider.ClientSet.BatchV1().Jobs(NAMESPACE)
 		configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
 

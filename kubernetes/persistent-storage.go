@@ -7,6 +7,8 @@ import (
 	"mogenius-k8s-manager/utils"
 	"sync"
 
+	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -32,11 +34,11 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
 		pvc.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 		pvc.Namespace = namespaceName
-		pvc.Spec.StorageClassName = utils.Pointer(storageClass)
+		pvc.Spec.StorageClassName = punqUtils.Pointer(storageClass)
 		pvc.Spec.Resources.Requests = v1.ResourceList{}
 		pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
 		_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
 		if err != nil {
@@ -55,7 +57,7 @@ func DeleteMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting PersistentVolumeClaim '%s'.", volumeName))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
 		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 		if err != nil {
@@ -99,7 +101,7 @@ func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, name
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting PersistentVolume '%s'.", volumeName))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumes()
 
 		// LIST ALL PV
@@ -145,7 +147,7 @@ func CreateMogeniusNfsService(job *structs.Job, namespaceName string, volumeName
 	service.Namespace = namespaceName
 	service.Spec.Selector["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 
-	kubeProvider := NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider()
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespaceName)
 	createdService, err := serviceClient.Create(context.TODO(), &service, metav1.CreateOptions{})
 	if err != nil {
@@ -164,7 +166,7 @@ func DeleteMogeniusNfsService(job *structs.Job, namespaceName string, volumeName
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting PersistentVolume Service '%s'.", volumeName))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		pvcClient := kubeProvider.ClientSet.CoreV1().Services(namespaceName)
 		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 		if err != nil {
@@ -192,7 +194,7 @@ func CreateMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		deployment.Spec.Selector.MatchLabels["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 		deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
 		_, err := deploymentClient.Create(context.TODO(), &deployment, metav1.CreateOptions{})
 		if err != nil {
@@ -211,7 +213,7 @@ func DeleteMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting PersistentVolume Deployment '%s'.", volumeName))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
 		err := deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 		if err != nil {

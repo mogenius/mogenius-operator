@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
-	"mogenius-k8s-manager/utils"
 	"time"
 
 	"github.com/fatih/color"
+	punqUtils "github.com/mogenius/punq/utils"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -175,20 +175,20 @@ func stateLog(typeName string, data *dtos.K8sNotificationDto) {
 
 	switch data.State {
 	case "PENDING":
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, PEND(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(data.State, 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case "STARTED":
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, STAR(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(data.State, 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case "ERROR", "FAILED":
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, ERRO(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
-		fmt.Printf("      %s %s %s\n", "", ERRO(utils.FillWith("--> ", 15, " ")), data.Message)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(data.State, 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		fmt.Printf("      %s %s %s\n", "", ERRO(punqUtils.FillWith("--> ", 15, " ")), data.Message)
 	case "SUCCEEDED":
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, SUCC(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(data.State, 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	default:
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, DEFA(utils.FillWith(data.State, 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		fmt.Printf("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(data.State, 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	}
 }
 
 func StateDebugLog(debugStr string) {
 	DEBUG := color.New(color.FgWhite, color.BgHiMagenta).SprintFunc()
-	fmt.Printf("%-6s %-26s %s\n", "DEBUG", DEBUG(utils.FillWith("DEBUG", 15, " ")), debugStr)
+	fmt.Printf("%-6s %-26s %s\n", "DEBUG", DEBUG(punqUtils.FillWith("DEBUG", 15, " ")), debugStr)
 }

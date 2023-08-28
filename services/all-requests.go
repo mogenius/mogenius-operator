@@ -10,11 +10,14 @@ import (
 
 	// "fmt"
 	"mogenius-k8s-manager/builder"
-	"mogenius-k8s-manager/dtos"
-	mokubernetes "mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"net/url"
+
+	punqDtos "github.com/mogenius/punq/dtos"
+	punq "github.com/mogenius/punq/kubernetes"
+	punqStructs "github.com/mogenius/punq/structs"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -25,11 +28,11 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_K8SNOTIFICATION:
 		return K8sNotification(datagram)
 	case PAT_CLUSTERSTATUS:
-		return mokubernetes.ClusterStatus()
+		return punq.ClusterStatus()
 	case PAT_CLUSTERRESOURCEINFO:
-		nodeStats := mokubernetes.GetNodeStats()
-		loadBalancerExternalIps := mokubernetes.GetClusterExternalIps()
-		result := dtos.ClusterResourceInfoDto{
+		nodeStats := punq.GetNodeStats()
+		loadBalancerExternalIps := punq.GetClusterExternalIps()
+		result := punqDtos.ClusterResourceInfoDto{
 			NodeStats:               nodeStats,
 			LoadBalancerExternalIps: loadBalancerExternalIps,
 		}
@@ -40,7 +43,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return UpgradeK8sManager(data)
 
 	case PAT_CLUSTER_FORCE_RECONNECT:
-		return mokubernetes.ClusterForceReconnect()
+		return kubernetes.ClusterForceReconnect()
 
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}
@@ -115,7 +118,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_NAMESPACE_BACKUP:
 		data := NamespaceBackupRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := mokubernetes.BackupNamespace(data.NamespaceName)
+		result, err := kubernetes.BackupNamespace(data.NamespaceName)
 		if err != nil {
 			return err.Error()
 		}
@@ -123,7 +126,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_NAMESPACE_RESTORE:
 		data := NamespaceRestoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := mokubernetes.RestoreNamespace(data.YamlData, data.NamespaceName)
+		result, err := kubernetes.RestoreNamespace(data.YamlData, data.NamespaceName)
 		if err != nil {
 			return err.Error()
 		}
@@ -199,126 +202,122 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return logStream(data, datagram)
 
 	case PAT_LIST_CREATE_TEMPLATES:
-		return mokubernetes.ListCreateTemplates()
+		return punq.ListCreateTemplates()
 
 	case PAT_LIST_NAMESPACES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.ListK8sNamespaces(data.NamespaceName)
+		return punq.ListK8sNamespaces(data.NamespaceName)
 	case PAT_LIST_DEPLOYMENTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sDeployments(data.NamespaceName)
+		return punq.AllK8sDeployments(data.NamespaceName)
 	case PAT_LIST_SERVICES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sServices(data.NamespaceName)
+		return punq.AllK8sServices(data.NamespaceName)
 	case PAT_LIST_PODS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sPods(data.NamespaceName)
+		return punq.AllK8sPods(data.NamespaceName)
 	case PAT_LIST_INGRESSES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sIngresses(data.NamespaceName)
+		return punq.AllK8sIngresses(data.NamespaceName)
 	case PAT_LIST_CONFIGMAPS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sConfigmaps(data.NamespaceName)
+		return punq.AllK8sConfigmaps(data.NamespaceName)
 	case PAT_LIST_SECRETS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sSecrets(data.NamespaceName)
+		return punq.AllK8sSecrets(data.NamespaceName)
 	case PAT_LIST_NODES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.ListK8sNodes()
+		return punq.ListK8sNodes()
 	case PAT_LIST_DAEMONSETS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sDaemonsets(data.NamespaceName)
+		return punq.AllK8sDaemonsets(data.NamespaceName)
 	case PAT_LIST_STATEFULSETS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllStatefulSets(data.NamespaceName)
+		return punq.AllStatefulSets(data.NamespaceName)
 	case PAT_LIST_JOBS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllJobs(data.NamespaceName)
+		return punq.AllJobs(data.NamespaceName)
 	case PAT_LIST_CRONJOBS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllCronjobs(data.NamespaceName)
+		return punq.AllCronjobs(data.NamespaceName)
 	case PAT_LIST_REPLICASETS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sReplicasets(data.NamespaceName)
+		return punq.AllK8sReplicasets(data.NamespaceName)
 	case PAT_LIST_PERSISTENT_VOLUMES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllPersistentVolumes()
+		return punq.AllPersistentVolumes()
 	case PAT_LIST_PERSISTENT_VOLUME_CLAIMS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sPersistentVolumeClaims(data.NamespaceName)
+		return punq.AllK8sPersistentVolumeClaims(data.NamespaceName)
 	case PAT_LIST_HORIZONTAL_POD_AUTOSCALERS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllHpas(data.NamespaceName)
+		return punq.AllHpas(data.NamespaceName)
 	case PAT_LIST_EVENTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllEvents(data.NamespaceName)
+		return punq.AllEvents(data.NamespaceName)
 	case PAT_LIST_CERTIFICATES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllK8sCertificates(data.NamespaceName)
+		return punq.AllK8sCertificates(data.NamespaceName)
 	case PAT_LIST_CERTIFICATEREQUESTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllCertificateSigningRequests(data.NamespaceName)
+		return punq.AllCertificateSigningRequests(data.NamespaceName)
 	case PAT_LIST_ORDERS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllOrders(data.NamespaceName)
+		return punq.AllOrders(data.NamespaceName)
 	case PAT_LIST_ISSUERS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllIssuer(data.NamespaceName)
+		return punq.AllIssuer(data.NamespaceName)
 	case PAT_LIST_CLUSTERISSUERS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllClusterIssuers()
+		return punq.AllClusterIssuers()
 	case PAT_LIST_SERVICE_ACCOUNT:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllServiceAccounts(data.NamespaceName)
+		return punq.AllServiceAccounts(data.NamespaceName)
 	case PAT_LIST_ROLE:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllRoles(data.NamespaceName)
+		return punq.AllRoles(data.NamespaceName)
 	case PAT_LIST_ROLE_BINDING:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllRoleBindings(data.NamespaceName)
+		return punq.AllRoleBindings(data.NamespaceName)
 	case PAT_LIST_CLUSTER_ROLE:
-		data := K8sListRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllClusterRoles(data.NamespaceName)
+		return punq.AllClusterRoles()
 	case PAT_LIST_CLUSTER_ROLE_BINDING:
-		data := K8sListRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllClusterRoleBindings(data.NamespaceName)
+		return punq.AllClusterRoleBindings()
 	case PAT_LIST_VOLUME_ATTACHMENT:
-		return mokubernetes.AllVolumeAttachments()
+		return punq.AllVolumeAttachments()
 	case PAT_LIST_NETWORK_POLICY:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllNetworkPolicies(data.NamespaceName)
+		return punq.AllNetworkPolicies(data.NamespaceName)
 	case PAT_LIST_STORAGE_CLASS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllStorageClasses()
+		return punq.AllStorageClasses()
 	case PAT_LIST_CUSTOM_RESOURCE_DEFINITIONS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -327,15 +326,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_LIST_ENDPOINTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllEndpoints(data.NamespaceName)
+		return punq.AllEndpoints(data.NamespaceName)
 	case PAT_LIST_LEASES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllLeases(data.NamespaceName)
+		return punq.AllLeases(data.NamespaceName)
 	case PAT_LIST_PRIORITYCLASSES:
-		data := K8sListRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllPriorityClasses(data.NamespaceName)
+		return punq.AllPriorityClasses()
 	case PAT_LIST_VOLUMESNAPSHOTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -344,144 +341,142 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_LIST_RESOURCEQUOTAS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllResourceQuotas(data.NamespaceName)
+		return punq.AllResourceQuotas(data.NamespaceName)
 
 	case PAT_DESCRIBE_NAMESPACE:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sNamespace(data.ResourceName)
+		return punq.DescribeK8sNamespace(data.ResourceName)
 	case PAT_DESCRIBE_DEPLOYMENT:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sDeployment(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sDeployment(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_SERVICE:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sService(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sService(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_POD:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sPod(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sPod(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_INGRESS:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sIngress(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sIngress(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_CONFIGMAP:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sConfigmap(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sConfigmap(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_SECRET:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sSecret(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sSecret(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_NODE:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sNode(data.ResourceName)
+		return punq.DescribeK8sNode(data.ResourceName)
 	case PAT_DESCRIBE_DAEMONSET:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sDaemonSet(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sDaemonSet(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_STATEFULSET:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sStatefulset(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sStatefulset(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_JOB:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sJob(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sJob(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_CRONJOB:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sCronJob(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sCronJob(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_REPLICASET:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sReplicaset(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sReplicaset(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_PERSISTENT_VOLUME:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sPersistentVolume(data.ResourceName)
+		return punq.DescribeK8sPersistentVolume(data.ResourceName)
 	case PAT_DESCRIBE_PERSISTENT_VOLUME_CLAIM:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sPersistentVolumeClaim(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sPersistentVolumeClaim(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_HORIZONTAL_POD_AUTOSCALER:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sHpa(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sHpa(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_EVENT:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sEvent(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sEvent(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_CERTIFICATE:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sCertificate(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sCertificate(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_CERTIFICATEREQUEST:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sCertificateSigningRequest(data.ResourceName)
+		return punq.DescribeK8sCertificateSigningRequest(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_ORDER:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sOrder(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sOrder(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_ISSUER:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sIssuer(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sIssuer(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_CLUSTERISSUER:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sClusterIssuer(data.ResourceName)
+		return punq.DescribeK8sClusterIssuer(data.ResourceName)
 	case PAT_DESCRIBE_SERVICE_ACCOUNT:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sServiceAccount(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sServiceAccount(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_ROLE:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sRole(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sRole(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_ROLE_BINDING:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sRoleBinding(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sRoleBinding(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_CLUSTER_ROLE:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sClusterRole(data.ResourceName)
+		return punq.DescribeK8sClusterRole(data.ResourceName)
 	case PAT_DESCRIBE_CLUSTER_ROLE_BINDING:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sClusterRoleBinding(data.ResourceName)
+		return punq.DescribeK8sClusterRoleBinding(data.ResourceName)
 	case PAT_DESCRIBE_VOLUME_ATTACHMENT:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sVolumeAttachment(data.ResourceName)
+		return punq.DescribeK8sVolumeAttachment(data.ResourceName)
 	case PAT_DESCRIBE_NETWORK_POLICY:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sNetworkPolicy(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sNetworkPolicy(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_STORAGE_CLASS:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sStorageClass(data.ResourceName)
+		return punq.DescribeK8sStorageClass(data.ResourceName)
 	case PAT_DESCRIBE_CUSTOM_RESOURCE_DEFINITIONS:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sCustomResourceDefinition(data.ResourceName)
+		return punq.DescribeK8sCustomResourceDefinition(data.ResourceName)
 	case PAT_DESCRIBE_ENDPOINTS:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sEndpoint(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sEndpoint(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_LEASES:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sLease(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sLease(data.NamespaceName, data.ResourceName)
 	case PAT_DESCRIBE_PRIORITYCLASSES:
-		data := K8sDescribeRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.AllPriorityClasses(data.ResourceName)
+		return punq.AllPriorityClasses()
 	case PAT_DESCRIBE_VOLUMESNAPSHOTS:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -490,7 +485,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_DESCRIBE_RESOURCEQUOTAS:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DescribeK8sResourceQuota(data.NamespaceName, data.ResourceName)
+		return punq.DescribeK8sResourceQuota(data.NamespaceName, data.ResourceName)
 
 	case PAT_UPDATE_DEPLOYMENT:
 		data := K8sUpdateDeploymentRequest{}
@@ -539,67 +534,67 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_UPDATE_PERSISTENT_VOLUME:
 		data := K8sUpdatePersistentVolumeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sPersistentVolume(*data.Data)
+		return punq.UpdateK8sPersistentVolume(*data.Data)
 	case PAT_UPDATE_PERSISTENT_VOLUME_CLAIM:
 		data := K8sUpdatePersistentVolumeClaimRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sPersistentVolumeClaim(*data.Data)
+		return punq.UpdateK8sPersistentVolumeClaim(*data.Data)
 	case PAT_UPDATE_HORIZONTAL_POD_AUTOSCALERS:
 		data := K8sUpdateHPARequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sHpa(*data.Data)
+		return punq.UpdateK8sHpa(*data.Data)
 	case PAT_UPDATE_CERTIFICATES:
 		data := K8sUpdateCertificateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sCertificate(*data.Data)
+		return punq.UpdateK8sCertificate(*data.Data)
 	case PAT_UPDATE_CERTIFICATEREQUESTS:
 		data := K8sUpdateCertificateRequestRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sCertificateSigningRequest(*data.Data)
+		return punq.UpdateK8sCertificateSigningRequest(*data.Data)
 	case PAT_UPDATE_ORDERS:
 		data := K8sUpdateOrderRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sOrder(*data.Data)
+		return punq.UpdateK8sOrder(*data.Data)
 	case PAT_UPDATE_ISSUERS:
 		data := K8sUpdateIssuerRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sIssuer(*data.Data)
+		return punq.UpdateK8sIssuer(*data.Data)
 	case PAT_UPDATE_CLUSTERISSUERS:
 		data := K8sUpdateClusterIssuerRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sClusterIssuer(*data.Data)
+		return punq.UpdateK8sClusterIssuer(*data.Data)
 	case PAT_UPDATE_SERVICE_ACCOUNT:
 		data := K8sUpdateServiceAccountRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sServiceAccount(*data.Data)
+		return punq.UpdateK8sServiceAccount(*data.Data)
 	case PAT_UPDATE_ROLE:
 		data := K8sUpdateRoleRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sRole(*data.Data)
+		return punq.UpdateK8sRole(*data.Data)
 	case PAT_UPDATE_ROLE_BINDING:
 		data := K8sUpdateRoleBindingRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sRoleBinding(*data.Data)
+		return punq.UpdateK8sRoleBinding(*data.Data)
 	case PAT_UPDATE_CLUSTER_ROLE:
 		data := K8sUpdateClusterRoleRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sClusterRole(*data.Data)
+		return punq.UpdateK8sClusterRole(*data.Data)
 	case PAT_UPDATE_CLUSTER_ROLE_BINDING:
 		data := K8sUpdateClusterRoleBindingRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sClusterRoleBinding(*data.Data)
+		return punq.UpdateK8sClusterRoleBinding(*data.Data)
 	case PAT_UPDATE_VOLUME_ATTACHMENT:
 		data := K8sUpdateVolumeAttachmentRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sVolumeAttachment(*data.Data)
+		return punq.UpdateK8sVolumeAttachment(*data.Data)
 	case PAT_UPDATE_NETWORK_POLICY:
 		data := K8sUpdateNetworkPolicyRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sNetworkPolicy(*data.Data)
+		return punq.UpdateK8sNetworkPolicy(*data.Data)
 	case PAT_UPDATE_STORAGE_CLASS:
 		data := K8sUpdateStorageClassRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sStorageClass(*data.Data)
+		return punq.UpdateK8sStorageClass(*data.Data)
 	case PAT_UPDATE_CUSTOM_RESOURCE_DEFINITIONS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -608,15 +603,15 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_UPDATE_ENDPOINTS:
 		data := K8sUpdateEndpointRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sEndpoint(*data.Data)
+		return punq.UpdateK8sEndpoint(*data.Data)
 	case PAT_UPDATE_LEASES:
 		data := K8sUpdateLeaseRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sLease(*data.Data)
+		return punq.UpdateK8sLease(*data.Data)
 	case PAT_UPDATE_PRIORITYCLASSES:
 		data := K8sUpdatePriorityClassRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sPriorityClass(*data.Data)
+		return punq.UpdateK8sPriorityClass(*data.Data)
 	case PAT_UPDATE_VOLUMESNAPSHOTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -625,7 +620,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_UPDATE_RESOURCEQUOTAS:
 		data := K8sUpdateResourceQuotaRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.UpdateK8sResourceQuota(*data.Data)
+		return punq.UpdateK8sResourceQuota(*data.Data)
 
 	case PAT_DELETE_NAMESPACE:
 		data := K8sDeleteNamespaceRequest{}
@@ -678,67 +673,67 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_DELETE_PERSISTENT_VOLUME:
 		data := K8sDeletePersistentVolumeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sPersistentVolume(*data.Data)
+		return punq.DeleteK8sPersistentVolume(*data.Data)
 	case PAT_DELETE_PERSISTENT_VOLUME_CLAIM:
 		data := K8sDeletePersistentVolumeClaimRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sPersistentVolumeClaim(*data.Data)
+		return punq.DeleteK8sPersistentVolumeClaim(*data.Data)
 	case PAT_DELETE_HORIZONTAL_POD_AUTOSCALERS:
 		data := K8sDeleteHPARequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sHpa(*data.Data)
+		return punq.DeleteK8sHpa(*data.Data)
 	case PAT_DELETE_CERTIFICATES:
 		data := K8sDeleteCertificateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sCertificate(*data.Data)
+		return punq.DeleteK8sCertificate(*data.Data)
 	case PAT_DELETE_CERTIFICATEREQUESTS:
 		data := K8sDeleteCertificateRequestRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sCertificateSigningRequest(*data.Data)
+		return punq.DeleteK8sCertificateSigningRequest(*data.Data)
 	case PAT_DELETE_ORDERS:
 		data := K8sDeleteOrderRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sOrder(*data.Data)
+		return punq.DeleteK8sOrder(*data.Data)
 	case PAT_DELETE_ISSUERS:
 		data := K8sDeleteIssuerRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sIssuer(*data.Data)
+		return punq.DeleteK8sIssuer(*data.Data)
 	case PAT_DELETE_CLUSTERISSUERS:
 		data := K8sDeleteClusterIssuerRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sClusterIssuer(*data.Data)
+		return punq.DeleteK8sClusterIssuer(*data.Data)
 	case PAT_DELETE_SERVICE_ACCOUNT:
 		data := K8sDeleteServiceAccountRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sServiceAccount(*data.Data)
+		return punq.DeleteK8sServiceAccount(*data.Data)
 	case PAT_DELETE_ROLE:
 		data := K8sDeleteRoleRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sRole(*data.Data)
+		return punq.DeleteK8sRole(*data.Data)
 	case PAT_DELETE_ROLE_BINDING:
 		data := K8sDeleteRoleBindingRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sRoleBinding(*data.Data)
+		return punq.DeleteK8sRoleBinding(*data.Data)
 	case PAT_DELETE_CLUSTER_ROLE:
 		data := K8sDeleteClusterRoleRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sClusterRole(*data.Data)
+		return punq.DeleteK8sClusterRole(*data.Data)
 	case PAT_DELETE_CLUSTER_ROLE_BINDING:
 		data := K8sDeleteClusterRoleBindingRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sClusterRoleBinding(*data.Data)
+		return punq.DeleteK8sClusterRoleBinding(*data.Data)
 	case PAT_DELETE_VOLUME_ATTACHMENT:
 		data := K8sDeleteVolumeAttachmentRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sVolumeAttachment(*data.Data)
+		return punq.DeleteK8sVolumeAttachment(*data.Data)
 	case PAT_DELETE_NETWORK_POLICY:
 		data := K8sDeleteNetworkPolicyRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sNetworkPolicy(*data.Data)
+		return punq.DeleteK8sNetworkPolicy(*data.Data)
 	case PAT_DELETE_STORAGE_CLASS:
 		data := K8sDeleteStorageClassRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sStorageClass(*data.Data)
+		return punq.DeleteK8sStorageClass(*data.Data)
 	case PAT_DELETE_CUSTOM_RESOURCE_DEFINITIONS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -747,15 +742,15 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_DELETE_ENDPOINTS:
 		data := K8sDeleteEndpointRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sEndpoint(*data.Data)
+		return punq.DeleteK8sEndpoint(*data.Data)
 	case PAT_DELETE_LEASES:
 		data := K8sDeleteLeaseRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sLease(*data.Data)
+		return punq.DeleteK8sLease(*data.Data)
 	case PAT_DELETE_PRIORITYCLASSES:
 		data := K8sDeletePriorityClassRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sPriorityClass(*data.Data)
+		return punq.DeleteK8sPriorityClass(*data.Data)
 	case PAT_DELETE_VOLUMESNAPSHOTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -764,7 +759,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_DELETE_RESOURCEQUOTAS:
 		data := K8sDeleteResourceQuotaRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.DeleteK8sResourceQuota(*data.Data)
+		return punq.DeleteK8sResourceQuota(*data.Data)
 
 	case PAT_BUILDER_STATUS:
 		return builder.BuilderStatus()
@@ -810,7 +805,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_EXEC_SHELL:
 		// data := structs.BuildJobStatusRequest{}
 		// structs.MarshalUnmarshal(&datagram, &data)
-		return mokubernetes.ExecTest()
+		return kubernetes.ExecTest()
 
 	case PAT_STORAGE_CREATE_VOLUME:
 		data := NfsVolumeRequest{}
@@ -855,8 +850,8 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 		return result
 	}
 
-	pod := mokubernetes.PodStatus(data.Namespace, data.PodId, false)
-	terminatedState := mokubernetes.LastTerminatedStateIfAny(pod)
+	pod := punq.PodStatus(data.Namespace, data.PodId, false)
+	terminatedState := punq.LastTerminatedStateIfAny(pod)
 
 	var previousResReq *rest.Request
 	if terminatedState != nil {
@@ -905,7 +900,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	ctx := context.Background()
 	cancelCtx, endGofunc := context.WithCancel(ctx)
 
-	lastState := mokubernetes.LastTerminatedStateToString(terminatedState)
+	lastState := punq.LastTerminatedStateToString(terminatedState)
 
 	var previousStream io.ReadCloser
 	if previousRestReq != nil {
@@ -936,7 +931,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 }
 
 func PopeyeConsole() string {
-	return structs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")
+	return punqStructs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")
 }
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {

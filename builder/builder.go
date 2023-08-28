@@ -13,6 +13,9 @@ import (
 
 	"github.com/google/uuid"
 	bolt "go.etcd.io/bbolt"
+
+	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 const (
@@ -354,7 +357,7 @@ func Add(buildJob structs.BuildJob) structs.BuildAddResult {
 			}
 		}
 		buildJob.BuildId = int(nextBuildId)
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(structs.PrettyPrintString(buildJob)))
+		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	if err != nil {
 		logger.Log.Errorf("Error adding job '%d' to bucket. REASON: %s", nextBuildId, err.Error())
@@ -445,7 +448,7 @@ func ListByServiceIds(serviceIds []string) []structs.BuildJobListEntry {
 
 	list := ListAll()
 	for _, queueEntry := range list {
-		if utils.Contains(serviceIds, queueEntry.ServiceId) {
+		if punqUtils.Contains(serviceIds, queueEntry.ServiceId) {
 			result = append(result, queueEntry)
 		}
 	}
@@ -570,7 +573,7 @@ func updateState(buildJob structs.BuildJob, newState string) {
 		err := structs.UnmarshalJob(&job, jobData)
 		if err == nil {
 			job.State = newState
-			return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(structs.PrettyPrintString(job)))
+			return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(job)))
 		}
 		return err
 	})
@@ -611,7 +614,7 @@ func positionInQueue(buildId int) int {
 func saveJob(buildJob structs.BuildJob) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUCKET_NAME))
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(structs.PrettyPrintString(buildJob)))
+		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	if err != nil {
 		logger.Log.Errorf("Error saving job '%d'.", buildJob.BuildId)

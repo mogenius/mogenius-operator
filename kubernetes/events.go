@@ -7,13 +7,12 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
-	"os/exec"
 	"strconv"
 	"time"
 
+	punq "github.com/mogenius/punq/kubernetes"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,7 +25,7 @@ const CONCURRENTCONNECTIONS = 1
 //var waitList = []structs.WaitListEntry{}
 
 func WatchEvents() {
-	kubeProvider := NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider()
 
 	var lastResourceVersion = ""
 	for {
@@ -219,34 +218,4 @@ func appendVolumeIfNotExists(items []v1Core.Volume, newItem v1Core.Volume) []v1C
 	}
 	// The item was not found, so add it to the slice.
 	return append(items, newItem)
-}
-
-func AllEvents(namespaceName string) K8sWorkloadResult {
-	result := []v1Core.Event{}
-
-	provider := NewKubeProvider()
-	eventList, err := provider.ClientSet.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		logger.Log.Errorf("AllEvents ERROR: %s", err.Error())
-		return WorkloadResult(nil, err)
-	}
-
-	for _, event := range eventList.Items {
-		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, event.ObjectMeta.Namespace) {
-			result = append(result, event)
-		}
-	}
-	return WorkloadResult(result, nil)
-}
-
-func DescribeK8sEvent(namespace string, name string) K8sWorkloadResult {
-	cmd := exec.Command("kubectl", "describe", "event", name, "-n", namespace)
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		logger.Log.Errorf("Error: %s", string(output))
-		return WorkloadResult(nil, string(output))
-	}
-	return WorkloadResult(string(output), nil)
 }

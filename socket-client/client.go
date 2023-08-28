@@ -25,6 +25,9 @@ import (
 	"github.com/gorilla/websocket"
 
 	mokubernetes "mogenius-k8s-manager/kubernetes"
+
+	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func StartK8sManager(runsInCluster bool) {
@@ -35,9 +38,9 @@ func StartK8sManager(runsInCluster bool) {
 		utils.PrintVersionInfo()
 		utils.PrintSettings()
 	} else {
-		fmt.Println(utils.FillWith("", 90, "#"))
-		fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", utils.FillWith(mokubernetes.CurrentContextName(), 61, " "))
-		fmt.Println(utils.FillWith("", 90, "#"))
+		fmt.Println(punqUtils.FillWith("", 90, "#"))
+		fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", punqUtils.FillWith(mokubernetes.CurrentContextName(), 61, " "))
+		fmt.Println(punqUtils.FillWith("", 90, "#"))
 	}
 
 	updateCheck()
@@ -76,7 +79,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				continue
 			}
 			if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
-				preparedFileName = utils.Pointer(fmt.Sprintf("%s.zip", uuid.New().String()))
+				preparedFileName = punqUtils.Pointer(fmt.Sprintf("%s.zip", uuid.New().String()))
 				rawDataStr = strings.Replace(rawDataStr, "######START_UPLOAD######;", "", 1)
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
@@ -119,15 +122,15 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				datagram.DisplayReceiveSummary()
 
 				if utils.CONFIG.Misc.Debug {
-					structs.PrettyPrint(datagram)
+					punqStructs.PrettyPrint(datagram)
 				}
 
-				if utils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
+				if punqUtils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
 					// ####### COMMAND
 					responsePayload := services.ExecuteCommandRequest(datagram)
 					result := structs.CreateDatagramRequest(datagram, responsePayload)
 					result.Send()
-				} else if utils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
+				} else if punqUtils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 					preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
 
 					var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
@@ -181,7 +184,7 @@ func updateCheck() {
 		logger.Log.Errorf("Field 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
-	var mok8smanager *structs.HelmDependency = nil
+	var mok8smanager *punqStructs.HelmDependency = nil
 	for _, dep := range mogeniusPlatform[0].Dependencies {
 		if dep.Name == "mogenius-k8s-manager" {
 			mok8smanager = &dep
@@ -212,7 +215,7 @@ func updateCheck() {
 	}
 }
 
-func getVersionData() (*structs.HelmData, error) {
+func getVersionData() (*punqStructs.HelmData, error) {
 	response, err := http.Get(utils.CONFIG.Misc.HelmIndex)
 	if err != nil {
 		return nil, err
@@ -220,7 +223,7 @@ func getVersionData() (*structs.HelmData, error) {
 	defer response.Body.Close()
 
 	data, _ := ioutil.ReadAll(response.Body)
-	var helmData structs.HelmData
+	var helmData punqStructs.HelmData
 	err = yaml.Unmarshal(data, &helmData)
 	if err != nil {
 		return nil, err
@@ -228,7 +231,7 @@ func getVersionData() (*structs.HelmData, error) {
 	return &helmData, nil
 }
 
-func notUpToDateAction(helmData *structs.HelmData) {
+func notUpToDateAction(helmData *punqStructs.HelmData) {
 	localVer, err := semver.NewVersion(version.Ver)
 	if err != nil {
 		logger.Log.Error("Error parsing local version: %s", err.Error())

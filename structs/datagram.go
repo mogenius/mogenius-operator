@@ -3,20 +3,15 @@ package structs
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/utils"
 	"time"
 
 	"github.com/fatih/color"
 	"github.com/google/uuid"
+	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
-type Datagram struct {
-	Id        string      `json:"id" validate:"required"`
-	Pattern   string      `json:"pattern" validate:"required"`
-	Payload   interface{} `json:"payload,omitempty"`
-	Err       string      `json:"err,omitempty"`
-	CreatedAt time.Time   `json:"-"`
-}
+type Datagram punqStructs.Datagram
 
 func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
 	datagram := Datagram{
@@ -88,31 +83,31 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n", IDCOLOR("ID:      "), d.Id)
 	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
 	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
-	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), punqStructs.DurationStrSince(d.CreatedAt))
 
 	// f := colorjson.NewFormatter()
 	// f.Indent = 2
 	// s, _ := f.Marshal(d.Payload)
 	// PrettyPrintString(d.Payload)
 
-	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), PrettyPrintString(d.Payload))
+	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), punqStructs.PrettyPrintString(d.Payload))
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
 	fmt.Println()
-	fmt.Printf("%s%s%s (%s)\n", utils.FillWith("RECEIVED", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s%s%s (%s)\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), punqStructs.DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummary() {
-	fmt.Printf("%s%s%s (%s)\n", utils.FillWith("SENT", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s%s%s (%s)\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), punqStructs.DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
-	fmt.Printf("%s%s: %s/%s -> %s (Count: %d)\n", utils.FillWith("SENT", 23, " "), d.Pattern, kind, reason, msg, count)
+	fmt.Printf("%s%s: %s/%s -> %s (Count: %d)\n", punqUtils.FillWith("SENT", 23, " "), d.Pattern, kind, reason, msg, count)
 }
 
 func (d *Datagram) DisplayStreamSummary() {
-	fmt.Printf("%s%s%s\n", utils.FillWith("STREAMING", 23, " "), utils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
+	fmt.Printf("%s%s%s\n", punqUtils.FillWith("STREAMING", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
 }
 
 func (d *Datagram) Send() {

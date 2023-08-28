@@ -2,7 +2,8 @@ package dtos
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/utils"
+
+	punq "github.com/mogenius/punq/utils"
 )
 
 type NodeStat struct {
@@ -26,8 +27,8 @@ func (o *NodeStat) PrintPretty() {
 		o.OsType,
 		o.Architecture,
 		o.Cpus,
-		utils.BytesToHumanReadable(o.MemoryInBytes),
-		utils.BytesToHumanReadable(o.EphemeralInBytes),
+		punq.BytesToHumanReadable(o.MemoryInBytes),
+		punq.BytesToHumanReadable(o.EphemeralInBytes),
 		o.MaxPods,
 	)
 }

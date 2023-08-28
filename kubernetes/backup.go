@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/logger"
-	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"sort"
@@ -14,6 +13,10 @@ import (
 	"time"
 
 	realJson "encoding/json"
+
+	punq "github.com/mogenius/punq/kubernetes"
+	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -80,7 +83,7 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 	sortWithPreference(unstructList)
 
 	// SEND DATA TO K8S
-	provider := NewKubeProvider()
+	provider := punq.NewKubeProvider()
 	//create namespace not existing
 	if len(unstructList) > 0 {
 		namespaceClient := provider.ClientSet.CoreV1().Namespaces()
@@ -263,11 +266,11 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	result := NamespaceBackupResponse{
 		NamespaceName: namespace,
 	}
-	skippedGroups := structs.NewUniqueStringArray()
-	allResources := structs.NewUniqueStringArray()
-	usedResources := structs.NewUniqueStringArray()
+	skippedGroups := punqStructs.NewUniqueStringArray()
+	allResources := punqStructs.NewUniqueStringArray()
+	usedResources := punqStructs.NewUniqueStringArray()
 
-	provider := NewKubeProvider()
+	provider := punq.NewKubeProvider()
 
 	// Get a list of all resource types in the cluster
 	resourceList, err := provider.ClientSet.Discovery().ServerPreferredResources()
@@ -278,7 +281,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	output := ""
 	// Iterate over each resource type and backup all resources in the namespace
 	for _, resource := range resourceList {
-		if utils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, resource.GroupVersion) {
+		if punqUtils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, resource.GroupVersion) {
 			continue
 		}
 		gv, _ := schema.ParseGroupVersion(resource.GroupVersion)
@@ -292,7 +295,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 				skippedGroups.Add(aApiResource.Name)
 				continue
 			}
-			if utils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, aApiResource.Name) {
+			if punqUtils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, aApiResource.Name) {
 				continue
 			}
 

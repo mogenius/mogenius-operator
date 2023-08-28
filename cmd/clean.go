@@ -6,11 +6,12 @@ package cmd
 import (
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/utils"
 	"os"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 // cleanCmd represents the clean command
@@ -22,7 +23,7 @@ var cleanCmd = &cobra.Command{
 	This can be used if something went wrong during automatic cleanup.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		yellow := color.New(color.FgYellow).SprintFunc()
-		if !utils.ConfirmTask(fmt.Sprintf("Do you realy want to remove mogenius-k8s-manager from '%s' context?", yellow(kubernetes.CurrentContextName())), 1) {
+		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you realy want to remove mogenius-k8s-manager from '%s' context?", yellow(kubernetes.CurrentContextName())), 1) {
 			os.Exit(0)
 		}
 

@@ -16,6 +16,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func List(r FilesListRequest) []dtos.PersistentFileDto {
@@ -153,7 +155,7 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	if err != nil {
 		logger.Log.Error(err)
 	}
-	fmt.Printf("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, utils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
+	fmt.Printf("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
@@ -197,26 +199,26 @@ func Rename(r FilesRenameRequest) error {
 func Chown(r FilesChownRequest) interface{} {
 	pathToDir, err := verify(&r.File)
 	if err != nil {
-		return utils.CreateError(err)
+		return punqUtils.CreateError(err)
 	}
 
 	gid, err := strconv.Atoi(r.Gid)
 	if err != nil {
-		return utils.CreateError(err)
+		return punqUtils.CreateError(err)
 	}
 	uid, err := strconv.Atoi(r.Uid)
 	if err != nil {
-		return utils.CreateError(err)
+		return punqUtils.CreateError(err)
 	}
 
 	maxInt := int(math.Pow(2, 32))
 	if gid > 0 && gid < maxInt && uid > 0 && uid < maxInt {
 		err = os.Chown(pathToDir, uid, gid)
 		if err != nil {
-			return utils.CreateError(err)
+			return punqUtils.CreateError(err)
 		}
 	} else {
-		return utils.CreateError(fmt.Errorf("gid/uid > 0 and < 2^32"))
+		return punqUtils.CreateError(fmt.Errorf("gid/uid > 0 and < 2^32"))
 	}
 	return nil
 }
@@ -224,7 +226,7 @@ func Chown(r FilesChownRequest) interface{} {
 func Chmod(r FilesChmodRequest) interface{} {
 	pathToDir, err := verify(&r.File)
 	if err != nil {
-		return utils.CreateError(err)
+		return punqUtils.CreateError(err)
 	}
 
 	// padding left leading zero if missing

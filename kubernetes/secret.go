@@ -5,13 +5,12 @@ import (
 	"encoding/base64"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
-	"os/exec"
 	"sync"
 
-	v1 "k8s.io/api/core/v1"
+	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -23,7 +22,7 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating secret '%s'.", namespace.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 		secret := utils.InitSecret()
 		secret.ObjectMeta.Name = service.Name
@@ -57,11 +56,11 @@ func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting secret '%s'.", namespace.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: utils.Pointer[int64](5),
+			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
 		err := secretClient.Delete(context.TODO(), service.Name, deleteOptions)
@@ -83,7 +82,7 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 
 		secretName := "container-secret-" + namespace.Name
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
 		secret := utils.InitContainerSecret()
@@ -122,6 +121,50 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 	return cmd
 }
 
+func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Create Container secret for service", job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Creating Container secret '%s' for service.", namespace.Name))
+
+		secretName := "container-secret-service-" + service.Name
+
+		kubeProvider := punq.NewKubeProvider()
+		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
+
+		secret := utils.InitContainerSecret()
+		secret.ObjectMeta.Name = secretName
+		secret.ObjectMeta.Namespace = namespace.Name
+
+		secretStringData := make(map[string]string)
+		secretStringData[".dockerconfigjson"] = service.ContainerImageRepoSecretDecryptValue
+		secret.StringData = secretStringData
+
+		secret.Labels = MoUpdateLabels(&secret.Labels, job.ProjectId, &namespace, nil)
+
+		// Check if exists
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		if err == nil {
+			// UPDATED
+			cmd.Success(fmt.Sprintf("Created Container secret '%s' for service.", namespace.Name))
+		} else {
+			if apierrors.IsNotFound(err) {
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("CreateContainerSecret (create) ERROR: %s", err.Error()))
+				} else {
+					// CREATED
+					cmd.Success(fmt.Sprintf("Created Container secret '%s' for service.", namespace.Name))
+				}
+			} else {
+				cmd.Fail(fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
+			}
+		}
+	}(cmd, wg)
+	return cmd
+}
+
 func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Delete Container secret", job)
 	wg.Add(1)
@@ -129,11 +172,11 @@ func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg 
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting Container secret '%s'.", namespace.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: utils.Pointer[int64](5),
+			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
 		err := secretClient.Delete(context.TODO(), "container-secret-"+namespace.Name, deleteOptions)
@@ -153,7 +196,7 @@ func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating secret '%s'.", namespace.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 		secret := utils.InitSecret()
 		secret.ObjectMeta.Name = service.Name
@@ -182,83 +225,8 @@ func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 	return cmd
 }
 
-func AllSecrets(namespaceName string) []v1.Secret {
-	result := []v1.Secret{}
-
-	provider := NewKubeProvider()
-	secretList, err := provider.ClientSet.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		logger.Log.Errorf("AllSecrets ERROR: %s", err.Error())
-		return result
-	}
-
-	for _, secret := range secretList.Items {
-		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, secret.ObjectMeta.Namespace) {
-			result = append(result, secret)
-		}
-	}
-	return result
-}
-
-func AllK8sSecrets(namespaceName string) K8sWorkloadResult {
-	result := []v1.Secret{}
-
-	provider := NewKubeProvider()
-	secretList, err := provider.ClientSet.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		logger.Log.Errorf("AllSecrets ERROR: %s", err.Error())
-		return WorkloadResult(nil, err)
-	}
-
-	for _, secret := range secretList.Items {
-		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, secret.ObjectMeta.Namespace) {
-			result = append(result, secret)
-		}
-	}
-	return WorkloadResult(result, nil)
-}
-
-func UpdateK8sSecret(data v1.Secret) K8sWorkloadResult {
-	kubeProvider := NewKubeProvider()
-	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(data.Namespace)
-	_, err := secretClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	return WorkloadResult(nil, nil)
-}
-
-func DeleteK8sSecret(data v1.Secret) K8sWorkloadResult {
-	kubeProvider := NewKubeProvider()
-	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(data.Namespace)
-	err := secretClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	return WorkloadResult(nil, nil)
-}
-
-func DescribeK8sSecret(namespace string, name string) K8sWorkloadResult {
-	cmd := exec.Command("kubectl", "describe", "secret", name, "-n", namespace)
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		logger.Log.Errorf("Error: %s", string(output))
-		return WorkloadResult(nil, string(output))
-	}
-	return WorkloadResult(string(output), nil)
-}
-
-func NewK8sSecret() K8sNewWorkload {
-	return NewWorkload(
-		RES_SECRET,
-		utils.InitSecretYaml(),
-		"A Secret is an object that contains a small amount of sensitive data such as a password, a token, or a key. In this example, a secret named 'my-secret' is created with two pieces of data: username and password. The values are arbitrary and must be base64 encoded. Please note, the Secret data is not encrypted, it's just base64 encoded. So it's not secure to store highly sensitive information. You should consider additional layer of protection such as using Kubernetes RBAC to restrict access to Secrets, and/or use solutions like sealed secrets, HashiCorp Vault, or other Kubernetes native solutions like the secrets-store-csi-driver project.")
-}
-
 func ContainerSecretDoesExistForStage(namespace dtos.K8sNamespaceDto) bool {
-	provider := NewKubeProvider()
+	provider := punq.NewKubeProvider()
 	secret, err := provider.ClientSet.CoreV1().Secrets(namespace.Name).Get(context.TODO(), "container-secret-"+namespace.Name, metav1.GetOptions{})
 	if err != nil {
 		return false

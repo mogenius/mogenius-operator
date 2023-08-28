@@ -4,12 +4,10 @@ trigger:
 resources:
   - repo: self
 
-pool: mo-cluster-agent-pool
+pool:
+  vmimage: ubuntu-latest
 
 variables:
-  DOCKER_HOST: "unix:///run/user/1000/docker.sock"
-  DOCKER_BUILDKIT: 1
-
   packageName: "mogenius-k8s-manager-dev"
 
 stages:
@@ -38,15 +36,9 @@ stages:
                 X=$(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
                 echo "VERSION=${X}" > $(Build.ArtifactStagingDirectory)/pipeline.env
                 echo "BUILDID=${Y}" > $(Build.ArtifactStagingDirectory)/build.env
-          # echo "##vso[task.setvariable variable=VERSION;]$(VER)" > $(Build.ArtifactStagingDirectory)/pipeline.env
           - script: |
               cat $(Build.ArtifactStagingDirectory)/pipeline.env
             displayName: cat pipeline env
-          # - task: CmdLine@2
-          #   displayName: Create build artifact from variables
-          #   inputs:
-          #     script: |
-          #       echo "##vso[task.setvariable variable=BUILDID;]$(Build.BuildId)" >  $(Build.ArtifactStagingDirectory)/build.env
           - task: PublishBuildArtifacts@1
             displayName: publish variables
             inputs:
@@ -67,6 +59,8 @@ stages:
               VERSION=$(grep "Ver" $(Build.SourcesDirectory)/version/consts.go | awk -F "\"" {'print $2'})
               echo $(CR_PAT) | docker login ghcr.io -u beneiltis --password-stdin
               docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/$(packageName):$VERSION -t ghcr.io/mogenius/$(packageName):latest .
+              curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+              grype --add-cpes-if-none --fail-on critical ghcr.io/mogenius/$(packageName):latest
               docker image push ghcr.io/mogenius/$(packageName):$VERSION; docker image push ghcr.io/mogenius/$(packageName):latest
             timeoutInMinutes: 10
             name: dockerBuildPush

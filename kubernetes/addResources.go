@@ -7,6 +7,9 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 
+	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
+
 	"github.com/google/uuid"
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -20,21 +23,21 @@ import (
 )
 
 func Deploy() {
-	provider, err := NewKubeProviderLocal()
-	if err != nil {
-		panic(err)
+	provider := punq.NewKubeProvider()
+	if provider == nil {
+		panic("Error creating kubeprovider")
 	}
 
 	applyNamespace(provider)
 	addRbac(provider)
 	addDeployment(provider)
-	_, err = CreateClusterSecretIfNotExist(false)
+	_, err := CreateClusterSecretIfNotExist(false)
 	if err != nil {
 		logger.Log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
 	}
 }
 
-func addRbac(kubeProvider *KubeProvider) error {
+func addRbac(kubeProvider *punq.KubeProvider) error {
 	serviceAccount := &core.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: SERVICEACCOUNTNAME,
@@ -88,7 +91,7 @@ func addRbac(kubeProvider *KubeProvider) error {
 	return nil
 }
 
-func applyNamespace(kubeProvider *KubeProvider) {
+func applyNamespace(kubeProvider *punq.KubeProvider) {
 	serviceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 
 	namespace := applyconfcore.Namespace(NAMESPACE)
@@ -223,16 +226,9 @@ func applyNamespace(kubeProvider *KubeProvider) {
 // }
 
 func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, error) {
-	var kubeProvider *KubeProvider
-	var err error
-	if runsInCluster {
-		kubeProvider, err = NewKubeProviderInCluster()
-	} else {
-		kubeProvider, err = NewKubeProviderLocal()
-	}
-
-	if err != nil {
-		logger.Log.Errorf("CreateClusterSecretIfNotExist ERROR: %s", err.Error())
+	var kubeProvider *punq.KubeProvider = punq.NewKubeProvider()
+	if kubeProvider == nil {
+		logger.Log.Fatal("Error creating kubeprovider")
 	}
 
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(NAMESPACE)
@@ -311,7 +307,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, ex
 	return clusterSecret, nil
 }
 
-func addDeployment(kubeProvider *KubeProvider) {
+func addDeployment(kubeProvider *punq.KubeProvider) {
 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
 
 	deploymentContainer := applyconfcore.Container()
@@ -321,12 +317,12 @@ func addDeployment(kubeProvider *KubeProvider) {
 
 	envVars := []applyconfcore.EnvVarApplyConfiguration{}
 	envVars = append(envVars, applyconfcore.EnvVarApplyConfiguration{
-		Name:  utils.Pointer("cluster_name"),
-		Value: utils.Pointer("TestClusterFromCode"),
+		Name:  punqUtils.Pointer("cluster_name"),
+		Value: punqUtils.Pointer("TestClusterFromCode"),
 	})
 	envVars = append(envVars, applyconfcore.EnvVarApplyConfiguration{
-		Name:  utils.Pointer("api_key"),
-		Value: utils.Pointer("94E23575-A689-4F88-8D67-215A274F4E6E"), // dont worry. this is a test key
+		Name:  punqUtils.Pointer("api_key"),
+		Value: punqUtils.Pointer("94E23575-A689-4F88-8D67-215A274F4E6E"), // dont worry. this is a test key
 	})
 	deploymentContainer.Env = envVars
 	agentResourceLimits := core.ResourceList{

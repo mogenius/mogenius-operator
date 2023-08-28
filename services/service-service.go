@@ -22,6 +22,10 @@ import (
 	scheduling "k8s.io/api/scheduling/v1"
 	storage "k8s.io/api/storage/v1"
 	"k8s.io/client-go/rest"
+
+	punq "github.com/mogenius/punq/kubernetes"
+	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func CreateService(r ServiceCreateRequest) interface{} {
@@ -30,7 +34,7 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	job.Start()
 
 	// check if namespace exists and CREATE IT IF NOT
-	nsExists, nsErr := mokubernetes.NamespaceExists(r.Namespace.Name)
+	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name)
 	if nsErr != nil {
 		logger.Log.Warning(nsErr.Error())
 	}
@@ -44,6 +48,9 @@ func CreateService(r ServiceCreateRequest) interface{} {
 
 	if r.Project.ContainerRegistryUser != "" && r.Project.ContainerRegistryPat != "" {
 		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
+	}
+	if r.Service.ContainerImageRepoSecretDecryptValue != "" {
+		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
 	}
 
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
@@ -105,35 +112,35 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 }
 
 func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
-	return mokubernetes.PodIdsFor(r.Namespace, &r.ServiceId)
+	return punq.PodIdsFor(r.Namespace, &r.ServiceId)
 }
 
 func ServicePodExists(r ServicePodExistsRequest) interface{} {
-	return mokubernetes.PodExists(r.K8sNamespace, r.K8sPod)
+	return punq.PodExists(r.K8sNamespace, r.K8sPod)
 }
 
 func PodLog(r ServiceGetLogRequest) interface{} {
-	return mokubernetes.GetLog(r.Namespace, r.PodId, r.Timestamp)
+	return punq.GetLog(r.Namespace, r.PodId, r.Timestamp)
 }
 
 func PodLogError(r ServiceGetLogRequest) interface{} {
-	return mokubernetes.GetLogError(r.Namespace, r.PodId)
+	return punq.GetLogError(r.Namespace, r.PodId)
 }
 
 func PodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
-	return mokubernetes.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
+	return punq.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
 }
 
 func PreviousPodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
-	return mokubernetes.StreamPreviousLog(r.Namespace, r.PodId)
+	return punq.StreamPreviousLog(r.Namespace, r.PodId)
 }
 
 func PodStatus(r ServiceResourceStatusRequest) interface{} {
-	return mokubernetes.PodStatus(r.Namespace, r.Name, r.StatusOnly)
+	return punq.PodStatus(r.Namespace, r.Name, r.StatusOnly)
 }
 
 func ServicePodStatus(r ServicePodsRequest) interface{} {
-	return mokubernetes.ServicePodStatus(r.Namespace, r.ServiceName)
+	return punq.ServicePodStatus(r.Namespace, r.ServiceName)
 }
 
 func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
@@ -228,6 +235,9 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	if r.Project.ContainerRegistryUser != "" && r.Project.ContainerRegistryPat != "" {
 		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
 	}
+	if r.Service.ContainerImageRepoSecretDecryptValue != "" {
+		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
+	}
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Namespace, r.Service, &wg))
 
@@ -246,9 +256,9 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 
 func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 	return dtos.TcpUdpClusterConfigurationDto{
-		IngressServices: mokubernetes.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller"),
-		TcpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp"),
-		UdpServices:     mokubernetes.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp"),
+		IngressServices: punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller"),
+		TcpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp"),
+		UdpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp"),
 	}
 }
 
@@ -260,18 +270,18 @@ func initDocker(service dtos.K8sServiceDto, job structs.Job) []*structs.Command 
 	fmt.Println(gitDir)
 
 	cmds := []*structs.Command{}
-	structs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
-	structs.ExecuteBashCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, service.GitRepository, gitDir, gitDir, service.GitBranch))
+	punqStructs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
+	punqStructs.ExecuteBashCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, service.GitRepository, gitDir, gitDir, service.GitBranch))
 	if service.App.SetupCommands != "" {
-		structs.ExecuteBashCommandSilent("Run Setup Commands ...", fmt.Sprintf("cd %s; %s", gitDir, service.App.SetupCommands))
+		punqStructs.ExecuteBashCommandSilent("Run Setup Commands ...", fmt.Sprintf("cd %s; %s", gitDir, service.App.SetupCommands))
 	}
 	if service.App.RepositoryLink != "" {
-		structs.ExecuteBashCommandSilent("Clone files from template ...", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", service.App.RepositoryLink, gitDir, gitDir, gitDir, gitDir, gitDir))
+		punqStructs.ExecuteBashCommandSilent("Clone files from template ...", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", service.App.RepositoryLink, gitDir, gitDir, gitDir, gitDir, gitDir))
 	}
-	structs.ExecuteBashCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add initial files."`, gitDir))
-	structs.ExecuteBashCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
-	structs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
-	structs.ExecuteBashCommandSilent("Wait", "sleep 5")
+	punqStructs.ExecuteBashCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add initial files."`, gitDir))
+	punqStructs.ExecuteBashCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
+	punqStructs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+	punqStructs.ExecuteBashCommandSilent("Wait", "sleep 5")
 	return cmds
 }
 
@@ -379,7 +389,7 @@ func ServiceGetLogRequestExample() ServiceGetLogRequest {
 	return ServiceGetLogRequest{
 		Namespace: "gcp2-new-xrrllb-y0y3g6",
 		PodId:     "nginx-63uleb-686867bb6c-bsdvl",
-		Timestamp: utils.Pointer(time.Now()),
+		Timestamp: punqUtils.Pointer(time.Now()),
 	}
 }
 
