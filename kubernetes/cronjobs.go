@@ -11,8 +11,9 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 
+	punq "github.com/mogenius/punq/kubernetes"
+	utils "github.com/mogenius/punq/utils"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -27,7 +28,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Trigger Job from CronJob '%s'.", namespace.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		
 		// get cronjob
 		cronjobs := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
@@ -64,7 +65,7 @@ func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newCronJob := generateCronJob(namespace, service, true, cronJobClient)
 
@@ -88,7 +89,7 @@ func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting CronJob '%s'.", service.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
@@ -113,7 +114,7 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating CronJob '%s'.", namespace.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newCronJob := generateCronJob(namespace, service, false, cronJobClient)
 
@@ -139,7 +140,7 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Starting CronJob '%s'.", service.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		cronJob := generateCronJob(namespace, service, false, cronJobClient)
 
@@ -160,7 +161,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Stopping CronJob '%s'.", service.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		cronJob := generateCronJob(namespace, service, false, cronJobClient)
 		cronJob.Spec.Suspend = utils.Pointer(true)
@@ -182,7 +183,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Restarting CronJob '%s'.", service.Name))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		cronJob := generateCronJob(namespace, service, false, cronJobClient)
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
@@ -254,7 +255,7 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	if service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds > 0 {
 		newCronJob.Spec.JobTemplate.Spec.ActiveDeadlineSeconds = utils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
 	}
-	if service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit >= 0 {
+	if service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit > 0 {
 		newCronJob.Spec.JobTemplate.Spec.BackoffLimit= utils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
 	}
 
@@ -399,7 +400,7 @@ func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string,
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Set Image in CronJob '%s'.", serviceName))
 
-		kubeProvider := NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider()
 		cronjobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespaceName)
 		cronjobToUpdate, err := cronjobClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 		if err != nil {
@@ -424,7 +425,7 @@ func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string,
 func AllCronjobs(namespaceName string) K8sWorkloadResult {
 	result := []v1job.CronJob{}
 
-	provider := NewKubeProvider()
+	provider := punq.NewKubeProvider()
 	cronJobList, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllCronjobs ERROR: %s", err.Error())
@@ -440,7 +441,7 @@ func AllCronjobs(namespaceName string) K8sWorkloadResult {
 }
 
 func UpdateK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
-	kubeProvider := NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider()
 	cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(data.Namespace)
 	_, err := cronJobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
@@ -450,7 +451,7 @@ func UpdateK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
 }
 
 func DeleteK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
-	kubeProvider := NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider()
 	jobClient := kubeProvider.ClientSet.BatchV1().CronJobs(data.Namespace)
 	err := jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
@@ -473,7 +474,7 @@ func DescribeK8sCronJob(namespace string, name string) K8sWorkloadResult {
 
 func NewK8sCronJob() K8sNewWorkload {
 	return NewWorkload(
-		RES_CRON_JOB,
+		punq.RES_CRON_JOB,
 		utils.InitCronJobYaml(),
 		"A CronJob creates Jobs on a repeating schedule, like the cron utility in Unix-like systems. In this example, a CronJob named 'my-cronjob' is created. It runs a Job every minute. Each Job creates a Pod with a single container from the 'my-cronjob-image' image.")
 }
