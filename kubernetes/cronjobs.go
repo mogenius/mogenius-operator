@@ -224,7 +224,6 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 		service.K8sSettings.ReplicaCount = 0
 	}
 	
-	
 	newCronJob := utils.InitCronJob()
 	newCronJob.ObjectMeta.Name = service.Name
 	newCronJob.ObjectMeta.Namespace = namespace.Name
@@ -233,13 +232,13 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["ns"] = namespace.Name
 	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["app"] = service.Name
 	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
-	
+
 	// STRATEGY
 	// not implemented
 
 	// SUSPEND -> SWITCHED ON 
 	// newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
-	
+
 	// SUSPEND -> PAUSE
 	if freshlyCreated && 
 		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepository || 
@@ -248,19 +247,14 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	} else {
 		newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
 	}
-	// if freshlyCreated && service.App.Type == "DOCKER_TEMPLATE" {
-	// 	newCronJob.Spec.Suspend = utils.Pointer(service.SwitchedOn && true)
-	// } else {
-	// 	newCronJob.Spec.Suspend = utils.Pointer(false)
-	// }
 
 	// CRON_JOB SETTINGS
 	newCronJob.Spec.Schedule = service.K8sSettings.K8sCronJobSettingsDto.Schedule
-	
+
 	if service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds > 0 {
 		newCronJob.Spec.JobTemplate.Spec.ActiveDeadlineSeconds = utils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
 	}
-	if service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit > 0 {
+	if service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit >= 0 {
 		newCronJob.Spec.JobTemplate.Spec.BackoffLimit= utils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
 	}
 
