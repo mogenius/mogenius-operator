@@ -13,6 +13,7 @@ import (
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 
 	"github.com/spf13/cobra"
 )
@@ -28,6 +29,7 @@ var clusterCmd = &cobra.Command{
 		showDebug, _ := cmd.Flags().GetBool("debug")
 		customConfig, _ := cmd.Flags().GetString("config")
 
+		punqUtils.CONFIG.Kubernetes.RunInCluster = true
 		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(true)
 		if err != nil {
 			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
