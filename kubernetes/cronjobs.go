@@ -11,9 +11,10 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	utils "github.com/mogenius/punq/utils"
+	punqutils "github.com/mogenius/punq/utils"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -45,7 +46,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 			Spec: cronjob.Spec.JobTemplate.Spec,
 		}
 		jobSpec.Name = fmt.Sprintf("%s-7r1663rd",service.Name)
-		jobSpec.Spec.TTLSecondsAfterFinished = utils.Pointer(int32(60))
+		jobSpec.Spec.TTLSecondsAfterFinished = punqutils.Pointer(int32(60))
 
 		// create job
 		_, err = jobs.Create(context.TODO(), jobSpec, metav1.CreateOptions{})
@@ -93,7 +94,7 @@ func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: utils.Pointer[int64](5),
+			GracePeriodSeconds: punqutils.Pointer[int64](5),
 		}
 
 		err := cronJobClient.Delete(context.TODO(), service.Name, deleteOptions)
@@ -164,7 +165,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 		kubeProvider := punq.NewKubeProvider()
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		cronJob := generateCronJob(namespace, service, false, cronJobClient)
-		cronJob.Spec.Suspend = utils.Pointer(true)
+		cronJob.Spec.Suspend = punqutils.Pointer(true)
 
 		_, err := cronJobClient.Update(context.TODO(), &cronJob, metav1.UpdateOptions{})
 		if err != nil {
@@ -244,19 +245,19 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	if freshlyCreated && 
 		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepository || 
 		service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepositoryTemplate) {
-		newCronJob.Spec.Suspend = utils.Pointer(true)
+		newCronJob.Spec.Suspend = punqutils.Pointer(true)
 	} else {
-		newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
+		newCronJob.Spec.Suspend = punqutils.Pointer(!service.SwitchedOn)
 	}
 
 	// CRON_JOB SETTINGS
 	newCronJob.Spec.Schedule = service.K8sSettings.K8sCronJobSettingsDto.Schedule
 
 	if service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds > 0 {
-		newCronJob.Spec.JobTemplate.Spec.ActiveDeadlineSeconds = utils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
+		newCronJob.Spec.JobTemplate.Spec.ActiveDeadlineSeconds = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
 	}
 	if service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit > 0 {
-		newCronJob.Spec.JobTemplate.Spec.BackoffLimit= utils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
+		newCronJob.Spec.JobTemplate.Spec.BackoffLimit= punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
 	}
 
 	// PORTS
@@ -295,10 +296,10 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	if service.ContainerImage != "" {
 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
 		if service.ContainerImageCommand != "" {
-			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Command = utils.ParseJsonStringArray(service.ContainerImageCommand)
+			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Command = punqutils.ParseJsonStringArray(service.ContainerImageCommand)
 		}
 		if service.ContainerImageCommandArgs != "" {
-			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args = utils.ParseJsonStringArray(service.ContainerImageCommandArgs)
+			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args = punqutils.ParseJsonStringArray(service.ContainerImageCommandArgs)
 		}
 		if service.ContainerImageRepoSecretDecryptValue != "" {
 			newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
@@ -410,7 +411,7 @@ func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string,
 
 		// SET NEW IMAGE
 		cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = imageName
-		cronjobToUpdate.Spec.Suspend = utils.Pointer(false)
+		cronjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
 
 		_, err = cronjobClient.Update(context.TODO(), cronjobToUpdate, metav1.UpdateOptions{})
 		if err != nil {
@@ -433,7 +434,7 @@ func AllCronjobs(namespaceName string) K8sWorkloadResult {
 	}
 
 	for _, cronJob := range cronJobList.Items {
-		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, cronJob.ObjectMeta.Namespace) {
+		if !punqutils.Contains(punqutils.CONFIG.Misc.IgnoreNamespaces, cronJob.ObjectMeta.Namespace) {
 			result = append(result, cronJob)
 		}
 	}
@@ -475,6 +476,6 @@ func DescribeK8sCronJob(namespace string, name string) K8sWorkloadResult {
 func NewK8sCronJob() K8sNewWorkload {
 	return NewWorkload(
 		punq.RES_CRON_JOB,
-		utils.InitCronJobYaml(),
+		punqutils.InitCronJobYaml(),
 		"A CronJob creates Jobs on a repeating schedule, like the cron utility in Unix-like systems. In this example, a CronJob named 'my-cronjob' is created. It runs a Job every minute. Each Job creates a Pod with a single container from the 'my-cronjob-image' image.")
 }
