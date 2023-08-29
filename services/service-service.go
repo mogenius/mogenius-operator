@@ -54,7 +54,14 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	}
 
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.CreateCronJob(&job, r.Namespace, r.Service, &wg))
+	}
+
 	job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
@@ -72,7 +79,14 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	job.Start()
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Namespace, r.Service, &wg))
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Namespace, r.Service, &wg))
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.DeleteCronJob(&job, r.Namespace, r.Service, &wg))
+	}
+
 	job.AddCmd(mokubernetes.DeleteNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
@@ -84,7 +98,14 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId)
 	job.Start()
-	job.AddCmd(mokubernetes.SetImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
+
+	switch r.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
+	}
+	
 	wg.Wait()
 	job.Finish()
 	return job
@@ -122,11 +143,37 @@ func ServicePodStatus(r ServicePodsRequest) interface{} {
 	return punq.ServicePodStatus(r.Namespace, r.ServiceName)
 }
 
+func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
+	var wg sync.WaitGroup
+
+	job := structs.CreateJob("Trigger Job Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
+	job.Start()
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		// do nothing
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.TriggerJobFromCronjob(&job, r.Namespace, r.Service, &wg))
+		job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	}
+
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
 func Restart(r ServiceRestartRequest) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
-	job.AddCmd(mokubernetes.RestartDeployment(&job, r.Namespace, r.Service, &wg))
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.RestartDeployment(&job, r.Namespace, r.Service, &wg))
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.RestartCronJob(&job, r.Namespace, r.Service, &wg))
+	}
+
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
@@ -138,7 +185,14 @@ func StopService(r ServiceStopRequest) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Stop Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
-	job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.StopCronJob(&job, r.Namespace, r.Service, &wg))
+	}
+
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
@@ -151,9 +205,23 @@ func StartService(r ServiceStartRequest) interface{} {
 
 	job := structs.CreateJob("Start Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
-	job.AddCmd(mokubernetes.StartDeployment(&job, r.Namespace, r.Service, &wg))
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.StartDeployment(&job, r.Namespace, r.Service, &wg))
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.StartCronJob(&job, r.Namespace, r.Service, &wg))
+	}
+
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
+	}
+
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
 	job.Finish()
@@ -172,7 +240,14 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	}
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
+
+	switch r.Service.ServiceType {
+	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
+	case dtos.K8SCronJob:
+		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
+	}
+
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	wg.Wait()
 	job.Finish()
@@ -275,14 +350,22 @@ func ServicePodsRequestExample() ServicePodsRequest {
 }
 
 type ServiceSetImageRequest struct {
-	ProjectId          string `json:"projectId"`
-	NamespaceId        string `json:"namespaceId"`
-	ServiceId          string `json:"serviceId"`
-	NamespaceName      string `json:"namespaceName"`
-	ServiceName        string `json:"serviceName"`
-	ServiceDisplayName string `json:"serviceDisplayName"`
-	ImageName          string `json:"imageName"`
+	ProjectId          string                     `json:"projectId"`
+	NamespaceId        string                     `json:"namespaceId"`
+	ServiceId          string                     `json:"serviceId"`
+	NamespaceName      string                     `json:"namespaceName"`
+	ServiceName        string                     `json:"serviceName"`
+	ServiceDisplayName string                     `json:"serviceDisplayName"`
+	ImageName          string                     `json:"imageName"`
+	ServiceType        dtos.K8sServiceTypeEnum    `json:"serviceType,omitempty"`
 }
+
+func (service *ServiceSetImageRequest) ApplyDefaults() {
+	if service.ServiceType == "" {
+		service.ServiceType = dtos.K8SDeployment
+	} 
+}
+
 
 func ServiceSetImageRequestExample() ServiceSetImageRequest {
 	return ServiceSetImageRequest{
@@ -1062,5 +1145,19 @@ func ServiceUpdateRequestExample() ServiceUpdateRequest {
 		Project:   dtos.K8sProjectDtoExampleData(),
 		Namespace: dtos.K8sNamespaceDtoExampleData(),
 		Service:   dtos.K8sServiceDtoExampleData(),
+	}
+}
+
+type ServiceTriggerJobRequest struct {
+	ProjectId string               `json:"projectId"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Service   dtos.K8sServiceDto   `json:"service"`
+}
+
+func ServiceTriggerJobRequestExample() ServiceStartRequest {
+	return ServiceStartRequest{
+		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Namespace: dtos.K8sNamespaceDtoExampleData(),
+		Service:   dtos.K8sServiceCronJobExampleData(),
 	}
 }

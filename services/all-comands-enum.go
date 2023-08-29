@@ -44,6 +44,7 @@ const (
 	PAT_SERVICE_STOP            string = "service/stop"
 	PAT_SERVICE_START           string = "service/start"
 	PAT_SERVICE_UPDATE_SERVICE  string = "service/update-service"
+	PAT_SERVICE_TRIGGER_JOB     string = "service/trigger-job"
 
 	PAT_SERVICE_LOG_STREAM string = "service/log-stream"
 
@@ -301,6 +302,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_STOP,
 	PAT_SERVICE_START,
 	PAT_SERVICE_UPDATE_SERVICE,
+	PAT_SERVICE_TRIGGER_JOB,
 
 	PAT_SERVICE_LOG_STREAM,
 

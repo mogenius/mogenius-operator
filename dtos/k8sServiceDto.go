@@ -1,5 +1,16 @@
 package dtos
 
+type K8sServiceTypeEnum string
+
+const (
+	GitRepositoryTemplate   K8sServiceTypeEnum = "GIT_REPOSITORY_TEMPLATE"
+	GitRepository           K8sServiceTypeEnum = "GIT_REPOSITORY"
+	ContainerImageTemplate  K8sServiceTypeEnum = "CONTAINER_IMAGE_TEMPLATE"
+	ContainerImage          K8sServiceTypeEnum = "CONTAINER_IMAGE"
+	K8SDeployment           K8sServiceTypeEnum = "K8S_DEPLOYMENT"
+	K8SCronJob              K8sServiceTypeEnum = "K8S_CRON_JOB"
+)
+
 type K8sServiceDto struct {
 	Id                                   string                `json:"id" validate:"required"`
 	DisplayName                          string                `json:"displayName" validate:"required"`
@@ -19,6 +30,13 @@ type K8sServiceDto struct {
 	EnvVars                              []K8sEnvVarDto        `json:"envVars" validate:"required"`
 	Ports                                []K8sPortsDto         `json:"ports" validate:"required"`
 	SwitchedOn                           bool                  `json:"switchedOn" validate:"required"`
+	ServiceType                          K8sServiceTypeEnum    `json:"serviceType,omitempty"`
+}
+
+func (dto *K8sServiceDto) ApplyDefaults() {
+	if dto.ServiceType == "" {
+		dto.ServiceType = K8SDeployment
+	} 
 }
 
 func K8sServiceDtoExampleData() K8sServiceDto {
@@ -63,5 +81,29 @@ func K8sServiceContainerImageDtoExampleData() K8sServiceDto {
 		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData()},
 		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData()},
 		SwitchedOn:                           true,
+	}
+}
+
+func K8sServiceCronJobExampleData() K8sServiceDto {
+	return K8sServiceDto{
+		Id:                                   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		DisplayName:                          "displayName",
+		FullHostname:                         "fullhostname.iltis.io",
+		CNames:                               []string{},
+		GitRepository:                        "",
+		GitBranch:                            "",
+		ContainerImage:                       "busybox:1.28",
+		ContainerImageRepoSecretDecryptValue: "",
+		ContainerImageCommand:                "[\"/bin/sh\"]",
+		ContainerImageCommandArgs:            "[\"-c\", \"date; echo Hello, World\"]",
+		DockerfileName:                       "",
+		DockerContext:                        "",
+		App:                                  K8sAppDtoDockerExampleData(),
+		Name:                                 "name",
+		K8sSettings:                          K8sServiceSettingsDtoExampleData(),
+		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData()},
+		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData()},
+		SwitchedOn:                           true,
+		ServiceType:                          "K8S_CRONJOB",
 	}
 }
