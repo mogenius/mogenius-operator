@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -22,7 +21,7 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		kubeProvider := punq.NewKubeProvider()
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
-		configMap := utils.InitConfigMap()
+		configMap := punqUtils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.Name
 		configMap.ObjectMeta.Namespace = namespace.Name
 		delete(configMap.Data, "XXX") // delete example data
@@ -73,7 +72,7 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		kubeProvider := punq.NewKubeProvider()
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
-		configMap := utils.InitConfigMap()
+		configMap := punqUtils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.Name
 		configMap.ObjectMeta.Namespace = namespace.Name
 		delete(configMap.Data, "XXX") // delete example data

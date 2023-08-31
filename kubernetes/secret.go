@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -24,7 +23,7 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 
 		kubeProvider := punq.NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
-		secret := utils.InitSecret()
+		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.Name
 		secret.ObjectMeta.Namespace = namespace.Name
 		delete(secret.StringData, "PRIVATE_KEY") // delete example data
@@ -85,7 +84,7 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 		kubeProvider := punq.NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
-		secret := utils.InitContainerSecret()
+		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
 
@@ -133,7 +132,7 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 		kubeProvider := punq.NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
-		secret := utils.InitContainerSecret()
+		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
 
@@ -198,7 +197,7 @@ func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 
 		kubeProvider := punq.NewKubeProvider()
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
-		secret := utils.InitSecret()
+		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.Name
 		secret.ObjectMeta.Namespace = namespace.Name
 		delete(secret.StringData, "PRIVATE_KEY") // delete example data

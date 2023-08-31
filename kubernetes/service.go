@@ -306,7 +306,7 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 }
 
 func generateService(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) v1.Service {
-	newService := utils.InitService()
+	newService := punqUtils.InitService()
 	newService.ObjectMeta.Name = service.Name
 	newService.ObjectMeta.Namespace = namespace.Name
 	if len(service.Ports) > 0 {

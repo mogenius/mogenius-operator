@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"strings"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +25,7 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 
 		kubeProvider := punq.NewKubeProvider()
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
-		netpol := utils.InitNetPolNamespace()
+		netpol := punqUtils.InitNetPolNamespace()
 		netpol.ObjectMeta.Name = namespace.Name
 		netpol.ObjectMeta.Namespace = namespace.Name
 
@@ -73,7 +73,7 @@ func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 
 		kubeProvider := punq.NewKubeProvider()
 		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
-		netpol := utils.InitNetPolService()
+		netpol := punqUtils.InitNetPolService()
 		netpol.ObjectMeta.Name = service.Name
 		netpol.ObjectMeta.Namespace = namespace.Name
 		netpol.Spec.Ingress[0].Ports = []v1.NetworkPolicyPort{} //reset before using

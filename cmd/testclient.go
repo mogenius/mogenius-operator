@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// testCmd represents the test command
 var testClientCmd = &cobra.Command{
 	Use:   "testclient",
 	Short: "Print testServerCmd information and exit.",
@@ -60,17 +59,6 @@ var testClientCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(testClientCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// testCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// testCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 	testClientCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
 	testClientCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
 }

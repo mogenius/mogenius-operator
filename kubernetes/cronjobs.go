@@ -11,7 +11,6 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqutils "github.com/mogenius/punq/utils"
@@ -30,7 +29,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 		cmd.Start(fmt.Sprintf("Trigger Job from CronJob '%s'.", namespace.Name))
 
 		kubeProvider := punq.NewKubeProvider()
-		
+
 		// get cronjob
 		cronjobs := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		cronjob, err := cronjobs.Get(context.TODO(), service.Name, metav1.GetOptions{})
@@ -38,14 +37,14 @@ func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 			cmd.Fail(fmt.Sprintf("Failed get CronJob for trigger ERROR: %s", err.Error()))
 			return
 		}
-	
+
 		// convert cronjob to job
-		jobs := kubeProvider.ClientSet.BatchV1().Jobs(namespace.Name);
+		jobs := kubeProvider.ClientSet.BatchV1().Jobs(namespace.Name)
 		jobSpec := &v1job.Job{
 			ObjectMeta: cronjob.Spec.JobTemplate.ObjectMeta,
-			Spec: cronjob.Spec.JobTemplate.Spec,
+			Spec:       cronjob.Spec.JobTemplate.Spec,
 		}
-		jobSpec.Name = fmt.Sprintf("%s-7r1663rd",service.Name)
+		jobSpec.Name = fmt.Sprintf("%s-7r1663rd", service.Name)
 		jobSpec.Spec.TTLSecondsAfterFinished = punqutils.Pointer(int32(60))
 
 		// create job
@@ -211,7 +210,7 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 		//logger.Log.Infof("No previous cronjob found for %s/%s.", namespace.Name, service.Name)
 		previousCronjob = nil
 	}
-	
+
 	// SANITIZE
 	if service.K8sSettings.LimitCpuCores <= 0 {
 		service.K8sSettings.LimitCpuCores = 0.1
@@ -225,8 +224,8 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	if service.K8sSettings.ReplicaCount < 0 {
 		service.K8sSettings.ReplicaCount = 0
 	}
-	
-	newCronJob := utils.InitCronJob()
+
+	newCronJob := punqutils.InitCronJob()
 	newCronJob.ObjectMeta.Name = service.Name
 	newCronJob.ObjectMeta.Namespace = namespace.Name
 	// not supported for cron job
@@ -238,13 +237,13 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	// STRATEGY
 	// not implemented
 
-	// SUSPEND -> SWITCHED ON 
+	// SUSPEND -> SWITCHED ON
 	// newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
 
 	// SUSPEND -> PAUSE
-	if freshlyCreated && 
-		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepository || 
-		service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepositoryTemplate) {
+	if freshlyCreated &&
+		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepository ||
+			service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepositoryTemplate) {
 		newCronJob.Spec.Suspend = punqutils.Pointer(true)
 	} else {
 		newCronJob.Spec.Suspend = punqutils.Pointer(!service.SwitchedOn)
@@ -257,7 +256,7 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 		newCronJob.Spec.JobTemplate.Spec.ActiveDeadlineSeconds = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
 	}
 	if service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit > 0 {
-		newCronJob.Spec.JobTemplate.Spec.BackoffLimit= punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
+		newCronJob.Spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
 	}
 
 	// PORTS
@@ -324,7 +323,7 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 		if envVar.Type == "KEY_VAULT" ||
 			envVar.Type == "PLAINTEXT" ||
 			envVar.Type == "HOSTNAME" {
-				newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env, core.EnvVar{
+			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env, core.EnvVar{
 				Name: envVar.Name,
 				ValueFrom: &core.EnvVarSource{
 					SecretKeyRef: &core.SecretKeySelector{
@@ -385,7 +384,7 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 
 	// PROBES OFF
 	// not implemented
-	
+
 	// SECURITY CONTEXT
 	// TODO wieder in betrieb nehmen
 	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))

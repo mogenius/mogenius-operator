@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"strings"
 	"sync"
 	"time"
@@ -190,7 +189,7 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 		service.K8sSettings.ReplicaCount = 0
 	}
 
-	newDeployment := utils.InitDeployment()
+	newDeployment := punqUtils.InitDeployment()
 	newDeployment.ObjectMeta.Name = service.Name
 	newDeployment.ObjectMeta.Namespace = namespace.Name
 	newDeployment.Spec.Selector.MatchLabels["app"] = service.Name

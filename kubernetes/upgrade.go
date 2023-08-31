@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -49,11 +50,11 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *struct
 		jobClient := kubeProvider.ClientSet.BatchV1().Jobs(NAMESPACE)
 		configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
 
-		configmap := utils.InitUpgradeConfigMap()
+		configmap := punqUtils.InitUpgradeConfigMap()
 		configmap.Namespace = NAMESPACE
 		configmap.Data["values.command"] = command
 
-		job := utils.InitUpgradeJob()
+		job := punqUtils.InitUpgradeJob()
 		job.Namespace = NAMESPACE
 		job.Name = fmt.Sprintf("%s-%s", job.Name, uuid.New().String())
 

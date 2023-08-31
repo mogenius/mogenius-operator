@@ -52,7 +52,7 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 	if foundChanges {
 		provider := punq.NewKubeProviderCertManager()
 		if createNew {
-			cert := utils.InitCertificate()
+			cert := punqUtils.InitCertificate()
 			cert.Name = namespaceName
 			cert.Namespace = namespaceName
 			cert.Spec.DNSNames = hostNames
@@ -65,7 +65,7 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 			return
 		} else {
 			if cert == nil {
-				cert := utils.InitCertificate()
+				cert := punqUtils.InitCertificate()
 				cert.Name = namespaceName
 				cert.Namespace = namespaceName
 				cert.Spec.SecretName = namespaceName
