@@ -1,4 +1,11 @@
 
+### [0.0.12](https://github.com/mogenius/mogenius-k8s-manager/compare/v0.0.11...v0.0.12) (2023-09-01)
+
+
+### Bug Fixes
+
+* pipeline moved to github actions. ([e9d4753](https://github.com/mogenius/mogenius-k8s-manager/commit/e9d4753f8ef1eb3a363cdae599f502286cd2e340))
+
 ### [0.0.11](https://github.com/mogenius/mogenius-k8s-manager/compare/v0.0.10...v0.0.11) (2023-09-01)
 
 
