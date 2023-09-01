@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine AS builder
+FROM golang:1.21-alpine AS builder
 
 LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit-log here.
 
