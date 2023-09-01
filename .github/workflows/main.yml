@@ -3,7 +3,7 @@ name: Build, Package, Release
 on:
   push:
     branches:
-      - develop
+      - main
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
           git config --global user.name "mok8s"
           git config --global credential.helper cache
           standard-version --header ""
-          git push --follow-tags origin develop
+          git push --follow-tags origin main
 
       - name: Docker Build
         run: |
@@ -38,9 +38,9 @@ jobs:
           GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest .
+          docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager:latest .
           # docker buildx create --use
-          # docker buildx build --platform linux/amd64,linux/arm/v7,linux/arm64 --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest .
+          # docker buildx build --platform linux/amd64,linux/arm/v7,linux/arm64 --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager:latest .
 
 
       - name: Grype Vulnerability Scan
@@ -48,9 +48,9 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
           curl -sSfL https://raw.githubusercontent.com/mogenius/docs/dev/grype.yaml > grype.yaml
-          grype -c grype.yaml --add-cpes-if-none --fail-on critical ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION
+          grype -c grype.yaml --add-cpes-if-none --fail-on critical ghcr.io/mogenius/mogenius-k8s-manager:$VERSION
 
       - name: Docker Build & Push
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker image push ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION; docker image push ghcr.io/mogenius/mogenius-k8s-manager-dev:latest
+          docker image push ghcr.io/mogenius/mogenius-k8s-manager:$VERSION; docker image push ghcr.io/mogenius/mogenius-k8s-manager:latest
