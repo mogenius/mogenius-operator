@@ -34,12 +34,12 @@ COPY . .
 
 ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
-      echo "Running AMD64 specific commands"; \
-      GOARCH=amd64 \ 
-    elif [ "$TARGETARCH" = "arm" ]; then \
-      echo "Running ARM specific commands"; \
-      GOARCH=arm64 \
-    fi
+  echo "Running AMD64 specific commands"; \
+  GOARCH=amd64 \ 
+elif [ "$TARGETARCH" = "arm" ]; then \
+  echo "Running ARM specific commands"; \
+  GOARCH=arm64 \
+fi
     
 RUN go build -gcflags="all=-N -l" -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.GitCommitHash=${COMMIT_HASH}' \
