@@ -28,7 +28,7 @@ jobs:
           git config --global user.name "mok8s"
           git config --global credential.helper cache
           standard-version --header ""
-          git push --follow-tags origin main
+          git push --follow-tags origin develop
 
       - name: Docker Build & Push
         run: |
