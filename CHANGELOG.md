@@ -1,4 +1,11 @@
 
+### [0.0.13](https://github.com/mogenius/mogenius-k8s-manager/compare/v0.0.12...v0.0.13) (2023-09-04)
+
+
+### Bug Fixes
+
+* action update. ([db59287](https://github.com/mogenius/mogenius-k8s-manager/commit/db59287cff83022f716deca5aa4efe73055e096f))
+
 ### [0.0.12](https://github.com/mogenius/mogenius-k8s-manager/compare/v0.0.11...v0.0.12) (2023-09-01)
 
 
