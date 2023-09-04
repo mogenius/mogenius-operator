@@ -50,6 +50,8 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/mogenius/docs/dev/grype.yaml > grype.yaml
           grype -c grype.yaml --add-cpes-if-none --fail-on critical ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION
 
+      # currently it is not possible to seperate build and push when using buildx
+      # https://github.com/docker/buildx/issues/1152
       # - name: Docker Build & Push
       #   run: |
       #     VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
