@@ -321,15 +321,24 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 				// VOLUME
 				nfsService := ServiceForNfsVolume(namespace.Name, volumeName)
 				if nfsService != nil {
-					newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
-						Name: volumeName,
-						VolumeSource: core.VolumeSource{
-							NFS: &core.NFSVolumeSource{
-								Path:   "/exports",
-								Server: nfsService.Spec.ClusterIP,
+					// VolumeName cannot be duplicated
+					isUnique := true
+					for _, v := range newDeployment.Spec.Template.Spec.Volumes {
+						if v.Name == volumeName {
+							isUnique = false
+						}
+					}
+					if isUnique {
+						newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
+							Name: volumeName,
+							VolumeSource: core.VolumeSource{
+								NFS: &core.NFSVolumeSource{
+									Path:   "/exports",
+									Server: nfsService.Spec.ClusterIP,
+								},
 							},
-						},
-					})
+						})
+					}
 				} else {
 					logger.Log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
 				}
