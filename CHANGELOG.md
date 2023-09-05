@@ -9,6 +9,13 @@ All notable changes to this project will be documented in this file. See [standa
 
 * deployment failed if user used volumemount multiple times because it lead to duplicated volumenames. ([e992e63](https://github.com/mogenius/mogenius-k8s-manager/commit/e992e63b68b7bfab9c5833d89ceedd5ed877001c))
 
+### [0.0.15](https://github.com/mogenius/mogenius-k8s-manager/compare/v0.0.14...v0.0.15) (2023-09-05)
+
+
+### Bug Fixes
+
+* deployment failed if user used volumemount multiple times because it lead to duplicated volumenames. ([e992e63](https://github.com/mogenius/mogenius-k8s-manager/commit/e992e63b68b7bfab9c5833d89ceedd5ed877001c))
+
 ### [0.0.14](https://github.com/mogenius/mogenius-k8s-manager/compare/v0.0.13...v0.0.14) (2023-09-04)
 
 
