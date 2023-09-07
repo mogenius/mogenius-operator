@@ -1,4 +1,11 @@
 
+### [1.5.10](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.9...v1.5.10) (2023-09-07)
+
+
+### Bug Fixes
+
+* new nfs logic. ([a86172b](https://github.com/mogenius/mogenius-k8s-manager/commit/a86172bd2f93d0bfdc3ed9bce6ecb3cc8ca00a71))
+
 ### [1.5.9](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.8...v1.5.9) (2023-09-07)
 
 ### [1.5.8](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.7...v1.5.8) (2023-09-07)
