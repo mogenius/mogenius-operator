@@ -19,22 +19,7 @@ var testClientCmd = &cobra.Command{
 	Short: "Print testServerCmd information and exit.",
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		showDebug, _ := cmd.Flags().GetBool("debug")
-		customConfig, _ := cmd.Flags().GetString("config")
-
-		// clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(false)
-		// if err != nil {
-		// 	logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
-		// }
-
-		clusterSecret := utils.ClusterSecret{
-			ApiKey:       "",
-			ClusterMfaId: "",
-			ClusterName:  "",
-		}
-
-		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
-
+		utils.InitConfigYaml(true, "", "local")
 		builder.Init()
 
 		// INIT MOUNTS
@@ -59,6 +44,4 @@ var testClientCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(testClientCmd)
-	testClientCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
-	testClientCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
 }

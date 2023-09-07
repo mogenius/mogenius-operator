@@ -297,6 +297,10 @@ func MoUpdateLabels(labels *map[string]string, projectId string, namespace *dtos
 
 // mount nfs server in k8s-manager
 func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
+	if utils.CONFIG.Misc.Stage == "local" {
+		return
+	}
+
 	go func() {
 		var service *v1.Service = nfsService
 		if service == nil {
@@ -314,7 +318,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 				punqStructs.ExecuteBashCommandWithResponse(title, shellCmd)
 			}
 		} else {
-			logger.Log.Warningf("No CluserIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
+			logger.Log.Warningf("No ClusterIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
 		}
 	}()
 }

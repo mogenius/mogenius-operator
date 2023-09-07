@@ -26,16 +26,13 @@ var clusterCmd = &cobra.Command{
 	This cmd starts the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		showDebug, _ := cmd.Flags().GetBool("debug")
-		customConfig, _ := cmd.Flags().GetString("config")
-
 		punqUtils.CONFIG.Kubernetes.RunInCluster = true
 		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(true)
 		if err != nil {
 			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
 
-		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, true)
+		utils.SetupClusterSecret(clusterSecret)
 
 		builder.Init()
 
@@ -65,7 +62,4 @@ var clusterCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(clusterCmd)
-
-	clusterCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
-	clusterCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
 }

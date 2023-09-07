@@ -4,7 +4,6 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"os"
 
@@ -12,17 +11,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var resetConfig bool
+var stage string
+var debug bool
+var customConfig string
+
 var rootCmd = &cobra.Command{
 	Use:   "mogenius-k8s-manager",
 	Short: "Control your kubernetes cluster the easy way.",
 	Long: `
 Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 	Run: func(cmd *cobra.Command, args []string) {
-		reset, _ := cmd.Flags().GetBool("reset")
-		if reset {
-			logger.Log.Notice("Resetting config yaml to dafault local values.")
-			utils.WriteDefaultConfig(false)
+		if resetConfig {
+			utils.DeleteCurrentConfig()
 		}
+		utils.InitConfigYaml(debug, customConfig, stage)
 	},
 }
 
@@ -45,5 +48,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().BoolP("reset", "r", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
+	rootCmd.PersistentFlags().StringVarP(&stage, "stage", "s", "", "Use different stage environment")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Enable debug information")
+	rootCmd.PersistentFlags().BoolVarP(&resetConfig, "reset-config", "k", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
+	rootCmd.PersistentFlags().StringVarP(&customConfig, "config", "y", "", "Use config from custom location")
 }

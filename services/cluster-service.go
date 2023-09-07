@@ -93,13 +93,14 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil)
 	job.Start()
-	nfsService := mokubernetes.CreateMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg) // this will be executed outside of the wg because it takes a while to create the service
+	job.AddCmd(mokubernetes.CreateMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
 	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
-	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolume(&job, r.NamespaceName, r.VolumeName, nfsService, r.SizeInGb, &wg))
+	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolume(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
 	job.AddCmd(mokubernetes.CreateMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
 	wg.Wait()
 	job.Finish()
 
+	nfsService := mokubernetes.ServiceForNfsVolume(r.NamespaceName, r.VolumeName)
 	mokubernetes.Mount(r.NamespaceName, r.VolumeName, nfsService)
 
 	return job.DefaultReponse()
@@ -112,7 +113,7 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, &wg))
-	// job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolume(&job, r.VolumeName, r.NamespaceName, &wg))
+	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolume(&job, r.VolumeName, r.NamespaceName, &wg))
 	wg.Wait()
 	job.Finish()
 

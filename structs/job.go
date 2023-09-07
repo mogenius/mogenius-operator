@@ -73,7 +73,12 @@ func (j *Job) DefaultReponse() DefaultResponse {
 	if j.State == "FAILED" {
 		dr.Success = false
 		if j.Message != "" {
-			dr.Error = j.Message
+			dr.Error = fmt.Sprintf("%s\n", j.Message)
+		}
+		for _, cmd := range j.Commands {
+			if cmd.State == "FAILED" {
+				dr.Error += fmt.Sprintf("%s\n", cmd.Message)
+			}
 		}
 	} else {
 		dr.Success = true

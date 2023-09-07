@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/version"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -73,36 +74,33 @@ var DefaultConfigLocalFile string
 var DefaultConfigClusterFileDev string
 var DefaultConfigClusterFileProd string
 var CONFIG Config
+var ConfigPath string
 
-func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret ClusterSecret, loadClusterConfig bool) {
-	_, configPath := GetDirectories(customConfigName)
+func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
+	_, ConfigPath := GetDirectories(customConfigName)
 
-	if _, err := os.Stat(configPath); err == nil || os.IsExist(err) {
-		// file exists
-		if err := cleanenv.ReadConfig(configPath, &CONFIG); err != nil {
-			if strings.HasPrefix(err.Error(), "config file parsing error:") {
-				logger.Log.Notice("Config file is corrupted. Creating a new one by using -r flag.")
-			}
-			logger.Log.Fatal(err)
+	// create default config if not exists
+	// if stage is set, then we overwrite the config
+	if stage == "" {
+		if _, err := os.Stat(ConfigPath); err == nil || os.IsExist(err) {
+			// do nothing, file exists
+		} else {
+			WriteDefaultConfig(stage)
 		}
 	} else {
-		WriteDefaultConfig(loadClusterConfig)
+		WriteDefaultConfig(stage)
+	}
 
-		// read configuration from the file and environment variables
-		if err := cleanenv.ReadConfig(configPath, &CONFIG); err != nil {
-			logger.Log.Fatal(err)
+	// read configuration from the file and environment variables
+	if err := cleanenv.ReadConfig(ConfigPath, &CONFIG); err != nil {
+		if strings.HasPrefix(err.Error(), "config file parsing error:") {
+			logger.Log.Notice("Config file is corrupted. Creating a new one by using -r flag.")
 		}
+		logger.Log.Fatal(err)
 	}
 
-	// LOCAL ALWAYS WINS
-	if clusterSecret.ClusterMfaId != "" && CONFIG.Kubernetes.RunInCluster {
-		CONFIG.Kubernetes.ClusterMfaId = clusterSecret.ClusterMfaId
-	}
-	if clusterSecret.ApiKey != "" && CONFIG.Kubernetes.RunInCluster {
-		CONFIG.Kubernetes.ApiKey = clusterSecret.ApiKey
-	}
-	if clusterSecret.ClusterName != "" && CONFIG.Kubernetes.RunInCluster {
-		CONFIG.Kubernetes.ClusterName = clusterSecret.ClusterName
+	if CONFIG.Kubernetes.RunInCluster {
+		ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
 	}
 
 	if showDebug {
@@ -110,7 +108,7 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 	}
 
 	// CHECKS FOR CLUSTER
-	if loadClusterConfig {
+	if CONFIG.Kubernetes.RunInCluster {
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
 			if !showDebug {
 				PrintSettings()
@@ -145,6 +143,19 @@ func InitConfigYaml(showDebug bool, customConfigName *string, clusterSecret Clus
 			logger.Log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
 			logger.Log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
 		}()
+	}
+}
+
+func SetupClusterSecret(clusterSecret ClusterSecret) {
+	// LOCAL ALWAYS WINS
+	if clusterSecret.ClusterMfaId != "" && CONFIG.Kubernetes.RunInCluster {
+		CONFIG.Kubernetes.ClusterMfaId = clusterSecret.ClusterMfaId
+	}
+	if clusterSecret.ApiKey != "" && CONFIG.Kubernetes.RunInCluster {
+		CONFIG.Kubernetes.ApiKey = clusterSecret.ApiKey
+	}
+	if clusterSecret.ClusterName != "" && CONFIG.Kubernetes.RunInCluster {
+		CONFIG.Kubernetes.ClusterName = clusterSecret.ClusterName
 	}
 }
 
@@ -193,6 +204,8 @@ func PrintSettings() {
 	logger.Log.Infof("GitUserName:              %s", CONFIG.Git.GitUserName)
 	logger.Log.Infof("GitDefaultBranch:         %s", CONFIG.Git.GitDefaultBranch)
 	logger.Log.Infof("GitAddIgnoredFile:        %s\n\n", CONFIG.Git.GitAddIgnoredFile)
+
+	logger.Log.Infof("Config:                   %s\n\n", ConfigPath)
 }
 
 func PrintVersionInfo() {
@@ -203,27 +216,39 @@ func PrintVersionInfo() {
 	logger.Log.Infof("BuildAt:     %s", version.BuildTimestamp)
 }
 
-func GetDirectories(customConfigName *string) (configDir string, configPath string) {
+func GetDirectories(customConfigPath string) (configDir string, configPath string) {
 	homeDirName, err := os.UserHomeDir()
 	if err != nil {
 		logger.Log.Error(err)
 	}
 
-	configDir = homeDirName + "/.mogenius-k8s-manager/"
-	if customConfigName != nil {
-		newConfigName := *customConfigName
-		if newConfigName != "" {
-			configPath = configDir + newConfigName
+	if customConfigPath != "" {
+		if _, err := os.Stat(configPath); err == nil || os.IsExist(err) {
+			configPath = customConfigPath
+			configDir = filepath.Dir(customConfigPath)
+		} else {
+			logger.Log.Errorf("Custom config not found '%s'.", customConfigPath)
 		}
 	} else {
+		configDir = homeDirName + "/.mogenius-k8s-manager/"
 		configPath = configDir + "config.yaml"
 	}
 
 	return configDir, configPath
 }
 
-func WriteDefaultConfig(loadClusterConfig bool) {
-	configDir, configPath := GetDirectories(nil)
+func DeleteCurrentConfig() {
+	_, configPath := GetDirectories("")
+	err := os.Remove(configPath)
+	if err != nil {
+		fmt.Printf("Error removing config file. '%s'.", err.Error())
+	} else {
+		fmt.Printf("%s succesfuly deleted.", configPath)
+	}
+}
+
+func WriteDefaultConfig(stage string) {
+	configDir, configPath := GetDirectories("")
 
 	// write it to default location
 	err := os.Mkdir(configDir, 0755)
@@ -232,15 +257,25 @@ func WriteDefaultConfig(loadClusterConfig bool) {
 		logger.Log.Warning(err)
 	}
 
-	stage := os.Getenv("STAGE")
-
-	if loadClusterConfig {
-		if stage == "prod" {
-			err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileProd), 0755)
-		} else {
-			err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileDev), 0755)
-		}
+	// check if stage is set via env variable
+	envVarStage := strings.ToLower(os.Getenv("stage"))
+	if envVarStage != "" {
+		stage = envVarStage
 	} else {
+		// default stage is prod
+		if stage == "" {
+			stage = "prod"
+		}
+	}
+
+	if stage == "dev" {
+		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileDev), 0755)
+	} else if stage == "prod" {
+		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileProd), 0755)
+	} else if stage == "local" {
+		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
+	} else {
+		fmt.Println("No stage set. Using local config.")
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	}
 	if err != nil {

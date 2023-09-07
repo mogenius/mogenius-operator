@@ -25,8 +25,7 @@ var testServerCmd = &cobra.Command{
 	Short: "Print testServerCmd information and exit.",
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		showDebug, _ := cmd.Flags().GetBool("debug")
-		customConfig, _ := cmd.Flags().GetString("config")
+		utils.InitConfigYaml(true, "", "local")
 
 		// SETUP SECRET
 		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(false)
@@ -34,7 +33,8 @@ var testServerCmd = &cobra.Command{
 			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
 
-		utils.InitConfigYaml(showDebug, &customConfig, clusterSecret, false)
+		utils.SetupClusterSecret(clusterSecret)
+		utils.CONFIG.Misc.Stage = "local"
 
 		// INIT MOUNTS
 		if utils.CONFIG.Misc.AutoMountNfs {
