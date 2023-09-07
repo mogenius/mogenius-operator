@@ -93,12 +93,12 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil)
 	job.Start()
+	nfsService := mokubernetes.CreateMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg) // this will be executed outside of the wg because it takes a while to create the service
 	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
+	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolume(&job, r.NamespaceName, r.VolumeName, nfsService, r.SizeInGb, &wg))
 	job.AddCmd(mokubernetes.CreateMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
 	wg.Wait()
 	job.Finish()
-
-	nfsService := mokubernetes.CreateMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg)
 
 	mokubernetes.Mount(r.NamespaceName, r.VolumeName, nfsService)
 

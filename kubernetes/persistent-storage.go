@@ -70,30 +70,36 @@ func DeleteMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 	return cmd
 }
 
-// func CreateMogeniusNfsPersistentVolume(job *structs.Job, namespaceName string, volumeName string, volumeSizeInGb int, wg *sync.WaitGroup) *structs.Command {
-// 	cmd := structs.CreateCommand(fmt.Sprintf("Create PersistentVolume '%s'.", volumeName), job)
-// 	wg.Add(1)
-// 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
-// 		defer wg.Done()
-// 		cmd.Start(fmt.Sprintf("Creating PersistentVolume '%s'.", volumeName))
+func CreateMogeniusNfsPersistentVolume(job *structs.Job, namespaceName string, volumeName string, service *v1.Service, volumeSizeInGb int, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Create PersistentVolume '%s'.", volumeName), job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(fmt.Sprintf("Creating PersistentVolume '%s'.", volumeName))
 
-// 		pvc := utils.NfsPersistentVolumeClaimMogenius()
-// 		pvc.Name = volumeName
-// 		pvc.Namespace = namespaceName
-// 		pvc.Spec.Resources.Requests = v1.ResourceList{}
-// 		pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+		if service == nil {
+			cmd.Fail(fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: Could not find service for volume '%s' in order to get IP-Address.", volumeName))
+			return
+		}
 
-// 		kubeProvider := NewKubeProvider()
-// 		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
-// 		_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
-// 		if err != nil {
-// 			cmd.Fail(fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
-// 		} else {
-// 			cmd.Success(fmt.Sprintf("Created PersistentVolume '%s'.", volumeName))
-// 		}
-// 	}(cmd, wg)
-// 	return cmd
-// }
+		pv := utils.InitMogeniusNfsPersistentVolume()
+		pv.Name = volumeName
+		pv.Namespace = namespaceName
+		pv.Spec.NFS.Server = service.Spec.ClusterIP
+		pv.Spec.Capacity = v1.ResourceList{}
+		pv.Spec.Capacity[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+
+		kubeProvider := punq.NewKubeProvider()
+		client := kubeProvider.ClientSet.CoreV1().PersistentVolumes()
+		_, err := client.Create(context.TODO(), &pv, metav1.CreateOptions{})
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(fmt.Sprintf("Created PersistentVolume '%s'.", volumeName))
+		}
+	}(cmd, wg)
+	return cmd
+}
 
 func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, namespaceName string, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Delete PersistentVolume '%s'.", volumeName), job)
