@@ -1,4 +1,11 @@
 
+### [1.5.11](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.10...v1.5.11) (2023-09-07)
+
+
+### Bug Fixes
+
+* new nfs logic. many improvements from punq. ([fd38fd9](https://github.com/mogenius/mogenius-k8s-manager/commit/fd38fd9280812f53cf1285851000c49f97571301))
+
 ### [1.5.10](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.9...v1.5.10) (2023-09-07)
 
 
