@@ -5,11 +5,57 @@ metadata:
   namespace: XXX
 spec:
   ports:
+  - name: nfs-udp
+    port: 2049
+    protocol: UDP
+    targetPort: 2049
   - name: nfs
     port: 2049
-  - name: mountd
-    port: 20048
+    protocol: TCP
+    targetPort: 2049
   - name: rpcbind
     port: 111
+    protocol: TCP
+    targetPort: 111
+  - name: port-946
+    port: 946
+    protocol: TCP
+    targetPort: 946
+  - name: mountd-49135
+    port: 49135
+    protocol: TCP
+    targetPort: 49135
+  - name: mountd-2048
+    port: 2048
+    protocol: TCP
+    targetPort: 2048
+  - name: lockd-2045
+    port: 2045
+    protocol: TCP
+    targetPort: 2045
+  - name: statd-2046
+    port: 2046
+    protocol: TCP
+    targetPort: 2046
+  - name: statd-2047
+    port: 2047
+    protocol: TCP
+    targetPort: 2047
+  - name: stadtd-2045-udp
+    port: 2045
+    protocol: UDP
+    targetPort: 2045
+  - name: statd-2046-udp
+    port: 2046
+    protocol: UDP
+    targetPort: 2046
+  - name: statd-2047-udp
+    port: 2047
+    protocol: UDP
+    targetPort: 2047
+  - name: rpcbind-udp
+    port: 111
+    protocol: UDP
+    targetPort: 111
   selector:
     app: XXX

@@ -11,19 +11,52 @@ spec:
     spec:
       containers:
       - name: nfs-server
-        image: k8s.gcr.io/volume-nfs:0.8
+        image: ghcr.io/mogenius/nfs-server:latest
         ports:
-        - name: nfs
-          containerPort: 2049
-        - name: mountd
-          containerPort: 20048
-        - name: rpcbind
-          containerPort: 111
+        - containerPort: 2049
+          name: nfs
+          protocol: TCP
+        - containerPort: 2049
+          name: nfs-udp
+          protocol: UDP
+        - containerPort: 2045
+          name: mountd-2045
+          protocol: TCP
+        - containerPort: 2045
+          name: mountd-2045-udp
+          protocol: UDP
+        - containerPort: 2046
+          name: mountd-2046-tcp
+          protocol: TCP
+        - containerPort: 2046
+          name: mountd-2046-udp
+          protocol: UDP
+        - containerPort: 2047
+          name: mountd-2047
+          protocol: TCP      
+        - containerPort: 2047
+          name: mountd-2047-udp
+          protocol: UDP            
+        - containerPort: 2048
+          name: mountd
+          protocol: TCP
+        - containerPort: 2048
+          name: mountd-udp
+          protocol: UDP
+        - containerPort: 111
+          name: rpcbind
+          protocol: TCP
+        - containerPort: 111
+          name: rpcbind-udp
+          protocol: UDP
         securityContext:
           privileged: true
         volumeMounts:
         - name: storage
           mountPath: /exports
+        securityContext:
+          privileged: true
+          allowPrivilegeEscalation: true          
       volumes:
         - name: storage
           persistentVolumeClaim:
