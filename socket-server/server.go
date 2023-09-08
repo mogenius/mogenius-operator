@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
@@ -221,14 +220,14 @@ func ReadInput() {
 
 	tty, err := tty.Open()
 	if err != nil {
-		log.Fatal(err)
+		logger.Log.Fatalf("Error opening terminal: %s", err.Error())
 	}
 	defer tty.Close()
 
 	for {
 		r, err := tty.ReadRune()
 		if err != nil {
-			log.Fatal(err)
+			logger.Log.Fatalf("Error reading from terminal: %s", err.Error())
 		}
 		switch string(r) {
 		case "h":

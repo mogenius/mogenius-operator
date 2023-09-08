@@ -94,9 +94,10 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// read configuration from the file and environment variables
 	if err := cleanenv.ReadConfig(ConfigPath, &CONFIG); err != nil {
 		if strings.HasPrefix(err.Error(), "config file parsing error:") {
-			logger.Log.Notice("Config file is corrupted. Creating a new one by using -r flag.")
+			logger.Log.Error("Config file is corrupted. Creating a new one by using -r flag.")
 		}
-		logger.Log.Fatal(err)
+		logger.Log.Errorf("Error reading config: %s", ConfigPath)
+
 	}
 
 	if CONFIG.Kubernetes.RunInCluster {

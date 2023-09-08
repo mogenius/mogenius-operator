@@ -40,7 +40,8 @@ var currentBuildJob *structs.BuildJob
 func Init() {
 	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbPath, 0600, nil)
 	if err != nil {
-		logger.Log.Fatal(err)
+		logger.Log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbPath)
+		logger.Log.Fatal(err.Error())
 	}
 	db = database
 	err = db.Update(func(tx *bolt.Tx) error {

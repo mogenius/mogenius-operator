@@ -2,7 +2,6 @@ package structs
 
 import (
 	"context"
-	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"net/url"
@@ -31,7 +30,7 @@ func ConnectToJobQueue() {
 	for {
 		select {
 		case <-interrupt:
-			log.Fatal("CTRL + C pressed. Terminating.")
+			logger.Log.Fatal("CTRL + C pressed. Terminating.")
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
