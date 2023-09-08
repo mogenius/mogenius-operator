@@ -31,7 +31,7 @@ func Deploy() {
 	applyNamespace(provider)
 	addRbac(provider)
 	addDeployment(provider)
-	_, err := CreateClusterSecretIfNotExist(false)
+	_, err := CreateClusterSecretIfNotExist()
 	if err != nil {
 		logger.Log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
 	}
@@ -109,7 +109,7 @@ func applyNamespace(kubeProvider *punq.KubeProvider) {
 	logger.Log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
-func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, error) {
+func CreateClusterSecretIfNotExist() (utils.ClusterSecret, error) {
 	var kubeProvider *punq.KubeProvider = punq.NewKubeProvider()
 	if kubeProvider == nil {
 		logger.Log.Fatal("Error creating kubeprovider")
@@ -118,14 +118,14 @@ func CreateClusterSecretIfNotExist(runsInCluster bool) (utils.ClusterSecret, err
 	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(NAMESPACE)
 
 	existingSecret, getErr := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
-	return writeMogeniusSecret(secretClient, runsInCluster, existingSecret, getErr)
+	return writeMogeniusSecret(secretClient, existingSecret, getErr)
 }
 
-func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, existingSecret *core.Secret, getErr error) (utils.ClusterSecret, error) {
+func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error) (utils.ClusterSecret, error) {
 	// CREATE NEW SECRET
 	apikey := os.Getenv("api_key")
 	if apikey == "" {
-		if runsInCluster {
+		if utils.CONFIG.Kubernetes.RunInCluster {
 			logger.Log.Fatal("Environment Variable 'api_key' is missing.")
 		} else {
 			apikey = utils.CONFIG.Kubernetes.ApiKey
@@ -133,7 +133,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, ex
 	}
 	clusterName := os.Getenv("cluster_name")
 	if clusterName == "" {
-		if runsInCluster {
+		if utils.CONFIG.Kubernetes.RunInCluster {
 			logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
 		} else {
 			clusterName = utils.CONFIG.Kubernetes.ClusterName
@@ -147,7 +147,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, runsInCluster bool, ex
 	}
 
 	// This prevents lokal k8s-manager installations from overwriting cluster secrets
-	if !runsInCluster {
+	if !utils.CONFIG.Kubernetes.RunInCluster {
 		return clusterSecret, nil
 	}
 

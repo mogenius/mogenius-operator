@@ -19,7 +19,6 @@ var testClientCmd = &cobra.Command{
 	Short: "Print testServerCmd information and exit.",
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.InitConfigYaml(true, "", "local")
 		builder.Init()
 
 		// INIT MOUNTS

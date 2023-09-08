@@ -25,7 +25,7 @@ var clusterCmd = &cobra.Command{
 	This cmd starts the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(true)
+		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist()
 		if err != nil {
 			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
