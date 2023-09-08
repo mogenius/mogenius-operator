@@ -56,7 +56,7 @@ var clusterCmd = &cobra.Command{
 		punq.ExecuteBashCommandSilent("Git setup (3/4) ...", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
 		punq.ExecuteBashCommandSilent("Git setup (4/4) ...", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
 
-		socketclient.StartK8sManager(true)
+		socketclient.StartK8sManager()
 	},
 }
 

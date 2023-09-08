@@ -30,11 +30,11 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
-func StartK8sManager(runsInCluster bool) {
+func StartK8sManager() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	if runsInCluster {
+	if utils.CONFIG.Kubernetes.RunInCluster {
 		utils.PrintVersionInfo()
 		utils.PrintSettings()
 	} else {

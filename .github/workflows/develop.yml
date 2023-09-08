@@ -40,7 +40,7 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           # docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest .
           docker buildx create --use
-          docker buildx build --push --platform linux/amd64 --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest .
+          docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest .
 
 
       - name: Grype Vulnerability Scan

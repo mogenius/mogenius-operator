@@ -25,6 +25,10 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 		if resetConfig {
 			utils.DeleteCurrentConfig()
 		}
+		// try to load stage if not set
+		if stage == "" {
+
+		}
 		utils.InitConfigYaml(debug, customConfig, stage)
 	},
 }

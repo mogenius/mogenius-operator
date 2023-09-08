@@ -77,6 +77,11 @@ var CONFIG Config
 var ConfigPath string
 
 func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
+	// try to load stage if not set
+	if stage == "" {
+		stage = strings.ToLower(os.Getenv("stage"))
+	}
+
 	_, ConfigPath := GetDirectories(customConfigName)
 
 	// create default config if not exists
@@ -85,10 +90,10 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		if _, err := os.Stat(ConfigPath); err == nil || os.IsExist(err) {
 			// do nothing, file exists
 		} else {
-			WriteDefaultConfig(stage)
+			writeDefaultConfig(stage)
 		}
 	} else {
-		WriteDefaultConfig(stage)
+		writeDefaultConfig(stage)
 	}
 
 	// read configuration from the file and environment variables
@@ -104,7 +109,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
 	}
 
-	if showDebug {
+	if showDebug || CONFIG.Kubernetes.RunInCluster {
 		PrintSettings()
 	}
 
@@ -248,7 +253,7 @@ func DeleteCurrentConfig() {
 	}
 }
 
-func WriteDefaultConfig(stage string) {
+func writeDefaultConfig(stage string) {
 	configDir, configPath := GetDirectories("")
 
 	// write it to default location

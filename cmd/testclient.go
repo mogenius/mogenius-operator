@@ -38,7 +38,7 @@ var testClientCmd = &cobra.Command{
 
 		go mokubernetes.WatchEvents()
 
-		socketclient.StartK8sManager(false)
+		socketclient.StartK8sManager()
 	},
 }
 
