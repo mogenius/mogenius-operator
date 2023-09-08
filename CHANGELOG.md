@@ -1,4 +1,11 @@
 
+### [1.5.16](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.15...v1.5.16) (2023-09-08)
+
+
+### Bug Fixes
+
+* workloads new get method and new deleteBy method. minor fixes. ([701c33e](https://github.com/mogenius/mogenius-k8s-manager/commit/701c33e2908cd186af2d54c7e670f045f0dc252c))
+
 ### [1.5.15](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.14...v1.5.15) (2023-09-08)
 
 
