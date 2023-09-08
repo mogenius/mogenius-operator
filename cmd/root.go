@@ -8,6 +8,7 @@ import (
 	"os"
 
 	cc "github.com/ivanpirog/coloredcobra"
+	punq "github.com/mogenius/punq/kubernetes"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,7 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 			utils.DeleteCurrentConfig()
 		}
 		utils.InitConfigYaml(debug, customConfig, stage)
+		punq.Init(utils.CONFIG.Kubernetes.RunInCluster)
 	},
 }
 
