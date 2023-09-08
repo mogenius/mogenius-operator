@@ -13,7 +13,7 @@ import (
 
 var resetConfig bool
 var stage string
-var debug bool
+var debug bool = false
 var customConfig string
 
 var rootCmd = &cobra.Command{
@@ -21,13 +21,9 @@ var rootCmd = &cobra.Command{
 	Short: "Control your kubernetes cluster the easy way.",
 	Long: `
 Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
-	Run: func(cmd *cobra.Command, args []string) {
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if resetConfig {
 			utils.DeleteCurrentConfig()
-		}
-		// try to load stage if not set
-		if stage == "" {
-
 		}
 		utils.InitConfigYaml(debug, customConfig, stage)
 	},

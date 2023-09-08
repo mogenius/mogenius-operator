@@ -13,7 +13,6 @@ import (
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/structs"
-	punqUtils "github.com/mogenius/punq/utils"
 
 	"github.com/spf13/cobra"
 )
@@ -26,7 +25,6 @@ var clusterCmd = &cobra.Command{
 	This cmd starts the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		punqUtils.CONFIG.Kubernetes.RunInCluster = true
 		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist(true)
 		if err != nil {
 			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())

@@ -91,6 +91,4 @@ var testServerCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(testServerCmd)
-	testServerCmd.Flags().BoolP("debug", "d", false, "Be verbose and show debug infos.")
-	testServerCmd.Flags().StringP("config", "c", "config.yaml", "Use custom config.")
 }

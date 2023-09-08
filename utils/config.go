@@ -82,7 +82,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		stage = strings.ToLower(os.Getenv("stage"))
 	}
 
-	_, ConfigPath := GetDirectories(customConfigName)
+	_, ConfigPath = GetDirectories(customConfigName)
 
 	// create default config if not exists
 	// if stage is set, then we overwrite the config
