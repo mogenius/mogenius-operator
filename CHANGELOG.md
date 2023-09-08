@@ -1,4 +1,11 @@
 
+### [1.5.14](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.13...v1.5.14) (2023-09-08)
+
+
+### Bug Fixes
+
+* added arm for develop again. minor fix. ([26ea111](https://github.com/mogenius/mogenius-k8s-manager/commit/26ea1114653ab00a822a195a5ea739536780de2e))
+
 ### [1.5.13](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.12...v1.5.13) (2023-09-08)
 
 
