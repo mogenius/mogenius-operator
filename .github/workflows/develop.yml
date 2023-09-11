@@ -111,7 +111,8 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker manifest create ${{ env.IMAGE_NAME }}:$VERSION \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-amd64 \
-              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
+              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64 \
+              --amend ${{ env.IMAGE_NAME }}:latest
           docker manifest push ${{ env.IMAGE_NAME }}:$VERSION
 
       # - name: Docker Build & Push
