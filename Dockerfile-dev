@@ -34,7 +34,7 @@ COPY . .
 
 ARG TARGETARCH
     
-RUN echo $GOARCH;echo $GOOS;go build -gcflags="all=-N -l" -ldflags="-extldflags= \
+RUN go build -gcflags="all=-N -l" -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.GitCommitHash=${COMMIT_HASH}' \
   -X 'mogenius-k8s-manager/version.Branch=${GIT_BRANCH}' \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
