@@ -33,15 +33,14 @@ RUN go mod download
 COPY . .
 
 ARG TARGETARCH
+    
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
       echo "Running AMD64 specific commands"; \
       export GOARCH=amd64; \
     elif [ "$TARGETARCH" = "arm" ]; then \
       echo "Running ARM specific commands"; \
       export GOARCH=arm64; \
-    fi
-    
-RUN go build -gcflags="all=-N -l" -ldflags="-extldflags= \
+    fi;echo $GOARCH;echo $GOOS;go build -gcflags="all=-N -l" -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.GitCommitHash=${COMMIT_HASH}' \
   -X 'mogenius-k8s-manager/version.Branch=${GIT_BRANCH}' \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
