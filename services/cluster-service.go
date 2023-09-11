@@ -11,6 +11,7 @@ import (
 	"mogenius-k8s-manager/utils"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -156,6 +157,9 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 	pvcs := punq.AllPersistentVolumeClaims(r.NamespaceName)
 
 	for _, pvc := range pvcs {
+		// remove podname "nfs-server-pod-"
+		pvc.Name = strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
+
 		entry := NfsVolumeStatsResponse{
 			VolumeName: pvc.Name,
 			FreeBytes:  0,
