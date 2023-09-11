@@ -61,7 +61,6 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=amd64 --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-amd64 -t ${{ env.IMAGE_NAME }}:latest-amd64 .
           docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
-          docker push ${{ env.IMAGE_NAME }}:latest-amd64
 
   build-arm64-linux:
     needs: prepare
@@ -88,7 +87,6 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build --platform=linux/arm64 -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux -t ${{ env.IMAGE_NAME }}:latest-arm64-linux .
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
-          docker push ${{ env.IMAGE_NAME }}:latest-arm64-linux
 
   build-arm64:
     needs: prepare
@@ -115,7 +113,6 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
-          docker push ${{ env.IMAGE_NAME }}:latest-arm64
 
   merge-images:
     needs: [build-amd64, build-arm64, build-arm64-linux, prepare]
