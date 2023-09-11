@@ -24,6 +24,7 @@ jobs:
       - name: Create Sematic Release Version
         run: |
           # npm install -g standard-version
+          export HOME=/root
           git config --system http.sslVerify false
           git config --global user.email "mok8s@mogenius.com"
           git config --global user.name "mok8s"
