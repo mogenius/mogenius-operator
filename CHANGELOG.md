@@ -1,4 +1,11 @@
 
+### [1.5.30](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.29...v1.5.30) (2023-09-11)
+
+
+### Bug Fixes
+
+* arm64 linux. ([7e07f50](https://github.com/mogenius/mogenius-k8s-manager/commit/7e07f5054732bfc9730ddd89e34f70b9e5cddee2))
+
 ### [1.5.29](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.28...v1.5.29) (2023-09-11)
 
 
