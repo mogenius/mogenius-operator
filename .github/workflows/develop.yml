@@ -113,7 +113,7 @@ jobs:
               --amend ${{ env.IMAGE_NAME }}:$VERSION-amd64 \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
           docker manifest push ${{ env.IMAGE_NAME }}:$VERSION
-          docker manifest create ${{ env.IMAGE_NAME }}:$latest \
+          docker manifest create ${{ env.IMAGE_NAME }}:latest \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-amd64 \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
           docker manifest push ${{ env.IMAGE_NAME }}:$latest
