@@ -5,8 +5,12 @@ on:
     branches:
       - develop
 
+env:
+  IMAGE_NAME: mogenius/mogenius-k8s-manager-dev
+  DOCKERFILE: Dockerfile-dev
+
 jobs:
-  build:
+  prepare:
     runs-on: self-hosted
     steps:
       - name: Checkout repository
@@ -32,25 +36,82 @@ jobs:
           standard-version --header ""
           git push --follow-tags origin develop
 
-      - name: Docker Build & Push
+  build-amd64:
+    needs: prepare
+    runs-on: [self-hosted, X64]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Build and push AMD64 image
         run: |
-          set -x
           GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
           COMMIT_HASH=$(git rev-parse --short HEAD)
           GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          # docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest .
-          docker buildx create --use
-          docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest .
+          docker build -f ${{ env.DOCKERFILE }} --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-amd64 -t ${{ env.IMAGE_NAME }}:latest-amd64 .
+          docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
+          docker push ${{ env.IMAGE_NAME }}:latest-amd64
 
+  build-arm64:
+    needs: prepare
+    runs-on: [self-hosted, ARM64]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
-      - name: Grype Vulnerability Scan
+      - name: Build and push ARM64 image
+        run: |
+          GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          BUILD_TIMESTAMP=$(date -Iseconds)
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+          docker build -f ${{ env.DOCKERFILE }} --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
+          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
+          docker push ${{ env.IMAGE_NAME }}:latest-arm64
+
+  merge-images:
+    needs: [build-amd64, build-arm64, prepare]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Merge images into a multi-arch manifest
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-          curl -sSfL https://raw.githubusercontent.com/mogenius/docs/dev/grype.yaml > grype.yaml
-          grype -c grype.yaml --add-cpes-if-none --fail-on critical ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION
+          docker manifest create ${{ env.IMAGE_NAME }}:$VERSION \
+              --amend ${{ env.IMAGE_NAME }}:$VERSION-amd64 \
+              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
+          docker manifest push ${{ env.IMAGE_NAME }}:$VERSION
+
+      # - name: Docker Build & Push
+      #   run: |
+      #     set -x
+      #     GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
+      #     COMMIT_HASH=$(git rev-parse --short HEAD)
+      #     GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+      #     BUILD_TIMESTAMP=$(date -Iseconds)
+      #     VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+      #     # docker build --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest .
+      #     docker buildx create --use
+      #     docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg NEXT_VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -f Dockerfile-dev -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest .
+
+
+      # - name: Grype Vulnerability Scan
+      #   run: |
+      #     VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+      #     curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+      #     curl -sSfL https://raw.githubusercontent.com/mogenius/docs/dev/grype.yaml > grype.yaml
+      #     grype -c grype.yaml --add-cpes-if-none --fail-on critical ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION
 
       # currently it is not possible to seperate build and push when using buildx
       # https://github.com/docker/buildx/issues/1152
