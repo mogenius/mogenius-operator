@@ -2,8 +2,8 @@ FROM golang:1.21-alpine AS builder
 
 LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit-log here.
 
-ENV GOOS=linux
-ENV GOARCH=amd64
+ARG GOOS=linux
+ARG GOARCH=amd64
 
 # RUN apk add --no-cache \
     # libpcap-dev \
