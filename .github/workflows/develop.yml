@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: hetzner1
+    runs-on: self-hosted
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
