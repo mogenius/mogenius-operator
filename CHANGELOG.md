@@ -1,4 +1,15 @@
 
+### [1.5.18](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.17...v1.5.18) (2023-09-11)
+
+
+### Bug Fixes
+
+* test new runner. ([871643b](https://github.com/mogenius/mogenius-k8s-manager/commit/871643bece55db44be68730be204ef66f5546f18))
+* test new runner. ([53a83de](https://github.com/mogenius/mogenius-k8s-manager/commit/53a83de25465c7886ac0c57bcd1284cffd718e64))
+* text replaced for storage. ([93e97d4](https://github.com/mogenius/mogenius-k8s-manager/commit/93e97d4530e3c118e1557f576080e8458135aaf1))
+* text replaced for storage. ([fb46059](https://github.com/mogenius/mogenius-k8s-manager/commit/fb4605971db1d0796c9c4df542a9e51d531013ad))
+* text replaced for storage. ([68c1a5d](https://github.com/mogenius/mogenius-k8s-manager/commit/68c1a5d3ba682ba706897401477236849edfeba6))
+
 ### [1.5.17](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.16...v1.5.17) (2023-09-08)
 
 
