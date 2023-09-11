@@ -1,4 +1,11 @@
 
+### [1.5.23](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.22...v1.5.23) (2023-09-11)
+
+
+### Bug Fixes
+
+* new multiarch-pipeline final final final. ([2ad00b1](https://github.com/mogenius/mogenius-k8s-manager/commit/2ad00b1782a0e7bceb12dbeb30b83c0a0d64994c))
+
 ### [1.5.22](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.21...v1.5.22) (2023-09-11)
 
 
