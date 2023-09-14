@@ -27,7 +27,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		defer wg.Done()
 		cmd.Start("Updating ingress setup.")
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
 
 		applyOptions := metav1.ApplyOptions{
@@ -166,7 +166,7 @@ func createIngressRule(hostname string, serviceName string, port int32) *network
 
 func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) {
 	indexesToRemove := []int{}
-	service := punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller")
+	service := punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller", nil)
 	if service != nil {
 		portsDb := []dtos.NamespaceServicePortDto{}
 		for _, port := range ports {

@@ -10,7 +10,7 @@ import (
 )
 
 func Remove() {
-	provider := punq.NewKubeProvider()
+	provider := punq.NewKubeProvider(nil)
 	if provider == nil {
 		panic("error creating kubeprovider.")
 	}

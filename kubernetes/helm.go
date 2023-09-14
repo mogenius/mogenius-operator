@@ -67,7 +67,7 @@ func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGrou
 // func AllHelmCharts(namespaceName string) []cmapi.CertificateRequest {
 // 	result := []cmapi.CertificateRequest{}
 
-// 	provider := NewKubeProvider()
+// 	provider := NewKubeProvider(nil)
 // 	resources, err := provider.ClientSet.Discovery().ServerPreferredResources()
 // 	if err != nil {
 // 		logger.Log.Errorf("ServerPreferredResources Error: %s", err.Error())

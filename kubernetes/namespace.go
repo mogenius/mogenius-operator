@@ -16,7 +16,7 @@ func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dto
 	cmd := structs.CreateCommand("Create Kubernetes namespace", job)
 	cmd.Start(fmt.Sprintf("Creating namespace '%s'.", namespace.Name))
 
-	kubeProvider := punq.NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider(nil)
 	namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 	newNamespace := applyconfcore.Namespace(namespace.Name)
 
@@ -45,7 +45,7 @@ func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting namespace '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		namespaceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
 
 		err := namespaceClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})

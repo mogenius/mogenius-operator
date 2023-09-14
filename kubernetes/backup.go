@@ -83,7 +83,7 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 	sortWithPreference(unstructList)
 
 	// SEND DATA TO K8S
-	provider := punq.NewKubeProvider()
+	provider := punq.NewKubeProvider(nil)
 	//create namespace not existing
 	if len(unstructList) > 0 {
 		namespaceClient := provider.ClientSet.CoreV1().Namespaces()
@@ -270,7 +270,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	allResources := punqStructs.NewUniqueStringArray()
 	usedResources := punqStructs.NewUniqueStringArray()
 
-	provider := punq.NewKubeProvider()
+	provider := punq.NewKubeProvider(nil)
 
 	// Get a list of all resource types in the cluster
 	resourceList, err := provider.ClientSet.Discovery().ServerPreferredResources()

@@ -24,7 +24,7 @@ func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace.Name)
 		newService := generateService(namespace, service)
 
@@ -51,7 +51,7 @@ func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting service '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace.Name)
 
 		// bind/unbind ports globally
@@ -74,7 +74,7 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Update service '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace.Name)
 		updateService := generateService(namespace, service)
 
@@ -96,7 +96,7 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 }
 
 func UpdateServiceWith(service *v1.Service) error {
-	kubeProvider := punq.NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider(nil)
 	serviceClient := kubeProvider.ClientSet.CoreV1().Services("")
 	_, err := serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
 	if err != nil {
@@ -151,9 +151,9 @@ func UpdateServiceWith(service *v1.Service) error {
 
 func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, additive bool) {
 	// 1. get configmap and ingress service
-	tcpConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp")
-	udpConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp")
-	ingControllerService := punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller")
+	tcpConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp", nil)
+	udpConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp", nil)
+	ingControllerService := punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller", nil)
 
 	if tcpConfigmap == nil {
 		logger.Log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp")
@@ -219,15 +219,15 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 	}
 
 	// 4. write results to k8s
-	tcpResult := punq.UpdateK8sConfigMap(*tcpConfigmap)
+	tcpResult := punq.UpdateK8sConfigMap(*tcpConfigmap, nil)
 	if tcpResult.Error != nil {
 		logger.Log.Errorf("UpdateK8sConfigMap: %s", tcpResult)
 	}
-	udpResult := punq.UpdateK8sConfigMap(*udpConfigmap)
+	udpResult := punq.UpdateK8sConfigMap(*udpConfigmap, nil)
 	if udpResult.Error != nil {
 		logger.Log.Errorf("UpdateK8sConfigMap: %s", udpResult)
 	}
-	ingContrResult := punq.UpdateK8sService(*ingControllerService)
+	ingContrResult := punq.UpdateK8sService(*ingControllerService, nil)
 	if ingContrResult.Error != nil {
 		logger.Log.Errorf("UpdateK8sConfigMap: %s", ingContrResult)
 	}
@@ -240,7 +240,7 @@ func RemovePortFromService(job *structs.Job, namespace string, serviceName strin
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Remove Port '%d'.", port))
 
-		service := punq.ServiceFor(namespace, serviceName)
+		service := punq.ServiceFor(namespace, serviceName, nil)
 		if service != nil {
 			wasModified := false
 			for index, aPort := range service.Spec.Ports {
@@ -252,7 +252,7 @@ func RemovePortFromService(job *structs.Job, namespace string, serviceName strin
 			}
 
 			if wasModified {
-				kubeProvider := punq.NewKubeProvider()
+				kubeProvider := punq.NewKubeProvider(nil)
 				updateOptions := metav1.UpdateOptions{
 					FieldManager: DEPLOYMENTNAME,
 				}
@@ -281,9 +281,9 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Add Port '%d'.", port))
 
-		service := punq.ServiceFor(namespace, serviceName)
+		service := punq.ServiceFor(namespace, serviceName, nil)
 		if service != nil {
-			kubeProvider := punq.NewKubeProvider()
+			kubeProvider := punq.NewKubeProvider(nil)
 			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{
 				Name:       fmt.Sprintf("%d-%s", port, serviceName),
 				Port:       port,

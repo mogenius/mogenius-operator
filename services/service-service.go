@@ -34,7 +34,7 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	job.Start()
 
 	// check if namespace exists and CREATE IT IF NOT
-	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name)
+	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name, nil)
 	if nsErr != nil {
 		logger.Log.Warning(nsErr.Error())
 	}
@@ -105,42 +105,42 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 	case dtos.K8SCronJob:
 		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
 	}
-	
+
 	wg.Wait()
 	job.Finish()
 	return job
 }
 
 func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
-	return punq.PodIdsFor(r.Namespace, &r.ServiceId)
+	return punq.PodIdsFor(r.Namespace, &r.ServiceId, nil)
 }
 
 func ServicePodExists(r ServicePodExistsRequest) interface{} {
-	return punq.PodExists(r.K8sNamespace, r.K8sPod)
+	return punq.PodExists(r.K8sNamespace, r.K8sPod, nil)
 }
 
 func PodLog(r ServiceGetLogRequest) interface{} {
-	return punq.GetLog(r.Namespace, r.PodId, r.Timestamp)
+	return punq.GetLog(r.Namespace, r.PodId, r.Timestamp, nil)
 }
 
 func PodLogError(r ServiceGetLogRequest) interface{} {
-	return punq.GetLogError(r.Namespace, r.PodId)
+	return punq.GetLogError(r.Namespace, r.PodId, nil)
 }
 
 func PodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
-	return punq.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
+	return punq.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds), nil)
 }
 
 func PreviousPodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
-	return punq.StreamPreviousLog(r.Namespace, r.PodId)
+	return punq.StreamPreviousLog(r.Namespace, r.PodId, nil)
 }
 
 func PodStatus(r ServiceResourceStatusRequest) interface{} {
-	return punq.PodStatus(r.Namespace, r.Name, r.StatusOnly)
+	return punq.PodStatus(r.Namespace, r.Name, r.StatusOnly, nil)
 }
 
 func ServicePodStatus(r ServicePodsRequest) interface{} {
-	return punq.ServicePodStatus(r.Namespace, r.ServiceName)
+	return punq.ServicePodStatus(r.Namespace, r.ServiceName, nil)
 }
 
 func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
@@ -256,9 +256,9 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 
 func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 	return dtos.TcpUdpClusterConfigurationDto{
-		IngressServices: punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller"),
-		TcpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp"),
-		UdpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp"),
+		IngressServices: punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller", nil),
+		TcpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp", nil),
+		UdpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp", nil),
 	}
 }
 
@@ -350,22 +350,21 @@ func ServicePodsRequestExample() ServicePodsRequest {
 }
 
 type ServiceSetImageRequest struct {
-	ProjectId          string                     `json:"projectId"`
-	NamespaceId        string                     `json:"namespaceId"`
-	ServiceId          string                     `json:"serviceId"`
-	NamespaceName      string                     `json:"namespaceName"`
-	ServiceName        string                     `json:"serviceName"`
-	ServiceDisplayName string                     `json:"serviceDisplayName"`
-	ImageName          string                     `json:"imageName"`
-	ServiceType        dtos.K8sServiceTypeEnum    `json:"serviceType,omitempty"`
+	ProjectId          string                  `json:"projectId"`
+	NamespaceId        string                  `json:"namespaceId"`
+	ServiceId          string                  `json:"serviceId"`
+	NamespaceName      string                  `json:"namespaceName"`
+	ServiceName        string                  `json:"serviceName"`
+	ServiceDisplayName string                  `json:"serviceDisplayName"`
+	ImageName          string                  `json:"imageName"`
+	ServiceType        dtos.K8sServiceTypeEnum `json:"serviceType,omitempty"`
 }
 
 func (service *ServiceSetImageRequest) ApplyDefaults() {
 	if service.ServiceType == "" {
 		service.ServiceType = dtos.K8SDeployment
-	} 
+	}
 }
-
 
 func ServiceSetImageRequestExample() ServiceSetImageRequest {
 	return ServiceSetImageRequest{

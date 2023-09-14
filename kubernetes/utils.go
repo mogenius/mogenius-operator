@@ -89,7 +89,7 @@ func CurrentContextName() string {
 }
 
 func Hostname() string {
-	provider := punq.NewKubeProvider()
+	provider := punq.NewKubeProvider(nil)
 	if provider == nil {
 		logger.Log.Fatal("error creating kubeprovider")
 	}
@@ -136,7 +136,7 @@ func ClusterStatus() dtos.ClusterStatusDto {
 func listAllPods() []v1.Pod {
 	var result []v1.Pod
 
-	kubeProvider := punq.NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider(nil)
 	pods, err := kubeProvider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
 
 	if err != nil {
@@ -147,7 +147,7 @@ func listAllPods() []v1.Pod {
 }
 
 func ListNodes() []v1.Node {
-	var provider *punq.KubeProvider = punq.NewKubeProvider()
+	var provider *punq.KubeProvider = punq.NewKubeProvider(nil)
 	if provider == nil {
 		logger.Log.Fatal("error creating kubeprovider")
 		return []v1.Node{}
@@ -162,7 +162,7 @@ func ListNodes() []v1.Node {
 }
 
 func podStats(pods map[string]v1.Pod) ([]punqStructs.Stats, error) {
-	var provider *punq.KubeProviderMetrics = punq.NewKubeProviderMetrics()
+	var provider *punq.KubeProviderMetrics = punq.NewKubeProviderMetrics(nil)
 	if provider == nil {
 		logger.Log.Fatal("error creating kubeprovider")
 	}
@@ -324,7 +324,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 }
 
 func ServiceForNfsVolume(volumeNamespace string, volumeName string) *v1.Service {
-	services := punq.AllServices(volumeNamespace)
+	services := punq.AllServices(volumeNamespace, nil)
 	for _, srv := range services {
 		if strings.Contains(srv.Name, fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)) {
 			return &srv

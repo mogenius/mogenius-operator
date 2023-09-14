@@ -154,7 +154,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 	}
 
 	// get all pvc for single namespace
-	pvcs := punq.AllPersistentVolumeClaims(r.NamespaceName)
+	pvcs := punq.AllPersistentVolumeClaims(r.NamespaceName, nil)
 
 	for _, pvc := range pvcs {
 		// remove podname "nfs-server-pod-"

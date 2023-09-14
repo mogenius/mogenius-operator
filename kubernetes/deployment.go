@@ -29,7 +29,7 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newDeployment := generateDeployment(namespace, service, true, deploymentClient)
 
@@ -53,7 +53,7 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting Deployment '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
@@ -78,7 +78,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newDeployment := generateDeployment(namespace, service, false, deploymentClient)
 
@@ -104,7 +104,7 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Starting Deployment '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
 		deployment := generateDeployment(namespace, service, false, deploymentClient)
 
@@ -125,7 +125,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Stopping Deployment '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
 		deployment := generateDeployment(namespace, service, false, deploymentClient)
 		deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
@@ -147,7 +147,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Restarting Deployment '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
 		deployment := generateDeployment(namespace, service, false, deploymentClient)
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
@@ -381,7 +381,7 @@ func SetDeploymentImage(job *structs.Job, namespaceName string, serviceName stri
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceName))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
 		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 		if err != nil {

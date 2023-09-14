@@ -25,7 +25,7 @@ const CONCURRENTCONNECTIONS = 1
 //var waitList = []structs.WaitListEntry{}
 
 func WatchEvents() {
-	kubeProvider := punq.NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider(nil)
 
 	var lastResourceVersion = ""
 	for {
@@ -138,7 +138,7 @@ func WatchEvents() {
 // 	}
 
 // 	// 2: Get own deployment for future update
-// 	kubeProvider := NewKubeProvider()
+// 	kubeProvider := NewKubeProvider(nil)
 // 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
 // 	ownDeployment, err := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, v1.GetOptions{})
 // 	if err != nil {

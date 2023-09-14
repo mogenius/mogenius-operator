@@ -23,7 +23,7 @@ import (
 )
 
 func Deploy() {
-	provider := punq.NewKubeProvider()
+	provider := punq.NewKubeProvider(nil)
 	if provider == nil {
 		panic("Error creating kubeprovider")
 	}
@@ -110,7 +110,7 @@ func applyNamespace(kubeProvider *punq.KubeProvider) {
 }
 
 func CreateClusterSecretIfNotExist() (utils.ClusterSecret, error) {
-	var kubeProvider *punq.KubeProvider = punq.NewKubeProvider()
+	var kubeProvider *punq.KubeProvider = punq.NewKubeProvider(nil)
 	if kubeProvider == nil {
 		logger.Log.Fatal("Error creating kubeprovider")
 	}

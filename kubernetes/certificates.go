@@ -26,7 +26,7 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 	createNew := false
 
 	// 1. Get Certificate for Namespace (NAMESPACE AND RESOURCE NAME ARE IDENTICAL)
-	cert, err := punq.GetCertificate(namespaceName, namespaceName)
+	cert, err := punq.GetCertificate(namespaceName, namespaceName, nil)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			createNew = true
@@ -50,7 +50,7 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 
 	// 3. Update the certificate if new Hostnames are beeing added.
 	if foundChanges {
-		provider := punq.NewKubeProviderCertManager()
+		provider := punq.NewKubeProviderCertManager(nil)
 		if createNew {
 			cert := punqUtils.InitCertificate()
 			cert.Name = namespaceName

@@ -59,12 +59,12 @@ func ShutdownNamespace(r NamespaceShutdownRequest) structs.Job {
 }
 
 func PodIds(r NamespacePodIdsRequest) interface{} {
-	return punq.PodIdsFor(r.Namespace, nil)
+	return punq.PodIdsFor(r.Namespace, nil, nil)
 }
 
 func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClusterPodsDto {
 	inDbButNotInCluster := []string{}
-	clusterPodNames := punq.AllPodNames()
+	clusterPodNames := punq.AllPodNames(nil)
 	for index, dbPodName := range r.DbPodNames {
 		if !punqUtils.Contains(clusterPodNames, dbPodName) {
 			inDbButNotInCluster = append(inDbButNotInCluster, dbPodName)
@@ -90,19 +90,19 @@ func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
 }
 
 func ListAllNamespaces() []string {
-	return punq.ListAllNamespaceNames()
+	return punq.ListAllNamespaceNames(nil)
 }
 
 func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.NamespaceResourcesDto {
 	result := dtos.CreateNamespaceResourcesDto()
-	result.Pods = punq.AllPods(r.NamespaceName)
-	result.Services = punq.AllServices(r.NamespaceName)
-	result.Deployments = punq.AllDeployments(r.NamespaceName)
-	result.Daemonsets = punq.AllDaemonsets(r.NamespaceName)
-	result.Replicasets = punq.AllReplicasets(r.NamespaceName)
-	result.Ingresses = punq.AllIngresses(r.NamespaceName)
-	result.Secrets = punq.AllSecrets(r.NamespaceName)
-	result.Configmaps = punq.AllConfigmaps(r.NamespaceName)
+	result.Pods = punq.AllPods(r.NamespaceName, nil)
+	result.Services = punq.AllServices(r.NamespaceName, nil)
+	result.Deployments = punq.AllDeployments(r.NamespaceName, nil)
+	result.Daemonsets = punq.AllDaemonsets(r.NamespaceName, nil)
+	result.Replicasets = punq.AllReplicasets(r.NamespaceName, nil)
+	result.Ingresses = punq.AllIngresses(r.NamespaceName, nil)
+	result.Secrets = punq.AllSecrets(r.NamespaceName, nil)
+	result.Configmaps = punq.AllConfigmaps(r.NamespaceName, nil)
 	return result
 }
 

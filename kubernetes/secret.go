@@ -21,7 +21,7 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating secret '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.Name
@@ -55,7 +55,7 @@ func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting secret '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
@@ -81,7 +81,7 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 
 		secretName := "container-secret-" + namespace.Name
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
 		secret := punqUtils.InitContainerSecret()
@@ -129,7 +129,7 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 
 		secretName := "container-secret-service-" + service.Name
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
 		secret := punqUtils.InitContainerSecret()
@@ -171,7 +171,7 @@ func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg 
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting Container secret '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
@@ -195,7 +195,7 @@ func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating secret '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		secretClient := kubeProvider.ClientSet.CoreV1().Secrets(namespace.Name)
 		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.Name
@@ -225,7 +225,7 @@ func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 }
 
 func ContainerSecretDoesExistForStage(namespace dtos.K8sNamespaceDto) bool {
-	provider := punq.NewKubeProvider()
+	provider := punq.NewKubeProvider(nil)
 	secret, err := provider.ClientSet.CoreV1().Secrets(namespace.Name).Get(context.TODO(), "container-secret-"+namespace.Name, metav1.GetOptions{})
 	if err != nil {
 		return false

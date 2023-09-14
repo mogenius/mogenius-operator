@@ -19,7 +19,7 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating ConfigMap '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 		configMap := punqUtils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.Name
@@ -46,7 +46,7 @@ func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting configMap '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
@@ -70,7 +70,7 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 		configMap := punqUtils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.Name
@@ -100,9 +100,9 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", configMapName))
 
-		configMap := punq.ConfigMapFor(namespace, configMapName)
+		configMap := punq.ConfigMapFor(namespace, configMapName, nil)
 		if configMap != nil {
-			kubeProvider := punq.NewKubeProvider()
+			kubeProvider := punq.NewKubeProvider(nil)
 			configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace)
 			configMap.Data[key] = value
 
@@ -127,7 +127,7 @@ func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName st
 		defer wg.Done()
 		cmd.Start("Update Kubernetes configMap.")
 
-		configMap := punq.ConfigMapFor(namespace, configMapName)
+		configMap := punq.ConfigMapFor(namespace, configMapName, nil)
 		if configMap != nil {
 			if configMap.Data == nil {
 				cmd.Success("ConfigMap contains no data. No key was removed.")
@@ -135,7 +135,7 @@ func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName st
 			} else {
 				delete(configMap.Data, key)
 
-				kubeProvider := punq.NewKubeProvider()
+				kubeProvider := punq.NewKubeProvider(nil)
 				updateOptions := metav1.UpdateOptions{
 					FieldManager: DEPLOYMENTNAME,
 				}

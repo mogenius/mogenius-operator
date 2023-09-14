@@ -28,7 +28,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Trigger Job from CronJob '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 
 		// get cronjob
 		cronjobs := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
@@ -65,7 +65,7 @@ func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newCronJob := generateCronJob(namespace, service, true, cronJobClient)
 
@@ -89,7 +89,7 @@ func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting CronJob '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
@@ -114,7 +114,7 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating CronJob '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newCronJob := generateCronJob(namespace, service, false, cronJobClient)
 
@@ -140,7 +140,7 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Starting CronJob '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		cronJob := generateCronJob(namespace, service, false, cronJobClient)
 
@@ -161,7 +161,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Stopping CronJob '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		cronJob := generateCronJob(namespace, service, false, cronJobClient)
 		cronJob.Spec.Suspend = punqutils.Pointer(true)
@@ -183,7 +183,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Restarting CronJob '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		cronJob := generateCronJob(namespace, service, false, cronJobClient)
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
@@ -400,7 +400,7 @@ func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string,
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Set Image in CronJob '%s'.", serviceName))
 
-		kubeProvider := punq.NewKubeProvider()
+		kubeProvider := punq.NewKubeProvider(nil)
 		cronjobClient := kubeProvider.ClientSet.BatchV1().CronJobs(namespaceName)
 		cronjobToUpdate, err := cronjobClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 		if err != nil {
@@ -425,7 +425,7 @@ func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string,
 func AllCronjobs(namespaceName string) K8sWorkloadResult {
 	result := []v1job.CronJob{}
 
-	provider := punq.NewKubeProvider()
+	provider := punq.NewKubeProvider(nil)
 	cronJobList, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		logger.Log.Errorf("AllCronjobs ERROR: %s", err.Error())
@@ -441,7 +441,7 @@ func AllCronjobs(namespaceName string) K8sWorkloadResult {
 }
 
 func UpdateK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
-	kubeProvider := punq.NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider(nil)
 	cronJobClient := kubeProvider.ClientSet.BatchV1().CronJobs(data.Namespace)
 	_, err := cronJobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
@@ -451,7 +451,7 @@ func UpdateK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
 }
 
 func DeleteK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
-	kubeProvider := punq.NewKubeProvider()
+	kubeProvider := punq.NewKubeProvider(nil)
 	jobClient := kubeProvider.ClientSet.BatchV1().CronJobs(data.Namespace)
 	err := jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
 	if err != nil {
