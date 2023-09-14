@@ -1,4 +1,14 @@
 
+### [1.5.32](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.31...v1.5.32) (2023-09-14)
+
+
+### Bug Fixes
+
+* arm64 linux. ([8b19b7b](https://github.com/mogenius/mogenius-k8s-manager/commit/8b19b7b785bbc3f0b8eecc48195ac5a8f2c2a9aa))
+* pipeline improved. ([37c1241](https://github.com/mogenius/mogenius-k8s-manager/commit/37c12418c329dc1d752a9ea5bee4df6bb75e66a6))
+* pipeline improved. ([796945f](https://github.com/mogenius/mogenius-k8s-manager/commit/796945fff2b761d922e271031c71d2ddceab4db2))
+* version bumped punq. ([282778f](https://github.com/mogenius/mogenius-k8s-manager/commit/282778f9a1ce3700de7569d172e6eb530ade9f72))
+
 ### [1.1.2](https://github.com/mogenius/mogenius-k8s-manager/compare/dev1.1.1...dev1.1.2) (2023-09-14)
 
 
