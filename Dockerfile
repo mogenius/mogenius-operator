@@ -2,7 +2,8 @@ FROM golang:1.21-alpine AS builder
 
 LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit-log here.
 
-ENV GOOS=linux
+ARG GOOS
+ARG GOARCH
 
 # RUN apk add --no-cache \
     # libpcap-dev \
@@ -21,7 +22,7 @@ RUN apk add --no-cache nfs-utils
 ARG COMMIT_HASH=NOT_SET
 ARG GIT_BRANCH=NOT_SET
 ARG BUILD_TIMESTAMP=NOT_SET
-ARG NEXT_VERSION=NOT_SET
+ARG VERSION=NOT_SET
 
 WORKDIR /app
 
@@ -30,14 +31,17 @@ RUN go mod download
 
 COPY . .
 
-RUN GOOS=linux GOARCH=amd64 go build -ldflags="-extldflags= \
+RUN go build -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.GitCommitHash=${COMMIT_HASH}' \
   -X 'mogenius-k8s-manager/version.Branch=${GIT_BRANCH}' \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
-  -X 'mogenius-k8s-manager/version.Ver=${NEXT_VERSION}'" -o bin/mogenius-k8s-manager .
+  -X 'mogenius-k8s-manager/version.Ver=$VERSION}'" -o bin/mogenius-k8s-manager .
 
 
 FROM alpine:latest
+
+ARG GOOS
+ARG GOARCH
 
 RUN apk add --no-cache \
     bash \
@@ -70,14 +74,19 @@ RUN ./get_helm.sh
 RUN rm get_helm.sh
 
 # Install Popeye
-RUN curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_x86_64.tar.gz
+RUN if [ "${GOARCH}" = "amd64" ]; then \
+      curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_x86_64.tar.gz \
+    fi \
+    if [ "${GOARCH}" = "arm64" ]; then \
+      curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm64.tar.gz \
+    fi
 RUN tar -xvf popeye.tar.gz popeye
 RUN chmod +x popeye
 RUN mv popeye /usr/local/bin/popeye
 RUN rm popeye.tar.gz
 
 # Install kubectl
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${GOARCH}/kubectl"
 RUN chmod +x kubectl
 RUN mv kubectl /usr/local/bin/kubectl
 
