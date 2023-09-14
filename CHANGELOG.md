@@ -1,4 +1,11 @@
 
+### [1.1.1](https://github.com/mogenius/mogenius-k8s-manager/compare/dev1.1.0...dev1.1.1) (2023-09-14)
+
+
+### Bug Fixes
+
+* version bumped punq. ([282778f](https://github.com/mogenius/mogenius-k8s-manager/commit/282778f9a1ce3700de7569d172e6eb530ade9f72))
+
 ## 1.1.0 (2023-09-11)
 
 
