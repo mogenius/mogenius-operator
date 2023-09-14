@@ -78,10 +78,12 @@ RUN rm get_helm.sh
 
 # Install Popeye
 RUN if [ "${GOARCH}" = "amd64" ]; then \
-      curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_x86_64.tar.gz \
-    fi \
-    if [ "${GOARCH}" = "arm64" ]; then \
-      curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm64.tar.gz \
+      curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_x86_64.tar.gz; \
+    elif [ "${GOARCH}" = "arm64" ]; then \
+      curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm64.tar.gz; \
+    else \
+      echo "Unsupported architecture"; \
+      exit 1; \
     fi
 RUN tar -xvf popeye.tar.gz popeye
 RUN chmod +x popeye
