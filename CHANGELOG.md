@@ -1,4 +1,11 @@
 
+### [1.1.3](https://github.com/mogenius/mogenius-k8s-manager/compare/dev1.1.2...dev1.1.3) (2023-09-14)
+
+
+### Bug Fixes
+
+* pipeline improved. ([37c1241](https://github.com/mogenius/mogenius-k8s-manager/commit/37c12418c329dc1d752a9ea5bee4df6bb75e66a6))
+
 ### [1.1.2](https://github.com/mogenius/mogenius-k8s-manager/compare/dev1.1.1...dev1.1.2) (2023-09-14)
 
 
