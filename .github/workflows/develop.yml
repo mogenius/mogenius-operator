@@ -8,6 +8,8 @@ on:
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
   DOCKERFILE: Dockerfile-dev
+  HELMNAME: "mogenius-k8s-manager"
+  HELMREPO: "mogenius/helm-k8s-manager"
 
 jobs:
   prepare:
@@ -33,7 +35,7 @@ jobs:
           git config --global user.email "mok8s@mogenius.com"
           git config --global user.name "mok8s"
           git config --global credential.helper cache
-          standard-version -t dev --header ""
+          standard-version --header "" --prerelease
           git push --follow-tags origin develop
 
   build-amd64:
@@ -143,6 +145,38 @@ jobs:
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
           docker manifest push ${{ env.IMAGE_NAME }}:latest
+
+  helm-chart:
+    # needs: [prepare]
+    needs: [prepare, build-amd64, build-arm64, build-arm64-linux, merge-images]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: set version env
+        run: echo "SEMVERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV  
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          # token: ${{ secrets.DOCKERHUB_TOKEN }}
+          token: ${{ secrets.MO_K8s_TOKEN }}
+          repository: ${{ env.HELMREPO }}
+          path: 'helm'        
+
+      - name: package and push
+        run: |
+          cd ./helm
+          sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
+          helm package -d /tmp/ --version ${{ env.SEMVERSION }} .
+          curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
+  
+          
 
       # - name: Grype Vulnerability Scan
       #   run: |
