@@ -1,4 +1,11 @@
 
+### [1.5.34](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.33...v1.5.34) (2023-09-16)
+
+
+### Bug Fixes
+
+* add build helm chart to actions in main ([e54d83f](https://github.com/mogenius/mogenius-k8s-manager/commit/e54d83f5a863826c2c3d42b22ebb5345f88032e3))
+
 ### [1.5.33](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.32...v1.5.33) (2023-09-14)
 
 
