@@ -1,4 +1,11 @@
 
+### [1.5.32-1](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.32-0...v1.5.32-1) (2023-09-16)
+
+
+### Bug Fixes
+
+* with helm secrets ([446a291](https://github.com/mogenius/mogenius-k8s-manager/commit/446a2911e1961031c6d8cd552e442c7c825b3c65))
+
 ### [1.5.32-0](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.31...v1.5.32-0) (2023-09-16)
 
 
