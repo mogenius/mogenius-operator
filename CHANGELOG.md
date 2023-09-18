@@ -1,4 +1,11 @@
 
+### [1.5.35](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.34...v1.5.35) (2023-09-18)
+
+
+### Bug Fixes
+
+* helm chart name ([692a542](https://github.com/mogenius/mogenius-k8s-manager/commit/692a54239b163657a690814c15b1af45b9c55bca))
+
 ### [1.5.34](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.33...v1.5.34) (2023-09-16)
 
 
