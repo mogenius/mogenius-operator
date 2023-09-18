@@ -1,4 +1,11 @@
 
+### [1.5.32-2](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.32-1...v1.5.32-2) (2023-09-18)
+
+
+### Bug Fixes
+
+* testing. ([59ea2e7](https://github.com/mogenius/mogenius-k8s-manager/commit/59ea2e73c1f568fd26ea6aa4d056cc2d314af1d8))
+
 ### [1.5.32-1](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.32-0...v1.5.32-1) (2023-09-16)
 
 
