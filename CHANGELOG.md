@@ -1,4 +1,33 @@
 
+### [1.5.36](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.35...v1.5.36) (2023-09-18)
+
+
+### Bug Fixes
+
+* testing. ([73dd771](https://github.com/mogenius/mogenius-k8s-manager/commit/73dd771a9ce6c83f56f56e14ff111b013c7ca1b7))
+* testing. ([4a64040](https://github.com/mogenius/mogenius-k8s-manager/commit/4a6404064af85497ba174432bc08b38a1f8d3ce9))
+
+### [1.5.32-2](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.34...v1.5.32-2) (2023-09-18)
+
+
+### Bug Fixes
+
+* testing. ([59ea2e7](https://github.com/mogenius/mogenius-k8s-manager/commit/59ea2e73c1f568fd26ea6aa4d056cc2d314af1d8))
+
+### [1.5.32-1](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.32-0...v1.5.32-1) (2023-09-16)
+
+
+### Bug Fixes
+
+* with helm secrets ([446a291](https://github.com/mogenius/mogenius-k8s-manager/commit/446a2911e1961031c6d8cd552e442c7c825b3c65))
+
+### [1.5.32-0](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.33...v1.5.32-0) (2023-09-16)
+
+
+### Bug Fixes
+
+* add build helm chart to actions ([5629263](https://github.com/mogenius/mogenius-k8s-manager/commit/562926351f965703975649b69613a48087d319e5))
+
 ### [1.5.32-2](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.32-1...v1.5.32-2) (2023-09-18)
 
 
