@@ -35,7 +35,7 @@ RUN go build -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.GitCommitHash=${COMMIT_HASH}' \
   -X 'mogenius-k8s-manager/version.Branch=${GIT_BRANCH}' \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
-  -X 'mogenius-k8s-manager/version.Ver=$VERSION}'" -o bin/mogenius-k8s-manager .
+  -X 'mogenius-k8s-manager/version.Ver=$VERSION'" -o bin/mogenius-k8s-manager .
 
 
 FROM alpine:latest
