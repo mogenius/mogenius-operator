@@ -1,4 +1,6 @@
 
+### [1.16.2](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.37...v1.16.2) (2023-09-19)
+
 ### [1.16.1](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.37...v1.16.1) (2023-09-19)
 
 ## [1.16.0](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.37...v1.16.0) (2023-09-19)
