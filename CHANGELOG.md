@@ -1,6 +1,67 @@
-# Changelog
 
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+### [1.16.7](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2-2...v1.16.7) (2023-09-19)
+
+
+### Bug Fixes
+
+* minor fix. ([6c692ca](https://github.com/mogenius/mogenius-k8s-manager/commit/6c692cac88cc7a2c2475f287aa53638834b7a64c))
+
+### [1.16.6](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2-1...v1.16.6) (2023-09-19)
+
+
+### Bug Fixes
+
+* stage env case sensitivity. ([0577a24](https://github.com/mogenius/mogenius-k8s-manager/commit/0577a24e4ab2b0c91dff467f3b056b904ebac55a))
+
+### [1.16.5](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.4...v1.16.5) (2023-09-19)
+
+
+### Bug Fixes
+
+* typo. ([476f7da](https://github.com/mogenius/mogenius-k8s-manager/commit/476f7da7d597565a6c318653e9b3fbc1d6f954e0))
+
+### [1.16.4](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2-0...v1.16.4) (2023-09-19)
+
+
+### Bug Fixes
+
+* typo. ([8d94930](https://github.com/mogenius/mogenius-k8s-manager/commit/8d949300389d967adea203c4895e45b8db9f0b5e))
+
+### [1.16.3](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2...v1.16.3) (2023-09-19)
+
+### [1.16.2](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.37...v1.16.2) (2023-09-19)
+
+### [1.5.37](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.1...v1.5.37) (2023-09-19)
+
+### [1.5.36](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.1-0...v1.5.36) (2023-09-18)
+
+
+### Bug Fixes
+
+* testing. ([73dd771](https://github.com/mogenius/mogenius-k8s-manager/commit/73dd771a9ce6c83f56f56e14ff111b013c7ca1b7))
+
+### [1.5.35](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.32-2...v1.5.35) (2023-09-18)
+
+
+### Bug Fixes
+
+* helm chart name ([692a542](https://github.com/mogenius/mogenius-k8s-manager/commit/692a54239b163657a690814c15b1af45b9c55bca))
+
+### [1.5.34](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.32-1...v1.5.34) (2023-09-16)
+
+
+### Bug Fixes
+
+* add build helm chart to actions in main ([e54d83f](https://github.com/mogenius/mogenius-k8s-manager/commit/e54d83f5a863826c2c3d42b22ebb5345f88032e3))
+
+### [1.5.33](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.32...v1.5.33) (2023-09-14)
+
+
+### Bug Fixes
+
+* pipeline improved. ([a4ab2e6](https://github.com/mogenius/mogenius-k8s-manager/commit/a4ab2e63772e5463ac7df436067c5c581c9f55f6))
+
+### [1.5.32](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.5.31...v1.5.32) (2023-09-14)
 
 ### [1.16.2](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2-0...v1.16.2) (2023-09-19)
 
