@@ -79,6 +79,9 @@ var ConfigPath string
 func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// try to load stage if not set
 	if stage == "" {
+		stage = strings.ToLower(os.Getenv("STAGE"))
+	}
+	if stage == "" {
 		stage = strings.ToLower(os.Getenv("stage"))
 	}
 
