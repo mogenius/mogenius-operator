@@ -1,4 +1,11 @@
 
+### [1.16.2-4](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2-3...v1.16.2-4) (2023-09-19)
+
+
+### Bug Fixes
+
+* dockerfile ([a03c219](https://github.com/mogenius/mogenius-k8s-manager/commit/a03c2197b762f90edfc1c844e2315b4ce9c0e1e4))
+
 ### [1.16.2-3](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2-2...v1.16.2-3) (2023-09-19)
 
 
