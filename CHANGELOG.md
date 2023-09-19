@@ -1,4 +1,11 @@
 
+### [1.16.10](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.9...v1.16.10) (2023-09-19)
+
+
+### Bug Fixes
+
+* dockerfile for semversion ([345122b](https://github.com/mogenius/mogenius-k8s-manager/commit/345122b9be681bf5e41711ce708950005a2566c3))
+
 ### [1.16.9](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.8...v1.16.9) (2023-09-19)
 
 
