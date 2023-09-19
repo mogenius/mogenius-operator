@@ -36,7 +36,7 @@ jobs:
           git config --global user.email "mok8s@mogenius.com"
           git config --global user.name "mok8s"
           git config --global credential.helper cache
-          npm semantic-release
+          npx semantic-release
 
   build-amd64:
     needs: prepare
