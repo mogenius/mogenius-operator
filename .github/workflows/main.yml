@@ -28,16 +28,15 @@ jobs:
           password: ${{ secrets.MO_K8s_TOKEN }}
 
       - name: Create Sematic Release Version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # npm install -g standard-version
           export HOME=/root
           git config --system http.sslVerify false
           git config --global user.email "mok8s@mogenius.com"
           git config --global user.name "mok8s"
           git config --global credential.helper cache
-          standard-version --header ""
-          git push --follow-tags origin main
-          
+          npx semantic-release
 
   build-amd64:
     needs: prepare
