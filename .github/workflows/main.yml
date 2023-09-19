@@ -163,7 +163,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: develop
+          ref: main
           # token: ${{ secrets.DOCKERHUB_TOKEN }}
           token: ${{ secrets.MO_K8s_TOKEN }}
           repository: ${{ env.HELMREPO }}
