@@ -1,6 +1,10 @@
-# Changelog
 
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+### [1.16.2-3](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2-2...v1.16.2-3) (2023-09-19)
+
+
+### Bug Fixes
+
+* minor fix. ([6c692ca](https://github.com/mogenius/mogenius-k8s-manager/commit/6c692cac88cc7a2c2475f287aa53638834b7a64c))
 
 ### [1.16.2](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2-0...v1.16.2) (2023-09-19)
 
