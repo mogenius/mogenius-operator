@@ -1,4 +1,11 @@
 
+### [1.16.2-0](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.1...v1.16.2-0) (2023-09-19)
+
+
+### Bug Fixes
+
+* typo. ([65cf450](https://github.com/mogenius/mogenius-k8s-manager/commit/65cf450c11dbf48c6ac3b00eee5f8c217e99403d))
+
 ### [1.16.1](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.1-1...v1.16.1) (2023-09-19)
 
 ### [1.16.1-1](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.1-0...v1.16.1-1) (2023-09-19)
