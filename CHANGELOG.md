@@ -10,6 +10,14 @@ All notable changes to this project will be documented in this file. See [standa
 * Actin Var HELMNAME ([4206217](https://github.com/mogenius/mogenius-k8s-manager/commit/420621790bffce339e8a9c5df91b0b9d0ea5e191))
 * typo. ([99fdf48](https://github.com/mogenius/mogenius-k8s-manager/commit/99fdf48789d8e4985006085d9c5edb702dae0ff9))
 
+### [1.16.2-1](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.2-0...v1.16.2-1) (2023-09-19)
+
+
+### Bug Fixes
+
+* Actin Var HELMNAME ([4206217](https://github.com/mogenius/mogenius-k8s-manager/commit/420621790bffce339e8a9c5df91b0b9d0ea5e191))
+* typo. ([99fdf48](https://github.com/mogenius/mogenius-k8s-manager/commit/99fdf48789d8e4985006085d9c5edb702dae0ff9))
+
 ### [1.16.2-0](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.1...v1.16.2-0) (2023-09-19)
 
 
