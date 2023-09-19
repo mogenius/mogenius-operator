@@ -1,4 +1,11 @@
 
+### [1.16.9](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.8...v1.16.9) (2023-09-19)
+
+
+### Bug Fixes
+
+* test semversion ([4f39222](https://github.com/mogenius/mogenius-k8s-manager/commit/4f39222eb41834204f973f7b7e8e72b91b83f431))
+
 ### [1.16.8](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.7...v1.16.8) (2023-09-19)
 
 
