@@ -161,6 +161,11 @@ func versionTicker() {
 
 func updateCheck() {
 	fmt.Print("Checking for updates ...")
+
+	if !punqUtils.IsProduction() {
+		fmt.Println(" (skipped) [not production].")
+	}
+
 	helmData, err := getVersionData()
 
 	if err != nil {
