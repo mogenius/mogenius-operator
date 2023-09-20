@@ -97,7 +97,7 @@ func (j *Job) Finish() {
 	for _, cmd := range j.Commands {
 		if cmd.State != "SUCCEEDED" {
 			allSuccess = false
-			failedCmd = cmd.Title
+			failedCmd = cmd.Message
 		}
 	}
 	if j.State == "FAILED" {

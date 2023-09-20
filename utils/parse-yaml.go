@@ -24,7 +24,7 @@ func InitMogeniusNfsPersistentVolumeClaim() corev1.PersistentVolumeClaim {
 }
 
 func InitMogeniusNfsPersistentVolume() corev1.PersistentVolume {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-service.yaml")
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-service-pv.yaml")
 	if err != nil {
 		panic(err.Error())
 	}

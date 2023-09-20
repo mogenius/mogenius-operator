@@ -92,9 +92,9 @@ func DeleteHelmChart(r ClusterHelmUninstallRequest) structs.Job {
 
 func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, nil, nil)
+	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, &r.NamespaceId, nil)
 	job.Start()
-	job.AddCmd(mokubernetes.CreateMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
+	job.AddCmd(mokubernetes.CreateMogeniusNfsServiceSync(&job, r.NamespaceName, r.VolumeName))
 	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
 	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolume(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
 	job.AddCmd(mokubernetes.CreateMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
@@ -109,7 +109,7 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 
 func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, nil, nil)
+	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, &r.NamespaceId, nil)
 	job.Start()
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
@@ -472,7 +472,7 @@ type NfsVolumeRequest struct {
 func NfsVolumeRequestExample() NfsVolumeRequest {
 	return NfsVolumeRequest{
 		NamespaceId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceName: "bene-test",
+		NamespaceName: "name",
 		VolumeName:    "my-fancy-volume-name",
 		SizeInGb:      10,
 	}
@@ -485,7 +485,7 @@ type NfsVolumeStatsRequest struct {
 
 func NfsVolumeStatsRequestExample() NfsVolumeStatsRequest {
 	return NfsVolumeStatsRequest{
-		NamespaceName: "bene-test",
+		NamespaceName: "name",
 		VolumeName:    "my-fancy-volume-name",
 	}
 }

@@ -9,8 +9,7 @@
       "program": "main.go",
       "args": ["testserver", "-d"],
       "asRoot": false,
-      "console": "integratedTerminal",
-      "showGlobalVariables": true
+      "console": "integratedTerminal"
     },
     {
       "name": "Client LOCAL",
@@ -20,8 +19,7 @@
       "program": "main.go",
       "args": ["testclient", "-d"],
       "asRoot": false,
-      "console": "integratedTerminal",
-      "showGlobalVariables": true
+      "console": "integratedTerminal"
     },
     {
       "name": "Client Behrang Home",
@@ -31,8 +29,7 @@
       "program": "main.go",
       "args": ["testclient", "-d", "-c", "behrang-home.yaml"],
       "asRoot": false,
-      "console": "integratedTerminal",
-      "showGlobalVariables": true
+      "console": "integratedTerminal"
     },
     {
       "name": "Client Behrang Office",
@@ -42,8 +39,7 @@
       "program": "main.go",
       "args": ["testclient", "-d", "-c", "behrang.yaml"],
       "asRoot": false,
-      "console": "integratedTerminal",
-      "showGlobalVariables": true
+      "console": "integratedTerminal"
     },
     {
       "name": "CLUSTER",
@@ -53,8 +49,7 @@
       "program": "main.go",
       "args": ["cluster", "-d"],
       "asRoot": false,
-      "console": "integratedTerminal",
-      "showGlobalVariables": true
+      "console": "integratedTerminal"
     },
     {
       "name": "Attach remote :2345",
@@ -66,8 +61,7 @@
       "host": "127.0.0.1",
       "showLog": true,
       "trace": "log",
-      "logOutput": "rpc",
-      "showGlobalVariables": true
+      "logOutput": "rpc"
     }
   ]
 }

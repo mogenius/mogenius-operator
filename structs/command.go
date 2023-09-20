@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 	"os/exec"
 	"sync"
 	"time"
@@ -84,6 +85,9 @@ func (cmd *Command) Fail(error string) {
 	cmd.State = "FAILED"
 	cmd.Message = error
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
+	if utils.CONFIG.Misc.Debug {
+		logger.Log.Errorf("Command '%s' failed: %s", cmd.Title, error)
+	}
 	ReportStateToServer(nil, cmd)
 }
 

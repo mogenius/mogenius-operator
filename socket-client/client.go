@@ -164,6 +164,7 @@ func updateCheck() {
 
 	if !punqUtils.IsProduction() {
 		fmt.Println(" (skipped) [not production].")
+		return
 	}
 
 	helmData, err := getVersionData()
