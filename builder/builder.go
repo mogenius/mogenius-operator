@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -200,6 +201,16 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 
 	// SCAN
 	Scan(*buildJob, false)
+
+	// UPDATE IMAGE
+	setImageCmd := structs.CreateCommand("Deploying image ...", &job)
+	err = updateDeploymentImage(setImageCmd, buildJob, tagName)
+	if err != nil {
+		logger.Log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
+		done <- structs.BUILD_STATE_FAILED
+		return
+	}
+
 }
 
 func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
@@ -533,7 +544,7 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), execErr)
 		logger.Log.Errorf("Error: %s", string(cmdOutput))
 		if reportCmd != nil {
-			reportCmd.Fail(execErr.Error())
+			reportCmd.Fail(fmt.Sprintf("%s: %s", execErr.Error(), cmdOutput))
 		}
 	}
 	if utils.CONFIG.Misc.Debug {
@@ -564,6 +575,25 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 	}
 
 	return execErr
+}
+
+func updateDeploymentImage(reportCmd *structs.Command, job *structs.BuildJob, imageName string) error {
+	startTime := time.Now()
+	if reportCmd != nil {
+		reportCmd.Start(reportCmd.Message)
+	}
+
+	err := kubernetes.UpdateDeploymentImage(job.Namespace, job.ServiceName, imageName)
+
+	elapsedTime := time.Since(startTime)
+	job.DurationMs = int(elapsedTime.Milliseconds()) + job.DurationMs + 1
+	if err != nil {
+		reportCmd.Fail(err.Error())
+	} else {
+		reportCmd.Success(reportCmd.Message)
+	}
+
+	return err
 }
 
 func updateState(buildJob structs.BuildJob, newState string) {

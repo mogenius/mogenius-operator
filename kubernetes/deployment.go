@@ -402,3 +402,19 @@ func SetDeploymentImage(job *structs.Job, namespaceName string, serviceName stri
 	}(cmd, wg)
 	return cmd
 }
+
+func UpdateDeploymentImage(namespaceName string, serviceName string, imageName string) error {
+	kubeProvider := punq.NewKubeProvider(nil)
+	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
+	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// SET NEW IMAGE
+	deploymentToUpdate.Spec.Template.Spec.Containers[0].Image = imageName
+	deploymentToUpdate.Spec.Paused = false
+
+	_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
+	return err
+}
