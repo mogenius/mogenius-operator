@@ -146,27 +146,23 @@ func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, name
 	return cmd
 }
 
-func CreateMogeniusNfsService(job *structs.Job, namespaceName string, volumeName string, wg *sync.WaitGroup) *structs.Command {
+func CreateMogeniusNfsServiceSync(job *structs.Job, namespaceName string, volumeName string) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Create PersistentVolume Service '%s'.", volumeName), job)
-	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating PersistentVolume Service '%s'.", volumeName))
+	cmd.Start(fmt.Sprintf("Creating PersistentVolume Service '%s'.", volumeName))
 
-		service := utils.InitMogeniusNfsService()
-		service.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
-		service.Namespace = namespaceName
-		service.Spec.Selector["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
+	service := utils.InitMogeniusNfsService()
+	service.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
+	service.Namespace = namespaceName
+	service.Spec.Selector["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespaceName)
-		_, err := serviceClient.Create(context.TODO(), &service, metav1.CreateOptions{})
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateMogeniusNfsService ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(fmt.Sprintf("Created PersistentVolume Service '%s'.", volumeName))
-		}
-	}(cmd, wg)
+	kubeProvider := punq.NewKubeProvider(nil)
+	serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespaceName)
+	_, err := serviceClient.Create(context.TODO(), &service, metav1.CreateOptions{})
+	if err != nil {
+		cmd.Fail(fmt.Sprintf("CreateMogeniusNfsService ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(fmt.Sprintf("Created PersistentVolume Service '%s'.", volumeName))
+	}
 	return cmd
 }
 
