@@ -4,13 +4,15 @@ kind: PersistentVolume
 metadata:
   name: nfs-namespace-pv
 spec:
+  storageClassName: ""
+  persistentVolumeReclaimPolicy: Delete
+  volumeMode: Filesystem
   accessModes:
   - ReadWriteMany
+  mountOptions:
+    - nolock
   capacity:
     storage: 5Gi
-  mountOptions:
-    - nfsvers=3
-    - nolock
   nfs:
     path: /exports
     server: 123.123.123.123

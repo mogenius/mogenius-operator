@@ -11,4 +11,5 @@ spec:
     requests:
       storage: 5Gi
   storageClassName: ""
+  volumeMode: Filesystem
   volumeName: nfs-namespace-pv

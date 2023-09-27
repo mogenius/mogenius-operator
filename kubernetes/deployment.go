@@ -356,9 +356,8 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 						newDeployment.Spec.Template.Spec.Volumes = append(newDeployment.Spec.Template.Spec.Volumes, core.Volume{
 							Name: volumeName,
 							VolumeSource: core.VolumeSource{
-								NFS: &core.NFSVolumeSource{
-									Path:   "/exports",
-									Server: nfsService.Spec.ClusterIP,
+								PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+									ClaimName: fmt.Sprintf("%s-%s", volumeName, namespace.Name),
 								},
 							},
 						})

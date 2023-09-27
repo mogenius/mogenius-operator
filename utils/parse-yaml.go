@@ -23,7 +23,23 @@ func InitMogeniusNfsPersistentVolumeClaim() corev1.PersistentVolumeClaim {
 	return app
 }
 
-func InitMogeniusNfsPersistentVolume() corev1.PersistentVolume {
+func InitMogeniusNfsPersistentVolumeClaimForService() corev1.PersistentVolumeClaim {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-service-pvc.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app corev1.PersistentVolumeClaim
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitMogeniusNfsPersistentVolumeForService() corev1.PersistentVolume {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-service-pv.yaml")
 	if err != nil {
 		panic(err.Error())

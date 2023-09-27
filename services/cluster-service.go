@@ -94,10 +94,13 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, &r.NamespaceId, nil)
 	job.Start()
+	// FOR K8SMANAGER
 	job.AddCmd(mokubernetes.CreateMogeniusNfsServiceSync(&job, r.NamespaceName, r.VolumeName))
 	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
-	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolume(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
 	job.AddCmd(mokubernetes.CreateMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
+	// FOR SERVICES THAT WANT TO MOUNT
+	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeForService(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
+	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaimForService(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
 	wg.Wait()
 	job.Finish()
 
@@ -111,10 +114,13 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, &r.NamespaceId, nil)
 	job.Start()
+	// FOR K8SMANAGER
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, &wg))
-	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolume(&job, r.VolumeName, r.NamespaceName, &wg))
+	// FOR SERVICES THAT WANT TO MOUNT
+	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeForService(&job, r.VolumeName, r.NamespaceName, &wg))
+	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaimForService(&job, r.NamespaceName, r.VolumeName, &wg))
 	wg.Wait()
 	job.Finish()
 
