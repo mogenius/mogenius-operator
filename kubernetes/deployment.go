@@ -357,7 +357,7 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 							Name: volumeName,
 							VolumeSource: core.VolumeSource{
 								PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-									ClaimName: fmt.Sprintf("%s-%s", volumeName, namespace.Name),
+									ClaimName: volumeName,
 								},
 							},
 						})
