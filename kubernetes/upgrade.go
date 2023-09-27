@@ -20,8 +20,11 @@ func ClusterForceReconnect() bool {
 	// - podstats
 	// - k8s-manager
 
-	kubeProvider := punq.NewKubeProvider(nil)
-	podClient := kubeProvider.ClientSet.CoreV1().Pods(utils.CONFIG.Kubernetes.OwnNamespace)
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return false
+	}
+	podClient := provider.ClientSet.CoreV1().Pods(utils.CONFIG.Kubernetes.OwnNamespace)
 
 	podsToKill := []string{}
 	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-traffic-collector", nil)...)
@@ -46,9 +49,13 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *struct
 		defer wg.Done()
 		cmd.Start("Upgrade mogenius platform ...")
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		jobClient := kubeProvider.ClientSet.BatchV1().Jobs(NAMESPACE)
-		configmapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		jobClient := provider.ClientSet.BatchV1().Jobs(NAMESPACE)
+		configmapClient := provider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
 
 		configmap := punqUtils.InitUpgradeConfigMap()
 		configmap.Namespace = NAMESPACE
@@ -59,7 +66,7 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *struct
 		job.Name = fmt.Sprintf("%s-%s", job.Name, uuid.New().String())
 
 		// CONFIGMAP
-		_, err := configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
+		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
 		if err != nil {
 			// CREATE
 			_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())

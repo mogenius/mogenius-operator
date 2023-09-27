@@ -9,7 +9,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -36,12 +35,16 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		pvc.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 		pvc.Namespace = namespaceName
 		pvc.Spec.StorageClassName = punqUtils.Pointer(storageClass)
-		pvc.Spec.Resources.Requests = corev1.ResourceList{}
-		pvc.Spec.Resources.Requests[corev1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+		pvc.Spec.Resources.Requests = v1.ResourceList{}
+		pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
-		_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
+		_, err = pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 		} else {
@@ -58,9 +61,13 @@ func DeleteMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting PersistentVolumeClaim '%s'.", volumeName))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
-		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
+		err = pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 		} else {
@@ -90,9 +97,13 @@ func CreateMogeniusNfsPersistentVolume(job *structs.Job, namespaceName string, v
 		pv.Spec.Capacity = v1.ResourceList{}
 		pv.Spec.Capacity[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		client := kubeProvider.ClientSet.CoreV1().PersistentVolumes()
-		_, err := client.Create(context.TODO(), &pv, metav1.CreateOptions{})
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		client := provider.ClientSet.CoreV1().PersistentVolumes()
+		_, err = client.Create(context.TODO(), &pv, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
 		} else {
@@ -109,8 +120,12 @@ func DeleteMogeniusNfsPersistentVolume(job *structs.Job, volumeName string, name
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting PersistentVolume '%s'.", volumeName))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		pvcClient := kubeProvider.ClientSet.CoreV1().PersistentVolumes()
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		pvcClient := provider.ClientSet.CoreV1().PersistentVolumes()
 
 		// LIST ALL PV
 		pvList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
@@ -155,9 +170,13 @@ func CreateMogeniusNfsServiceSync(job *structs.Job, namespaceName string, volume
 	service.Namespace = namespaceName
 	service.Spec.Selector["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 
-	kubeProvider := punq.NewKubeProvider(nil)
-	serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespaceName)
-	_, err := serviceClient.Create(context.TODO(), &service, metav1.CreateOptions{})
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+		return cmd
+	}
+	serviceClient := provider.ClientSet.CoreV1().Services(namespaceName)
+	_, err = serviceClient.Create(context.TODO(), &service, metav1.CreateOptions{})
 	if err != nil {
 		cmd.Fail(fmt.Sprintf("CreateMogeniusNfsService ERROR: %s", err.Error()))
 	} else {
@@ -173,9 +192,13 @@ func DeleteMogeniusNfsService(job *structs.Job, namespaceName string, volumeName
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting PersistentVolume Service '%s'.", volumeName))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		pvcClient := kubeProvider.ClientSet.CoreV1().Services(namespaceName)
-		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		pvcClient := provider.ClientSet.CoreV1().Services(namespaceName)
+		err = pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsService ERROR: %s", err.Error()))
 		} else {
@@ -201,9 +224,13 @@ func CreateMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		deployment.Spec.Selector.MatchLabels["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 		deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
-		_, err := deploymentClient.Create(context.TODO(), &deployment, metav1.CreateOptions{})
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
+		_, err = deploymentClient.Create(context.TODO(), &deployment, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateMogeniusNfsDeployment ERROR: %s", err.Error()))
 		} else {
@@ -220,9 +247,13 @@ func DeleteMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting PersistentVolume Deployment '%s'.", volumeName))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
-		err := deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
+		err = deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteMogeniusNfsDeployment ERROR: %s", err.Error()))
 		} else {

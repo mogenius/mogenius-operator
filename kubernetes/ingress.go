@@ -27,8 +27,12 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		defer wg.Done()
 		cmd.Start("Updating ingress setup.")
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		ingressClient := kubeProvider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		ingressClient := provider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
 
 		applyOptions := metav1.ApplyOptions{
 			Force:        true,

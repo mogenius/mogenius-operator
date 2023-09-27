@@ -24,8 +24,12 @@ func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
 		newService := generateService(namespace, service)
 
 		newService.Labels = MoUpdateLabels(&newService.Labels, job.ProjectId, &namespace, &service)
@@ -33,7 +37,7 @@ func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		// bind/unbind ports globally
 		UpdateTcpUdpPorts(namespace, service, true)
 
-		_, err := serviceClient.Create(context.TODO(), &newService, MoCreateOptions())
+		_, err = serviceClient.Create(context.TODO(), &newService, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()))
 		} else {
@@ -51,13 +55,17 @@ func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting service '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
 
 		// bind/unbind ports globally
 		UpdateTcpUdpPorts(namespace, service, false)
 
-		err := serviceClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
+		err = serviceClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
 		} else {
@@ -74,8 +82,12 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Update service '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
 		updateService := generateService(namespace, service)
 
 		updateOptions := metav1.UpdateOptions{
@@ -85,7 +97,7 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		// bind/unbind ports globally
 		UpdateTcpUdpPorts(namespace, service, true)
 
-		_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
+		_, err = serviceClient.Update(context.TODO(), &updateService, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()))
 		} else {
@@ -96,9 +108,12 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 }
 
 func UpdateServiceWith(service *v1.Service) error {
-	kubeProvider := punq.NewKubeProvider(nil)
-	serviceClient := kubeProvider.ClientSet.CoreV1().Services("")
-	_, err := serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return err
+	}
+	serviceClient := provider.ClientSet.CoreV1().Services("")
+	_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -252,12 +267,16 @@ func RemovePortFromService(job *structs.Job, namespace string, serviceName strin
 			}
 
 			if wasModified {
-				kubeProvider := punq.NewKubeProvider(nil)
+				provider, err := punq.NewKubeProvider(nil)
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+					return
+				}
 				updateOptions := metav1.UpdateOptions{
 					FieldManager: DEPLOYMENTNAME,
 				}
-				serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
-				_, err := serviceClient.Update(context.TODO(), service, updateOptions)
+				serviceClient := provider.ClientSet.CoreV1().Services(namespace)
+				_, err = serviceClient.Update(context.TODO(), service, updateOptions)
 				if err != nil {
 					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
 					return
@@ -283,7 +302,11 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 
 		service := punq.ServiceFor(namespace, serviceName, nil)
 		if service != nil {
-			kubeProvider := punq.NewKubeProvider(nil)
+			provider, err := punq.NewKubeProvider(nil)
+			if err != nil {
+				cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+				return
+			}
 			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{
 				Name:       fmt.Sprintf("%d-%s", port, serviceName),
 				Port:       port,
@@ -291,8 +314,8 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 				TargetPort: intstr.FromInt(int(port)),
 			})
 
-			serviceClient := kubeProvider.ClientSet.CoreV1().Services(namespace)
-			_, err := serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
+			serviceClient := provider.ClientSet.CoreV1().Services(namespace)
+			_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("AddPortToService ERROR: %s", err.Error()))
 				return

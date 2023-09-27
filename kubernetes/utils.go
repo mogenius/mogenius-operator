@@ -89,8 +89,11 @@ func CurrentContextName() string {
 }
 
 func Hostname() string {
-	provider := punq.NewKubeProvider(nil)
-	if provider == nil {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return ""
+	}
+	if provider == nil || err != nil {
 		logger.Log.Fatal("error creating kubeprovider")
 	}
 
@@ -136,8 +139,11 @@ func ClusterStatus() dtos.ClusterStatusDto {
 func listAllPods() []v1.Pod {
 	var result []v1.Pod
 
-	kubeProvider := punq.NewKubeProvider(nil)
-	pods, err := kubeProvider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return result
+	}
+	pods, err := provider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
 
 	if err != nil {
 		logger.Log.Error("Error listAllPods:", err)
@@ -147,8 +153,11 @@ func listAllPods() []v1.Pod {
 }
 
 func ListNodes() []v1.Node {
-	var provider *punq.KubeProvider = punq.NewKubeProvider(nil)
-	if provider == nil {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return []v1.Node{}
+	}
+	if provider == nil || err != nil {
 		logger.Log.Fatal("error creating kubeprovider")
 		return []v1.Node{}
 	}
@@ -162,8 +171,8 @@ func ListNodes() []v1.Node {
 }
 
 func podStats(pods map[string]v1.Pod) ([]punqStructs.Stats, error) {
-	var provider *punq.KubeProviderMetrics = punq.NewKubeProviderMetrics(nil)
-	if provider == nil {
+	provider, err := punq.NewKubeProviderMetrics(nil)
+	if provider == nil || err != nil {
 		logger.Log.Fatal("error creating kubeprovider")
 	}
 
@@ -197,16 +206,6 @@ func podStats(pods map[string]v1.Pod) ([]punqStructs.Stats, error) {
 	}
 
 	return result, nil
-}
-
-func getKubeConfig() string {
-	var kubeconfig string
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	} else {
-		kubeconfig = ""
-	}
-	return kubeconfig
 }
 
 // TAKEN FROM Kubernetes apimachineryv0.25.1

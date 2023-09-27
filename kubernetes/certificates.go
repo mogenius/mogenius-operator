@@ -50,7 +50,11 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 
 	// 3. Update the certificate if new Hostnames are beeing added.
 	if foundChanges {
-		provider := punq.NewKubeProviderCertManager(nil)
+		provider, err := punq.NewKubeProviderCertManager(nil)
+		if provider == nil || err != nil {
+			logger.Log.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
+			return
+		}
 		if createNew {
 			cert := punqUtils.InitCertificate()
 			cert.Name = namespaceName

@@ -23,8 +23,12 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 		netpol := punqUtils.InitNetPolNamespace()
 		netpol.ObjectMeta.Name = namespace.Name
 		netpol.ObjectMeta.Namespace = namespace.Name
@@ -34,7 +38,7 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 
 		netpol.Labels = MoUpdateLabels(&netpol.Labels, job.ProjectId, &namespace, nil)
 
-		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+		_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()))
 		} else {
@@ -51,10 +55,14 @@ func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 
-		err := netPolClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
+		err = netPolClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
 		} else {
@@ -71,8 +79,12 @@ func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 		netpol := punqUtils.InitNetPolService()
 		netpol.ObjectMeta.Name = service.Name
 		netpol.ObjectMeta.Namespace = namespace.Name
@@ -94,7 +106,7 @@ func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 
 		netpol.Labels = MoUpdateLabels(&netpol.Labels, job.ProjectId, &namespace, &service)
 
-		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+		_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
 		} else {
@@ -111,10 +123,14 @@ func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		netPolClient := kubeProvider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 
-		err := netPolClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
+		err = netPolClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()))
 		} else {

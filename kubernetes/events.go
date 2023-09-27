@@ -25,12 +25,15 @@ const CONCURRENTCONNECTIONS = 1
 //var waitList = []structs.WaitListEntry{}
 
 func WatchEvents() {
-	kubeProvider := punq.NewKubeProvider(nil)
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		return
+	}
 
 	var lastResourceVersion = ""
 	for {
 		// Create a watcher for all Kubernetes events
-		watcher, err := kubeProvider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
+		watcher, err := provider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
 
 		if err != nil || watcher == nil {
 			if apierrors.IsGone(err) {
@@ -138,8 +141,8 @@ func WatchEvents() {
 // 	}
 
 // 	// 2: Get own deployment for future update
-// 	kubeProvider := NewKubeProvider(nil)
-// 	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
+// 	provider, err := NewKubeProvider(nil)
+// 	deploymentClient := provider.ClientSet.AppsV1().Deployments(NAMESPACE)
 // 	ownDeployment, err := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, v1.GetOptions{})
 // 	if err != nil {
 // 		return err
@@ -198,24 +201,24 @@ func WatchEvents() {
 // 	return nil
 // }
 
-func appendVolumeMountIfNotExists(items []v1Core.VolumeMount, newItem v1Core.VolumeMount) []v1Core.VolumeMount {
-	for _, item := range items {
-		if item.Name == newItem.Name {
-			// The item is already in the slice, so return the original slice.
-			return items
-		}
-	}
-	// The item was not found, so add it to the slice.
-	return append(items, newItem)
-}
+// func appendVolumeMountIfNotExists(items []v1Core.VolumeMount, newItem v1Core.VolumeMount) []v1Core.VolumeMount {
+// 	for _, item := range items {
+// 		if item.Name == newItem.Name {
+// 			// The item is already in the slice, so return the original slice.
+// 			return items
+// 		}
+// 	}
+// 	// The item was not found, so add it to the slice.
+// 	return append(items, newItem)
+// }
 
-func appendVolumeIfNotExists(items []v1Core.Volume, newItem v1Core.Volume) []v1Core.Volume {
-	for _, item := range items {
-		if item.Name == newItem.Name {
-			// The item is already in the slice, so return the original slice.
-			return items
-		}
-	}
-	// The item was not found, so add it to the slice.
-	return append(items, newItem)
-}
+// func appendVolumeIfNotExists(items []v1Core.Volume, newItem v1Core.Volume) []v1Core.Volume {
+// 	for _, item := range items {
+// 		if item.Name == newItem.Name {
+// 			// The item is already in the slice, so return the original slice.
+// 			return items
+// 		}
+// 	}
+// 	// The item was not found, so add it to the slice.
+// 	return append(items, newItem)
+// }

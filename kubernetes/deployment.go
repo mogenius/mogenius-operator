@@ -29,13 +29,17 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newDeployment := generateDeployment(namespace, service, true, deploymentClient)
 
 		newDeployment.Labels = MoUpdateLabels(&newDeployment.Labels, job.ProjectId, &namespace, &service)
 
-		_, err := deploymentClient.Create(context.TODO(), &newDeployment, MoCreateOptions())
+		_, err = deploymentClient.Create(context.TODO(), &newDeployment, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 		} else {
@@ -53,14 +57,18 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting Deployment '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
-		err := deploymentClient.Delete(context.TODO(), service.Name, deleteOptions)
+		err = deploymentClient.Delete(context.TODO(), service.Name, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()))
 		} else {
@@ -78,15 +86,19 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newDeployment := generateDeployment(namespace, service, false, deploymentClient)
 
 		updateOptions := metav1.UpdateOptions{
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err := deploymentClient.Update(context.TODO(), &newDeployment, updateOptions)
+		_, err = deploymentClient.Update(context.TODO(), &newDeployment, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
 		} else {
@@ -104,11 +116,15 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Starting Deployment '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		deployment := generateDeployment(namespace, service, false, deploymentClient)
 
-		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()))
 		} else {
@@ -125,12 +141,16 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Stopping Deployment '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		deployment := generateDeployment(namespace, service, false, deploymentClient)
 		deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
 
-		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
 		} else {
@@ -147,8 +167,12 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Restarting Deployment '%s'.", service.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		deployment := generateDeployment(namespace, service, false, deploymentClient)
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
 		if deployment.ObjectMeta.Annotations == nil {
@@ -158,7 +182,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		}
 
-		_, err := deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
 		} else {
@@ -381,8 +405,12 @@ func SetDeploymentImage(job *structs.Job, namespaceName string, serviceName stri
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceName))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
 		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
@@ -404,8 +432,11 @@ func SetDeploymentImage(job *structs.Job, namespaceName string, serviceName stri
 }
 
 func UpdateDeploymentImage(namespaceName string, serviceName string, imageName string) error {
-	kubeProvider := punq.NewKubeProvider(nil)
-	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(namespaceName)
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return err
+	}
+	deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
 	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 	if err != nil {
 		return err

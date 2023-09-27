@@ -19,8 +19,15 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating ConfigMap '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		if provider == nil || err != nil {
+			return
+		}
+		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 		configMap := punqUtils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.Name
 		configMap.ObjectMeta.Namespace = namespace.Name
@@ -29,7 +36,7 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		// TODO: WRITE STUFF INTO CONFIGMAP
 		configMap.Labels = MoUpdateLabels(&configMap.Labels, job.ProjectId, &namespace, &service)
 
-		_, err := configMapClient.Create(context.TODO(), &configMap, MoCreateOptions())
+		_, err = configMapClient.Create(context.TODO(), &configMap, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()))
 		} else {
@@ -46,14 +53,18 @@ func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Deleting configMap '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
-		err := configMapClient.Delete(context.TODO(), service.Name, deleteOptions)
+		err = configMapClient.Delete(context.TODO(), service.Name, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()))
 		} else {
@@ -70,8 +81,15 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", namespace.Name))
 
-		kubeProvider := punq.NewKubeProvider(nil)
-		configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		if provider == nil || err != nil {
+			return
+		}
+		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 		configMap := punqUtils.InitConfigMap()
 		configMap.ObjectMeta.Name = service.Name
 		configMap.ObjectMeta.Namespace = namespace.Name
@@ -83,7 +101,7 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err := configMapClient.Update(context.TODO(), &configMap, updateOptions)
+		_, err = configMapClient.Update(context.TODO(), &configMap, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
 		} else {
@@ -102,11 +120,15 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 
 		configMap := punq.ConfigMapFor(namespace, configMapName, nil)
 		if configMap != nil {
-			kubeProvider := punq.NewKubeProvider(nil)
-			configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace)
+			provider, err := punq.NewKubeProvider(nil)
+			if err != nil {
+				cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+				return
+			}
+			configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
 			configMap.Data[key] = value
 
-			_, err := configMapClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
+			_, err = configMapClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
 			if err != nil {
 				cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
 				return
@@ -135,12 +157,16 @@ func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName st
 			} else {
 				delete(configMap.Data, key)
 
-				kubeProvider := punq.NewKubeProvider(nil)
+				provider, err := punq.NewKubeProvider(nil)
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+					return
+				}
 				updateOptions := metav1.UpdateOptions{
 					FieldManager: DEPLOYMENTNAME,
 				}
-				configMapClient := kubeProvider.ClientSet.CoreV1().ConfigMaps(namespace)
-				_, err := configMapClient.Update(context.TODO(), configMap, updateOptions)
+				configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+				_, err = configMapClient.Update(context.TODO(), configMap, updateOptions)
 				if err != nil {
 					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
 					return

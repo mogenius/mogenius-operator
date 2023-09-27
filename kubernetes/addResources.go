@@ -23,21 +23,24 @@ import (
 )
 
 func Deploy() {
-	provider := punq.NewKubeProvider(nil)
-	if provider == nil {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return
+	}
+	if provider == nil || err != nil {
 		panic("Error creating kubeprovider")
 	}
 
 	applyNamespace(provider)
 	addRbac(provider)
 	addDeployment(provider)
-	_, err := CreateClusterSecretIfNotExist()
+	_, err = CreateClusterSecretIfNotExist()
 	if err != nil {
 		logger.Log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
 	}
 }
 
-func addRbac(kubeProvider *punq.KubeProvider) error {
+func addRbac(provider *punq.KubeProvider) error {
 	serviceAccount := &core.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: SERVICEACCOUNTNAME,
@@ -75,15 +78,15 @@ func addRbac(kubeProvider *punq.KubeProvider) error {
 
 	// CREATE RBAC
 	logger.Log.Info("Creating mogenius-k8s-manager RBAC ...")
-	_, err := kubeProvider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Create(context.TODO(), serviceAccount, MoCreateOptions())
+	_, err := provider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Create(context.TODO(), serviceAccount, MoCreateOptions())
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
-	_, err = kubeProvider.ClientSet.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, MoCreateOptions())
+	_, err = provider.ClientSet.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, MoCreateOptions())
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
-	_, err = kubeProvider.ClientSet.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, MoCreateOptions())
+	_, err = provider.ClientSet.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, MoCreateOptions())
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
@@ -91,8 +94,8 @@ func addRbac(kubeProvider *punq.KubeProvider) error {
 	return nil
 }
 
-func applyNamespace(kubeProvider *punq.KubeProvider) {
-	serviceClient := kubeProvider.ClientSet.CoreV1().Namespaces()
+func applyNamespace(provider *punq.KubeProvider) {
+	serviceClient := provider.ClientSet.CoreV1().Namespaces()
 
 	namespace := applyconfcore.Namespace(NAMESPACE)
 
@@ -110,12 +113,12 @@ func applyNamespace(kubeProvider *punq.KubeProvider) {
 }
 
 func CreateClusterSecretIfNotExist() (utils.ClusterSecret, error) {
-	var kubeProvider *punq.KubeProvider = punq.NewKubeProvider(nil)
-	if kubeProvider == nil {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
 		logger.Log.Fatal("Error creating kubeprovider")
 	}
 
-	secretClient := kubeProvider.ClientSet.CoreV1().Secrets(NAMESPACE)
+	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
 
 	existingSecret, getErr := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
 	return writeMogeniusSecret(secretClient, existingSecret, getErr)
@@ -191,8 +194,8 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	return clusterSecret, nil
 }
 
-func addDeployment(kubeProvider *punq.KubeProvider) {
-	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
+func addDeployment(provider *punq.KubeProvider) {
+	deploymentClient := provider.ClientSet.AppsV1().Deployments(NAMESPACE)
 
 	deploymentContainer := applyconfcore.Container()
 	deploymentContainer.WithImagePullPolicy(core.PullAlways)

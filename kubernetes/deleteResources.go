@@ -10,9 +10,9 @@ import (
 )
 
 func Remove() {
-	provider := punq.NewKubeProvider(nil)
-	if provider == nil {
-		panic("error creating kubeprovider.")
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		panic("error creating provider.")
 	}
 
 	// namespace is not deleted on purpose
@@ -21,8 +21,8 @@ func Remove() {
 	// secret is not deleted on purpose
 }
 
-func removeDeployment(kubeProvider *punq.KubeProvider) {
-	deploymentClient := kubeProvider.ClientSet.AppsV1().Deployments(NAMESPACE)
+func removeDeployment(provider *punq.KubeProvider) {
+	deploymentClient := provider.ClientSet.AppsV1().Deployments(NAMESPACE)
 
 	// DELETE Deployment
 	logger.Log.Info("Deleting mogenius-k8s-manager deployment ...")
@@ -35,20 +35,20 @@ func removeDeployment(kubeProvider *punq.KubeProvider) {
 	logger.Log.Info("Deleted mogenius-k8s-manager deployment.")
 }
 
-func removeRbac(kubeProvider *punq.KubeProvider) {
+func removeRbac(provider *punq.KubeProvider) {
 	// CREATE RBAC
 	logger.Log.Info("Deleting mogenius-k8s-manager RBAC ...")
-	err := kubeProvider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Delete(context.TODO(), SERVICEACCOUNTNAME, metav1.DeleteOptions{})
+	err := provider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Delete(context.TODO(), SERVICEACCOUNTNAME, metav1.DeleteOptions{})
 	if err != nil {
 		logger.Log.Error(err)
 		return
 	}
-	err = kubeProvider.ClientSet.RbacV1().ClusterRoles().Delete(context.TODO(), CLUSTERROLENAME, metav1.DeleteOptions{})
+	err = provider.ClientSet.RbacV1().ClusterRoles().Delete(context.TODO(), CLUSTERROLENAME, metav1.DeleteOptions{})
 	if err != nil {
 		logger.Log.Error(err)
 		return
 	}
-	err = kubeProvider.ClientSet.RbacV1().ClusterRoleBindings().Delete(context.TODO(), CLUSTERROLEBINDINGNAME, metav1.DeleteOptions{})
+	err = provider.ClientSet.RbacV1().ClusterRoleBindings().Delete(context.TODO(), CLUSTERROLEBINDINGNAME, metav1.DeleteOptions{})
 	if err != nil {
 		logger.Log.Error(err)
 		return
