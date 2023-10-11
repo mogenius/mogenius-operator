@@ -27,7 +27,7 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 			utils.DeleteCurrentConfig()
 		}
 		utils.InitConfigYaml(debug, customConfig, stage)
-		punq.Init(utils.CONFIG.Kubernetes.RunInCluster)
+		punq.InitKubernetes(utils.CONFIG.Kubernetes.RunInCluster)
 	},
 }
 
