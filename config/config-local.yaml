@@ -1,15 +1,15 @@
 kubernetes:
-  api_key: mo_e25c459d-d748-40fb-9c0e-725c18c58333_ko420v4noljpg0q9tx9t
-  cluster_name: docker-desktop
+  api_key: 94E23575-A689-4F88-8D67-215A274F4E6E
+  cluster_name: BenesTestCluster
   own_namespace: mogenius
-  cluster_mfa_id: 8f7282a6-c847-4570-b2ba-776b107478f2
-  run_in_cluster: true
+  cluster_mfa_id:
+  run_in_cluster: false
   default_container_registry: mogenius.azurecr.io
   bbolt_db_path: mogenius.db
 
 api_server:
-  http_server: 127.0.0.1:1337
-  ws_server: 127.0.0.1:7011
+  http_server: https://platform-api.dev.mogenius.com
+  ws_server: 127.0.0.1:8080
   ws_server_scheme: ws
   ws_path: /ws
 
