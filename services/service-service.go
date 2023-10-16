@@ -399,6 +399,21 @@ type ServiceLogStreamRequest struct {
 	PostTo       string `json:"postTo"`
 }
 
+type CmdConnectionRequest struct {
+	Namespace       string `json:"namespace"`
+	Pod             string `json:"pod"`
+	Container       string `json:"container"`
+	ChannelId       string `json:"channelId"`
+	WebsocketScheme string `json:"websocketScheme"`
+	WebsocketHost   string `json:"websocketHost"`
+	LogTail         string `json:"logTail"`
+}
+
+type CmdWindowSize struct {
+	Rows uint16 `json:"rows"`
+	Cols uint16 `json:"cols"`
+}
+
 func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 	return ServiceLogStreamRequest{
 		Namespace:    "mogenius",
