@@ -980,9 +980,11 @@ func xtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectio
 		}
 
 		// API send ack when it is ready to receive messages.
-		c.SetReadDeadline(time.Now().Add(2 * time.Second))
+		c.SetReadDeadline(time.Now().Add(5 * time.Second))
 		_, ack, err := c.ReadMessage()
 		if err == nil {
+			c.SetReadDeadline(time.Time{})
+			
 			logger.Log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
 			return c
 		}
