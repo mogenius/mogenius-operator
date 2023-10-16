@@ -4,9 +4,17 @@ import (
 	// "bufio"
 
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/creack/pty"
+	"github.com/gorilla/websocket"
 	"io"
+	"log"
+	"mogenius-k8s-manager/utils"
+	"os"
+	"os/exec"
 	"strings"
+	"time"
 
 	// "fmt"
 	"mogenius-k8s-manager/builder"
@@ -200,6 +208,19 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data := ServiceLogStreamRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		return logStream(data, datagram)
+
+	case PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST:
+		data := CmdConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		punqStructs.PrettyPrint(data)
+		go execShConnection(data)
+		return nil
+
+	case PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST:
+		data := CmdConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		go logStreamConnection(data)
+		return nil
 
 	case PAT_LIST_CREATE_TEMPLATES:
 		return punq.ListCreateTemplates()
@@ -943,4 +964,112 @@ func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
 func K8sNotification(d structs.Datagram) interface{} {
 	logger.Log.Infof("Received '%s'.", d.Pattern)
 	return nil
+}
+
+func xtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectionRequest) *websocket.Conn {
+	for {
+		// add header
+		headers := utils.HttpHeader("")
+		headers.Add("x-channel-id", cmdConnectionRequest.ChannelId)
+
+		dialer := &websocket.Dialer{}
+		c, _, err := dialer.Dial(u.String(), headers)
+		if err == nil {
+			logger.Log.Infof("Connected to %s", u.String())
+			return c
+		}
+		logger.Log.Errorf("Failed to connect, retrying in 5 seconds:", err)
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func xTermCommandStreamConnection(cmdConnectionRequest CmdConnectionRequest, cmd *exec.Cmd) {
+	if cmdConnectionRequest.WebsocketScheme == "" {
+		logger.Log.Error("WebsocketScheme is empty")
+		return
+	}
+
+	if cmdConnectionRequest.WebsocketHost == "" {
+		logger.Log.Error("WebsocketHost is empty")
+		return
+	}
+
+	websocketUrl := url.URL{Scheme: cmdConnectionRequest.WebsocketScheme, Host: cmdConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
+
+	con := xtermCommandStreamWsConnection(websocketUrl, cmdConnectionRequest)
+	defer con.Close()
+
+	cmd.Env = append(os.Environ(), "TERM=xterm-color")
+
+	tty, err := pty.Start(cmd)
+	if err != nil {
+		log.Printf("Unable to start pty/cmd: %s", err.Error())
+		con.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+		return
+	}
+
+	defer func() {
+		cmd.Process.Kill()
+		cmd.Process.Wait()
+		tty.Close()
+		con.Close()
+	}()
+
+	go func() {
+		for {
+			buf := make([]byte, 1024)
+			read, err := tty.Read(buf)
+			if err != nil {
+				con.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+				log.Printf("Unable to read from pty/cmd: %s", err.Error())
+				return
+			}
+			con.WriteMessage(websocket.BinaryMessage, buf[:read])
+
+		}
+	}()
+
+	for {
+		_, reader, err := con.ReadMessage()
+		if err != nil {
+			log.Printf("Unable to grab next reader: %s", err.Error())
+			return
+		}
+
+		if strings.HasPrefix(string(reader), "\x04") {
+			str := strings.TrimPrefix(string(reader), "\x04")
+
+			var resizeMessage CmdWindowSize
+			err := json.Unmarshal([]byte(str), &resizeMessage)
+			if err != nil {
+				log.Printf("%s", err.Error())
+				continue
+			}
+
+			if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
+				log.Printf("Unable to resize: %s", err.Error())
+				continue
+			}
+			continue
+		}
+
+		if string(reader) == "PEER_IS_READY" {
+			continue
+		}
+
+		tty.Write(reader)
+	}
+}
+
+func execShConnection(cmdConnectionRequest CmdConnectionRequest) {
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("kubectl exec -it -c %s -n %s %s -- sh -c \"clear; (bash || ash || sh || ksh || csh || zsh )\"", cmdConnectionRequest.Container, cmdConnectionRequest.Namespace, cmdConnectionRequest.Pod))
+	xTermCommandStreamConnection(cmdConnectionRequest, cmd)
+}
+
+func logStreamConnection(cmdConnectionRequest CmdConnectionRequest) {
+	if cmdConnectionRequest.LogTail == "" {
+		cmdConnectionRequest.LogTail = "1000"
+	}
+	cmd := exec.Command("kubectl", "logs", "-f", cmdConnectionRequest.Pod, fmt.Sprintf("--tail=%s", cmdConnectionRequest.LogTail), "-c", cmdConnectionRequest.Container, "-n", cmdConnectionRequest.Namespace)
+	xTermCommandStreamConnection(cmdConnectionRequest, cmd)
 }

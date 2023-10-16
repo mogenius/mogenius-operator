@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/aws/aws-sdk-go v1.44.238
 	github.com/cert-manager/cert-manager v1.12.3
+	github.com/creack/pty v1.1.18
 	github.com/fatih/color v1.15.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/validator v9.31.0+incompatible
