@@ -6,8 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/creack/pty"
-	"github.com/gorilla/websocket"
 	"io"
 	"log"
 	"mogenius-k8s-manager/utils"
@@ -15,6 +13,9 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/creack/pty"
+	"github.com/gorilla/websocket"
 
 	// "fmt"
 	"mogenius-k8s-manager/builder"
@@ -976,8 +977,16 @@ func xtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectio
 		c, _, err := dialer.Dial(u.String(), headers)
 		if err == nil {
 			logger.Log.Infof("Connected to %s", u.String())
+		}
+
+		// API send ack when it is ready to receive messages.
+		c.SetReadDeadline(time.Now().Add(2 * time.Second))
+		_, ack, err := c.ReadMessage()
+		if err == nil {
+			logger.Log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
 			return c
 		}
+
 		logger.Log.Errorf("Failed to connect, retrying in 5 seconds:", err)
 		time.Sleep(5 * time.Second)
 	}
