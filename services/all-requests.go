@@ -140,6 +140,15 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err.Error()
 		}
 		return result
+	case PAT_NAMESPACE_RESOURCE_YAML:
+		data := NamespaceResourceYamlRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := punq.AllResourcesFromToCombinedYaml(data.NamespaceName, data.Resources, nil)
+		if err != nil {
+			return err.Error()
+		}
+		return result
+
 	case PAT_SERVICE_CREATE:
 		data := ServiceCreateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

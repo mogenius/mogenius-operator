@@ -32,6 +32,7 @@ const (
 	PAT_NAMESPACE_GATHER_ALL_RESOURCES  string = "namespace/gather-all-resources"
 	PAT_NAMESPACE_BACKUP                string = "namespace/backup"
 	PAT_NAMESPACE_RESTORE               string = "namespace/restore"
+	PAT_NAMESPACE_RESOURCE_YAML         string = "namespace/resource-yaml"
 
 	PAT_SERVICE_CREATE          string = "service/create"
 	PAT_SERVICE_DELETE          string = "service/delete"
@@ -292,6 +293,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_NAMESPACE_GATHER_ALL_RESOURCES,
 	PAT_NAMESPACE_BACKUP,
 	PAT_NAMESPACE_RESTORE,
+	PAT_NAMESPACE_RESOURCE_YAML,
 
 	PAT_SERVICE_CREATE,
 	PAT_SERVICE_DELETE,

@@ -16,7 +16,7 @@ require (
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-tty v0.0.4
-	github.com/mogenius/punq v1.4.3
+	github.com/mogenius/punq v1.4.8
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/satori/go.uuid v1.2.0
 	github.com/schollz/progressbar/v3 v3.13.0
@@ -49,7 +49,7 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/jaevor/go-nanoid v1.3.0 // indirect
 	github.com/jedib0t/go-pretty v4.3.0+incompatible // indirect
-	github.com/jedib0t/go-pretty/v6 v6.4.6 // indirect
+	github.com/jedib0t/go-pretty/v6 v6.4.8 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/kubernetes-csi/external-snapshotter/client/v6 v6.2.0 // indirect

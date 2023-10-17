@@ -216,3 +216,15 @@ func NamespaceRestoreRequestExample() NamespaceRestoreRequest {
 		YamlData:      data,
 	}
 }
+
+type NamespaceResourceYamlRequest struct {
+	NamespaceName string   `json:"namespaceName"`
+	Resources     []string `json:"resources"`
+}
+
+func NamespaceResourceYamlRequestExample() NamespaceResourceYamlRequest {
+	return NamespaceResourceYamlRequest{
+		NamespaceName: "default",
+		Resources:     []string{"pod", "service", "deployment", "daemonset", "ingress", "secret", "configmap"},
+	}
+}

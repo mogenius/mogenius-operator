@@ -336,6 +336,8 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.NamespaceBackupRequestExample()
 		case services.PAT_NAMESPACE_RESTORE:
 			payload = services.NamespaceRestoreRequestExample()
+		case services.PAT_NAMESPACE_RESOURCE_YAML:
+			payload = services.NamespaceResourceYamlRequestExample()
 
 		case services.PAT_SERVICE_CREATE:
 			payload = services.ServiceCreateRequestExample()
