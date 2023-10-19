@@ -43,7 +43,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 
 		config := networkingv1.Ingress(ingressName, namespace.Name)
 		config.WithAnnotations(map[string]string{
-			"kubernetes.io/ingress.class":                    "nginx",
+			"cert-manager.io/cluster-issuer":                 "letsencrypt-cluster-issuer",
 			"nginx.ingress.kubernetes.io/rewrite-target":     "/",
 			"nginx.ingress.kubernetes.io/use-regex":          "true",
 			"nginx.ingress.kubernetes.io/cors-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,correlation-id,device-version,device,access-token,refresh-token",
@@ -62,6 +62,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		}
 
 		spec := networkingv1.IngressSpec()
+		spec.IngressClassName = punqUtils.Pointer("nginx")
 		tlsHosts := []string{}
 
 		// 1. All Services
