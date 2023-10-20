@@ -222,7 +222,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST:
 		data := CmdConnectionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		punqStructs.PrettyPrint(data)
 		go execShConnection(data)
 		return nil
 
@@ -1037,6 +1036,16 @@ func xTermCommandStreamConnection(cmdConnectionRequest CmdConnectionRequest, cmd
 		cmd.Process.Wait()
 		tty.Close()
 		con.Close()
+	}()
+
+	go func() {
+		err := cmd.Wait()
+		if err != nil {
+			log.Printf("cmd wait: %s", err.Error())
+		} else {
+			log.Printf("Terminal closed.")
+			con.WriteMessage(websocket.TextMessage, []byte("TERMINAL_CLOSED"))
+		}
 	}()
 
 	go func() {
