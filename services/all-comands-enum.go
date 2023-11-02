@@ -9,6 +9,7 @@ const (
 	PAT_SERVICE_POD_EXISTS      string = "SERVICE_POD_EXISTS"
 	PAT_SERVICE_PODS            string = "SERVICE_PODS"
 	PAT_CLUSTER_FORCE_RECONNECT string = "ClusterForceReconnect"
+	PAT_SYSTEM_CHECK            string = "SYSTEM_CHECK"
 
 	PAT_FILES_LIST          string = "files/list"
 	PAT_FILES_DOWNLOAD      string = "files/download"
@@ -270,6 +271,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_POD_EXISTS,
 	PAT_SERVICE_PODS,
 	PAT_CLUSTER_FORCE_RECONNECT,
+	PAT_SYSTEM_CHECK,
 
 	PAT_FILES_LIST,
 	PAT_FILES_DOWNLOAD,

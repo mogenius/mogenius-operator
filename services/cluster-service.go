@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -568,4 +569,20 @@ type NfsVolumeRestoreResponse struct {
 	VolumeName string `json:"volumeName"`
 	Message    string `json:"message"`
 	Error      string `json:"error,omitempty"`
+}
+
+func SystemCheck() string {
+	result := ""
+	contextName := kubernetes.CurrentContextName()
+
+	k8smanagerInstalledVersion, k8smanagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, kubernetes.DEPLOYMENTNAME)
+	if k8smanagerInstalledErr != nil {
+		result += fmt.Sprintf("%s is not installed in context '%s'.\nPlease check the installation of the mogenius operator within your cluster for errors.", kubernetes.DEPLOYMENTNAME, contextName)
+		return result
+	}
+	result += fmt.Sprintf("Found version '%s' of %s in '%s'.\n\n", k8smanagerInstalledVersion, kubernetes.DEPLOYMENTNAME, contextName)
+
+	result += punq.SystemCheck()
+
+	return result
 }

@@ -54,6 +54,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_CLUSTER_FORCE_RECONNECT:
 		return kubernetes.ClusterForceReconnect()
 
+	case PAT_SYSTEM_CHECK:
+		return SystemCheck()
+
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
