@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
@@ -146,13 +147,19 @@ func loadDefaultAnnotations() map[string]string {
 		error_page 400 401 403 404 405 406 408 413 417 500 502 503 504 @custom;`,
 	}
 
-	defaultIngAnnotations := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-default-ingress-annotations", nil)
+	defaultIngAnnotations := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-default-ingress-values", nil)
 	if defaultIngAnnotations != nil {
-		for key, value := range defaultIngAnnotations.Data {
-			result[key] = value
+		if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
+			var annotations map[string]string
+			if err := json.Unmarshal([]byte(annotationsRaw), &annotations); err != nil {
+				fmt.Println("Error unmarshalling annotations from mogenius-default-ingress-values:", err)
+				return result
+			}
+			for key, value := range annotations {
+				result[key] = value
+			}
 		}
 	}
-
 	return result
 }
 
