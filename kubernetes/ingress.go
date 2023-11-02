@@ -47,7 +47,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 			"nginx.ingress.kubernetes.io/rewrite-target":     "/",
 			"nginx.ingress.kubernetes.io/use-regex":          "true",
 			"nginx.ingress.kubernetes.io/cors-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,correlation-id,device-version,device,access-token,refresh-token",
-			"nginx.ingress.kubernetes.io/proxy-body-size":    "100m",
+			"nginx.ingress.kubernetes.io/proxy-body-size":    "200m",
 			"nginx.ingress.kubernetes.io/server-snippet": `location @custom {
 				proxy_pass https://errorpages.mogenius.io;
 				proxy_set_header Host            \"errorpages.mogenius.io\";
