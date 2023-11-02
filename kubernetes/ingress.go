@@ -147,7 +147,7 @@ func loadDefaultAnnotations() map[string]string {
 		error_page 400 401 403 404 405 406 408 413 417 500 502 503 504 @custom;`,
 	}
 
-	defaultIngAnnotations := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-default-ingress-values", nil)
+	defaultIngAnnotations := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-default-ingress-values", false, nil)
 	if defaultIngAnnotations != nil {
 		if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
 			var annotations map[string]string

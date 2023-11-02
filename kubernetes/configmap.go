@@ -118,7 +118,7 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", configMapName))
 
-		configMap := punq.ConfigMapFor(namespace, configMapName, nil)
+		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
 		if configMap != nil {
 			provider, err := punq.NewKubeProvider(nil)
 			if err != nil {
@@ -149,7 +149,7 @@ func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName st
 		defer wg.Done()
 		cmd.Start("Update Kubernetes configMap.")
 
-		configMap := punq.ConfigMapFor(namespace, configMapName, nil)
+		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
 		if configMap != nil {
 			if configMap.Data == nil {
 				cmd.Success("ConfigMap contains no data. No key was removed.")
