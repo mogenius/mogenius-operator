@@ -3,12 +3,12 @@ package dtos
 type K8sServiceTypeEnum string
 
 const (
-	GitRepositoryTemplate   K8sServiceTypeEnum = "GIT_REPOSITORY_TEMPLATE"
-	GitRepository           K8sServiceTypeEnum = "GIT_REPOSITORY"
-	ContainerImageTemplate  K8sServiceTypeEnum = "CONTAINER_IMAGE_TEMPLATE"
-	ContainerImage          K8sServiceTypeEnum = "CONTAINER_IMAGE"
-	K8SDeployment           K8sServiceTypeEnum = "K8S_DEPLOYMENT"
-	K8SCronJob              K8sServiceTypeEnum = "K8S_CRON_JOB"
+	GitRepositoryTemplate  K8sServiceTypeEnum = "GIT_REPOSITORY_TEMPLATE"
+	GitRepository          K8sServiceTypeEnum = "GIT_REPOSITORY"
+	ContainerImageTemplate K8sServiceTypeEnum = "CONTAINER_IMAGE_TEMPLATE"
+	ContainerImage         K8sServiceTypeEnum = "CONTAINER_IMAGE"
+	K8SDeployment          K8sServiceTypeEnum = "K8S_DEPLOYMENT"
+	K8SCronJob             K8sServiceTypeEnum = "K8S_CRON_JOB"
 )
 
 type K8sServiceDto struct {
@@ -31,12 +31,13 @@ type K8sServiceDto struct {
 	Ports                                []K8sPortsDto         `json:"ports" validate:"required"`
 	SwitchedOn                           bool                  `json:"switchedOn" validate:"required"`
 	ServiceType                          K8sServiceTypeEnum    `json:"serviceType,omitempty"`
+	SettingsYaml                         string                `json:"settingsYaml,omitempty"`
 }
 
 func (dto *K8sServiceDto) ApplyDefaults() {
 	if dto.ServiceType == "" {
 		dto.ServiceType = K8SDeployment
-	} 
+	}
 }
 
 func K8sServiceDtoExampleData() K8sServiceDto {
@@ -58,6 +59,7 @@ func K8sServiceDtoExampleData() K8sServiceDto {
 		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData(), K8sEnvVarVolumeMountDtoExampleData()},
 		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData(), K8sPortsDtoExternalExampleData()},
 		SwitchedOn:                           true,
+		SettingsYaml:                         "",
 	}
 }
 
@@ -81,6 +83,7 @@ func K8sServiceContainerImageDtoExampleData() K8sServiceDto {
 		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData()},
 		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData()},
 		SwitchedOn:                           true,
+		SettingsYaml:                         "",
 	}
 }
 
@@ -105,5 +108,6 @@ func K8sServiceCronJobExampleData() K8sServiceDto {
 		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData()},
 		SwitchedOn:                           true,
 		ServiceType:                          "K8S_CRONJOB",
+		SettingsYaml:                         "",
 	}
 }

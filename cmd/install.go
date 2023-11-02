@@ -22,7 +22,7 @@ var installCmd = &cobra.Command{
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		yellow := color.New(color.FgYellow).SprintFunc()
-		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you realy want to install mogenius-k8s-manager to '%s' context?", yellow(kubernetes.CurrentContextName())), 1) {
+		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you realy want to install mogenius-k8s-manager to '%s' context?", yellow(kubernetes.CurrentContextName()))) {
 			os.Exit(0)
 		}
 
