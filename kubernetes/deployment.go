@@ -303,6 +303,13 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 		}
 	}
 
+	// ImagePullPolicy
+	if service.K8sSettings.ImagePullPolicy != "" {
+		newDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = core.PullPolicy(service.K8sSettings.ImagePullPolicy)
+	} else {
+		newDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = core.PullAlways
+	}
+
 	// ENV VARS
 	newDeployment.Spec.Template.Spec.Containers[0].Env = []core.EnvVar{}
 	newDeployment.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
