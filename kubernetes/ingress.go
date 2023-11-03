@@ -28,6 +28,16 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		defer wg.Done()
 		cmd.Start("Updating ingress setup.")
 
+		ingressControllerType, err := punq.DetermineIngressControllerType(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		if ingressControllerType == punq.UNKNOWN || ingressControllerType == punq.NONE {
+			cmd.Fail("ERROR: Unknown or NONE ingress controller installed. Supported are NGINX and TRAEFIK.")
+			return
+		}
+
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
@@ -51,7 +61,12 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		}
 
 		spec := networkingv1.IngressSpec()
-		spec.IngressClassName = punqUtils.Pointer("nginx")
+
+		if ingressControllerType == punq.NGINX {
+			spec.IngressClassName = punqUtils.Pointer("nginx")
+		} else if ingressControllerType == punq.TRAEFIK {
+			spec.IngressClassName = punqUtils.Pointer("traefik")
+		}
 		tlsHosts := []string{}
 
 		// 1. All Services
