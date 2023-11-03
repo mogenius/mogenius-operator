@@ -272,8 +272,8 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 	limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
 	newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = limits
 	requests := core.ResourceList{}
-	requests["cpu"] = resource.MustParse("1m")
-	requests["memory"] = resource.MustParse("1Mi")
+	requests["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*700))
+	requests["memory"] = resource.MustParse(fmt.Sprintf("%dMi", int(float64(service.K8sSettings.LimitMemoryMB)*0.7)))
 	requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
 	newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests = requests
 
@@ -301,6 +301,13 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 		} else {
 			newDeployment.Spec.Template.Spec.Containers[0].Image = "ghcr.io/mogenius/mo-default-backend:latest"
 		}
+	}
+
+	// ImagePullPolicy
+	if service.K8sSettings.ImagePullPolicy != "" {
+		newDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = core.PullPolicy(service.K8sSettings.ImagePullPolicy)
+	} else {
+		newDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = core.PullAlways
 	}
 
 	// ENV VARS

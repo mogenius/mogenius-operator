@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
@@ -27,6 +28,16 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		defer wg.Done()
 		cmd.Start("Updating ingress setup.")
 
+		ingressControllerType, err := punq.DetermineIngressControllerType(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		if ingressControllerType == punq.UNKNOWN || ingressControllerType == punq.NONE {
+			cmd.Fail("ERROR: Unknown or NONE ingress controller installed. Supported are NGINX and TRAEFIK.")
+			return
+		}
+
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
@@ -42,19 +53,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		ingressName := INGRESS_PREFIX + "-" + namespace.Name
 
 		config := networkingv1.Ingress(ingressName, namespace.Name)
-		config.WithAnnotations(map[string]string{
-			"cert-manager.io/cluster-issuer":                 "letsencrypt-cluster-issuer",
-			"nginx.ingress.kubernetes.io/rewrite-target":     "/",
-			"nginx.ingress.kubernetes.io/use-regex":          "true",
-			"nginx.ingress.kubernetes.io/cors-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,correlation-id,device-version,device,access-token,refresh-token",
-			"nginx.ingress.kubernetes.io/proxy-body-size":    "100m",
-			"nginx.ingress.kubernetes.io/server-snippet": `location @custom {
-				proxy_pass https://errorpages.mogenius.io;
-				proxy_set_header Host            \"errorpages.mogenius.io\";
-				internal;
-			}
-			error_page 400 401 403 404 405 406 408 413 417 500 502 503 504 @custom;`,
-		})
+		config.WithAnnotations(loadDefaultAnnotations())
 
 		// remove the issuer if cloudflare takes over controll over certificate
 		if namespace.CloudflareProxied {
@@ -62,7 +61,12 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		}
 
 		spec := networkingv1.IngressSpec()
-		spec.IngressClassName = punqUtils.Pointer("nginx")
+
+		if ingressControllerType == punq.NGINX {
+			spec.IngressClassName = punqUtils.Pointer("nginx")
+		} else if ingressControllerType == punq.TRAEFIK {
+			spec.IngressClassName = punqUtils.Pointer("traefik")
+		}
 		tlsHosts := []string{}
 
 		// 1. All Services
@@ -141,6 +145,37 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		}
 	}(cmd, wg)
 	return cmd
+}
+
+func loadDefaultAnnotations() map[string]string {
+	result := map[string]string{
+		"cert-manager.io/cluster-issuer":                 "letsencrypt-cluster-issuer",
+		"nginx.ingress.kubernetes.io/rewrite-target":     "/",
+		"nginx.ingress.kubernetes.io/use-regex":          "true",
+		"nginx.ingress.kubernetes.io/cors-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,correlation-id,device-version,device,access-token,refresh-token",
+		"nginx.ingress.kubernetes.io/proxy-body-size":    "200m",
+		"nginx.ingress.kubernetes.io/server-snippet": `location @custom {
+			proxy_pass https://errorpages.mogenius.io;
+			proxy_set_header Host            \"errorpages.mogenius.io\";
+			internal;
+		}
+		error_page 400 401 403 404 405 406 408 413 417 500 502 503 504 @custom;`,
+	}
+
+	defaultIngAnnotations := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-default-ingress-values", false, nil)
+	if defaultIngAnnotations != nil {
+		if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
+			var annotations map[string]string
+			if err := json.Unmarshal([]byte(annotationsRaw), &annotations); err != nil {
+				fmt.Println("Error unmarshalling annotations from mogenius-default-ingress-values:", err)
+				return result
+			}
+			for key, value := range annotations {
+				result[key] = value
+			}
+		}
+	}
+	return result
 }
 
 func createIngressRule(hostname string, serviceName string, port int32) *networkingv1.IngressRuleApplyConfiguration {

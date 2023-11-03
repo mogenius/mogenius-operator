@@ -26,6 +26,22 @@
 <br />
 <br />
 
+# local docker image in docker-desktop kubernetes
+RUN:
+```
+docker build -t localk8smanager --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg BUILD_TIMESTAMP="$(date)" -f Dockerfile-dev .
+```
+mogenius-k8s-manager deployment in your cluster change:
+```
+image: ghcr.io/mogenius/mogenius-k8s-manager:latest
+imagePullPolicy: Always
+
+TO:
+
+image: localk8smanager:latest
+imagePullPolicy: Never
+```
+After that simply restart the deployment and you are good to go.
 
 
 # Helm Install

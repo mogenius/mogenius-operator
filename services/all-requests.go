@@ -54,6 +54,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_CLUSTER_FORCE_RECONNECT:
 		return kubernetes.ClusterForceReconnect()
 
+	case PAT_SYSTEM_CHECK:
+		return SystemCheck()
+
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -1027,11 +1030,16 @@ func xTermCommandStreamConnection(cmdConnectionRequest CmdConnectionRequest, cmd
 	tty, err := pty.Start(cmd)
 	if err != nil {
 		log.Printf("Unable to start pty/cmd: %s", err.Error())
-		con.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+		if con != nil {
+			con.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+		}
 		return
 	}
 
 	defer func() {
+		if con != nil {
+			con.WriteMessage(websocket.TextMessage, []byte("TERMINAL_CLOSED"))
+		}
 		cmd.Process.Kill()
 		cmd.Process.Wait()
 		tty.Close()
@@ -1044,7 +1052,6 @@ func xTermCommandStreamConnection(cmdConnectionRequest CmdConnectionRequest, cmd
 			log.Printf("cmd wait: %s", err.Error())
 		} else {
 			log.Printf("Terminal closed.")
-			con.WriteMessage(websocket.TextMessage, []byte("TERMINAL_CLOSED"))
 		}
 	}()
 
@@ -1053,12 +1060,14 @@ func xTermCommandStreamConnection(cmdConnectionRequest CmdConnectionRequest, cmd
 			buf := make([]byte, 1024)
 			read, err := tty.Read(buf)
 			if err != nil {
-				con.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 				log.Printf("Unable to read from pty/cmd: %s", err.Error())
 				return
 			}
-			con.WriteMessage(websocket.BinaryMessage, buf[:read])
-
+			if con != nil {
+				con.WriteMessage(websocket.BinaryMessage, buf[:read])
+			} else {
+				return
+			}
 		}
 	}()
 
