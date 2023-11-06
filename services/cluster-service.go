@@ -574,21 +574,46 @@ type NfsVolumeRestoreResponse struct {
 }
 
 func SystemCheck() punq.SystemCheckResponse {
-	result := punq.SystemCheckResponse{}
-	result.Entries = []punq.SystemCheckEntry{}
+	entries := punq.SystemCheck()
 
 	contextName := kubernetes.CurrentContextName()
-	k8smanagerInstalledVersion, k8smanagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, kubernetes.DEPLOYMENTNAME)
-	if k8smanagerInstalledErr != nil {
-		result.TerminalString += fmt.Sprintf("%s is not installed in context '%s'.\nPlease check the installation of the mogenius operator within your cluster for errors.", kubernetes.DEPLOYMENTNAME, contextName)
-		return result
-	}
-	result.TerminalString += fmt.Sprintf("Found version '%s' of %s in '%s'.\n\n", k8smanagerInstalledVersion, kubernetes.DEPLOYMENTNAME, contextName)
+	// k8smanagerInstalledVersion, k8smanagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, kubernetes.DEPLOYMENTNAME)
+	// if k8smanagerInstalledErr != nil {
+	// 	result.TerminalString += fmt.Sprintf("%s is not installed in context '%s'.\nPlease check the installation of the mogenius operator within your cluster for errors.", kubernetes.DEPLOYMENTNAME, contextName)
+	// 	return result
+	// }
+	// result.TerminalString += fmt.Sprintf("Found version '%s' of %s in '%s'.\n\n", k8smanagerInstalledVersion, kubernetes.DEPLOYMENTNAME, contextName)
 
-	punqResult := punq.SystemCheck()
-	result.TerminalString += punqResult.TerminalString
-	result.Entries = append(result.Entries, punqResult.Entries...)
-	return result
+	trafficCollectorName := "mogenius-traffic-collector"
+	trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, trafficCollectorName)
+	trafficMsg := fmt.Sprintf("%s (Version: %s) is installed.", trafficCollectorName, trafficCollectorVersion)
+	if trafficCollectorInstalledErr != nil {
+		trafficMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather traffic information you need to install this component.", trafficCollectorName, contextName)
+	}
+	entries = append(entries, punq.SystemCheckEntry{CheckName: trafficCollectorName, Success: trafficCollectorInstalledErr == nil, Message: trafficMsg, InstallPattern: PAT_INSTALL_TRAFFIC_COLLECTOR, UnistallPattern: PAT_UNINSTALL_TRAFFIC_COLLECTOR})
+
+	podStatsCollectorName := "mogenius-pod-stats-collector"
+	podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, podStatsCollectorName)
+	podStatsMsg := fmt.Sprintf("%s (Version: %s) is installed.", podStatsCollectorName, podStatsCollectorVersion)
+	if podStatsCollectorInstalledErr != nil {
+		podStatsMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather pod/event information you need to install this component.", podStatsCollectorName, contextName)
+	}
+	entries = append(entries, punq.SystemCheckEntry{CheckName: podStatsCollectorName, Success: podStatsCollectorInstalledErr == nil, Message: podStatsMsg, InstallPattern: PAT_INSTALL_POD_STATS_COLLECTOR, UnistallPattern: PAT_UNINSTALL_POD_STATS_COLLECTOR})
+
+	// add missing patterns
+	for i := 0; i < len(entries); i++ {
+		entry := entries[i]
+		if entry.CheckName == "Ingress Controller" {
+			entries[i].InstallPattern = PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
+			entries[i].UnistallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
+		}
+		if entry.CheckName == "Metrics Server" {
+			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
+			entries[i].UnistallPattern = PAT_UNINSTALL_METRICS_SERVER
+		}
+	}
+
+	return punq.GenerateSystemCheckResponse(entries)
 }
 
 func InstallTrafficCollector() structs.Job {

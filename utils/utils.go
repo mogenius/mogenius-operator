@@ -129,3 +129,7 @@ func parseIPs(ips []string) ([]net.IP, error) {
 	}
 	return parsed, nil
 }
+
+func Prepend[T any](s []T, values ...T) []T {
+	return append(values, s...)
+}
