@@ -57,6 +57,23 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_SYSTEM_CHECK:
 		return SystemCheck()
 
+	case PAT_INSTALL_TRAFFIC_COLLECTOR:
+		return InstallTrafficCollector()
+	case PAT_INSTALL_METRICS_SERVER:
+		return InstallMetricsServer()
+	case PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK:
+		return InstallIngressControllerTreafik()
+	case PAT_INSTALL_CERT_MANAGER:
+		return InstallCertManager()
+	case PAT_UNINSTALL_TRAFFIC_COLLECTOR:
+		return UninstallTrafficCollector()
+	case PAT_UNINSTALL_METRICS_SERVER:
+		return UninstallMetricsServer()
+	case PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK:
+		return UninstallIngressControllerTreafik()
+	case PAT_UNINSTALL_CERT_MANAGER:
+		return UninstallCertManager()
+
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

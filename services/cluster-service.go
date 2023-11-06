@@ -48,7 +48,7 @@ func InstallHelmChart(r ClusterHelmRequest) structs.Job {
 
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, &wg))
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -431,7 +431,8 @@ type ClusterHelmRequest struct {
 	HelmRepoName    string `json:"helmRepoName"`
 	HelmRepoUrl     string `json:"helmRepoUrl"`
 	HelmReleaseName string `json:"helmReleaseName"`
-	HelmChartName   string `json:"HelmChartName"`
+	HelmChartName   string `json:"helmChartName"`
+	HelmFlags       string `json:"helmFlags"`
 	HelmTask        string `json:"helmTask"` // install, upgrade, uninstall
 }
 
@@ -443,6 +444,7 @@ func ClusterHelmRequestExample() ClusterHelmRequest {
 		HelmRepoUrl:     "https://charts.bitnami.com/bitnami",
 		HelmReleaseName: "test-helm-release",
 		HelmChartName:   "bitnami/nginx",
+		HelmFlags:       "",
 		HelmTask:        "install",
 	}
 }
@@ -571,18 +573,189 @@ type NfsVolumeRestoreResponse struct {
 	Error      string `json:"error,omitempty"`
 }
 
-func SystemCheck() string {
-	result := ""
-	contextName := kubernetes.CurrentContextName()
+func SystemCheck() punq.SystemCheckResponse {
+	result := punq.SystemCheckResponse{}
+	result.Entries = []punq.SystemCheckEntry{}
 
+	contextName := kubernetes.CurrentContextName()
 	k8smanagerInstalledVersion, k8smanagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, kubernetes.DEPLOYMENTNAME)
 	if k8smanagerInstalledErr != nil {
-		result += fmt.Sprintf("%s is not installed in context '%s'.\nPlease check the installation of the mogenius operator within your cluster for errors.", kubernetes.DEPLOYMENTNAME, contextName)
+		result.TerminalString += fmt.Sprintf("%s is not installed in context '%s'.\nPlease check the installation of the mogenius operator within your cluster for errors.", kubernetes.DEPLOYMENTNAME, contextName)
 		return result
 	}
-	result += fmt.Sprintf("Found version '%s' of %s in '%s'.\n\n", k8smanagerInstalledVersion, kubernetes.DEPLOYMENTNAME, contextName)
+	result.TerminalString += fmt.Sprintf("Found version '%s' of %s in '%s'.\n\n", k8smanagerInstalledVersion, kubernetes.DEPLOYMENTNAME, contextName)
 
-	result += punq.SystemCheck()
-
+	punqResult := punq.SystemCheck()
+	result.TerminalString += punqResult.TerminalString
+	result.Entries = append(result.Entries, punqResult.Entries...)
 	return result
+}
+
+func InstallTrafficCollector() structs.Job {
+	r := ClusterHelmRequest{
+		Namespace:       "mogenius",
+		HelmRepoName:    "mogenius",
+		HelmRepoUrl:     "https://helm.mogenius.com/public",
+		HelmReleaseName: "mogenius-traffic-collector",
+		HelmChartName:   "mogenius/mogenius-traffic-collector",
+		HelmFlags:       "",
+		HelmTask:        "install",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
+func InstallMetricsServer() structs.Job {
+	//helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+	//helm upgrade --install metrics-server metrics-server/metrics-server
+
+	r := ClusterHelmRequest{
+		Namespace:       "default",
+		HelmRepoName:    "metrics-server",
+		HelmRepoUrl:     "https://kubernetes-sigs.github.io/metrics-server/",
+		HelmReleaseName: "metrics-server",
+		HelmChartName:   "metrics-server/metrics-server",
+		HelmFlags:       "--install",
+		HelmTask:        "upgrade",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
+func InstallIngressControllerTreafik() structs.Job {
+	// helm repo add traefik https://traefik.github.io/charts
+	// helm install traefik traefik/traefik
+
+	r := ClusterHelmRequest{
+		Namespace:       "default",
+		HelmRepoName:    "traefik",
+		HelmRepoUrl:     "https://traefik.github.io/charts",
+		HelmReleaseName: "traefik",
+		HelmChartName:   "traefik/traefik",
+		HelmFlags:       "",
+		HelmTask:        "install",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
+func InstallCertManager() structs.Job {
+	// helm repo add jetstack https://charts.jetstack.io
+	// helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace
+
+	r := ClusterHelmRequest{
+		Namespace:       "cert-manager",
+		HelmRepoName:    "jetstack",
+		HelmRepoUrl:     "https://charts.jetstack.io",
+		HelmReleaseName: "cert-manager",
+		HelmChartName:   "jetstack/cert-manager",
+		HelmFlags:       "--namespace cert-manager --create-namespace",
+		HelmTask:        "install",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
+func UninstallTrafficCollector() structs.Job {
+	r := ClusterHelmRequest{
+		Namespace:       "mogenius",
+		HelmRepoName:    "mogenius",
+		HelmRepoUrl:     "https://helm.mogenius.com/public",
+		HelmReleaseName: "mogenius-traffic-collector",
+		HelmChartName:   "mogenius/mogenius-traffic-collector",
+		HelmFlags:       "",
+		HelmTask:        "uninstall",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
+func UninstallMetricsServer() structs.Job {
+	r := ClusterHelmRequest{
+		Namespace:       "default",
+		HelmRepoName:    "metrics-server",
+		HelmRepoUrl:     "https://kubernetes-sigs.github.io/metrics-server/",
+		HelmReleaseName: "metrics-server",
+		HelmChartName:   "metrics-server/metrics-server",
+		HelmFlags:       "",
+		HelmTask:        "uninstall",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
+func UninstallIngressControllerTreafik() structs.Job {
+	r := ClusterHelmRequest{
+		Namespace:       "default",
+		HelmRepoName:    "traefik",
+		HelmRepoUrl:     "https://traefik.github.io/charts",
+		HelmReleaseName: "traefik",
+		HelmChartName:   "traefik/traefik",
+		HelmFlags:       "",
+		HelmTask:        "uninstall",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
+func UninstallCertManager() structs.Job {
+	r := ClusterHelmRequest{
+		Namespace:       "cert-manager",
+		HelmRepoName:    "jetstack",
+		HelmRepoUrl:     "https://charts.jetstack.io",
+		HelmReleaseName: "cert-manager",
+		HelmChartName:   "jetstack/cert-manager",
+		HelmFlags:       "",
+		HelmTask:        "uninstall",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
 }
