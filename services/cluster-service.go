@@ -611,6 +611,10 @@ func SystemCheck() punq.SystemCheckResponse {
 			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
 			entries[i].UnistallPattern = PAT_UNINSTALL_METRICS_SERVER
 		}
+		if entry.CheckName == "LoadBalancer IPs/Hostnames" {
+			entries[i].InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
+			entries[i].UnistallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
+		}
 	}
 
 	return punq.GenerateSystemCheckResponse(entries)
@@ -791,7 +795,7 @@ func UninstallIngressControllerTreafik() structs.Job {
 		HelmRepoName:    "traefik",
 		HelmRepoUrl:     "https://traefik.github.io/charts",
 		HelmReleaseName: "traefik",
-		HelmChartName:   "traefik/traefik",
+		HelmChartName:   "",
 		HelmFlags:       "",
 		HelmTask:        "uninstall",
 	}
