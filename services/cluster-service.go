@@ -611,6 +611,26 @@ func InstallTrafficCollector() structs.Job {
 	return job
 }
 
+func InstallPodStatsCollector() structs.Job {
+	r := ClusterHelmRequest{
+		Namespace:       "mogenius",
+		HelmRepoName:    "mogenius",
+		HelmRepoUrl:     "https://helm.mogenius.com/public",
+		HelmReleaseName: "mogenius-pod-stats-collector",
+		HelmChartName:   "mogenius/mogenius-pod-stats-collector",
+		HelmFlags:       "",
+		HelmTask:        "install",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
 func InstallMetricsServer() structs.Job {
 	//helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 	//helm upgrade --install metrics-server metrics-server/metrics-server
@@ -687,6 +707,26 @@ func UninstallTrafficCollector() structs.Job {
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-traffic-collector",
 		HelmChartName:   "mogenius/mogenius-traffic-collector",
+		HelmFlags:       "",
+		HelmTask:        "uninstall",
+	}
+
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job.Start()
+	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	wg.Wait()
+	job.Finish()
+	return job
+}
+
+func UninstallPodStatsCollector() structs.Job {
+	r := ClusterHelmRequest{
+		Namespace:       "mogenius",
+		HelmRepoName:    "mogenius",
+		HelmRepoUrl:     "https://helm.mogenius.com/public",
+		HelmReleaseName: "mogenius-pod-stats-collector",
+		HelmChartName:   "mogenius/mogenius-pod-stats-collector",
 		HelmFlags:       "",
 		HelmTask:        "uninstall",
 	}

@@ -62,6 +62,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 
 	case PAT_INSTALL_TRAFFIC_COLLECTOR:
 		return InstallTrafficCollector()
+	case PAT_INSTALL_POD_STATS_COLLECTOR:
+		return InstallPodStatsCollector()
 	case PAT_INSTALL_METRICS_SERVER:
 		return InstallMetricsServer()
 	case PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK:
@@ -70,6 +72,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return InstallCertManager()
 	case PAT_UNINSTALL_TRAFFIC_COLLECTOR:
 		return UninstallTrafficCollector()
+	case PAT_UNINSTALL_POD_STATS_COLLECTOR:
+		return UninstallPodStatsCollector()
 	case PAT_UNINSTALL_METRICS_SERVER:
 		return UninstallMetricsServer()
 	case PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK:
