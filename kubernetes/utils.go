@@ -100,58 +100,6 @@ func Hostname() string {
 	return provider.ClientConfig.Host
 }
 
-func ClusterStatus() dtos.ClusterStatusDto {
-	var currentPods = make(map[string]v1.Pod)
-	pods := listAllPods()
-	for _, pod := range pods {
-		currentPods[pod.Name] = pod
-	}
-
-	result, err := podStats(currentPods)
-	if err != nil {
-		logger.Log.Error("podStats:", err)
-	}
-
-	var cpu int64 = 0
-	var cpuLimit int64 = 0
-	var memory int64 = 0
-	var memoryLimit int64 = 0
-	var ephemeralStorageLimit int64 = 0
-	for _, pod := range result {
-		cpu += pod.Cpu
-		cpuLimit += pod.CpuLimit
-		memory += pod.Memory
-		memoryLimit += pod.MemoryLimit
-		ephemeralStorageLimit += pod.EphemeralStorageLimit
-	}
-
-	return dtos.ClusterStatusDto{
-		ClusterName:           utils.CONFIG.Kubernetes.ClusterName,
-		Pods:                  len(result),
-		CpuInMilliCores:       int(cpu),
-		CpuLimitInMilliCores:  int(cpuLimit),
-		Memory:                punqUtils.BytesToHumanReadable(memory),
-		MemoryLimit:           punqUtils.BytesToHumanReadable(memoryLimit),
-		EphemeralStorageLimit: punqUtils.BytesToHumanReadable(ephemeralStorageLimit),
-	}
-}
-
-func listAllPods() []v1.Pod {
-	var result []v1.Pod
-
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return result
-	}
-	pods, err := provider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
-
-	if err != nil {
-		logger.Log.Error("Error listAllPods:", err)
-		return result
-	}
-	return pods.Items
-}
-
 func ListNodes() []v1.Node {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
@@ -168,44 +116,6 @@ func ListNodes() []v1.Node {
 		return []v1.Node{}
 	}
 	return nodeMetricsList.Items
-}
-
-func podStats(pods map[string]v1.Pod) ([]punqStructs.Stats, error) {
-	provider, err := punq.NewKubeProviderMetrics(nil)
-	if provider == nil || err != nil {
-		logger.Log.Fatal("error creating kubeprovider")
-	}
-
-	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses("").List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system,metadata.namespace!=default"})
-	if err != nil {
-		return nil, err
-	}
-
-	var result []punqStructs.Stats
-	// I HATE THIS BUT I DONT SEE ANY OTHER SOLUTION! SPEND HOURS (to find something better) ON THIS UGGLY SHIT!!!!
-
-	for _, podMetrics := range podMetricsList.Items {
-		var pod = pods[podMetrics.Name]
-
-		var entry = punqStructs.Stats{}
-		entry.Cluster = utils.CONFIG.Kubernetes.ClusterName
-		entry.Namespace = podMetrics.Namespace
-		entry.PodName = podMetrics.Name
-		entry.StartTime = pod.Status.StartTime.Format(time.RFC3339)
-		for _, container := range pod.Spec.Containers {
-			entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()
-			entry.MemoryLimit += container.Resources.Limits.Memory().Value()
-			entry.EphemeralStorageLimit += container.Resources.Limits.StorageEphemeral().Value()
-		}
-		for _, containerMetric := range podMetrics.Containers {
-			entry.Cpu += containerMetric.Usage.Cpu().MilliValue()
-			entry.Memory += containerMetric.Usage.Memory().Value()
-		}
-
-		result = append(result, entry)
-	}
-
-	return result, nil
 }
 
 // TAKEN FROM Kubernetes apimachineryv0.25.1
