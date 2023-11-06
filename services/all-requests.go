@@ -27,6 +27,7 @@ import (
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -41,9 +42,11 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_CLUSTERRESOURCEINFO:
 		nodeStats := punq.GetNodeStats(nil)
 		loadBalancerExternalIps := punq.GetClusterExternalIps(nil)
+		country, _ := punqUtils.GuessClusterCountry()
 		result := punqDtos.ClusterResourceInfoDto{
 			NodeStats:               nodeStats,
 			LoadBalancerExternalIps: loadBalancerExternalIps,
+			Country:                 country,
 		}
 		return result
 	case PAT_UPGRADEK8SMANAGER:
