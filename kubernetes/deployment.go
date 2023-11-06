@@ -223,8 +223,10 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 
 	// STRATEGY
 	if service.K8sSettings.DeploymentStrategy != "" {
-		if service.K8sSettings.DeploymentStrategy != "rolling" {
+		if service.K8sSettings.DeploymentStrategy == "rolling" {
 			newDeployment.Spec.Strategy.Type = v1.RollingUpdateDeploymentStrategyType
+		} else if service.K8sSettings.DeploymentStrategy == "recreate" {
+			newDeployment.Spec.Strategy.Type = v1.RecreateDeploymentStrategyType
 		} else {
 			newDeployment.Spec.Strategy.Type = v1.RecreateDeploymentStrategyType
 		}
