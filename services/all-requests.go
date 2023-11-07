@@ -988,7 +988,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 }
 
 func PopeyeConsole() string {
-	return punqStructs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")
+	return punqStructs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye --force-exit-zero")
 }
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {

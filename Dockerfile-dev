@@ -5,18 +5,6 @@ LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit
 ARG GOOS
 ARG GOARCH
 
-# RUN apk add --no-cache \
-    # libpcap-dev \
-    # g++ \
-    # perl-utils \
-    # curl \
-    # build-base \
-    # binutils-gold \
-    # bash 
-    # clang \
-    # llvm \
-    # libbpf-dev \
-    # linux-headers
 RUN apk add --no-cache nfs-utils
 RUN apk add --no-cache build-base
 
@@ -51,21 +39,18 @@ RUN apk add --no-cache \
     git \
     curl \
     build-base \
-    # libpcap-dev \
     nodejs \
     npm \
     coreutils \
-    # ruby-dev \
     openssl \
     nfs-utils \
-    # buildah \
     podman \
     fuse-overlayfs
 
 # RUN gem install -N rails
 # RUN gem install -N bundler
 # RUN npm install -g @vue/cli
-RUN npm install -g @angular/cli
+# RUN npm install -g @angular/cli
 # RUN npm install -g @nestjs/cli
 # RUN npm install -g gatsby-cli
 # RUN npm install -g create-next-app next react react-dom
