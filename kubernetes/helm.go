@@ -4,23 +4,22 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/structs"
 	"sync"
-
-	punqStructs "github.com/mogenius/punq/structs"
 )
 
 func ExecuteHelmChartTask(job *structs.Job, helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask string, helmChartName string, helmFlags string, wg *sync.WaitGroup) []*structs.Command {
 	cmds := []*structs.Command{}
 
-	punqStructs.ExecuteBashCommandSilent("Add/Update Helm Repo", fmt.Sprintf(" helm repo add %s %s; helm repo update", helmReleaseName, helmRepoUrl))
-	installCmd := structs.CreateBashCommand("Execute chart.", job, fmt.Sprintf("helm %s %s %s %s", helmTask, helmReleaseName, helmChartName, helmFlags), wg)
+	updateAddRepoCmd := structs.CreateBashCommand("Add/Update Helm Repo", job, fmt.Sprintf("helm repo add %s %s; helm repo update", helmReleaseName, helmRepoUrl))
+	installCmd := structs.CreateBashCommand("Execute chart.", job, fmt.Sprintf("helm %s %s %s %s", helmTask, helmReleaseName, helmChartName, helmFlags))
 
+	cmds = append(cmds, updateAddRepoCmd)
 	cmds = append(cmds, installCmd)
 
 	return cmds
 }
 
-func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGroup) *structs.Command {
-	return structs.CreateBashCommand("Uninstall chart.", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
+func DeleteHelmChart(job *structs.Job, helmReleaseName string) *structs.Command {
+	return structs.CreateBashCommand("Uninstall chart.", job, fmt.Sprintf("helm uninstall %s", helmReleaseName))
 }
 
 // func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *sync.WaitGroup) []*structs.Command {

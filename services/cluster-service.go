@@ -55,12 +55,10 @@ func InstallHelmChart(r ClusterHelmRequest) structs.Job {
 }
 
 func DeleteHelmChart(r ClusterHelmUninstallRequest) structs.Job {
-	var wg sync.WaitGroup
 
 	job := structs.CreateJob("Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmd(mokubernetes.DeleteHelmChart(&job, r.HelmReleaseName, &wg))
-	wg.Wait()
+	job.AddCmd(mokubernetes.DeleteHelmChart(&job, r.HelmReleaseName))
 	job.Finish()
 	return job
 }
