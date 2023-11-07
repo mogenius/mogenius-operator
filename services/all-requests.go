@@ -47,6 +47,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			NodeStats:               nodeStats,
 			LoadBalancerExternalIps: loadBalancerExternalIps,
 			Country:                 country,
+			Provider:                string(utils.ClusterProviderCached),
 		}
 		return result
 	case PAT_UPGRADEK8SMANAGER:

@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	punqDtos "github.com/mogenius/punq/dtos"
+	punq "github.com/mogenius/punq/kubernetes"
+
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
@@ -55,7 +58,6 @@ type Config struct {
 		IgnoreResourcesBackup []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
 		CheckForUpdates       int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
 		HelmIndex             string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
-		ClusterProvider       string   `yaml:"cluster_provider" env:"cluster_provider" env-description:"Providers like AKS, EKS, GCP etc."`
 		NfsPodPrefix          string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
 	} `yaml:"misc"`
 	Builder struct {
@@ -75,6 +77,7 @@ var DefaultConfigClusterFileDev string
 var DefaultConfigClusterFileProd string
 var CONFIG Config
 var ConfigPath string
+var ClusterProviderCached punqDtos.KubernetesProvider = punqDtos.UNKNOWN
 
 func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// try to load stage if not set
@@ -110,6 +113,14 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 
 	if CONFIG.Kubernetes.RunInCluster {
 		ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
+	}
+
+	if ClusterProviderCached == punqDtos.UNKNOWN {
+		foundProvider, err := punq.GuessClusterProvider(nil)
+		if err != nil {
+			logger.Log.Errorf("GuessClusterProvider ERR: %s", err.Error())
+		}
+		ClusterProviderCached = foundProvider
 	}
 
 	if showDebug || CONFIG.Kubernetes.RunInCluster {
@@ -204,9 +215,8 @@ func PrintSettings() {
 	logger.Log.Infof("IgnoreNamespaces:         %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
 	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
-	logger.Log.Infof("ClusterProvider:          %s", CONFIG.Misc.ClusterProvider)
 	logger.Log.Infof("NfsPodPrefix:             %s", CONFIG.Misc.NfsPodPrefix)
-	logger.Log.Infof("ClusterProvider:          %d\n\n", CONFIG.Builder.BuildTimeout)
+	logger.Log.Infof("ClusterProvider:          %s\n\n", ClusterProviderCached)
 
 	logger.Log.Infof("GIT")
 	logger.Log.Infof("GitUserEmail:             %s", CONFIG.Git.GitUserEmail)

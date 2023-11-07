@@ -95,7 +95,6 @@ helm repo update
 | ignore_resources_backup    | ["events.k8s.io/v1", "events.k8s.io/v1beta1", "metrics.k8s.io/v1beta1", "discovery.k8s.io/v1"]    |   List of all ignored resources while backup.     | 
 | check_for_updates          | 3600                                        | Time interval between update checks in seconds.      | 
 | helm_index                 | https://helm.mogenius.com/public/index.yaml | URL of the helm index file.      | 
-| cluster_provider           | BRING_YOUR_OWN                              | Cluster providers like AKS, EKS, GCP, BRING_YOUR_OWN etc. In this case BRING_YOUR_OWN means default.    | 
 | nfs_pod_prefix             | nfs-server-pod                              | A prefix for the nfs-server pod. This will always be applied in order to detect the pod. | 
 | max_build_time             | 3600                                        | Timeout after when builds will be canceled in seconds.  (1h default) | 
 | max_scan_time              | 200                                         | Timeout after when vulnerability scans will be canceled in seconds. | 

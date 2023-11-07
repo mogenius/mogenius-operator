@@ -39,7 +39,6 @@ misc:
     ]
   check_for_updates: 3600
   helm_index: https://helm.mogenius.com/public/index.yaml
-  cluster_provider: DOCKER_DESKTOP
   nfs_pod_prefix: nfs-server-pod
 
 builder:

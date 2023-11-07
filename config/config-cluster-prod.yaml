@@ -39,7 +39,6 @@ misc:
     ]
   check_for_updates: 86400
   helm_index: https://helm.mogenius.com/public/index.yaml
-  cluster_provider: BRING_YOUR_OWN
   nfs_pod_prefix: nfs-server-pod
 
 builder:
