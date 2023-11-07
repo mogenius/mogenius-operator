@@ -4,10 +4,12 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"os"
 
 	cc "github.com/ivanpirog/coloredcobra"
+	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	"github.com/spf13/cobra"
 )
@@ -28,6 +30,15 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 		}
 		utils.InitConfigYaml(debug, customConfig, stage)
 		punq.InitKubernetes(utils.CONFIG.Kubernetes.RunInCluster)
+
+		if utils.ClusterProviderCached == punqDtos.UNKNOWN {
+			foundProvider, err := punq.GuessClusterProvider(nil)
+			if err != nil {
+				logger.Log.Errorf("GuessClusterProvider ERR: %s", err.Error())
+			}
+			utils.ClusterProviderCached = foundProvider
+			logger.Log.Noticef("🎲 🎲 🎲 ClusterProvider: %s", string(foundProvider))
+		}
 	},
 }
 

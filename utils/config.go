@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	punqDtos "github.com/mogenius/punq/dtos"
-	punq "github.com/mogenius/punq/kubernetes"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -108,7 +107,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 			logger.Log.Error("Config file is corrupted. Creating a new one by using -r flag.")
 		}
 		logger.Log.Errorf("Error reading config: %s", ConfigPath)
-
+		logger.Log.Errorf("Error reading config: %s", err.Error())
 	}
 
 	if CONFIG.Kubernetes.RunInCluster {
@@ -117,13 +116,6 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
-		if ClusterProviderCached == punqDtos.UNKNOWN {
-			foundProvider, err := punq.GuessClusterProvider(nil)
-			if err != nil {
-				logger.Log.Errorf("GuessClusterProvider ERR: %s", err.Error())
-			}
-			ClusterProviderCached = foundProvider
-		}
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
 			if !showDebug {
 				PrintSettings()
@@ -215,7 +207,6 @@ func PrintSettings() {
 	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
 	logger.Log.Infof("NfsPodPrefix:             %s", CONFIG.Misc.NfsPodPrefix)
-	logger.Log.Infof("ClusterProvider:          %s\n\n", ClusterProviderCached)
 
 	logger.Log.Infof("GIT")
 	logger.Log.Infof("GitUserEmail:             %s", CONFIG.Git.GitUserEmail)
