@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/structs"
 	"sync"
+
+	punqStructs "github.com/mogenius/punq/structs"
 )
 
 func ExecuteHelmChartTask(job *structs.Job, helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask string, helmChartName string, helmFlags string, wg *sync.WaitGroup) []*structs.Command {
 	cmds := []*structs.Command{}
 
-	addRepoCmd := structs.CreateBashCommand("Add repo.", job, fmt.Sprintf(" helm repo add %s %s; helm repo update", helmReleaseName, helmRepoUrl), wg)
+	punqStructs.ExecuteBashCommandSilent("Add/Update Helm Repo", fmt.Sprintf(" helm repo add %s %s; helm repo update", helmReleaseName, helmRepoUrl))
 	installCmd := structs.CreateBashCommand("Execute chart.", job, fmt.Sprintf("helm %s %s %s %s", helmTask, helmReleaseName, helmChartName, helmFlags), wg)
 
-	cmds = append(cmds, addRepoCmd)
 	cmds = append(cmds, installCmd)
 
 	return cmds

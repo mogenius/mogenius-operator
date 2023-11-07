@@ -611,10 +611,6 @@ func SystemCheck() punq.SystemCheckResponse {
 			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
 			entries[i].UninstallPattern = PAT_UNINSTALL_METRICS_SERVER
 		}
-		if entry.CheckName == "LoadBalancer IPs/Hostnames" {
-			entries[i].InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
-			entries[i].UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
-		}
 	}
 
 	return punq.GenerateSystemCheckResponse(entries)
@@ -627,7 +623,7 @@ func InstallTrafficCollector() structs.Job {
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-traffic-collector",
 		HelmChartName:   "mogenius/mogenius-traffic-collector",
-		HelmFlags:       "",
+		HelmFlags:       "--set global.namespace=mogenius",
 		HelmTask:        "install",
 	}
 
@@ -647,7 +643,7 @@ func InstallPodStatsCollector() structs.Job {
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-pod-stats-collector",
 		HelmChartName:   "mogenius/mogenius-pod-stats-collector",
-		HelmFlags:       "",
+		HelmFlags:       "--set global.namespace=mogenius",
 		HelmTask:        "install",
 	}
 
@@ -711,12 +707,12 @@ func InstallCertManager() structs.Job {
 	// helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace
 
 	r := ClusterHelmRequest{
-		Namespace:       "cert-manager",
+		Namespace:       "mogenius",
 		HelmRepoName:    "jetstack",
 		HelmRepoUrl:     "https://charts.jetstack.io",
 		HelmReleaseName: "cert-manager",
-		HelmChartName:   "jetstack/cert-manager",
-		HelmFlags:       "--namespace cert-manager --create-namespace",
+		HelmChartName:   "cert-manager/cert-manager",
+		HelmFlags:       "--namespace mogenius --create-namespace",
 		HelmTask:        "install",
 	}
 
@@ -735,7 +731,7 @@ func UninstallTrafficCollector() structs.Job {
 		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-traffic-collector",
-		HelmChartName:   "mogenius/mogenius-traffic-collector",
+		HelmChartName:   "",
 		HelmFlags:       "",
 		HelmTask:        "uninstall",
 	}
@@ -755,7 +751,7 @@ func UninstallPodStatsCollector() structs.Job {
 		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-pod-stats-collector",
-		HelmChartName:   "mogenius/mogenius-pod-stats-collector",
+		HelmChartName:   "",
 		HelmFlags:       "",
 		HelmTask:        "uninstall",
 	}
@@ -811,12 +807,12 @@ func UninstallIngressControllerTreafik() structs.Job {
 
 func UninstallCertManager() structs.Job {
 	r := ClusterHelmRequest{
-		Namespace:       "cert-manager",
+		Namespace:       "mogenius",
 		HelmRepoName:    "jetstack",
 		HelmRepoUrl:     "https://charts.jetstack.io",
 		HelmReleaseName: "cert-manager",
-		HelmChartName:   "jetstack/cert-manager",
-		HelmFlags:       "",
+		HelmChartName:   "",
+		HelmFlags:       "--namespace mogenius",
 		HelmTask:        "uninstall",
 	}
 
