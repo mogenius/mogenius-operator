@@ -11,6 +11,17 @@ const (
 	PAT_CLUSTER_FORCE_RECONNECT string = "ClusterForceReconnect"
 	PAT_SYSTEM_CHECK            string = "SYSTEM_CHECK"
 
+	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
+	PAT_INSTALL_POD_STATS_COLLECTOR          string = "install-pod-stats-collector"
+	PAT_INSTALL_METRICS_SERVER               string = "install-metrics-server"
+	PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK   string = "install-ingress-controller-traefik"
+	PAT_INSTALL_CERT_MANAGER                 string = "install-cert-manager"
+	PAT_UNINSTALL_TRAFFIC_COLLECTOR          string = "uninstall-traffic-collector"
+	PAT_UNINSTALL_POD_STATS_COLLECTOR        string = "uninstall-pod-stats-collector"
+	PAT_UNINSTALL_METRICS_SERVER             string = "uninstall-metrics-server"
+	PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK string = "uninstall-ingress-controller-traefik"
+	PAT_UNINSTALL_CERT_MANAGER               string = "uninstall-cert-manager"
+
 	PAT_FILES_LIST          string = "files/list"
 	PAT_FILES_DOWNLOAD      string = "files/download"
 	PAT_FILES_CREATE_FOLDER string = "files/create-folder"
@@ -272,6 +283,15 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_PODS,
 	PAT_CLUSTER_FORCE_RECONNECT,
 	PAT_SYSTEM_CHECK,
+
+	PAT_INSTALL_TRAFFIC_COLLECTOR,
+	PAT_INSTALL_METRICS_SERVER,
+	PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK,
+	PAT_INSTALL_CERT_MANAGER,
+	PAT_UNINSTALL_TRAFFIC_COLLECTOR,
+	PAT_UNINSTALL_METRICS_SERVER,
+	PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK,
+	PAT_UNINSTALL_CERT_MANAGER,
 
 	PAT_FILES_LIST,
 	PAT_FILES_DOWNLOAD,

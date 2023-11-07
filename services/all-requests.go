@@ -27,6 +27,7 @@ import (
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -41,9 +42,11 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_CLUSTERRESOURCEINFO:
 		nodeStats := punq.GetNodeStats(nil)
 		loadBalancerExternalIps := punq.GetClusterExternalIps(nil)
+		country, _ := punqUtils.GuessClusterCountry()
 		result := punqDtos.ClusterResourceInfoDto{
 			NodeStats:               nodeStats,
 			LoadBalancerExternalIps: loadBalancerExternalIps,
+			Country:                 country,
 		}
 		return result
 	case PAT_UPGRADEK8SMANAGER:
@@ -56,6 +59,27 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 
 	case PAT_SYSTEM_CHECK:
 		return SystemCheck()
+
+	case PAT_INSTALL_TRAFFIC_COLLECTOR:
+		return InstallTrafficCollector()
+	case PAT_INSTALL_POD_STATS_COLLECTOR:
+		return InstallPodStatsCollector()
+	case PAT_INSTALL_METRICS_SERVER:
+		return InstallMetricsServer()
+	case PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK:
+		return InstallIngressControllerTreafik()
+	case PAT_INSTALL_CERT_MANAGER:
+		return InstallCertManager()
+	case PAT_UNINSTALL_TRAFFIC_COLLECTOR:
+		return UninstallTrafficCollector()
+	case PAT_UNINSTALL_POD_STATS_COLLECTOR:
+		return UninstallPodStatsCollector()
+	case PAT_UNINSTALL_METRICS_SERVER:
+		return UninstallMetricsServer()
+	case PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK:
+		return UninstallIngressControllerTreafik()
+	case PAT_UNINSTALL_CERT_MANAGER:
+		return UninstallCertManager()
 
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}
@@ -964,7 +988,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 }
 
 func PopeyeConsole() string {
-	return punqStructs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye")
+	return punqStructs.ExecuteBashCommandWithResponse("Generate popeye report", "popeye --force-exit-zero")
 }
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
