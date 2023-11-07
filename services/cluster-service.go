@@ -590,7 +590,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if trafficCollectorInstalledErr != nil {
 		trafficMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather traffic information you need to install this component.", trafficCollectorName, contextName)
 	}
-	entries = append(entries, punq.SystemCheckEntry{CheckName: trafficCollectorName, Success: trafficCollectorInstalledErr == nil, Message: trafficMsg, InstallPattern: PAT_INSTALL_TRAFFIC_COLLECTOR, UnistallPattern: PAT_UNINSTALL_TRAFFIC_COLLECTOR})
+	entries = append(entries, punq.SystemCheckEntry{CheckName: trafficCollectorName, Success: trafficCollectorInstalledErr == nil, Message: trafficMsg, InstallPattern: PAT_INSTALL_TRAFFIC_COLLECTOR, UninstallPattern: PAT_UNINSTALL_TRAFFIC_COLLECTOR})
 
 	podStatsCollectorName := "mogenius-pod-stats-collector"
 	podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, podStatsCollectorName)
@@ -598,22 +598,22 @@ func SystemCheck() punq.SystemCheckResponse {
 	if podStatsCollectorInstalledErr != nil {
 		podStatsMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather pod/event information you need to install this component.", podStatsCollectorName, contextName)
 	}
-	entries = append(entries, punq.SystemCheckEntry{CheckName: podStatsCollectorName, Success: podStatsCollectorInstalledErr == nil, Message: podStatsMsg, InstallPattern: PAT_INSTALL_POD_STATS_COLLECTOR, UnistallPattern: PAT_UNINSTALL_POD_STATS_COLLECTOR})
+	entries = append(entries, punq.SystemCheckEntry{CheckName: podStatsCollectorName, Success: podStatsCollectorInstalledErr == nil, Message: podStatsMsg, InstallPattern: PAT_INSTALL_POD_STATS_COLLECTOR, UninstallPattern: PAT_UNINSTALL_POD_STATS_COLLECTOR})
 
 	// add missing patterns
 	for i := 0; i < len(entries); i++ {
 		entry := entries[i]
 		if entry.CheckName == "Ingress Controller" {
 			entries[i].InstallPattern = PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
-			entries[i].UnistallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
+			entries[i].UninstallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
 		}
 		if entry.CheckName == "Metrics Server" {
 			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
-			entries[i].UnistallPattern = PAT_UNINSTALL_METRICS_SERVER
+			entries[i].UninstallPattern = PAT_UNINSTALL_METRICS_SERVER
 		}
 		if entry.CheckName == "LoadBalancer IPs/Hostnames" {
 			entries[i].InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
-			entries[i].UnistallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
+			entries[i].UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
 		}
 	}
 
