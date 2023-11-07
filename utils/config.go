@@ -115,20 +115,15 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
 	}
 
-	if ClusterProviderCached == punqDtos.UNKNOWN {
-		foundProvider, err := punq.GuessClusterProvider(nil)
-		if err != nil {
-			logger.Log.Errorf("GuessClusterProvider ERR: %s", err.Error())
-		}
-		ClusterProviderCached = foundProvider
-	}
-
-	if showDebug || CONFIG.Kubernetes.RunInCluster {
-		PrintSettings()
-	}
-
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
+		if ClusterProviderCached == punqDtos.UNKNOWN {
+			foundProvider, err := punq.GuessClusterProvider(nil)
+			if err != nil {
+				logger.Log.Errorf("GuessClusterProvider ERR: %s", err.Error())
+			}
+			ClusterProviderCached = foundProvider
+		}
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
 			if !showDebug {
 				PrintSettings()
@@ -141,6 +136,10 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 			}
 			logger.Log.Fatalf("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
 		}
+	}
+
+	if showDebug || CONFIG.Kubernetes.RunInCluster {
+		PrintSettings()
 	}
 
 	if CONFIG.Misc.Debug {
