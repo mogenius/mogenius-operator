@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -574,7 +573,7 @@ type NfsVolumeRestoreResponse struct {
 func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
 
-	contextName := kubernetes.CurrentContextName()
+	contextName := mokubernetes.CurrentContextName()
 	// k8smanagerInstalledVersion, k8smanagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, kubernetes.DEPLOYMENTNAME)
 	// if k8smanagerInstalledErr != nil {
 	// 	result.TerminalString += fmt.Sprintf("%s is not installed in context '%s'.\nPlease check the installation of the mogenius operator within your cluster for errors.", kubernetes.DEPLOYMENTNAME, contextName)
@@ -616,12 +615,12 @@ func SystemCheck() punq.SystemCheckResponse {
 
 func InstallTrafficCollector() structs.Job {
 	r := ClusterHelmRequest{
-		Namespace:       "mogenius",
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-traffic-collector",
 		HelmChartName:   "mogenius/mogenius-traffic-collector",
-		HelmFlags:       "--set global.namespace=mogenius",
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        "install",
 	}
 
@@ -636,12 +635,12 @@ func InstallTrafficCollector() structs.Job {
 
 func InstallPodStatsCollector() structs.Job {
 	r := ClusterHelmRequest{
-		Namespace:       "mogenius",
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-pod-stats-collector",
 		HelmChartName:   "mogenius/mogenius-pod-stats-collector",
-		HelmFlags:       "--set global.namespace=mogenius",
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        "install",
 	}
 
@@ -705,12 +704,12 @@ func InstallCertManager() structs.Job {
 	// helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace
 
 	r := ClusterHelmRequest{
-		Namespace:       "mogenius",
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "jetstack",
 		HelmRepoUrl:     "https://charts.jetstack.io",
 		HelmReleaseName: "cert-manager",
 		HelmChartName:   "cert-manager/cert-manager",
-		HelmFlags:       "--namespace mogenius --create-namespace",
+		HelmFlags:       fmt.Sprintf("--namespace %s --create-namespace", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        "install",
 	}
 
@@ -725,7 +724,7 @@ func InstallCertManager() structs.Job {
 
 func UninstallTrafficCollector() structs.Job {
 	r := ClusterHelmRequest{
-		Namespace:       "mogenius",
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-traffic-collector",
@@ -745,7 +744,7 @@ func UninstallTrafficCollector() structs.Job {
 
 func UninstallPodStatsCollector() structs.Job {
 	r := ClusterHelmRequest{
-		Namespace:       "mogenius",
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-pod-stats-collector",
@@ -805,12 +804,12 @@ func UninstallIngressControllerTreafik() structs.Job {
 
 func UninstallCertManager() structs.Job {
 	r := ClusterHelmRequest{
-		Namespace:       "mogenius",
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "jetstack",
 		HelmRepoUrl:     "https://charts.jetstack.io",
 		HelmReleaseName: "cert-manager",
 		HelmChartName:   "",
-		HelmFlags:       "--namespace mogenius",
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        "uninstall",
 	}
 
