@@ -48,7 +48,7 @@ func InstallHelmChart(r ClusterHelmRequest) structs.Job {
 
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -628,7 +628,7 @@ func InstallTrafficCollector() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -648,7 +648,7 @@ func InstallPodStatsCollector() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -671,7 +671,7 @@ func InstallMetricsServer() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -694,7 +694,7 @@ func InstallIngressControllerTreafik() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -717,7 +717,7 @@ func InstallCertManager() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -737,7 +737,7 @@ func UninstallTrafficCollector() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -757,7 +757,7 @@ func UninstallPodStatsCollector() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -777,7 +777,7 @@ func UninstallMetricsServer() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -797,7 +797,7 @@ func UninstallIngressControllerTreafik() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -817,7 +817,7 @@ func UninstallCertManager() structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmds(mokubernetes.ExecuteHelmChartTask(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	job.AddCmds(mokubernetes.CreateHelmChartCmds(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	wg.Wait()
 	job.Finish()
 	return job

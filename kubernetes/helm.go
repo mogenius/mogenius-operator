@@ -6,10 +6,10 @@ import (
 	"sync"
 )
 
-func ExecuteHelmChartTask(job *structs.Job, helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask string, helmChartName string, helmFlags string, wg *sync.WaitGroup) []*structs.Command {
+func CreateHelmChartCmds(job *structs.Job, helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask string, helmChartName string, helmFlags string, wg *sync.WaitGroup) []*structs.Command {
 	cmds := []*structs.Command{}
 
-	updateAddRepoCmd := structs.CreateBashCommand("Add/Update Helm Repo", job, fmt.Sprintf("helm repo add %s %s; helm repo update", helmReleaseName, helmRepoUrl))
+	updateAddRepoCmd := structs.CreateBashCommand("Add/Update Helm Repo", job, fmt.Sprintf("helm repo add %s %s; helm repo update", helmRepoName, helmRepoUrl))
 	installCmd := structs.CreateBashCommand("Execute chart.", job, fmt.Sprintf("helm %s %s %s %s", helmTask, helmReleaseName, helmChartName, helmFlags))
 
 	cmds = append(cmds, updateAddRepoCmd)

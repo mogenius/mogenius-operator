@@ -54,7 +54,9 @@ func CreateBashCommand(title string, job *Job, shellCmd string) *Command {
 	cmd := CreateCommand(title, job)
 	cmd.Start(title)
 
-	_, err := exec.Command("bash", "-c", shellCmd).Output()
+	output, err := exec.Command("bash", "-c", shellCmd).Output()
+	fmt.Println(string(shellCmd))
+	fmt.Println(string(output))
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
 		errorMsg := string(exitErr.Stderr)
