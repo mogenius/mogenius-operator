@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"os/exec"
+	"sync"
 	"time"
 
 	punqStructs "github.com/mogenius/punq/structs"
@@ -50,24 +51,28 @@ func CreateCommand(title string, job *Job) *Command {
 	return &cmd
 }
 
-func CreateBashCommand(title string, job *Job, shellCmd string) *Command {
+func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
+	wg.Add(1)
 	cmd := CreateCommand(title, job)
-	cmd.Start(title)
+	go func(cmd *Command) {
+		defer wg.Done()
+		cmd.Start(title)
 
-	output, err := exec.Command("bash", "-c", shellCmd).Output()
-	fmt.Println(string(shellCmd))
-	fmt.Println(string(output))
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		exitCode := exitErr.ExitCode()
-		errorMsg := string(exitErr.Stderr)
-		logger.Log.Error(shellCmd)
-		logger.Log.Errorf("%d: %s", exitCode, errorMsg)
-		cmd.Fail(fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
-	} else if err != nil {
-		logger.Log.Error("exec.Command: %s", err.Error())
-	} else {
-		cmd.Success(title)
-	}
+		output, err := exec.Command("bash", "-c", shellCmd).Output()
+		fmt.Println(string(shellCmd))
+		fmt.Println(string(output))
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode := exitErr.ExitCode()
+			errorMsg := string(exitErr.Stderr)
+			logger.Log.Error(shellCmd)
+			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
+			cmd.Fail(fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
+		} else if err != nil {
+			logger.Log.Error("exec.Command: %s", err.Error())
+		} else {
+			cmd.Success(title)
+		}
+	}(cmd)
 	return cmd
 }
 

@@ -6,20 +6,12 @@ import (
 	"sync"
 )
 
-func CreateHelmChartCmds(job *structs.Job, helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask string, helmChartName string, helmFlags string, wg *sync.WaitGroup) []*structs.Command {
-	cmds := []*structs.Command{}
-
-	updateAddRepoCmd := structs.CreateBashCommand("Add/Update Helm Repo", job, fmt.Sprintf("helm repo add %s %s; helm repo update", helmRepoName, helmRepoUrl))
-	installCmd := structs.CreateBashCommand("Execute chart.", job, fmt.Sprintf("helm %s %s %s %s", helmTask, helmReleaseName, helmChartName, helmFlags))
-
-	cmds = append(cmds, updateAddRepoCmd)
-	cmds = append(cmds, installCmd)
-
-	return cmds
+func CreateHelmChartCmd(job *structs.Job, helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask string, helmChartName string, helmFlags string, wg *sync.WaitGroup) *structs.Command {
+	return structs.CreateBashCommand("Add/Update Helm Repo & Execute chart.", job, fmt.Sprintf("helm repo add %s %s; helm repo update; helm %s %s %s %s", helmRepoName, helmRepoUrl, helmTask, helmReleaseName, helmChartName, helmFlags), wg)
 }
 
-func DeleteHelmChart(job *structs.Job, helmReleaseName string) *structs.Command {
-	return structs.CreateBashCommand("Uninstall chart.", job, fmt.Sprintf("helm uninstall %s", helmReleaseName))
+func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGroup) *structs.Command {
+	return structs.CreateBashCommand("Uninstall chart.", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
 }
 
 // func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *sync.WaitGroup) []*structs.Command {
