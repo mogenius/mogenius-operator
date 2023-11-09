@@ -26,7 +26,7 @@ RUN go build -gcflags="all=-N -l" -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.GitCommitHash=${COMMIT_HASH}' \
   -X 'mogenius-k8s-manager/version.Branch=${GIT_BRANCH}' \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
-  -X 'mogenius-k8s-manager/version.Ver=${VERSION}'" -o bin/mogenius-k8s-manager .
+  -X 'mogenius-k8s-manager/version.Ver=$VERSION'" -o bin/mogenius-k8s-manager .
 
 
 FROM alpine:latest 
@@ -50,7 +50,7 @@ RUN apk add --no-cache \
 # RUN gem install -N rails
 # RUN gem install -N bundler
 # RUN npm install -g @vue/cli
-# RUN npm install -g @angular/cli
+RUN npm install -g @angular/cli
 # RUN npm install -g @nestjs/cli
 # RUN npm install -g gatsby-cli
 # RUN npm install -g create-next-app next react react-dom
