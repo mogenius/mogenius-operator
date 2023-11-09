@@ -43,11 +43,12 @@ func UpgradeK8sManager(r K8sManagerUpgradeRequest) structs.Job {
 }
 
 func InstallHelmChart(r ClusterHelmRequest) structs.Job {
-	var wg sync.WaitGroup
+	// var wg sync.WaitGroup
 
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
 	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	// TODO: make it working again. was disabled due to refactoring
+	// job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	job.Finish()
 	return job
 }
@@ -571,6 +572,12 @@ type NfsVolumeRestoreResponse struct {
 	Error      string `json:"error,omitempty"`
 }
 
+var certManagerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+var podStatsCollectorStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+var trafficCollectorStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+var metricsServerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+var ingressCtrlStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+
 func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
 
@@ -591,6 +598,9 @@ func SystemCheck() punq.SystemCheckResponse {
 	certMgrEntry := punq.CreateSystemCheckEntry(certManagerName, certManagerInstalledErr == nil, certManagerMsg)
 	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
 	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
+	if certManagerStatus != punq.UNKNOWN_STATUS {
+		certMgrEntry.Status = certManagerStatus
+	}
 	entries = append(entries, certMgrEntry)
 
 	trafficCollectorName := "mogenius-traffic-collector"
@@ -600,8 +610,11 @@ func SystemCheck() punq.SystemCheckResponse {
 		trafficMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather traffic information you need to install this component.", trafficCollectorName, contextName)
 	}
 	trafficEntry := punq.CreateSystemCheckEntry(trafficCollectorName, trafficCollectorInstalledErr == nil, trafficMsg)
-	certMgrEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
-	certMgrEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
+	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
+	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
+	if trafficCollectorStatus != punq.UNKNOWN_STATUS {
+		certMgrEntry.Status = trafficCollectorStatus
+	}
 	entries = append(entries, trafficEntry)
 
 	podStatsCollectorName := "mogenius-pod-stats-collector"
@@ -613,6 +626,9 @@ func SystemCheck() punq.SystemCheckResponse {
 	podEntry := punq.CreateSystemCheckEntry(podStatsCollectorName, podStatsCollectorInstalledErr == nil, podStatsMsg)
 	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
 	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
+	if podStatsCollectorStatus != punq.UNKNOWN_STATUS {
+		podEntry.Status = podStatsCollectorStatus
+	}
 	entries = append(entries, podEntry)
 
 	// add missing patterns
@@ -621,17 +637,23 @@ func SystemCheck() punq.SystemCheckResponse {
 		if entry.CheckName == "Ingress Controller" {
 			entries[i].InstallPattern = PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UninstallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
+			if ingressCtrlStatus != punq.UNKNOWN_STATUS {
+				entries[i].Status = ingressCtrlStatus
+			}
 		}
 		if entry.CheckName == "Metrics Server" {
 			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
 			entries[i].UninstallPattern = PAT_UNINSTALL_METRICS_SERVER
+			if metricsServerStatus != punq.UNKNOWN_STATUS {
+				entries[i].Status = metricsServerStatus
+			}
 		}
 	}
 
 	return punq.GenerateSystemCheckResponse(entries)
 }
 
-func InstallTrafficCollector() structs.Job {
+func InstallTrafficCollector() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "mogenius",
@@ -641,17 +663,12 @@ func InstallTrafficCollector() structs.Job {
 		HelmFlags:       fmt.Sprintf("--set global.namespace=%s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        "install",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
+	trafficCollectorStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &trafficCollectorStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallPodStatsCollector() structs.Job {
+func InstallPodStatsCollector() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "mogenius",
@@ -661,17 +678,12 @@ func InstallPodStatsCollector() structs.Job {
 		HelmFlags:       fmt.Sprintf("--set global.namespace=%s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        "install",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
+	podStatsCollectorStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &podStatsCollectorStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallMetricsServer() structs.Job {
+func InstallMetricsServer() string {
 	//helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 	//helm upgrade --install metrics-server metrics-server/metrics-server
 
@@ -684,17 +696,12 @@ func InstallMetricsServer() structs.Job {
 		HelmFlags:       "--install",
 		HelmTask:        "upgrade",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
+	metricsServerStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &metricsServerStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallIngressControllerTreafik() structs.Job {
+func InstallIngressControllerTreafik() string {
 	// helm repo add traefik https://traefik.github.io/charts
 	// helm install traefik traefik/traefik
 
@@ -707,17 +714,12 @@ func InstallIngressControllerTreafik() structs.Job {
 		HelmFlags:       "",
 		HelmTask:        "install",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
+	ingressCtrlStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &ingressCtrlStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallCertManager() structs.Job {
+func InstallCertManager() string {
 	// helm repo add jetstack https://charts.jetstack.io
 	// helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace
 
@@ -730,16 +732,12 @@ func InstallCertManager() structs.Job {
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        "install",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	job.Finish()
-	return job
+	certManagerStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &certManagerStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func UninstallTrafficCollector() structs.Job {
+func UninstallTrafficCollector() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "mogenius",
@@ -749,17 +747,12 @@ func UninstallTrafficCollector() structs.Job {
 		HelmFlags:       "",
 		HelmTask:        "uninstall",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
+	trafficCollectorStatus = punq.UNINSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &trafficCollectorStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func UninstallPodStatsCollector() structs.Job {
+func UninstallPodStatsCollector() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "mogenius",
@@ -769,17 +762,12 @@ func UninstallPodStatsCollector() structs.Job {
 		HelmFlags:       "",
 		HelmTask:        "uninstall",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
+	podStatsCollectorStatus = punq.UNINSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &podStatsCollectorStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func UninstallMetricsServer() structs.Job {
+func UninstallMetricsServer() string {
 	r := ClusterHelmRequest{
 		Namespace:       "default",
 		HelmRepoName:    "metrics-server",
@@ -789,17 +777,12 @@ func UninstallMetricsServer() structs.Job {
 		HelmFlags:       "",
 		HelmTask:        "uninstall",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
+	metricsServerStatus = punq.UNINSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &metricsServerStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func UninstallIngressControllerTreafik() structs.Job {
+func UninstallIngressControllerTreafik() string {
 	r := ClusterHelmRequest{
 		Namespace:       "default",
 		HelmRepoName:    "traefik",
@@ -809,17 +792,12 @@ func UninstallIngressControllerTreafik() structs.Job {
 		HelmFlags:       "",
 		HelmTask:        "uninstall",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
+	ingressCtrlStatus = punq.UNINSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &ingressCtrlStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func UninstallCertManager() structs.Job {
+func UninstallCertManager() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "jetstack",
@@ -829,11 +807,7 @@ func UninstallCertManager() structs.Job {
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        "uninstall",
 	}
-
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Uninstall Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
-	job.Start()
-	job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
-	job.Finish()
-	return job
+	certManagerStatus = punq.UNINSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &certManagerStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }

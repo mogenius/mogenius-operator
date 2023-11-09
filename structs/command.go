@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	uuid "github.com/satori/go.uuid"
 )
@@ -51,6 +52,7 @@ func CreateCommand(title string, job *Job) *Command {
 	return &cmd
 }
 
+// XXX NOT USED ANYMORE?
 func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
 	wg.Add(1)
 	cmd := CreateCommand(title, job)
@@ -74,6 +76,27 @@ func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGro
 		}
 	}(cmd)
 	return cmd
+}
+
+func CreateBashCommandGoRoutine(title string, shellCmd string, status *punq.SystemCheckStatus) {
+	go func() {
+		output, err := exec.Command("bash", "-c", shellCmd).Output()
+		fmt.Println(string(shellCmd))
+		fmt.Println(string(output))
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode := exitErr.ExitCode()
+			errorMsg := string(exitErr.Stderr)
+			logger.Log.Error(shellCmd)
+			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
+			*status = punq.NOT_INSTALLED
+		} else if err != nil {
+			logger.Log.Error("exec.Command: %s", err.Error())
+			*status = punq.NOT_INSTALLED
+		} else {
+			logger.Log.Notice("SUCCESS: %s", shellCmd)
+			*status = punq.INSTALLED
+		}
+	}()
 }
 
 func (cmd *Command) Start(msg string) {

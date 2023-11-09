@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/structs"
 	"sync"
+
+	punq "github.com/mogenius/punq/kubernetes"
 )
 
-func CreateHelmChartCmd(job *structs.Job, helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask string, helmChartName string, helmFlags string, wg *sync.WaitGroup) *structs.Command {
-	return structs.CreateBashCommand("Add/Update Helm Repo & Execute chart.", job, fmt.Sprintf("helm repo add %s %s; helm repo update; helm %s %s %s %s", helmRepoName, helmRepoUrl, helmTask, helmReleaseName, helmChartName, helmFlags), wg)
+func CreateHelmChartCmd(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask string, helmChartName string, helmFlags string, status *punq.SystemCheckStatus) {
+	structs.CreateBashCommandGoRoutine("Add/Update Helm Repo & Execute chart.", fmt.Sprintf("helm repo add %s %s; helm repo update; helm %s %s %s %s", helmRepoName, helmRepoUrl, helmTask, helmReleaseName, helmChartName, helmFlags), status)
 }
 
 func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGroup) *structs.Command {
