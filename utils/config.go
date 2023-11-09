@@ -206,7 +206,7 @@ func PrintSettings() {
 	logger.Log.Infof("IgnoreNamespaces:         %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
 	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
-	logger.Log.Infof("NfsPodPrefix:             %s", CONFIG.Misc.NfsPodPrefix)
+	logger.Log.Infof("NfsPodPrefix:             %s\n\n", CONFIG.Misc.NfsPodPrefix)
 
 	logger.Log.Infof("GIT")
 	logger.Log.Infof("GitUserEmail:             %s", CONFIG.Git.GitUserEmail)
