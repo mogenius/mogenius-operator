@@ -607,7 +607,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
 	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
 	if trafficCollectorStatus != punq.UNKNOWN_STATUS {
-		certMgrEntry.Status = trafficCollectorStatus
+		trafficEntry.Status = trafficCollectorStatus
 	}
 	entries = append(entries, trafficEntry)
 
@@ -658,7 +658,7 @@ func InstallTrafficCollector() string {
 		HelmTask:        "install",
 	}
 	trafficCollectorStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &trafficCollectorStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &trafficCollectorStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -673,7 +673,7 @@ func InstallPodStatsCollector() string {
 		HelmTask:        "install",
 	}
 	podStatsCollectorStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &podStatsCollectorStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &podStatsCollectorStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -691,7 +691,7 @@ func InstallMetricsServer() string {
 		HelmTask:        "install",
 	}
 	metricsServerStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &metricsServerStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &metricsServerStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -709,7 +709,7 @@ func InstallIngressControllerTreafik() string {
 		HelmTask:        "install",
 	}
 	ingressCtrlStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &ingressCtrlStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &ingressCtrlStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -723,11 +723,11 @@ func InstallCertManager() string {
 		HelmRepoUrl:     "https://charts.jetstack.io",
 		HelmReleaseName: "cert-manager",
 		HelmChartName:   "jetstack/cert-manager",
-		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmFlags:       fmt.Sprintf("--namespace %s --set startupapicheck.enabled=false --set installCRDs=true", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        "install",
 	}
 	certManagerStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &certManagerStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &certManagerStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -742,7 +742,7 @@ func UninstallTrafficCollector() string {
 		HelmTask:        "uninstall",
 	}
 	trafficCollectorStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &trafficCollectorStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &trafficCollectorStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -757,7 +757,7 @@ func UninstallPodStatsCollector() string {
 		HelmTask:        "uninstall",
 	}
 	podStatsCollectorStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &podStatsCollectorStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &podStatsCollectorStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -772,7 +772,7 @@ func UninstallMetricsServer() string {
 		HelmTask:        "uninstall",
 	}
 	metricsServerStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &metricsServerStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metricsServerStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -787,7 +787,7 @@ func UninstallIngressControllerTreafik() string {
 		HelmTask:        "uninstall",
 	}
 	ingressCtrlStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &ingressCtrlStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &ingressCtrlStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -802,7 +802,7 @@ func UninstallCertManager() string {
 		HelmTask:        "uninstall",
 	}
 	certManagerStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &certManagerStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &certManagerStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 

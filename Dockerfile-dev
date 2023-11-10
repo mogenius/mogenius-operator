@@ -50,7 +50,7 @@ RUN apk add --no-cache \
 # RUN gem install -N rails
 # RUN gem install -N bundler
 # RUN npm install -g @vue/cli
-RUN npm install -g @angular/cli
+# RUN npm install -g @angular/cli
 # RUN npm install -g @nestjs/cli
 # RUN npm install -g gatsby-cli
 # RUN npm install -g create-next-app next react react-dom
