@@ -582,12 +582,6 @@ func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
 
 	contextName := mokubernetes.CurrentContextName()
-	// k8smanagerInstalledVersion, k8smanagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, kubernetes.DEPLOYMENTNAME)
-	// if k8smanagerInstalledErr != nil {
-	// 	result.TerminalString += fmt.Sprintf("%s is not installed in context '%s'.\nPlease check the installation of the mogenius operator within your cluster for errors.", kubernetes.DEPLOYMENTNAME, contextName)
-	// 	return result
-	// }
-	// result.TerminalString += fmt.Sprintf("Found version '%s' of %s in '%s'.\n\n", k8smanagerInstalledVersion, kubernetes.DEPLOYMENTNAME, contextName)
 
 	certManagerName := "cert-manager"
 	certManagerVersion, certManagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, certManagerName)
@@ -693,8 +687,8 @@ func InstallMetricsServer() string {
 		HelmRepoUrl:     "https://kubernetes-sigs.github.io/metrics-server/",
 		HelmReleaseName: "metrics-server",
 		HelmChartName:   "metrics-server/metrics-server",
-		HelmFlags:       "--install",
-		HelmTask:        "upgrade",
+		HelmFlags:       "--set args[0]='--kubelet-insecure-tls' --set args[1]='--secure-port=10250' --set args[2]='--cert-dir=/tmp' --set 'args[3]=--kubelet-preferred-address-types=InternalIP\\,ExternalIP\\,Hostname' --set args[4]='--kubelet-use-node-status-port' --set args[5]='--metric-resolution=15s'",
+		HelmTask:        "install",
 	}
 	metricsServerStatus = punq.INSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &metricsServerStatus)
@@ -773,7 +767,7 @@ func UninstallMetricsServer() string {
 		HelmRepoName:    "metrics-server",
 		HelmRepoUrl:     "https://kubernetes-sigs.github.io/metrics-server/",
 		HelmReleaseName: "metrics-server",
-		HelmChartName:   "metrics-server/metrics-server",
+		HelmChartName:   "",
 		HelmFlags:       "",
 		HelmTask:        "uninstall",
 	}
@@ -810,4 +804,14 @@ func UninstallCertManager() string {
 	certManagerStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &certManagerStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
+func InstallDefaultApplications() string {
+	defaultAppsConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-k8s-manager-default-apps", false, nil)
+	if defaultAppsConfigmap != nil {
+		if installCommands, exists := defaultAppsConfigmap.Data["install-commands"]; exists {
+			return installCommands
+		}
+	}
+	return ""
 }
