@@ -71,6 +71,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return InstallIngressControllerTreafik()
 	case PAT_INSTALL_CERT_MANAGER:
 		return InstallCertManager()
+	case PAT_INSTALL_CONTAINER_REGISTRY:
+		return InstallContainerRegistry()
 	case PAT_UNINSTALL_TRAFFIC_COLLECTOR:
 		return UninstallTrafficCollector()
 	case PAT_UNINSTALL_POD_STATS_COLLECTOR:
@@ -81,6 +83,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return UninstallIngressControllerTreafik()
 	case PAT_UNINSTALL_CERT_MANAGER:
 		return UninstallCertManager()
+	case PAT_UNINSTALL_CONTAINER_REGISTRY:
+		return UninstallContainerRegistry()
 
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}

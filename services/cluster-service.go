@@ -577,6 +577,7 @@ var podStatsCollectorStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var trafficCollectorStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var metricsServerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var ingressCtrlStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+var distriRegistryStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 
 func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
@@ -589,7 +590,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if certManagerInstalledErr != nil {
 		certManagerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo create ssl certificates you need to install this component.", certManagerName, contextName)
 	}
-	certMgrEntry := punq.CreateSystemCheckEntry(certManagerName, certManagerInstalledErr == nil, certManagerMsg)
+	certMgrEntry := punq.CreateSystemCheckEntry(certManagerName, certManagerInstalledErr == nil, certManagerMsg, false)
 	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
 	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
 	if certManagerStatus != punq.UNKNOWN_STATUS {
@@ -603,7 +604,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if trafficCollectorInstalledErr != nil {
 		trafficMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather traffic information you need to install this component.", trafficCollectorName, contextName)
 	}
-	trafficEntry := punq.CreateSystemCheckEntry(trafficCollectorName, trafficCollectorInstalledErr == nil, trafficMsg)
+	trafficEntry := punq.CreateSystemCheckEntry(trafficCollectorName, trafficCollectorInstalledErr == nil, trafficMsg, false)
 	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
 	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
 	if trafficCollectorStatus != punq.UNKNOWN_STATUS {
@@ -617,13 +618,27 @@ func SystemCheck() punq.SystemCheckResponse {
 	if podStatsCollectorInstalledErr != nil {
 		podStatsMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather pod/event information you need to install this component.", podStatsCollectorName, contextName)
 	}
-	podEntry := punq.CreateSystemCheckEntry(podStatsCollectorName, podStatsCollectorInstalledErr == nil, podStatsMsg)
+	podEntry := punq.CreateSystemCheckEntry(podStatsCollectorName, podStatsCollectorInstalledErr == nil, podStatsMsg, false)
 	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
 	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
 	if podStatsCollectorStatus != punq.UNKNOWN_STATUS {
 		podEntry.Status = podStatsCollectorStatus
 	}
 	entries = append(entries, podEntry)
+
+	distributionRegistryName := "distri-docker-registry"
+	distriRegistryVersion, distriRegistryInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, distributionRegistryName)
+	distriRegistryMsg := fmt.Sprintf("%s (Version: %s) is installed.", distributionRegistryName, distriRegistryVersion)
+	if distriRegistryInstalledErr != nil {
+		distriRegistryMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a private container registry running inside your cluster, you need to install this component.", distributionRegistryName, contextName)
+	}
+	distriEntry := punq.CreateSystemCheckEntry("Internal Container Registry", distriRegistryInstalledErr == nil, distriRegistryMsg, false)
+	distriEntry.InstallPattern = PAT_INSTALL_CONTAINER_REGISTRY
+	distriEntry.UninstallPattern = PAT_UNINSTALL_CONTAINER_REGISTRY
+	if distriRegistryStatus != punq.UNKNOWN_STATUS {
+		distriEntry.Status = distriRegistryStatus
+	}
+	entries = append(entries, distriEntry)
 
 	// add missing patterns
 	for i := 0; i < len(entries); i++ {
@@ -731,6 +746,24 @@ func InstallCertManager() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
+func InstallContainerRegistry() string {
+	// helm repo add phntom https://phntom.kix.co.il/charts/
+	// helm install distribution-registry phntom/docker-registry -n mogenius
+
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "phntom",
+		HelmRepoUrl:     "https://phntom.kix.co.il/charts/",
+		HelmReleaseName: "distribution-registry",
+		HelmChartName:   "phntom/docker-registry",
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        "install",
+	}
+	distriRegistryStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &distriRegistryStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
 func UninstallTrafficCollector() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
@@ -803,6 +836,21 @@ func UninstallCertManager() string {
 	}
 	certManagerStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &certManagerStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
+func UninstallContainerRegistry() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "phntom",
+		HelmRepoUrl:     "https://phntom.kix.co.il/charts/",
+		HelmReleaseName: "distribution-registry",
+		HelmChartName:   "",
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        "uninstall",
+	}
+	distriRegistryStatus = punq.UNINSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &distriRegistryStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 

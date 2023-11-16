@@ -143,6 +143,12 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	tagName := fmt.Sprintf("%s/%s:%d", buildJob.ContainerRegistryPath, imageName, buildJob.BuildId)
 	latestTagName := fmt.Sprintf("%s/%s:latest", buildJob.ContainerRegistryPath, imageName)
 
+	// overwrite images name for local builds
+	if buildJob.ContainerRegistryUser == "" && buildJob.ContainerRegistryPat == "" {
+		tagName = fmt.Sprintf("%s:%d", imageName, buildJob.BuildId)
+		latestTagName = fmt.Sprintf("%s:latest", imageName)
+	}
+
 	// CLEANUP
 	if !utils.CONFIG.Misc.Debug {
 		executeCmd(nil, PREFIX_CLEANUP, buildJob, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
@@ -167,17 +173,19 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// LOGIN
-	loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job)
-	err = executeCmd(loginCmd, PREFIX_LOGIN, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
-	if err != nil {
-		logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
-		done <- structs.BUILD_STATE_FAILED
-		return
+	if buildJob.ContainerRegistryUser != "" && buildJob.ContainerRegistryPat != "" {
+		loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job)
+		err = executeCmd(loginCmd, PREFIX_LOGIN, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
+		if err != nil {
+			logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
+			done <- structs.BUILD_STATE_FAILED
+			return
+		}
 	}
 
 	// BUILD
 	buildCmd := structs.CreateCommand("Building container ...", &job)
-	err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; podman build -f %s %s -t %s -t %s %s", workingDir, buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
+	err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build -f %s %s -t %s -t %s %s", workingDir, buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
 		done <- structs.BUILD_STATE_FAILED
@@ -185,18 +193,20 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// PUSH
-	pushCmd := structs.CreateCommand("Pushing container ...", &job)
-	err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman push %s", tagName))
-	if err != nil {
-		logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
-		done <- structs.BUILD_STATE_FAILED
-		return
-	}
-	err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("podman push %s", latestTagName))
-	if err != nil {
-		logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
-		done <- structs.BUILD_STATE_FAILED
-		return
+	if buildJob.ContainerRegistryUser != "" && buildJob.ContainerRegistryPat != "" {
+		pushCmd := structs.CreateCommand("Pushing container ...", &job)
+		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", tagName))
+		if err != nil {
+			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+			done <- structs.BUILD_STATE_FAILED
+			return
+		}
+		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
+		if err != nil {
+			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+			done <- structs.BUILD_STATE_FAILED
+			return
+		}
 	}
 
 	// SCAN
@@ -238,7 +248,7 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 		// LOGIN
 		if login {
 			loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job)
-			err := executeCmd(loginCmd, PREFIX_LOGIN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("podman login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
+			err := executeCmd(loginCmd, PREFIX_LOGIN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
 			if err != nil {
 				logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
 				result.Error = err.Error()
@@ -248,7 +258,7 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 
 		// EXPORT TO TAR
 		exportTarCmd := structs.CreateCommand("Scanning for vulnerabilities ...", &job)
-		err := executeCmd(exportTarCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("podman save -o %s %s", exportName, latestTagName))
+		err := executeCmd(exportTarCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker save -o %s %s", exportName, latestTagName))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
 			result.Error = err.Error()
