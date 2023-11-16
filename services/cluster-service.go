@@ -584,6 +584,10 @@ func SystemCheck() punq.SystemCheckResponse {
 
 	contextName := mokubernetes.CurrentContextName()
 
+	dockerResult, dockerOutput, dockerErr := IsDockerInstalled()
+	kubeCtlMsg := punq.StatusMessage(dockerErr, "If docker is missing in this image, we are screwed ;-)", dockerOutput)
+	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, true))
+
 	certManagerName := "cert-manager"
 	certManagerVersion, certManagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, certManagerName)
 	certManagerMsg := fmt.Sprintf("%s (Version: %s) is installed.", certManagerName, certManagerVersion)
@@ -660,6 +664,12 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 
 	return punq.GenerateSystemCheckResponse(entries)
+}
+
+func IsDockerInstalled() (bool, string, error) {
+	cmd := punqUtils.RunOnLocalShell("/usr/local/bin/docker --version")
+	output, err := cmd.CombinedOutput()
+	return err == nil, strings.TrimRight(string(output), "\n\r"), err
 }
 
 func InstallTrafficCollector() string {
