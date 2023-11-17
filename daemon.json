@@ -1,5 +1,5 @@
 {
   "insecure-registries": [
-    "distri-docker-registry:5000"
+    "registry.localhost"
   ]
 }

@@ -3,7 +3,7 @@ package dtos
 type K8sAppDto struct {
 	Id                        string `json:"id" validate:"required"`
 	Name                      string `json:"name" validate:"required"`
-	Type                      string `json:"type" validate:"required"` // "DOCKER", "DOCKER_TEMPLATE", "DOCKER_COMPOSE", "DOCKER_COMPOSE_TEMPLATE", "CONTAINER_IMAGE", "CONTAINER_IMAGE_TEMPLATE"
+	Type                      string `json:"type" validate:"required"` // "GIT_REPOSITORY", "DOCKER", "DOCKER_TEMPLATE", "DOCKER_COMPOSE", "DOCKER_COMPOSE_TEMPLATE", "CONTAINER_IMAGE", "CONTAINER_IMAGE_TEMPLATE"
 	SetupCommands             string `json:"setupCommands" validate:"required"`
 	RepositoryLink            string `json:"repositoryLink" validate:"required"`
 	ContainerImage            string `json:"containerImage" validate:"required"`
