@@ -246,23 +246,48 @@ func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.Bu
 			cancel()
 		}()
 
+		send := func(result structs.BuildScanResult, toServerUrl *string) {
+			// SEND RESULT VIA WS
+			if (toServerUrl != nil) {
+				scanLog, err := json.Marshal(result)
+				if err != nil {
+					return
+				}
+		
+				reader := bytes.NewReader(scanLog)
+				structs.SendDataWs(*toServerUrl, io.NopCloser(reader))
+			}
+		}
+
 		// LOGIN
 		if login {
 			loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job)
-			err := executeCmd(loginCmd, PREFIX_LOGIN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
+			err := executeCmd(loginCmd, PREFIX_LOGIN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", buildJob.ContainerRegistryPat, buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser))
 			if err != nil {
 				logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
 				result.Error = err.Error()
+				send(result, toServerUrl)
+				return
+			}
+
+			// PULL IMAGE
+			pullCmd := structs.CreateCommand("Pull image for vulnerabilities ...", &job)
+			err = executeCmd(pullCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker pull %s", latestTagName))
+			if err != nil {
+				logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
+				result.Error = err.Error()
+				send(result, toServerUrl)
 				return
 			}
 		}
 
 		// EXPORT TO TAR
-		exportTarCmd := structs.CreateCommand("Scanning for vulnerabilities ...", &job)
+		exportTarCmd := structs.CreateCommand("Export image for vulnerabilities ...", &job)
 		err := executeCmd(exportTarCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker save -o %s %s", exportName, latestTagName))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
 			result.Error = err.Error()
+			send(result, toServerUrl)
 			return
 		}
 
@@ -272,6 +297,7 @@ func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.Bu
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
 			result.Error = err.Error()
+			send(result, toServerUrl)
 			return
 		}
 
@@ -279,20 +305,10 @@ func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.Bu
 		db.View(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket([]byte(BUCKET_NAME))
 			result.Result = string(bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_SCAN, buildJob.BuildId))))
+			send(result, toServerUrl)
 			return nil
 		})
 		
-		// SEND RESULT VIA WS
-		if (toServerUrl != nil) {
-			scanLog, err := json.Marshal(result)
-			if err != nil {
-				return
-			}
-	
-			reader := bytes.NewReader(scanLog)
-			structs.SendDataWs(*toServerUrl, io.NopCloser(reader))
-		}
-
 		job.Finish()
 	}()
 	return result
