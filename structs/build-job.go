@@ -24,7 +24,7 @@ type ScanJob struct {
 func ScanJobExample() ScanJob {
 	return ScanJob{
 		BuildJob:    BuildJobExample(),
-		PostTo:       "ws://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+		PostTo:      "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
 	}
 }
 

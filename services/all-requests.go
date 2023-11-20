@@ -4,18 +4,11 @@ import (
 	// "bufio"
 
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mogenius-k8s-manager/utils"
-	"os"
 	"os/exec"
 	"strings"
-	"time"
-
-	"github.com/creack/pty"
-	"github.com/gorilla/websocket"
 
 	// "fmt"
 	"mogenius-k8s-manager/builder"
@@ -252,13 +245,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return logStream(data, datagram)
 
 	case PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST:
-		data := CmdConnectionRequest{}
+		data := PodCmdConnectionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		go execShConnection(data)
 		return nil
 
 	case PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST:
-		data := CmdConnectionRequest{}
+		data := PodCmdConnectionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		go logStreamConnection(data)
 		return nil
@@ -1007,140 +1000,15 @@ func K8sNotification(d structs.Datagram) interface{} {
 	return nil
 }
 
-func xtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectionRequest) *websocket.Conn {
-	for {
-		// add header
-		headers := utils.HttpHeader("")
-		headers.Add("x-channel-id", cmdConnectionRequest.ChannelId)
-
-		dialer := &websocket.Dialer{}
-		c, _, err := dialer.Dial(u.String(), headers)
-		if err != nil {
-			logger.Log.Errorf("Failed to connect, retrying in 5 seconds:", err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-
-		logger.Log.Infof("Connected to %s", u.String())
-
-		// API send ack when it is ready to receive messages.
-		c.SetReadDeadline(time.Now().Add(5 * time.Second))
-		_, ack, err := c.ReadMessage()
-		if err != nil {
-			logger.Log.Errorf("Failed to receive ack-ready, retrying in 5 seconds:", err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-
-		c.SetReadDeadline(time.Time{})
-		logger.Log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
-		return c
-	}
+func execShConnection(podCmdConnectionRequest PodCmdConnectionRequest) {
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("kubectl exec -it -c %s -n %s %s -- sh -c \"clear; (bash || ash || sh || ksh || csh || zsh )\"", podCmdConnectionRequest.Container, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod))
+	utils.XTermCommandStreamConnection(podCmdConnectionRequest.CmdConnection, cmd)
 }
 
-func xTermCommandStreamConnection(cmdConnectionRequest CmdConnectionRequest, cmd *exec.Cmd) {
-	if cmdConnectionRequest.WebsocketScheme == "" {
-		logger.Log.Error("WebsocketScheme is empty")
-		return
+func logStreamConnection(podCmdConnectionRequest PodCmdConnectionRequest) {
+	if podCmdConnectionRequest.LogTail == "" {
+		podCmdConnectionRequest.LogTail = "1000"
 	}
-
-	if cmdConnectionRequest.WebsocketHost == "" {
-		logger.Log.Error("WebsocketHost is empty")
-		return
-	}
-
-	websocketUrl := url.URL{Scheme: cmdConnectionRequest.WebsocketScheme, Host: cmdConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
-
-	con := xtermCommandStreamWsConnection(websocketUrl, cmdConnectionRequest)
-	defer con.Close()
-
-	cmd.Env = append(os.Environ(), "TERM=xterm-color")
-
-	tty, err := pty.Start(cmd)
-	if err != nil {
-		log.Printf("Unable to start pty/cmd: %s", err.Error())
-		if con != nil {
-			con.WriteMessage(websocket.TextMessage, []byte(err.Error()))
-		}
-		return
-	}
-
-	defer func() {
-		if con != nil {
-			con.WriteMessage(websocket.TextMessage, []byte("TERMINAL_CLOSED"))
-		}
-		cmd.Process.Kill()
-		cmd.Process.Wait()
-		tty.Close()
-		con.Close()
-	}()
-
-	go func() {
-		err := cmd.Wait()
-		if err != nil {
-			log.Printf("cmd wait: %s", err.Error())
-		} else {
-			log.Printf("Terminal closed.")
-		}
-	}()
-
-	go func() {
-		for {
-			buf := make([]byte, 1024)
-			read, err := tty.Read(buf)
-			if err != nil {
-				log.Printf("Unable to read from pty/cmd: %s", err.Error())
-				return
-			}
-			if con != nil {
-				con.WriteMessage(websocket.BinaryMessage, buf[:read])
-			} else {
-				return
-			}
-		}
-	}()
-
-	for {
-		_, reader, err := con.ReadMessage()
-		if err != nil {
-			log.Printf("Unable to grab next reader: %s", err.Error())
-			return
-		}
-
-		if strings.HasPrefix(string(reader), "\x04") {
-			str := strings.TrimPrefix(string(reader), "\x04")
-
-			var resizeMessage CmdWindowSize
-			err := json.Unmarshal([]byte(str), &resizeMessage)
-			if err != nil {
-				log.Printf("%s", err.Error())
-				continue
-			}
-
-			if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
-				log.Printf("Unable to resize: %s", err.Error())
-				continue
-			}
-			continue
-		}
-
-		if string(reader) == "PEER_IS_READY" {
-			continue
-		}
-
-		tty.Write(reader)
-	}
-}
-
-func execShConnection(cmdConnectionRequest CmdConnectionRequest) {
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("kubectl exec -it -c %s -n %s %s -- sh -c \"clear; (bash || ash || sh || ksh || csh || zsh )\"", cmdConnectionRequest.Container, cmdConnectionRequest.Namespace, cmdConnectionRequest.Pod))
-	xTermCommandStreamConnection(cmdConnectionRequest, cmd)
-}
-
-func logStreamConnection(cmdConnectionRequest CmdConnectionRequest) {
-	if cmdConnectionRequest.LogTail == "" {
-		cmdConnectionRequest.LogTail = "1000"
-	}
-	cmd := exec.Command("kubectl", "logs", "-f", cmdConnectionRequest.Pod, fmt.Sprintf("--tail=%s", cmdConnectionRequest.LogTail), "-c", cmdConnectionRequest.Container, "-n", cmdConnectionRequest.Namespace)
-	xTermCommandStreamConnection(cmdConnectionRequest, cmd)
+	cmd := exec.Command("kubectl", "logs", "-f", podCmdConnectionRequest.Pod, fmt.Sprintf("--tail=%s", podCmdConnectionRequest.LogTail), "-c", podCmdConnectionRequest.Container, "-n", podCmdConnectionRequest.Namespace)
+	utils.XTermCommandStreamConnection(podCmdConnectionRequest.CmdConnection, cmd)
 }

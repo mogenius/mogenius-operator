@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -254,8 +253,7 @@ func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.Bu
 					return
 				}
 		
-				reader := bytes.NewReader(scanLog)
-				structs.SendDataWs(*toServerUrl, io.NopCloser(reader))
+				structs.SendData(*toServerUrl, scanLog)
 			}
 		}
 

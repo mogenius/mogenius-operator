@@ -1,11 +1,13 @@
 package structs
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
+	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
@@ -64,6 +66,14 @@ func UnmarshalJobListEntry(dst *BuildJobListEntry, data []byte) error {
 		}
 	}
 	return nil
+}
+
+func SendData(sendToServer string, data []byte) {
+    resp, err := http.Post(sendToServer, "application/json", bytes.NewBuffer(data))
+    if err != nil {
+		logger.Log.Errorf("Error occurred during sending the request. Error: %s", err)
+    }
+    defer resp.Body.Close()
 }
 
 func SendDataWs(sendToServer string, reader io.ReadCloser) {
