@@ -3,7 +3,9 @@ package builder
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -210,7 +212,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// SCAN
-	Scan(*buildJob, false)
+	Scan(*buildJob, false, nil)
 
 	// UPDATE IMAGE
 	setImageCmd := structs.CreateCommand("Deploying image ...", &job)
@@ -220,10 +222,9 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 		done <- structs.BUILD_STATE_FAILED
 		return
 	}
-
 }
 
-func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
+func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.BuildScanResult {
 	job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s' ...", buildJob.ServiceName), buildJob.ProjectId, &buildJob.NamespaceId, nil)
 
 	imageName := fmt.Sprintf("%s-%s", buildJob.Namespace, buildJob.ServiceName)
@@ -274,12 +275,24 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 			return
 		}
 
-		// RETURN RESULT
+		// RECEIVE RESULT FROM BOLT
 		db.View(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket([]byte(BUCKET_NAME))
 			result.Result = string(bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_SCAN, buildJob.BuildId))))
 			return nil
 		})
+		
+		// SEND RESULT VIA WS
+		if (toServerUrl != nil) {
+			scanLog, err := json.Marshal(result)
+			if err != nil {
+				return
+			}
+	
+			reader := bytes.NewReader(scanLog)
+			structs.SendDataWs(*toServerUrl, io.NopCloser(reader))
+		}
+
 		job.Finish()
 	}()
 	return result

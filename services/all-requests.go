@@ -840,9 +840,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		return builder.Add(data)
 	case PAT_BUILD_SCAN:
-		data := structs.BuildJob{}
+		data := structs.ScanJob{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return builder.Scan(data, true)
+		return builder.Scan(data.BuildJob, true, &data.PostTo)
 	case PAT_BUILD_CANCEL:
 		data := structs.BuildJob{}
 		structs.MarshalUnmarshal(&datagram, &data)
