@@ -73,6 +73,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return InstallCertManager()
 	case PAT_INSTALL_CONTAINER_REGISTRY:
 		return InstallContainerRegistry()
+	case PAT_INSTALL_METALLB:
+		return InstallMetalLb()
 	case PAT_UNINSTALL_TRAFFIC_COLLECTOR:
 		return UninstallTrafficCollector()
 	case PAT_UNINSTALL_POD_STATS_COLLECTOR:
@@ -85,6 +87,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return UninstallCertManager()
 	case PAT_UNINSTALL_CONTAINER_REGISTRY:
 		return UninstallContainerRegistry()
+	case PAT_UNINSTALL_METALLB:
+		return UninstallMetalLb()
 
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}

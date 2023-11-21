@@ -578,6 +578,7 @@ var trafficCollectorStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var metricsServerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var ingressCtrlStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var distriRegistryStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+var metallbStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 
 func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
@@ -643,6 +644,20 @@ func SystemCheck() punq.SystemCheckResponse {
 		distriEntry.Status = distriRegistryStatus
 	}
 	entries = append(entries, distriEntry)
+
+	metallbName := "metallb"
+	metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, metallbName)
+	metallbMsg := fmt.Sprintf("%s (Version: %s) is installed.", metallbName, metallbVersion)
+	if metallbInstalledErr != nil {
+		metallbMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a local load balancer, you need to install this component.", metallbName, contextName)
+	}
+	metallbEntry := punq.CreateSystemCheckEntry("MetalLB (LoadBalancer)", metallbInstalledErr == nil, metallbMsg, false)
+	metallbEntry.InstallPattern = PAT_INSTALL_METALLB
+	metallbEntry.UninstallPattern = PAT_UNINSTALL_METALLB
+	if metallbStatus != punq.UNKNOWN_STATUS {
+		metallbEntry.Status = metallbStatus
+	}
+	entries = append(entries, metallbEntry)
 
 	// add missing patterns
 	for i := 0; i < len(entries); i++ {
@@ -774,6 +789,21 @@ func InstallContainerRegistry() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
+func InstallMetalLb() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "metallb",
+		HelmRepoUrl:     "https://metallb.github.io/metallb",
+		HelmReleaseName: "metallb",
+		HelmChartName:   "metallb/metallb",
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        "install",
+	}
+	metallbStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &metallbStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
 func UninstallTrafficCollector() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
@@ -861,6 +891,21 @@ func UninstallContainerRegistry() string {
 	}
 	distriRegistryStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &distriRegistryStatus)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
+func UninstallMetalLb() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "metallb",
+		HelmRepoUrl:     "https://metallb.github.io/metallb",
+		HelmReleaseName: "metallb",
+		HelmChartName:   "",
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        "uninstall",
+	}
+	metallbStatus = punq.UNINSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metallbStatus)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
