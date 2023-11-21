@@ -646,7 +646,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	entries = append(entries, distriEntry)
 
 	metallbName := "metallb"
-	metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, metallbName)
+	metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, "metallb-controller")
 	metallbMsg := fmt.Sprintf("%s (Version: %s) is installed.", metallbName, metallbVersion)
 	if metallbInstalledErr != nil {
 		metallbMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a local load balancer, you need to install this component.", metallbName, contextName)
