@@ -6,7 +6,7 @@ metadata:
   namespace: mogenius
 spec:
   rules:
-  - host: localdocker.mogenius.io
+  - host: mocr.local.mogenius.io
     http:
       paths:
       - backend:
@@ -18,5 +18,5 @@ spec:
         pathType: Prefix
   tls:
   - hosts:
-    - localdocker.mogenius.io
-    secretName: localdocker.mogenius.io-tls
+    - '*.local.mogenius.io'
+    secretName: local.mogenius.io-tls
