@@ -38,10 +38,6 @@ RUN apk add --no-cache \
     bash \
     git \
     curl \
-    # build-base \
-    # nodejs \
-    # npm \
-    # coreutils \
     openssl \
     nfs-utils \
     ca-certificates

@@ -37,8 +37,7 @@ RUN go build -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
   -X 'mogenius-k8s-manager/version.Ver=$VERSION'" -o bin/mogenius-k8s-manager .
 
-
-FROM alpine:latest
+FROM docker:dind 
 
 ARG GOOS
 ARG GOARCH
@@ -47,17 +46,9 @@ RUN apk add --no-cache \
     bash \
     git \
     curl \
-    build-base \
-    # libpcap-dev \
-    nodejs \
-    npm \
-    coreutils \
-    # ruby-dev \
     openssl \
     nfs-utils \
-    # buildah \
-    podman \
-    fuse-overlayfs
+    ca-certificates
 
 # RUN gem install -N rails
 # RUN gem install -N bundler
@@ -104,4 +95,4 @@ COPY --from=builder ["/app/grype-json-template", "."]
 
 ENV GIN_MODE=release
 
-ENTRYPOINT [ "/app/mogenius-k8s-manager", "cluster" ]
+ENTRYPOINT /usr/local/bin/dockerd > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster
