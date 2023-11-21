@@ -3,6 +3,7 @@ package utils
 import (
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/kubectl/pkg/scheme"
 )
@@ -85,4 +86,36 @@ func InitMogeniusNfsService() corev1.Service {
 		panic(err)
 	}
 	return service
+}
+
+func InitMogeniusContainerRegistryIngress() netv1.Ingress {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-container-registry-ingress.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var ingress netv1.Ingress
+	_, _, err = s.Decode(yaml, nil, &ingress)
+	if err != nil {
+		panic(err)
+	}
+	return ingress
+}
+
+func InitMogeniusContainerRegistrySecret() corev1.Secret {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-container-registry-tls-secret.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var secret corev1.Secret
+	_, _, err = s.Decode(yaml, nil, &secret)
+	if err != nil {
+		panic(err)
+	}
+	return secret
 }

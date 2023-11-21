@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"mogenius-k8s-manager/builder"
+	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
@@ -50,16 +51,19 @@ var clusterCmd = &cobra.Command{
 		go structs.ConnectToJobQueue()
 		go mokubernetes.WatchEvents()
 
-		punq.ExecuteBashCommandSilent("Git setup (1/4) ...", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
-		punq.ExecuteBashCommandSilent("Git setup (2/4) ...", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
-		punq.ExecuteBashCommandSilent("Git setup (3/4) ...", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
-		punq.ExecuteBashCommandSilent("Git setup (4/4) ...", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
+		punq.ExecuteBashCommandSilent("Git setup (1/4)", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
+		punq.ExecuteBashCommandSilent("Git setup (2/4)", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
+		punq.ExecuteBashCommandSilent("Git setup (3/4)", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
+		punq.ExecuteBashCommandSilent("Git setup (4/4)", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
 
 		cmds := services.InstallDefaultApplications()
 		logger.Log.Noticef("Seeding Commands (🪴🪴🪴): \"%s\".", cmds)
 		if cmds != "" {
 			go punq.ExecuteBashCommandSilent("Installing default applications ...", cmds)
 		}
+
+		kubernetes.CreateMogeniusContainerRegistryTlsSecret()
+		kubernetes.CreateMogeniusContainerRegistryIngress()
 
 		socketclient.StartK8sManager()
 	},

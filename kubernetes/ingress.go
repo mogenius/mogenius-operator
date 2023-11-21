@@ -13,6 +13,7 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	networkingv1 "k8s.io/client-go/applyconfigurations/networking/v1"
 )
@@ -90,9 +91,9 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 				}
 
 				// 2. ALL CNAMES
-				if len(service.CNames) == 0 {
-					spec.Rules = append(spec.Rules, *createIngressRule(service.FullHostname, service.Name, int32(port.InternalPort)))
-				}
+				// if len(service.CNames) == 0 {
+				// 	spec.Rules = append(spec.Rules, *createIngressRule(service.FullHostname, service.Name, int32(port.InternalPort)))
+				// }
 				for _, cname := range service.CNames {
 					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.Name, int32(port.InternalPort)))
 					if !namespace.CloudflareProxied {
@@ -100,9 +101,9 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 					}
 				}
 			}
-			if !namespace.CloudflareProxied && len(service.CNames) == 0 {
-				tlsHosts = append(tlsHosts, service.FullHostname)
-			}
+			// if !namespace.CloudflareProxied && len(service.CNames) == 0 {
+			// 	tlsHosts = append(tlsHosts, service.FullHostname)
+			// }
 
 		}
 		if !namespace.CloudflareProxied {
@@ -245,4 +246,51 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 		logger.Log.Error("IngressController has no ports defined.")
 	}
 	logger.Log.Error("Could not load service mogenius/mogenius-ingress-nginx-controller.")
+}
+
+func CreateMogeniusContainerRegistryIngress() {
+	ing := utils.InitMogeniusContainerRegistryIngress()
+	ing.Namespace = utils.CONFIG.Kubernetes.OwnNamespace
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		logger.Log.Error(fmt.Sprintf("CreateMogeniusContainerRegistryIngress ERROR: %s", err.Error()))
+	}
+
+	client := provider.ClientSet.NetworkingV1().Ingresses(ing.Namespace)
+	_, err = client.Get(context.TODO(), ing.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		_, err = client.Create(context.TODO(), &ing, metav1.CreateOptions{})
+		if err == nil {
+			logger.Log.Noticef("Created ingress '%s' in namespace '%s'.", ing.Name, ing.Namespace)
+		} else {
+			logger.Log.Errorf("CreateMogeniusContainerRegistryIngress ERROR: %s", err.Error())
+		}
+	} else {
+		logger.Log.Noticef("Ingress '%s' in namespace '%s' already exists.", ing.Name, ing.Namespace)
+	}
+}
+
+func CreateMogeniusContainerRegistryTlsSecret() {
+	secret := utils.InitMogeniusContainerRegistrySecret()
+	secret.Namespace = utils.CONFIG.Kubernetes.OwnNamespace
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		logger.Log.Error(fmt.Sprintf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error()))
+	}
+
+	client := provider.ClientSet.CoreV1().Secrets(secret.Namespace)
+
+	_, err = client.Get(context.TODO(), secret.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		_, err = client.Create(context.TODO(), &secret, metav1.CreateOptions{})
+		if err == nil {
+			logger.Log.Noticef("Created secret '%s' in namespace '%s'.", secret.Name, secret.Namespace)
+		} else {
+			logger.Log.Errorf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error())
+		}
+	} else {
+		logger.Log.Noticef("Secret '%s' in namespace '%s' already exists.", secret.Name, secret.Namespace)
+	}
 }
