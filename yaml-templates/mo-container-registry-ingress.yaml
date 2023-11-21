@@ -11,7 +11,7 @@ spec:
       paths:
       - backend:
           service:
-            name: distri-docker-registry
+            name: distribution-registry-docker-registry
             port:
               number: 5000
         path: /

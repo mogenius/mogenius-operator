@@ -630,7 +630,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	entries = append(entries, podEntry)
 
-	distributionRegistryName := "distri-docker-registry"
+	distributionRegistryName := "distribution-registry-docker-registry"
 	distriRegistryVersion, distriRegistryInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, distributionRegistryName)
 	distriRegistryMsg := fmt.Sprintf("%s (Version: %s) is installed.", distributionRegistryName, distriRegistryVersion)
 	if distriRegistryInstalledErr != nil {
