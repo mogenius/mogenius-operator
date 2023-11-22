@@ -24,6 +24,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/shirou/gopsutil/v3/disk"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 const BUCKETNAME = "mogenius-backup"
@@ -698,7 +700,7 @@ func InstallTrafficCollector() string {
 		HelmTask:        "install",
 	}
 	trafficCollectorStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &trafficCollectorStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &trafficCollectorStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -713,7 +715,7 @@ func InstallPodStatsCollector() string {
 		HelmTask:        "install",
 	}
 	podStatsCollectorStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &podStatsCollectorStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &podStatsCollectorStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -731,7 +733,7 @@ func InstallMetricsServer() string {
 		HelmTask:        "install",
 	}
 	metricsServerStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &metricsServerStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &metricsServerStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -749,7 +751,7 @@ func InstallIngressControllerTreafik() string {
 		HelmTask:        "install",
 	}
 	ingressCtrlStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &ingressCtrlStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &ingressCtrlStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -767,7 +769,7 @@ func InstallCertManager() string {
 		HelmTask:        "install",
 	}
 	certManagerStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &certManagerStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &certManagerStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -785,7 +787,7 @@ func InstallContainerRegistry() string {
 		HelmTask:        "install",
 	}
 	distriRegistryStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &distriRegistryStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &distriRegistryStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -800,7 +802,25 @@ func InstallMetalLb() string {
 		HelmTask:        "install",
 	}
 	metallbStatus = punq.INSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &metallbStatus)
+
+	installAfterHelmChart := func() {
+		for {
+			// this is important because the control plane needs some time to make the CRDs available
+			time.Sleep(1 * time.Second)
+			err := mokubernetes.ApplyYamlString(InstallAddressPool())
+			if err != nil && !apierrors.IsAlreadyExists(err) {
+				logger.Log.Errorf("Error installing metallb address pool: %s", err.Error())
+			}
+			if err != nil && apierrors.IsInternalError(err) {
+				logger.Log.Noticef("Control plane not ready. Waiting for metallb address pool installation ...")
+			}
+			if err == nil {
+				return
+			}
+		}
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &metallbStatus, installAfterHelmChart)
+
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -815,7 +835,7 @@ func UninstallTrafficCollector() string {
 		HelmTask:        "uninstall",
 	}
 	trafficCollectorStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &trafficCollectorStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &trafficCollectorStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -830,7 +850,7 @@ func UninstallPodStatsCollector() string {
 		HelmTask:        "uninstall",
 	}
 	podStatsCollectorStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &podStatsCollectorStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &podStatsCollectorStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -845,7 +865,7 @@ func UninstallMetricsServer() string {
 		HelmTask:        "uninstall",
 	}
 	metricsServerStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metricsServerStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metricsServerStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -860,7 +880,7 @@ func UninstallIngressControllerTreafik() string {
 		HelmTask:        "uninstall",
 	}
 	ingressCtrlStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &ingressCtrlStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &ingressCtrlStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -875,7 +895,7 @@ func UninstallCertManager() string {
 		HelmTask:        "uninstall",
 	}
 	certManagerStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &certManagerStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &certManagerStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -890,7 +910,7 @@ func UninstallContainerRegistry() string {
 		HelmTask:        "uninstall",
 	}
 	distriRegistryStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &distriRegistryStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &distriRegistryStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -905,7 +925,7 @@ func UninstallMetalLb() string {
 		HelmTask:        "uninstall",
 	}
 	metallbStatus = punq.UNINSTALLING
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metallbStatus)
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metallbStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -917,4 +937,16 @@ func InstallDefaultApplications() string {
 		}
 	}
 	return ""
+}
+
+func InstallAddressPool() string {
+	return `apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: mo-pool
+  namespace: mogenius
+spec:
+  addresses:
+  - 192.168.66.1-192.168.66.50
+  - fc00:f853:0ccd:e797::/124`
 }

@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"os"
+	"strings"
 
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -16,9 +17,13 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 	applyconfapp "k8s.io/client-go/applyconfigurations/apps/v1"
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 	applyconfmeta "k8s.io/client-go/applyconfigurations/meta/v1"
+	"k8s.io/client-go/dynamic"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
@@ -256,4 +261,43 @@ func addDeployment(provider *punq.KubeProvider) {
 		logger.Log.Error(err)
 	}
 	logger.Log.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
+}
+
+func ApplyYamlString(yamlContent string) error {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(&provider.ClientConfig)
+	if err != nil {
+		return err
+	}
+
+	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+
+	_, groupVersionKind, err := decUnstructured.Decode([]byte(yamlContent), nil, nil)
+	if err != nil {
+		return err
+	}
+
+	resource := &unstructured.Unstructured{}
+	_, _, err = decUnstructured.Decode([]byte(yamlContent), nil, resource)
+	if err != nil {
+		return err
+	}
+
+	groupVersionResource := schema.GroupVersionResource{
+		Group:    groupVersionKind.Group,
+		Version:  groupVersionKind.Version,
+		Resource: strings.ToLower(groupVersionKind.Kind) + "s",
+	}
+
+	dynamicResource := dynamicClient.Resource(groupVersionResource).Namespace(resource.GetNamespace())
+
+	if _, err := dynamicResource.Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	return nil
 }

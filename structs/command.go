@@ -78,7 +78,7 @@ func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGro
 	return cmd
 }
 
-func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool, status *punq.SystemCheckStatus) {
+func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool, status *punq.SystemCheckStatus, doneFunction func()) {
 	go func() {
 		output, err := exec.Command("bash", "-c", shellCmd).Output()
 		fmt.Println(string(shellCmd))
@@ -99,6 +99,9 @@ func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool
 			} else {
 				*status = punq.INSTALLED
 			}
+		}
+		if doneFunction != nil {
+			doneFunction()
 		}
 	}()
 }
