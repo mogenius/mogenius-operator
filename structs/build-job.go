@@ -16,6 +16,18 @@ const (
 	BUILD_STATE_TIMEOUT   string = "TIMEOUT"
 )
 
+type ScanJob struct {
+	BuildJob              BuildJob `json:"buildJob"`
+	PostTo                string   `json:"postTo"`
+}
+
+func ScanJobExample() ScanJob {
+	return ScanJob{
+		BuildJob:    BuildJobExample(),
+		PostTo:      "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+	}
+}
+
 type BuildJob struct {
 	// only "clusterId" was removed because we dont need it anymore
 	JobId                 string `json:"jobId"`

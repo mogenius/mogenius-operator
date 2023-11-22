@@ -3,6 +3,7 @@ package builder
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -208,7 +209,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// SCAN
-	Scan(*buildJob, false)
+	Scan(*buildJob, false, nil)
 
 	// UPDATE IMAGE
 	setImageCmd := structs.CreateCommand("Deploying image", &job)
@@ -218,10 +219,9 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 		done <- structs.BUILD_STATE_FAILED
 		return
 	}
-
 }
 
-func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
+func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.BuildScanResult {
 	job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s'", buildJob.ServiceName), buildJob.ProjectId, &buildJob.NamespaceId, nil)
 
 	imageName := fmt.Sprintf("%s-%s", buildJob.Namespace, buildJob.ServiceName)
@@ -243,23 +243,47 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 			cancel()
 		}()
 
+		send := func(result structs.BuildScanResult, toServerUrl *string) {
+			// SEND RESULT VIA WS
+			if (toServerUrl != nil) {
+				scanLog, err := json.Marshal(result)
+				if err != nil {
+					return
+				}
+		
+				structs.SendData(*toServerUrl, scanLog)
+			}
+		}
+
 		// LOGIN
 		if login {
-			loginCmd := structs.CreateCommand("Authentificate with container registry", &job)
-			err := executeCmd(loginCmd, PREFIX_LOGIN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
+			loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job)
+			err := executeCmd(loginCmd, PREFIX_LOGIN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", buildJob.ContainerRegistryPat, buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser))
 			if err != nil {
 				logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
 				result.Error = err.Error()
+				send(result, toServerUrl)
+				return
+			}
+
+			// PULL IMAGE
+			pullCmd := structs.CreateCommand("Pull image for vulnerabilities ...", &job)
+			err = executeCmd(pullCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker pull %s", latestTagName))
+			if err != nil {
+				logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
+				result.Error = err.Error()
+				send(result, toServerUrl)
 				return
 			}
 		}
 
 		// EXPORT TO TAR
-		exportTarCmd := structs.CreateCommand("Scanning for vulnerabilities", &job)
+		exportTarCmd := structs.CreateCommand("Export image for vulnerabilities ...", &job)
 		err := executeCmd(exportTarCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker save -o %s %s", exportName, latestTagName))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
 			result.Error = err.Error()
+			send(result, toServerUrl)
 			return
 		}
 
@@ -269,15 +293,18 @@ func Scan(buildJob structs.BuildJob, login bool) structs.BuildScanResult {
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
 			result.Error = err.Error()
+			send(result, toServerUrl)
 			return
 		}
 
-		// RETURN RESULT
+		// RECEIVE RESULT FROM BOLT
 		db.View(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket([]byte(BUCKET_NAME))
 			result.Result = string(bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_SCAN, buildJob.BuildId))))
+			send(result, toServerUrl)
 			return nil
 		})
+		
 		job.Finish()
 	}()
 	return result

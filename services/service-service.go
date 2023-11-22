@@ -423,13 +423,11 @@ type ServiceLogStreamRequest struct {
 	PostTo       string `json:"postTo"`
 }
 
-type CmdConnectionRequest struct {
+type PodCmdConnectionRequest struct {
 	Namespace       string `json:"namespace"`
 	Pod             string `json:"pod"`
 	Container       string `json:"container"`
-	ChannelId       string `json:"channelId"`
-	WebsocketScheme string `json:"websocketScheme"`
-	WebsocketHost   string `json:"websocketHost"`
+	CmdConnection utils.CmdConnectionRequest `json:"cmdConnectionRequest"`
 	LogTail         string `json:"logTail"`
 }
 
