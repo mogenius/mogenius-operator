@@ -72,8 +72,9 @@ func SendData(sendToServer string, data []byte) {
     resp, err := http.Post(sendToServer, "application/json", bytes.NewBuffer(data))
     if err != nil {
 		logger.Log.Errorf("Error occurred during sending the request. Error: %s", err)
-    }
-    defer resp.Body.Close()
+    } else {
+		defer resp.Body.Close()
+	}
 }
 
 func SendDataWs(sendToServer string, reader io.ReadCloser) {
