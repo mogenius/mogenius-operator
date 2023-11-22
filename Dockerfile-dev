@@ -38,15 +38,9 @@ RUN apk add --no-cache \
     bash \
     git \
     curl \
-    # build-base \
-    # nodejs \
-    # npm \
-    # coreutils \
     openssl \
     nfs-utils \
     ca-certificates
-
-COPY daemon.json /etc/docker/daemon.json
 
 # RUN gem install -N rails
 # RUN gem install -N bundler
@@ -98,4 +92,4 @@ COPY --from=builder ["/app/grype-json-template", "."]
 # CMD ["--continue", "--listen=:2345", "--headless", "--accept-multiclient", "--api-version=2", "exec", "/app/mogenius-k8s-manager", "--", "cluster"]
 # ENTRYPOINT [ "/app/dlv" ]
 
-ENTRYPOINT /usr/local/bin/dockerd & /app/mogenius-k8s-manager cluster
+ENTRYPOINT /usr/local/bin/dockerd > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster

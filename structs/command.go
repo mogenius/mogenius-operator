@@ -93,7 +93,7 @@ func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool
 			logger.Log.Error("exec.Command: %s", err.Error())
 			*status = punq.NOT_INSTALLED
 		} else {
-			logger.Log.Notice("SUCCESS: %s", shellCmd)
+			logger.Log.Noticef("SUCCESS: %s", shellCmd)
 			if uninstalling {
 				*status = punq.NOT_INSTALLED
 			} else {
