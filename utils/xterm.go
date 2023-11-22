@@ -12,7 +12,6 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
-	"github.com/mogenius/punq/utils"
 )
 
 type CmdConnectionRequest struct {
@@ -29,7 +28,7 @@ type CmdWindowSize struct {
 func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectionRequest) *websocket.Conn {
 	for {
 		// add header
-		headers := utils.HttpHeader("")
+		headers := HttpHeader("")
 		headers.Add("x-channel-id", cmdConnectionRequest.ChannelId)
 
 		dialer := &websocket.Dialer{}
