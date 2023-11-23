@@ -23,13 +23,14 @@ type ClusterSecret struct {
 
 type Config struct {
 	Kubernetes struct {
-		ApiKey                   string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
-		ClusterName              string `yaml:"cluster_name" env:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
-		OwnNamespace             string `yaml:"own_namespace" env:"OWN_NAMESPACE" env-description:"The Namespace of mogenius platform"`
-		ClusterMfaId             string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"UUID of the Kubernetes Cluster for MFA purpose"`
-		RunInCluster             bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
-		DefaultContainerRegistry string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
-		BboltDbPath              string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
+		ApiKey                     string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
+		ClusterName                string `yaml:"cluster_name" env:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
+		OwnNamespace               string `yaml:"own_namespace" env:"OWN_NAMESPACE" env-description:"The Namespace of mogenius platform"`
+		ClusterMfaId               string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"UUID of the Kubernetes Cluster for MFA purpose"`
+		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
+		DefaultContainerRegistry   string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
+		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
+		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
 		Http_Server string `yaml:"http_server" env:"api_http_server" env-description:"Server host" env-default:"https://platform-api.mogenius.com"`
@@ -178,7 +179,8 @@ func PrintSettings() {
 	logger.Log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
 	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
-	logger.Log.Infof("BboltDbPath:              %s\n\n", CONFIG.Kubernetes.BboltDbPath)
+	logger.Log.Infof("BboltDbPath:              %s", CONFIG.Kubernetes.BboltDbPath)
+	logger.Log.Infof("LocalContainerRegistry:   %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
 
 	logger.Log.Infof("API")
 	logger.Log.Infof("HttpServer:               %s", CONFIG.ApiServer.Http_Server)

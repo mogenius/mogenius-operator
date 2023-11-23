@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/google/uuid"
 	bolt "go.etcd.io/bbolt"
 
 	punqStructs "github.com/mogenius/punq/structs"
@@ -144,8 +143,8 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 
 	// overwrite images name for local builds
 	if buildJob.ContainerRegistryUser == "" && buildJob.ContainerRegistryPat == "" {
-		tagName = fmt.Sprintf("%s:%d", imageName, buildJob.BuildId)
-		latestTagName = fmt.Sprintf("%s:latest", imageName)
+		tagName = fmt.Sprintf("%s/%s:%d", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName, buildJob.BuildId)
+		latestTagName = fmt.Sprintf("%s/%s:latest", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName)
 	}
 
 	// CLEANUP
@@ -192,24 +191,22 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// PUSH
-	if buildJob.ContainerRegistryUser != "" && buildJob.ContainerRegistryPat != "" {
-		pushCmd := structs.CreateCommand("Pushing container", &job)
-		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", tagName))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
-			done <- structs.BUILD_STATE_FAILED
-			return
-		}
-		err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
-			done <- structs.BUILD_STATE_FAILED
-			return
-		}
+	pushCmd := structs.CreateCommand("Pushing container", &job)
+	err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", tagName))
+	if err != nil {
+		logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+		done <- structs.BUILD_STATE_FAILED
+		return
+	}
+	err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
+	if err != nil {
+		logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
+		done <- structs.BUILD_STATE_FAILED
+		return
 	}
 
 	// SCAN
-	Scan(*buildJob, false, nil)
+	Scan(*buildJob, nil)
 
 	// UPDATE IMAGE
 	setImageCmd := structs.CreateCommand("Deploying image", &job)
@@ -221,7 +218,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 }
 
-func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.BuildScanResult {
+func Scan(buildJob structs.BuildJob, toServerUrl *string) structs.BuildScanResult {
 	job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s'", buildJob.ServiceName), buildJob.ProjectId, &buildJob.NamespaceId, nil)
 
 	imageName := fmt.Sprintf("%s-%s", buildJob.Namespace, buildJob.ServiceName)
@@ -230,33 +227,35 @@ func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.Bu
 	go func() {
 		job.Start()
 
-		exportName := fmt.Sprintf("%s.tar", uuid.New().String())
 		latestTagName := fmt.Sprintf("%s/%s:latest", buildJob.ContainerRegistryPath, imageName)
+		// overwrite images name for local builds
+		if buildJob.ContainerRegistryUser == "" && buildJob.ContainerRegistryPat == "" {
+			latestTagName = fmt.Sprintf("%s/%s:latest", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName)
+		}
+
 		pwd, _ := os.Getwd()
 		grypeTemplate := fmt.Sprintf("%s/grype-json-template", pwd)
 
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 
 		defer func() {
-			// DELETE TAR AFTER FINISH
-			executeCmd(nil, PREFIX_CLEANUP, &buildJob, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("rm -f %s", exportName))
 			cancel()
 		}()
 
 		send := func(result structs.BuildScanResult, toServerUrl *string) {
 			// SEND RESULT VIA WS
-			if (toServerUrl != nil) {
+			if toServerUrl != nil {
 				scanLog, err := json.Marshal(result)
 				if err != nil {
 					return
 				}
-		
+
 				structs.SendData(*toServerUrl, scanLog)
 			}
 		}
 
 		// LOGIN
-		if login {
+		if buildJob.ContainerRegistryUser != "" && buildJob.ContainerRegistryPat != "" {
 			loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job)
 			err := executeCmd(loginCmd, PREFIX_LOGIN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", buildJob.ContainerRegistryPat, buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser))
 			if err != nil {
@@ -277,19 +276,9 @@ func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.Bu
 			}
 		}
 
-		// EXPORT TO TAR
-		exportTarCmd := structs.CreateCommand("Export image for vulnerabilities ...", &job)
-		err := executeCmd(exportTarCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker save -o %s %s", exportName, latestTagName))
-		if err != nil {
-			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
-			result.Error = err.Error()
-			send(result, toServerUrl)
-			return
-		}
-
 		// SCAN
 		scanCmd := structs.CreateCommand("Scanning for vulnerabilities", &job)
-		err = executeCmd(scanCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("grype %s --add-cpes-if-none -q -o template -t %s", exportName, grypeTemplate))
+		err := executeCmd(scanCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("grype %s --add-cpes-if-none -q -o template -t %s", latestTagName, grypeTemplate))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
 			result.Error = err.Error()
@@ -304,7 +293,7 @@ func Scan(buildJob structs.BuildJob, login bool, toServerUrl *string) structs.Bu
 			send(result, toServerUrl)
 			return nil
 		})
-		
+
 		job.Finish()
 	}()
 	return result
