@@ -71,6 +71,8 @@ RUN if [ "${GOARCH}" = "amd64" ]; then \
       curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_x86_64.tar.gz; \
     elif [ "${GOARCH}" = "arm64" ]; then \
       curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm64.tar.gz; \
+    elif [ "${GOARCH}" = "arm" ]; then \
+      curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm.tar.gz; \
     else \
       echo "Unsupported architecture"; \
       exit 1; \
