@@ -4,6 +4,7 @@ LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit
 
 ARG GOOS
 ARG GOARCH
+ARG GOARM
 
 # RUN apk add --no-cache \
     # libpcap-dev \
@@ -41,6 +42,7 @@ FROM docker:dind
 
 ARG GOOS
 ARG GOARCH
+ARG GOARM
 
 RUN apk add --no-cache \
     bash \

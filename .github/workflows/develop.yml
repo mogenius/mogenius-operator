@@ -116,8 +116,35 @@ jobs:
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
 
+  build-armv7:
+    needs: prepare
+    runs-on: [self-hosted, ARM64]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.MO_K8s_TOKEN }}
+
+      - name: Build and push ARMv7 image
+        run: |
+          GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          BUILD_TIMESTAMP=$(date -Iseconds)
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+          docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm --build-arg GOARM=7 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm7 -t ${{ env.IMAGE_NAME }}:latest-arm7 .
+          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
+        
+
   merge-images:
-    needs: [build-amd64, build-arm64, build-arm64-linux, prepare]
+    needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
     runs-on: self-hosted
     steps:
       - name: Check out code
@@ -138,17 +165,19 @@ jobs:
           docker manifest create ${{ env.IMAGE_NAME }}:$VERSION \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-amd64 \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux \
+              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm7 \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
           docker manifest push ${{ env.IMAGE_NAME }}:$VERSION
           docker manifest create ${{ env.IMAGE_NAME }}:latest \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-amd64 \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux \
+              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm7 \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
           docker manifest push ${{ env.IMAGE_NAME }}:latest
 
   helm-chart:
     # needs: [prepare]
-    needs: [prepare, build-amd64, build-arm64, build-arm64-linux, merge-images]
+    needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
     runs-on: ubuntu-latest
 
     steps:

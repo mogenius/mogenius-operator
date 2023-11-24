@@ -625,7 +625,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if podStatsCollectorInstalledErr != nil {
 		podStatsMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather pod/event information you need to install this component.", podStatsCollectorName, contextName)
 	}
-	podEntry := punq.CreateSystemCheckEntry(podStatsCollectorName, podStatsCollectorInstalledErr == nil, podStatsMsg, false)
+	podEntry := punq.CreateSystemCheckEntry(podStatsCollectorName, podStatsCollectorInstalledErr == nil, podStatsMsg, true)
 	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
 	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
 	if podStatsCollectorStatus != punq.UNKNOWN_STATUS {
