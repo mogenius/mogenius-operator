@@ -13,7 +13,7 @@ import (
 )
 
 func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto) *structs.Command {
-	cmd := structs.CreateCommand("Create Kubernetes namespace", job, nil)
+	cmd := structs.CreateCommand("Create Kubernetes namespace", job)
 	cmd.Start(fmt.Sprintf("Creating namespace '%s'.", namespace.Name))
 
 	provider, err := punq.NewKubeProvider(nil)
@@ -43,7 +43,7 @@ func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dto
 }
 
 func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete Kubernetes namespace", job, nil)
+	cmd := structs.CreateCommand("Delete Kubernetes namespace", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()

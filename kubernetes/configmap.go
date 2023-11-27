@@ -13,7 +13,7 @@ import (
 )
 
 func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create Kubernetes ConfigMap", job, nil)
+	cmd := structs.CreateCommand("Create Kubernetes ConfigMap", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -47,7 +47,7 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 }
 
 func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete Kubernetes configMap", job, nil)
+	cmd := structs.CreateCommand("Delete Kubernetes configMap", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -75,7 +75,7 @@ func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 }
 
 func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Update Kubernetes configMap", job, nil)
+	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -112,7 +112,7 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 }
 
 func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string, key string, value string, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Update Kubernetes configMap", job, nil)
+	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -143,7 +143,7 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 }
 
 func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName string, key string, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Update Kubernetes configMap", job, nil)
+	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()

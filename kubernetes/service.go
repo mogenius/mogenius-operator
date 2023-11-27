@@ -18,7 +18,7 @@ import (
 )
 
 func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", service.Name), job, nil)
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", service.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -49,7 +49,7 @@ func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 }
 
 func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete Service", job, nil)
+	cmd := structs.CreateCommand("Delete Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -76,7 +76,7 @@ func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 }
 
 func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Update Service", job, nil)
+	cmd := structs.CreateCommand("Update Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -249,7 +249,7 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 }
 
 func RemovePortFromService(job *structs.Job, namespace string, serviceName string, port int32, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Remove Port from Service", job, nil)
+	cmd := structs.CreateCommand("Remove Port from Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -294,7 +294,7 @@ func RemovePortFromService(job *structs.Job, namespace string, serviceName strin
 }
 
 func AddPortToService(job *structs.Job, namespace string, serviceName string, port int32, protocol string, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Add Port to Service", job, nil)
+	cmd := structs.CreateCommand("Add Port to Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()

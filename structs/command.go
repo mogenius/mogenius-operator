@@ -32,7 +32,7 @@ func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
 	}
 }
 
-func CreateCommand(title string, job *Job, buildId *int) *Command {
+func CreateCommand(title string, job *Job) *Command {
 	cmd := Command{
 		Id:                      uuid.NewV4().String(),
 		JobId:                   job.Id,
@@ -49,8 +49,27 @@ func CreateCommand(title string, job *Job, buildId *int) *Command {
 		IgnoreError:             false,
 		Started:                 time.Now(),
 	}
-	if buildId != nil {
-		cmd.BuildId = *buildId
+	ReportStateToServer(nil, &cmd)
+	return &cmd
+}
+
+func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
+	cmd := Command{
+		Id:                      uuid.NewV4().String(),
+		JobId:                   job.JobId,
+		ProjectId:               job.ProjectId,
+		NamespaceId:             &job.NamespaceId,
+		ServiceId:               &job.ServiceId,
+		Title:                   title,
+		Message:                 "",
+		BuildId:                 job.BuildId,
+		StartedAt:               time.Now().Format(time.RFC3339),
+		State:                   "PENDING",
+		DurationMs:              0,
+		MustSucceed:             false,
+		ReportToNotificationSvc: true,
+		IgnoreError:             false,
+		Started:                 time.Now(),
 	}
 	ReportStateToServer(nil, &cmd)
 	return &cmd
@@ -59,7 +78,7 @@ func CreateCommand(title string, job *Job, buildId *int) *Command {
 // XXX NOT USED ANYMORE?
 func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
 	wg.Add(1)
-	cmd := CreateCommand(title, job, nil)
+	cmd := CreateCommand(title, job)
 	go func(cmd *Command) {
 		defer wg.Done()
 		cmd.Start(title)

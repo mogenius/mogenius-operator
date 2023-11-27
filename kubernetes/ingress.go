@@ -23,7 +23,7 @@ const (
 )
 
 func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Updating ingress setup.", job, nil)
+	cmd := structs.CreateCommand("Updating ingress setup.", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()

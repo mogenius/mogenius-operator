@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -325,19 +326,16 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 			}
 
 			// Iterate over each resource and write it to a file
-			for index, obj := range list.Items {
-				result.Messages = append(result.Messages, fmt.Sprintf("(SUCCESS) %s: %s/%s", resourceId.Resource, obj.GetNamespace(), obj.GetName()))
-				if index != 0 {
-					output = output + "---\n"
+			for _, obj := range list.Items {
+				if obj.GetKind() == "Event" {
+					continue
 				}
-				obj.SetManagedFields(nil)
-				delete(obj.Object, "status")
-				obj.SetUID("")
-				obj.SetResourceVersion("")
-				obj.SetCreationTimestamp(v1.Time{})
+				output = output + "---\n"
+				result.Messages = append(result.Messages, fmt.Sprintf("(SUCCESS) %s: %s/%s", resourceId.Resource, obj.GetNamespace(), obj.GetName()))
 
-				topObj := obj.Object
-				json, err := realJson.Marshal(topObj)
+				obj = cleanBackupResources(obj)
+
+				json, err := realJson.Marshal(obj.Object)
 				if err != nil {
 					return result, err
 				}
@@ -351,6 +349,8 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	}
 	result.Data = output
 
+	os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 777)
+
 	fmt.Printf("\nSKIP   : %s\n", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
 	fmt.Printf("\nALL    : %s\n", allResources.Display())
 	fmt.Printf("\nSKIPPED: %s\n", skippedGroups.Display())
@@ -362,7 +362,9 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 // Some Kinds must be executed before other kinds. The order is important.
 func sortWithPreference(objs []unstructured.Unstructured) {
 	sort.Slice(objs, func(i, j int) bool {
-		if objs[i].GetKind() == "ServiceAccount" {
+		if objs[i].GetKind() == "Namespace" {
+			return true
+		} else if objs[i].GetKind() == "ServiceAccount" {
 			return true
 		} else if objs[i].GetKind() == "ServiceAccount" {
 			return false
@@ -370,4 +372,25 @@ func sortWithPreference(objs []unstructured.Unstructured) {
 			return objs[i].GetKind() < objs[j].GetKind() // sort remaining elements in ascending order
 		}
 	})
+}
+
+func cleanBackupResources(obj unstructured.Unstructured) unstructured.Unstructured {
+	obj.SetManagedFields(nil)
+	delete(obj.Object, "status")
+	obj.SetUID("")
+	obj.SetResourceVersion("")
+	obj.SetCreationTimestamp(v1.Time{})
+
+	if obj.GetKind() == "PersistentVolumeClaim" {
+		if nested, ok := obj.Object["spec"].(map[string]interface{}); ok {
+			delete(nested, "volumeName")
+			obj.Object["spec"] = nested
+		}
+
+		cleanedAnnotations := obj.GetAnnotations()
+		delete(cleanedAnnotations, "pv.kubernetes.io/bind-completed")
+		obj.SetAnnotations(cleanedAnnotations)
+	}
+
+	return obj
 }

@@ -153,7 +153,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// CLONE
-	cloneCmd := structs.CreateCommand("Clone repository", &job, &buildJob.BuildId)
+	cloneCmd := structs.CreateCommandFromBuildJob("Clone repository", buildJob)
 	err := executeCmd(cloneCmd, PREFIX_GIT_CLONE, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("git clone --progress -b %s --single-branch %s %s", buildJob.GitBranch, buildJob.GitRepo, workingDir))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", PREFIX_GIT_CLONE, err.Error())
@@ -162,7 +162,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// LS
-	lsCmd := structs.CreateCommand("List contents", &job, &buildJob.BuildId)
+	lsCmd := structs.CreateCommandFromBuildJob("List contents", buildJob)
 	err = executeCmd(lsCmd, PREFIX_LS, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("ls -lisa %s", workingDir))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", PREFIX_LS, err.Error())
@@ -172,7 +172,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 
 	// LOGIN
 	if buildJob.ContainerRegistryUser != "" && buildJob.ContainerRegistryPat != "" {
-		loginCmd := structs.CreateCommand("Authentificate with container registry", &job, &buildJob.BuildId)
+		loginCmd := structs.CreateCommandFromBuildJob("Authentificate with container registry", buildJob)
 		err = executeCmd(loginCmd, PREFIX_LOGIN, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
@@ -182,7 +182,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// BUILD
-	buildCmd := structs.CreateCommand("Building container", &job, &buildJob.BuildId)
+	buildCmd := structs.CreateCommandFromBuildJob("Building container", buildJob)
 	err = executeCmd(buildCmd, PREFIX_BUILD, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build -f %s %s -t %s -t %s %s", workingDir, buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", PREFIX_BUILD, err.Error())
@@ -191,7 +191,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 
 	// PUSH
-	pushCmd := structs.CreateCommand("Pushing container", &job, &buildJob.BuildId)
+	pushCmd := structs.CreateCommandFromBuildJob("Pushing container", buildJob)
 	err = executeCmd(pushCmd, PREFIX_PUSH, buildJob, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", tagName))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", PREFIX_PUSH, err.Error())
@@ -209,7 +209,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	Scan(*buildJob, nil)
 
 	// UPDATE IMAGE
-	setImageCmd := structs.CreateCommand("Deploying image", &job, &buildJob.BuildId)
+	setImageCmd := structs.CreateCommandFromBuildJob("Deploying image", buildJob)
 	err = updateDeploymentImage(setImageCmd, buildJob, tagName)
 	if err != nil {
 		logger.Log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
@@ -256,7 +256,7 @@ func Scan(buildJob structs.BuildJob, toServerUrl *string) structs.BuildScanResul
 
 		// LOGIN
 		if buildJob.ContainerRegistryUser != "" && buildJob.ContainerRegistryPat != "" {
-			loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job, &buildJob.BuildId)
+			loginCmd := structs.CreateCommandFromBuildJob("Authentificating with container registry ...", &buildJob)
 			err := executeCmd(loginCmd, PREFIX_LOGIN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", buildJob.ContainerRegistryPat, buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser))
 			if err != nil {
 				logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
@@ -266,7 +266,7 @@ func Scan(buildJob structs.BuildJob, toServerUrl *string) structs.BuildScanResul
 			}
 
 			// PULL IMAGE
-			pullCmd := structs.CreateCommand("Pull image for vulnerabilities ...", &job, &buildJob.BuildId)
+			pullCmd := structs.CreateCommandFromBuildJob("Pull image for vulnerabilities ...", &buildJob)
 			err = executeCmd(pullCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker pull %s", latestTagName))
 			if err != nil {
 				logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
@@ -277,7 +277,7 @@ func Scan(buildJob structs.BuildJob, toServerUrl *string) structs.BuildScanResul
 		}
 
 		// SCAN
-		scanCmd := structs.CreateCommand("Scanning for vulnerabilities", &job, &buildJob.BuildId)
+		scanCmd := structs.CreateCommandFromBuildJob("Scanning for vulnerabilities", &buildJob)
 		err := executeCmd(scanCmd, PREFIX_SCAN, &buildJob, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("grype %s --add-cpes-if-none -q -o template -t %s", latestTagName, grypeTemplate))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
