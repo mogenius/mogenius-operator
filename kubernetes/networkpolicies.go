@@ -17,7 +17,7 @@ import (
 )
 
 func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create NetworkPolicy namespace", job)
+	cmd := structs.CreateCommand("Create NetworkPolicy namespace", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -49,7 +49,7 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 }
 
 func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete NetworkPolicy.", job)
+	cmd := structs.CreateCommand("Delete NetworkPolicy.", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -73,7 +73,7 @@ func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 }
 
 func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create NetworkPolicy Service", job)
+	cmd := structs.CreateCommand("Create NetworkPolicy Service", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -117,7 +117,7 @@ func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 }
 
 func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete NetworkPolicy Service.", job)
+	cmd := structs.CreateCommand("Delete NetworkPolicy Service.", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()

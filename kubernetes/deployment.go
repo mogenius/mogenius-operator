@@ -23,7 +23,7 @@ import (
 func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	logger.Log.Infof("CreateDeployment K8sServiceDto: %s", service)
 
-	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name), job)
+	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name), job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -51,7 +51,7 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 }
 
 func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Deleting Deployment '%s'.", service.Name), job)
+	cmd := structs.CreateCommand(fmt.Sprintf("Deleting Deployment '%s'.", service.Name), job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -80,7 +80,7 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 }
 
 func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", namespace.Name), job)
+	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", namespace.Name), job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -110,7 +110,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 }
 
 func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Starting Deployment", job)
+	cmd := structs.CreateCommand("Starting Deployment", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -135,7 +135,7 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 }
 
 func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Stopping Deployment", job)
+	cmd := structs.CreateCommand("Stopping Deployment", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -161,7 +161,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 }
 
 func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Restart Deployment", job)
+	cmd := structs.CreateCommand("Restart Deployment", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -407,7 +407,7 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 }
 
 func SetDeploymentImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job)
+	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()

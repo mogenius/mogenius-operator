@@ -122,6 +122,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return DeleteHelmChart(data)
 	case PAT_CLUSTER_TCP_UDP_CONFIGURATION:
 		return TcpUdpClusterConfiguration()
+	case PAT_CLUSTER_BACKUP:
+		result, err := kubernetes.BackupNamespace("")
+		if err != nil {
+			return err.Error()
+		}
+		return result
 
 	case PAT_NAMESPACE_CREATE:
 		data := NamespaceCreateRequest{}

@@ -28,10 +28,11 @@ func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
 		StartedAt:   cmd.StartedAt,
 		State:       cmd.State,
 		DurationMs:  cmd.DurationMs,
+		BuildId:     cmd.BuildId,
 	}
 }
 
-func CreateCommand(title string, job *Job) *Command {
+func CreateCommand(title string, job *Job, buildId *int) *Command {
 	cmd := Command{
 		Id:                      uuid.NewV4().String(),
 		JobId:                   job.Id,
@@ -48,6 +49,9 @@ func CreateCommand(title string, job *Job) *Command {
 		IgnoreError:             false,
 		Started:                 time.Now(),
 	}
+	if buildId != nil {
+		cmd.BuildId = *buildId
+	}
 	ReportStateToServer(nil, &cmd)
 	return &cmd
 }
@@ -55,7 +59,7 @@ func CreateCommand(title string, job *Job) *Command {
 // XXX NOT USED ANYMORE?
 func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
 	wg.Add(1)
-	cmd := CreateCommand(title, job)
+	cmd := CreateCommand(title, job, nil)
 	go func(cmd *Command) {
 		defer wg.Done()
 		cmd.Start(title)

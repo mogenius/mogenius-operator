@@ -15,7 +15,7 @@ import (
 )
 
 func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create Kubernetes secret", job)
+	cmd := structs.CreateCommand("Create Kubernetes secret", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -53,7 +53,7 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 }
 
 func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete Kubernetes secret", job)
+	cmd := structs.CreateCommand("Delete Kubernetes secret", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -81,7 +81,7 @@ func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 }
 
 func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create Container secret", job)
+	cmd := structs.CreateCommand("Create Container secret", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -133,7 +133,7 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 }
 
 func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create Container secret for service", job)
+	cmd := structs.CreateCommand("Create Container secret for service", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -181,7 +181,7 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 }
 
 func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete Container secret", job)
+	cmd := structs.CreateCommand("Delete Container secret", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -209,7 +209,7 @@ func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg 
 }
 
 func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Update Kubernetes secret", job)
+	cmd := structs.CreateCommand("Update Kubernetes secret", job, nil)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()

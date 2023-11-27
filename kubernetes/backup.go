@@ -297,7 +297,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 
 		for _, aApiResource := range resource.APIResources {
 			allResources.Add(aApiResource.Name)
-			if !aApiResource.Namespaced {
+			if !aApiResource.Namespaced && namespace != "" {
 				skippedGroups.Add(aApiResource.Name)
 				continue
 			}

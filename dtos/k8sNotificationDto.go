@@ -11,4 +11,5 @@ type K8sNotificationDto struct {
 	StartedAt   string  `json:"startedAt"`
 	State       string  `json:"state"`
 	DurationMs  int64   `json:"durationMs"`
+	BuildId     int     `json:"buildId,omitempty"`
 }
