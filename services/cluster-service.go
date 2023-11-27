@@ -581,6 +581,7 @@ var metricsServerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var ingressCtrlStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var distriRegistryStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var metallbStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+var localDevEnvStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 
 func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
@@ -660,6 +661,18 @@ func SystemCheck() punq.SystemCheckResponse {
 		metallbEntry.Status = metallbStatus
 	}
 	entries = append(entries, metallbEntry)
+
+	clusterIps := punq.GetClusterExternalIps(nil)
+	localDevEnvMsg := "Local development environment setup complete (192.168.66.1 found)."
+	contains192168661 := !punqUtils.Contains(clusterIps, "192.168.66.1")
+	if contains192168661 {
+		localDevEnvMsg = "Local development environment not setup. Please run 'mocli cluster local-dev-setup' to setup your local environment."
+	}
+	localDevSetupEntry := punq.CreateSystemCheckEntry("Local Dev Setup", contains192168661, localDevEnvMsg, false)
+	if localDevEnvStatus != punq.UNKNOWN_STATUS {
+		localDevSetupEntry.Status = localDevEnvStatus
+	}
+	entries = append(entries, localDevSetupEntry)
 
 	// add missing patterns
 	for i := 0; i < len(entries); i++ {
