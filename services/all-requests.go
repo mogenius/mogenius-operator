@@ -6,13 +6,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"os/exec"
 	"strings"
 
 	// "fmt"
 	"mogenius-k8s-manager/builder"
-	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"net/url"
@@ -54,6 +54,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_SYSTEM_CHECK:
 		return SystemCheck()
 
+	case PAT_INSTALL_LOCAL_DEV_COMPONENTS:
+		data := ClusterIssuerInstallRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return InstallAllLocalDevComponents(data.Email)
 	case PAT_INSTALL_TRAFFIC_COLLECTOR:
 		return InstallTrafficCollector()
 	case PAT_INSTALL_POD_STATS_COLLECTOR:
@@ -64,6 +68,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return InstallIngressControllerTreafik()
 	case PAT_INSTALL_CERT_MANAGER:
 		return InstallCertManager()
+	case PAT_INSTALL_CLUSTER_ISSUER:
+		data := ClusterIssuerInstallRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return InstallClusterIssuer(data.Email)
 	case PAT_INSTALL_CONTAINER_REGISTRY:
 		return InstallContainerRegistry()
 	case PAT_INSTALL_METALLB:
@@ -78,6 +86,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return UninstallIngressControllerTreafik()
 	case PAT_UNINSTALL_CERT_MANAGER:
 		return UninstallCertManager()
+	case PAT_UNINSTALL_CLUSTER_ISSUER:
+		return UninstallClusterIssuer()
 	case PAT_UNINSTALL_CONTAINER_REGISTRY:
 		return UninstallContainerRegistry()
 	case PAT_UNINSTALL_METALLB:

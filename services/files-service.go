@@ -259,6 +259,16 @@ func Delete(r FilesDeleteRequest) interface{} {
 	return nil
 }
 
+type ClusterIssuerInstallRequest struct {
+	Email string `json:"email"`
+}
+
+func ClusterIssuerInstallRequestExample() ClusterIssuerInstallRequest {
+	return ClusterIssuerInstallRequest{
+		Email: "bene@mogenius.com",
+	}
+}
+
 type FilesListRequest struct {
 	Folder dtos.PersistentFileRequestDto `json:"folder"`
 }

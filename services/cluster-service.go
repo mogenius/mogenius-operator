@@ -607,6 +607,7 @@ var metricsServerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var ingressCtrlStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var distriRegistryStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var metallbStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+var clusterIssuerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var localDevEnvStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 
 func SystemCheck() punq.SystemCheckResponse {
@@ -631,6 +632,20 @@ func SystemCheck() punq.SystemCheckResponse {
 		certMgrEntry.Status = certManagerStatus
 	}
 	entries = append(entries, certMgrEntry)
+
+	clusterIssuerName := "clusterissuer"
+	clusterIssuerVersion, clusterIssuerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, clusterIssuerName)
+	clusterIssuerMsg := fmt.Sprintf("%s (Version: %s) is installed.", clusterIssuerName, clusterIssuerVersion)
+	if clusterIssuerInstalledErr != nil {
+		clusterIssuerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo issue ssl certificates you need to install this component.", clusterIssuerName, contextName)
+	}
+	clusterIssuerEntry := punq.CreateSystemCheckEntry(clusterIssuerName, clusterIssuerInstalledErr == nil, clusterIssuerMsg, false)
+	clusterIssuerEntry.InstallPattern = PAT_INSTALL_CLUSTER_ISSUER
+	clusterIssuerEntry.UninstallPattern = PAT_UNINSTALL_CLUSTER_ISSUER
+	if clusterIssuerStatus != punq.UNKNOWN_STATUS {
+		clusterIssuerEntry.Status = clusterIssuerStatus
+	}
+	entries = append(entries, clusterIssuerEntry)
 
 	trafficCollectorName := "mogenius-traffic-collector"
 	trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, trafficCollectorName)
@@ -726,6 +741,19 @@ func IsDockerInstalled() (bool, string, error) {
 	cmd := punqUtils.RunOnLocalShell("/usr/local/bin/docker --version")
 	output, err := cmd.CombinedOutput()
 	return err == nil, strings.TrimRight(string(output), "\n\r"), err
+}
+
+func InstallAllLocalDevComponents(email string) string {
+	result := ""
+	result += InstallTrafficCollector() + "\n"
+	result += InstallPodStatsCollector() + "\n"
+	result += InstallMetricsServer() + "\n"
+	result += InstallIngressControllerTreafik() + "\n"
+	result += InstallCertManager() + "\n"
+	result += InstallContainerRegistry() + "\n"
+	result += InstallMetalLb() + "\n"
+	result += InstallClusterIssuer(email) + "\n"
+	return result
 }
 
 func InstallTrafficCollector() string {
@@ -863,6 +891,28 @@ func InstallMetalLb() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
+func InstallClusterIssuer(email string) string {
+	// helm install clusterissuer mogenius/mogenius-cluster-issuer --set global.clusterissuermail="ruediger@mogenius.com" --set global.ingressclass="traefik"
+
+	ingType, err := punq.DetermineIngressControllerType(nil)
+	if err != nil {
+		return fmt.Sprintf("Error determining ingress controller type: %s", err.Error())
+	}
+
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "mogenius",
+		HelmRepoUrl:     "https://helm.mogenius.com/public",
+		HelmReleaseName: "clusterissuer",
+		HelmChartName:   "mogenius/mogenius-cluster-issuer",
+		HelmFlags:       fmt.Sprintf(`--namespace %s --set global.clusterissuermail="%s" --set global.ingressclass="%s"`, utils.CONFIG.Kubernetes.OwnNamespace, email, strings.ToLower(ingType.String())),
+		HelmTask:        "install",
+	}
+	clusterIssuerStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &clusterIssuerStatus, nil)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s' (%s, %s).", r.HelmTask, r.HelmReleaseName, email, strings.ToLower(ingType.String()))
+}
+
 func UninstallTrafficCollector() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
@@ -965,6 +1015,21 @@ func UninstallMetalLb() string {
 	}
 	metallbStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metallbStatus, nil)
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
+func UninstallClusterIssuer() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "mogenius",
+		HelmRepoUrl:     "https://helm.mogenius.com/public",
+		HelmReleaseName: "clusterissuer",
+		HelmChartName:   "",
+		HelmFlags:       fmt.Sprintf(`--namespace %s`, utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        "uninstall",
+	}
+	clusterIssuerStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &clusterIssuerStatus, nil)
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 

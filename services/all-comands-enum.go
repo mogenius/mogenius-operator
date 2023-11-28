@@ -11,11 +11,13 @@ const (
 	PAT_CLUSTER_FORCE_RECONNECT string = "ClusterForceReconnect"
 	PAT_SYSTEM_CHECK            string = "SYSTEM_CHECK"
 
+	PAT_INSTALL_LOCAL_DEV_COMPONENTS         string = "install-local-dev-components"
 	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
 	PAT_INSTALL_POD_STATS_COLLECTOR          string = "install-pod-stats-collector"
 	PAT_INSTALL_METRICS_SERVER               string = "install-metrics-server"
 	PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK   string = "install-ingress-controller-traefik"
 	PAT_INSTALL_CERT_MANAGER                 string = "install-cert-manager"
+	PAT_INSTALL_CLUSTER_ISSUER               string = "install-cluster-issuer"
 	PAT_INSTALL_CONTAINER_REGISTRY           string = "install-container-registry"
 	PAT_INSTALL_METALLB                      string = "install-metallb"
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR          string = "uninstall-traffic-collector"
@@ -23,6 +25,7 @@ const (
 	PAT_UNINSTALL_METRICS_SERVER             string = "uninstall-metrics-server"
 	PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK string = "uninstall-ingress-controller-traefik"
 	PAT_UNINSTALL_CERT_MANAGER               string = "uninstall-cert-manager"
+	PAT_UNINSTALL_CLUSTER_ISSUER             string = "uninstall-cluster-issuer"
 	PAT_UNINSTALL_CONTAINER_REGISTRY         string = "uninstall-container-registry"
 	PAT_UNINSTALL_METALLB                    string = "uninstall-metallb"
 
@@ -291,11 +294,13 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_FORCE_RECONNECT,
 	PAT_SYSTEM_CHECK,
 
+	PAT_INSTALL_LOCAL_DEV_COMPONENTS,
 	PAT_INSTALL_TRAFFIC_COLLECTOR,
 	PAT_INSTALL_POD_STATS_COLLECTOR,
 	PAT_INSTALL_METRICS_SERVER,
 	PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK,
 	PAT_INSTALL_CERT_MANAGER,
+	PAT_INSTALL_CLUSTER_ISSUER,
 	PAT_INSTALL_CONTAINER_REGISTRY,
 	PAT_INSTALL_METALLB,
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR,
@@ -303,6 +308,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_UNINSTALL_METRICS_SERVER,
 	PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK,
 	PAT_UNINSTALL_CERT_MANAGER,
+	PAT_UNINSTALL_CLUSTER_ISSUER,
 	PAT_UNINSTALL_CONTAINER_REGISTRY,
 	PAT_UNINSTALL_METALLB,
 
