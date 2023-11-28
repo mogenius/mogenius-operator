@@ -254,3 +254,12 @@ func Umount(volumeNamespace string, volumeName string) {
 		}
 	}()
 }
+
+func IsLocalClusterSetup() bool {
+	ips := punq.GetClusterExternalIps(nil)
+	if punqUtils.Contains(ips, "192.168.66.1") || punqUtils.Contains(ips, "localhost") {
+		return true
+	} else {
+		return false
+	}
+}

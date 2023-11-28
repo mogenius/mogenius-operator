@@ -57,7 +57,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 		config.WithAnnotations(loadDefaultAnnotations())
 
 		// remove the issuer if cloudflare takes over controll over certificate
-		if namespace.CloudflareProxied {
+		if namespace.CloudflareProxied || IsLocalClusterSetup() {
 			delete(config.Annotations, "cert-manager.io/cluster-issuer")
 		}
 
