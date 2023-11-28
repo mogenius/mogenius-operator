@@ -286,6 +286,9 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	}
 
 	output := ""
+	if namespace != "" {
+		output = namespaceString(namespace)
+	}
 	// Iterate over each resource type and backup all resources in the namespace
 	for _, resource := range resourceList {
 		if punqUtils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, resource.GroupVersion) {
@@ -362,9 +365,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 // Some Kinds must be executed before other kinds. The order is important.
 func sortWithPreference(objs []unstructured.Unstructured) {
 	sort.Slice(objs, func(i, j int) bool {
-		if objs[i].GetKind() == "Namespace" {
-			return true
-		} else if objs[i].GetKind() == "ServiceAccount" {
+		if objs[i].GetKind() == "ServiceAccount" {
 			return true
 		} else if objs[i].GetKind() == "ServiceAccount" {
 			return false
@@ -372,6 +373,14 @@ func sortWithPreference(objs []unstructured.Unstructured) {
 			return objs[i].GetKind() < objs[j].GetKind() // sort remaining elements in ascending order
 		}
 	})
+}
+
+func namespaceString(ns string) string {
+	return fmt.Sprintf(`apiVersion: v1
+kind: Namespace
+metadata:
+	name: %s
+`, ns)
 }
 
 func cleanBackupResources(obj unstructured.Unstructured) unstructured.Unstructured {
