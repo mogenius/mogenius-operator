@@ -462,6 +462,32 @@ func ClusterHelmUninstallRequestExample() ClusterHelmUninstallRequest {
 	}
 }
 
+type ClusterWriteConfigMap struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Data      string `json:"data"`
+}
+
+func ClusterWriteConfigMapExample() ClusterWriteConfigMap {
+	return ClusterWriteConfigMap{
+		Namespace: "mogenius",
+		Name:      "my-funky-configmap",
+		Data:      "my-funky-data-yaml-string",
+	}
+}
+
+type ClusterGetConfigMap struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+}
+
+func ClusterGetConfigMapExample() ClusterGetConfigMap {
+	return ClusterGetConfigMap{
+		Namespace: "mogenius",
+		Name:      "my-funky-configmap",
+	}
+}
+
 type NfsStorageInstallRequest struct {
 	ClusterProvider string `json:"ClusterProvider"` // "BRING_YOUR_OWN", "EKS", "AKS", "GKE", "DOCKER_ENTERPRISE", "DOKS", "LINODE", "IBM", "ACK", "OKE", "OTC", "OPEN_SHIFT"
 }

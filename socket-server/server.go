@@ -296,6 +296,11 @@ func requestCmdFromCluster(pattern string) {
 		case services.PAT_CLUSTER_TCP_UDP_CONFIGURATION:
 			payload = nil
 
+		case services.PAT_CLUSTER_WRITE_CONFIGMAP:
+			payload = services.ClusterWriteConfigMapExample()
+		case services.PAT_CLUSTER_READ_CONFIGMAP:
+			payload = services.ClusterGetConfigMapExample()
+
 		case services.PAT_UPGRADEK8SMANAGER:
 			payload = services.K8sManagerUpgradeRequestExample()
 

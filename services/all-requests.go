@@ -128,6 +128,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err.Error()
 		}
 		return result
+	case PAT_CLUSTER_READ_CONFIGMAP:
+		data := ClusterGetConfigMap{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return kubernetes.GetConfigMap(data.Namespace, data.Name)
+	case PAT_CLUSTER_WRITE_CONFIGMAP:
+		data := ClusterWriteConfigMap{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return kubernetes.WriteConfigMap(data.Namespace, data.Name, data.Data)
 
 	case PAT_NAMESPACE_CREATE:
 		data := NamespaceCreateRequest{}

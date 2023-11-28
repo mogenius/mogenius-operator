@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -178,4 +181,49 @@ func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName st
 		cmd.Fail(fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
 	}(cmd, wg)
 	return cmd
+}
+
+func WriteConfigMap(namespace string, name string, data string) error {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return err
+	}
+	client := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+
+	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		newConfigMap := v1.ConfigMap{}
+		newConfigMap.Data = make(map[string]string)
+		newConfigMap.Name = name
+		newConfigMap.Namespace = namespace
+		newConfigMap.Data["data"] = data
+		_, err := client.Create(context.TODO(), &newConfigMap, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	} else if err == nil && cfgMap != nil {
+		cfgMap.Data["data"] = data
+		_, err := client.Update(context.TODO(), cfgMap, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+	} else {
+		logger.Log.Errorf("CreateOrUpdateConfigMap ERROR: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
+func GetConfigMap(namespace string, name string) K8sWorkloadResult {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	client := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+
+	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	return WorkloadResult(cfgMap.Data["data"], err)
 }

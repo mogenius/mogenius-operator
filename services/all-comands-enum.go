@@ -38,6 +38,8 @@ const (
 	PAT_CLUSTER_UNINSTALL_HELM_CHART    string = "cluster/uninstall-helm-chart"
 	PAT_CLUSTER_TCP_UDP_CONFIGURATION   string = "cluster/tcp-udp-configuration"
 	PAT_CLUSTER_BACKUP                  string = "cluster/backup"
+	PAT_CLUSTER_WRITE_CONFIGMAP         string = "cluster/write-configmap"
+	PAT_CLUSTER_READ_CONFIGMAP          string = "cluster/read-configmap"
 
 	PAT_NAMESPACE_CREATE                string = "namespace/create"
 	PAT_NAMESPACE_DELETE                string = "namespace/delete"
@@ -316,6 +318,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_UNINSTALL_HELM_CHART,
 	PAT_CLUSTER_TCP_UDP_CONFIGURATION,
 	PAT_CLUSTER_BACKUP,
+	PAT_CLUSTER_WRITE_CONFIGMAP,
+	PAT_CLUSTER_READ_CONFIGMAP,
 
 	PAT_NAMESPACE_CREATE,
 	PAT_NAMESPACE_DELETE,
