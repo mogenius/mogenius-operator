@@ -300,6 +300,8 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ClusterWriteConfigMapExample()
 		case services.PAT_CLUSTER_READ_CONFIGMAP:
 			payload = services.ClusterGetConfigMapExample()
+		case services.PAT_CLUSTER_LIST_CONFIGMAPS:
+			payload = services.ClusterListConfigMapsExample()
 		case services.PAT_INSTALL_CLUSTER_ISSUER:
 			payload = services.ClusterIssuerInstallRequestExample()
 

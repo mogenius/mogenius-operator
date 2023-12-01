@@ -145,7 +145,11 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_CLUSTER_WRITE_CONFIGMAP:
 		data := ClusterWriteConfigMap{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return kubernetes.WriteConfigMap(data.Namespace, data.Name, data.Data)
+		return kubernetes.WriteConfigMap(data.Namespace, data.Name, data.Data, data.Labels)
+	case PAT_CLUSTER_LIST_CONFIGMAPS:
+		data := ClusterListConfigMaps{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return kubernetes.ListConfigMapWithFieldSelector(data.Namespace, data.LabelSelector)
 
 	case PAT_NAMESPACE_CREATE:
 		data := NamespaceCreateRequest{}

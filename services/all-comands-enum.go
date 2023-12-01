@@ -43,6 +43,7 @@ const (
 	PAT_CLUSTER_BACKUP                  string = "cluster/backup"
 	PAT_CLUSTER_WRITE_CONFIGMAP         string = "cluster/write-configmap"
 	PAT_CLUSTER_READ_CONFIGMAP          string = "cluster/read-configmap"
+	PAT_CLUSTER_LIST_CONFIGMAPS         string = "cluster/list-configmaps"
 
 	PAT_NAMESPACE_CREATE                string = "namespace/create"
 	PAT_NAMESPACE_DELETE                string = "namespace/delete"
@@ -326,6 +327,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_BACKUP,
 	PAT_CLUSTER_WRITE_CONFIGMAP,
 	PAT_CLUSTER_READ_CONFIGMAP,
+	PAT_CLUSTER_LIST_CONFIGMAPS,
 
 	PAT_NAMESPACE_CREATE,
 	PAT_NAMESPACE_DELETE,

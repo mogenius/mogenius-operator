@@ -463,16 +463,32 @@ func ClusterHelmUninstallRequestExample() ClusterHelmUninstallRequest {
 }
 
 type ClusterWriteConfigMap struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	Data      string `json:"data"`
+	Namespace string            `json:"namespace"`
+	Name      string            `json:"name"`
+	Labels    map[string]string `json:"labels"`
+	Data      string            `json:"data"`
 }
 
 func ClusterWriteConfigMapExample() ClusterWriteConfigMap {
 	return ClusterWriteConfigMap{
 		Namespace: "mogenius",
 		Name:      "my-funky-configmap",
-		Data:      "my-funky-data-yaml-string",
+		Labels: map[string]string{
+			"app": "my-funky-app",
+		},
+		Data: "my-funky-data-yaml-string",
+	}
+}
+
+type ClusterListConfigMaps struct {
+	Namespace     string `json:"namespace"`
+	LabelSelector string `json:"labelSelector"`
+}
+
+func ClusterListConfigMapsExample() ClusterListConfigMaps {
+	return ClusterListConfigMaps{
+		Namespace:     "mogenius",
+		LabelSelector: "app=my-funky-app",
 	}
 }
 

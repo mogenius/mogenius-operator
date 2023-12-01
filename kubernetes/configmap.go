@@ -183,7 +183,7 @@ func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName st
 	return cmd
 }
 
-func WriteConfigMap(namespace string, name string, data string) error {
+func WriteConfigMap(namespace string, name string, data string, labels map[string]string) error {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		return err
@@ -196,6 +196,7 @@ func WriteConfigMap(namespace string, name string, data string) error {
 		newConfigMap.Data = make(map[string]string)
 		newConfigMap.Name = name
 		newConfigMap.Namespace = namespace
+		newConfigMap.Labels = labels
 		newConfigMap.Data["data"] = data
 		_, err := client.Create(context.TODO(), &newConfigMap, metav1.CreateOptions{})
 		if err != nil {
@@ -203,6 +204,11 @@ func WriteConfigMap(namespace string, name string, data string) error {
 		}
 	} else if err == nil && cfgMap != nil {
 		cfgMap.Data["data"] = data
+		// merge new configmap labels with existing ones
+		for key, value := range labels {
+			cfgMap.Labels[key] = value
+		}
+
 		_, err := client.Update(context.TODO(), cfgMap, metav1.UpdateOptions{})
 		if err != nil {
 			return err
@@ -226,4 +232,18 @@ func GetConfigMap(namespace string, name string) K8sWorkloadResult {
 		return WorkloadResult(nil, err)
 	}
 	return WorkloadResult(cfgMap.Data["data"], err)
+}
+
+func ListConfigMapWithFieldSelector(namespace string, labelSelector string) K8sWorkloadResult {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	client := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+
+	cfgMaps, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	return WorkloadResult(cfgMaps.Items, err)
 }
