@@ -1033,7 +1033,7 @@ func K8sNotification(d structs.Datagram) interface{} {
 }
 
 func execShConnection(podCmdConnectionRequest PodCmdConnectionRequest) {
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("kubectl exec -it -c %s -n %s %s -- sh -c \"clear; (bash || ash || sh || ksh || csh || zsh )\"", podCmdConnectionRequest.Container, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod))
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("kubectl exec -it -c %s -n %s %s -- sh -c \"clear; echo -e '\033[97;104m Connected to %s/%s/%s (using $0): \033[0m'; (type bash >/dev/null 2>&1 && exec bash || type ash >/dev/null 2>&1 && exec ash || type sh >/dev/null 2>&1 && exec sh || type ksh >/dev/null 2>&1 && exec ksh || type csh >/dev/null 2>&1 && exec csh || type zsh >/dev/null 2>&1 && exec zsh)\"", podCmdConnectionRequest.Container, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container))
 	utils.XTermCommandStreamConnection(podCmdConnectionRequest.CmdConnection, cmd)
 }
 
