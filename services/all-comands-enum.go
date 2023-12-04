@@ -254,6 +254,8 @@ const (
 	PAT_DELETE_VOLUMESNAPSHOTS             string = "delete/volumesnapshots"
 	PAT_DELETE_RESOURCEQUOTAS              string = "delete/resourcequotas"
 
+	PAT_GET_DEPLOYMENT string = "get/deployment"
+
 	PAT_STORAGE_CREATE_VOLUME   string = "storage/create-volume"
 	PAT_STORAGE_DELETE_VOLUME   string = "storage/delete-volume"
 	PAT_STORAGE_BACKUP_VOLUME   string = "storage/backup-volume"
@@ -537,6 +539,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_DELETE_PRIORITYCLASSES,
 	PAT_DELETE_VOLUMESNAPSHOTS,
 	PAT_DELETE_RESOURCEQUOTAS,
+
+	PAT_GET_DEPLOYMENT,
 
 	PAT_STORAGE_CREATE_VOLUME,
 	PAT_STORAGE_DELETE_VOLUME,

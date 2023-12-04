@@ -848,6 +848,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		return punq.DeleteK8sResourceQuota(*data.Data, nil)
 
+	case PAT_GET_DEPLOYMENT:
+		data := K8sDescribeRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		getResult, _ := punq.GetK8sDeployment(data.NamespaceName, data.ResourceName, nil)
+		return getResult
+
 	case PAT_BUILDER_STATUS:
 		return builder.BuilderStatus()
 	case PAT_BUILD_INFOS:
