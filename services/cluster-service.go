@@ -483,12 +483,14 @@ func ClusterWriteConfigMapExample() ClusterWriteConfigMap {
 type ClusterListConfigMaps struct {
 	Namespace     string `json:"namespace"`
 	LabelSelector string `json:"labelSelector"`
+	Prefix        string `json:"prefix"`
 }
 
 func ClusterListConfigMapsExample() ClusterListConfigMaps {
 	return ClusterListConfigMaps{
 		Namespace:     "mogenius",
-		LabelSelector: "app=my-funky-app",
+		LabelSelector: "",
+		Prefix:        "metal",
 	}
 }
 

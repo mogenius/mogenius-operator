@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"strings"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -234,7 +235,7 @@ func GetConfigMap(namespace string, name string) K8sWorkloadResult {
 	return WorkloadResult(cfgMap.Data["data"], err)
 }
 
-func ListConfigMapWithFieldSelector(namespace string, labelSelector string) K8sWorkloadResult {
+func ListConfigMapWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		return WorkloadResult(nil, err)
@@ -245,5 +246,15 @@ func ListConfigMapWithFieldSelector(namespace string, labelSelector string) K8sW
 	if err != nil {
 		return WorkloadResult(nil, err)
 	}
+
+	// delete all configmaps that do not start with prefix
+	if prefix != "" {
+		for i := len(cfgMaps.Items) - 1; i >= 0; i-- {
+			if !strings.HasPrefix(cfgMaps.Items[i].Name, prefix) {
+				cfgMaps.Items = append(cfgMaps.Items[:i], cfgMaps.Items[i+1:]...)
+			}
+		}
+	}
+
 	return WorkloadResult(cfgMaps.Items, err)
 }
