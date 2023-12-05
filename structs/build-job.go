@@ -32,6 +32,7 @@ type ScanImageRequest struct {
 	ProjectId             string `json:"projectId"`
 	NamespaceId           string `json:"namespaceId"`
 	ServiceId             string `json:"serviceId"`
+	NamespaceName         string `json:"namespaceName"`
 	ServiceName           string `json:"serviceName"`
 	ContainerImage        string `json:"containerImage"`
 	ContainerRegistryUser string `json:"containerRegistryUser"`
@@ -44,8 +45,9 @@ func ScanImageRequestExample() ScanImageRequest {
 		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
 		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
 		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
-		ServiceName:           "lalala",
-		ContainerImage:        "docker.io/biltisberger/lalala:latest",
+		NamespaceName:         "mac-prod-1xh4p1",
+		ServiceName:           "angular1",
+		ContainerImage:        "",
 		ContainerRegistryUser: "biltisberger",
 		ContainerRegistryPat:  "dckr_pat_dnEs3Ly-ZdmUU7RlZh4CZhMca1U",
 		ContainerRegistryUrl:  "docker.io",

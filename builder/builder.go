@@ -216,6 +216,14 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 }
 
 func Scan(req structs.ScanImageRequest, toServerUrl *string) structs.BuildScanResult {
+	if req.ContainerImage == "" {
+		imagename, err := kubernetes.GetDeploymentImage(req.NamespaceName, req.ServiceName)
+		if err != nil || imagename == "" {
+			return structs.BuildScanResult{Result: "", Error: "Image not found."}
+		}
+		req.ContainerImage = imagename
+	}
+
 	job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s'", req.ServiceName), req.ProjectId, &req.NamespaceId, &req.ServiceId)
 	result := structs.BuildScanResult{Result: fmt.Sprintf("Scan of '%s' started", req.ContainerImage), Error: ""}
 
