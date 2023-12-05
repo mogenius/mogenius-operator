@@ -531,7 +531,7 @@ func requestCmdFromCluster(pattern string) {
 		case services.PAT_BUILD_ADD:
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_SCAN:
-			payload = structs.BuildJobExample()
+			payload = structs.ScanJobExample()
 		case services.PAT_BUILD_CANCEL:
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_DELETE:

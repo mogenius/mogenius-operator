@@ -17,14 +17,38 @@ const (
 )
 
 type ScanJob struct {
-	BuildJob              BuildJob `json:"buildJob"`
-	PostTo                string   `json:"postTo"`
+	ScanImageRequest ScanImageRequest `json:"scanImageRequest"`
+	PostTo           string           `json:"postTo"`
 }
 
 func ScanJobExample() ScanJob {
 	return ScanJob{
-		BuildJob:    BuildJobExample(),
-		PostTo:      "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+		ScanImageRequest: ScanImageRequestExample(),
+		PostTo:           "http://localhost:8080/api/v1/scan",
+	}
+}
+
+type ScanImageRequest struct {
+	ProjectId             string `json:"projectId"`
+	NamespaceId           string `json:"namespaceId"`
+	ServiceId             string `json:"serviceId"`
+	ServiceName           string `json:"serviceName"`
+	ContainerImage        string `json:"containerImage"`
+	ContainerRegistryUser string `json:"containerRegistryUser"`
+	ContainerRegistryPat  string `json:"containerRegistryPat"`
+	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
+}
+
+func ScanImageRequestExample() ScanImageRequest {
+	return ScanImageRequest{
+		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
+		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
+		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
+		ServiceName:           "lalala",
+		ContainerImage:        "docker.io/biltisberger/lalala:latest",
+		ContainerRegistryUser: "biltisberger",
+		ContainerRegistryPat:  "dckr_pat_dnEs3Ly-ZdmUU7RlZh4CZhMca1U",
+		ContainerRegistryUrl:  "docker.io",
 	}
 }
 
