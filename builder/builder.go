@@ -242,21 +242,20 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 		return fmt.Errorf("Not cached data found in bold db. Starting scan ...")
 	})
 
-	go func() {
-		job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s'", req.ServiceName), req.ProjectId, &req.NamespaceId, &req.ServiceId)
-		job.Start()
+	if cacheMissed != nil {
+		go func() {
+			job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s'", req.ServiceName), req.ProjectId, &req.NamespaceId, &req.ServiceId)
+			job.Start()
 
-		pwd, _ := os.Getwd()
-		grypeTemplate := fmt.Sprintf("%s/grype-json-template", pwd)
+			pwd, _ := os.Getwd()
+			grypeTemplate := fmt.Sprintf("%s/grype-json-template", pwd)
 
-		ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+			ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 
-		defer func() {
-			job.Finish()
-			cancel()
-		}()
-
-		if cacheMissed != nil {
+			defer func() {
+				job.Finish()
+				cancel()
+			}()
 			// LOGIN
 			if req.ContainerRegistryUser != "" && req.ContainerRegistryPat != "" {
 				loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job)
@@ -291,8 +290,8 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 				result.Error = &scanCmd.Message
 				return
 			}
-		}
-	}()
+		}()
+	}
 	return result
 }
 
