@@ -14,6 +14,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	jsoniter "github.com/json-iterator/go"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 )
@@ -244,6 +245,19 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 
 	if cacheMissed != nil {
 		go func() {
+			// FIRST CREATE A DB ENTRY TO AVOID MULTIPLE SCANS
+			db.Update(func(tx *bolt.Tx) error {
+				bucket := tx.Bucket([]byte(BUCKET_NAME))
+
+				var json = jsoniter.ConfigCompatibleWithStandardLibrary
+				bytes, err := json.Marshal(result)
+				if err != nil {
+					logger.Log.Errorf("Error %s: %s", PREFIX_SCAN, err.Error())
+				}
+				bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_SCAN, req.ContainerImage)), bytes)
+				return nil
+			})
+
 			job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s'", req.ServiceName), req.ProjectId, &req.NamespaceId, &req.ServiceId)
 			job.Start()
 
