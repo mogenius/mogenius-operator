@@ -69,6 +69,7 @@ const (
 	PAT_SERVICE_START           string = "service/start"
 	PAT_SERVICE_UPDATE_SERVICE  string = "service/update-service"
 	PAT_SERVICE_TRIGGER_JOB     string = "service/trigger-job"
+	PAT_SERVICE_STATUS          string = "service/status"
 
 	PAT_SERVICE_LOG_STREAM                    string = "service/log-stream"
 	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST    string = "service/exec-sh-connection-request"
@@ -353,6 +354,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_START,
 	PAT_SERVICE_UPDATE_SERVICE,
 	PAT_SERVICE_TRIGGER_JOB,
+	PAT_SERVICE_STATUS,
 
 	PAT_SERVICE_LOG_STREAM,
 	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST,

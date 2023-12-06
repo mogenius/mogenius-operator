@@ -270,6 +270,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		data.Service.ApplyDefaults()
 		return TriggerJobService(data)
+	case PAT_SERVICE_STATUS:
+		data := ServiceStatusRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return StatusService(data)
 
 	case PAT_SERVICE_LOG_STREAM:
 		data := ServiceLogStreamRequest{}
