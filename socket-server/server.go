@@ -212,6 +212,7 @@ func printShortcuts() {
 	logger.Log.Notice("s:     send command to cluster")
 	logger.Log.Notice("c:     close blocked connection")
 	logger.Log.Notice("k:     close all connections")
+	logger.Log.Notice("x:     perform load test")
 	logger.Log.Notice("q:     quit application")
 }
 
@@ -238,6 +239,10 @@ func ReadInput() {
 				requestCmdFromCluster(cmd)
 			} else {
 				printShortcuts()
+			}
+		case "x":
+			for i := 0; i < 100; i++ {
+				requestCmdFromCluster(services.PAT_LIST_PODS)
 			}
 		case "l":
 			listClusters()
@@ -531,7 +536,7 @@ func requestCmdFromCluster(pattern string) {
 		case services.PAT_BUILD_ADD:
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_SCAN:
-			payload = structs.ScanJobExample()
+			payload = structs.ScanImageRequestExample()
 		case services.PAT_BUILD_CANCEL:
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_DELETE:

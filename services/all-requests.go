@@ -1041,9 +1041,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		return builder.Add(data)
 	case PAT_BUILD_SCAN:
-		data := structs.ScanJob{}
+		data := structs.ScanImageRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return builder.Scan(data.ScanImageRequest, &data.PostTo)
+		return builder.Scan(data)
 	case PAT_BUILD_CANCEL:
 		data := structs.BuildJob{}
 		structs.MarshalUnmarshal(&datagram, &data)

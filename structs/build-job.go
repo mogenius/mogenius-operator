@@ -16,18 +16,6 @@ const (
 	BUILD_STATE_TIMEOUT   string = "TIMEOUT"
 )
 
-type ScanJob struct {
-	ScanImageRequest ScanImageRequest `json:"scanImageRequest"`
-	PostTo           string           `json:"postTo"`
-}
-
-func ScanJobExample() ScanJob {
-	return ScanJob{
-		ScanImageRequest: ScanImageRequestExample(),
-		PostTo:           "http://localhost:8080/api/v1/scan",
-	}
-}
-
 type ScanImageRequest struct {
 	ProjectId             string `json:"projectId"`
 	NamespaceId           string `json:"namespaceId"`

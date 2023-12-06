@@ -214,7 +214,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan string, timeou
 	}
 }
 
-func Scan(req structs.ScanImageRequest, toServerUrl *string) structs.BuildScanResult {
+func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 	if req.ContainerImage == "" {
 		imagename, err := kubernetes.GetDeploymentImage(req.NamespaceName, req.ServiceName)
 		if err != nil || imagename == "" {
