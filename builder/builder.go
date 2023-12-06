@@ -223,7 +223,6 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 		req.ContainerImage = imagename
 	}
 
-	job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s'", req.ServiceName), req.ProjectId, &req.NamespaceId, &req.ServiceId)
 	result := structs.CreateBuildScanResult(fmt.Sprintf("Scan of '%s' started ...", req.ContainerImage), "")
 
 	// CHECK IF IMAGE HAS BEEN SCANNED BEFORE (CHECK BOLT DB)
@@ -235,7 +234,7 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 		if rawData != "" {
 			entry := structs.BuildJobInfoEntry{}
 			err := structs.UnmarshalBuildJobInfoEntry(&entry, []byte(rawData))
-			if err == nil && entry.State == structs.BUILD_STATE_SUCCEEDED && !isMoreThan24HoursAgo(entry.StartTime) {
+			if err == nil && (entry.State == structs.BUILD_STATE_SUCCEEDED || entry.State == structs.BUILD_STATE_PENDING || entry.State == structs.BUILD_STATE_STARTED) && !isMoreThan24HoursAgo(entry.StartTime) {
 				result.Result = &entry
 				return nil
 			}
@@ -244,6 +243,7 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 	})
 
 	go func() {
+		job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s'", req.ServiceName), req.ProjectId, &req.NamespaceId, &req.ServiceId)
 		job.Start()
 
 		pwd, _ := os.Getwd()

@@ -241,9 +241,13 @@ func ReadInput() {
 				printShortcuts()
 			}
 		case "x":
+			startTime := time.Now()
 			for i := 0; i < 100; i++ {
 				requestCmdFromCluster(services.PAT_LIST_PODS)
 			}
+			time.Sleep(5 * time.Second)
+			duration := time.Since(startTime)
+			fmt.Printf("Execution Time: %s\n", duration)
 		case "l":
 			listClusters()
 		case "c":
