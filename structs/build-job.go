@@ -35,9 +35,9 @@ func ScanImageRequestExample() ScanImageRequest {
 		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
 		NamespaceName:         "mac-prod-1xh4p1",
 		ServiceName:           "angular1",
-		ContainerImage:        "",
-		ContainerRegistryUser: "biltisberger",
-		ContainerRegistryPat:  "dckr_pat_dnEs3Ly-ZdmUU7RlZh4CZhMca1U",
+		ContainerImage:        "mysql:latest",
+		ContainerRegistryUser: "",
+		ContainerRegistryPat:  "",
 		ContainerRegistryUrl:  "docker.io",
 	}
 }

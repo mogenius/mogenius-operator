@@ -250,7 +250,7 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 				bucket := tx.Bucket([]byte(BUCKET_NAME))
 
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
-				bytes, err := json.Marshal(result)
+				bytes, err := json.Marshal(result.Result)
 				if err != nil {
 					logger.Log.Errorf("Error %s: %s", PREFIX_SCAN, err.Error())
 				}
