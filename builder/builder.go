@@ -234,7 +234,7 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 		if rawData != "" {
 			entry := structs.BuildJobInfoEntry{}
 			err := structs.UnmarshalBuildJobInfoEntry(&entry, []byte(rawData))
-			if err == nil && (entry.State == structs.BUILD_STATE_SUCCEEDED || entry.State == structs.BUILD_STATE_PENDING || entry.State == structs.BUILD_STATE_STARTED) && !isMoreThan24HoursAgo(entry.StartTime) {
+			if err == nil && !isMoreThan24HoursAgo(entry.StartTime) {
 				result.Result = &entry
 				return nil
 			}

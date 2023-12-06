@@ -111,7 +111,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				openFile.Write([]byte(rawDataStr))
 				bar.Add(len(rawDataStr))
 			} else {
-				datagram := structs.CreateEmptyDatagram()
+				datagram := structs.Datagram{}
 
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				jsonErr := json.Unmarshal([]byte(rawDataStr), &datagram)
