@@ -26,6 +26,8 @@ type CmdWindowSize struct {
 }
 
 func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectionRequest) *websocket.Conn {
+	maxRetries := 6
+	currentRetries := 0
 	for {
 		// add header
 		headers := HttpHeader("")
@@ -34,8 +36,13 @@ func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectio
 		dialer := &websocket.Dialer{}
 		c, _, err := dialer.Dial(u.String(), headers)
 		if err != nil {
-			logger.Log.Errorf("Failed to connect, retrying in 5 seconds:", err)
+			logger.Log.Errorf("Failed to connect, retrying in 5 seconds: %s", err.Error())
+			if currentRetries >= maxRetries {
+				logger.Log.Errorf("Max retries reached, exiting.")
+				return nil
+			}
 			time.Sleep(5 * time.Second)
+			currentRetries++
 			continue
 		}
 
@@ -47,6 +54,11 @@ func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectio
 		if err != nil {
 			logger.Log.Errorf("Failed to receive ack-ready, retrying in 5 seconds:", err)
 			time.Sleep(5 * time.Second)
+			if currentRetries >= maxRetries {
+				logger.Log.Errorf("Max retries reached, exiting.")
+				return nil
+			}
+			currentRetries++
 			continue
 		}
 
