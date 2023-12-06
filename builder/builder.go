@@ -3,7 +3,6 @@ package builder
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -219,13 +218,30 @@ func Scan(req structs.ScanImageRequest, toServerUrl *string) structs.BuildScanRe
 	if req.ContainerImage == "" {
 		imagename, err := kubernetes.GetDeploymentImage(req.NamespaceName, req.ServiceName)
 		if err != nil || imagename == "" {
-			return structs.BuildScanResult{Result: "", Error: "Image not found."}
+			return structs.CreateBuildScanResult("", "Error: No image found in deployment.")
 		}
 		req.ContainerImage = imagename
 	}
 
 	job := structs.CreateJob(fmt.Sprintf("Vulnerability scan in build '%s'", req.ServiceName), req.ProjectId, &req.NamespaceId, &req.ServiceId)
-	result := structs.BuildScanResult{Result: fmt.Sprintf("Scan of '%s' started", req.ContainerImage), Error: ""}
+	result := structs.CreateBuildScanResult(fmt.Sprintf("Scan of '%s' started ...", req.ContainerImage), "")
+
+	// CHECK IF IMAGE HAS BEEN SCANNED BEFORE (CHECK BOLT DB)
+	cacheMissed := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUCKET_NAME))
+		rawData := string(bucket.Get([]byte(fmt.Sprintf("%s%s", PREFIX_SCAN, req.ContainerImage))))
+
+		// FOUND SOMETHING IN BOLT DB, SEND IT TO SERVER
+		if rawData != "" {
+			entry := structs.BuildJobInfoEntry{}
+			err := structs.UnmarshalBuildJobInfoEntry(&entry, []byte(rawData))
+			if err == nil && entry.State == structs.BUILD_STATE_SUCCEEDED && !isMoreThan24HoursAgo(entry.StartTime) {
+				result.Result = &entry
+				return nil
+			}
+		}
+		return fmt.Errorf("Not cached data found in bold db. Starting scan ...")
+	})
 
 	go func() {
 		job.Start()
@@ -240,33 +256,6 @@ func Scan(req structs.ScanImageRequest, toServerUrl *string) structs.BuildScanRe
 			cancel()
 		}()
 
-		send := func(result structs.BuildScanResult, toServerUrl *string) {
-			// SEND RESULT VIA WS
-			if toServerUrl != nil {
-				scanLog, err := json.Marshal(result)
-				if err != nil {
-					return
-				}
-				structs.SendData(*toServerUrl, scanLog)
-			}
-		}
-
-		// CHECK IF IMAGE HAS BEEN SCANNED BEFORE (CHECK BOLT DB)
-		cacheMissed := db.View(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket([]byte(BUCKET_NAME))
-			result.Result = string(bucket.Get([]byte(fmt.Sprintf("%s%s", PREFIX_SCAN, req.ContainerImage))))
-
-			// FOUND SOMETHING IN BOLT DB, SEND IT TO SERVER
-			if result.Result != "" {
-				entry := structs.BuildJobInfoEntry{}
-				err := structs.UnmarshalBuildJobInfoEntry(&entry, []byte(result.Result))
-				if err == nil && entry.State == structs.BUILD_STATE_SUCCEEDED && !isMoreThan24HoursAgo(entry.StartTime) {
-					send(result, toServerUrl)
-					return nil
-				}
-			}
-			return fmt.Errorf("Not cached data found in bold db. Starting scan ...")
-		})
 		if cacheMissed != nil {
 			// LOGIN
 			if req.ContainerRegistryUser != "" && req.ContainerRegistryPat != "" {
@@ -275,8 +264,8 @@ func Scan(req structs.ScanImageRequest, toServerUrl *string) structs.BuildScanRe
 				err := executeCmd(loginCmd, PREFIX_LOGIN, nil, &req.ContainerImage, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", req.ContainerRegistryPat, req.ContainerRegistryUrl, req.ContainerRegistryUser))
 				if err != nil {
 					logger.Log.Errorf("Error%s: %s", PREFIX_LOGIN, err.Error())
-					result.Error = loginCmd.Message
-					send(result, toServerUrl)
+					result.Result.State = structs.BUILD_STATE_FAILED
+					result.Error = &loginCmd.Message
 					return
 				}
 
@@ -286,8 +275,8 @@ func Scan(req structs.ScanImageRequest, toServerUrl *string) structs.BuildScanRe
 				err = executeCmd(pullCmd, PREFIX_SCAN, nil, &req.ContainerImage, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker pull %s", req.ContainerImage))
 				if err != nil {
 					logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
-					result.Error = pullCmd.Message
-					send(result, toServerUrl)
+					result.Result.State = structs.BUILD_STATE_FAILED
+					result.Error = &pullCmd.Message
 					return
 				}
 			}
@@ -298,8 +287,8 @@ func Scan(req structs.ScanImageRequest, toServerUrl *string) structs.BuildScanRe
 			err := executeCmd(scanCmd, PREFIX_SCAN, nil, &req.ContainerImage, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("grype %s --add-cpes-if-none -q -o template -t %s", req.ContainerImage, grypeTemplate))
 			if err != nil {
 				logger.Log.Errorf("Error%s: %s", PREFIX_SCAN, err.Error())
-				result.Error = scanCmd.Message
-				send(result, toServerUrl)
+				result.Result.State = structs.BUILD_STATE_FAILED
+				result.Error = &scanCmd.Message
 				return
 			}
 		}

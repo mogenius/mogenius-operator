@@ -185,8 +185,24 @@ type BuildAddResult struct {
 }
 
 type BuildScanResult struct {
-	Result string `json:"result"`
-	Error  string `json:"error"`
+	Result *BuildJobInfoEntry `json:"result"`
+	Error  *string            `json:"error"`
+}
+
+func CreateBuildScanResult(message string, err string) BuildScanResult {
+	result := BuildScanResult{
+		Result: &BuildJobInfoEntry{
+			State:      BUILD_STATE_PENDING,
+			Result:     message,
+			StartTime:  time.Now().Format(time.RFC3339),
+			FinishTime: "",
+		},
+		Error: &err,
+	}
+	if message == "" {
+		result.Result = nil
+	}
+	return result
 }
 
 type BuildCancelResult struct {
