@@ -16,18 +16,6 @@ const (
 	BUILD_STATE_TIMEOUT   string = "TIMEOUT"
 )
 
-type ScanJob struct {
-	ScanImageRequest ScanImageRequest `json:"scanImageRequest"`
-	PostTo           string           `json:"postTo"`
-}
-
-func ScanJobExample() ScanJob {
-	return ScanJob{
-		ScanImageRequest: ScanImageRequestExample(),
-		PostTo:           "http://localhost:8080/api/v1/scan",
-	}
-}
-
 type ScanImageRequest struct {
 	ProjectId             string `json:"projectId"`
 	NamespaceId           string `json:"namespaceId"`
@@ -47,9 +35,9 @@ func ScanImageRequestExample() ScanImageRequest {
 		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
 		NamespaceName:         "mac-prod-1xh4p1",
 		ServiceName:           "angular1",
-		ContainerImage:        "",
-		ContainerRegistryUser: "biltisberger",
-		ContainerRegistryPat:  "dckr_pat_dnEs3Ly-ZdmUU7RlZh4CZhMca1U",
+		ContainerImage:        "mysql:latest",
+		ContainerRegistryUser: "",
+		ContainerRegistryPat:  "",
 		ContainerRegistryUrl:  "docker.io",
 	}
 }
@@ -185,8 +173,24 @@ type BuildAddResult struct {
 }
 
 type BuildScanResult struct {
-	Result string `json:"result"`
-	Error  string `json:"error"`
+	Result *BuildJobInfoEntry `json:"result"`
+	Error  *string            `json:"error"`
+}
+
+func CreateBuildScanResult(message string, err string) BuildScanResult {
+	result := BuildScanResult{
+		Result: &BuildJobInfoEntry{
+			State:      BUILD_STATE_PENDING,
+			Result:     message,
+			StartTime:  time.Now().Format(time.RFC3339),
+			FinishTime: "",
+		},
+		Error: &err,
+	}
+	if message == "" {
+		result.Result = nil
+	}
+	return result
 }
 
 type BuildCancelResult struct {

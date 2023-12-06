@@ -123,7 +123,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 				msg = []byte(currentMsg)
 			}
 
-			datagram := structs.CreateEmptyDatagram()
+			datagram := structs.Datagram{}
 			var json = jsoniter.ConfigCompatibleWithStandardLibrary
 			_ = json.Unmarshal(msg, &datagram)
 			datagramValidationError := validate.Struct(datagram)
@@ -212,6 +212,7 @@ func printShortcuts() {
 	logger.Log.Notice("s:     send command to cluster")
 	logger.Log.Notice("c:     close blocked connection")
 	logger.Log.Notice("k:     close all connections")
+	logger.Log.Notice("x:     perform load test")
 	logger.Log.Notice("q:     quit application")
 }
 
@@ -239,6 +240,14 @@ func ReadInput() {
 			} else {
 				printShortcuts()
 			}
+		case "x":
+			startTime := time.Now()
+			for i := 0; i < 100; i++ {
+				requestCmdFromCluster(services.PAT_LIST_PODS)
+			}
+			time.Sleep(5 * time.Second)
+			duration := time.Since(startTime)
+			fmt.Printf("Execution Time: %s\n", duration)
 		case "l":
 			listClusters()
 		case "c":
@@ -531,7 +540,7 @@ func requestCmdFromCluster(pattern string) {
 		case services.PAT_BUILD_ADD:
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_SCAN:
-			payload = structs.ScanJobExample()
+			payload = structs.ScanImageRequestExample()
 		case services.PAT_BUILD_CANCEL:
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_DELETE:
