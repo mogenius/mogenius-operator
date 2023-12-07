@@ -26,24 +26,25 @@ func StatusService(r ServiceStatusRequest) interface{} {
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		logger.Log.Fatalf("Error: %s", err.Error())
+		logger.Log.Warningf("Warningf: %s", err.Error())
 		return nil
 	}
 
-	resourceItems, err := statusItems(r.Namespace, r.ServiceName, NewResourceController(r.Controller), provider.ClientSet)
+	resourceItems := []ResourceItem{}
+	resourceItems, err = kubernetesItems(r.Namespace, r.ServiceName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
 	if err != nil {
-		logger.Log.Fatalf("Failed statusItems: %v", err)
+		logger.Log.Warningf("Warning statusItems: %v", err)
 	}
 
 	resourceItems, err = buildItem(r.Namespace, r.ServiceName, resourceItems)
 	if err != nil {
-		logger.Log.Fatalf("Failed buildItem: %v", err)
+		logger.Log.Warningf("Warning buildItem: %v", err)
 	}
 
 	// Debug logs
 	jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
 	if err != nil {
-		logger.Log.Fatalf("Error marshaling JSON: %v", err)
+		logger.Log.Warningf("Warning marshaling JSON: %v", err)
 		return nil
 	}
 	logger.Log.Debugf("JOSN: %s", jsonData)
@@ -51,12 +52,10 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	return resourceItems
 }
 
-func statusItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset) ([]ResourceItem, error) {
-	resourceItems := []ResourceItem{}
-
+func kubernetesItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset, resourceItems []ResourceItem) ([]ResourceItem, error) {
 	resourceInterface, err := controller(namespace, name, resourceController, clientset)
 	if err != nil {
-		fmt.Printf("\nError fetching controller: %s\n", err)
+		logger.Log.Warningf("\nWarning fetching controller: %s\n", err)
 		return resourceItems, err
 	}
 
@@ -65,7 +64,7 @@ func statusItems(namespace string, name string, resourceController ResourceContr
 
 	pods, err := pods(namespace, labelSelector, clientset)
 	if err != nil {
-		fmt.Printf("\nError fetching pods: %s\n", err)
+		logger.Log.Warningf("\nWarning fetching pods: %s\n", err)
 		return resourceItems, err
 	}
 
@@ -106,7 +105,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 	}
 
 	if err != nil {
-		fmt.Printf("\nError fetching resource: %s\n", err)
+		logger.Log.Warningf("\nWarning fetching resources: %s\n", err)
 		return nil, err
 	}
 
@@ -228,7 +227,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 	// Fetch next k8s controller
 	resourceInterface, err := controller(namespace,ownerRef.Name, NewResourceController(ownerRef.Kind), clientset)
 	if err != nil {
-		fmt.Printf("\nError fetching resource: %s\n", err)
+		logger.Log.Warningf("\nWarning fetching resources: %s\n", err)
 		return resourceItems
 	}
 	
