@@ -42,6 +42,15 @@ func UnmarshalJob(dst *BuildJob, data []byte) error {
 	return nil
 }
 
+func UnmarshalBuildJobInfoEntry(dst *BuildJobInfoEntry, data []byte) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(data, dst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UnmarshalScan(dst *BuildScanResult, data []byte) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(data, dst)
@@ -69,10 +78,10 @@ func UnmarshalJobListEntry(dst *BuildJobListEntry, data []byte) error {
 }
 
 func SendData(sendToServer string, data []byte) {
-    resp, err := http.Post(sendToServer, "application/json", bytes.NewBuffer(data))
-    if err != nil {
+	resp, err := http.Post(sendToServer, "application/json", bytes.NewBuffer(data))
+	if err != nil {
 		logger.Log.Errorf("Error occurred during sending the request. Error: %s", err)
-    } else {
+	} else {
 		defer resp.Body.Close()
 	}
 }

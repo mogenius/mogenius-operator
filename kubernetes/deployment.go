@@ -457,3 +457,16 @@ func UpdateDeploymentImage(namespaceName string, serviceName string, imageName s
 	_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 	return err
 }
+
+func GetDeploymentImage(namespaceName string, serviceName string) (string, error) {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return "", err
+	}
+	deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
+	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return deploymentToUpdate.Spec.Template.Spec.Containers[0].Image, nil
+}

@@ -16,15 +16,29 @@ const (
 	BUILD_STATE_TIMEOUT   string = "TIMEOUT"
 )
 
-type ScanJob struct {
-	BuildJob              BuildJob `json:"buildJob"`
-	PostTo                string   `json:"postTo"`
+type ScanImageRequest struct {
+	ProjectId             string `json:"projectId"`
+	NamespaceId           string `json:"namespaceId"`
+	ServiceId             string `json:"serviceId"`
+	NamespaceName         string `json:"namespaceName"`
+	ServiceName           string `json:"serviceName"`
+	ContainerImage        string `json:"containerImage"`
+	ContainerRegistryUser string `json:"containerRegistryUser"`
+	ContainerRegistryPat  string `json:"containerRegistryPat"`
+	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
 }
 
-func ScanJobExample() ScanJob {
-	return ScanJob{
-		BuildJob:    BuildJobExample(),
-		PostTo:      "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
+func ScanImageRequestExample() ScanImageRequest {
+	return ScanImageRequest{
+		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
+		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
+		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
+		NamespaceName:         "mac-prod-1xh4p1",
+		ServiceName:           "angular1",
+		ContainerImage:        "mysql:latest",
+		ContainerRegistryUser: "",
+		ContainerRegistryPat:  "",
+		ContainerRegistryUrl:  "docker.io",
 	}
 }
 
@@ -159,8 +173,24 @@ type BuildAddResult struct {
 }
 
 type BuildScanResult struct {
-	Result string `json:"result"`
-	Error  string `json:"error"`
+	Result *BuildJobInfoEntry `json:"result"`
+	Error  *string            `json:"error"`
+}
+
+func CreateBuildScanResult(message string, err string) BuildScanResult {
+	result := BuildScanResult{
+		Result: &BuildJobInfoEntry{
+			State:      BUILD_STATE_PENDING,
+			Result:     message,
+			StartTime:  time.Now().Format(time.RFC3339),
+			FinishTime: "",
+		},
+		Error: &err,
+	}
+	if message == "" {
+		result.Result = nil
+	}
+	return result
 }
 
 type BuildCancelResult struct {

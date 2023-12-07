@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 
@@ -32,6 +33,18 @@ const BUCKETNAME = "mogenius-backup"
 const DEBUG_AWS_ACCESS_KEY_ID = "ASIAZNXZOUKFCEK3TPOL"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         // TEMP Credentials. Not security relevant
 const DEBUG_AWS_SECRET_KEY = "xTsv35O30o87m6DuWOscHpKbxbXJeo0vS9iFkGwY"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // TEMP Credentials. Not security relevant
 const DEBUG_AWS_TOKEN = "IQoJb3JpZ2luX2VjELz//////////wEaDGV1LWNlbnRyYWwtMSJHMEUCIQCdZPuNWJCNJOSbMBhRtQb8W/0ylEV/ge1fiWFWgmD8ywIgEy/X2IAopx69LIGQQS+c2pRo4cSRFSslylRs8J7eUawq3AEIpf//////////ARABGgw2NDc5ODk0Njk4MzQiDPCjbP1jO5NAL96r2yqwAa3cCaeF8s1x2Zs8vAU+gRfK/tUZac8XjnJsjIxbmikiDPLuyPonsymuAd9D4ISK4fLeUU+BUU899fLHjIa2bWXRx1OrmGPIK3d/qBZF3pUPRid5AV8IRMiiP2sMI5RZzKpJfuWHH5WLknw0P7HYvusUlgAR4AgqPabHAE0c2Q1qaplJQrBXGeXCtMzs386OSPBQGogeBGn9Eu/l8QpySaA6RE3KgwvRELcvacMtmcdxMJ2H1aEGOpgBFNijTvMHK7D1pSOmvDfx9p9wSHZT/Red/G1CFWjUtV2H9+H4N+qrZTX2A4I9UGVEc+UlAQlIOAXPli2WTSPOdB7txbKsozU1YPVbi/gSZFXmGy8EFJml3bkg4HqSlozHLB/f1Ib81n9eWoUPOXp5SMwn6izW4ZZB3g8QSV6btOx2+s+Pm4BsLHICMhg3Rr0KI6ThnNhXcj8=" // TEMP Credentials. Not security relevant
+
+const (
+	NameMetricsServer             = "Metrics Server"
+	NameMetalLB                   = "MetalLB (LoadBalancer)"
+	NameIngressController         = "Ingress Controller"
+	NameLocalDevSetup             = "Local Dev Setup"
+	NameInternalContainerRegistry = "Internal Container Registry"
+	NamePodStatsCollector         = "mogenius-pod-stats-collector"
+	NameTrafficCollector          = "mogenius-traffic-collector"
+	NameClusterIssuer             = "clusterissuer"
+	NameCertManagerName           = "cert-manager"
+)
 
 func UpgradeK8sManager(r K8sManagerUpgradeRequest) structs.Job {
 	var wg sync.WaitGroup
@@ -626,7 +639,6 @@ var ingressCtrlStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var distriRegistryStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var metallbStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var clusterIssuerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
-var localDevEnvStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 
 func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
@@ -637,13 +649,12 @@ func SystemCheck() punq.SystemCheckResponse {
 	kubeCtlMsg := punq.StatusMessage(dockerErr, "If docker is missing in this image, we are screwed ;-)", dockerOutput)
 	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, true))
 
-	certManagerName := "cert-manager"
-	certManagerVersion, certManagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, certManagerName)
-	certManagerMsg := fmt.Sprintf("%s (Version: %s) is installed.", certManagerName, certManagerVersion)
+	certManagerVersion, certManagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, NameCertManagerName)
+	certManagerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameCertManagerName, certManagerVersion)
 	if certManagerInstalledErr != nil {
-		certManagerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo create ssl certificates you need to install this component.", certManagerName, contextName)
+		certManagerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo create ssl certificates you need to install this component.", NameCertManagerName, contextName)
 	}
-	certMgrEntry := punq.CreateSystemCheckEntry(certManagerName, certManagerInstalledErr == nil, certManagerMsg, false)
+	certMgrEntry := punq.CreateSystemCheckEntry(NameCertManagerName, certManagerInstalledErr == nil, certManagerMsg, false)
 	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
 	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
 	if certManagerStatus != punq.UNKNOWN_STATUS {
@@ -651,13 +662,12 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	entries = append(entries, certMgrEntry)
 
-	clusterIssuerName := "clusterissuer"
-	clusterIssuerVersion, clusterIssuerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, clusterIssuerName)
-	clusterIssuerMsg := fmt.Sprintf("%s (Version: %s) is installed.", clusterIssuerName, clusterIssuerVersion)
+	clusterIssuerVersion, clusterIssuerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, NameClusterIssuer)
+	clusterIssuerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameClusterIssuer, clusterIssuerVersion)
 	if clusterIssuerInstalledErr != nil {
-		clusterIssuerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo issue ssl certificates you need to install this component.", clusterIssuerName, contextName)
+		clusterIssuerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo issue ssl certificates you need to install this component.", NameClusterIssuer, contextName)
 	}
-	clusterIssuerEntry := punq.CreateSystemCheckEntry(clusterIssuerName, clusterIssuerInstalledErr == nil, clusterIssuerMsg, false)
+	clusterIssuerEntry := punq.CreateSystemCheckEntry(NameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, false)
 	clusterIssuerEntry.InstallPattern = PAT_INSTALL_CLUSTER_ISSUER
 	clusterIssuerEntry.UninstallPattern = PAT_UNINSTALL_CLUSTER_ISSUER
 	if clusterIssuerStatus != punq.UNKNOWN_STATUS {
@@ -665,13 +675,12 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	entries = append(entries, clusterIssuerEntry)
 
-	trafficCollectorName := "mogenius-traffic-collector"
-	trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, trafficCollectorName)
-	trafficMsg := fmt.Sprintf("%s (Version: %s) is installed.", trafficCollectorName, trafficCollectorVersion)
+	trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, NameTrafficCollector)
+	trafficMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameTrafficCollector, trafficCollectorVersion)
 	if trafficCollectorInstalledErr != nil {
-		trafficMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather traffic information you need to install this component.", trafficCollectorName, contextName)
+		trafficMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather traffic information you need to install this component.", NameTrafficCollector, contextName)
 	}
-	trafficEntry := punq.CreateSystemCheckEntry(trafficCollectorName, trafficCollectorInstalledErr == nil, trafficMsg, false)
+	trafficEntry := punq.CreateSystemCheckEntry(NameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, false)
 	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
 	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
 	if trafficCollectorStatus != punq.UNKNOWN_STATUS {
@@ -679,13 +688,12 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	entries = append(entries, trafficEntry)
 
-	podStatsCollectorName := "mogenius-pod-stats-collector"
-	podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, podStatsCollectorName)
-	podStatsMsg := fmt.Sprintf("%s (Version: %s) is installed.", podStatsCollectorName, podStatsCollectorVersion)
+	podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, NamePodStatsCollector)
+	podStatsMsg := fmt.Sprintf("%s (Version: %s) is installed.", NamePodStatsCollector, podStatsCollectorVersion)
 	if podStatsCollectorInstalledErr != nil {
-		podStatsMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather pod/event information you need to install this component.", podStatsCollectorName, contextName)
+		podStatsMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather pod/event information you need to install this component.", NamePodStatsCollector, contextName)
 	}
-	podEntry := punq.CreateSystemCheckEntry(podStatsCollectorName, podStatsCollectorInstalledErr == nil, podStatsMsg, true)
+	podEntry := punq.CreateSystemCheckEntry(NamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, true)
 	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
 	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
 	if podStatsCollectorStatus != punq.UNKNOWN_STATUS {
@@ -699,7 +707,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if distriRegistryInstalledErr != nil {
 		distriRegistryMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a private container registry running inside your cluster, you need to install this component.", distributionRegistryName, contextName)
 	}
-	distriEntry := punq.CreateSystemCheckEntry("Internal Container Registry", distriRegistryInstalledErr == nil, distriRegistryMsg, false)
+	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, false)
 	distriEntry.InstallPattern = PAT_INSTALL_CONTAINER_REGISTRY
 	distriEntry.UninstallPattern = PAT_UNINSTALL_CONTAINER_REGISTRY
 	if distriRegistryStatus != punq.UNKNOWN_STATUS {
@@ -707,13 +715,12 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	entries = append(entries, distriEntry)
 
-	metallbName := "metallb"
 	metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, "metallb-controller")
-	metallbMsg := fmt.Sprintf("%s (Version: %s) is installed.", metallbName, metallbVersion)
+	metallbMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameMetalLB, metallbVersion)
 	if metallbInstalledErr != nil {
-		metallbMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a local load balancer, you need to install this component.", metallbName, contextName)
+		metallbMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a local load balancer, you need to install this component.", NameMetalLB, contextName)
 	}
-	metallbEntry := punq.CreateSystemCheckEntry("MetalLB (LoadBalancer)", metallbInstalledErr == nil, metallbMsg, false)
+	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, false)
 	metallbEntry.InstallPattern = PAT_INSTALL_METALLB
 	metallbEntry.UninstallPattern = PAT_UNINSTALL_METALLB
 	if metallbStatus != punq.UNKNOWN_STATUS {
@@ -727,23 +734,20 @@ func SystemCheck() punq.SystemCheckResponse {
 	if contains192168661 {
 		localDevEnvMsg = "Local development environment not setup. Please run 'mocli cluster local-dev-setup' to setup your local environment."
 	}
-	localDevSetupEntry := punq.CreateSystemCheckEntry("Local Dev Setup", contains192168661, localDevEnvMsg, false)
-	if localDevEnvStatus != punq.UNKNOWN_STATUS {
-		localDevSetupEntry.Status = localDevEnvStatus
-	}
+	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, false)
 	entries = append(entries, localDevSetupEntry)
 
 	// add missing patterns
 	for i := 0; i < len(entries); i++ {
 		entry := entries[i]
-		if entry.CheckName == "Ingress Controller" {
+		if entry.CheckName == NameIngressController {
 			entries[i].InstallPattern = PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UninstallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
 			if ingressCtrlStatus != punq.UNKNOWN_STATUS {
 				entries[i].Status = ingressCtrlStatus
 			}
 		}
-		if entry.CheckName == "Metrics Server" {
+		if entry.CheckName == NameMetricsServer {
 			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
 			entries[i].UninstallPattern = PAT_UNINSTALL_METRICS_SERVER
 			if metricsServerStatus != punq.UNKNOWN_STATUS {
@@ -751,8 +755,39 @@ func SystemCheck() punq.SystemCheckResponse {
 			}
 		}
 	}
+	// update entries specificly for certain cluster vendors
+	entries = UpdateSystemCheckStatusForClusterVendor(entries)
 
 	return punq.GenerateSystemCheckResponse(entries)
+}
+
+func UpdateSystemCheckStatusForClusterVendor(entries []punq.SystemCheckEntry) []punq.SystemCheckEntry {
+	provider, err := punq.GuessClusterProvider(nil)
+	if err != nil {
+		logger.Log.Errorf("UpdateSystemCheckStatusForClusterVendor Err: %s", err.Error())
+		return entries
+	}
+
+	switch provider {
+	case punqDtos.EKS, punqDtos.AKS, punqDtos.GKE, punqDtos.DOKS, punqDtos.OTC:
+		entries = deleteSystemCheckEntryByName(entries, NameMetricsServer)
+		entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
+		entries = deleteSystemCheckEntryByName(entries, NameLocalDevSetup)
+	case punqDtos.UNKNOWN:
+		logger.Log.Errorf("Unknown CLusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
+	}
+
+	return entries
+}
+
+func deleteSystemCheckEntryByName(entries []punq.SystemCheckEntry, name string) []punq.SystemCheckEntry {
+	for i := 0; i < len(entries); i++ {
+		if entries[i].CheckName == name {
+			entries = append(entries[:i], entries[i+1:]...)
+			break
+		}
+	}
+	return entries
 }
 
 func IsDockerInstalled() (bool, string, error) {

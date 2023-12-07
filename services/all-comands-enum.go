@@ -255,6 +255,42 @@ const (
 	PAT_DELETE_VOLUMESNAPSHOTS             string = "delete/volumesnapshots"
 	PAT_DELETE_RESOURCEQUOTAS              string = "delete/resourcequotas"
 
+	PAT_GET_NAMESPACE                 string = "get/namespace"
+	PAT_GET_DEPLOYMENT                string = "get/deployment"
+	PAT_GET_SERVICE                   string = "get/service"
+	PAT_GET_POD                       string = "get/pod"
+	PAT_GET_INGRESS                   string = "get/ingress"
+	PAT_GET_CONFIGMAP                 string = "get/configmap"
+	PAT_GET_SECRET                    string = "get/secret"
+	PAT_GET_NODE                      string = "get/node"
+	PAT_GET_DAEMONSET                 string = "get/daemonset"
+	PAT_GET_STATEFULSET               string = "get/statefulset"
+	PAT_GET_JOB                       string = "get/job"
+	PAT_GET_CRONJOB                   string = "get/cronjob"
+	PAT_GET_REPLICASET                string = "get/replicaset"
+	PAT_GET_PERSISTENT_VOLUME         string = "get/persistent_volume"
+	PAT_GET_PERSISTENT_VOLUME_CLAIM   string = "get/persistent_volume_claim"
+	PAT_GET_HORIZONTAL_POD_AUTOSCALER string = "get/horizontal_pod_autoscaler"
+	PAT_GET_EVENT                     string = "get/event"
+	PAT_GET_CERTIFICATE               string = "get/certificate"
+	PAT_GET_CERTIFICATEREQUEST        string = "get/certificaterequest"
+	PAT_GET_ORDER                     string = "get/order"
+	PAT_GET_ISSUER                    string = "get/issuer"
+	PAT_GET_CLUSTERISSUER             string = "get/clusterissuer"
+	PAT_GET_SERVICE_ACCOUNT           string = "get/service_account"
+	PAT_GET_ROLE                      string = "get/role"
+	PAT_GET_ROLE_BINDING              string = "get/role_binding"
+	PAT_GET_CLUSTER_ROLE              string = "get/cluster_role"
+	PAT_GET_CLUSTER_ROLE_BINDING      string = "get/cluster_role_binding"
+	PAT_GET_VOLUME_ATTACHMENT         string = "get/volume_attachment"
+	PAT_GET_NETWORK_POLICY            string = "get/network_policy"
+	PAT_GET_STORAGE_CLASS             string = "get/storage_class"
+	PAT_GET_ENDPOINTS                 string = "get/endpoints"
+	PAT_GET_LEASES                    string = "get/leases"
+	PAT_GET_PRIORITYCLASSES           string = "get/priorityclasses"
+	PAT_GET_VOLUMESNAPSHOTS           string = "get/volumesnapshots"
+	PAT_GET_RESOURCEQUOTAS            string = "get/resourcequotas"
+
 	PAT_STORAGE_CREATE_VOLUME   string = "storage/create-volume"
 	PAT_STORAGE_DELETE_VOLUME   string = "storage/delete-volume"
 	PAT_STORAGE_BACKUP_VOLUME   string = "storage/backup-volume"
@@ -539,6 +575,42 @@ var COMMAND_REQUESTS = []string{
 	PAT_DELETE_PRIORITYCLASSES,
 	PAT_DELETE_VOLUMESNAPSHOTS,
 	PAT_DELETE_RESOURCEQUOTAS,
+
+	PAT_GET_NAMESPACE,
+	PAT_GET_DEPLOYMENT,
+	PAT_GET_SERVICE,
+	PAT_GET_POD,
+	PAT_GET_INGRESS,
+	PAT_GET_CONFIGMAP,
+	PAT_GET_SECRET,
+	PAT_GET_NODE,
+	PAT_GET_DAEMONSET,
+	PAT_GET_STATEFULSET,
+	PAT_GET_JOB,
+	PAT_GET_CRONJOB,
+	PAT_GET_REPLICASET,
+	PAT_GET_PERSISTENT_VOLUME,
+	PAT_GET_PERSISTENT_VOLUME_CLAIM,
+	PAT_GET_HORIZONTAL_POD_AUTOSCALER,
+	PAT_GET_EVENT,
+	PAT_GET_CERTIFICATE,
+	PAT_GET_CERTIFICATEREQUEST,
+	PAT_GET_ORDER,
+	PAT_GET_ISSUER,
+	PAT_GET_CLUSTERISSUER,
+	PAT_GET_SERVICE_ACCOUNT,
+	PAT_GET_ROLE,
+	PAT_GET_ROLE_BINDING,
+	PAT_GET_CLUSTER_ROLE,
+	PAT_GET_CLUSTER_ROLE_BINDING,
+	PAT_GET_VOLUME_ATTACHMENT,
+	PAT_GET_NETWORK_POLICY,
+	PAT_GET_STORAGE_CLASS,
+	PAT_GET_ENDPOINTS,
+	PAT_GET_LEASES,
+	PAT_GET_PRIORITYCLASSES,
+	PAT_GET_VOLUMESNAPSHOTS,
+	PAT_GET_RESOURCEQUOTAS,
 
 	PAT_STORAGE_CREATE_VOLUME,
 	PAT_STORAGE_DELETE_VOLUME,

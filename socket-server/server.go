@@ -24,6 +24,12 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
+var loadTestStartTime time.Time
+var loadTestPattern string = "list/pods"
+var loadTestTotalBytes int64 = 0
+var loadTestRequests int = 10000
+var loadTestReceived int = 0
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -151,6 +157,14 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 						RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
 						fmt.Printf("%s\n", RECEIVCOLOR(punqUtils.FillWith("RECEIVED", 22, " ")))
 						datagram.DisplayBeautiful()
+
+						if datagram.Pattern == loadTestPattern {
+							loadTestTotalBytes += datagram.GetSize()
+							loadTestReceived++
+						}
+						if loadTestReceived > 0 {
+							fmt.Printf("Result (%d): %s / %s \n", loadTestReceived, time.Since(loadTestStartTime), punqUtils.BytesToHumanReadable(loadTestTotalBytes))
+						}
 					}
 				} else {
 					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
@@ -212,6 +226,7 @@ func printShortcuts() {
 	logger.Log.Notice("s:     send command to cluster")
 	logger.Log.Notice("c:     close blocked connection")
 	logger.Log.Notice("k:     close all connections")
+	logger.Log.Notice("x:     perform load test")
 	logger.Log.Notice("q:     quit application")
 }
 
@@ -238,6 +253,13 @@ func ReadInput() {
 				requestCmdFromCluster(cmd)
 			} else {
 				printShortcuts()
+			}
+		case "x":
+			loadTestStartTime = time.Now()
+			loadTestReceived = 0
+			for i := 0; i < loadTestRequests; i++ {
+				datagram := requestCmdFromCluster(services.PAT_LIST_PODS)
+				loadTestTotalBytes = datagram.GetSize()
 			}
 		case "l":
 			listClusters()
@@ -279,7 +301,7 @@ func listClusters() []string {
 	return result
 }
 
-func requestCmdFromCluster(pattern string) {
+func requestCmdFromCluster(pattern string) *structs.Datagram {
 	if len(connections) > 0 {
 		var payload interface{} = nil
 		switch pattern {
@@ -533,7 +555,7 @@ func requestCmdFromCluster(pattern string) {
 		case services.PAT_BUILD_ADD:
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_SCAN:
-			payload = structs.BuildJobExample()
+			payload = structs.ScanImageRequestExample()
 		case services.PAT_BUILD_CANCEL:
 			payload = structs.BuildJobExample()
 		case services.PAT_BUILD_DELETE:
@@ -579,9 +601,10 @@ func requestCmdFromCluster(pattern string) {
 		if pattern == services.PAT_FILES_UPLOAD {
 			sendFile()
 		}
-		return
+		return &datagram
 	}
 	logger.Log.Error("Not connected to any cluster.")
+	return nil
 }
 
 func selectCommands() string {
