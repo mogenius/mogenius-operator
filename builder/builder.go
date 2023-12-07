@@ -32,6 +32,7 @@ const (
 	PREFIX_PUSH      = "push-"
 	PREFIX_SCAN      = "scan-"
 	PREFIX_QUEUE     = "queue-"
+	PREFIX_ERROR     = "error-"
 
 	PREFIX_CLEANUP = "cleanup"
 )
@@ -365,6 +366,9 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 			return err
 		}
 
+		// @TODO: No overall status
+		// status := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_STATUS, buildId)))
+		// status := success, error: clone | ls | login | ...
 		clone := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_GIT_CLONE, buildId)))
 		ls := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LS, buildId)))
 		login := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LOGIN, buildId)))
@@ -381,16 +385,29 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 func BuildJobInfoEntry(namespace string, serviceName string) (structs.BuildJobInfoEntry, error) {
 	result := structs.BuildJobInfoEntry{}
 	err := db.View(func(tx *bolt.Tx) error {
+
+
+
 		lastIdx := -1
-		prefix := PREFIX_BUILD
 		bucket := tx.Bucket([]byte(BUCKET_NAME))
 		err := bucket.ForEach(func(k, v []byte) error {
 			key:=string(k)
-			if strings.HasPrefix(key, prefix) {
+
+			
+			
+
+			
+			
+			// Check for PREFIX_ERROR
+			// ???
+			if strings.HasPrefix(key, PREFIX_ERROR) {
+
+			}
+			if strings.HasPrefix(key, PREFIX_BUILD) {
 				fmt.Printf("Key: %s\n", k)
 				tmp := structs.CreateBuildJobEntryFromData(v)
 
-				id := strings.TrimPrefix(key, prefix)
+				id := strings.TrimPrefix(key, PREFIX_BUILD)
 				idx, err := strconv.Atoi(id)
 
 				if err != nil && lastIdx < idx && tmp.Namespace == namespace && tmp.ServiceName == serviceName {
@@ -640,6 +657,23 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 					return bucket.Put([]byte(fmt.Sprintf("%s%s", prefix, *containerImageName)), entry)
 				}
 				if job != nil {
+					if execErr != nil {
+						// Save failed cmd/error in bucket via error-buildId:
+						// prefix-buildId='error'\n
+						// prefix-buildId='error'\n
+						
+						key := []byte(fmt.Sprintf("%s%d", PREFIX_ERROR, job.BuildId))
+						newValue := []byte(fmt.Sprintf("%s=%v\n",fmt.Sprintf("%s%d", prefix, job.BuildId), execErr))
+
+						value := bucket.Get(key)
+						if value != nil {
+							value = append(value, newValue...)
+						} else {
+							value = newValue
+						}
+
+						bucket.Put(key, value)
+					}
 					return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), entry)
 				}
 			}

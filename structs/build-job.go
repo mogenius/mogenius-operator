@@ -228,6 +228,7 @@ type BuildJobInfoEntry struct {
 func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
 	result := BuildJobInfos{}
 
+	// @TODO: Extend with name, namespace
 	result.BuildId = job.BuildId
 	result.StartTime = job.StartedAt
 	result.FinishTime = job.EndTimestamp
