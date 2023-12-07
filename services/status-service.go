@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/logger"
 
 	"context"
@@ -21,7 +22,6 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	logger.Log.Debugf("StatusService for (%s): %s %s", r.ServiceName, r.Namespace, r.Controller)
 
 	// Collect status
-	// ? Build : ?
 	// ? Specs.Containers[n].image === mo-default : pending
 
 	provider, err := punq.NewKubeProvider(nil)
@@ -32,8 +32,12 @@ func StatusService(r ServiceStatusRequest) interface{} {
 
 	resourceItems, err := statusItems(r.Namespace, r.ServiceName, NewResourceController(r.Controller), provider.ClientSet)
 	if err != nil {
-		logger.Log.Fatalf("Error statusItems: %v", err)
-		return nil
+		logger.Log.Fatalf("Failed statusItems: %v", err)
+	}
+
+	resourceItems, err = buildItem(r.Namespace, r.ServiceName, resourceItems)
+	if err != nil {
+		logger.Log.Fatalf("Failed buildItem: %v", err)
 	}
 
 	// Debug logs
@@ -127,8 +131,23 @@ func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kube
 	return &corev1.PodList{}, nil
 }
 
-func buildItem(resourceItems []ResourceItem) ([]ResourceItem, error) {
-	// resourceItems = append(resourceItems, *item) 
+func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
+	info, err := builder.BuildJobInfoEntry(namespace, name)
+	if err != nil {
+		return resourceItems, err
+	}
+
+	item := &ResourceItem{
+		Kind:      "Build",
+		Name:      name,
+		Namespace: namespace,
+		OwnerName: "",
+		OwnerKind: "",
+		StatusObject: info,
+	}
+
+	resourceItems = append(resourceItems, *item) 
+
 	return resourceItems, nil
 }
 
@@ -264,9 +283,9 @@ func ServiceStatusRequestExample() ServiceStatusRequest {
 }
 
 type ResourceItem struct {
-	Kind string              `json:"kind,omitempty"`
-	Name string              `json:"name,omitempty"`
-	Namespace string         `json:"namespace,omitempty"`
+	Kind string              `json:"kind"`
+	Name string              `json:"name"`
+	Namespace string         `json:"namespace"`
 	OwnerName string         `json:"ownerName,omitempty"`
 	OwnerKind string         `json:"ownerKind,omitempty"`
 	StatusObject interface{} `json:"statusObject,omitempty"`
