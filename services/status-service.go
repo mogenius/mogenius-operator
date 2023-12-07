@@ -30,7 +30,7 @@ func StatusService(r ServiceStatusRequest) interface{} {
 		return nil
 	}
 
-	resourceItems, err := statusItems(r.Namespace, r.ServiceName, r.Controller, provider.ClientSet)
+	resourceItems, err := statusItems(r.Namespace, r.ServiceName, NewResourceController(r.Controller), provider.ClientSet)
 	if err != nil {
 		logger.Log.Fatalf("Error statusItems: %v", err)
 		return nil
@@ -50,7 +50,7 @@ func StatusService(r ServiceStatusRequest) interface{} {
 func statusItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset) ([]ResourceItem, error) {
 	resourceItems := []ResourceItem{}
 
-	resourceInterface, err := controller(namespace, resourceController.String(), resourceController, clientset)
+	resourceInterface, err := controller(namespace, name, resourceController, clientset)
 	if err != nil {
 		fmt.Printf("\nError fetching controller: %s\n", err)
 		return resourceItems, err
@@ -250,16 +250,16 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 }
 
 type ServiceStatusRequest struct {
-	Namespace 	string             `json:"namespace"`
-	ServiceName string             `json:"serviceName"`
-	Controller  ResourceController `json:"controller"`
+	Namespace 	string `json:"namespace"`
+	ServiceName string `json:"serviceName"`
+	Controller  string `json:"controller"`
 }
 
 func ServiceStatusRequestExample() ServiceStatusRequest {
 	return ServiceStatusRequest{
 		Namespace: "YOUR-NAMESPACE",
 		ServiceName: "YOUR-SERVICE-NAME",
-		Controller: Deployment,
+		Controller: Deployment.String(),
 	}
 }
 
