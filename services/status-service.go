@@ -1,6 +1,8 @@
 package services
 
 import (
+	"encoding/json"
+	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/logger"
 
 	"context"
@@ -15,6 +17,73 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+func StatusService(r ServiceStatusRequest) interface{} {
+	logger.Log.Debugf("StatusService for (%s): %s %s", r.ServiceName, r.Namespace, r.Controller)
+
+	// Collect status
+	// ? Specs.Containers[n].image === mo-default : pending
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		logger.Log.Warningf("Warningf: %s", err.Error())
+		return nil
+	}
+
+	resourceItems := []ResourceItem{}
+	resourceItems, err = kubernetesItems(r.Namespace, r.ServiceName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
+	if err != nil {
+		logger.Log.Warningf("Warning statusItems: %v", err)
+	}
+
+	resourceItems, err = buildItem(r.Namespace, r.ServiceName, resourceItems)
+	if err != nil {
+		logger.Log.Warningf("Warning buildItem: %v", err)
+	}
+
+	// Debug logs
+	jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
+	if err != nil {
+		logger.Log.Warningf("Warning marshaling JSON: %v", err)
+		return nil
+	}
+	logger.Log.Debugf("JOSN: %s", jsonData)
+
+	return resourceItems
+}
+
+func kubernetesItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset, resourceItems []ResourceItem) ([]ResourceItem, error) {
+	resourceInterface, err := controller(namespace, name, resourceController, clientset)
+	if err != nil {
+		logger.Log.Warningf("\nWarning fetching controller: %s\n", err)
+		return resourceItems, err
+	}
+
+	metaName, metaNamespace, kind, references, labelSelector, object  := status(resourceInterface)
+	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
+
+	pods, err := pods(namespace, labelSelector, clientset)
+	if err != nil {
+		logger.Log.Warningf("\nWarning fetching pods: %s\n", err)
+		return resourceItems, err
+	}
+
+	for _, pod := range pods.Items {
+		resourceItems = containerItems(pod, resourceItems)
+		resourceItems = podItem(pod, resourceItems)
+		// Owner reference kind and name
+		if len(pod.OwnerReferences) > 0 {
+			for _, ownerRef := range pod.OwnerReferences {
+				// only controller parents
+				if *ownerRef.Controller {
+					resourceItems = recursiveOwnerRef(pod.Namespace, ownerRef, clientset, resourceItems)
+				}
+			}
+		}
+	}
+
+	return resourceItems, nil
+}
 
 func controller(namespace string, controllerName string, resourceController ResourceController, clientset *kubernetes.Clientset) (interface{}, error) {
 	var err error
@@ -36,56 +105,15 @@ func controller(namespace string, controllerName string, resourceController Reso
 	}
 
 	if err != nil {
-		fmt.Printf("\nError fetching resource: %s\n", err)
+		logger.Log.Warningf("\nWarning fetching resources: %s\n", err)
 		return nil, err
 	}
 
 	return resourceInterface, nil
 }
 
-func controllerAndPods(namespace string, controllerName string, resourceController ResourceController, clientset *kubernetes.Clientset, items []ResourceItem) (*corev1.PodList, []ResourceItem, error) {
-	resourceInterface, err := controller(namespace, controllerName, resourceController, clientset)
-	if err != nil {
-		fmt.Printf("\nError fetching resource: %s\n", err)
-		return nil, items, err
-	}
 
-	name, namespace, kind, references, labelSelector, object  := status(resourceInterface)
-	if len(references) > 0 {
-		for _, parentRef := range references {
-			if *parentRef.Controller {
-				item := &ResourceItem{
-					Kind:      kind,
-					Name:      name,
-					Namespace: namespace,
-					OwnerName:  parentRef.Name,
-					OwnerKind: parentRef.Kind,
-					StatusObject: object,
-				}
-				items = append(items, *item)
-
-				break
-			}
-		}
-	} else {
-		item := &ResourceItem{
-			Kind:      kind,
-			Name:      name,
-			Namespace: namespace,
-			OwnerName:  "",
-			OwnerKind: "",
-			StatusObject: object,
-		}
-		items = append(items, *item) 
-	}
-
-
-	pods, err := podItems(namespace, labelSelector, clientset)
-	
-	return pods, items, err
-}
-
-func podItems(namespace string, labelSelector *metav1.LabelSelector, clientset *kubernetes.Clientset) (*corev1.PodList, error) {
+func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kubernetes.Clientset) (*corev1.PodList, error) {
 	if labelSelector != nil {
 		selector := metav1.FormatLabelSelector(labelSelector)
 		pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
@@ -102,7 +130,27 @@ func podItems(namespace string, labelSelector *metav1.LabelSelector, clientset *
 	return &corev1.PodList{}, nil
 }
 
-func containerItems(pod corev1.Pod, items []ResourceItem) []ResourceItem {
+func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
+	info, err := builder.BuildJobInfoEntry(namespace, name)
+	if err != nil {
+		return resourceItems, err
+	}
+
+	item := &ResourceItem{
+		Kind:      "Build",
+		Name:      name,
+		Namespace: namespace,
+		OwnerName: "",
+		OwnerKind: "",
+		StatusObject: info,
+	}
+
+	resourceItems = append(resourceItems, *item) 
+
+	return resourceItems, nil
+}
+
+func containerItems(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		item := &ResourceItem{
 			Kind:      "Container",
@@ -112,70 +160,13 @@ func containerItems(pod corev1.Pod, items []ResourceItem) []ResourceItem {
 			OwnerKind: "Pod",
 			StatusObject: containerStatus,
 		}
-		items = append(items, *item) 
+		resourceItems = append(resourceItems, *item) 
 	}
 
-	return items
+	return resourceItems
 }
 
-func podItem(pod corev1.Pod, items []ResourceItem) []ResourceItem {
-	for _, ownerRef := range pod.OwnerReferences {
-        if *ownerRef.Controller {
-			item := &ResourceItem{
-				Kind:         "Pod",
-				Name:         pod.Name,
-				Namespace:    pod.Namespace,
-				OwnerName:    ownerRef.Name,
-				OwnerKind:    ownerRef.Kind,
-				StatusObject: pod.Status,
-			}
-			items = append(items, *item) 
-        }
-    }
-
-	return items
-}
-
-func statusItems(namespace string, name string, controllerType ResourceController, clientset *kubernetes.Clientset) ([]ResourceItem, error) {
-	items := []ResourceItem{}
-
-    pods, items, err := controllerAndPods(namespace, name, controllerType, clientset, items)
-    if err != nil {
-        return items, nil
-    }
-
-	for _, pod := range pods.Items {
-		items = containerItems(pod, items)
-		items = podItem(pod, items)
-		// Owner reference kind and name
-		if len(pod.OwnerReferences) > 0 {
-            for _, ownerRef := range pod.OwnerReferences {
-				// only controller parents
-				if *ownerRef.Controller {
-					items = ownerItem(pod.Namespace, ownerRef, clientset, items)
-				}
-            }
-		}
-	}
-
-	return items, nil
-}
-
-func ownerItem(namespace string, ownerRef metav1.OwnerReference, clientset *kubernetes.Clientset, items []ResourceItem) []ResourceItem {
-	// Skip already included items
-	for _, item := range items {
-		if item.Kind == ownerRef.Kind {
-			return items
-		}
-	}
-
-	resourceInterface, err := controller(namespace,ownerRef.Name, ResourceControllerFromString(ownerRef.Kind), clientset)
-	if err != nil {
-		fmt.Printf("\nError fetching resource: %s\n", err)
-		return items
-	}
-	
-	name, namespace, kind, references, _, object := status(resourceInterface)
+func controllerItem(name, kind, namespace, resourceController string, references []metav1.OwnerReference, object interface{}, resourceItems []ResourceItem) []ResourceItem {
 	if len(references) > 0 {
 		for _, parentRef := range references {
 			if *parentRef.Controller {
@@ -187,9 +178,9 @@ func ownerItem(namespace string, ownerRef metav1.OwnerReference, clientset *kube
 					OwnerKind: parentRef.Kind,
 					StatusObject: object,
 				}
-				items = append(items, *item) 
+				resourceItems = append(resourceItems, *item)
 
-				return ownerItem(namespace, parentRef, clientset, items)
+				break
 			}
 		}
 	} else {
@@ -201,120 +192,140 @@ func ownerItem(namespace string, ownerRef metav1.OwnerReference, clientset *kube
 			OwnerKind: "",
 			StatusObject: object,
 		}
-		items = append(items, *item) 
-
-		return items
+		resourceItems = append(resourceItems, *item) 
 	}
 
-	return items
+	return resourceItems
+}
+
+func podItem(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem {
+	for _, ownerRef := range pod.OwnerReferences {
+		if *ownerRef.Controller {
+			item := &ResourceItem{
+				Kind:         "Pod",
+				Name:         pod.Name,
+				Namespace:    pod.Namespace,
+				OwnerName:    ownerRef.Name,
+				OwnerKind:    ownerRef.Kind,
+				StatusObject: pod.Status,
+			}
+			resourceItems = append(resourceItems, *item) 
+		}
+	}
+
+	return resourceItems
+}
+
+func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clientset *kubernetes.Clientset, resourceItems []ResourceItem) []ResourceItem {
+	// Skip already included resourceItems
+	for _, item := range resourceItems {
+		if item.Kind == ownerRef.Kind {
+			return resourceItems
+		}
+	}
+
+	// Fetch next k8s controller
+	resourceInterface, err := controller(namespace,ownerRef.Name, NewResourceController(ownerRef.Kind), clientset)
+	if err != nil {
+		logger.Log.Warningf("\nWarning fetching resources: %s\n", err)
+		return resourceItems
+	}
+	
+	// Extract status data from controller
+	name, namespace, kind, references, _, object := status(resourceInterface)
+	resourceItems = controllerItem(name, kind, namespace, NewResourceController(kind).String(), references, object, resourceItems)
+
+	// Fetch next parent controller
+	if len(references) > 0 {
+		for _, parentRef := range references {
+			if *parentRef.Controller {
+				return recursiveOwnerRef(namespace, parentRef, clientset, resourceItems)
+			}
+		}
+	}
+
+	return resourceItems
 
 }
 
 func status(resource interface{}) (string, string, string, []metav1.OwnerReference, *metav1.LabelSelector, interface{}) {
 	switch r := resource.(type) {
 	case *appsv1.Deployment:
-		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, "Deployment", r.OwnerReferences, r.Spec.Selector, r.Status
+		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *appsv1.ReplicaSet:
-		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, "ReplicaSet", r.OwnerReferences, r.Spec.Selector, r.Status
+		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, ReplicaSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *appsv1.StatefulSet:
-		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, "StatefulSet", r.OwnerReferences, r.Spec.Selector, r.Status
+		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, StatefulSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *appsv1.DaemonSet:
-		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, "DaemonSet", r.OwnerReferences, r.Spec.Selector, r.Status
+		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, DaemonSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *batchv1.Job:
-		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, "Job", r.OwnerReferences, r.Spec.Selector, r.Status
+		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, Job.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *batchv1beta1.CronJob:
-		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, "CronJob", r.OwnerReferences, r.Spec.JobTemplate.Spec.Selector, r.Status
+		return  r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, r.Spec.JobTemplate.Spec.Selector, r.Status
 	default:
-		return "", "", "", []metav1.OwnerReference{}, nil, nil
+		return "", "", Unkown.String(), []metav1.OwnerReference{}, nil, nil
 	}
-}
-
-func StatusService(r ServiceStatusRequest) interface{} {
-
-	logger.Log.Debugf("StatusService for (%s): %s %s", r.Namespace, r.ProjectId, r.ServiceName)
-
-	// Collect status
-	// ? Build : ?
-	// ? Specs.Containers[n].image === mo-default : pending
-
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		logger.Log.Fatalf("Error: %s", err.Error())
-		return nil
-	}
-
-	items, err := statusItems(r.Namespace, r.ServiceName, Deployment, provider.ClientSet)
-	if err != nil {
-		logger.Log.Fatalf("Error statusItems: %v", err)
-		return nil
-	}
-
-	// jsonData, err := json.MarshalIndent(items, "", "  ")
-    // if err != nil {
-    //     logger.Log.Fatalf("Error marshaling JSON: %v", err)
-	// 	return nil
-    // }
-	// logger.Log.Debugf("JOSN: %s", jsonData)
-
-	return items
 }
 
 type ServiceStatusRequest struct {
-	ProjectId   string `json:"projectId"`
 	Namespace 	string `json:"namespace"`
 	ServiceName string `json:"serviceName"`
+	Controller  string `json:"controller"`
 }
 
 func ServiceStatusRequestExample() ServiceStatusRequest {
 	return ServiceStatusRequest{
-		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		Namespace: "YOUR-NAMESPACE",
 		ServiceName: "YOUR-SERVICE-NAME",
+		Controller: Deployment.String(),
 	}
 }
 
 type ResourceItem struct {
-	Kind string              `json:"kind,omitempty"`
-	Name string              `json:"name,omitempty"`
-	Namespace string         `json:"namespace,omitempty"`
+	Kind string              `json:"kind"`
+	Name string              `json:"name"`
+	Namespace string         `json:"namespace"`
 	OwnerName string         `json:"ownerName,omitempty"`
 	OwnerKind string         `json:"ownerKind,omitempty"`
 	StatusObject interface{} `json:"statusObject,omitempty"`
 }
 
 func (item ResourceItem) String() string {
-    return fmt.Sprintf("%s, %s, %s, %s, %s, %+v", item.Kind, item.Name, item.Namespace, item.OwnerKind, item.OwnerName, item.StatusObject)
+	return fmt.Sprintf("%s, %s, %s, %s, %s, %+v", item.Kind, item.Name, item.Namespace, item.OwnerKind, item.OwnerName, item.StatusObject)
 }
 
 type ResourceController int
 
+// Keep the order, only add elements at end
 const (
 	Unkown ResourceController = iota
 	Deployment
-    ReplicaSet
+	ReplicaSet
 	StatefulSet
-    DaemonSet
-    Job
+	DaemonSet
+	Job
 	CronJob
 )
 
+// Keep the order with above structure...
+//   otherwise everything will be messed up
 func (ctrl ResourceController) String() string {
-	return [...]string{"Deployment", "ReplicaSet", "StatefulSet", "DaemonSet", "Job", "CronJob"}[ctrl]
+	return [...]string{"Unkown", "Deployment", "ReplicaSet", "StatefulSet", "DaemonSet", "Job", "CronJob"}[ctrl]
 }
 
-func ResourceControllerFromString(resourceController string) ResourceController {
+func NewResourceController(resourceController string) ResourceController {
 	switch resourceController {
-	case "Deployment":
+	case Deployment.String():
 		return Deployment
-	case "ReplicaSet":
+	case ReplicaSet.String():
 		return ReplicaSet
-	case "StatefulSet":
+	case StatefulSet.String():
 		return StatefulSet
-	case "DaemonSet":
+	case DaemonSet.String():
 		return DaemonSet
-	case "Job":
+	case Job.String():
 		return Job
-	case "CronJob":
+	case CronJob.String():
 		return CronJob
 	default:
 		return Unkown

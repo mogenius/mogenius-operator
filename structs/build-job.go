@@ -216,10 +216,13 @@ type BuildJobInfos struct {
 }
 
 type BuildJobInfoEntry struct {
-	State      string `json:"state"`
-	Result     string `json:"result"`
-	StartTime  string `json:"startTime"`
-	FinishTime string `json:"finishTime"`
+	ProjectId   string `json:"projectId,omitempty"`
+	Namespace   string `json:"namespace,omitempty"`
+	ServiceName string `json:"serviceName,omitempty"`
+	State       string `json:"state"`
+	Result      string `json:"result"`
+	StartTime   string `json:"startTime"`
+	FinishTime  string `json:"finishTime"`
 }
 
 func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
@@ -228,17 +231,17 @@ func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, bu
 	result.BuildId = job.BuildId
 	result.StartTime = job.StartedAt
 	result.FinishTime = job.EndTimestamp
-	result.Clone = createBuildJobEntryFromData(clone)
-	result.Ls = createBuildJobEntryFromData(ls)
-	result.Login = createBuildJobEntryFromData(login)
-	result.Build = createBuildJobEntryFromData(build)
-	result.Push = createBuildJobEntryFromData(push)
-	result.Scan = createBuildJobEntryFromData(scan)
+	result.Clone = CreateBuildJobEntryFromData(clone)
+	result.Ls = CreateBuildJobEntryFromData(ls)
+	result.Login = CreateBuildJobEntryFromData(login)
+	result.Build = CreateBuildJobEntryFromData(build)
+	result.Push = CreateBuildJobEntryFromData(push)
+	result.Scan = CreateBuildJobEntryFromData(scan)
 
 	return result
 }
 
-func createBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
+func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 	result := BuildJobInfoEntry{}
 
 	if data != nil {
@@ -252,12 +255,15 @@ func createBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 	return result
 }
 
-func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
+func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
 	entry := BuildJobInfoEntry{
-		State:      state,
-		Result:     string(cmdOutput),
-		StartTime:  startTime.Format(time.RFC3339),
-		FinishTime: finishTime.Format(time.RFC3339),
+		ProjectId:   job.ProjectId,
+		Namespace:   job.Namespace,
+		ServiceName: job.ServiceName,
+		State:       state,
+		Result:      string(cmdOutput),
+		StartTime:   startTime.Format(time.RFC3339),
+		FinishTime:  finishTime.Format(time.RFC3339),
 	}
 
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
