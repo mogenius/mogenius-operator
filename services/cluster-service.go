@@ -730,8 +730,8 @@ func SystemCheck() punq.SystemCheckResponse {
 
 	clusterIps := punq.GetClusterExternalIps(nil)
 	localDevEnvMsg := "Local development environment setup complete (192.168.66.1 found)."
-	contains192168661 := !punqUtils.Contains(clusterIps, "192.168.66.1")
-	if contains192168661 {
+	contains192168661 := punqUtils.Contains(clusterIps, "192.168.66.1")
+	if !contains192168661 {
 		localDevEnvMsg = "Local development environment not setup. Please run 'mocli cluster local-dev-setup' to setup your local environment."
 	}
 	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, false)
