@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -395,7 +396,11 @@ func BuildJobInfoEntry(namespace string, serviceName string) (structs.BuildJobIn
 			return err
 		}
 
-		return nil
+		if (lastIdx > -1) {
+			return nil
+		} else {
+			return errors.New("build not available")
+		}
 	})
 	return result, err
 }
