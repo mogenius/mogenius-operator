@@ -123,7 +123,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 				msg = []byte(currentMsg)
 			}
 
-			datagram := structs.Datagram{}
+			datagram := structs.CreateEmptyDatagram()
 			var json = jsoniter.ConfigCompatibleWithStandardLibrary
 			_ = json.Unmarshal(msg, &datagram)
 			datagramValidationError := validate.Struct(datagram)
