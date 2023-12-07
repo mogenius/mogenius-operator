@@ -85,17 +85,17 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
 	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
 	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), punqStructs.DurationStrSince(d.CreatedAt))
-	fmt.Printf("%s %s\n", SIZECOLOR("Size:    "), punqUtils.BytesToHumanReadable(int64(getSize(d))))
+	fmt.Printf("%s %s\n", SIZECOLOR("Size:    "), punqUtils.BytesToHumanReadable(d.GetSize()))
 	//fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), punqStructs.PrettyPrintString(d.Payload))
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
 	fmt.Println()
-	fmt.Printf("%s%s%s (%s / %s)\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(int64(getSize(d))), punqStructs.DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s%s%s (%s / %s)\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummary() {
-	fmt.Printf("%s%s%s (%s / %s)\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(int64(getSize(d))), punqStructs.DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s%s%s (%s / %s)\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
@@ -111,6 +111,6 @@ func (d *Datagram) Send() {
 	d.DisplaySentSummary()
 }
 
-func getSize(v interface{}) int {
-	return len(punqStructs.PrettyPrintString(v))
+func (d *Datagram) GetSize() int64 {
+	return int64(len(punqStructs.PrettyPrintString(d)))
 }

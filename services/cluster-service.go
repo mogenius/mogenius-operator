@@ -639,7 +639,6 @@ var ingressCtrlStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var distriRegistryStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var metallbStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var clusterIssuerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
-var localDevEnvStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 
 func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
@@ -736,9 +735,6 @@ func SystemCheck() punq.SystemCheckResponse {
 		localDevEnvMsg = "Local development environment not setup. Please run 'mocli cluster local-dev-setup' to setup your local environment."
 	}
 	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, false)
-	if localDevEnvStatus != punq.UNKNOWN_STATUS {
-		localDevSetupEntry.Status = localDevEnvStatus
-	}
 	entries = append(entries, localDevSetupEntry)
 
 	// add missing patterns
