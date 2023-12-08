@@ -3,6 +3,7 @@ package builder
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -10,6 +11,8 @@ import (
 	"mogenius-k8s-manager/utils"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -375,6 +378,43 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 	return result
 }
 
+func BuildJobInfoEntry(namespace string, serviceName string) (structs.BuildJobInfoEntry, error) {
+	result := structs.BuildJobInfoEntry{}
+	err := db.View(func(tx *bolt.Tx) error {
+		lastIdx := -1
+		prefix := PREFIX_BUILD
+		bucket := tx.Bucket([]byte(BUCKET_NAME))
+		err := bucket.ForEach(func(k, v []byte) error {
+			key:=string(k)
+			if strings.HasPrefix(key, prefix) {
+				fmt.Printf("Key: %s\n", k)
+				tmp := structs.CreateBuildJobEntryFromData(v)
+
+				id := strings.TrimPrefix(key, prefix)
+				idx, err := strconv.Atoi(id)
+
+				if err != nil && lastIdx < idx && tmp.Namespace == namespace && tmp.ServiceName == serviceName {
+					fmt.Printf("Found Key: %s\n", k)
+					result = tmp
+					lastIdx = idx
+				}
+			}
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+
+		if (lastIdx > -1) {
+			return nil
+		} else {
+			return errors.New("build not available")
+		}
+	})
+	return result, err
+}
+
 func Add(buildJob structs.BuildJob) structs.BuildAddResult {
 	nextBuildId := -1
 
@@ -595,7 +635,7 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 				reportCmd.Success(reportCmd.Message)
 			}
 			if reportCmd != nil {
-				entry := structs.CreateBuildJobInfoEntryBytes(reportCmd.State, cmdOutput, startTime, time.Now())
+				entry := structs.CreateBuildJobInfoEntryBytes(reportCmd.State, cmdOutput, startTime, time.Now(), job)
 				if containerImageName != nil {
 					return bucket.Put([]byte(fmt.Sprintf("%s%s", prefix, *containerImageName)), entry)
 				}

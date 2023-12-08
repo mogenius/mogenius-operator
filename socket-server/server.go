@@ -24,13 +24,19 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
+var loadTestStartTime time.Time
+var loadTestPattern string = "list/pods"
+var loadTestTotalBytes int64 = 0
+var loadTestRequests int = 10000
+var loadTestReceived int = 0
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
 var validate = validator.New()
-var connections = make(map[string]*structs.ClusterConnection)
+var cluster *structs.ClusterConnection
 var serverSendMutex sync.Mutex
 
 func Init(r *gin.Engine) {
@@ -98,7 +104,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 		return
 	}
 
-	defer removeConnection(connection)
+	defer connection.Close()
 
 	if r.RequestURI == utils.CONFIG.ApiServer.WS_Path {
 		addConnection(connection, clusterName)
@@ -123,7 +129,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 				msg = []byte(currentMsg)
 			}
 
-			datagram := structs.Datagram{}
+			datagram := structs.CreateEmptyDatagram()
 			var json = jsoniter.ConfigCompatibleWithStandardLibrary
 			_ = json.Unmarshal(msg, &datagram)
 			datagramValidationError := validate.Struct(datagram)
@@ -151,6 +157,14 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 						RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
 						fmt.Printf("%s\n", RECEIVCOLOR(punqUtils.FillWith("RECEIVED", 22, " ")))
 						datagram.DisplayBeautiful()
+
+						if datagram.Pattern == loadTestPattern {
+							loadTestTotalBytes += datagram.GetSize()
+							loadTestReceived++
+						}
+						if loadTestReceived > 0 {
+							fmt.Printf("Result (%d): %s / %s \n", loadTestReceived, time.Since(loadTestStartTime), punqUtils.BytesToHumanReadable(loadTestTotalBytes))
+						}
 					}
 				} else {
 					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
@@ -190,19 +204,11 @@ func validateHeader(c *gin.Context) string {
 	return clusterName
 }
 
-func addConnection(connection *websocket.Conn, clusterName string) {
+func addConnection(wsconnection *websocket.Conn, clusterName string) {
 	serverSendMutex.Lock()
 	defer serverSendMutex.Unlock()
-	remoteAddr := connection.RemoteAddr().String()
-	connections[remoteAddr] = &structs.ClusterConnection{ClusterName: clusterName, Connection: connection, AddedAt: time.Now()}
-}
-
-func removeConnection(connection *websocket.Conn) {
-	serverSendMutex.Lock()
-	defer serverSendMutex.Unlock()
-	remoteAddr := connection.RemoteAddr().String()
-	connection.Close()
-	delete(connections, remoteAddr)
+	// remoteAddr := connection.RemoteAddr().String()
+	cluster = &structs.ClusterConnection{ClusterName: clusterName, Connection: wsconnection, AddedAt: time.Now()}
 }
 
 func printShortcuts() {
@@ -241,17 +247,12 @@ func ReadInput() {
 				printShortcuts()
 			}
 		case "x":
-			startTime := time.Now()
-			for i := 0; i < 100; i++ {
-				requestCmdFromCluster(services.PAT_LIST_PODS)
+			loadTestStartTime = time.Now()
+			loadTestReceived = 0
+			for i := 0; i < loadTestRequests; i++ {
+				datagram := requestCmdFromCluster(services.PAT_LIST_PODS)
+				loadTestTotalBytes = datagram.GetSize()
 			}
-			time.Sleep(5 * time.Second)
-			duration := time.Since(startTime)
-			fmt.Printf("Execution Time: %s\n", duration)
-		case "l":
-			listClusters()
-		case "c":
-			closeBlockedConnection()
 		case "k":
 			closeAllConnections()
 		case "q":
@@ -263,33 +264,13 @@ func ReadInput() {
 	}
 }
 
-func closeBlockedConnection() {
-	cluster := selectBlockedCluster()
-	if cluster != nil {
-		cluster.Connection.Close()
-	}
-}
-
 func closeAllConnections() {
-	for _, cluster := range connections {
-		cluster.Connection.Close()
-	}
+	cluster.Connection.Close()
+	cluster = nil
 }
 
-func listClusters() []string {
-	var result []string = make([]string, 0)
-	logger.Log.Noticef("Listing %d connected clusters:", len(connections))
-	count := 0
-	for _, value := range connections {
-		count++
-		logger.Log.Noticef("%d: %s/%s", count, value.ClusterName, value.Connection.RemoteAddr().String())
-		result = append(result, value.ClusterName)
-	}
-	return result
-}
-
-func requestCmdFromCluster(pattern string) {
-	if len(connections) > 0 {
+func requestCmdFromCluster(pattern string) *structs.Datagram {
+	if cluster.Connection != nil {
 		var payload interface{} = nil
 		switch pattern {
 		case services.PAT_K8SNOTIFICATION:
@@ -385,6 +366,8 @@ func requestCmdFromCluster(pattern string) {
 			payload = services.ServiceStartRequestExample()
 		case services.PAT_SERVICE_UPDATE_SERVICE:
 			payload = services.ServiceUpdateRequestExample()
+		case services.PAT_SERVICE_STATUS:
+			payload = services.ServiceStatusRequestExample()
 		case services.PAT_SERVICE_TRIGGER_JOB:
 			payload = services.ServiceTriggerJobRequestExample()
 
@@ -572,10 +555,9 @@ func requestCmdFromCluster(pattern string) {
 			payload = nil
 		}
 
-		firstConnection := selectRandomCluster(false)
 		datagram := structs.CreateDatagramFrom(pattern, payload)
 		serverSendMutex.Lock()
-		err := firstConnection.Connection.WriteJSON(datagram)
+		err := cluster.Connection.WriteJSON(datagram)
 		serverSendMutex.Unlock()
 		if err != nil {
 			logger.Log.Error(err.Error())
@@ -586,9 +568,10 @@ func requestCmdFromCluster(pattern string) {
 		if pattern == services.PAT_FILES_UPLOAD {
 			sendFile()
 		}
-		return
+		return &datagram
 	}
 	logger.Log.Error("Not connected to any cluster.")
+	return nil
 }
 
 func selectCommands() string {
@@ -615,27 +598,6 @@ func selectCommands() string {
 	}
 }
 
-func selectRandomCluster(blockConnection bool) *structs.ClusterConnection {
-	for _, v := range connections {
-		if !v.Blocked {
-			v.Blocked = blockConnection
-			return v
-		}
-	}
-	fmt.Println("All connections are blocked.")
-	return nil
-}
-
-func selectBlockedCluster() *structs.ClusterConnection {
-	for _, v := range connections {
-		if v.Blocked {
-			return v
-		}
-	}
-	fmt.Println("No blocked connection available.")
-	return nil
-}
-
 func sendFile() {
 	err := utils.ZipSource("./video.mp4", "test.zip")
 	if err != nil {
@@ -659,7 +621,6 @@ func sendFile() {
 
 	reader := bufio.NewReader(file)
 	if reader != nil && totalSize > 0 {
-		cluster := selectRandomCluster(false)
 		buf := make([]byte, 512)
 		bar := progressbar.DefaultBytes(totalSize)
 

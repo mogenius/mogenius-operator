@@ -51,6 +51,7 @@ func StartK8sManager() {
 			// CONNECTED
 			done := make(chan struct{})
 			parseMessage(done, structs.JobQueueConnection)
+			structs.JobQueueConnection.Close()
 		} else {
 			// DISCONNECTED
 		}
@@ -111,7 +112,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				openFile.Write([]byte(rawDataStr))
 				bar.Add(len(rawDataStr))
 			} else {
-				datagram := structs.Datagram{}
+				datagram := structs.CreateEmptyDatagram()
 
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				jsonErr := json.Unmarshal([]byte(rawDataStr), &datagram)
@@ -127,9 +128,11 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				if punqUtils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
 					// ####### COMMAND
-					responsePayload := services.ExecuteCommandRequest(datagram)
-					result := structs.CreateDatagramRequest(datagram, responsePayload)
-					result.Send()
+					go func() {
+						responsePayload := services.ExecuteCommandRequest(datagram)
+						result := structs.CreateDatagramRequest(datagram, responsePayload)
+						result.Send()
+					}()
 				} else if punqUtils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 					preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
 
