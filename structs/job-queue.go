@@ -101,7 +101,7 @@ func processJobNow() {
 
 			err := JobQueueConnection.WriteJSON(element)
 			if err == nil {
-				jobDataQueue = RemoveJobIndex(jobDataQueue, i)
+				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {
 				logger.Log.Error(err)
 				return
@@ -114,7 +114,7 @@ func processJobNow() {
 	}
 }
 
-func RemoveJobIndex(s []Datagram, index int) []Datagram {
+func removeJobIndex(s []Datagram, index int) []Datagram {
 	if len(s) > index {
 		return append(s[:index], s[index+1:]...)
 	}

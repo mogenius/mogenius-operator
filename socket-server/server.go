@@ -36,7 +36,7 @@ var upgrader = websocket.Upgrader{
 }
 
 var validate = validator.New()
-var connections = make(map[string]*structs.ClusterConnection)
+var cluster *structs.ClusterConnection
 var serverSendMutex sync.Mutex
 
 func Init(r *gin.Engine) {
@@ -104,7 +104,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 		return
 	}
 
-	defer removeConnection(connection)
+	defer connection.Close()
 
 	if r.RequestURI == utils.CONFIG.ApiServer.WS_Path {
 		addConnection(connection, clusterName)
@@ -204,19 +204,11 @@ func validateHeader(c *gin.Context) string {
 	return clusterName
 }
 
-func addConnection(connection *websocket.Conn, clusterName string) {
+func addConnection(wsconnection *websocket.Conn, clusterName string) {
 	serverSendMutex.Lock()
 	defer serverSendMutex.Unlock()
-	remoteAddr := connection.RemoteAddr().String()
-	connections[remoteAddr] = &structs.ClusterConnection{ClusterName: clusterName, Connection: connection, AddedAt: time.Now()}
-}
-
-func removeConnection(connection *websocket.Conn) {
-	serverSendMutex.Lock()
-	defer serverSendMutex.Unlock()
-	remoteAddr := connection.RemoteAddr().String()
-	connection.Close()
-	delete(connections, remoteAddr)
+	// remoteAddr := connection.RemoteAddr().String()
+	cluster = &structs.ClusterConnection{ClusterName: clusterName, Connection: wsconnection, AddedAt: time.Now()}
 }
 
 func printShortcuts() {
@@ -261,10 +253,6 @@ func ReadInput() {
 				datagram := requestCmdFromCluster(services.PAT_LIST_PODS)
 				loadTestTotalBytes = datagram.GetSize()
 			}
-		case "l":
-			listClusters()
-		case "c":
-			closeBlockedConnection()
 		case "k":
 			closeAllConnections()
 		case "q":
@@ -276,33 +264,13 @@ func ReadInput() {
 	}
 }
 
-func closeBlockedConnection() {
-	cluster := selectBlockedCluster()
-	if cluster != nil {
-		cluster.Connection.Close()
-	}
-}
-
 func closeAllConnections() {
-	for _, cluster := range connections {
-		cluster.Connection.Close()
-	}
-}
-
-func listClusters() []string {
-	var result []string = make([]string, 0)
-	logger.Log.Noticef("Listing %d connected clusters:", len(connections))
-	count := 0
-	for _, value := range connections {
-		count++
-		logger.Log.Noticef("%d: %s/%s", count, value.ClusterName, value.Connection.RemoteAddr().String())
-		result = append(result, value.ClusterName)
-	}
-	return result
+	cluster.Connection.Close()
+	cluster = nil
 }
 
 func requestCmdFromCluster(pattern string) *structs.Datagram {
-	if len(connections) > 0 {
+	if cluster.Connection != nil {
 		var payload interface{} = nil
 		switch pattern {
 		case services.PAT_K8SNOTIFICATION:
@@ -587,10 +555,9 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = nil
 		}
 
-		firstConnection := selectRandomCluster(false)
 		datagram := structs.CreateDatagramFrom(pattern, payload)
 		serverSendMutex.Lock()
-		err := firstConnection.Connection.WriteJSON(datagram)
+		err := cluster.Connection.WriteJSON(datagram)
 		serverSendMutex.Unlock()
 		if err != nil {
 			logger.Log.Error(err.Error())
@@ -631,27 +598,6 @@ func selectCommands() string {
 	}
 }
 
-func selectRandomCluster(blockConnection bool) *structs.ClusterConnection {
-	for _, v := range connections {
-		if !v.Blocked {
-			v.Blocked = blockConnection
-			return v
-		}
-	}
-	fmt.Println("All connections are blocked.")
-	return nil
-}
-
-func selectBlockedCluster() *structs.ClusterConnection {
-	for _, v := range connections {
-		if v.Blocked {
-			return v
-		}
-	}
-	fmt.Println("No blocked connection available.")
-	return nil
-}
-
 func sendFile() {
 	err := utils.ZipSource("./video.mp4", "test.zip")
 	if err != nil {
@@ -675,7 +621,6 @@ func sendFile() {
 
 	reader := bufio.NewReader(file)
 	if reader != nil && totalSize > 0 {
-		cluster := selectRandomCluster(false)
 		buf := make([]byte, 512)
 		bar := progressbar.DefaultBytes(totalSize)
 
