@@ -51,6 +51,7 @@ func StartK8sManager() {
 			// CONNECTED
 			done := make(chan struct{})
 			parseMessage(done, structs.JobQueueConnection)
+			structs.JobQueueConnection.Close()
 		} else {
 			// DISCONNECTED
 		}
