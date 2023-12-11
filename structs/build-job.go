@@ -240,26 +240,15 @@ type BuildJobInfos struct {
 }
 
 type BuildJobInfoEntry struct {
-	ProjectId   string `json:"projectId,omitempty"`
-	Namespace   string `json:"namespace,omitempty"`
-	ServiceName string `json:"serviceName,omitempty"`
 	State       string `json:"state"`
 	Result      string `json:"result"`
 	StartTime   string `json:"startTime"`
 	FinishTime  string `json:"finishTime"`
 }
 
-// type BuildJobErrorEntry struct {
-// 	ProjectId   string `json:"projectId,omitempty"`
-// 	Namespace   string `json:"namespace,omitempty"`
-// 	ServiceName string `json:"serviceName,omitempty"`
-// 	Error       string `json:"error"`
-// }
-
 func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
 	result := BuildJobInfos{}
 
-	// @TODO: Extend with name, namespace
 	result.BuildId = job.BuildId
 	result.StartTime = job.StartedAt
 	result.FinishTime = job.EndTimestamp
@@ -289,9 +278,6 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 
 func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
 	entry := BuildJobInfoEntry{
-		ProjectId:   job.ProjectId,
-		Namespace:   job.Namespace,
-		ServiceName: job.ServiceName,
 		State:       state,
 		Result:      string(cmdOutput),
 		StartTime:   startTime.Format(time.RFC3339),

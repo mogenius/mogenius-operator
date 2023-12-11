@@ -137,7 +137,7 @@ func buildItem(namespace, name string, resourceItems []ResourceItem) ([]Resource
 	}
 
 	item := &ResourceItem{
-		Kind:      "Build",
+		Kind:      "BuildJob",
 		Name:      name,
 		Namespace: namespace,
 		OwnerName: "",

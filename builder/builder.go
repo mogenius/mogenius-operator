@@ -29,7 +29,6 @@ const (
 	PREFIX_PUSH      = "push-"
 	PREFIX_SCAN      = "scan-"
 	PREFIX_QUEUE     = "queue-"
-	// PREFIX_ERROR     = "error-"
 
 	PREFIX_CLEANUP = "cleanup"
 )
@@ -640,23 +639,6 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 					return bucket.Put([]byte(fmt.Sprintf("%s%s", prefix, *containerImageName)), entry)
 				}
 				if job != nil {
-					// if execErr != nil {
-					// 	// Save failed cmd/error in bucket via error-buildId:
-					// 	// prefix-buildId='error'\n
-					// 	// prefix-buildId='error'\n
-						
-					// 	key := []byte(fmt.Sprintf("%s%d", PREFIX_ERROR, job.BuildId))
-					// 	newValue := []byte(fmt.Sprintf("%s=%v\n",fmt.Sprintf("%s%d", prefix, job.BuildId), execErr))
-
-					// 	value := bucket.Get(key)
-					// 	if value != nil {
-					// 		value = append(value, newValue...)
-					// 	} else {
-					// 		value = newValue
-					// 	}
-
-					// 	bucket.Put(key, value)
-					// }
 					return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), entry)
 				}
 			}
