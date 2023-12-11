@@ -3,7 +3,6 @@ package builder
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -11,8 +10,6 @@ import (
 	"mogenius-k8s-manager/utils"
 	"os"
 	"os/exec"
-	"strconv"
-	"strings"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -32,7 +29,7 @@ const (
 	PREFIX_PUSH      = "push-"
 	PREFIX_SCAN      = "scan-"
 	PREFIX_QUEUE     = "queue-"
-	PREFIX_ERROR     = "error-"
+	// PREFIX_ERROR     = "error-"
 
 	PREFIX_CLEANUP = "cleanup"
 )
@@ -366,9 +363,6 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 			return err
 		}
 
-		// @TODO: No overall status
-		// status := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_STATUS, buildId)))
-		// status := success, error: clone | ls | login | ...
 		clone := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_GIT_CLONE, buildId)))
 		ls := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LS, buildId)))
 		login := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LOGIN, buildId)))
@@ -380,56 +374,6 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 	})
 
 	return result
-}
-
-func BuildJobInfoEntry(namespace string, serviceName string) (structs.BuildJobInfoEntry, error) {
-	result := structs.BuildJobInfoEntry{}
-	err := db.View(func(tx *bolt.Tx) error {
-
-
-
-		lastIdx := -1
-		bucket := tx.Bucket([]byte(BUCKET_NAME))
-		err := bucket.ForEach(func(k, v []byte) error {
-			key:=string(k)
-
-			
-			
-
-			
-			
-			// Check for PREFIX_ERROR
-			// ???
-			if strings.HasPrefix(key, PREFIX_ERROR) {
-
-			}
-			if strings.HasPrefix(key, PREFIX_BUILD) {
-				fmt.Printf("Key: %s\n", k)
-				tmp := structs.CreateBuildJobEntryFromData(v)
-
-				id := strings.TrimPrefix(key, PREFIX_BUILD)
-				idx, err := strconv.Atoi(id)
-
-				if err != nil && lastIdx < idx && tmp.Namespace == namespace && tmp.ServiceName == serviceName {
-					fmt.Printf("Found Key: %s\n", k)
-					result = tmp
-					lastIdx = idx
-				}
-			}
-			return nil
-		})
-
-		if err != nil {
-			return err
-		}
-
-		if (lastIdx > -1) {
-			return nil
-		} else {
-			return errors.New("build not available")
-		}
-	})
-	return result, err
 }
 
 func Add(buildJob structs.BuildJob) structs.BuildAddResult {
@@ -546,6 +490,18 @@ func ListByServiceId(serviceId string) []structs.BuildJobListEntry {
 	return result
 }
 
+func ListByServiceByNamespaceAndServiceName(namespace, serviceName string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListAll()
+	for _, queueEntry := range list {
+		if queueEntry.ServiceName == serviceName && queueEntry.Namespace == namespace {
+			result = append(result, queueEntry)
+		}
+	}
+	return result
+}
+
 func ListByServiceIds(serviceIds []string) []structs.BuildJobListEntry {
 	result := []structs.BuildJobListEntry{}
 
@@ -592,11 +548,38 @@ func LastJobForService(serviceId string) structs.BuildJobListEntry {
 	return result
 }
 
+func LastJobForNamespaceAndServiceName(namespace, serviceName string) structs.BuildJobListEntry {
+	result := structs.BuildJobListEntry{}
+
+	list := ListByServiceByNamespaceAndServiceName(namespace, serviceName)
+	if len(list) > 0 {
+		result = list[len(list)-1]
+	}
+	return result
+}
+
+
 func LastBuildForService(serviceId string) structs.BuildJobInfos {
 	result := structs.BuildJobInfos{}
 
 	var lastJob *structs.BuildJobListEntry
 	list := ListByServiceId(serviceId)
+	if len(list) > 0 {
+		lastJob = &list[len(list)-1]
+	}
+
+	if lastJob != nil {
+		result = BuildJobInfos(lastJob.BuildId)
+	}
+
+	return result
+}
+
+func LastBuildForNamespaceAndServiceName(namespace, serviceName string) structs.BuildJobInfos {
+	result := structs.BuildJobInfos{}
+
+	var lastJob *structs.BuildJobListEntry
+	list := ListByServiceByNamespaceAndServiceName(namespace, serviceName)
 	if len(list) > 0 {
 		lastJob = &list[len(list)-1]
 	}
@@ -657,23 +640,23 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 					return bucket.Put([]byte(fmt.Sprintf("%s%s", prefix, *containerImageName)), entry)
 				}
 				if job != nil {
-					if execErr != nil {
-						// Save failed cmd/error in bucket via error-buildId:
-						// prefix-buildId='error'\n
-						// prefix-buildId='error'\n
+					// if execErr != nil {
+					// 	// Save failed cmd/error in bucket via error-buildId:
+					// 	// prefix-buildId='error'\n
+					// 	// prefix-buildId='error'\n
 						
-						key := []byte(fmt.Sprintf("%s%d", PREFIX_ERROR, job.BuildId))
-						newValue := []byte(fmt.Sprintf("%s=%v\n",fmt.Sprintf("%s%d", prefix, job.BuildId), execErr))
+					// 	key := []byte(fmt.Sprintf("%s%d", PREFIX_ERROR, job.BuildId))
+					// 	newValue := []byte(fmt.Sprintf("%s=%v\n",fmt.Sprintf("%s%d", prefix, job.BuildId), execErr))
 
-						value := bucket.Get(key)
-						if value != nil {
-							value = append(value, newValue...)
-						} else {
-							value = newValue
-						}
+					// 	value := bucket.Get(key)
+					// 	if value != nil {
+					// 		value = append(value, newValue...)
+					// 	} else {
+					// 		value = newValue
+					// 	}
 
-						bucket.Put(key, value)
-					}
+					// 	bucket.Put(key, value)
+					// }
 					return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), entry)
 				}
 			}

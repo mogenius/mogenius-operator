@@ -131,9 +131,9 @@ func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kube
 }
 
 func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
-	info, err := builder.BuildJobInfoEntry(namespace, name)
-	if err != nil {
-		return resourceItems, err
+	lastJob := builder.LastJobForNamespaceAndServiceName(namespace, name)
+	if lastJob.IsEmpty() {
+		return resourceItems, nil
 	}
 
 	item := &ResourceItem{
@@ -142,7 +142,7 @@ func buildItem(namespace, name string, resourceItems []ResourceItem) ([]Resource
 		Namespace: namespace,
 		OwnerName: "",
 		OwnerKind: "",
-		StatusObject: info,
+		StatusObject: lastJob,
 	}
 
 	resourceItems = append(resourceItems, *item) 
