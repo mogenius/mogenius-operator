@@ -19,6 +19,7 @@ import (
 const (
 	BUILD_BUCKET_NAME = "mogenius-builds"
 	SCAN_BUCKET_NAME  = "mogenius-scans"
+	LOG_BUCKET_NAME   = "mogenius-logs"
 
 	PREFIX_GIT_CLONE = "git-clone-"
 	PREFIX_LS        = "ls-"
@@ -41,6 +42,7 @@ func Init() {
 		logger.Log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbPath)
 		logger.Log.Fatal(err.Error())
 	}
+	// ### BUILD BUCKET ###
 	db = database
 	err = db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(BUILD_BUCKET_NAME))
@@ -52,7 +54,7 @@ func Init() {
 	if err != nil {
 		logger.Log.Errorf("Error creating bucket ('%s'): %s", BUILD_BUCKET_NAME, err)
 	}
-	// create a new scan bucket on every startup
+	// ### SCAN BUCKET ### create a new scan bucket on every startup
 	err = db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucket([]byte(SCAN_BUCKET_NAME))
 		if err != nil {
@@ -76,6 +78,19 @@ func Init() {
 			logger.Log.Errorf("Error recreating bucket ('%s'): %s", SCAN_BUCKET_NAME, err)
 		}
 	}
+	// ### LOG BUCKET ###
+	db = database
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(LOG_BUCKET_NAME))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Log.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
+	}
+
 	logger.Log.Noticef("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbPath)
 }
 
@@ -312,14 +327,14 @@ func DeleteFromDb(bucket string, prefix string, buildNo int) error {
 }
 
 func AddToDb(buildJob structs.BuildJob) (int, error) {
-	nextBuildId := -1
+	var nextBuildId uint64 = 0
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		nextBuildId, _ = bucket.NextSequence() // auto increment
 
 		// FIRST: CHECK FOR DUPLICATES
 		c := bucket.Cursor()
 		prefix := []byte(PREFIX_QUEUE)
-		nextBuildId = 1
 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
@@ -330,13 +345,12 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 				// 	logger.Log.Error(err.Error())
 				// 	return err
 				// }
-				nextBuildId++
 			}
 		}
 		buildJob.BuildId = int(nextBuildId)
 		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
-	return nextBuildId, err
+	return int(nextBuildId), err
 }
 
 func BuildJobInfoEntryFromDb(namespace string, serviceName string) (structs.BuildJobInfoEntry, error) {
@@ -398,4 +412,39 @@ func SaveBuildResult(state string, prefix string, cmdOutput []byte, startTime ti
 		logger.Log.Errorf("Error saving build result for '%d'.", job.BuildId)
 	}
 	return err
+}
+
+func AddLogToDb(title string, message string, category structs.Category, logType structs.LogType) error {
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(LOG_BUCKET_NAME))
+		id, _ := bucket.NextSequence() // auto increment
+		entry := structs.CreateLog(id, title, message, category, logType)
+		return bucket.Put([]byte(fmt.Sprintf("%s_%s_%s", entry.CreatedAt, entry.Category, entry.Type)), structs.LogBytes(entry))
+	})
+	if err != nil {
+		logger.Log.Errorf("Error adding log for '%s'.", title)
+	}
+	return err
+}
+
+func ListLogFromDb() []structs.Log {
+	result := []structs.Log{}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(LOG_BUCKET_NAME))
+		c := bucket.Cursor()
+		prefix := []byte("")
+		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
+			entry := structs.Log{}
+			err := structs.UnmarshalLog(&entry, jobData)
+			if err != nil {
+				return err
+			}
+			result = append(result, entry)
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Log.Errorf("ListLog: %s", err.Error())
+	}
+	return result
 }

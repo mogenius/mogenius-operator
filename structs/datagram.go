@@ -79,14 +79,14 @@ func (d *Datagram) DisplayBeautiful() {
 	PATTERNCOLOR := color.New(color.FgBlack, color.BgYellow).SprintFunc()
 	TIMECOLOR := color.New(color.FgWhite, color.BgRed).SprintFunc()
 	SIZECOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
-	//PAYLOADCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
+	PAYLOADCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
 
 	fmt.Printf("%s %s\n", IDCOLOR("ID:      "), d.Id)
 	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
 	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
 	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), punqStructs.DurationStrSince(d.CreatedAt))
 	fmt.Printf("%s %s\n", SIZECOLOR("Size:    "), punqUtils.BytesToHumanReadable(d.GetSize()))
-	//fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), punqStructs.PrettyPrintString(d.Payload))
+	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), punqStructs.PrettyPrintString(d.Payload))
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
