@@ -6,8 +6,6 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
-	"strconv"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -49,23 +47,23 @@ func WatchEvents() {
 
 				eventObj, isEvent := event.Object.(*v1Core.Event)
 				if isEvent {
-					currentVersion, errCurrentVer := strconv.Atoi(eventObj.ObjectMeta.ResourceVersion)
-					lastVersion, _ := strconv.Atoi(lastResourceVersion)
-					if errCurrentVer == nil {
-						lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
-						message := eventObj.Message
-						kind := eventObj.InvolvedObject.Kind
-						reason := eventObj.Reason
-						count := eventObj.Count
-						if currentVersion > lastVersion {
-							structs.EventServerSendData(datagram, kind, reason, message, count)
-						} else {
-							if utils.CONFIG.Misc.Debug {
-								logger.Log.Errorf("Versions are out of order: %d / %d", lastVersion, currentVersion)
-								logger.Log.Errorf("%s/%s -> %s (Count: %d)\n", kind, reason, message, count)
-							}
-						}
-					}
+					// currentVersion, errCurrentVer := strconv.Atoi(eventObj.ObjectMeta.ResourceVersion)
+					// lastVersion, _ := strconv.Atoi(lastResourceVersion)
+					// if errCurrentVer == nil {
+					lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
+					message := eventObj.Message
+					kind := eventObj.InvolvedObject.Kind
+					reason := eventObj.Reason
+					count := eventObj.Count
+					// if currentVersion > lastVersion {
+					structs.EventServerSendData(datagram, kind, reason, message, count)
+					// } else {
+					// 	if utils.CONFIG.Misc.Debug {
+					// 		logger.Log.Errorf("Versions are out of order: %d / %d", lastVersion, currentVersion)
+					// 		logger.Log.Errorf("%s/%s -> %s (Count: %d)\n", kind, reason, message, count)
+					// 	}
+					// }
+					// }
 				} else if event.Type == "ERROR" {
 					var errObj *v1.Status = event.Object.(*v1.Status)
 					logger.Log.Errorf("WATCHER (%d): '%s'", errObj.Code, errObj.Message)

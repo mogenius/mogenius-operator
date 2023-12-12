@@ -28,12 +28,6 @@ func ConnectToJobQueue() {
 	signal.Notify(interrupt, os.Interrupt)
 
 	for {
-		select {
-		case <-interrupt:
-			logger.Log.Fatal("CTRL + C pressed. Terminating.")
-		case <-time.After(RETRYTIMEOUT * time.Second):
-		}
-
 		JobConnectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
 			ticker := time.NewTicker(1 * time.Second)
@@ -59,6 +53,13 @@ func ConnectToJobQueue() {
 			ticker.Stop()
 			close(quit)
 		}()
+
+		select {
+		case <-interrupt:
+			logger.Log.Fatal("CTRL + C pressed. Terminating.")
+		case <-time.After(RETRYTIMEOUT * time.Second):
+		}
+
 	}
 }
 
@@ -101,6 +102,7 @@ func processJobNow() {
 
 			err := JobQueueConnection.WriteJSON(element)
 			if err == nil {
+				element.DisplaySentSummary(i+1, len(jobDataQueue))
 				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {
 				logger.Log.Error(err)

@@ -17,15 +17,15 @@ const (
 )
 
 type ScanImageRequest struct {
-	ProjectId             string `json:"projectId"`
-	NamespaceId           string `json:"namespaceId"`
-	ServiceId             string `json:"serviceId"`
-	NamespaceName         string `json:"namespaceName"`
-	ServiceName           string `json:"serviceName"`
-	ContainerImage        string `json:"containerImage"`
-	ContainerRegistryUser string `json:"containerRegistryUser"`
-	ContainerRegistryPat  string `json:"containerRegistryPat"`
-	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
+	ProjectId             string  `json:"projectId"`
+	NamespaceId           string  `json:"namespaceId"`
+	ServiceId             string  `json:"serviceId"`
+	NamespaceName         string  `json:"namespaceName"`
+	ServiceName           string  `json:"serviceName"`
+	ContainerImage        string  `json:"containerImage"`
+	ContainerRegistryUser *string `json:"containerRegistryUser"`
+	ContainerRegistryPat  *string `json:"containerRegistryPat"`
+	ContainerRegistryUrl  string  `json:"containerRegistryUrl"`
 }
 
 func ScanImageRequestExample() ScanImageRequest {
@@ -36,8 +36,8 @@ func ScanImageRequestExample() ScanImageRequest {
 		NamespaceName:         "mac-prod-1xh4p1",
 		ServiceName:           "angular1",
 		ContainerImage:        "mysql:latest",
-		ContainerRegistryUser: "",
-		ContainerRegistryPat:  "",
+		ContainerRegistryUser: nil,
+		ContainerRegistryPat:  nil,
 		ContainerRegistryUrl:  "docker.io",
 	}
 }
@@ -68,6 +68,17 @@ type BuildJob struct {
 	StartedAt             string `json:"startedAt"`
 	DurationMs            int    `json:"durationMs"`
 	BuildId               int    `json:"buildId"`
+}
+
+func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
+	return BuildJob{
+		JobId:       jobId,
+		ProjectId:   scanRequest.ProjectId,
+		NamespaceId: scanRequest.NamespaceId,
+		Namespace:   scanRequest.NamespaceName,
+		ServiceId:   scanRequest.ServiceId,
+		ServiceName: scanRequest.ServiceName,
+	}
 }
 
 type BuildJobListEntry struct {
@@ -210,7 +221,6 @@ type BuildJobInfos struct {
 	Login      BuildJobInfoEntry `json:"login"`
 	Build      BuildJobInfoEntry `json:"build"`
 	Push       BuildJobInfoEntry `json:"push"`
-	Scan       BuildJobInfoEntry `json:"scan"`
 	StartTime  string            `json:"startTime"`
 	FinishTime string            `json:"finishTime"`
 }
@@ -225,7 +235,19 @@ type BuildJobInfoEntry struct {
 	FinishTime  string `json:"finishTime"`
 }
 
-func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
+func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoEntry {
+	return BuildJobInfoEntry{
+		ProjectId:   req.ProjectId,
+		Namespace:   req.NamespaceName,
+		ServiceName: req.ServiceName,
+		State:       BUILD_STATE_PENDING,
+		Result:      "",
+		StartTime:   time.Now().Format(time.RFC3339),
+		FinishTime:  "",
+	}
+}
+
+func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte) BuildJobInfos {
 	result := BuildJobInfos{}
 
 	result.BuildId = job.BuildId
@@ -236,7 +258,6 @@ func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, bu
 	result.Login = CreateBuildJobEntryFromData(login)
 	result.Build = CreateBuildJobEntryFromData(build)
 	result.Push = CreateBuildJobEntryFromData(push)
-	result.Scan = CreateBuildJobEntryFromData(scan)
 
 	return result
 }
@@ -270,6 +291,26 @@ func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte, startTime time
 	bytes, err := json.Marshal(entry)
 	if err != nil {
 		logger.Log.Errorf("createBuildJobInfoEntryBytes ERR: %s", err.Error())
+	}
+	return bytes
+
+}
+
+func CreateBuildJobInfoEntryBytesForScan(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time, projectId string, namespace string, serviceName string) []byte {
+	entry := BuildJobInfoEntry{
+		ProjectId:   projectId,
+		Namespace:   namespace,
+		ServiceName: serviceName,
+		State:       state,
+		Result:      string(cmdOutput),
+		StartTime:   startTime.Format(time.RFC3339),
+		FinishTime:  finishTime.Format(time.RFC3339),
+	}
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	bytes, err := json.Marshal(entry)
+	if err != nil {
+		logger.Log.Errorf("CreateBuildJobInfoEntryBytesForScan ERR: %s", err.Error())
 	}
 	return bytes
 

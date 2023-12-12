@@ -250,8 +250,10 @@ func ReadInput() {
 			loadTestStartTime = time.Now()
 			loadTestReceived = 0
 			for i := 0; i < loadTestRequests; i++ {
-				datagram := requestCmdFromCluster(services.PAT_LIST_PODS)
-				loadTestTotalBytes = datagram.GetSize()
+				go func() {
+					datagram := requestCmdFromCluster(services.PAT_LIST_PODS)
+					loadTestTotalBytes = datagram.GetSize()
+				}()
 			}
 		case "k":
 			closeAllConnections()

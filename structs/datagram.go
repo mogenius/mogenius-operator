@@ -94,8 +94,8 @@ func (d *Datagram) DisplayReceiveSummary() {
 	fmt.Printf("%s%s%s (%s / %s)\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt))
 }
 
-func (d *Datagram) DisplaySentSummary() {
-	fmt.Printf("%s%s%s (%s / %s)\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt))
+func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
+	fmt.Printf("%s%s%s (%s / %s) [Queue: %d/%d]\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt), queuePosition, queueLen)
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
@@ -108,7 +108,6 @@ func (d *Datagram) DisplayStreamSummary() {
 
 func (d *Datagram) Send() {
 	JobServerSendData(*d)
-	d.DisplaySentSummary()
 }
 
 func (d *Datagram) GetSize() int64 {

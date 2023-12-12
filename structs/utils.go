@@ -18,7 +18,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-const PingSeconds = 10
+const PingSeconds = 3
 
 func MarshalUnmarshal(datagram *Datagram, data interface{}) {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
