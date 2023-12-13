@@ -7,9 +7,9 @@ type K8sProjectDto struct {
 	GitUserId             string                `json:"gitUserId" validate:"required"`
 	GitConnectionType     GitConnectionTypeEnum `json:"gitConnectionType" validate:"required"`
 	ClusterName           string                `json:"clusterName" validate:"required"`
-	ContainerRegistryUrl  string                `json:"containerRegistryUrl" validate:"required"`
-	ContainerRegistryUser string                `json:"containerRegistryUser" validate:"required"`
-	ContainerRegistryPat  string                `json:"containerRegistryPat" validate:"required"`
+	ContainerRegistryUrl  string                `json:"containerRegistryUrl"`
+	ContainerRegistryUser string                `json:"containerRegistryUser"`
+	ContainerRegistryPat  string                `json:"containerRegistryPat"`
 }
 
 func K8sProjectDtoExampleData() K8sProjectDto {

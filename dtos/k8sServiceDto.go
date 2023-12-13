@@ -3,22 +3,22 @@ package dtos
 type K8sServiceDto struct {
 	Id                                   string                `json:"id" validate:"required"`
 	DisplayName                          string                `json:"displayName" validate:"required"`
-	FullHostname                         string                `json:"fullHostname" validate:"required"`
-	CNames                               []string              `json:"cNames" validate:"required"`
-	GitRepository                        string                `json:"gitRepository" validate:"required"`
-	GitBranch                            string                `json:"gitBranch" validate:"required"`
-	ContainerImage                       string                `json:"containerImage" validate:"required"`
-	ContainerImageRepoSecretDecryptValue string                `json:"containerImageRepoSecretDecryptValue" validate:"required"`
-	ContainerImageCommand                string                `json:"containerImageCommand" validate:"required"`
-	ContainerImageCommandArgs            string                `json:"containerImageCommandArgs" validate:"required"`
+	FullHostname                         string                `json:"fullHostname"`
+	CNames                               []string              `json:"cNames"`
+	GitRepository                        string                `json:"gitRepository"`
+	GitBranch                            string                `json:"gitBranch"`
+	ContainerImage                       string                `json:"containerImage"`
+	ContainerImageRepoSecretDecryptValue string                `json:"containerImageRepoSecretDecryptValue" `
+	ContainerImageCommand                string                `json:"containerImageCommand"`
+	ContainerImageCommandArgs            string                `json:"containerImageCommandArgs"`
 	DockerfileName                       string                `json:"dockerfileName" validate:"required"`
 	DockerContext                        string                `json:"dockerContext" validate:"required"`
-	App                                  K8sAppDto             `json:"app" validate:"required"`
+	App                                  *K8sAppDto            `json:"app"`
 	Name                                 string                `json:"name" validate:"required"`
 	K8sSettings                          K8sServiceSettingsDto `json:"k8sSettings" validate:"required"`
 	EnvVars                              []K8sEnvVarDto        `json:"envVars" validate:"required"`
 	Ports                                []K8sPortsDto         `json:"ports" validate:"required"`
-	SwitchedOn                           bool                  `json:"switchedOn" validate:"required"`
+	SwitchedOn                           bool                  `json:"switchedOn"`
 	ServiceType                          K8sServiceTypeEnum    `json:"serviceType,omitempty"`
 	SettingsYaml                         string                `json:"settingsYaml,omitempty"`
 }

@@ -8,7 +8,7 @@ type K8sServiceSettingsDto struct {
 	DeploymentStrategy    DeploymentStrategyEnum `json:"deploymentStrategy" validate:"required"`
 	ImagePullPolicy       ImagePullPolicyEnum    `json:"imagePullPolicy"`
 	ProbesOn              bool                   `json:"probesOn,omitempty"`
-	K8sCronJobSettingsDto K8sCronJobSettingsDto  `json:"k8sCronJobSettingsDto,omitempty"`
+	K8sCronJobSettingsDto *K8sCronJobSettingsDto `json:"k8sCronJobSettingsDto,omitempty"`
 }
 
 func K8sServiceSettingsDtoExampleData() K8sServiceSettingsDto {

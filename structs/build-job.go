@@ -13,9 +13,9 @@ type ScanImageRequest struct {
 	ServiceId             string  `json:"serviceId" validate:"required"`
 	NamespaceName         string  `json:"namespaceName" validate:"required"`
 	ServiceName           string  `json:"serviceName" validate:"required"`
-	ContainerImage        string  `json:"containerImage" validate:"required"`
-	ContainerRegistryUser *string `json:"containerRegistryUser" validate:"required"`
-	ContainerRegistryPat  *string `json:"containerRegistryPat" validate:"required"`
+	ContainerImage        string  `json:"containerImage"`
+	ContainerRegistryUser *string `json:"containerRegistryUser"`
+	ContainerRegistryPat  *string `json:"containerRegistryPat"`
 	ContainerRegistryUrl  string  `json:"containerRegistryUrl" validate:"required"`
 }
 
@@ -47,10 +47,10 @@ type BuildJob struct {
 	GitCommitMessage      string            `json:"gitCommitMessage" validate:"required"`
 	DockerFile            string            `json:"dockerFile" validate:"required"`
 	DockerContext         string            `json:"dockerContext" validate:"required"`
-	ContainerRegistryPath string            `json:"containerRegistryPath" validate:"required"`
-	ContainerRegistryUser string            `json:"containerRegistryUser" validate:"required"`
-	ContainerRegistryPat  string            `json:"containerRegistryPat" validate:"required"`
-	ContainerRegistryUrl  string            `json:"containerRegistryUrl" validate:"required"`
+	ContainerRegistryPath string            `json:"containerRegistryPath"`
+	ContainerRegistryUser string            `json:"containerRegistryUser"`
+	ContainerRegistryPat  string            `json:"containerRegistryPat"`
+	ContainerRegistryUrl  string            `json:"containerRegistryUrl"`
 	StartTimestamp        string            `json:"startTimestamp"`
 	EndTimestamp          string            `json:"endTimestamp"`
 	InjectDockerEnvVars   string            `json:"injectDockerEnvVars" validate:"required"`

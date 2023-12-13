@@ -45,7 +45,7 @@ func ValidateJSON(obj interface{}) *ValidationError {
 				result.Errors = append(result.Errors, errorMessage)
 			}
 		}
-		result.Errors = append(result.Errors, err.Error())
+		//result.Errors = append(result.Errors, err.Error())
 		logger.Log.Error(structs.PrettyPrintString(result))
 		return result
 	}
