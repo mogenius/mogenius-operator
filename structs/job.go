@@ -17,16 +17,16 @@ type DefaultResponse struct {
 }
 
 type Job struct {
-	Id                      string     `json:"id"`
-	ProjectId               string     `json:"projectId"`
-	NamespaceId             *string    `json:"namespaceId,omitempty"`
-	ServiceId               *string    `json:"serviceId,omitempty"`
-	Title                   string     `json:"title"`
-	Message                 string     `json:"message"`
-	Commands                []*Command `json:"Commands"`
-	DurationMs              int64      `json:"durationMs"`
-	State                   string     `json:"state"`
-	ReportToNotificationSvc bool       `json:"reportToNotificationService"`
+	Id                      string            `json:"id"`
+	ProjectId               string            `json:"projectId"`
+	NamespaceId             *string           `json:"namespaceId,omitempty"`
+	ServiceId               *string           `json:"serviceId,omitempty"`
+	Title                   string            `json:"title"`
+	Message                 string            `json:"message"`
+	Commands                []*Command        `json:"Commands"`
+	DurationMs              int64             `json:"durationMs"`
+	State                   BuildJobStateEnum `json:"state"`
+	ReportToNotificationSvc bool              `json:"reportToNotificationService"`
 	Started                 time.Time
 }
 
@@ -39,7 +39,7 @@ func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
 		ServiceId:   job.ServiceId,
 		Title:       job.Title,
 		Message:     job.Message,
-		State:       job.State,
+		State:       string(job.State),
 		DurationMs:  job.DurationMs,
 	}
 }

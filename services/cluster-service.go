@@ -416,7 +416,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 }
 
 type K8sManagerUpgradeRequest struct {
-	Command string `json:"command"` // complete helm command from platform ui
+	Command string `json:"command" validate:"required"` // complete helm command from platform ui
 }
 
 func K8sManagerUpgradeRequestExample() K8sManagerUpgradeRequest {
@@ -441,14 +441,14 @@ func K8sManagerUpgradeRequestExample() K8sManagerUpgradeRequest {
 }
 
 type ClusterHelmRequest struct {
-	Namespace       string `json:"namespace"`
-	NamespaceId     string `json:"namespaceId"`
-	HelmRepoName    string `json:"helmRepoName"`
-	HelmRepoUrl     string `json:"helmRepoUrl"`
-	HelmReleaseName string `json:"helmReleaseName"`
-	HelmChartName   string `json:"helmChartName"`
-	HelmFlags       string `json:"helmFlags"`
-	HelmTask        string `json:"helmTask"` // install, upgrade, uninstall
+	Namespace       string               `json:"namespace" validate:"required"`
+	NamespaceId     string               `json:"namespaceId" validate:"required"`
+	HelmRepoName    string               `json:"helmRepoName" validate:"required"`
+	HelmRepoUrl     string               `json:"helmRepoUrl" validate:"required"`
+	HelmReleaseName string               `json:"helmReleaseName" validate:"required"`
+	HelmChartName   string               `json:"helmChartName" validate:"required"`
+	HelmFlags       string               `json:"helmFlags" validate:"required"`
+	HelmTask        structs.HelmTaskEnum `json:"helmTask" validate:"required"`
 }
 
 func ClusterHelmRequestExample() ClusterHelmRequest {
@@ -460,13 +460,13 @@ func ClusterHelmRequestExample() ClusterHelmRequest {
 		HelmReleaseName: "test-helm-release",
 		HelmChartName:   "bitnami/nginx",
 		HelmFlags:       "",
-		HelmTask:        "install",
+		HelmTask:        structs.HelmInstall,
 	}
 }
 
 type ClusterHelmUninstallRequest struct {
-	NamespaceId     string `json:"namespaceId"`
-	HelmReleaseName string `json:"helmReleaseName"`
+	NamespaceId     string `json:"namespaceId" validate:"required"`
+	HelmReleaseName string `json:"helmReleaseName" validate:"required"`
 }
 
 func ClusterHelmUninstallRequestExample() ClusterHelmUninstallRequest {
@@ -477,10 +477,10 @@ func ClusterHelmUninstallRequestExample() ClusterHelmUninstallRequest {
 }
 
 type ClusterWriteConfigMap struct {
-	Namespace string            `json:"namespace"`
-	Name      string            `json:"name"`
-	Labels    map[string]string `json:"labels"`
-	Data      string            `json:"data"`
+	Namespace string            `json:"namespace" validate:"required"`
+	Name      string            `json:"name" validate:"required"`
+	Labels    map[string]string `json:"labels" validate:"required"`
+	Data      string            `json:"data" validate:"required"`
 }
 
 func ClusterWriteConfigMapExample() ClusterWriteConfigMap {
@@ -495,9 +495,9 @@ func ClusterWriteConfigMapExample() ClusterWriteConfigMap {
 }
 
 type ClusterListConfigMaps struct {
-	Namespace     string `json:"namespace"`
-	LabelSelector string `json:"labelSelector"`
-	Prefix        string `json:"prefix"`
+	Namespace     string `json:"namespace" validate:"required"`
+	LabelSelector string `json:"labelSelector" validate:"required"`
+	Prefix        string `json:"prefix" validate:"required"`
 }
 
 func ClusterListConfigMapsExample() ClusterListConfigMaps {
@@ -509,8 +509,8 @@ func ClusterListConfigMapsExample() ClusterListConfigMaps {
 }
 
 type ClusterGetConfigMap struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
+	Namespace string `json:"namespace" validate:"required"`
+	Name      string `json:"name" validate:"required"`
 }
 
 func ClusterGetConfigMapExample() ClusterGetConfigMap {
@@ -531,10 +531,10 @@ func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
 }
 
 type NfsVolumeRequest struct {
-	NamespaceId   string `json:"namespaceId"`
-	NamespaceName string `json:"namespaceName"`
-	VolumeName    string `json:"volumeName"`
-	SizeInGb      int    `json:"sizeInGb"`
+	NamespaceId   string `json:"namespaceId" validate:"required"`
+	NamespaceName string `json:"namespaceName" validate:"required"`
+	VolumeName    string `json:"volumeName" validate:"required"`
+	SizeInGb      int    `json:"sizeInGb" validate:"required"`
 }
 
 func NfsVolumeRequestExample() NfsVolumeRequest {
@@ -547,8 +547,8 @@ func NfsVolumeRequestExample() NfsVolumeRequest {
 }
 
 type NfsVolumeStatsRequest struct {
-	NamespaceName string `json:"namespaceName"`
-	VolumeName    string `json:"volumeName"`
+	NamespaceName string `json:"namespaceName" validate:"required"`
+	VolumeName    string `json:"volumeName" validate:"required"`
 }
 
 func NfsVolumeStatsRequestExample() NfsVolumeStatsRequest {
@@ -559,7 +559,7 @@ func NfsVolumeStatsRequestExample() NfsVolumeStatsRequest {
 }
 
 type NfsNamespaceStatsRequest struct {
-	NamespaceName string `json:"namespaceName"`
+	NamespaceName string `json:"namespaceName" validate:"required"`
 }
 
 func NfsNamespaceStatsRequestExample() NfsNamespaceStatsRequest {
@@ -577,9 +577,9 @@ type NfsVolumeStatsResponse struct {
 
 // token/accesskey/accesssecret can be generated using aws sts get-session-token | jq
 type NfsVolumeBackupRequest struct {
-	NamespaceId        string `json:"namespaceId"`
-	NamespaceName      string `json:"namespaceName"`
-	VolumeName         string `json:"volumeName"`
+	NamespaceId        string `json:"namespaceId" validate:"required"`
+	NamespaceName      string `json:"namespaceName" validate:"required"`
+	VolumeName         string `json:"volumeName" validate:"required"`
 	AwsAccessKeyId     string `json:"awsAccessKeyId"`     // TEMP Credentials. Not security relevant
 	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // TEMP Credentials. Not security relevant
 	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
@@ -598,10 +598,10 @@ func NfsVolumeBackupRequestExample() NfsVolumeBackupRequest {
 
 // token/accesskey/accesssecret can be generated using aws sts get-session-token | jq
 type NfsVolumeRestoreRequest struct {
-	NamespaceId        string `json:"namespaceId"`
-	NamespaceName      string `json:"namespaceName"`
-	VolumeName         string `json:"volumeName"`
-	BackupKey          string `json:"backupKey"`
+	NamespaceId        string `json:"namespaceId" validate:"required"`
+	NamespaceName      string `json:"namespaceName" validate:"required"`
+	VolumeName         string `json:"volumeName" validate:"required"`
+	BackupKey          string `json:"backupKey" validate:"required"`
 	AwsAccessKeyId     string `json:"awsAccessKeyId"`     // TEMP Credentials. Not security relevant
 	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // TEMP Credentials. Not security relevant
 	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
@@ -818,7 +818,7 @@ func InstallTrafficCollector() string {
 		HelmReleaseName: "mogenius-traffic-collector",
 		HelmChartName:   "mogenius/mogenius-traffic-collector",
 		HelmFlags:       fmt.Sprintf("--set global.namespace=%s", utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        "install",
+		HelmTask:        structs.HelmInstall,
 	}
 	trafficCollectorStatus = punq.INSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &trafficCollectorStatus, func() {
@@ -837,7 +837,7 @@ func InstallPodStatsCollector() string {
 		HelmReleaseName: "mogenius-pod-stats-collector",
 		HelmChartName:   "mogenius/mogenius-pod-stats-collector",
 		HelmFlags:       fmt.Sprintf("--set global.namespace=%s", utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        "install",
+		HelmTask:        structs.HelmInstall,
 	}
 	podStatsCollectorStatus = punq.INSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &podStatsCollectorStatus, func() {
@@ -859,7 +859,7 @@ func InstallMetricsServer() string {
 		HelmReleaseName: "metrics-server",
 		HelmChartName:   "metrics-server/metrics-server",
 		HelmFlags:       "--set args[0]='--kubelet-insecure-tls' --set args[1]='--secure-port=10250' --set args[2]='--cert-dir=/tmp' --set 'args[3]=--kubelet-preferred-address-types=InternalIP\\,ExternalIP\\,Hostname' --set args[4]='--kubelet-use-node-status-port' --set args[5]='--metric-resolution=15s'",
-		HelmTask:        "install",
+		HelmTask:        structs.HelmInstall,
 	}
 	metricsServerStatus = punq.INSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &metricsServerStatus, func() {
@@ -881,7 +881,7 @@ func InstallIngressControllerTreafik() string {
 		HelmReleaseName: "traefik",
 		HelmChartName:   "traefik/traefik",
 		HelmFlags:       "",
-		HelmTask:        "install",
+		HelmTask:        structs.HelmInstall,
 	}
 	ingressCtrlStatus = punq.INSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &ingressCtrlStatus, func() {
@@ -903,7 +903,7 @@ func InstallCertManager() string {
 		HelmReleaseName: "cert-manager",
 		HelmChartName:   "jetstack/cert-manager",
 		HelmFlags:       fmt.Sprintf("--namespace %s --set startupapicheck.enabled=false --set installCRDs=true", utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        "install",
+		HelmTask:        structs.HelmInstall,
 	}
 	certManagerStatus = punq.INSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &certManagerStatus, func() {
@@ -925,7 +925,7 @@ func InstallContainerRegistry() string {
 		HelmReleaseName: "distribution-registry",
 		HelmChartName:   "phntom/docker-registry",
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        "install",
+		HelmTask:        structs.HelmInstall,
 	}
 	distriRegistryStatus = punq.INSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &distriRegistryStatus, func() {
@@ -944,7 +944,7 @@ func InstallMetalLb() string {
 		HelmReleaseName: "metallb",
 		HelmChartName:   "metallb/metallb",
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        "install",
+		HelmTask:        structs.HelmInstall,
 	}
 	metallbStatus = punq.INSTALLING
 
@@ -984,7 +984,7 @@ func InstallClusterIssuer(email string) string {
 		HelmReleaseName: "clusterissuer",
 		HelmChartName:   "mogenius/mogenius-cluster-issuer",
 		HelmFlags:       fmt.Sprintf(`--namespace %s --set global.clusterissuermail="%s" --set global.ingressclass="%s"`, utils.CONFIG.Kubernetes.OwnNamespace, email, strings.ToLower(ingType.String())),
-		HelmTask:        "install",
+		HelmTask:        structs.HelmInstall,
 	}
 	clusterIssuerStatus = punq.INSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &clusterIssuerStatus, func() {
@@ -1003,7 +1003,7 @@ func UninstallTrafficCollector() string {
 		HelmReleaseName: "mogenius-traffic-collector",
 		HelmChartName:   "",
 		HelmFlags:       "",
-		HelmTask:        "uninstall",
+		HelmTask:        structs.HelmUninstall,
 	}
 	trafficCollectorStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &trafficCollectorStatus, func() {
@@ -1022,7 +1022,7 @@ func UninstallPodStatsCollector() string {
 		HelmReleaseName: "mogenius-pod-stats-collector",
 		HelmChartName:   "",
 		HelmFlags:       "",
-		HelmTask:        "uninstall",
+		HelmTask:        structs.HelmUninstall,
 	}
 	podStatsCollectorStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &podStatsCollectorStatus, func() {
@@ -1041,7 +1041,7 @@ func UninstallMetricsServer() string {
 		HelmReleaseName: "metrics-server",
 		HelmChartName:   "",
 		HelmFlags:       "",
-		HelmTask:        "uninstall",
+		HelmTask:        structs.HelmUninstall,
 	}
 	metricsServerStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metricsServerStatus, func() {
@@ -1060,7 +1060,7 @@ func UninstallIngressControllerTreafik() string {
 		HelmReleaseName: "traefik",
 		HelmChartName:   "",
 		HelmFlags:       "",
-		HelmTask:        "uninstall",
+		HelmTask:        structs.HelmUninstall,
 	}
 	ingressCtrlStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &ingressCtrlStatus, func() {
@@ -1079,7 +1079,7 @@ func UninstallCertManager() string {
 		HelmReleaseName: "cert-manager",
 		HelmChartName:   "",
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        "uninstall",
+		HelmTask:        structs.HelmUninstall,
 	}
 	certManagerStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &certManagerStatus, func() {
@@ -1098,7 +1098,7 @@ func UninstallContainerRegistry() string {
 		HelmReleaseName: "distribution-registry",
 		HelmChartName:   "",
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        "uninstall",
+		HelmTask:        structs.HelmUninstall,
 	}
 	distriRegistryStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &distriRegistryStatus, func() {
@@ -1117,7 +1117,7 @@ func UninstallMetalLb() string {
 		HelmReleaseName: "metallb",
 		HelmChartName:   "",
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        "uninstall",
+		HelmTask:        structs.HelmUninstall,
 	}
 	metallbStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metallbStatus, func() {
@@ -1136,7 +1136,7 @@ func UninstallClusterIssuer() string {
 		HelmReleaseName: "clusterissuer",
 		HelmChartName:   "",
 		HelmFlags:       fmt.Sprintf(`--namespace %s`, utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        "uninstall",
+		HelmTask:        structs.HelmUninstall,
 	}
 	clusterIssuerStatus = punq.INSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &clusterIssuerStatus, func() {

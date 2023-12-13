@@ -103,7 +103,7 @@ func GetJobsToBuildFromDb() []structs.BuildJob {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err == nil {
-				if job.State == structs.BUILD_STATE_PENDING {
+				if job.State == structs.BuildJobStatePending {
 					result = append(result, job)
 				}
 			} else {
@@ -163,16 +163,16 @@ func GetBuilderStatus() structs.BuilderStatus {
 			if err == nil {
 				result.TotalBuilds++
 				result.TotalBuildTimeMs += job.DurationMs
-				if job.State == structs.BUILD_STATE_PENDING {
+				if job.State == structs.BuildJobStatePending {
 					result.QueuedBuilds++
 				}
-				if job.State == structs.BUILD_STATE_FAILED {
+				if job.State == structs.BuildJobStateFailed {
 					result.FailedBuilds++
 				}
-				if job.State == structs.BUILD_STATE_CANCELED {
+				if job.State == structs.BuildJobStateCanceled {
 					result.CanceledBuilds++
 				}
-				if job.State == structs.BUILD_STATE_SUCCEEDED {
+				if job.State == structs.BuildJobStateSucceeded {
 					result.FinishedBuilds++
 				}
 			}
@@ -244,7 +244,7 @@ func GetBuildJobListFromDb() []structs.BuildJobListEntry {
 	return result
 }
 
-func UpdateStateInDb(buildJob structs.BuildJob, newState string) {
+func UpdateStateInDb(buildJob structs.BuildJob, newState structs.BuildJobStateEnum) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		jobData := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)))
@@ -276,7 +276,7 @@ func PositionInQueueFromDb(buildId int) int {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err == nil {
-				if job.State == structs.BUILD_STATE_PENDING && job.BuildId != buildId {
+				if job.State == structs.BuildJobStatePending && job.BuildId != buildId {
 					positionInQueue++
 				}
 			}
@@ -390,7 +390,7 @@ func BuildJobInfoEntryFromDb(namespace string, serviceName string) (structs.Buil
 	return result, err
 }
 
-func SaveScanResult(state string, cmdOutput []byte, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
+func SaveScanResult(state structs.BuildJobStateEnum, cmdOutput []byte, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
 		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)
@@ -402,7 +402,7 @@ func SaveScanResult(state string, cmdOutput []byte, startTime time.Time, contain
 	return err
 }
 
-func SaveBuildResult(state string, prefix string, cmdOutput []byte, startTime time.Time, job *structs.BuildJob) error {
+func SaveBuildResult(state structs.BuildJobStateEnum, prefix string, cmdOutput []byte, startTime time.Time, job *structs.BuildJob) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)

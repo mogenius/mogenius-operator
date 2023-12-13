@@ -222,7 +222,7 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 				}
 				isInDb := false
 				for _, item := range portsDb {
-					if item.ExternalPort == int(ingressPort.Port) && item.PortType == string(ingressPort.Protocol) {
+					if item.ExternalPort == int(ingressPort.Port) && string(item.PortType) == string(ingressPort.Protocol) {
 						isInDb = true
 						break
 					}

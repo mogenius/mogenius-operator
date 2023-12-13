@@ -310,9 +310,9 @@ func updateInfrastructureYaml(service dtos.K8sServiceDto, job structs.Job) []*st
 }
 
 type ServiceCreateRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Service   dtos.K8sServiceDto   `json:"service"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
 }
 
 func ServiceCreateRequestExample() ServiceCreateRequest {
@@ -324,9 +324,9 @@ func ServiceCreateRequestExample() ServiceCreateRequest {
 }
 
 type ServiceDeleteRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Service   dtos.K8sServiceDto   `json:"service"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
 }
 
 func ServiceDeleteRequestExample() ServiceDeleteRequest {
@@ -338,8 +338,8 @@ func ServiceDeleteRequestExample() ServiceDeleteRequest {
 }
 
 type ServiceGetPodIdsRequest struct {
-	Namespace string `json:"namespace"`
-	ServiceId string `json:"serviceId"`
+	Namespace string `json:"namespace" validate:"required"`
+	ServiceId string `json:"serviceId" validate:"required"`
 }
 
 func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
@@ -350,8 +350,8 @@ func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
 }
 
 type ServicePodExistsRequest struct {
-	K8sNamespace string `json:"k8sNamespace"`
-	K8sPod       string `json:"k8sPod"`
+	K8sNamespace string `json:"k8sNamespace" validate:"required"`
+	K8sPod       string `json:"k8sPod" validate:"required"`
 }
 
 func ServicePodExistsRequestExample() ServicePodExistsRequest {
@@ -362,8 +362,8 @@ func ServicePodExistsRequestExample() ServicePodExistsRequest {
 }
 
 type ServicePodsRequest struct {
-	Namespace   string `json:"namespace"`
-	ServiceName string `json:"serviceName"`
+	Namespace   string `json:"namespace" validate:"required"`
+	ServiceName string `json:"serviceName" validate:"required"`
 }
 
 func ServicePodsRequestExample() ServicePodsRequest {
@@ -374,13 +374,13 @@ func ServicePodsRequestExample() ServicePodsRequest {
 }
 
 type ServiceSetImageRequest struct {
-	ProjectId          string                  `json:"projectId"`
-	NamespaceId        string                  `json:"namespaceId"`
-	ServiceId          string                  `json:"serviceId"`
-	NamespaceName      string                  `json:"namespaceName"`
-	ServiceName        string                  `json:"serviceName"`
-	ServiceDisplayName string                  `json:"serviceDisplayName"`
-	ImageName          string                  `json:"imageName"`
+	ProjectId          string                  `json:"projectId" validate:"required"`
+	NamespaceId        string                  `json:"namespaceId" validate:"required"`
+	ServiceId          string                  `json:"serviceId" validate:"required"`
+	NamespaceName      string                  `json:"namespaceName" validate:"required"`
+	ServiceName        string                  `json:"serviceName" validate:"required"`
+	ServiceDisplayName string                  `json:"serviceDisplayName" validate:"required"`
+	ImageName          string                  `json:"imageName" validate:"required"`
 	ServiceType        dtos.K8sServiceTypeEnum `json:"serviceType,omitempty"`
 }
 
@@ -403,8 +403,8 @@ func ServiceSetImageRequestExample() ServiceSetImageRequest {
 }
 
 type ServiceGetLogRequest struct {
-	Namespace string     `json:"namespace"`
-	PodId     string     `json:"podId"`
+	Namespace string     `json:"namespace" validate:"required"`
+	PodId     string     `json:"podId" validate:"required"`
 	Timestamp *time.Time `json:"timestamp"`
 }
 
@@ -417,18 +417,18 @@ func ServiceGetLogRequestExample() ServiceGetLogRequest {
 }
 
 type ServiceLogStreamRequest struct {
-	Namespace    string `json:"namespace"`
-	PodId        string `json:"podId"`
-	SinceSeconds int    `json:"sinceSeconds"`
-	PostTo       string `json:"postTo"`
+	Namespace    string `json:"namespace" validate:"required"`
+	PodId        string `json:"podId" validate:"required"`
+	SinceSeconds int    `json:"sinceSeconds" validate:"required"`
+	PostTo       string `json:"postTo" validate:"required"`
 }
 
 type PodCmdConnectionRequest struct {
-	Namespace       string `json:"namespace"`
-	Pod             string `json:"pod"`
-	Container       string `json:"container"`
-	CmdConnection utils.CmdConnectionRequest `json:"cmdConnectionRequest"`
-	LogTail         string `json:"logTail"`
+	Namespace     string                     `json:"namespace" validate:"required"`
+	Pod           string                     `json:"pod" validate:"required"`
+	Container     string                     `json:"container" validate:"required"`
+	CmdConnection utils.CmdConnectionRequest `json:"cmdConnectionRequest" validate:"required,dive"`
+	LogTail       string                     `json:"logTail" validate:"required"`
 }
 
 type CmdWindowSize struct {
@@ -446,7 +446,7 @@ func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 }
 
 type K8sListRequest struct {
-	NamespaceName string `json:"namespaceName"` // empty string for all namespaces
+	NamespaceName string `json:"namespaceName" validate:"required"` // empty string for all namespaces
 }
 
 func K8sListRequestExample() K8sListRequest {
@@ -456,8 +456,8 @@ func K8sListRequestExample() K8sListRequest {
 }
 
 type K8sDescribeRequest struct {
-	NamespaceName string `json:"namespaceName"`
-	ResourceName  string `json:"resourceName"`
+	NamespaceName string `json:"namespaceName" validate:"required"`
+	ResourceName  string `json:"resourceName" validate:"required"`
 }
 
 func K8sDescribeRequestExample() K8sDescribeRequest {
@@ -468,7 +468,7 @@ func K8sDescribeRequestExample() K8sDescribeRequest {
 }
 
 type K8sUpdateDeploymentRequest struct {
-	Data *v1.Deployment `json:"data"`
+	Data *v1.Deployment `json:"data" validate:"required"`
 }
 
 func K8sUpdateDeploymentRequestExample() K8sUpdateDeploymentRequest {
@@ -478,7 +478,7 @@ func K8sUpdateDeploymentRequestExample() K8sUpdateDeploymentRequest {
 }
 
 type K8sUpdateServiceRequest struct {
-	Data *core.Service `json:"data"`
+	Data *core.Service `json:"data" validate:"required"`
 }
 
 func K8sUpdateServiceRequestExample() K8sUpdateServiceRequest {
@@ -488,7 +488,7 @@ func K8sUpdateServiceRequestExample() K8sUpdateServiceRequest {
 }
 
 type K8sUpdatePodRequest struct {
-	Data *core.Pod `json:"data"`
+	Data *core.Pod `json:"data" validate:"required"`
 }
 
 func K8sUpdatePodRequestExample() K8sUpdatePodRequest {
@@ -498,7 +498,7 @@ func K8sUpdatePodRequestExample() K8sUpdatePodRequest {
 }
 
 type K8sUpdateIngressRequest struct {
-	Data *netv1.Ingress `json:"data"`
+	Data *netv1.Ingress `json:"data" validate:"required"`
 }
 
 func K8sUpdateIngressRequestExample() K8sUpdateIngressRequest {
@@ -508,7 +508,7 @@ func K8sUpdateIngressRequestExample() K8sUpdateIngressRequest {
 }
 
 type K8sUpdateConfigmapRequest struct {
-	Data *core.ConfigMap `json:"data"`
+	Data *core.ConfigMap `json:"data" validate:"required"`
 }
 
 func K8sUpdateConfigmapRequestExample() K8sUpdateConfigmapRequest {
@@ -518,7 +518,7 @@ func K8sUpdateConfigmapRequestExample() K8sUpdateConfigmapRequest {
 }
 
 type K8sUpdateSecretRequest struct {
-	Data *core.Secret `json:"data"`
+	Data *core.Secret `json:"data" validate:"required"`
 }
 
 func K8sUpdateSecretRequestExample() K8sUpdateSecretRequest {
@@ -528,7 +528,7 @@ func K8sUpdateSecretRequestExample() K8sUpdateSecretRequest {
 }
 
 type K8sUpdateDaemonSetRequest struct {
-	Data *v1.DaemonSet `json:"data"`
+	Data *v1.DaemonSet `json:"data" validate:"required"`
 }
 
 func K8sUpdateDaemonsetRequestExample() K8sUpdateDaemonSetRequest {
@@ -538,7 +538,7 @@ func K8sUpdateDaemonsetRequestExample() K8sUpdateDaemonSetRequest {
 }
 
 type K8sUpdateStatefulSetRequest struct {
-	Data *v1.StatefulSet `json:"data"`
+	Data *v1.StatefulSet `json:"data" validate:"required"`
 }
 
 func K8sUpdateStatefulSetRequestExample() K8sUpdateStatefulSetRequest {
@@ -548,7 +548,7 @@ func K8sUpdateStatefulSetRequestExample() K8sUpdateStatefulSetRequest {
 }
 
 type K8sUpdateJobRequest struct {
-	Data *v1job.Job `json:"data"`
+	Data *v1job.Job `json:"data" validate:"required"`
 }
 
 func K8sUpdateJobRequestExample() K8sUpdateJobRequest {
@@ -558,7 +558,7 @@ func K8sUpdateJobRequestExample() K8sUpdateJobRequest {
 }
 
 type K8sUpdateCronJobRequest struct {
-	Data *v1job.CronJob `json:"data"`
+	Data *v1job.CronJob `json:"data" validate:"required"`
 }
 
 func K8sUpdateCronJobRequestExample() K8sUpdateCronJobRequest {
@@ -568,7 +568,7 @@ func K8sUpdateCronJobRequestExample() K8sUpdateCronJobRequest {
 }
 
 type K8sUpdateReplicaSetRequest struct {
-	Data *v1.ReplicaSet `json:"data"`
+	Data *v1.ReplicaSet `json:"data" validate:"required"`
 }
 
 func K8sUpdateReplicaSetRequestExample() K8sUpdateReplicaSetRequest {
@@ -578,7 +578,7 @@ func K8sUpdateReplicaSetRequestExample() K8sUpdateReplicaSetRequest {
 }
 
 type K8sUpdatePersistentVolumeRequest struct {
-	Data *core.PersistentVolume `json:"data"`
+	Data *core.PersistentVolume `json:"data" validate:"required"`
 }
 
 func K8sUpdatePersistentVolumeRequestExample() K8sUpdatePersistentVolumeRequest {
@@ -588,7 +588,7 @@ func K8sUpdatePersistentVolumeRequestExample() K8sUpdatePersistentVolumeRequest 
 }
 
 type K8sUpdatePersistentVolumeClaimRequest struct {
-	Data *core.PersistentVolumeClaim `json:"data"`
+	Data *core.PersistentVolumeClaim `json:"data" validate:"required"`
 }
 
 func K8sUpdatePersistentVolumeClaimRequestExample() K8sUpdatePersistentVolumeClaimRequest {
@@ -598,7 +598,7 @@ func K8sUpdatePersistentVolumeClaimRequestExample() K8sUpdatePersistentVolumeCla
 }
 
 type K8sUpdateHPARequest struct {
-	Data *v2.HorizontalPodAutoscaler `json:"data"`
+	Data *v2.HorizontalPodAutoscaler `json:"data" validate:"required"`
 }
 
 func K8sUpdateHPARequestExample() K8sUpdateHPARequest {
@@ -608,7 +608,7 @@ func K8sUpdateHPARequestExample() K8sUpdateHPARequest {
 }
 
 type K8sUpdateCertificateRequest struct {
-	Data *cmapi.Certificate `json:"data"`
+	Data *cmapi.Certificate `json:"data" validate:"required"`
 }
 
 func K8sUpdateCertificateExample() K8sUpdateCertificateRequest {
@@ -618,7 +618,7 @@ func K8sUpdateCertificateExample() K8sUpdateCertificateRequest {
 }
 
 type K8sUpdateCertificateRequestRequest struct {
-	Data *cmapi.CertificateRequest `json:"data"`
+	Data *cmapi.CertificateRequest `json:"data" validate:"required"`
 }
 
 func K8sUpdateCertificateRequestExample() K8sUpdateCertificateRequestRequest {
@@ -628,7 +628,7 @@ func K8sUpdateCertificateRequestExample() K8sUpdateCertificateRequestRequest {
 }
 
 type K8sUpdateOrderRequest struct {
-	Data *v1cm.Order `json:"data"`
+	Data *v1cm.Order `json:"data" validate:"required"`
 }
 
 func K8sUpdateOrderExample() K8sUpdateOrderRequest {
@@ -638,7 +638,7 @@ func K8sUpdateOrderExample() K8sUpdateOrderRequest {
 }
 
 type K8sUpdateIssuerRequest struct {
-	Data *cmapi.Issuer `json:"data"`
+	Data *cmapi.Issuer `json:"data" validate:"required"`
 }
 
 func K8sUpdateIssuerExample() K8sUpdateIssuerRequest {
@@ -648,7 +648,7 @@ func K8sUpdateIssuerExample() K8sUpdateIssuerRequest {
 }
 
 type K8sUpdateClusterIssuerRequest struct {
-	Data *cmapi.ClusterIssuer `json:"data"`
+	Data *cmapi.ClusterIssuer `json:"data" validate:"required"`
 }
 
 func K8sUpdateClusterIssuerExample() K8sUpdateClusterIssuerRequest {
@@ -658,7 +658,7 @@ func K8sUpdateClusterIssuerExample() K8sUpdateClusterIssuerRequest {
 }
 
 type K8sUpdateServiceAccountRequest struct {
-	Data *core.ServiceAccount `json:"data"`
+	Data *core.ServiceAccount `json:"data" validate:"required"`
 }
 
 func K8sUpdateServiceAccountExample() K8sUpdateServiceAccountRequest {
@@ -668,7 +668,7 @@ func K8sUpdateServiceAccountExample() K8sUpdateServiceAccountRequest {
 }
 
 type K8sUpdateRoleRequest struct {
-	Data *rbac.Role `json:"data"`
+	Data *rbac.Role `json:"data" validate:"required"`
 }
 
 func K8sUpdateRoleExample() K8sUpdateRoleRequest {
@@ -678,7 +678,7 @@ func K8sUpdateRoleExample() K8sUpdateRoleRequest {
 }
 
 type K8sUpdateRoleBindingRequest struct {
-	Data *rbac.RoleBinding `json:"data"`
+	Data *rbac.RoleBinding `json:"data" validate:"required"`
 }
 
 func K8sUpdateRoleBindingExample() K8sUpdateRoleBindingRequest {
@@ -688,7 +688,7 @@ func K8sUpdateRoleBindingExample() K8sUpdateRoleBindingRequest {
 }
 
 type K8sUpdateClusterRoleRequest struct {
-	Data *rbac.ClusterRole `json:"data"`
+	Data *rbac.ClusterRole `json:"data" validate:"required"`
 }
 
 func K8sUpdateClusterRoleExample() K8sUpdateClusterRoleRequest {
@@ -698,7 +698,7 @@ func K8sUpdateClusterRoleExample() K8sUpdateClusterRoleRequest {
 }
 
 type K8sUpdateClusterRoleBindingRequest struct {
-	Data *rbac.ClusterRoleBinding `json:"data"`
+	Data *rbac.ClusterRoleBinding `json:"data" validate:"required"`
 }
 
 func K8sUpdateClusterRoleBindingExample() K8sUpdateClusterRoleBindingRequest {
@@ -708,7 +708,7 @@ func K8sUpdateClusterRoleBindingExample() K8sUpdateClusterRoleBindingRequest {
 }
 
 type K8sUpdateVolumeAttachmentRequest struct {
-	Data *storage.VolumeAttachment `json:"data"`
+	Data *storage.VolumeAttachment `json:"data" validate:"required"`
 }
 
 func K8sUpdateVolumeAttachmentExample() K8sUpdateVolumeAttachmentRequest {
@@ -718,7 +718,7 @@ func K8sUpdateVolumeAttachmentExample() K8sUpdateVolumeAttachmentRequest {
 }
 
 type K8sUpdateNetworkPolicyRequest struct {
-	Data *netv1.NetworkPolicy `json:"data"`
+	Data *netv1.NetworkPolicy `json:"data" validate:"required"`
 }
 
 func K8sUpdateNetworkPolicyExample() K8sUpdateNetworkPolicyRequest {
@@ -728,7 +728,7 @@ func K8sUpdateNetworkPolicyExample() K8sUpdateNetworkPolicyRequest {
 }
 
 type K8sUpdateStorageClassRequest struct {
-	Data *storage.StorageClass `json:"data"`
+	Data *storage.StorageClass `json:"data" validate:"required"`
 }
 
 func K8sUpdateStorageClassExample() K8sUpdateStorageClassRequest {
@@ -738,7 +738,7 @@ func K8sUpdateStorageClassExample() K8sUpdateStorageClassRequest {
 }
 
 type K8sUpdatePriorityClassRequest struct {
-	Data *scheduling.PriorityClass `json:"data"`
+	Data *scheduling.PriorityClass `json:"data" validate:"required"`
 }
 
 func K8sUpdatePriorityClassExample() K8sUpdatePriorityClassRequest {
@@ -748,7 +748,7 @@ func K8sUpdatePriorityClassExample() K8sUpdatePriorityClassRequest {
 }
 
 type K8sUpdateEndpointRequest struct {
-	Data *core.Endpoints `json:"data"`
+	Data *core.Endpoints `json:"data" validate:"required"`
 }
 
 func K8sUpdateEndpointExample() K8sUpdateEndpointRequest {
@@ -758,7 +758,7 @@ func K8sUpdateEndpointExample() K8sUpdateEndpointRequest {
 }
 
 type K8sUpdateLeaseRequest struct {
-	Data *coordination.Lease `json:"data"`
+	Data *coordination.Lease `json:"data" validate:"required"`
 }
 
 func K8sUpdateLeaseExample() K8sUpdateLeaseRequest {
@@ -768,7 +768,7 @@ func K8sUpdateLeaseExample() K8sUpdateLeaseRequest {
 }
 
 type K8sUpdateResourceQuotaRequest struct {
-	Data *core.ResourceQuota `json:"data"`
+	Data *core.ResourceQuota `json:"data" validate:"required"`
 }
 
 func K8sUpdateResourceQuotaExample() K8sUpdateResourceQuotaRequest {
@@ -778,7 +778,7 @@ func K8sUpdateResourceQuotaExample() K8sUpdateResourceQuotaRequest {
 }
 
 type K8sDeleteNamespaceRequest struct {
-	Data *core.Namespace `json:"data"`
+	Data *core.Namespace `json:"data" validate:"required"`
 }
 
 func K8sDeleteNamespaceRequestExample() K8sDeleteNamespaceRequest {
@@ -788,7 +788,7 @@ func K8sDeleteNamespaceRequestExample() K8sDeleteNamespaceRequest {
 }
 
 type K8sDeleteDeploymentRequest struct {
-	Data *v1.Deployment `json:"data"`
+	Data *v1.Deployment `json:"data" validate:"required"`
 }
 
 func K8sDeleteDeploymentRequestExample() K8sDeleteDeploymentRequest {
@@ -798,7 +798,7 @@ func K8sDeleteDeploymentRequestExample() K8sDeleteDeploymentRequest {
 }
 
 type K8sDeleteServiceRequest struct {
-	Data *core.Service `json:"data"`
+	Data *core.Service `json:"data" validate:"required"`
 }
 
 func K8sDeleteServiceRequestExample() K8sDeleteServiceRequest {
@@ -808,7 +808,7 @@ func K8sDeleteServiceRequestExample() K8sDeleteServiceRequest {
 }
 
 type K8sDeletePodRequest struct {
-	Data *core.Pod `json:"data"`
+	Data *core.Pod `json:"data" validate:"required"`
 }
 
 func K8sDeletePodRequestExample() K8sDeletePodRequest {
@@ -818,7 +818,7 @@ func K8sDeletePodRequestExample() K8sDeletePodRequest {
 }
 
 type K8sDeleteIngressRequest struct {
-	Data *netv1.Ingress `json:"data"`
+	Data *netv1.Ingress `json:"data" validate:"required"`
 }
 
 func K8sDeleteIngressRequestExample() K8sDeleteIngressRequest {
@@ -828,7 +828,7 @@ func K8sDeleteIngressRequestExample() K8sDeleteIngressRequest {
 }
 
 type K8sDeleteConfigmapRequest struct {
-	Data *core.ConfigMap `json:"data"`
+	Data *core.ConfigMap `json:"data" validate:"required"`
 }
 
 func K8sDeleteConfigmapRequestExample() K8sDeleteConfigmapRequest {
@@ -838,7 +838,7 @@ func K8sDeleteConfigmapRequestExample() K8sDeleteConfigmapRequest {
 }
 
 type K8sDeleteSecretRequest struct {
-	Data *core.Secret `json:"data"`
+	Data *core.Secret `json:"data" validate:"required"`
 }
 
 func K8sDeleteSecretRequestExample() K8sDeleteSecretRequest {
@@ -848,7 +848,7 @@ func K8sDeleteSecretRequestExample() K8sDeleteSecretRequest {
 }
 
 type K8sDeleteDaemonsetRequest struct {
-	Data *v1.DaemonSet `json:"data"`
+	Data *v1.DaemonSet `json:"data" validate:"required"`
 }
 
 func K8sDeleteDaemonsetRequestExample() K8sDeleteDaemonsetRequest {
@@ -858,7 +858,7 @@ func K8sDeleteDaemonsetRequestExample() K8sDeleteDaemonsetRequest {
 }
 
 type K8sDeleteStatefulsetRequest struct {
-	Data *v1.StatefulSet `json:"data"`
+	Data *v1.StatefulSet `json:"data" validate:"required"`
 }
 
 func K8sDeleteStatefulsetRequestExample() K8sDeleteStatefulsetRequest {
@@ -868,7 +868,7 @@ func K8sDeleteStatefulsetRequestExample() K8sDeleteStatefulsetRequest {
 }
 
 type K8sDeleteJobRequest struct {
-	Data *v1job.Job `json:"data"`
+	Data *v1job.Job `json:"data" validate:"required"`
 }
 
 func K8sDeleteJobRequestExample() K8sDeleteJobRequest {
@@ -878,7 +878,7 @@ func K8sDeleteJobRequestExample() K8sDeleteJobRequest {
 }
 
 type K8sDeleteCronjobRequest struct {
-	Data *v1job.CronJob `json:"data"`
+	Data *v1job.CronJob `json:"data" validate:"required"`
 }
 
 func K8sDeleteCronjobRequestExample() K8sDeleteCronjobRequest {
@@ -888,7 +888,7 @@ func K8sDeleteCronjobRequestExample() K8sDeleteCronjobRequest {
 }
 
 type K8sDeleteReplicasetRequest struct {
-	Data *v1.ReplicaSet `json:"data"`
+	Data *v1.ReplicaSet `json:"data" validate:"required"`
 }
 
 func K8sDeleteReplicaSetRequestExample() K8sDeleteReplicasetRequest {
@@ -898,7 +898,7 @@ func K8sDeleteReplicaSetRequestExample() K8sDeleteReplicasetRequest {
 }
 
 type K8sDeletePersistentVolumeRequest struct {
-	Data *core.PersistentVolume `json:"data"`
+	Data *core.PersistentVolume `json:"data" validate:"required"`
 }
 
 func K8sDeletePersistentVolumeRequestExample() K8sDeletePersistentVolumeRequest {
@@ -908,7 +908,7 @@ func K8sDeletePersistentVolumeRequestExample() K8sDeletePersistentVolumeRequest 
 }
 
 type K8sDeletePersistentVolumeClaimRequest struct {
-	Data *core.PersistentVolumeClaim `json:"data"`
+	Data *core.PersistentVolumeClaim `json:"data" validate:"required"`
 }
 
 func K8sDeletePersistentVolumeClaimRequestExample() K8sDeletePersistentVolumeClaimRequest {
@@ -918,7 +918,7 @@ func K8sDeletePersistentVolumeClaimRequestExample() K8sDeletePersistentVolumeCla
 }
 
 type K8sDeleteHPARequest struct {
-	Data *v2.HorizontalPodAutoscaler `json:"data"`
+	Data *v2.HorizontalPodAutoscaler `json:"data" validate:"required"`
 }
 
 func K8sDeleteHPAExample() K8sDeleteHPARequest {
@@ -928,7 +928,7 @@ func K8sDeleteHPAExample() K8sDeleteHPARequest {
 }
 
 type K8sDeleteCertificateRequest struct {
-	Data *cmapi.Certificate `json:"data"`
+	Data *cmapi.Certificate `json:"data" validate:"required"`
 }
 
 func K8sDeleteCertificateExample() K8sDeleteCertificateRequest {
@@ -938,7 +938,7 @@ func K8sDeleteCertificateExample() K8sDeleteCertificateRequest {
 }
 
 type K8sDeleteCertificateRequestRequest struct {
-	Data *cmapi.CertificateRequest `json:"data"`
+	Data *cmapi.CertificateRequest `json:"data" validate:"required"`
 }
 
 func K8sDeleteCertificateRequestExample() K8sDeleteCertificateRequestRequest {
@@ -948,7 +948,7 @@ func K8sDeleteCertificateRequestExample() K8sDeleteCertificateRequestRequest {
 }
 
 type K8sDeleteOrderRequest struct {
-	Data *v1cm.Order `json:"data"`
+	Data *v1cm.Order `json:"data" validate:"required"`
 }
 
 func K8sDeleteOrderExample() K8sDeleteOrderRequest {
@@ -958,7 +958,7 @@ func K8sDeleteOrderExample() K8sDeleteOrderRequest {
 }
 
 type K8sDeleteIssuerRequest struct {
-	Data *cmapi.Issuer `json:"data"`
+	Data *cmapi.Issuer `json:"data" validate:"required"`
 }
 
 func K8sDeleteIssuerExample() K8sDeleteIssuerRequest {
@@ -968,7 +968,7 @@ func K8sDeleteIssuerExample() K8sDeleteIssuerRequest {
 }
 
 type K8sDeleteClusterIssuerRequest struct {
-	Data *cmapi.ClusterIssuer `json:"data"`
+	Data *cmapi.ClusterIssuer `json:"data" validate:"required"`
 }
 
 func K8sDeleteClusterIssuerExample() K8sDeleteClusterIssuerRequest {
@@ -978,7 +978,7 @@ func K8sDeleteClusterIssuerExample() K8sDeleteClusterIssuerRequest {
 }
 
 type K8sDeleteServiceAccountRequest struct {
-	Data *core.ServiceAccount `json:"data"`
+	Data *core.ServiceAccount `json:"data" validate:"required"`
 }
 
 func K8sDeleteServiceAccountExample() K8sDeleteServiceAccountRequest {
@@ -988,7 +988,7 @@ func K8sDeleteServiceAccountExample() K8sDeleteServiceAccountRequest {
 }
 
 type K8sDeleteRoleRequest struct {
-	Data *rbac.Role `json:"data"`
+	Data *rbac.Role `json:"data" validate:"required"`
 }
 
 func K8sDeleteRoleExample() K8sDeleteRoleRequest {
@@ -998,7 +998,7 @@ func K8sDeleteRoleExample() K8sDeleteRoleRequest {
 }
 
 type K8sDeleteRoleBindingRequest struct {
-	Data *rbac.RoleBinding `json:"data"`
+	Data *rbac.RoleBinding `json:"data" validate:"required"`
 }
 
 func K8sDeleteRoleBindingExample() K8sDeleteRoleBindingRequest {
@@ -1008,7 +1008,7 @@ func K8sDeleteRoleBindingExample() K8sDeleteRoleBindingRequest {
 }
 
 type K8sDeleteClusterRoleRequest struct {
-	Data *rbac.ClusterRole `json:"data"`
+	Data *rbac.ClusterRole `json:"data" validate:"required"`
 }
 
 func K8sDeleteClusterRoleExample() K8sDeleteClusterRoleRequest {
@@ -1018,7 +1018,7 @@ func K8sDeleteClusterRoleExample() K8sDeleteClusterRoleRequest {
 }
 
 type K8sDeleteClusterRoleBindingRequest struct {
-	Data *rbac.ClusterRoleBinding `json:"data"`
+	Data *rbac.ClusterRoleBinding `json:"data" validate:"required"`
 }
 
 func K8sDeleteClusterRoleBindingExample() K8sDeleteClusterRoleBindingRequest {
@@ -1028,7 +1028,7 @@ func K8sDeleteClusterRoleBindingExample() K8sDeleteClusterRoleBindingRequest {
 }
 
 type K8sDeleteVolumeAttachmentRequest struct {
-	Data *storage.VolumeAttachment `json:"data"`
+	Data *storage.VolumeAttachment `json:"data" validate:"required"`
 }
 
 func K8sDeleteVolumeAttachmentExample() K8sDeleteVolumeAttachmentRequest {
@@ -1038,7 +1038,7 @@ func K8sDeleteVolumeAttachmentExample() K8sDeleteVolumeAttachmentRequest {
 }
 
 type K8sDeleteNetworkPolicyRequest struct {
-	Data *netv1.NetworkPolicy `json:"data"`
+	Data *netv1.NetworkPolicy `json:"data" validate:"required"`
 }
 
 func K8sDeleteNetworkPolicyExample() K8sDeleteNetworkPolicyRequest {
@@ -1048,7 +1048,7 @@ func K8sDeleteNetworkPolicyExample() K8sDeleteNetworkPolicyRequest {
 }
 
 type K8sDeleteStorageClassRequest struct {
-	Data *storage.StorageClass `json:"data"`
+	Data *storage.StorageClass `json:"data" validate:"required"`
 }
 
 func K8sDeleteStorageClassExample() K8sDeleteStorageClassRequest {
@@ -1058,7 +1058,7 @@ func K8sDeleteStorageClassExample() K8sDeleteStorageClassRequest {
 }
 
 type K8sDeleteLeaseRequest struct {
-	Data *coordination.Lease `json:"data"`
+	Data *coordination.Lease `json:"data" validate:"required"`
 }
 
 func K8sDeleteLeaseExample() K8sDeleteLeaseRequest {
@@ -1068,7 +1068,7 @@ func K8sDeleteLeaseExample() K8sDeleteLeaseRequest {
 }
 
 type K8sDeletePriorityClassRequest struct {
-	Data *scheduling.PriorityClass `json:"data"`
+	Data *scheduling.PriorityClass `json:"data" validate:"required"`
 }
 
 func K8sDeletePriorityClassExample() K8sDeletePriorityClassRequest {
@@ -1078,7 +1078,7 @@ func K8sDeletePriorityClassExample() K8sDeletePriorityClassRequest {
 }
 
 type K8sDeleteEndpointRequest struct {
-	Data *core.Endpoints `json:"data"`
+	Data *core.Endpoints `json:"data" validate:"required"`
 }
 
 func K8sDeleteEndpointExample() K8sDeleteEndpointRequest {
@@ -1088,7 +1088,7 @@ func K8sDeleteEndpointExample() K8sDeleteEndpointRequest {
 }
 
 type K8sDeleteResourceQuotaRequest struct {
-	Data *core.ResourceQuota `json:"data"`
+	Data *core.ResourceQuota `json:"data" validate:"required"`
 }
 
 func K8sDeleteResourceQuotaExample() K8sDeleteResourceQuotaRequest {
@@ -1113,10 +1113,10 @@ type ServiceLogStreamResult struct {
 }
 
 type ServiceResourceStatusRequest struct {
-	Resource   string `json:"resource"` // pods, services, deployments
-	Namespace  string `json:"namespace"`
-	Name       string `json:"name"`
-	StatusOnly bool   `json:"statusOnly"`
+	Resource   string `json:"resource" validate:"required"` // pods, services, deployments
+	Namespace  string `json:"namespace" validate:"required"`
+	Name       string `json:"name" validate:"required"`
+	StatusOnly bool   `json:"statusOnly" validate:"required"`
 }
 
 func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
@@ -1129,9 +1129,9 @@ func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
 }
 
 type ServiceRestartRequest struct {
-	ProjectId string               `json:"projectId"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Service   dtos.K8sServiceDto   `json:"service"`
+	ProjectId string               `json:"projectId" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
 }
 
 func ServiceRestartRequestExample() ServiceRestartRequest {
@@ -1143,9 +1143,9 @@ func ServiceRestartRequestExample() ServiceRestartRequest {
 }
 
 type ServiceStopRequest struct {
-	ProjectId string               `json:"projectId"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Service   dtos.K8sServiceDto   `json:"service"`
+	ProjectId string               `json:"projectId" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
 }
 
 func ServiceStopRequestExample() ServiceStopRequest {
@@ -1157,9 +1157,9 @@ func ServiceStopRequestExample() ServiceStopRequest {
 }
 
 type ServiceStartRequest struct {
-	ProjectId string               `json:"projectId"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Service   dtos.K8sServiceDto   `json:"service"`
+	ProjectId string               `json:"projectId" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
 }
 
 func ServiceStartRequestExample() ServiceStartRequest {
@@ -1171,9 +1171,9 @@ func ServiceStartRequestExample() ServiceStartRequest {
 }
 
 type ServiceUpdateRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Service   dtos.K8sServiceDto   `json:"service"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
 }
 
 func ServiceUpdateRequestExample() ServiceUpdateRequest {
@@ -1185,9 +1185,9 @@ func ServiceUpdateRequestExample() ServiceUpdateRequest {
 }
 
 type ServiceTriggerJobRequest struct {
-	ProjectId string               `json:"projectId"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Service   dtos.K8sServiceDto   `json:"service"`
+	ProjectId string               `json:"projectId" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
 }
 
 func ServiceTriggerJobRequestExample() ServiceStartRequest {

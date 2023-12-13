@@ -15,9 +15,9 @@ import (
 )
 
 type CmdConnectionRequest struct {
-	ChannelId       string `json:"channelId"`
-	WebsocketScheme string `json:"websocketScheme"`
-	WebsocketHost   string `json:"websocketHost"`
+	ChannelId       string `json:"channelId" validate:"required"`
+	WebsocketScheme string `json:"websocketScheme" validate:"required"`
+	WebsocketHost   string `json:"websocketHost" validate:"required"`
 }
 
 type CmdWindowSize struct {
@@ -25,7 +25,7 @@ type CmdWindowSize struct {
 	Cols uint16 `json:"cols"`
 }
 
-func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectionRequest) *websocket.Conn {
+func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectionRequest) (*websocket.Conn, error) {
 	maxRetries := 6
 	currentRetries := 0
 	for {
@@ -39,7 +39,7 @@ func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectio
 			logger.Log.Errorf("Failed to connect, retrying in 5 seconds: %s", err.Error())
 			if currentRetries >= maxRetries {
 				logger.Log.Errorf("Max retries reached, exiting.")
-				return nil
+				return nil, err
 			}
 			time.Sleep(5 * time.Second)
 			currentRetries++
@@ -52,11 +52,11 @@ func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectio
 		c.SetReadDeadline(time.Now().Add(5 * time.Second))
 		_, ack, err := c.ReadMessage()
 		if err != nil {
-			logger.Log.Errorf("Failed to receive ack-ready, retrying in 5 seconds:", err)
+			logger.Log.Errorf("Failed to receive ack-ready, retrying in 5 seconds: %s", err.Error())
 			time.Sleep(5 * time.Second)
 			if currentRetries >= maxRetries {
 				logger.Log.Errorf("Max retries reached, exiting.")
-				return nil
+				return c, err
 			}
 			currentRetries++
 			continue
@@ -64,7 +64,7 @@ func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectio
 
 		c.SetReadDeadline(time.Time{})
 		logger.Log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
-		return c
+		return c, nil
 	}
 }
 
@@ -81,8 +81,16 @@ func XTermCommandStreamConnection(cmdConnectionRequest CmdConnectionRequest, cmd
 
 	websocketUrl := url.URL{Scheme: cmdConnectionRequest.WebsocketScheme, Host: cmdConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 
-	con := XtermCommandStreamWsConnection(websocketUrl, cmdConnectionRequest)
-	defer con.Close()
+	con, err := XtermCommandStreamWsConnection(websocketUrl, cmdConnectionRequest)
+	defer func() {
+		if con != nil {
+			con.Close()
+		}
+	}()
+	if err != nil {
+		logger.Log.Errorf("Unable to connect to websocket: %s", err.Error())
+		return
+	}
 
 	cmd.Env = append(os.Environ(), "TERM=xterm-color")
 

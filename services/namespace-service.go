@@ -107,8 +107,8 @@ func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.Nam
 }
 
 type NamespaceCreateRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
 }
 
 func NamespaceCreateRequestExample() NamespaceCreateRequest {
@@ -119,8 +119,8 @@ func NamespaceCreateRequestExample() NamespaceCreateRequest {
 }
 
 type NamespaceDeleteRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
 }
 
 func NamespaceDeleteRequestExample() NamespaceDeleteRequest {
@@ -131,9 +131,9 @@ func NamespaceDeleteRequestExample() NamespaceDeleteRequest {
 }
 
 type NamespaceShutdownRequest struct {
-	ProjectId string               `json:"projectId"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace"`
-	Service   dtos.K8sServiceDto   `json:"service"`
+	ProjectId string               `json:"projectId" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
 }
 
 func NamespaceShutdownRequestExample() NamespaceShutdownRequest {
@@ -145,7 +145,7 @@ func NamespaceShutdownRequestExample() NamespaceShutdownRequest {
 }
 
 type NamespacePodIdsRequest struct {
-	Namespace string `json:"namespace"`
+	Namespace string `json:"namespace" validate:"required"`
 }
 
 func NamespacePodIdsRequestExample() NamespacePodIdsRequest {
@@ -155,7 +155,7 @@ func NamespacePodIdsRequestExample() NamespacePodIdsRequest {
 }
 
 type NamespaceValidateClusterPodsRequest struct {
-	DbPodNames []string `json:"dbPodNames"`
+	DbPodNames []string `json:"dbPodNames" validate:"required"`
 }
 
 func NamespaceValidateClusterPodsRequestExample() NamespaceValidateClusterPodsRequest {
@@ -165,7 +165,7 @@ func NamespaceValidateClusterPodsRequestExample() NamespaceValidateClusterPodsRe
 }
 
 type NamespaceValidatePortsRequest struct {
-	Ports []dtos.NamespaceServicePortDto `json:"ports"`
+	Ports []dtos.NamespaceServicePortDto `json:"ports" validate:"required,dive"`
 }
 
 func NamespaceValidatePortsRequestExample() NamespaceValidatePortsRequest {
@@ -177,7 +177,7 @@ func NamespaceValidatePortsRequestExample() NamespaceValidatePortsRequest {
 }
 
 type NamespaceGatherAllResourcesRequest struct {
-	NamespaceName string `json:"namespaceName"`
+	NamespaceName string `json:"namespaceName" validate:"required"`
 }
 
 func NamespaceGatherAllResourcesRequestExample() NamespaceGatherAllResourcesRequest {
@@ -187,7 +187,7 @@ func NamespaceGatherAllResourcesRequestExample() NamespaceGatherAllResourcesRequ
 }
 
 type NamespaceBackupRequest struct {
-	NamespaceName string `json:"namespaceName"`
+	NamespaceName string `json:"namespaceName" validate:"required"`
 }
 
 func NamespaceBackupRequestExample() NamespaceBackupRequest {
@@ -197,8 +197,8 @@ func NamespaceBackupRequestExample() NamespaceBackupRequest {
 }
 
 type NamespaceRestoreRequest struct {
-	NamespaceName string `json:"namespaceName"`
-	YamlData      string `json:"yamlData"`
+	NamespaceName string `json:"namespaceName" validate:"required"`
+	YamlData      string `json:"yamlData" validate:"required"`
 }
 
 func NamespaceRestoreRequestExample() NamespaceRestoreRequest {
@@ -218,8 +218,8 @@ func NamespaceRestoreRequestExample() NamespaceRestoreRequest {
 }
 
 type NamespaceResourceYamlRequest struct {
-	NamespaceName string   `json:"namespaceName"`
-	Resources     []string `json:"resources"`
+	NamespaceName string   `json:"namespaceName" validate:"required"`
+	Resources     []string `json:"resources" validate:"required"`
 }
 
 func NamespaceResourceYamlRequestExample() NamespaceResourceYamlRequest {

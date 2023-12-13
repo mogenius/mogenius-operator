@@ -5,7 +5,7 @@ type K8sNamespaceDto struct {
 	DisplayName       string          `json:"displayName" validate:"required"`
 	Name              string          `json:"Name" validate:"required"`
 	StorageSizeInMb   int             `json:"storageSizeInMb" validate:"required"`
-	Services          []K8sServiceDto `json:"services" validate:"required"`
+	Services          []K8sServiceDto `json:"services" validate:"required,dive"`
 	CloudflareProxied bool            `json:"cloudflareProxied" validate:"required"`
 }
 

@@ -300,6 +300,9 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 		case services.PAT_UPGRADEK8SMANAGER:
 			payload = services.K8sManagerUpgradeRequestExample()
 
+		case services.PAT_INSTALL_LOCAL_DEV_COMPONENTS:
+			payload = services.ClusterIssuerInstallRequestExample()
+
 		case services.PAT_FILES_LIST:
 			payload = services.FilesListRequestExampleData()
 		case services.PAT_FILES_DOWNLOAD:

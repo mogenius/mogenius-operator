@@ -1,16 +1,5 @@
 package dtos
 
-type K8sServiceTypeEnum string
-
-const (
-	GitRepositoryTemplate  K8sServiceTypeEnum = "GIT_REPOSITORY_TEMPLATE"
-	GitRepository          K8sServiceTypeEnum = "GIT_REPOSITORY"
-	ContainerImageTemplate K8sServiceTypeEnum = "CONTAINER_IMAGE_TEMPLATE"
-	ContainerImage         K8sServiceTypeEnum = "CONTAINER_IMAGE"
-	K8SDeployment          K8sServiceTypeEnum = "K8S_DEPLOYMENT"
-	K8SCronJob             K8sServiceTypeEnum = "K8S_CRON_JOB"
-)
-
 type K8sServiceDto struct {
 	Id                                   string                `json:"id" validate:"required"`
 	DisplayName                          string                `json:"displayName" validate:"required"`
