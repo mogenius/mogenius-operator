@@ -41,10 +41,16 @@ const (
 	PAT_CLUSTER_UNINSTALL_HELM_CHART    string = "cluster/uninstall-helm-chart"
 	PAT_CLUSTER_TCP_UDP_CONFIGURATION   string = "cluster/tcp-udp-configuration"
 	PAT_CLUSTER_BACKUP                  string = "cluster/backup"
-	PAT_CLUSTER_WRITE_CONFIGMAP         string = "cluster/write-configmap"
-	PAT_CLUSTER_READ_CONFIGMAP          string = "cluster/read-configmap"
-	PAT_CLUSTER_LIST_CONFIGMAPS         string = "cluster/list-configmaps"
-	PAT_CLUSTER_LIST_DEPLOYMENTS        string = "cluster/list-deployments"
+
+	PAT_CLUSTER_WRITE_CONFIGMAP               string = "cluster/write-configmap"
+	PAT_CLUSTER_READ_CONFIGMAP                string = "cluster/read-configmap"
+	PAT_CLUSTER_LIST_CONFIGMAPS               string = "cluster/list-configmaps"
+	PAT_CLUSTER_WRITE_DEPLOYMENT              string = "cluster/write-deployment"
+	PAT_CLUSTER_READ_DEPLOYMENT               string = "cluster/read-deployment"
+	PAT_CLUSTER_LIST_DEPLOYMENTS              string = "cluster/list-deployments"
+	PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM string = "cluster/write-persistent-volume-claim"
+	PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM  string = "cluster/read-persistent-volume-claim"
+	PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS string = "cluster/list-persistent-volume-claims"
 
 	PAT_NAMESPACE_CREATE                string = "namespace/create"
 	PAT_NAMESPACE_DELETE                string = "namespace/delete"
@@ -368,7 +374,12 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_WRITE_CONFIGMAP,
 	PAT_CLUSTER_READ_CONFIGMAP,
 	PAT_CLUSTER_LIST_CONFIGMAPS,
+	PAT_CLUSTER_WRITE_DEPLOYMENT,
+	PAT_CLUSTER_READ_DEPLOYMENT,
 	PAT_CLUSTER_LIST_DEPLOYMENTS,
+	PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM,
+	PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM,
+	PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS,
 
 	PAT_NAMESPACE_CREATE,
 	PAT_NAMESPACE_DELETE,

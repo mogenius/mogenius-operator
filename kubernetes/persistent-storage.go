@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"strings"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -316,4 +317,42 @@ func DeleteMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		}
 	}(cmd, wg)
 	return cmd
+}
+
+func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	client := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespace)
+
+	persistentVolumeClaims, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+
+	// delete all persistentVolumeClaims that do not start with prefix
+	if prefix != "" {
+		for i := len(persistentVolumeClaims.Items) - 1; i >= 0; i-- {
+			if !strings.HasPrefix(persistentVolumeClaims.Items[i].Name, prefix) {
+				persistentVolumeClaims.Items = append(persistentVolumeClaims.Items[:i], persistentVolumeClaims.Items[i+1:]...)
+			}
+		}
+	}
+
+	return WorkloadResult(persistentVolumeClaims.Items, err)
+}
+
+func GetPersistentVolumeClaim(namespace string, name string) K8sWorkloadResult {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	client := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespace)
+
+	deployment, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	return WorkloadResult(deployment, err)
 }

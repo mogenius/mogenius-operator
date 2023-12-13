@@ -195,6 +195,21 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return kubernetes.ListConfigMapWithFieldSelector(data.Namespace, data.LabelSelector, data.Prefix)
+	case PAT_CLUSTER_READ_DEPLOYMENT:
+		data := ClusterGetDeployment{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return kubernetes.GetDeployment(data.Namespace, data.Name)
+	// TODO
+	// case PAT_CLUSTER_WRITE_DEPLOYMENT:
+	// 	data := ClusterWriteDeployment{}
+	// 	structs.MarshalUnmarshal(&datagram, &data)
+	// 	if err := utils.ValidateJSON(data); err != nil {
+	// 		return err
+	// 	}
+	// 	return kubernetes.WriteConfigMap(data.Namespace, data.Name, data.Data, data.Labels)
 	case PAT_CLUSTER_LIST_DEPLOYMENTS:
 		data := ClusterListWorkloads{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -202,6 +217,29 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return kubernetes.ListDeploymentsWithFieldSelector(data.Namespace, data.LabelSelector, data.Prefix)
+	case PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM:
+		data := ClusterGetPersistentVolume{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return kubernetes.GetPersistentVolumeClaim(data.Namespace, data.Name)
+	// TODO
+	// case PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM:
+	// 	data := ClusterWritePersistentVolume{}
+	// 	structs.MarshalUnmarshal(&datagram, &data)
+	// 	if err := utils.ValidateJSON(data); err != nil {
+	// 		return err
+	// 	}
+	// 	return kubernetes.WritePersistentVolume(data.Namespace, data.Name, data.Data, data.Labels)
+	case PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS:
+		data := ClusterListWorkloads{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		// AllPersistentVolumes
+		return kubernetes.ListPersistentVolumeClaimsWithFieldSelector(data.Namespace, data.LabelSelector, data.Prefix)
 
 	case PAT_NAMESPACE_CREATE:
 		data := NamespaceCreateRequest{}

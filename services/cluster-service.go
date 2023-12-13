@@ -520,6 +520,30 @@ func ClusterGetConfigMapExample() ClusterGetConfigMap {
 	}
 }
 
+type ClusterGetDeployment struct {
+	Namespace string `json:"namespace" validate:"required"`
+	Name      string `json:"name" validate:"required"`
+}
+
+func ClusterGetDeploymentExample() ClusterGetDeployment {
+	return ClusterGetDeployment{
+		Namespace: "mogenius",
+		Name:      "my-funky-deployment",
+	}
+}
+
+type ClusterGetPersistentVolume struct {
+	Namespace string `json:"namespace" validate:"required"`
+	Name      string `json:"name" validate:"required"`
+}
+
+func ClusterGetPersistentVolumeExample() ClusterGetPersistentVolume {
+	return ClusterGetPersistentVolume{
+		Namespace: "mogenius",
+		Name:      "nfs-server-my-funky-nfs",
+	}
+}
+
 type NfsStorageInstallRequest struct {
 	ClusterProvider string `json:"ClusterProvider"` // "BRING_YOUR_OWN", "EKS", "AKS", "GKE", "DOCKER_ENTERPRISE", "DOKS", "LINODE", "IBM", "ACK", "OKE", "OTC", "OPEN_SHIFT"
 }
