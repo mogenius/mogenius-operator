@@ -62,7 +62,7 @@ func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
 		ServiceId:               &job.ServiceId,
 		Title:                   title,
 		Message:                 "",
-		BuildId:                 job.BuildId,
+		BuildId:                 int(job.BuildId),
 		StartedAt:               time.Now().Format(time.RFC3339),
 		State:                   "PENDING",
 		DurationMs:              0,
@@ -101,7 +101,7 @@ func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGro
 	return cmd
 }
 
-func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool, status *punq.SystemCheckStatus, doneFunction func()) {
+func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool, status *punq.SystemCheckStatus, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
 		output, err := exec.Command("bash", "-c", shellCmd).Output()
 		fmt.Println(string(shellCmd))
@@ -112,9 +112,15 @@ func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool
 			logger.Log.Error(shellCmd)
 			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
 			*status = punq.NOT_INSTALLED
+			if failFunc != nil {
+				failFunc(string(output), exitErr)
+			}
 		} else if err != nil {
 			logger.Log.Error("exec.Command: %s", err.Error())
 			*status = punq.NOT_INSTALLED
+			if failFunc != nil {
+				failFunc(string(output), err)
+			}
 		} else {
 			logger.Log.Noticef("SUCCESS: %s", shellCmd)
 			if uninstalling {
@@ -122,9 +128,9 @@ func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool
 			} else {
 				*status = punq.INSTALLED
 			}
-		}
-		if doneFunction != nil {
-			doneFunction()
+			if successFunc != nil {
+				successFunc()
+			}
 		}
 	}()
 }

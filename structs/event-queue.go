@@ -42,15 +42,14 @@ func ConnectToEventQueue() {
 	}()
 
 	for {
+		// connect
+		connectEvent()
+
 		select {
 		case <-interrupt:
 			logger.Log.Fatal("CTRL + C pressed. Terminating.")
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
-
-		// connect
-		connectEvent()
-		time.Sleep(3 * time.Second)
 	}
 }
 

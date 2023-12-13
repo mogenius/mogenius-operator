@@ -310,6 +310,8 @@ const (
 	PAT_BUILD_JOB_LIST_OF_SERVICE      string = "build/job-list-of-service"
 	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE string = "build/last-job-info-of-service"
 
+	PAT_LOG_LIST_ALL string = "log/list-all"
+
 	PAT_EXEC_SHELL string = "exec/shell"
 
 	PAT_POPEYE_CONSOLE string = "popeye_console"
@@ -634,4 +636,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_EXEC_SHELL,
 
 	PAT_POPEYE_CONSOLE,
+
+	PAT_LOG_LIST_ALL,
 }

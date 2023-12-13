@@ -1100,6 +1100,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return StatsMogeniusNfsNamespace(data)
 	case PAT_POPEYE_CONSOLE:
 		return PopeyeConsole()
+	case PAT_LOG_LIST_ALL:
+		return builder.ListLogFromDb()
 	}
 
 	datagram.Err = "Pattern not found"

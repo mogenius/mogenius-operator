@@ -18,7 +18,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-const PingSeconds = 10
+const PingSeconds = 3
 
 func MarshalUnmarshal(datagram *Datagram, data interface{}) {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -52,6 +52,15 @@ func UnmarshalBuildJobInfoEntry(dst *BuildJobInfoEntry, data []byte) error {
 }
 
 func UnmarshalScan(dst *BuildScanResult, data []byte) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(data, dst)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func UnmarshalLog(dst *Log, data []byte) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(data, dst)
 	if err != nil {
