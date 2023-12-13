@@ -2,13 +2,10 @@ package builder
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
-	"strconv"
-	"strings"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -351,43 +348,6 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	return int(nextBuildId), err
-}
-
-func BuildJobInfoEntryFromDb(namespace string, serviceName string) (structs.BuildJobInfoEntry, error) {
-	result := structs.BuildJobInfoEntry{}
-	err := db.View(func(tx *bolt.Tx) error {
-		lastIdx := -1
-		prefix := PREFIX_BUILD
-		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		err := bucket.ForEach(func(k, v []byte) error {
-			key := string(k)
-			if strings.HasPrefix(key, prefix) {
-				fmt.Printf("Key: %s\n", k)
-				tmp := structs.CreateBuildJobEntryFromData(v)
-
-				id := strings.TrimPrefix(key, prefix)
-				idx, err := strconv.Atoi(id)
-
-				if err != nil && lastIdx < idx && tmp.Namespace == namespace && tmp.ServiceName == serviceName {
-					fmt.Printf("Found Key: %s\n", k)
-					result = tmp
-					lastIdx = idx
-				}
-			}
-			return nil
-		})
-
-		if err != nil {
-			return err
-		}
-
-		if lastIdx > -1 {
-			return nil
-		} else {
-			return errors.New("build not available")
-		}
-	})
-	return result, err
 }
 
 func SaveScanResult(state structs.BuildJobStateEnum, cmdOutput []byte, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
