@@ -495,9 +495,9 @@ func ClusterWriteConfigMapExample() ClusterWriteConfigMap {
 }
 
 type ClusterListWorkloads struct {
-	Namespace     string `json:"namespace" validate:"required"`
-	LabelSelector string `json:"labelSelector" validate:"required"`
-	Prefix        string `json:"prefix" validate:"required"`
+	Namespace     string `json:"namespace"`
+	LabelSelector string `json:"labelSelector"`
+	Prefix        string `json:"prefix"`
 }
 
 func ClusterListWorkloadsExample() ClusterListWorkloads {
