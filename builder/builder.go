@@ -241,10 +241,6 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 	return GetBuildJobInfosFromDb(buildId)
 }
 
-func BuildJobInfoEntry(namespace string, serviceName string) (structs.BuildJobInfoEntry, error) {
-	return BuildJobInfoEntryFromDb(namespace, serviceName)
-}
-
 func Add(buildJob structs.BuildJob) structs.BuildAddResult {
 	if buildJob.InjectDockerEnvVars == "" {
 		buildJob.InjectDockerEnvVars = "--build-arg PLACEHOLDER=MOGENIUS"
@@ -314,6 +310,18 @@ func ListByServiceId(serviceId string) []structs.BuildJobListEntry {
 	return result
 }
 
+func ListByServiceByNamespaceAndServiceName(namespace, serviceName string) []structs.BuildJobListEntry {
+	result := []structs.BuildJobListEntry{}
+
+	list := ListAll()
+	for _, queueEntry := range list {
+		if queueEntry.ServiceName == serviceName && queueEntry.Namespace == namespace {
+			result = append(result, queueEntry)
+		}
+	}
+	return result
+}
+
 func ListByServiceIds(serviceIds []string) []structs.BuildJobListEntry {
 	result := []structs.BuildJobListEntry{}
 
@@ -360,11 +368,38 @@ func LastJobForService(serviceId string) structs.BuildJobListEntry {
 	return result
 }
 
+func LastJobForNamespaceAndServiceName(namespace, serviceName string) structs.BuildJobListEntry {
+	result := structs.BuildJobListEntry{}
+
+	list := ListByServiceByNamespaceAndServiceName(namespace, serviceName)
+	if len(list) > 0 {
+		result = list[len(list)-1]
+	}
+	return result
+}
+
+
 func LastBuildForService(serviceId string) structs.BuildJobInfos {
 	result := structs.BuildJobInfos{}
 
 	var lastJob *structs.BuildJobListEntry
 	list := ListByServiceId(serviceId)
+	if len(list) > 0 {
+		lastJob = &list[len(list)-1]
+	}
+
+	if lastJob != nil {
+		result = BuildJobInfos(lastJob.BuildId)
+	}
+
+	return result
+}
+
+func LastBuildForNamespaceAndServiceName(namespace, serviceName string) structs.BuildJobInfos {
+	result := structs.BuildJobInfos{}
+
+	var lastJob *structs.BuildJobListEntry
+	list := ListByServiceByNamespaceAndServiceName(namespace, serviceName)
 	if len(list) > 0 {
 		lastJob = &list[len(list)-1]
 	}

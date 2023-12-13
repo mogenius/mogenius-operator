@@ -106,6 +106,30 @@ type BuildJobListEntry struct {
 	BuildId               int    `json:"buildId"`
 }
 
+func (b BuildJobListEntry) IsEmpty() bool {
+	return b.JobId == "" &&
+				 b.ProjectId == "" &&
+				 b.NamespaceId == "" &&
+				 b.Namespace == "" &&
+				 b.ServiceId == "" &&
+				 b.ServiceName == "" &&
+				 b.GitRepo == "" &&
+				 b.GitBranch == "" &&
+				 b.GitCommitAuthor == "" &&
+				 b.GitCommitHash == "" &&
+				 b.GitCommitMessage == "" &&
+				 b.DockerFile == "" &&
+				 b.DockerContext == "" &&
+				 b.ContainerRegistryPath == "" &&
+				 b.ContainerRegistryUrl == "" &&
+				 b.StartTimestamp == "" &&
+				 b.InjectDockerEnvVars == "" &&
+				 b.State == "" &&
+				 b.StartedAt == "" &&
+				 b.DurationMs == 0 &&
+				 b.BuildId == 0
+}
+
 func BuildJobExample() BuildJob {
 	return BuildJob{
 		JobId:                 "na8ggegq2p0pepbvjldlger",
@@ -226,9 +250,6 @@ type BuildJobInfos struct {
 }
 
 type BuildJobInfoEntry struct {
-	ProjectId   string `json:"projectId,omitempty"`
-	Namespace   string `json:"namespace,omitempty"`
-	ServiceName string `json:"serviceName,omitempty"`
 	State       string `json:"state"`
 	Result      string `json:"result"`
 	StartTime   string `json:"startTime"`
@@ -237,9 +258,6 @@ type BuildJobInfoEntry struct {
 
 func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoEntry {
 	return BuildJobInfoEntry{
-		ProjectId:   req.ProjectId,
-		Namespace:   req.NamespaceName,
-		ServiceName: req.ServiceName,
 		State:       BUILD_STATE_PENDING,
 		Result:      "",
 		StartTime:   time.Now().Format(time.RFC3339),
@@ -278,9 +296,6 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 
 func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
 	entry := BuildJobInfoEntry{
-		ProjectId:   job.ProjectId,
-		Namespace:   job.Namespace,
-		ServiceName: job.ServiceName,
 		State:       state,
 		Result:      string(cmdOutput),
 		StartTime:   startTime.Format(time.RFC3339),
@@ -296,11 +311,8 @@ func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte, startTime time
 
 }
 
-func CreateBuildJobInfoEntryBytesForScan(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time, projectId string, namespace string, serviceName string) []byte {
+func CreateBuildJobInfoEntryBytesForScan(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
 	entry := BuildJobInfoEntry{
-		ProjectId:   projectId,
-		Namespace:   namespace,
-		ServiceName: serviceName,
 		State:       state,
 		Result:      string(cmdOutput),
 		StartTime:   startTime.Format(time.RFC3339),
