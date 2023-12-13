@@ -44,6 +44,7 @@ const (
 	PAT_CLUSTER_WRITE_CONFIGMAP         string = "cluster/write-configmap"
 	PAT_CLUSTER_READ_CONFIGMAP          string = "cluster/read-configmap"
 	PAT_CLUSTER_LIST_CONFIGMAPS         string = "cluster/list-configmaps"
+	PAT_CLUSTER_LIST_DEPLOYMENTS        string = "cluster/list-deployments"
 
 	PAT_NAMESPACE_CREATE                string = "namespace/create"
 	PAT_NAMESPACE_DELETE                string = "namespace/delete"

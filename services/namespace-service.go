@@ -107,8 +107,8 @@ func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.Nam
 }
 
 type NamespaceCreateRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 }
 
 func NamespaceCreateRequestExample() NamespaceCreateRequest {
@@ -119,8 +119,8 @@ func NamespaceCreateRequestExample() NamespaceCreateRequest {
 }
 
 type NamespaceDeleteRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 }
 
 func NamespaceDeleteRequestExample() NamespaceDeleteRequest {
@@ -132,8 +132,8 @@ func NamespaceDeleteRequestExample() NamespaceDeleteRequest {
 
 type NamespaceShutdownRequest struct {
 	ProjectId string               `json:"projectId" validate:"required"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func NamespaceShutdownRequestExample() NamespaceShutdownRequest {

@@ -293,7 +293,9 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 		case services.PAT_CLUSTER_READ_CONFIGMAP:
 			payload = services.ClusterGetConfigMapExample()
 		case services.PAT_CLUSTER_LIST_CONFIGMAPS:
-			payload = services.ClusterListConfigMapsExample()
+			payload = services.ClusterListWorkloadsExample()
+		case services.PAT_CLUSTER_LIST_DEPLOYMENTS:
+			payload = services.ClusterListWorkloadsExample()
 		case services.PAT_INSTALL_CLUSTER_ISSUER:
 			payload = services.ClusterIssuerInstallRequestExample()
 

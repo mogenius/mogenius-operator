@@ -189,12 +189,19 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return kubernetes.WriteConfigMap(data.Namespace, data.Name, data.Data, data.Labels)
 	case PAT_CLUSTER_LIST_CONFIGMAPS:
-		data := ClusterListConfigMaps{}
+		data := ClusterListWorkloads{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return kubernetes.ListConfigMapWithFieldSelector(data.Namespace, data.LabelSelector, data.Prefix)
+	case PAT_CLUSTER_LIST_DEPLOYMENTS:
+		data := ClusterListWorkloads{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return kubernetes.ListDeploymentsWithFieldSelector(data.Namespace, data.LabelSelector, data.Prefix)
 
 	case PAT_NAMESPACE_CREATE:
 		data := NamespaceCreateRequest{}

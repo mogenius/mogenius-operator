@@ -2,8 +2,10 @@ package utils
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/logger"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/mogenius/punq/structs"
 )
 
 var validate *validator.Validate
@@ -44,6 +46,7 @@ func ValidateJSON(obj interface{}) *ValidationError {
 			}
 		}
 		result.Errors = append(result.Errors, err.Error())
+		logger.Log.Error(structs.PrettyPrintString(result))
 		return result
 	}
 	return nil

@@ -470,3 +470,27 @@ func GetDeploymentImage(namespaceName string, serviceName string) (string, error
 	}
 	return deploymentToUpdate.Spec.Template.Spec.Containers[0].Image, nil
 }
+
+func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	client := provider.ClientSet.AppsV1().Deployments(namespace)
+
+	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+
+	// delete all deployments that do not start with prefix
+	if prefix != "" {
+		for i := len(deployments.Items) - 1; i >= 0; i-- {
+			if !strings.HasPrefix(deployments.Items[i].Name, prefix) {
+				deployments.Items = append(deployments.Items[:i], deployments.Items[i+1:]...)
+			}
+		}
+	}
+
+	return WorkloadResult(deployments.Items, err)
+}

@@ -310,9 +310,9 @@ func updateInfrastructureYaml(service dtos.K8sServiceDto, job structs.Job) []*st
 }
 
 type ServiceCreateRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func ServiceCreateRequestExample() ServiceCreateRequest {
@@ -324,9 +324,9 @@ func ServiceCreateRequestExample() ServiceCreateRequest {
 }
 
 type ServiceDeleteRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func ServiceDeleteRequestExample() ServiceDeleteRequest {
@@ -427,8 +427,8 @@ type PodCmdConnectionRequest struct {
 	Namespace     string                     `json:"namespace" validate:"required"`
 	Pod           string                     `json:"pod" validate:"required"`
 	Container     string                     `json:"container" validate:"required"`
-	CmdConnection utils.CmdConnectionRequest `json:"cmdConnectionRequest" validate:"required,dive"`
-	LogTail       string                     `json:"logTail" validate:"required"`
+	CmdConnection utils.CmdConnectionRequest `json:"cmdConnectionRequest" validate:"required"`
+	LogTail       string                     `json:"logTail"`
 }
 
 type CmdWindowSize struct {
@@ -1130,8 +1130,8 @@ func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
 
 type ServiceRestartRequest struct {
 	ProjectId string               `json:"projectId" validate:"required"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func ServiceRestartRequestExample() ServiceRestartRequest {
@@ -1144,8 +1144,8 @@ func ServiceRestartRequestExample() ServiceRestartRequest {
 
 type ServiceStopRequest struct {
 	ProjectId string               `json:"projectId" validate:"required"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func ServiceStopRequestExample() ServiceStopRequest {
@@ -1158,8 +1158,8 @@ func ServiceStopRequestExample() ServiceStopRequest {
 
 type ServiceStartRequest struct {
 	ProjectId string               `json:"projectId" validate:"required"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func ServiceStartRequestExample() ServiceStartRequest {
@@ -1171,9 +1171,9 @@ func ServiceStartRequestExample() ServiceStartRequest {
 }
 
 type ServiceUpdateRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project" validate:"required,dive"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func ServiceUpdateRequestExample() ServiceUpdateRequest {
@@ -1186,8 +1186,8 @@ func ServiceUpdateRequestExample() ServiceUpdateRequest {
 
 type ServiceTriggerJobRequest struct {
 	ProjectId string               `json:"projectId" validate:"required"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required,dive"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required,dive"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func ServiceTriggerJobRequestExample() ServiceStartRequest {

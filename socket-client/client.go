@@ -119,6 +119,11 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				if jsonErr != nil {
 					logger.Log.Errorf("%s", jsonErr.Error())
 				}
+				validationErr := utils.ValidateJSON(datagram)
+				if validationErr != nil {
+					logger.Log.Errorf("Received malformed Datagram: %s", datagram.Pattern)
+					continue
+				}
 
 				datagram.DisplayReceiveSummary()
 

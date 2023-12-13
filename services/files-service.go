@@ -270,7 +270,7 @@ func ClusterIssuerInstallRequestExample() ClusterIssuerInstallRequest {
 }
 
 type FilesListRequest struct {
-	Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required,dive"`
+	Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required"`
 }
 
 func FilesListRequestExampleData() FilesListRequest {
@@ -280,7 +280,7 @@ func FilesListRequestExampleData() FilesListRequest {
 }
 
 type FilesDownloadRequest struct {
-	File   dtos.PersistentFileRequestDto `json:"file" validate:"required,dive"`
+	File   dtos.PersistentFileRequestDto `json:"file" validate:"required"`
 	PostTo string                        `json:"postTo" validate:"required"`
 }
 
@@ -318,7 +318,7 @@ func FilesUploadRequestExampleData() FilesUploadRequest {
 }
 
 type FilesCreateFolderRequest struct {
-	Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required,dive"`
+	Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required"`
 }
 
 func FilesCreateFolderRequestExampleData() FilesCreateFolderRequest {
@@ -328,7 +328,7 @@ func FilesCreateFolderRequestExampleData() FilesCreateFolderRequest {
 }
 
 type FilesRenameRequest struct {
-	File    dtos.PersistentFileRequestDto `json:"file" validate:"required,dive"`
+	File    dtos.PersistentFileRequestDto `json:"file" validate:"required"`
 	NewName string                        `json:"newName" validate:"required"`
 }
 
@@ -340,7 +340,7 @@ func FilesRenameRequestExampleData() FilesRenameRequest {
 }
 
 type FilesChownRequest struct {
-	File dtos.PersistentFileRequestDto `json:"file" validate:"required,dive"`
+	File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
 	Uid  string                        `json:"uid" validate:"required"`
 	Gid  string                        `json:"gid" validate:"required"`
 }
@@ -354,7 +354,7 @@ func FilesChownRequestExampleData() FilesChownRequest {
 }
 
 type FilesChmodRequest struct {
-	File dtos.PersistentFileRequestDto `json:"file" validate:"required,dive"`
+	File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
 	Mode string                        `json:"mode" validate:"required"`
 }
 
@@ -366,7 +366,7 @@ func FilesChmodRequestExampleData() FilesChmodRequest {
 }
 
 type FilesDeleteRequest struct {
-	File dtos.PersistentFileRequestDto `json:"file" validate:"required,dive"`
+	File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
 }
 
 func FilesDeleteRequestExampleData() FilesDeleteRequest {

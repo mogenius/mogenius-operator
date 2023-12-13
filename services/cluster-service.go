@@ -494,14 +494,14 @@ func ClusterWriteConfigMapExample() ClusterWriteConfigMap {
 	}
 }
 
-type ClusterListConfigMaps struct {
+type ClusterListWorkloads struct {
 	Namespace     string `json:"namespace" validate:"required"`
 	LabelSelector string `json:"labelSelector" validate:"required"`
 	Prefix        string `json:"prefix" validate:"required"`
 }
 
-func ClusterListConfigMapsExample() ClusterListConfigMaps {
-	return ClusterListConfigMaps{
+func ClusterListWorkloadsExample() ClusterListWorkloads {
+	return ClusterListWorkloads{
 		Namespace:     "mogenius",
 		LabelSelector: "",
 		Prefix:        "metal",
