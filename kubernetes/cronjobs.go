@@ -240,20 +240,6 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 		previousCronjob = nil
 	}
 
-	// SANITIZE
-	if service.K8sSettings.LimitCpuCores <= 0 {
-		service.K8sSettings.LimitCpuCores = 0.1
-	}
-	if service.K8sSettings.LimitMemoryMB <= 0 {
-		service.K8sSettings.LimitMemoryMB = 16
-	}
-	if service.K8sSettings.EphemeralStorageMB <= 0 {
-		service.K8sSettings.EphemeralStorageMB = 100
-	}
-	if service.K8sSettings.ReplicaCount < 0 {
-		service.K8sSettings.ReplicaCount = 0
-	}
-
 	newCronJob := punqutils.InitCronJob()
 	newCronJob.ObjectMeta.Name = service.Name
 	newCronJob.ObjectMeta.Namespace = namespace.Name
@@ -305,14 +291,16 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 
 	// RESOURCES
 	limits := core.ResourceList{}
-	limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
-	limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
-	limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Limits = limits
 	requests := core.ResourceList{}
-	requests["cpu"] = resource.MustParse("1m")
-	requests["memory"] = resource.MustParse("1Mi")
-	requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+	if service.K8sSettings.IsLimitSetup() {
+		limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
+		limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
+		limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+		requests["cpu"] = resource.MustParse("1m")
+		requests["memory"] = resource.MustParse("1Mi")
+		requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+	}
+	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Limits = limits
 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Requests = requests
 
 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Name = service.Name

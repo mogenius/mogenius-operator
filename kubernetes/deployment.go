@@ -199,20 +199,6 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 		previousDeployment = nil
 	}
 
-	// SANITIZE
-	if service.K8sSettings.LimitCpuCores <= 0 {
-		service.K8sSettings.LimitCpuCores = 0.1
-	}
-	if service.K8sSettings.LimitMemoryMB <= 0 {
-		service.K8sSettings.LimitMemoryMB = 16
-	}
-	if service.K8sSettings.EphemeralStorageMB <= 0 {
-		service.K8sSettings.EphemeralStorageMB = 100
-	}
-	if service.K8sSettings.ReplicaCount < 0 {
-		service.K8sSettings.ReplicaCount = 0
-	}
-
 	newDeployment := punqUtils.InitDeployment()
 	newDeployment.ObjectMeta.Name = service.Name
 	newDeployment.ObjectMeta.Namespace = namespace.Name
@@ -269,14 +255,16 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 
 	// RESOURCES
 	limits := core.ResourceList{}
-	limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
-	limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
-	limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
-	newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = limits
 	requests := core.ResourceList{}
-	requests["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*700))
-	requests["memory"] = resource.MustParse(fmt.Sprintf("%dMi", int(float64(service.K8sSettings.LimitMemoryMB)*0.7)))
-	requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+	if service.K8sSettings.IsLimitSetup() {
+		limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
+		limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
+		limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+		requests["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*200)) // 20% of limit
+		requests["memory"] = resource.MustParse(fmt.Sprintf("%dMi", int(float64(service.K8sSettings.LimitMemoryMB)*0.7)))
+		requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+	}
+	newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = limits
 	newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests = requests
 
 	newDeployment.Spec.Template.Spec.Containers[0].Name = service.Name
