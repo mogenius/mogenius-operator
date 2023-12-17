@@ -15,9 +15,9 @@ type K8sServiceDto struct {
 	DockerContext                        string                `json:"dockerContext" validate:"required"`
 	App                                  *K8sAppDto            `json:"app"`
 	Name                                 string                `json:"name" validate:"required"`
-	K8sSettings                          K8sServiceSettingsDto `json:"k8sSettings" validate:"required"`
-	EnvVars                              []K8sEnvVarDto        `json:"envVars" validate:"required"`
-	Ports                                []K8sPortsDto         `json:"ports" validate:"required"`
+	K8sSettings                          K8sServiceSettingsDto `json:"k8sSettings"`
+	EnvVars                              []K8sEnvVarDto        `json:"envVars"`
+	Ports                                []K8sPortsDto         `json:"ports"`
 	SwitchedOn                           bool                  `json:"switchedOn"`
 	ServiceType                          K8sServiceTypeEnum    `json:"serviceType,omitempty"`
 	SettingsYaml                         string                `json:"settingsYaml,omitempty"`
