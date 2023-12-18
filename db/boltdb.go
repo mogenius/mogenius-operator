@@ -1,4 +1,4 @@
-package builder
+package db
 
 import (
 	"bytes"
@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	BUILD_BUCKET_NAME = "mogenius-builds"
-	SCAN_BUCKET_NAME  = "mogenius-scans"
-	LOG_BUCKET_NAME   = "mogenius-logs"
+	BUILD_BUCKET_NAME     = "mogenius-builds"
+	SCAN_BUCKET_NAME      = "mogenius-scans"
+	LOG_BUCKET_NAME       = "mogenius-logs"
+	MIGRATION_BUCKET_NAME = "mogenius-migrations"
 
 	PREFIX_GIT_CLONE = "git-clone-"
 	PREFIX_LS        = "ls-"
@@ -86,6 +87,19 @@ func Init() {
 	})
 	if err != nil {
 		logger.Log.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
+	}
+
+	// ### MIGRATION BUCKET ###
+	db = database
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(MIGRATION_BUCKET_NAME))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Log.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
 	}
 
 	logger.Log.Noticef("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbPath)
@@ -407,4 +421,29 @@ func ListLogFromDb() []structs.Log {
 		logger.Log.Errorf("ListLog: %s", err.Error())
 	}
 	return result
+}
+
+func AddMigrationToDb(name string) error {
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(MIGRATION_BUCKET_NAME))
+		id, _ := bucket.NextSequence() // auto increment
+		entry := structs.CreateMigration(id, name)
+		return bucket.Put([]byte(entry.Name), structs.MigrationBytes(entry))
+	})
+	if err != nil {
+		logger.Log.Errorf("Error adding migration '%s'.", name)
+	}
+	return err
+}
+
+func IsMigrationAlreadyApplied(name string) bool {
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(MIGRATION_BUCKET_NAME))
+		rawData := bucket.Get([]byte(name))
+		if len(rawData) > 0 {
+			return nil
+		}
+		return fmt.Errorf("Not migration found for name '%s'.", name)
+	})
+	return err == nil
 }

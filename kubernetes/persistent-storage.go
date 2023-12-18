@@ -16,6 +16,31 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
+	result := []structs.Volume{}
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return result, err
+	}
+	pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims("")
+	pvcList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return result, err
+	}
+	for _, pvc := range pvcList.Items {
+		if strings.HasPrefix(pvc.Name, utils.CONFIG.Misc.NfsPodPrefix) {
+			capacity := pvc.Spec.Resources.Requests[v1.ResourceStorage]
+			result = append(result, structs.Volume{
+				Namespace:  pvc.Namespace,
+				VolumeName: pvc.Name,
+				SizeInGb:   int(capacity.Value() / 1024 / 1024 / 1024),
+			})
+		}
+	}
+	return result, err
+}
+
 // This functions are used to generate the mogenius custom nfs storage solution
 // The order is importent when creating:
 // 1. PVC
@@ -38,6 +63,12 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		pvc.Spec.StorageClassName = punqUtils.Pointer(storageClass)
 		pvc.Spec.Resources.Requests = v1.ResourceList{}
 		pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+
+		// add labels
+		pvc.Labels = MoAddLabels(&pvc.Labels, map[string]string{
+			"mo-nfs-volume-identifier": fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
+			"mo-nfs-volume-name":       volumeName,
+		})
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -98,6 +129,12 @@ func CreateMogeniusNfsPersistentVolumeForService(job *structs.Job, namespaceName
 		pv.Spec.NFS.Server = nfsService.Spec.ClusterIP
 		pv.Spec.Capacity = v1.ResourceList{}
 		pv.Spec.Capacity[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+
+		// add labels
+		pv.Labels = MoAddLabels(&pv.Labels, map[string]string{
+			"mo-nfs-volume-identifier": fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
+			"mo-nfs-volume-name":       volumeName,
+		})
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {

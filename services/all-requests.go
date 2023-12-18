@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"os/exec"
@@ -1822,7 +1823,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_POPEYE_CONSOLE:
 		return PopeyeConsole()
 	case PAT_LOG_LIST_ALL:
-		return builder.ListLogFromDb()
+		return db.ListLogFromDb()
 	}
 
 	datagram.Err = "Pattern not found"

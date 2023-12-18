@@ -204,6 +204,24 @@ func MoUpdateLabels(labels *map[string]string, projectId string, namespace *dtos
 	return resultingLabels
 }
 
+func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string) map[string]string {
+	resultingLabels := map[string]string{}
+
+	// transfer existing values
+	if existingLabels != nil {
+		for k, v := range *existingLabels {
+			resultingLabels[k] = v
+		}
+	}
+
+	// populate with mo labels
+	for k, v := range newLabels {
+		resultingLabels[k] = v
+	}
+
+	return resultingLabels
+}
+
 // mount nfs server in k8s-manager
 func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 	if utils.CONFIG.Misc.Stage == "local" {

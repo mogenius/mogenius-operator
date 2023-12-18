@@ -5,10 +5,11 @@ package cmd
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/builder"
+	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/migrations"
 	"mogenius-k8s-manager/services"
 	socketclient "mogenius-k8s-manager/socket-client"
 	"mogenius-k8s-manager/structs"
@@ -34,16 +35,18 @@ var clusterCmd = &cobra.Command{
 
 		utils.SetupClusterSecret(clusterSecret)
 
-		builder.Init()
+		db.Init()
+
+		migrations.ExecuteMigrations()
 
 		// INIT MOUNTS
 		if utils.CONFIG.Misc.AutoMountNfs {
-			volumesToMount, err := utils.GetVolumeMountsForK8sManager()
+			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
 			if err != nil && utils.CONFIG.Misc.Stage != "local" {
 				logger.Log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
 			}
 			for _, vol := range volumesToMount {
-				mokubernetes.Mount(vol.Namespace.Name, vol.VolumeName, nil)
+				mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
 			}
 		}
 

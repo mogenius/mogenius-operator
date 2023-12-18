@@ -49,7 +49,7 @@ func LogBytes(log Log) []byte {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(log)
 	if err != nil {
-		logger.Log.Errorf("CreateLogBytes ERR: %s", err.Error())
+		logger.Log.Errorf("LogBytes ERR: %s", err.Error())
 	}
 	return bytes
 }
