@@ -80,32 +80,6 @@ func DeleteHelmChart(r ClusterHelmUninstallRequest) structs.Job {
 	return job
 }
 
-// func InstallMogeniusNfsStorage(r NfsStorageInstallRequest) interface{} {
-// 	nfsStatus := mokubernetes.CheckIfMogeniusNfsIsRunning()
-// 	if !nfsStatus.IsInstalled {
-// 		var wg sync.WaitGroup
-// 		job := structs.CreateJob("Install mogenius nfs-storage.", "", nil, nil)
-// 		job.Start()
-// 		job.AddCmds(mokubernetes.InstallMogeniusNfsStorage(&job, r.ClusterProvider, &wg))
-// 		wg.Wait()
-// 		job.Finish()
-// 		return job
-// 	} else {
-// 		nfsStatus.Error = "Mogenius NFS storage has already been installed."
-// 		return nfsStatus
-// 	}
-// }
-
-// func UninstallMogeniusNfsStorage(r NfsStorageInstallRequest) interface{} {
-// 	var wg sync.WaitGroup
-// 	job := structs.CreateJob("Uninstall mogenius nfs-storage.", "", nil, nil)
-// 	job.Start()
-// 	job.AddCmds(mokubernetes.UninstallMogeniusNfsStorage(&job, &wg))
-// 	wg.Wait()
-// 	job.Finish()
-// 	return job
-// }
-
 func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, &r.NamespaceId, nil)
@@ -545,12 +519,12 @@ func ClusterGetPersistentVolumeExample() ClusterGetPersistentVolume {
 }
 
 type NfsStorageInstallRequest struct {
-	ClusterProvider string `json:"ClusterProvider"` // "BRING_YOUR_OWN", "EKS", "AKS", "GKE", "DOCKER_ENTERPRISE", "DOKS", "LINODE", "IBM", "ACK", "OKE", "OTC", "OPEN_SHIFT"
+	ClusterProvider punqDtos.KubernetesProvider `json:"clusterProvider"`
 }
 
 func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
 	return NfsStorageInstallRequest{
-		ClusterProvider: "AKS",
+		ClusterProvider: punqDtos.AKS,
 	}
 }
 
@@ -799,7 +773,7 @@ func UpdateSystemCheckStatusForClusterVendor(entries []punq.SystemCheckEntry) []
 		entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
 		entries = deleteSystemCheckEntryByName(entries, NameLocalDevSetup)
 	case punqDtos.UNKNOWN:
-		logger.Log.Errorf("Unknown CLusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
+		logger.Log.Errorf("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
 	}
 
 	return entries

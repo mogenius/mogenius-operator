@@ -10,6 +10,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+
+	punqDtos "github.com/mogenius/punq/dtos"
 )
 
 const APP_NAME = "k8s"
@@ -31,28 +33,29 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 	return defaultReturnValue
 }
 
-func StorageClassForClusterProvider(clusterProvider string) string {
+func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider) string {
 	var nfsStorageClassStr string = "default"
-	// TODO: "DOCKER_ENTERPRISE", "DOKS", "LINODE", "IBM", "ACK", "OKE", "OPEN_SHIFT"
+
 	switch clusterProvider {
-	case "EKS":
+	case punqDtos.EKS:
 		nfsStorageClassStr = "gp2"
-	case "GKE":
+	case punqDtos.GKE:
 		nfsStorageClassStr = "standard-rwo"
-	case "AKS":
+	case punqDtos.AKS:
 		nfsStorageClassStr = "default"
-	case "OTC":
+	case punqDtos.OTC:
 		nfsStorageClassStr = "csi-disk"
-	case "BRING_YOUR_OWN":
+	case punqDtos.BRING_YOUR_OWN:
 		nfsStorageClassStr = "default"
-	case "DOCKER_DESKTOP":
+	case punqDtos.DOCKER_DESKTOP, punqDtos.KIND:
 		nfsStorageClassStr = "hostpath"
-	case "K3S":
+	case punqDtos.K3S:
 		nfsStorageClassStr = "local-path"
 	default:
 		logger.Log.Errorf("CLUSTERPROVIDER '%s' HAS NOT BEEN TESTED YET! Returning 'default'.", clusterProvider)
 		nfsStorageClassStr = "default"
 	}
+
 	return nfsStorageClassStr
 }
 

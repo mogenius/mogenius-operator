@@ -118,7 +118,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan structs.BuildJ
 
 	// LOGIN
 	if buildJob.ContainerRegistryUser != "" && buildJob.ContainerRegistryPat != "" {
-		loginCmd := structs.CreateCommandFromBuildJob("Authentificate with container registry", buildJob)
+		loginCmd := structs.CreateCommandFromBuildJob("Authenticate with container registry", buildJob)
 		err = executeCmd(loginCmd, db.PREFIX_LOGIN, buildJob, nil, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", db.PREFIX_LOGIN, err.Error())
@@ -195,7 +195,7 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 			// LOGIN
 			if req.ContainerRegistryUser != nil && req.ContainerRegistryPat != nil {
 				if *req.ContainerRegistryUser != "" && *req.ContainerRegistryPat != "" {
-					loginCmd := structs.CreateCommand("Authentificating with container registry ...", &job)
+					loginCmd := structs.CreateCommand("Authenticate with container registry ...", &job)
 					job.AddCmd(loginCmd)
 					err := executeCmd(loginCmd, db.PREFIX_LOGIN, nil, &req.ContainerImage, true, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", req.ContainerRegistryPat, req.ContainerRegistryUrl, req.ContainerRegistryUser))
 					if err != nil {
