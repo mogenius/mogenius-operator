@@ -48,14 +48,16 @@ func _PvcMigration1() (string, error) {
 	}
 	pvs := punq.AllPersistentVolumesRaw("", nil)
 	for _, pv := range pvs {
-		if strings.HasPrefix(pv.Spec.ClaimRef.Name, utils.CONFIG.Misc.NfsPodPrefix) {
-			volumeName := strings.Replace(pv.Spec.ClaimRef.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
-			pv.Labels = kubernetes.MoAddLabels(&pv.Labels, map[string]string{
-				"mo-nfs-volume-identifier": pv.Spec.ClaimRef.Name,
-				"mo-nfs-volume-name":       volumeName,
-			})
-			punq.UpdateK8sPersistentVolume(pv, nil)
-			logger.Log.Info("Updated PV: ", pv.Name)
+		if pv.Spec.ClaimRef != nil {
+			if strings.HasPrefix(pv.Spec.ClaimRef.Name, utils.CONFIG.Misc.NfsPodPrefix) {
+				volumeName := strings.Replace(pv.Spec.ClaimRef.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
+				pv.Labels = kubernetes.MoAddLabels(&pv.Labels, map[string]string{
+					"mo-nfs-volume-identifier": pv.Spec.ClaimRef.Name,
+					"mo-nfs-volume-name":       volumeName,
+				})
+				punq.UpdateK8sPersistentVolume(pv, nil)
+				logger.Log.Info("Updated PV: ", pv.Name)
+			}
 		}
 	}
 
