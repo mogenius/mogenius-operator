@@ -25,5 +25,5 @@ func K8sServiceSettingsDtoExampleData() K8sServiceSettingsDto {
 }
 
 func (d *K8sServiceSettingsDto) IsLimitSetup() bool {
-	return d.LimitCpuCores != 0 || d.LimitMemoryMB != 0 || d.EphemeralStorageMB == 0
+	return d.LimitCpuCores != 0 || d.LimitMemoryMB != 0 || d.EphemeralStorageMB != 0
 }

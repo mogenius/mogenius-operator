@@ -254,18 +254,21 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 	}
 
 	// RESOURCES
-	limits := core.ResourceList{}
-	requests := core.ResourceList{}
 	if service.K8sSettings.IsLimitSetup() {
+		limits := core.ResourceList{}
+		requests := core.ResourceList{}
 		limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
 		limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
 		limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
-		requests["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*200)) // 20% of limit
-		requests["memory"] = resource.MustParse(fmt.Sprintf("%dMi", int(float64(service.K8sSettings.LimitMemoryMB)*0.7)))
+		requests["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*200))                 // 20% of limit
+		requests["memory"] = resource.MustParse(fmt.Sprintf("%dMi", int(float64(service.K8sSettings.LimitMemoryMB)*0.2))) // 20% of limit
 		requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+		newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = limits
+		newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests = requests
+	} else {
+		newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = nil
+		newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests = nil
 	}
-	newDeployment.Spec.Template.Spec.Containers[0].Resources.Limits = limits
-	newDeployment.Spec.Template.Spec.Containers[0].Resources.Requests = requests
 
 	newDeployment.Spec.Template.Spec.Containers[0].Name = service.Name
 
