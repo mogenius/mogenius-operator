@@ -117,6 +117,7 @@ func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kube
 		selector := metav1.FormatLabelSelector(labelSelector)
 		pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
 			LabelSelector: selector,
+			FieldSelector: "status.phase!=Succeeded",
 		})
 
 		if err != nil {
