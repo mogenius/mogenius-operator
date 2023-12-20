@@ -31,9 +31,10 @@ func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
 	for _, pvc := range pvcList.Items {
 		if strings.HasPrefix(pvc.Name, utils.CONFIG.Misc.NfsPodPrefix) {
 			capacity := pvc.Spec.Resources.Requests[v1.ResourceStorage]
+			volName := strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
 			result = append(result, structs.Volume{
 				Namespace:  pvc.Namespace,
-				VolumeName: pvc.Name,
+				VolumeName: volName,
 				SizeInGb:   int(capacity.Value() / 1024 / 1024 / 1024),
 			})
 		}
