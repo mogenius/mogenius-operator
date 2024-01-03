@@ -499,37 +499,37 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = services.K8sUpdateNetworkPolicyExample()
 
 		case services.PAT_DELETE_NAMESPACE:
-			payload = services.K8sDeleteNamespaceRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_DEPLOYMENT:
-			payload = services.K8sDeleteDeploymentRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_SERVICE:
-			payload = services.K8sDeleteServiceRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_POD:
-			payload = services.K8sDeletePodRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_INGRESS:
-			payload = services.K8sDeleteIngressRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_CONFIGMAP:
-			payload = services.K8sDeleteConfigmapRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_SECRET:
-			payload = services.K8sDeleteSecretRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_DAEMONSET:
-			payload = services.K8sDeleteDaemonsetRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_STATEFULSET:
-			payload = services.K8sDeleteStatefulsetRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_JOB:
-			payload = services.K8sDeleteJobRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_CRONJOB:
-			payload = services.K8sDeleteCronjobRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_REPLICASET:
-			payload = services.K8sDeleteReplicaSetRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_PERSISTENT_VOLUME:
-			payload = services.K8sDeletePersistentVolumeRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_PERSISTENT_VOLUME_CLAIM:
-			payload = services.K8sDeletePersistentVolumeClaimRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_NETWORK_POLICY:
-			payload = services.K8sDeleteNetworkPolicyExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_STORAGE_CLASS:
-			payload = services.K8sDeleteStorageClassExample()
+			payload = services.K8sDeleteResourceRequestExample()
 
 		case services.PAT_BUILDER_STATUS:
 			payload = nil

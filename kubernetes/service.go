@@ -360,3 +360,27 @@ func generateService(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto)
 
 	return newService
 }
+
+func ServiceWithLabels(labelSelector string, contextId *string) *v1.Service {
+	provider, err := punq.NewKubeProvider(contextId)
+	if err != nil {
+		logger.Log.Errorf("ServiceWith ERROR: %s", err.Error())
+		return nil
+	}
+	serviceClient := provider.ClientSet.CoreV1().Services("")
+	service, err := serviceClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		logger.Log.Errorf("ServiceFor ERROR: %s", err.Error())
+		return nil
+	}
+
+	if len(service.Items) == 1 {
+		return &service.Items[0]
+	} else if len(service.Items) > 1 {
+		logger.Log.Errorf("ServiceFor ERR: More (%d) than one service found for '%s'. Returning first one.", len(service.Items), labelSelector)
+		return &service.Items[0]
+	} else {
+		logger.Log.Errorf("ServiceFor ERR: No service found for labelsSelector '%s'.", labelSelector)
+		return nil
+	}
+}

@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/db"
+	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,6 +47,7 @@ const (
 	NameTrafficCollector          = "mogenius-traffic-collector"
 	NameClusterIssuer             = "clusterissuer"
 	NameCertManagerName           = "cert-manager"
+	NameKepler                    = "Kepler"
 )
 
 func UpgradeK8sManager(r K8sManagerUpgradeRequest) structs.Job {
@@ -638,6 +641,59 @@ var ingressCtrlStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var distriRegistryStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var metallbStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
 var clusterIssuerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+var keplerStatus punq.SystemCheckStatus = punq.UNKNOWN_STATUS
+
+var keplerHostAndPort string = ""
+
+var energyConsumptionCollectionInProgress bool = false
+
+func EnergyConsumption() []structs.EnergyConsumptionResponse {
+	if energyConsumptionCollectionInProgress {
+		return structs.CurrentEnergyConsumptionResponse
+	}
+
+	if keplerHostAndPort == "" {
+		keplerservice := kubernetes.ServiceWithLabels("app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler", nil)
+		if keplerservice != nil {
+			keplerHostAndPort = fmt.Sprintf("%s:%d", keplerservice.Spec.ClusterIP, keplerservice.Spec.Ports[0].Port)
+		} else {
+			logger.Log.Errorf("EnergyConsumption Err: kepler service not found.")
+			return structs.CurrentEnergyConsumptionResponse
+		}
+	}
+	if structs.KeplerDaemonsetRunningSince == 0 {
+		keplerPod := kubernetes.KeplerPod()
+		if keplerPod != nil && keplerPod.Status.StartTime != nil {
+			structs.KeplerDaemonsetRunningSince = keplerPod.Status.StartTime.Time.Unix()
+		}
+	}
+
+	go func() {
+		energyConsumptionCollectionInProgress = true
+		structs.CurrentEnergyConsumptionResponse = make([]structs.EnergyConsumptionResponse, structs.EnergyConsumptionResponseSize)
+		for i := 0; i < structs.EnergyConsumptionResponseSize; i++ {
+			// download the data
+			response, err := http.Get(fmt.Sprintf("http://%s/metrics", keplerHostAndPort))
+			if err != nil {
+				logger.Log.Errorf("EnergyConsumption Err: %s", err.Error())
+				return
+			}
+			defer response.Body.Close()
+			data, err := io.ReadAll(response.Body)
+			if err != nil {
+				logger.Log.Errorf("EnergyConsumptionRead Err: %s", err.Error())
+				return
+			}
+
+			// parse the data
+			structs.CreateEnergyConsumptionResponse(string(data), i)
+			time.Sleep(structs.EnergyConsumptionTimeInterval * time.Second)
+		}
+		energyConsumptionCollectionInProgress = false
+	}()
+
+	return structs.CurrentEnergyConsumptionResponse
+}
 
 func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
@@ -726,6 +782,19 @@ func SystemCheck() punq.SystemCheckResponse {
 		metallbEntry.Status = metallbStatus
 	}
 	entries = append(entries, metallbEntry)
+
+	keplerVersion, keplerInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, "kepler")
+	keplerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameKepler, keplerVersion)
+	if keplerInstalledErr != nil {
+		keplerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler, contextName)
+	}
+	keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, false)
+	keplerEntry.InstallPattern = PAT_INSTALL_KEPLER
+	keplerEntry.UninstallPattern = PAT_UNINSTALL_KEPLER
+	if keplerStatus != punq.UNKNOWN_STATUS {
+		keplerEntry.Status = keplerStatus
+	}
+	entries = append(entries, keplerEntry)
 
 	clusterIps := punq.GetClusterExternalIps(nil)
 	localDevEnvMsg := "Local development environment setup complete (192.168.66.1 found)."
@@ -967,6 +1036,25 @@ func InstallMetalLb() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
+func InstallKepler() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "kepler",
+		HelmRepoUrl:     "https://sustainable-computing-io.github.io/kepler-helm-chart",
+		HelmReleaseName: "kepler",
+		HelmChartName:   "kepler/kepler",
+		HelmFlags:       fmt.Sprintf(`--namespace %s --set global.namespace="%s" --set extraEnvVars.EXPOSE_IRQ_COUNTER_METRICS="false" --set extraEnvVars.EXPOSE_KUBELET_METRICS="false" --set extraEnvVars.ENABLE_PROCESS_METRICS="false"`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        structs.HelmInstall,
+	}
+	keplerStatus = punq.INSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, false, &keplerStatus, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
 func InstallClusterIssuer(email string) string {
 	// helm install clusterissuer mogenius/mogenius-cluster-issuer --set global.clusterissuermail="ruediger@mogenius.com" --set global.ingressclass="traefik"
 
@@ -1119,6 +1207,25 @@ func UninstallMetalLb() string {
 	}
 	metallbStatus = punq.UNINSTALLING
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &metallbStatus, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
+func UninstallKepler() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "kepler",
+		HelmRepoUrl:     "https://sustainable-computing-io.github.io/kepler-helm-chart",
+		HelmReleaseName: "kepler",
+		HelmChartName:   "",
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        structs.HelmUninstall,
+	}
+	keplerStatus = punq.UNINSTALLING
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, true, &keplerStatus, func() {
 		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
 	}, func(output string, err error) {
 		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)

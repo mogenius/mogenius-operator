@@ -2,7 +2,7 @@ package socketclient
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
@@ -236,7 +236,7 @@ func getVersionData() (*punqStructs.HelmData, error) {
 	}
 	defer response.Body.Close()
 
-	data, _ := ioutil.ReadAll(response.Body)
+	data, _ := io.ReadAll(response.Body)
 	var helmData punqStructs.HelmData
 	err = yaml.Unmarshal(data, &helmData)
 	if err != nil {

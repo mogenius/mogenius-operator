@@ -20,6 +20,7 @@ const (
 	PAT_INSTALL_CLUSTER_ISSUER               string = "install-cluster-issuer"
 	PAT_INSTALL_CONTAINER_REGISTRY           string = "install-container-registry"
 	PAT_INSTALL_METALLB                      string = "install-metallb"
+	PAT_INSTALL_KEPLER                       string = "install-kepler"
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR          string = "uninstall-traffic-collector"
 	PAT_UNINSTALL_POD_STATS_COLLECTOR        string = "uninstall-pod-stats-collector"
 	PAT_UNINSTALL_METRICS_SERVER             string = "uninstall-metrics-server"
@@ -28,6 +29,7 @@ const (
 	PAT_UNINSTALL_CLUSTER_ISSUER             string = "uninstall-cluster-issuer"
 	PAT_UNINSTALL_CONTAINER_REGISTRY         string = "uninstall-container-registry"
 	PAT_UNINSTALL_METALLB                    string = "uninstall-metallb"
+	PAT_UNINSTALL_KEPLER                     string = "uninstall-kepler"
 
 	PAT_FILES_LIST          string = "files/list"
 	PAT_FILES_DOWNLOAD      string = "files/download"
@@ -41,6 +43,7 @@ const (
 	PAT_CLUSTER_UNINSTALL_HELM_CHART    string = "cluster/uninstall-helm-chart"
 	PAT_CLUSTER_TCP_UDP_CONFIGURATION   string = "cluster/tcp-udp-configuration"
 	PAT_CLUSTER_BACKUP                  string = "cluster/backup"
+	PAT_ENERGY_CONSUMPTION              string = "cluster/energy-consumption"
 
 	PAT_CLUSTER_WRITE_CONFIGMAP               string = "cluster/write-configmap"
 	PAT_CLUSTER_READ_CONFIGMAP                string = "cluster/read-configmap"
@@ -350,6 +353,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_INSTALL_CLUSTER_ISSUER,
 	PAT_INSTALL_CONTAINER_REGISTRY,
 	PAT_INSTALL_METALLB,
+	PAT_INSTALL_KEPLER,
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR,
 	PAT_UNINSTALL_POD_STATS_COLLECTOR,
 	PAT_UNINSTALL_METRICS_SERVER,
@@ -358,6 +362,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_UNINSTALL_CLUSTER_ISSUER,
 	PAT_UNINSTALL_CONTAINER_REGISTRY,
 	PAT_UNINSTALL_METALLB,
+	PAT_UNINSTALL_KEPLER,
 
 	PAT_FILES_LIST,
 	PAT_FILES_DOWNLOAD,
@@ -371,6 +376,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_UNINSTALL_HELM_CHART,
 	PAT_CLUSTER_TCP_UDP_CONFIGURATION,
 	PAT_CLUSTER_BACKUP,
+	PAT_ENERGY_CONSUMPTION,
 	PAT_CLUSTER_WRITE_CONFIGMAP,
 	PAT_CLUSTER_READ_CONFIGMAP,
 	PAT_CLUSTER_LIST_CONFIGMAPS,

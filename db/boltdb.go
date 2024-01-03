@@ -30,6 +30,8 @@ const (
 	PREFIX_VUL_SCAN = "scan"
 
 	PREFIX_CLEANUP = "cleanup"
+
+	MAX_ENTRY_LENGTH = 1024 * 1024 * 50 // 50 MB
 )
 
 var db *bolt.DB
@@ -364,7 +366,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 	return int(nextBuildId), err
 }
 
-func SaveScanResult(state structs.BuildJobStateEnum, cmdOutput []byte, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
+func SaveScanResult(state structs.BuildJobStateEnum, cmdOutput string, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
 		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)
@@ -376,7 +378,7 @@ func SaveScanResult(state structs.BuildJobStateEnum, cmdOutput []byte, startTime
 	return err
 }
 
-func SaveBuildResult(state structs.BuildJobStateEnum, prefix string, cmdOutput []byte, startTime time.Time, job *structs.BuildJob) error {
+func SaveBuildResult(state structs.BuildJobStateEnum, prefix string, cmdOutput string, startTime time.Time, job *structs.BuildJob) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)
@@ -446,4 +448,20 @@ func IsMigrationAlreadyApplied(name string) bool {
 		return fmt.Errorf("Not migration found for name '%s'.", name)
 	})
 	return err == nil
+}
+
+func AppendToKey(bucket string, key string, value string) error {
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucket))
+		rawData := bucket.Get([]byte(key))
+		if len(rawData) > 0 {
+			if len(rawData) > MAX_ENTRY_LENGTH {
+				return fmt.Errorf("Entry for key '%s' is too long (%d is the limit).", key, MAX_ENTRY_LENGTH)
+			}
+			rawData = append(rawData, []byte(value)...)
+			return bucket.Put([]byte(key), rawData)
+		}
+		return fmt.Errorf("Not key found for name '%s'.", key)
+	})
+	return err
 }

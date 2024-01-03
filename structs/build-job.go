@@ -53,7 +53,7 @@ type BuildJob struct {
 	ContainerRegistryUrl  string            `json:"containerRegistryUrl"`
 	StartTimestamp        string            `json:"startTimestamp"`
 	EndTimestamp          string            `json:"endTimestamp"`
-	InjectDockerEnvVars   string            `json:"injectDockerEnvVars" validate:"required"`
+	InjectDockerEnvVars   string            `json:"injectDockerEnvVars"`
 	State                 BuildJobStateEnum `json:"state"`
 	StartedAt             string            `json:"startedAt"`
 	DurationMs            int               `json:"durationMs"`
@@ -284,10 +284,10 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 	return result
 }
 
-func CreateBuildJobInfoEntryBytes(state BuildJobStateEnum, cmdOutput []byte, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
+func CreateBuildJobInfoEntryBytes(state BuildJobStateEnum, cmdOutput string, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
 	entry := BuildJobInfoEntry{
 		State:      state,
-		Result:     string(cmdOutput),
+		Result:     cmdOutput,
 		StartTime:  startTime.Format(time.RFC3339),
 		FinishTime: finishTime.Format(time.RFC3339),
 	}

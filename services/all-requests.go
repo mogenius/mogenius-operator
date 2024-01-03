@@ -57,6 +57,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 
 	case PAT_SYSTEM_CHECK:
 		return SystemCheck()
+	case PAT_ENERGY_CONSUMPTION:
+		return EnergyConsumption()
 
 	case PAT_INSTALL_LOCAL_DEV_COMPONENTS:
 		data := ClusterIssuerInstallRequest{}
@@ -86,6 +88,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return InstallContainerRegistry()
 	case PAT_INSTALL_METALLB:
 		return InstallMetalLb()
+	case PAT_INSTALL_KEPLER:
+		return InstallKepler()
 	case PAT_UNINSTALL_TRAFFIC_COLLECTOR:
 		return UninstallTrafficCollector()
 	case PAT_UNINSTALL_POD_STATS_COLLECTOR:
@@ -102,6 +106,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return UninstallContainerRegistry()
 	case PAT_UNINSTALL_METALLB:
 		return UninstallMetalLb()
+	case PAT_UNINSTALL_KEPLER:
+		return UninstallKepler()
 
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}
@@ -1189,201 +1195,201 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return punq.UpdateK8sResourceQuota(*data.Data, nil)
 
 	case PAT_DELETE_NAMESPACE:
-		data := K8sDeleteNamespaceRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteNamespace(data)
 	case PAT_DELETE_DEPLOYMENT:
-		data := K8sDeleteDeploymentRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteDeployment(data)
 	case PAT_DELETE_SERVICE:
-		data := K8sDeleteServiceRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteService(data)
 	case PAT_DELETE_POD:
-		data := K8sDeletePodRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeletePod(data)
 	case PAT_DELETE_INGRESS:
-		data := K8sDeleteIngressRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteIngress(data)
 	case PAT_DELETE_CONFIGMAP:
-		data := K8sDeleteConfigmapRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteConfigMap(data)
 	case PAT_DELETE_SECRET:
-		data := K8sDeleteSecretRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteSecret(data)
 	case PAT_DELETE_DAEMONSET:
-		data := K8sDeleteDaemonsetRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteDaemonSet(data)
 	case PAT_DELETE_STATEFULSET:
-		data := K8sDeleteStatefulsetRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteStatefulset(data)
 	case PAT_DELETE_JOB:
-		data := K8sDeleteJobRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteJob(data)
 	case PAT_DELETE_CRONJOB:
-		data := K8sDeleteCronjobRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteCronJob(data)
 	case PAT_DELETE_REPLICASET:
-		data := K8sDeleteReplicasetRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		return K8sDeleteReplicaSet(data)
 	case PAT_DELETE_PERSISTENT_VOLUME:
-		data := K8sDeletePersistentVolumeRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sPersistentVolume(*data.Data, nil)
+		return punq.DeleteK8sPersistentVolumeBy(data.Name, nil)
 	case PAT_DELETE_PERSISTENT_VOLUME_CLAIM:
-		data := K8sDeletePersistentVolumeClaimRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sPersistentVolumeClaim(*data.Data, nil)
+		return punq.DeleteK8sPersistentVolumeClaimBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_HORIZONTAL_POD_AUTOSCALERS:
-		data := K8sDeleteHPARequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sHpa(*data.Data, nil)
+		return punq.DeleteK8sHpaBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_CERTIFICATES:
-		data := K8sDeleteCertificateRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sCertificate(*data.Data, nil)
+		return punq.DeleteK8sCertificateBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_CERTIFICATEREQUESTS:
-		data := K8sDeleteCertificateRequestRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sCertificateSigningRequest(*data.Data, nil)
+		return punq.DeleteK8sCertificateSigningRequestBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_ORDERS:
-		data := K8sDeleteOrderRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sOrder(*data.Data, nil)
+		return punq.DeleteK8sOrderBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_ISSUERS:
-		data := K8sDeleteIssuerRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sIssuer(*data.Data, nil)
+		return punq.DeleteK8sIssuerBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_CLUSTERISSUERS:
-		data := K8sDeleteClusterIssuerRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sClusterIssuer(*data.Data, nil)
+		return punq.DeleteK8sClusterIssuerBy(data.Name, nil)
 	case PAT_DELETE_SERVICE_ACCOUNT:
-		data := K8sDeleteServiceAccountRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sServiceAccount(*data.Data, nil)
+		return punq.DeleteK8sServiceAccountBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_ROLE:
-		data := K8sDeleteRoleRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sRole(*data.Data, nil)
+		return punq.DeleteK8sRoleBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_ROLE_BINDING:
-		data := K8sDeleteRoleBindingRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sRoleBinding(*data.Data, nil)
+		return punq.DeleteK8sRoleBindingBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_CLUSTER_ROLE:
-		data := K8sDeleteClusterRoleRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sClusterRole(*data.Data, nil)
+		return punq.DeleteK8sClusterRoleBy(data.Name, nil)
 	case PAT_DELETE_CLUSTER_ROLE_BINDING:
-		data := K8sDeleteClusterRoleBindingRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sClusterRoleBinding(*data.Data, nil)
+		return punq.DeleteK8sClusterRoleBindingBy(data.Name, nil)
 	case PAT_DELETE_VOLUME_ATTACHMENT:
-		data := K8sDeleteVolumeAttachmentRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sVolumeAttachment(*data.Data, nil)
+		return punq.DeleteK8sVolumeAttachmentBy(data.Name, nil)
 	case PAT_DELETE_NETWORK_POLICY:
-		data := K8sDeleteNetworkPolicyRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sNetworkPolicy(*data.Data, nil)
+		return punq.DeleteK8sNetworkPolicyBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_STORAGE_CLASS:
-		data := K8sDeleteStorageClassRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sStorageClass(*data.Data, nil)
+		return punq.DeleteK8sStorageClassBy(data.Name, nil)
 	case PAT_DELETE_CUSTOM_RESOURCE_DEFINITIONS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -1393,26 +1399,26 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		// TODO: sdk not giving crds. on hold
 		return nil
 	case PAT_DELETE_ENDPOINTS:
-		data := K8sDeleteEndpointRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sEndpoint(*data.Data, nil)
+		return punq.DeleteK8sEndpointBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_LEASES:
-		data := K8sDeleteLeaseRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sLease(*data.Data, nil)
+		return punq.DeleteK8sLeaseBy(data.Namespace, data.Name, nil)
 	case PAT_DELETE_PRIORITYCLASSES:
-		data := K8sDeletePriorityClassRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sPriorityClass(*data.Data, nil)
+		return punq.DeleteK8sPriorityClassBy(data.Name, nil)
 	case PAT_DELETE_VOLUMESNAPSHOTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -1422,12 +1428,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		// TODO: sdk not giving crds. on hold
 		return nil
 	case PAT_DELETE_RESOURCEQUOTAS:
-		data := K8sDeleteResourceQuotaRequest{}
+		data := K8sDeleteResourceRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.DeleteK8sResourceQuota(*data.Data, nil)
+		return punq.DeleteK8sResourceQuotaBy(data.Namespace, data.Name, nil)
 
 	case PAT_GET_NAMESPACE:
 		data := K8sDescribeRequest{}
