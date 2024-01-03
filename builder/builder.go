@@ -516,7 +516,7 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 	data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, line)
 	// send start-signal when first line is received
 	if lineNumber == 0 {
-		data = structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, "####START####")
+		structs.EventServerSendData(structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, "####START####"), "", "", "", 0)
 	}
 	structs.EventServerSendData(data, "", "", "", 0)
 }
