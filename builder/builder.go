@@ -509,7 +509,8 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, line string,
 		}
 	}
 	// send notification
-	data := structs.CreateDatagramBuildLogs(job.Namespace, job.ServiceName, job.ProjectId, line)
+	cleanPrefix := prefix[:strings.LastIndex(prefix, "-")] + prefix[strings.LastIndex(prefix, "-")+1:]
+	data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, line)
 	structs.EventServerSendData(data, "", "", "", 0)
 }
 

@@ -19,7 +19,7 @@ const (
 	LOG_BUCKET_NAME       = "mogenius-logs"
 	MIGRATION_BUCKET_NAME = "mogenius-migrations"
 
-	PREFIX_GIT_CLONE = "git-clone-"
+	PREFIX_GIT_CLONE = "clone-"
 	PREFIX_LS        = "ls-"
 	PREFIX_LOGIN     = "login-"
 	PREFIX_BUILD     = "build-"
