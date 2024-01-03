@@ -457,14 +457,17 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 	// Collecting the output
 	go func() {
 		scanner := bufio.NewScanner(stdout)
+		lineCounter := 0
 		for scanner.Scan() {
-			processLine(enableTimestamp, saveLog, prefix, scanner.Text(), job, containerImageName, startTime, reportCmd, &cmdOutput)
+			processLine(enableTimestamp, saveLog, prefix, lineCounter, scanner.Text(), job, containerImageName, startTime, reportCmd, &cmdOutput)
 		}
 	}()
 	go func() {
 		scanner := bufio.NewScanner(stdErr)
+		lineCounter := 0
 		for scanner.Scan() {
-			processLine(enableTimestamp, saveLog, prefix, scanner.Text(), job, containerImageName, startTime, reportCmd, &cmdOutput)
+			processLine(enableTimestamp, saveLog, prefix, lineCounter, scanner.Text(), job, containerImageName, startTime, reportCmd, &cmdOutput)
+			lineCounter++
 		}
 	}()
 
@@ -491,7 +494,7 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 	return nil
 }
 
-func processLine(enableTimestamp bool, saveLog bool, prefix string, line string, job *structs.BuildJob, containerImageName *string, startTime time.Time, reportCmd *structs.Command, cmdOutput *strings.Builder) {
+func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber int, line string, job *structs.BuildJob, containerImageName *string, startTime time.Time, reportCmd *structs.Command, cmdOutput *strings.Builder) {
 	if enableTimestamp {
 		cmdOutput.WriteString(time.Now().Format(time.DateTime) + ": ")
 	}
@@ -511,6 +514,10 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, line string,
 	// send notification
 	cleanPrefix := prefix[:strings.LastIndex(prefix, "-")] + prefix[strings.LastIndex(prefix, "-")+1:]
 	data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, line)
+	// send start-signal when first line is received
+	if lineNumber == 0 {
+		data = structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, "####START####")
+	}
 	structs.EventServerSendData(data, "", "", "", 0)
 }
 
