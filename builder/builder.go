@@ -146,7 +146,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan structs.BuildJ
 		done <- structs.BuildJobStateFailed
 		return
 	}
-	err = executeCmd(pushCmd, db.PREFIX_PUSH, buildJob, nil, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
+	err = executeCmd(pushCmd, db.PREFIX_PUSH, buildJob, nil, false, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", db.PREFIX_PUSH, err.Error())
 		done <- structs.BuildJobStateFailed
@@ -460,6 +460,7 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 		lineCounter := 0
 		for scanner.Scan() {
 			processLine(enableTimestamp, saveLog, prefix, lineCounter, scanner.Text(), job, containerImageName, startTime, reportCmd, &cmdOutput)
+			lineCounter++
 		}
 	}()
 	go func() {
@@ -510,15 +511,16 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 		} else {
 			db.SaveScanResult(structs.BuildJobStateEnum(reportCmd.State), cmdOutput.String(), startTime, *containerImageName, job)
 		}
+
+		// send notification
+		cleanPrefix := prefix[:strings.LastIndex(prefix, "-")] + prefix[strings.LastIndex(prefix, "-")+1:]
+		data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, line)
+		// send start-signal when first line is received
+		if lineNumber == 0 {
+			structs.EventServerSendData(structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, "####START####"), "", "", "", 0)
+		}
+		structs.EventServerSendData(data, "", "", "", 0)
 	}
-	// send notification
-	cleanPrefix := prefix[:strings.LastIndex(prefix, "-")] + prefix[strings.LastIndex(prefix, "-")+1:]
-	data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, line)
-	// send start-signal when first line is received
-	if lineNumber == 0 {
-		structs.EventServerSendData(structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, "####START####"), "", "", "", 0)
-	}
-	structs.EventServerSendData(data, "", "", "", 0)
 }
 
 func updateDeploymentImage(reportCmd *structs.Command, job *structs.BuildJob, imageName string) error {

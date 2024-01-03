@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	uuid "github.com/satori/go.uuid"
 )
@@ -101,7 +100,7 @@ func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGro
 	return cmd
 }
 
-func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool, status *punq.SystemCheckStatus, successFunc func(), failFunc func(output string, err error)) {
+func CreateBashCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
 		output, err := exec.Command("bash", "-c", shellCmd).Output()
 		fmt.Println(string(shellCmd))
@@ -111,23 +110,16 @@ func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool
 			errorMsg := string(exitErr.Stderr)
 			logger.Log.Error(shellCmd)
 			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
-			*status = punq.NOT_INSTALLED
 			if failFunc != nil {
 				failFunc(string(output), exitErr)
 			}
 		} else if err != nil {
 			logger.Log.Error("exec.Command: %s", err.Error())
-			*status = punq.NOT_INSTALLED
 			if failFunc != nil {
 				failFunc(string(output), err)
 			}
 		} else {
 			logger.Log.Noticef("SUCCESS: %s", shellCmd)
-			if uninstalling {
-				*status = punq.NOT_INSTALLED
-			} else {
-				*status = punq.INSTALLED
-			}
 			if successFunc != nil {
 				successFunc()
 			}
