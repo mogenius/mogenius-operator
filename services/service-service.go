@@ -446,7 +446,7 @@ func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
 }
 
 type K8sListRequest struct {
-	NamespaceName string `json:"namespaceName" validate:"required"` // empty string for all namespaces
+	NamespaceName string `json:"namespaceName"` // empty string for all namespaces
 }
 
 func K8sListRequestExample() K8sListRequest {
