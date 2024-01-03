@@ -56,6 +56,21 @@ func CreateDatagram(pattern string) Datagram {
 	return datagram
 }
 
+func CreateDatagramBuildLogs(namespace string, serviceName string, projectId string, line string) Datagram {
+	datagram := Datagram{
+		Id:      uuid.New().String(),
+		Pattern: "build-logs-notification",
+		Payload: map[string]interface{}{
+			"namespace":   namespace,
+			"serviceName": serviceName,
+			"projectId":   projectId,
+			"line":        line,
+		},
+		CreatedAt: time.Now(),
+	}
+	return datagram
+}
+
 func CreateDatagramAck(pattern string, id string) Datagram {
 	datagram := Datagram{
 		Id:        id,

@@ -508,6 +508,9 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, line string,
 			db.SaveScanResult(structs.BuildJobStateEnum(reportCmd.State), cmdOutput.String(), startTime, *containerImageName, job)
 		}
 	}
+	// send notification
+	data := structs.CreateDatagramBuildLogs(job.Namespace, job.ServiceName, job.ProjectId, line)
+	structs.EventServerSendData(data, "", "", "", 0)
 }
 
 func updateDeploymentImage(reportCmd *structs.Command, job *structs.BuildJob, imageName string) error {
