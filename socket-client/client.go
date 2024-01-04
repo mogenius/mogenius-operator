@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -65,6 +66,10 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	var preparedFileRequest *services.FilesUploadRequest
 	var openFile *os.File
 	bar := progressbar.DefaultSilent(0)
+
+	maxGoroutines := 10
+	semaphoreChan := make(chan struct{}, maxGoroutines)
+	var wg sync.WaitGroup
 
 	defer func() {
 		close(done)
@@ -133,10 +138,15 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				if punqUtils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
 					// ####### COMMAND
+					semaphoreChan <- struct{}{}
+
+					wg.Add(1)
 					go func() {
+						defer wg.Done()
 						responsePayload := services.ExecuteCommandRequest(datagram)
 						result := structs.CreateDatagramRequest(datagram, responsePayload)
 						result.Send()
+						<-semaphoreChan
 					}()
 				} else if punqUtils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 					preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)

@@ -27,7 +27,7 @@ import (
 var loadTestStartTime time.Time
 var loadTestPattern string = "list/pods"
 var loadTestTotalBytes int64 = 0
-var loadTestRequests int = 10000
+var loadTestRequests int = 1000
 var loadTestReceived int = 0
 
 var upgrader = websocket.Upgrader{
@@ -154,13 +154,13 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 							logger.Log.Error(err.Error())
 						}
 					} else if datagram.Pattern != "KubernetesEvent" {
-						RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
-						fmt.Printf("%s\n", RECEIVCOLOR(punqUtils.FillWith("RECEIVED", 22, " ")))
-						datagram.DisplayBeautiful()
-
 						if datagram.Pattern == loadTestPattern {
 							loadTestTotalBytes += datagram.GetSize()
 							loadTestReceived++
+						} else {
+							RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
+							fmt.Printf("%s\n", RECEIVCOLOR(punqUtils.FillWith("RECEIVED", 22, " ")))
+							datagram.DisplayBeautiful()
 						}
 						if loadTestReceived > 0 {
 							fmt.Printf("Result (%d): %s / %s \n", loadTestReceived, time.Since(loadTestStartTime), punqUtils.BytesToHumanReadable(loadTestTotalBytes))
