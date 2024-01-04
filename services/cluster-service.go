@@ -12,6 +12,7 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/http"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -847,6 +848,17 @@ func UpdateSystemCheckStatusForClusterVendor(entries []punq.SystemCheckEntry) []
 		entries = deleteSystemCheckEntryByName(entries, NameLocalDevSetup)
 	case punqDtos.UNKNOWN:
 		logger.Log.Errorf("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
+	}
+
+	// if public IP is available we skip metallLB
+	nodes := kubernetes.ListNodes()
+	for _, node := range nodes {
+		for _, addr := range node.Status.Addresses {
+			ip, err := netip.ParseAddr(addr.Address)
+			if err == nil && !ip.IsPrivate() && ip.Is4() {
+				entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
+			}
+		}
 	}
 
 	return entries
