@@ -30,7 +30,7 @@ func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			return
 		}
 		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
-		newService := generateService(namespace, service)
+		newService := generateService(nil, namespace, service)
 
 		newService.Labels = MoUpdateLabels(&newService.Labels, job.ProjectId, &namespace, &service)
 
@@ -88,7 +88,11 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			return
 		}
 		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
-		updateService := generateService(namespace, service)
+		existingService, getSrvErr := serviceClient.Get(context.TODO(), service.Name, metav1.GetOptions{})
+		if getSrvErr != nil {
+			existingService = nil
+		}
+		updateService := generateService(existingService, namespace, service)
 
 		updateOptions := metav1.UpdateOptions{
 			FieldManager: DEPLOYMENTNAME,
@@ -97,11 +101,24 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		// bind/unbind ports globally
 		UpdateTcpUdpPorts(namespace, service, true)
 
-		_, err = serviceClient.Update(context.TODO(), &updateService, updateOptions)
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()))
+		if len(updateService.Spec.Ports) <= 0 {
+			if getSrvErr == nil {
+				err := serviceClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("UpdateService (Delete) ERROR: %s", err.Error()))
+				} else {
+					cmd.Success(fmt.Sprintf("Updated service '%s'.", namespace.Name))
+				}
+			} else {
+				cmd.Success(fmt.Sprintf("Updated service '%s'.", namespace.Name))
+			}
 		} else {
-			cmd.Success(fmt.Sprintf("Updated service '%s'.", namespace.Name))
+			_, err = serviceClient.Update(context.TODO(), &updateService, updateOptions)
+			if err != nil {
+				cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()))
+			} else {
+				cmd.Success(fmt.Sprintf("Updated service '%s'.", namespace.Name))
+			}
 		}
 	}(cmd, wg)
 	return cmd
@@ -328,12 +345,17 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 	return cmd
 }
 
-func generateService(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) v1.Service {
-	newService := punqUtils.InitService()
-	newService.ObjectMeta.Name = service.Name
-	newService.ObjectMeta.Namespace = namespace.Name
+func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) v1.Service {
+	newService := existingService
+	if newService == nil {
+		newService = &v1.Service{}
+		newService.ObjectMeta.Name = service.Name
+		newService.ObjectMeta.Namespace = namespace.Name
+		newService.Spec.Selector = make(map[string]string)
+		newService.Spec.Selector["app"] = service.Name
+	}
+	newService.Spec.Ports = []v1.ServicePort{} // reset before using
 	if len(service.Ports) > 0 {
-		newService.Spec.Ports = []v1.ServicePort{} // reset before using
 		for _, port := range service.Ports {
 			if port.PortType == "HTTPS" {
 				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
@@ -356,9 +378,8 @@ func generateService(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto)
 			}
 		}
 	}
-	newService.Spec.Selector["app"] = service.Name
 
-	return newService
+	return *newService
 }
 
 func ServiceWithLabels(labelSelector string, contextId *string) *v1.Service {
