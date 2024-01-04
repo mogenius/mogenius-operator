@@ -8,3 +8,5 @@ backup.yaml
 mogenius.db
 CHANGELOG.md
 .idea/
+.envrc
+kube-config

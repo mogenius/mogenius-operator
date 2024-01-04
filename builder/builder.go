@@ -425,7 +425,7 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 	// arg = append([]string{"nice -n 10"}, arg...)
 
 	// TIMESTAMP EVERY LINE
-	// if utils.CONFIG.Misc.Stage != "local" {
+	// if utils.CONFIG.Misc.Stage != utils.STAGE_LOCAL {
 	// 	// PREFIX LINE BUFFER (otherwise the timestamp will be set only in the first line)
 	// 	arg[len(arg)-1] = fmt.Sprintf("%s %s", "stdbuf -oL", arg[len(arg)-1])
 	// }

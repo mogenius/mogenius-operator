@@ -660,6 +660,10 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 			logger.Log.Errorf("EnergyConsumption Err: kepler service not found.")
 			return structs.CurrentEnergyConsumptionResponse
 		}
+		if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
+			logger.Log.Notice("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
+			keplerHostAndPort = "192.168.178.132:9102"
+		}
 	}
 	if structs.KeplerDaemonsetRunningSince == 0 {
 		keplerPod := kubernetes.KeplerPod()

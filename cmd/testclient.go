@@ -27,7 +27,7 @@ var testClientCmd = &cobra.Command{
 		// INIT MOUNTS
 		if utils.CONFIG.Misc.AutoMountNfs {
 			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
-			if err != nil && utils.CONFIG.Misc.Stage != "local" {
+			if err != nil && utils.CONFIG.Misc.Stage != utils.STAGE_LOCAL {
 				logger.Log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
 			}
 			for _, vol := range volumesToMount {

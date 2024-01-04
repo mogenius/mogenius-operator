@@ -21,6 +21,10 @@ type ClusterSecret struct {
 	ClusterName  string
 }
 
+const STAGE_DEV = "dev"
+const STAGE_PROD = "prod"
+const STAGE_LOCAL = "local"
+
 type Config struct {
 	Kubernetes struct {
 		ApiKey                     string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
@@ -275,15 +279,15 @@ func writeDefaultConfig(stage string) {
 	} else {
 		// default stage is prod
 		if stage == "" {
-			stage = "prod"
+			stage = STAGE_PROD
 		}
 	}
 
-	if stage == "dev" {
+	if stage == STAGE_DEV {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileDev), 0755)
-	} else if stage == "prod" {
+	} else if stage == STAGE_PROD {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileProd), 0755)
-	} else if stage == "local" {
+	} else if stage == STAGE_LOCAL {
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	} else {
 		fmt.Println("No stage set. Using local config.")
