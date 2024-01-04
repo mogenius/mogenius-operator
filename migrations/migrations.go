@@ -46,7 +46,7 @@ func _PvcMigration1() (string, error) {
 			logger.Log.Info("Updated PVC: ", pvc.Name)
 		}
 	}
-	pvs := punq.AllPersistentVolumesRaw("", nil)
+	pvs := punq.AllPersistentVolumesRaw(nil)
 	for _, pv := range pvs {
 		if pv.Spec.ClaimRef != nil {
 			if strings.HasPrefix(pv.Spec.ClaimRef.Name, utils.CONFIG.Misc.NfsPodPrefix) {

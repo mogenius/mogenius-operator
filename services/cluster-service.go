@@ -707,14 +707,14 @@ func SystemCheck() punq.SystemCheckResponse {
 
 	dockerResult, dockerOutput, dockerErr := IsDockerInstalled()
 	kubeCtlMsg := punq.StatusMessage(dockerErr, "If docker is missing in this image, we are screwed ;-)", dockerOutput)
-	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, true))
+	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, true, false))
 
 	certManagerVersion, certManagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, NameCertManagerName)
 	certManagerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameCertManagerName, certManagerVersion)
 	if certManagerInstalledErr != nil {
 		certManagerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo create ssl certificates you need to install this component.", NameCertManagerName, contextName)
 	}
-	certMgrEntry := punq.CreateSystemCheckEntry(NameCertManagerName, certManagerInstalledErr == nil, certManagerMsg, false)
+	certMgrEntry := punq.CreateSystemCheckEntry(NameCertManagerName, certManagerInstalledErr == nil, certManagerMsg, false, true)
 	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
 	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
 	if certManagerStatus != punq.UNKNOWN_STATUS {
@@ -727,7 +727,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if clusterIssuerInstalledErr != nil {
 		clusterIssuerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo issue ssl certificates you need to install this component.", NameClusterIssuer, contextName)
 	}
-	clusterIssuerEntry := punq.CreateSystemCheckEntry(NameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, false)
+	clusterIssuerEntry := punq.CreateSystemCheckEntry(NameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, false, true)
 	clusterIssuerEntry.InstallPattern = PAT_INSTALL_CLUSTER_ISSUER
 	clusterIssuerEntry.UninstallPattern = PAT_UNINSTALL_CLUSTER_ISSUER
 	if clusterIssuerStatus != punq.UNKNOWN_STATUS {
@@ -740,7 +740,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if trafficCollectorInstalledErr != nil {
 		trafficMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather traffic information you need to install this component.", NameTrafficCollector, contextName)
 	}
-	trafficEntry := punq.CreateSystemCheckEntry(NameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, false)
+	trafficEntry := punq.CreateSystemCheckEntry(NameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, false, true)
 	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
 	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
 	if trafficCollectorStatus != punq.UNKNOWN_STATUS {
@@ -753,7 +753,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if podStatsCollectorInstalledErr != nil {
 		podStatsMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather pod/event information you need to install this component.", NamePodStatsCollector, contextName)
 	}
-	podEntry := punq.CreateSystemCheckEntry(NamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, true)
+	podEntry := punq.CreateSystemCheckEntry(NamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, true, true)
 	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
 	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
 	if podStatsCollectorStatus != punq.UNKNOWN_STATUS {
@@ -767,7 +767,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if distriRegistryInstalledErr != nil {
 		distriRegistryMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a private container registry running inside your cluster, you need to install this component.", distributionRegistryName, contextName)
 	}
-	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, false)
+	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, false, true)
 	distriEntry.InstallPattern = PAT_INSTALL_CONTAINER_REGISTRY
 	distriEntry.UninstallPattern = PAT_UNINSTALL_CONTAINER_REGISTRY
 	if distriRegistryStatus != punq.UNKNOWN_STATUS {
@@ -780,7 +780,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if metallbInstalledErr != nil {
 		metallbMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a local load balancer, you need to install this component.", NameMetalLB, contextName)
 	}
-	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, false)
+	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, false, false)
 	metallbEntry.InstallPattern = PAT_INSTALL_METALLB
 	metallbEntry.UninstallPattern = PAT_UNINSTALL_METALLB
 	if metallbStatus != punq.UNKNOWN_STATUS {
@@ -793,7 +793,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if keplerInstalledErr != nil {
 		keplerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler, contextName)
 	}
-	keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, false)
+	keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, false, false)
 	keplerEntry.InstallPattern = PAT_INSTALL_KEPLER
 	keplerEntry.UninstallPattern = PAT_UNINSTALL_KEPLER
 	if keplerStatus != punq.UNKNOWN_STATUS {
@@ -807,7 +807,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	if !contains192168661 {
 		localDevEnvMsg = "Local development environment not setup. Please run 'mocli cluster local-dev-setup' to setup your local environment."
 	}
-	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, false)
+	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, false, false)
 	entries = append(entries, localDevSetupEntry)
 
 	// add missing patterns
