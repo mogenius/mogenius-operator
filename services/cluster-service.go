@@ -860,6 +860,13 @@ func UpdateSystemCheckStatusForClusterVendor(entries []punq.SystemCheckEntry) []
 			}
 		}
 	}
+	lbIps := punq.GetClusterExternalIps(nil)
+	for _, ip := range lbIps {
+		ip, err := netip.ParseAddr(ip)
+		if err == nil && !ip.IsPrivate() && ip.Is4() {
+			entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
+		}
+	}
 
 	return entries
 }
