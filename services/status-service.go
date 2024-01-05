@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/logger"
 
@@ -42,12 +41,12 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	}
 
 	// Debug logs
-	jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
-	if err != nil {
-		logger.Log.Warningf("Warning marshaling JSON: %v", err)
-		return nil
-	}
-	logger.Log.Debugf("JOSN: %s", jsonData)
+	// jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
+	// if err != nil {
+	// 	logger.Log.Warningf("Warning marshaling JSON: %v", err)
+	// 	return nil
+	// }
+	// logger.Log.Debugf("JOSN: %s", jsonData)
 
 	return resourceItems
 }
