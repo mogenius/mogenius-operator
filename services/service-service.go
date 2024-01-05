@@ -62,10 +62,12 @@ func CreateService(r ServiceCreateRequest) interface{} {
 		job.AddCmd(mokubernetes.CreateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
-	job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
+	if len(r.Service.Ports) > 0 {
+		job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
+		job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
+	}
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
-	if r.Service.ServiceType == dtos.CONTAINER_IMAGE_TEMPLATE {
+	if r.Service.ServiceType == dtos.GIT_REPOSITORY_TEMPLATE {
 		initDocker(r.Service, job)
 	}
 	if r.Service.ServiceType == dtos.GIT_REPOSITORY || r.Service.ServiceType == dtos.GIT_REPOSITORY_TEMPLATE {
