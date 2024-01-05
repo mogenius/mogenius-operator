@@ -235,7 +235,7 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 	}
 
 	// PAUSE
-	if freshlyCreated && service.App.Type == "DOCKER_TEMPLATE" {
+	if freshlyCreated && service.ServiceType == dtos.CONTAINER_IMAGE_TEMPLATE {
 		newDeployment.Spec.Paused = true
 	} else {
 		newDeployment.Spec.Paused = false
