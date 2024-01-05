@@ -491,7 +491,9 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 		logger.Log.Infof("%s%d: %s", prefix, job.BuildId, cmdOutput.String())
 	}
 
-	reportCmd.Success(reportCmd.Message)
+	if reportCmd != nil {
+		reportCmd.Success(reportCmd.Message)
+	}
 	return nil
 }
 
@@ -514,8 +516,8 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 
 		// send notification
 		cleanPrefix := prefix
-		if lastIndex := strings.LastIndex(prefix, "-"); lastIndex != -1 {
-			cleanPrefix = prefix[:lastIndex] + prefix[lastIndex+1:]
+		if strings.HasSuffix(prefix, "-") {
+			cleanPrefix, _ = strings.CutSuffix(cleanPrefix, "-")
 		}
 		data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, line)
 		// send start-signal when first line is received
