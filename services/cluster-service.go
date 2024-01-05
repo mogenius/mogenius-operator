@@ -1106,7 +1106,7 @@ func InstallClusterIssuer(email string) string {
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "clusterissuer",
 		HelmChartName:   "mogenius/mogenius-cluster-issuer",
-		HelmFlags:       fmt.Sprintf(`--namespace %s --set global.clusterissuermail="%s" --set global.ingressclass="%s"`, utils.CONFIG.Kubernetes.OwnNamespace, email, strings.ToLower(ingType.String())),
+		HelmFlags:       fmt.Sprintf(`--replace --namespace %s --set global.clusterissuermail="%s" --set global.ingressclass="%s"`, utils.CONFIG.Kubernetes.OwnNamespace, email, strings.ToLower(ingType.String())),
 		HelmTask:        structs.HelmInstall,
 	}
 	clusterIssuerStatus = punq.INSTALLING
