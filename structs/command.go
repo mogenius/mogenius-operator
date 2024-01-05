@@ -10,7 +10,7 @@ import (
 	"time"
 
 	punqStructs "github.com/mogenius/punq/structs"
-	uuid "github.com/satori/go.uuid"
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 type Command punqStructs.Command
@@ -33,7 +33,7 @@ func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
 
 func CreateCommand(title string, job *Job) *Command {
 	cmd := Command{
-		Id:                      uuid.NewV4().String(),
+		Id:                      punqUtils.NanoId(),
 		JobId:                   job.Id,
 		ProjectId:               job.ProjectId,
 		NamespaceId:             job.NamespaceId,
@@ -54,7 +54,7 @@ func CreateCommand(title string, job *Job) *Command {
 
 func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
 	cmd := Command{
-		Id:                      uuid.NewV4().String(),
+		Id:                      punqUtils.NanoId(),
 		JobId:                   job.JobId,
 		ProjectId:               job.ProjectId,
 		NamespaceId:             &job.NamespaceId,

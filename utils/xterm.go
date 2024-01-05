@@ -46,11 +46,11 @@ func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectio
 			continue
 		}
 
-		logger.Log.Infof("Connected to %s", u.String())
+		// logger.Log.Infof("Connected to %s", u.String())
 
 		// API send ack when it is ready to receive messages.
 		c.SetReadDeadline(time.Now().Add(5 * time.Second))
-		_, ack, err := c.ReadMessage()
+		_, _, err = c.ReadMessage()
 		if err != nil {
 			logger.Log.Errorf("Failed to receive ack-ready, retrying in 5 seconds: %s", err.Error())
 			time.Sleep(5 * time.Second)
@@ -63,7 +63,7 @@ func XtermCommandStreamWsConnection(u url.URL, cmdConnectionRequest CmdConnectio
 		}
 
 		c.SetReadDeadline(time.Time{})
-		logger.Log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
+		// logger.Log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
 		return c, nil
 	}
 }

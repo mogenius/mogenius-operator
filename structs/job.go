@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/mogenius/punq/utils"
 	punqUtils "github.com/mogenius/punq/utils"
-	uuid "github.com/satori/go.uuid"
 )
 
 type DefaultResponse struct {
@@ -46,7 +46,7 @@ func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
 
 func CreateJob(title string, projectId string, namespaceId *string, serviceId *string) Job {
 	job := Job{
-		Id:                      uuid.NewV4().String(),
+		Id:                      utils.NanoId(),
 		ProjectId:               projectId,
 		NamespaceId:             namespaceId,
 		ServiceId:               serviceId,

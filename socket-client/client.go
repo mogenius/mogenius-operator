@@ -18,7 +18,6 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
-	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/schollz/progressbar/v3"
 	"gopkg.in/yaml.v2"
@@ -30,6 +29,16 @@ import (
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 )
+
+var SuppressedPayloads = []string{
+	services.PAT_CLUSTERRESOURCEINFO,
+	services.PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST,
+	services.PAT_SERVICE_STATUS,
+	services.PAT_STORAGE_STATS,
+	services.PAT_STORAGE_NAMESPACE_STATS,
+	services.PAT_BUILD_LAST_JOB_OF_SERVICES,
+	services.PAT_BUILD_SCAN,
+}
 
 func StartK8sManager() {
 	interrupt := make(chan os.Signal, 1)
@@ -85,7 +94,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				continue
 			}
 			if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
-				preparedFileName = punqUtils.Pointer(fmt.Sprintf("%s.zip", uuid.New().String()))
+				preparedFileName = punqUtils.Pointer(fmt.Sprintf("%s.zip", punqUtils.NanoId()))
 				rawDataStr = strings.Replace(rawDataStr, "######START_UPLOAD######;", "", 1)
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
@@ -132,8 +141,10 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				datagram.DisplayReceiveSummary()
 
-				if utils.CONFIG.Misc.Debug {
-					punqStructs.PrettyPrint(datagram)
+				if isSuppressed := punqUtils.Contains(SuppressedPayloads, datagram.Pattern); !isSuppressed {
+					if utils.CONFIG.Misc.Debug {
+						punqStructs.PrettyPrint(datagram)
+					}
 				}
 
 				if punqUtils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {

@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/utils"
 	"sync"
 
-	"github.com/google/uuid"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,7 +62,7 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *struct
 
 		job := punqUtils.InitUpgradeJob()
 		job.Namespace = NAMESPACE
-		job.Name = fmt.Sprintf("%s-%s", job.Name, uuid.New().String())
+		job.Name = fmt.Sprintf("%s-%s", job.Name, punqUtils.NanoId())
 
 		// CONFIGMAP
 		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})

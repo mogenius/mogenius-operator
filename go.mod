@@ -10,7 +10,6 @@ require (
 	github.com/fatih/color v1.15.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/validator v9.31.0+incompatible
-	github.com/google/uuid v1.4.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/ivanpirog/coloredcobra v1.0.1
@@ -18,7 +17,6 @@ require (
 	github.com/mattn/go-tty v0.0.5
 	github.com/mogenius/punq v1.5.0-develop.35
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
-	github.com/satori/go.uuid v1.2.0
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/spf13/cobra v1.7.0
 	go.etcd.io/bbolt v1.3.8
@@ -45,6 +43,7 @@ require (
 	github.com/go-openapi/errors v0.20.4 // indirect
 	github.com/go-openapi/strfmt v0.21.7 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/gookit/color v1.5.4 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/jaevor/go-nanoid v1.3.0 // indirect

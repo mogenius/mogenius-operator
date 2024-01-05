@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/google/uuid"
 	punqStructs "github.com/mogenius/punq/structs"
+	"github.com/mogenius/punq/utils"
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
@@ -29,7 +29,7 @@ func CreateDatagramFromNotification(data *dtos.K8sNotificationDto) Datagram {
 		created = time.Now()
 	}
 	datagram := Datagram{
-		Id:        uuid.New().String(),
+		Id:        utils.NanoId(),
 		Pattern:   "K8sNotificationDto",
 		Payload:   data,
 		CreatedAt: created,
@@ -39,7 +39,7 @@ func CreateDatagramFromNotification(data *dtos.K8sNotificationDto) Datagram {
 
 func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	datagram := Datagram{
-		Id:        uuid.New().String(),
+		Id:        utils.NanoId(),
 		Pattern:   pattern,
 		Payload:   data,
 		CreatedAt: time.Now(),
@@ -49,7 +49,7 @@ func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 
 func CreateDatagram(pattern string) Datagram {
 	datagram := Datagram{
-		Id:        uuid.New().String(),
+		Id:        utils.NanoId(),
 		Pattern:   pattern,
 		CreatedAt: time.Now(),
 	}
@@ -58,7 +58,7 @@ func CreateDatagram(pattern string) Datagram {
 
 func CreateDatagramBuildLogs(prefix string, namespace string, serviceName string, projectId string, line string) Datagram {
 	datagram := Datagram{
-		Id:      uuid.New().String(),
+		Id:      utils.NanoId(),
 		Pattern: "build-logs-notification",
 		Payload: map[string]interface{}{
 			"logId":       prefix,
@@ -83,7 +83,7 @@ func CreateDatagramAck(pattern string, id string) Datagram {
 
 func CreateEmptyDatagram() Datagram {
 	datagram := Datagram{
-		Id:        uuid.New().String(),
+		Id:        utils.NanoId(),
 		Pattern:   "",
 		CreatedAt: time.Now(),
 	}
@@ -106,12 +106,11 @@ func (d *Datagram) DisplayBeautiful() {
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
-	fmt.Println()
 	fmt.Printf("%s%s%s (%s / %s)\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
-	fmt.Printf("%s%s%s (%s / %s) [Queue: %d/%d]\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt), queuePosition, queueLen)
+	fmt.Printf("%s%s%s [Queue: %d/%d] (%s / %s)\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), queuePosition, queueLen, punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt))
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
