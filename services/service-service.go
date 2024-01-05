@@ -56,19 +56,19 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
 
 	switch r.Service.ServiceType {
-	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8SCronJob:
+	case dtos.K8S_CRON_JOB:
 		job.AddCmd(mokubernetes.CreateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
 	job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
-	if r.Service.App.Type == "DOCKER_TEMPLATE" {
+	if r.Service.ServiceType == dtos.CONTAINER_IMAGE_TEMPLATE {
 		initDocker(r.Service, job)
 	}
-	if r.Service.App.Type == "GIT_REPOSITORY" {
+	if r.Service.ServiceType == dtos.GIT_REPOSITORY || r.Service.ServiceType == dtos.GIT_REPOSITORY_TEMPLATE {
 		updateInfrastructureYaml(r.Service, job)
 	}
 	wg.Wait()
@@ -84,9 +84,9 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Namespace, r.Service, &wg))
 
 	switch r.Service.ServiceType {
-	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8SCronJob:
+	case dtos.K8S_CRON_JOB:
 		job.AddCmd(mokubernetes.DeleteCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -103,9 +103,9 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 	job.Start()
 
 	switch r.ServiceType {
-	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
-	case dtos.K8SCronJob:
+	case dtos.K8S_CRON_JOB:
 		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
 	}
 
@@ -153,9 +153,9 @@ func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
 	job.Start()
 
 	switch r.Service.ServiceType {
-	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		// do nothing
-	case dtos.K8SCronJob:
+	case dtos.K8S_CRON_JOB:
 		job.AddCmd(mokubernetes.TriggerJobFromCronjob(&job, r.Namespace, r.Service, &wg))
 		job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	}
@@ -171,9 +171,9 @@ func Restart(r ServiceRestartRequest) interface{} {
 	job.Start()
 
 	switch r.Service.ServiceType {
-	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.RestartDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8SCronJob:
+	case dtos.K8S_CRON_JOB:
 		job.AddCmd(mokubernetes.RestartCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -190,9 +190,9 @@ func StopService(r ServiceStopRequest) interface{} {
 	job.Start()
 
 	switch r.Service.ServiceType {
-	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8SCronJob:
+	case dtos.K8S_CRON_JOB:
 		job.AddCmd(mokubernetes.StopCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -210,18 +210,18 @@ func StartService(r ServiceStartRequest) interface{} {
 	job.Start()
 
 	switch r.Service.ServiceType {
-	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.StartDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8SCronJob:
+	case dtos.K8S_CRON_JOB:
 		job.AddCmd(mokubernetes.StartCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
 
 	switch r.Service.ServiceType {
-	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8SCronJob:
+	case dtos.K8S_CRON_JOB:
 		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -245,9 +245,9 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Namespace, r.Service, &wg))
 
 	switch r.Service.ServiceType {
-	case dtos.GitRepositoryTemplate, dtos.GitRepository, dtos.ContainerImageTemplate, dtos.ContainerImage, dtos.K8SDeployment:
+	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8SCronJob:
+	case dtos.K8S_CRON_JOB:
 		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -386,7 +386,7 @@ type ServiceSetImageRequest struct {
 
 func (service *ServiceSetImageRequest) ApplyDefaults() {
 	if service.ServiceType == "" {
-		service.ServiceType = dtos.K8SDeployment
+		service.ServiceType = dtos.K8S_DEPLOYMENT
 	}
 }
 

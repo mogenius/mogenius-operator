@@ -200,6 +200,13 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 	}
 
 	newDeployment := punqUtils.InitDeployment()
+
+	// check if default deployment exists
+	defaultDeployment := GetCustomDeploymentTemplate()
+	if defaultDeployment != nil {
+		newDeployment = *defaultDeployment
+	}
+
 	newDeployment.ObjectMeta.Name = service.Name
 	newDeployment.ObjectMeta.Namespace = namespace.Name
 	newDeployment.Spec.Selector.MatchLabels["app"] = service.Name

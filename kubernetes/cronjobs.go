@@ -257,8 +257,8 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 
 	// SUSPEND -> PAUSE
 	if freshlyCreated &&
-		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepository ||
-			service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepositoryTemplate) {
+		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GIT_REPOSITORY ||
+			service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GIT_REPOSITORY_TEMPLATE) {
 		newCronJob.Spec.Suspend = punqutils.Pointer(true)
 	} else {
 		newCronJob.Spec.Suspend = punqutils.Pointer(!service.SwitchedOn)

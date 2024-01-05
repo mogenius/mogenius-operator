@@ -11,12 +11,17 @@ const (
 type K8sServiceTypeEnum string
 
 const (
-	GitRepositoryTemplate  K8sServiceTypeEnum = "GIT_REPOSITORY_TEMPLATE"
-	GitRepository          K8sServiceTypeEnum = "GIT_REPOSITORY"
-	ContainerImageTemplate K8sServiceTypeEnum = "CONTAINER_IMAGE_TEMPLATE"
-	ContainerImage         K8sServiceTypeEnum = "CONTAINER_IMAGE"
-	K8SDeployment          K8sServiceTypeEnum = "K8S_DEPLOYMENT"
-	K8SCronJob             K8sServiceTypeEnum = "K8S_CRON_JOB"
+	GIT_REPOSITORY_TEMPLATE  K8sServiceTypeEnum = "GIT_REPOSITORY_TEMPLATE"
+	GIT_REPOSITORY           K8sServiceTypeEnum = "GIT_REPOSITORY"
+	CONTAINER_IMAGE_TEMPLATE K8sServiceTypeEnum = "CONTAINER_IMAGE_TEMPLATE"
+	CONTAINER_IMAGE          K8sServiceTypeEnum = "CONTAINER_IMAGE"
+	K8S_DEPLOYMENT           K8sServiceTypeEnum = "K8S_DEPLOYMENT"
+	K8S_DAEMONSET            K8sServiceTypeEnum = "K8S_DAEMONSET"
+	K8S_STATEFULSET          K8sServiceTypeEnum = "K8S_STATEFULSET"
+	K8S_REPLICASET           K8sServiceTypeEnum = "K8S_REPLICASET"
+	K8S_JOB                  K8sServiceTypeEnum = "K8S_JOB"
+	K8S_CRON_JOB             K8sServiceTypeEnum = "K8S_CRON_JOB"
+	DOCKER_COMPOSE           K8sServiceTypeEnum = "DOCKER_COMPOSE"
 )
 
 type ImagePullPolicyEnum string

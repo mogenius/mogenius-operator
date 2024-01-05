@@ -25,7 +25,7 @@ type K8sServiceDto struct {
 
 func (dto *K8sServiceDto) ApplyDefaults() {
 	if dto.ServiceType == "" {
-		dto.ServiceType = K8SDeployment
+		dto.ServiceType = K8S_DEPLOYMENT
 	}
 }
 

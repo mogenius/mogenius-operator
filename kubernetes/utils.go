@@ -11,10 +11,12 @@ import (
 	"strings"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
-	v1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/apps/v1"
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -100,20 +102,20 @@ func Hostname() string {
 	return provider.ClientConfig.Host
 }
 
-func ListNodes() []v1.Node {
+func ListNodes() []core.Node {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		return []v1.Node{}
+		return []core.Node{}
 	}
 	if provider == nil || err != nil {
 		logger.Log.Fatal("error creating kubeprovider")
-		return []v1.Node{}
+		return []core.Node{}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
-		return []v1.Node{}
+		return []core.Node{}
 	}
 	return nodeMetricsList.Items
 }
@@ -223,13 +225,13 @@ func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string)
 }
 
 // mount nfs server in k8s-manager
-func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
+func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) {
 	if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
 		return
 	}
 
 	go func() {
-		var service *v1.Service = nfsService
+		var service *core.Service = nfsService
 		if service == nil {
 			service = ServiceForNfsVolume(volumeNamespace, volumeName)
 		}
@@ -250,7 +252,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 	}()
 }
 
-func ServiceForNfsVolume(volumeNamespace string, volumeName string) *v1.Service {
+func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Service {
 	services := punq.AllServices(volumeNamespace, nil)
 	for _, srv := range services {
 		if strings.Contains(srv.Name, fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)) {
@@ -279,5 +281,27 @@ func IsLocalClusterSetup() bool {
 		return true
 	} else {
 		return false
+	}
+}
+
+func GetCustomDeploymentTemplate() *v1.Deployment {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		logger.Log.Error(fmt.Sprintf("GetCustomDeploymentTemplate: %s", err.Error()))
+		return nil
+	}
+	client := provider.ClientSet.CoreV1().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
+	configmap, err := client.Get(context.TODO(), utils.MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME, metav1.GetOptions{})
+	if err != nil {
+		return nil
+	} else {
+		deployment := &v1.Deployment{}
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
+		err := json.Unmarshal(configmap.BinaryData["deployment"], deployment)
+		if err != nil {
+			logger.Log.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
+			return nil
+		}
+		return deployment
 	}
 }

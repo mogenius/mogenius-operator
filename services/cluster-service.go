@@ -1310,7 +1310,7 @@ func UninstallClusterIssuer() string {
 }
 
 func InstallDefaultApplications() string {
-	defaultAppsConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-k8s-manager-default-apps", false, nil)
+	defaultAppsConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false, nil)
 	if defaultAppsConfigmap != nil {
 		if installCommands, exists := defaultAppsConfigmap.Data["install-commands"]; exists {
 			return installCommands

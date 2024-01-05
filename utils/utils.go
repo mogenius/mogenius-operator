@@ -15,6 +15,8 @@ import (
 )
 
 const APP_NAME = "k8s"
+const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-k8s-manager-default-apps"
+const MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME = "mogenius-k8s-manager-default-deployment"
 
 var YamlTemplatesFolder embed.FS
 

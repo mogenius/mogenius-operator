@@ -11,7 +11,7 @@ type K8sCronJobSettingsDto struct {
 
 func K8sCronJobSettingsDtoExampleData() *K8sCronJobSettingsDto {
 	return &K8sCronJobSettingsDto{
-		SourceType:            ContainerImage,
+		SourceType:            CONTAINER_IMAGE,
 		Schedule:              "*/15 * * * *",
 		BackoffLimit:          2,
 		ActiveDeadlineSeconds: 120,

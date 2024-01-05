@@ -3,9 +3,9 @@ package dtos
 type K8sProjectDto struct {
 	Id                    string                `json:"id" validate:"required"`
 	DisplayName           string                `json:"displayName" validate:"required"`
-	GitAccessToken        string                `json:"gitAccessToken" validate:"required"`
-	GitUserId             string                `json:"gitUserId" validate:"required"`
-	GitConnectionType     GitConnectionTypeEnum `json:"gitConnectionType" validate:"required"`
+	GitAccessToken        string                `json:"gitAccessToken"`
+	GitUserId             string                `json:"gitUserId"`
+	GitConnectionType     GitConnectionTypeEnum `json:"gitConnectionType"`
 	ClusterName           string                `json:"clusterName" validate:"required"`
 	ContainerRegistryUrl  string                `json:"containerRegistryUrl"`
 	ContainerRegistryUser string                `json:"containerRegistryUser"`
