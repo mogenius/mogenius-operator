@@ -11,15 +11,16 @@ import (
 	"strings"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/kubectl/pkg/scheme"
 )
 
 var (
@@ -295,13 +296,14 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 	if err != nil {
 		return nil
 	} else {
-		deployment := &v1.Deployment{}
-		var json = jsoniter.ConfigCompatibleWithStandardLibrary
-		err := json.Unmarshal(configmap.BinaryData["deployment"], deployment)
+		deployment := v1.Deployment{}
+		yamlBytes := []byte(configmap.Data["deployment"])
+		s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+		_, _, err = s.Decode(yamlBytes, nil, &deployment)
 		if err != nil {
 			logger.Log.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
 			return nil
 		}
-		return deployment
+		return &deployment
 	}
 }

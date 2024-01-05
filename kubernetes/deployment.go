@@ -203,16 +203,30 @@ func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 
 	// check if default deployment exists
 	defaultDeployment := GetCustomDeploymentTemplate()
-	if defaultDeployment != nil {
+	if previousDeployment == nil && defaultDeployment != nil {
 		newDeployment = *defaultDeployment
 	}
 
 	newDeployment.ObjectMeta.Name = service.Name
 	newDeployment.ObjectMeta.Namespace = namespace.Name
+	if newDeployment.Spec.Selector == nil {
+		newDeployment.Spec.Selector = &metav1.LabelSelector{}
+	}
+	if newDeployment.Spec.Selector.MatchLabels == nil {
+		newDeployment.Spec.Selector.MatchLabels = map[string]string{}
+	}
 	newDeployment.Spec.Selector.MatchLabels["app"] = service.Name
 	newDeployment.Spec.Selector.MatchLabels["ns"] = namespace.Name
+	if newDeployment.Spec.Template.ObjectMeta.Labels == nil {
+		newDeployment.Spec.Template.ObjectMeta.Labels = map[string]string{}
+	}
 	newDeployment.Spec.Template.ObjectMeta.Labels["app"] = service.Name
 	newDeployment.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
+
+	if len(newDeployment.Spec.Template.Spec.Containers) == 0 {
+		newDeployment.Spec.Template.Spec.Containers = []core.Container{}
+		newDeployment.Spec.Template.Spec.Containers = append(newDeployment.Spec.Template.Spec.Containers, core.Container{})
+	}
 
 	// STRATEGY
 	if service.K8sSettings.DeploymentStrategy != "" {
