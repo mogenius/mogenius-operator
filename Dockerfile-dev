@@ -30,11 +30,13 @@ RUN go build -gcflags="all=-N -l" -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.Ver=$VERSION'" -o bin/mogenius-k8s-manager .
 
 
-FROM docker:dind-rootless
+FROM docker:dind
 
 ARG GOOS
 ARG GOARCH
 ARG GOARM
+
+ENV DOCKER_IPTABLES_LEGACY=1
 
 RUN apk add --no-cache \
     bash \
