@@ -38,7 +38,7 @@ RUN go build -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
   -X 'mogenius-k8s-manager/version.Ver=$VERSION'" -o bin/mogenius-k8s-manager .
 
-FROM docker:dind 
+FROM docker:23-dind 
 
 ARG GOOS
 ARG GOARCH
