@@ -99,4 +99,4 @@ COPY --from=builder ["/app/grype-json-template", "."]
 
 ENV GIN_MODE=release
 
-ENTRYPOINT /usr/local/bin/dockerd > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster
+ENTRYPOINT /usr/local/bin/dockerd --iptables=false > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster

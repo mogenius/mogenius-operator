@@ -47,6 +47,7 @@ const (
 	NamePodStatsCollector         = "mogenius-pod-stats-collector"
 	NameTrafficCollector          = "mogenius-traffic-collector"
 	NameClusterIssuer             = "clusterissuer"
+	NameClusterIssuerResource     = "letsencrypt-cluster-issuer"
 	NameCertManagerName           = "cert-manager"
 	NameKepler                    = "Kepler"
 )
@@ -722,10 +723,10 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	entries = append(entries, certMgrEntry)
 
-	clusterIssuerVersion, clusterIssuerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, NameClusterIssuer)
-	clusterIssuerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameClusterIssuer, clusterIssuerVersion)
+	_, clusterIssuerInstalledErr := punq.GetClusterIssuer(NameClusterIssuerResource, nil)
+	clusterIssuerMsg := fmt.Sprintf("%s is installed.", NameClusterIssuerResource)
 	if clusterIssuerInstalledErr != nil {
-		clusterIssuerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo issue ssl certificates you need to install this component.", NameClusterIssuer, contextName)
+		clusterIssuerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo issue ssl certificates you need to install this component.", NameClusterIssuerResource, contextName)
 	}
 	clusterIssuerEntry := punq.CreateSystemCheckEntry(NameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, false, true)
 	clusterIssuerEntry.InstallPattern = PAT_INSTALL_CLUSTER_ISSUER
