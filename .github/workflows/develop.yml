@@ -202,8 +202,9 @@ jobs:
         run: |
           cd ./helm
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
+          sed -i -e "s/name:\ mogenius-k8s-manager/name:\ mogenius-k8s-manager-dev/" Chart.yaml
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} .
-          curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-dev-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
+          curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
   
       # - name: Grype Vulnerability Scan
       #   run: |
