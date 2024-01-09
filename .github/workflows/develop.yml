@@ -8,7 +8,7 @@ on:
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
   DOCKERFILE: Dockerfile-dev
-  HELMNAME: "dev-mogenius-k8s-manager"
+  HELMNAME: "mogenius-k8s-manager-dev"
   HELMREPO: "mogenius/helm-k8s-manager"
 
 jobs:
@@ -202,7 +202,7 @@ jobs:
         run: |
           cd ./helm
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
-          sed -i -e "s/name:\ mogenius-k8s-manager/name:\ dev-mogenius-k8s-manager/" Chart.yaml
+          sed -i -e "s/name:\ mogenius-k8s-manager/name:\ mogenius-k8s-manager-dev/" Chart.yaml
           sed -i -e "s/description:\ mogenius-k8s-manager/description:\ mogenius-k8s-manager-dev/" Chart.yaml
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
