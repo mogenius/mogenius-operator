@@ -135,4 +135,3 @@ rm LICENSE README.md k9s_Linux_amd64.tar.gz get_helm.sh
 mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform
 
 
-
