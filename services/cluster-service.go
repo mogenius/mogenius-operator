@@ -50,6 +50,7 @@ const (
 	NameClusterIssuerResource     = "letsencrypt-cluster-issuer"
 	NameCertManagerName           = "cert-manager"
 	NameKepler                    = "Kepler"
+	NameNfsStorageClass           = "nfs-storageclass"
 )
 
 func UpgradeK8sManager(r K8sManagerUpgradeRequest) structs.Job {
@@ -810,6 +811,11 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, false, false)
 	entries = append(entries, localDevSetupEntry)
+
+	nfsStorageClass := kubernetes.StorageClassForClusterProvider(utils.ClusterProviderCached)
+	nfsStorageClassMsg := fmt.Sprintf("NFS StorageClass '%s' found.", nfsStorageClass)
+	nfsStorageClassEntry := punq.CreateSystemCheckEntry(NameNfsStorageClass, nfsStorageClass != "", nfsStorageClassMsg, true, false)
+	entries = append(entries, nfsStorageClassEntry)
 
 	// add missing patterns
 	for i := 0; i < len(entries); i++ {
