@@ -8,10 +8,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"runtime"
 	"strings"
 
-	punqDtos "github.com/mogenius/punq/dtos"
+	"github.com/mogenius/punq/utils"
 )
 
 const APP_NAME = "k8s"
@@ -33,32 +34,6 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 		}
 	}
 	return defaultReturnValue
-}
-
-func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider) string {
-	var nfsStorageClassStr string = "default"
-
-	switch clusterProvider {
-	case punqDtos.EKS:
-		nfsStorageClassStr = "gp2"
-	case punqDtos.GKE:
-		nfsStorageClassStr = "standard-rwo"
-	case punqDtos.AKS:
-		nfsStorageClassStr = "default"
-	case punqDtos.OTC:
-		nfsStorageClassStr = "csi-disk"
-	case punqDtos.BRING_YOUR_OWN:
-		nfsStorageClassStr = "default"
-	case punqDtos.DOCKER_DESKTOP, punqDtos.KIND:
-		nfsStorageClassStr = "hostpath"
-	case punqDtos.K3S:
-		nfsStorageClassStr = "local-path"
-	default:
-		logger.Log.Errorf("CLUSTERPROVIDER '%s' HAS NOT BEEN TESTED YET! Returning 'default'.", clusterProvider)
-		nfsStorageClassStr = "default"
-	}
-
-	return nfsStorageClassStr
 }
 
 func HttpHeader(additionalName string) http.Header {
@@ -97,4 +72,18 @@ func GetFunctionName() string {
 	// Split the name to get only the function name without the package path
 	parts := strings.Split(fn.Name(), ".")
 	return parts[len(parts)-1]
+}
+
+func ExecuteBashCommandSilent(title string, shellCmd string) error {
+	result, err := utils.RunOnLocalShell(shellCmd).Output()
+	fmt.Printf("ExecuteBashCommandSilent:\n%s\n", result)
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		exitCode := exitErr.ExitCode()
+		errorMsg := string(exitErr.Stderr)
+		return fmt.Errorf("%d: %s", exitCode, errorMsg)
+	} else if err != nil {
+		return err
+	} else {
+		return nil
+	}
 }

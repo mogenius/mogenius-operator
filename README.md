@@ -113,6 +113,7 @@ helm repo update
 # INSTALL K3S
 curl -sfL https://get.k3s.io | sh
 echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+chmod a+r /etc/rancher/k3s/k3s.yaml
 source ~/.bashrc
 
 # INSTALL HELM

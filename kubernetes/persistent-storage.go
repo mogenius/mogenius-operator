@@ -56,7 +56,11 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating PersistentVolumeClaim '%s'.", volumeName))
 
-		storageClass := utils.StorageClassForClusterProvider(utils.ClusterProviderCached)
+		storageClass := StorageClassForClusterProvider(utils.ClusterProviderCached)
+		if storageClass == "" {
+			cmd.Fail(fmt.Sprintf("No default storageClass found and could not find storage class for cluster provider '%s'.", utils.ClusterProviderCached))
+			return
+		}
 
 		pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
 		pvc.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)

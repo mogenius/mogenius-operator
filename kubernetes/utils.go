@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -306,4 +307,46 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 		}
 		return &deployment
 	}
+}
+
+func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider) string {
+	var nfsStorageClassStr string = ""
+
+	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		logger.Log.Errorf("StorageClassForClusterProvider ERR: %s", err.Error())
+		return nfsStorageClassStr
+	}
+	storageClasses, err := provider.ClientSet.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
+	for _, storageClass := range storageClasses.Items {
+		if storageClass.Annotations["storageclass.kubernetes.io/is-default-class"] == "true" {
+			nfsStorageClassStr = storageClass.Name
+			break
+		}
+	}
+
+	// 2. SOMETIMES WE KNOW IT BETTER THAN KUBERNETES (REASONS: TO EXPENSIVE OR NOT COMPATIBLE WITH OUR NFS SERVER)
+	switch clusterProvider {
+	case punqDtos.EKS:
+		nfsStorageClassStr = "gp2"
+	case punqDtos.GKE:
+		nfsStorageClassStr = "standard-rwo"
+	case punqDtos.AKS:
+		nfsStorageClassStr = "default"
+	case punqDtos.OTC:
+		nfsStorageClassStr = "csi-disk"
+	case punqDtos.BRING_YOUR_OWN:
+		nfsStorageClassStr = "default"
+	case punqDtos.DOCKER_DESKTOP, punqDtos.KIND:
+		nfsStorageClassStr = "hostpath"
+	case punqDtos.K3S:
+		nfsStorageClassStr = "local-path"
+	}
+
+	if nfsStorageClassStr == "" {
+		logger.Log.Errorf("No default storage class found for cluster provider '%s'.", clusterProvider)
+	}
+
+	return nfsStorageClassStr
 }

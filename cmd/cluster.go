@@ -50,6 +50,15 @@ var clusterCmd = &cobra.Command{
 			}
 		}
 
+		basicApps, userApps := services.InstallDefaultApplications()
+		fmt.Printf("Seeding Commands (🪴🪴🪴): \"%s\".", userApps)
+		if basicApps != "" || userApps != "" {
+			err := utils.ExecuteBashCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
+			if err != nil {
+				logger.Log.Fatalf("Error installing default applications: %s", err.Error())
+			}
+		}
+
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
 		go mokubernetes.WatchEvents()
@@ -58,12 +67,6 @@ var clusterCmd = &cobra.Command{
 		punq.ExecuteBashCommandSilent("Git setup (2/4)", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
 		punq.ExecuteBashCommandSilent("Git setup (3/4)", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
 		punq.ExecuteBashCommandSilent("Git setup (4/4)", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
-
-		cmds := services.InstallDefaultApplications()
-		logger.Log.Noticef("Seeding Commands (🪴🪴🪴): \"%s\".", cmds)
-		if cmds != "" {
-			go punq.ExecuteBashCommandSilent("Installing default applications ...", cmds)
-		}
 
 		kubernetes.CreateMogeniusContainerRegistryTlsSecret()
 		kubernetes.CreateMogeniusContainerRegistryIngress()

@@ -908,7 +908,7 @@ func InstallTrafficCollector() string {
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-traffic-collector",
 		HelmChartName:   "mogenius/mogenius-traffic-collector",
-		HelmFlags:       fmt.Sprintf("--set global.namespace=%s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
 		HelmTask:        structs.HelmInstall,
 	}
 	trafficCollectorStatus = punq.INSTALLING
@@ -929,7 +929,7 @@ func InstallPodStatsCollector() string {
 		HelmRepoUrl:     "https://helm.mogenius.com/public",
 		HelmReleaseName: "mogenius-pod-stats-collector",
 		HelmChartName:   "mogenius/mogenius-pod-stats-collector",
-		HelmFlags:       fmt.Sprintf("--set global.namespace=%s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
 		HelmTask:        structs.HelmInstall,
 	}
 	podStatsCollectorStatus = punq.INSTALLING
@@ -1310,14 +1310,71 @@ func UninstallClusterIssuer() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallDefaultApplications() string {
+func InstallDefaultApplications() (string, string) {
+	userApps := ""
+	basicApps := `
+# install basic apps
+apk add -q --no-cache curl nfs-utils ca-certificates
+echo "basic tools are installed. 🚀"
+
+# install kubectl
+if command -v kubectl >/dev/null 2>&1; then
+    echo "kubectl is installed. Skipping installation."
+else
+	curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${GOARCH}/kubectl"
+	chmod +x kubectl
+	mv kubectl /usr/local/bin/kubectl
+	echo "kubectl is installed. 🚀"
+fi
+
+# install helm
+if command -v helm >/dev/null 2>&1; then
+    echo "helm is installed. Skipping installation."
+else
+	curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+	chmod 700 get_helm.sh
+	./get_helm.sh >/dev/null
+	rm get_helm.sh
+	echo "helm is installed. 🚀"
+fi
+
+# install popeye
+if command -v popeye >/dev/null 2>&1; then
+    echo "popeye is installed. Skipping installation."
+else
+	if [ "${GOARCH}" = "amd64" ]; then
+		curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_x86_64.tar.gz;
+	elif [ "${GOARCH}" = "arm64" ]; then
+		curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm64.tar.gz;
+	elif [ "${GOARCH}" = "arm" ]; then
+		curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm.tar.gz;
+	else
+		echo "Unsupported architecture";
+		exit 1;
+	fi
+	tar -xf popeye.tar.gz popeye
+	chmod +x popeye
+	mv popeye /usr/local/bin/popeye
+	rm popeye.tar.gz
+	echo "popeye is installed. 🚀"
+fi
+
+# install grype
+if command -v grype >/dev/null 2>&1; then
+    echo "grype is installed. Skipping installation."
+else
+	curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+	echo "grype is installed. 🚀"
+fi
+`
 	defaultAppsConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false, nil)
 	if defaultAppsConfigmap != nil {
 		if installCommands, exists := defaultAppsConfigmap.Data["install-commands"]; exists {
-			return installCommands
+			userApps = installCommands
 		}
 	}
-	return ""
+
+	return basicApps, userApps
 }
 
 func InstallAddressPool() string {
