@@ -56,7 +56,7 @@ func CreateDatagram(pattern string) Datagram {
 	return datagram
 }
 
-func CreateDatagramBuildLogs(prefix string, namespace string, serviceName string, projectId string, line string) Datagram {
+func CreateDatagramBuildLogs(prefix string, namespace string, serviceName string, projectId string, line string, state string) Datagram {
 	datagram := Datagram{
 		Id:      utils.NanoId(),
 		Pattern: "build-logs-notification",
@@ -66,6 +66,7 @@ func CreateDatagramBuildLogs(prefix string, namespace string, serviceName string
 			"serviceName": serviceName,
 			"projectId":   projectId,
 			"line":        line,
+			"state":       state,
 		},
 		CreatedAt: time.Now(),
 	}

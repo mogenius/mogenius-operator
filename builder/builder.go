@@ -500,11 +500,13 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 }
 
 func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber int, line string, job *structs.BuildJob, containerImageName *string, startTime time.Time, reportCmd *structs.Command, cmdOutput *strings.Builder) {
+	newLine := ""
 	if enableTimestamp && lineNumber != -1 {
-		cmdOutput.WriteString(time.Now().Format(time.DateTime) + ": ")
+		newLine += time.Now().Format(time.DateTime) + ": "
 	}
-	cmdOutput.WriteString(line)
-	cmdOutput.WriteString("\n")
+	newLine += line
+	newLine += "\n"
+	cmdOutput.Write([]byte(newLine))
 	if saveLog {
 		if job != nil {
 			elapsedTime := time.Since(startTime)
@@ -521,10 +523,10 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 		if strings.HasSuffix(prefix, "-") {
 			cleanPrefix, _ = strings.CutSuffix(cleanPrefix, "-")
 		}
-		data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, line)
+		data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, newLine, reportCmd.State)
 		// send start-signal when first line is received
 		if lineNumber == 0 {
-			structs.EventServerSendData(structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, "####START####"), "", "", "", 0)
+			structs.EventServerSendData(structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, "####START####", reportCmd.State), "", "", "", 0)
 		}
 		structs.EventServerSendData(data, "", "", "", 0)
 	}
