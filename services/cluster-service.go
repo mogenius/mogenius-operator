@@ -1326,10 +1326,6 @@ func UninstallClusterIssuer() string {
 func InstallDefaultApplications() (string, string) {
 	userApps := ""
 	basicApps := `
-# install basic apps
-apk add -q --no-cache curl nfs-utils ca-certificates
-echo "basic tools are installed. 🚀"
-
 # install kubectl
 if command -v kubectl >/dev/null 2>&1; then
     echo "kubectl is installed. Skipping installation."
