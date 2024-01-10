@@ -62,7 +62,7 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *struct
 
 		job := punqUtils.InitUpgradeJob()
 		job.Namespace = NAMESPACE
-		job.Name = fmt.Sprintf("%s-%s", job.Name, punqUtils.NanoId())
+		job.Name = fmt.Sprintf("%s-%s", job.Name, punqUtils.NanoIdSmallLowerCase())
 
 		// CONFIGMAP
 		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
