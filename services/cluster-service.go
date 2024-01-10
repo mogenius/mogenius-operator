@@ -709,14 +709,15 @@ func SystemCheck() punq.SystemCheckResponse {
 
 	dockerResult, dockerOutput, dockerErr := IsDockerInstalled()
 	kubeCtlMsg := punq.StatusMessage(dockerErr, "If docker is missing in this image, we are screwed ;-)", dockerOutput)
-	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, true, false))
+	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, "", true, false))
 
 	certManagerVersion, certManagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, NameCertManagerName)
 	certManagerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameCertManagerName, certManagerVersion)
 	if certManagerInstalledErr != nil {
 		certManagerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo create ssl certificates you need to install this component.", NameCertManagerName, contextName)
 	}
-	certMgrEntry := punq.CreateSystemCheckEntry(NameCertManagerName, certManagerInstalledErr == nil, certManagerMsg, false, true)
+	certMgrDescription := "Install the cert-manager to automatically issue Let's Encrypt certificates to your services."
+	certMgrEntry := punq.CreateSystemCheckEntry(NameCertManagerName, certManagerInstalledErr == nil, certManagerMsg, certMgrDescription, false, true)
 	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
 	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
 	if certManagerStatus != punq.UNKNOWN_STATUS {
@@ -729,7 +730,8 @@ func SystemCheck() punq.SystemCheckResponse {
 	if clusterIssuerInstalledErr != nil {
 		clusterIssuerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo issue ssl certificates you need to install this component.", NameClusterIssuerResource, contextName)
 	}
-	clusterIssuerEntry := punq.CreateSystemCheckEntry(NameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, false, true)
+	clusterIssuerDescription := "Responsible for signing certificates."
+	clusterIssuerEntry := punq.CreateSystemCheckEntry(NameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, clusterIssuerDescription, false, true)
 	clusterIssuerEntry.InstallPattern = PAT_INSTALL_CLUSTER_ISSUER
 	clusterIssuerEntry.UninstallPattern = PAT_UNINSTALL_CLUSTER_ISSUER
 	if clusterIssuerStatus != punq.UNKNOWN_STATUS {
@@ -742,7 +744,8 @@ func SystemCheck() punq.SystemCheckResponse {
 	if trafficCollectorInstalledErr != nil {
 		trafficMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather traffic information you need to install this component.", NameTrafficCollector, contextName)
 	}
-	trafficEntry := punq.CreateSystemCheckEntry(NameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, false, true)
+	trafficDescpription := "Collects and exposes detailed traffic data for your mogenius services for better monitoring."
+	trafficEntry := punq.CreateSystemCheckEntry(NameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, trafficDescpription, false, true)
 	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
 	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
 	if trafficCollectorStatus != punq.UNKNOWN_STATUS {
@@ -755,7 +758,8 @@ func SystemCheck() punq.SystemCheckResponse {
 	if podStatsCollectorInstalledErr != nil {
 		podStatsMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather pod/event information you need to install this component.", NamePodStatsCollector, contextName)
 	}
-	podEntry := punq.CreateSystemCheckEntry(NamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, true, true)
+	podStatsDescription := "Collects and exposes status events of pods for services in mogenius."
+	podEntry := punq.CreateSystemCheckEntry(NamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, podStatsDescription, true, true)
 	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
 	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
 	if podStatsCollectorStatus != punq.UNKNOWN_STATUS {
@@ -769,7 +773,8 @@ func SystemCheck() punq.SystemCheckResponse {
 	if distriRegistryInstalledErr != nil {
 		distriRegistryMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a private container registry running inside your cluster, you need to install this component.", distributionRegistryName, contextName)
 	}
-	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, false, true)
+	distriDescription := "A Docker-based container registry inside Kubernetes."
+	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, distriDescription, false, true)
 	distriEntry.InstallPattern = PAT_INSTALL_CONTAINER_REGISTRY
 	distriEntry.UninstallPattern = PAT_UNINSTALL_CONTAINER_REGISTRY
 	if distriRegistryStatus != punq.UNKNOWN_STATUS {
@@ -782,7 +787,8 @@ func SystemCheck() punq.SystemCheckResponse {
 	if metallbInstalledErr != nil {
 		metallbMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo have a local load balancer, you need to install this component.", NameMetalLB, contextName)
 	}
-	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, false, false)
+	metallbDescription := "A load balancer for local clusters (e.g. Docker Desktop, k3s, minikube, etc.)."
+	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, metallbDescription, false, false)
 	metallbEntry.InstallPattern = PAT_INSTALL_METALLB
 	metallbEntry.UninstallPattern = PAT_UNINSTALL_METALLB
 	if metallbStatus != punq.UNKNOWN_STATUS {
@@ -795,7 +801,8 @@ func SystemCheck() punq.SystemCheckResponse {
 	if keplerInstalledErr != nil {
 		keplerMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler, contextName)
 	}
-	keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, false, false)
+	keplerDescription := "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption."
+	keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false)
 	keplerEntry.InstallPattern = PAT_INSTALL_KEPLER
 	keplerEntry.UninstallPattern = PAT_UNINSTALL_KEPLER
 	if keplerStatus != punq.UNKNOWN_STATUS {
@@ -809,12 +816,12 @@ func SystemCheck() punq.SystemCheckResponse {
 	if !contains192168661 {
 		localDevEnvMsg = "Local development environment not setup. Please run 'mocli cluster local-dev-setup' to setup your local environment."
 	}
-	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, false, false)
+	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, "", false, false)
 	entries = append(entries, localDevSetupEntry)
 
 	nfsStorageClass := kubernetes.StorageClassForClusterProvider(utils.ClusterProviderCached)
 	nfsStorageClassMsg := fmt.Sprintf("NFS StorageClass '%s' found.", nfsStorageClass)
-	nfsStorageClassEntry := punq.CreateSystemCheckEntry(NameNfsStorageClass, nfsStorageClass != "", nfsStorageClassMsg, true, false)
+	nfsStorageClassEntry := punq.CreateSystemCheckEntry(NameNfsStorageClass, nfsStorageClass != "", nfsStorageClassMsg, "", true, false)
 	entries = append(entries, nfsStorageClassEntry)
 
 	// add missing patterns
