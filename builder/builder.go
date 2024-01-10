@@ -480,6 +480,7 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 		logger.Log.Errorf("Error: %s", cmdOutput.String())
 		if reportCmd != nil {
 			reportCmd.Fail(fmt.Sprintf("%s: %s", execErr.Error(), cmdOutput.String()))
+			processLine(enableTimestamp, saveLog, prefix, -1, "", job, containerImageName, startTime, reportCmd, &cmdOutput)
 			return execErr
 		}
 	}
@@ -493,12 +494,13 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 
 	if reportCmd != nil {
 		reportCmd.Success(reportCmd.Message)
+		processLine(enableTimestamp, saveLog, prefix, -1, "", job, containerImageName, startTime, reportCmd, &cmdOutput)
 	}
 	return nil
 }
 
 func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber int, line string, job *structs.BuildJob, containerImageName *string, startTime time.Time, reportCmd *structs.Command, cmdOutput *strings.Builder) {
-	if enableTimestamp {
+	if enableTimestamp && lineNumber != -1 {
 		cmdOutput.WriteString(time.Now().Format(time.DateTime) + ": ")
 	}
 	cmdOutput.WriteString(line)
