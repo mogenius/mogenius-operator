@@ -89,4 +89,4 @@ COPY --from=builder ["/app/grype-json-template", "."]
 # CMD ["--continue", "--listen=:2345", "--headless", "--accept-multiclient", "--api-version=2", "exec", "/app/mogenius-k8s-manager", "--", "cluster"]
 # ENTRYPOINT [ "/app/dlv" ]
 
-ENTRYPOINT /usr/local/bin/dockerd --iptables=false > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster
+ENTRYPOINT /usr/local/bin/dockerd --iptables=false --dns 1.1.1.1 > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster
