@@ -6,6 +6,8 @@ package cmd
 import (
 	"fmt"
 	"mogenius-k8s-manager/db"
+	dbstats "mogenius-k8s-manager/db-stats"
+	api "mogenius-k8s-manager/http"
 	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
@@ -36,6 +38,7 @@ var clusterCmd = &cobra.Command{
 		utils.SetupClusterSecret(clusterSecret)
 
 		db.Init()
+		dbstats.Init()
 
 		migrations.ExecuteMigrations()
 
@@ -51,7 +54,7 @@ var clusterCmd = &cobra.Command{
 		}
 
 		basicApps, userApps := services.InstallDefaultApplications()
-		fmt.Printf("Seeding Commands (🪴🪴🪴): \"%s\".", userApps)
+		fmt.Printf("Seeding Commands (🪴🪴🪴): \"%s\".\n", userApps)
 		if basicApps != "" || userApps != "" {
 			err := utils.ExecuteBashCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
 			if err != nil {
@@ -59,6 +62,7 @@ var clusterCmd = &cobra.Command{
 			}
 		}
 
+		go api.InitApi()
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
 		go mokubernetes.WatchEvents()

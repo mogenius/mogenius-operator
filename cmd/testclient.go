@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"mogenius-k8s-manager/db"
+	dbstats "mogenius-k8s-manager/db-stats"
+	api "mogenius-k8s-manager/http"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/migrations"
@@ -21,6 +23,7 @@ var testClientCmd = &cobra.Command{
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		db.Init()
+		dbstats.Init()
 
 		migrations.ExecuteMigrations()
 
@@ -35,6 +38,7 @@ var testClientCmd = &cobra.Command{
 			}
 		}
 
+		go api.InitApi()
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
 
