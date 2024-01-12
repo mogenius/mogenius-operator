@@ -271,8 +271,18 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, DaemonSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *batchv1.Job:
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Job.String(), r.OwnerReferences, r.Spec.Selector, r.Status
-	case *batchv1beta1.CronJob:
-		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, r.Spec.JobTemplate.Spec.Selector, r.Status
+	case *batchv1beta1.CronJob: {
+		status := struct{
+			Suspend bool             `json:"suspend,omitempty"`
+			Image string             `json:"image,omitempty"`
+			StatusObject interface{} `json:"status,omitempty"`
+		}{
+			Suspend: *r.Spec.Suspend,
+			Image: r.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Name,
+			StatusObject: r.Status,
+		}
+		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, r.Spec.JobTemplate.Spec.Selector, status
+	}
 	default:
 		return "", "", Unkown.String(), []metav1.OwnerReference{}, nil, nil
 	}
