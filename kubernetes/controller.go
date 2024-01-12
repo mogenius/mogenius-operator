@@ -62,10 +62,10 @@ type controllerHandler func(namespace dtos.K8sNamespaceDto, service dtos.K8sServ
 func GenerateController(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}, handler controllerHandler) (interface{}, error) {
 	objectMeta, hasSpec, ctrl, err := handler(namespace, service, freshlyCreated, client)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	if objectMeta == nil || ctrl == nil {
-		return fmt.Errorf("one of objectMeta, ctrl is nil"), nil
+		return nil, fmt.Errorf("one of objectMeta, ctrl is nil")
 	}
 
 	objectMeta.Name = service.Name
