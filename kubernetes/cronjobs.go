@@ -243,13 +243,32 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	}
 
 	newCronJob := punqutils.InitCronJob()
-	newCronJob.ObjectMeta.Name = service.Name
-	newCronJob.ObjectMeta.Namespace = namespace.Name
+	
+	objectMeta := &newCronJob.ObjectMeta
+	objectMeta.Name = service.Name
+	objectMeta.Namespace = namespace.Name
+	
+	spec := &newCronJob.Spec.JobTemplate.Spec
+	if spec.Selector == nil {
+		spec.Selector = &metav1.LabelSelector{}
+	}
+	if spec.Selector.MatchLabels == nil {
+		spec.Selector.MatchLabels = map[string]string{}
+	}
+	spec.Selector.MatchLabels["app"] = service.Name
+	spec.Selector.MatchLabels["ns"] = namespace.Name
+	if spec.Template.ObjectMeta.Labels == nil {
+		spec.Template.ObjectMeta.Labels = map[string]string{}
+	}
+	spec.Template.ObjectMeta.Labels["app"] = service.Name
+	spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
+
 	// not supported for cron job
 	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["app"] = service.Name
 	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["ns"] = namespace.Name
-	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["app"] = service.Name
-	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
+	
+	// spec.Template.ObjectMeta.Labels["app"] = service.Name
+	// spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
 
 	// STRATEGY
 	// not implemented
