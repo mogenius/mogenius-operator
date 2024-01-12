@@ -249,8 +249,20 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 
 func status(resource interface{}) (string, string, string, []metav1.OwnerReference, *metav1.LabelSelector, interface{}) {
 	switch r := resource.(type) {
-	case *appsv1.Deployment:
-		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, r.Status
+	case *appsv1.Deployment: {
+		status := struct{
+			Replicas int32           `json:"replicas,omitempty"`
+			Paused bool              `json:"paused,omitempty"`
+			Image string             `json:"image,omitempty"`
+			StatusObject interface{} `json:"status,omitempty"`
+		}{
+			Replicas: *r.Spec.Replicas,
+			Paused: r.Spec.Paused,
+			Image: r.Spec.Template.Name,
+			StatusObject: r.Status,
+		}
+		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, status
+	}
 	case *appsv1.ReplicaSet:
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, ReplicaSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *appsv1.StatefulSet:
