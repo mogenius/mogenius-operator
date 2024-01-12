@@ -131,6 +131,7 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 			})
 		}
 	} else {
+		specTemplate.Spec.Containers[0].Image = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
 		// this will be setup UNTIL the buildserver overwrites the image with the real one.
 		// ------------------------------------ @todo: check
 		// if previousDeployment != nil {
@@ -219,6 +220,6 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 	// TODO wieder in betrieb nehmen
 	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
 	specTemplate.Spec.Containers[0].SecurityContext = nil
-	
+
 	return controller, nil
 }

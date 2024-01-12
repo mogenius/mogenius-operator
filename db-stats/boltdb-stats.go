@@ -65,6 +65,9 @@ func Init() {
 func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
 	controller := kubernetes.ControllerForPod(stats.Namespace, stats.PodName)
+	if controller == nil {
+		return
+	}
 	controllerIdentifier := controller.Kind + "-" + controller.NameSpace + "-" + controller.Name
 	err := dbStats.Update(func(tx *bolt.Tx) error {
 		mainBucket := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
@@ -94,6 +97,9 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 func AddPodStatsToDb(stats structs.PodStats) {
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
 	controller := kubernetes.ControllerForPod(stats.Namespace, stats.PodName)
+	if controller == nil {
+		return
+	}
 	err := dbStats.Update(func(tx *bolt.Tx) error {
 		mainBucket := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
 

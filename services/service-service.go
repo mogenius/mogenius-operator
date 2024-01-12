@@ -284,9 +284,6 @@ func initDocker(service dtos.K8sServiceDto, job structs.Job) []*structs.Command 
 			punqStructs.ExecuteBashCommandSilent("Clone files from template", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", service.App.RepositoryLink, gitDir, gitDir, gitDir, gitDir, gitDir))
 		}
 	}
-	if service.SettingsYaml != "" {
-		punqStructs.ExecuteBashCommandSilent("Create infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, service.SettingsYaml, service.GitBranch))
-	}
 	punqStructs.ExecuteBashCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add initial files."`, gitDir))
 	punqStructs.ExecuteBashCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
 	punqStructs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
