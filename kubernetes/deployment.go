@@ -34,7 +34,7 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateDeploymentHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
@@ -97,7 +97,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateDeploymentHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
@@ -134,7 +134,7 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 
-		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateDeploymentHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
@@ -165,7 +165,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateDeploymentHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
@@ -199,7 +199,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		
-		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateDeploymentHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
@@ -225,7 +225,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 	return cmd
 }
 
-func generateHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
+func generateDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
 	previousDeployment, err := client.(v1depl.DeploymentInterface).Get(context.TODO(), service.Name, metav1.GetOptions{})
 	if err != nil {
 		previousDeployment = nil

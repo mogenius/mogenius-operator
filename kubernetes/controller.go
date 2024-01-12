@@ -21,11 +21,6 @@ import (
 	v1depl "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
 
-type Spec struct {
-	Selector *metav1.LabelSelector
-	Template v1core.PodTemplateSpec
-}
-
 type HasSpec interface {
 	GetSelector() *metav1.LabelSelector
 	GetTemplate() v1core.PodTemplateSpec
@@ -55,7 +50,7 @@ func (spec SpecCronJob) GetTemplate() v1core.PodTemplateSpec {
 	return spec.Spec.JobTemplate.Spec.Template
 }
 
-func Process[T HasSpec](item T) {
+func ExampleProcess[T HasSpec](item T) {
 	s := item.GetSelector()
 	t := item.GetTemplate()
 
