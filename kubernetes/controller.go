@@ -50,21 +50,14 @@ func (spec SpecCronJob) GetTemplate() v1core.PodTemplateSpec {
 	return spec.Spec.JobTemplate.Spec.Template
 }
 
-func ExampleProcess[T HasSpec](item T) {
-	s := item.GetSelector()
-	t := item.GetTemplate()
+type customControllerConfigHandler func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error)
 
-	fmt.Println("%v, %v", s, t)
-}
-
-type controllerHandler func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error)
-
-func GenerateController(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}, handler controllerHandler) (interface{}, error) {
-	objectMeta, hasSpec, ctrl, err := handler(namespace, service, freshlyCreated, client)
+func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}, handler customControllerConfigHandler) (interface{}, error) {
+	objectMeta, hasSpec, controller, err := handler(namespace, service, freshlyCreated, client)
 	if err != nil {
 		return nil, err
 	}
-	if objectMeta == nil || ctrl == nil {
+	if objectMeta == nil || controller == nil {
 		return nil, fmt.Errorf("one of objectMeta, ctrl is nil")
 	}
 
@@ -233,7 +226,7 @@ func GenerateController(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceD
 	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
 	specTemplate.Spec.Containers[0].SecurityContext = nil
 	
-	return ctrl, nil
+	return controller, nil
 }
 
 // Example
@@ -252,7 +245,7 @@ func exampleUpdateController(job *structs.Job, namespace dtos.K8sNamespaceDto, s
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 
 		// newDeployment := generateDeployment(namespace, service, false, deploymentClient)
-		newController, err := GenerateController(namespace, service, false, deploymentClient, hd)
+		newController, err := CreateControllerConfiguration(namespace, service, false, deploymentClient, hd)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}

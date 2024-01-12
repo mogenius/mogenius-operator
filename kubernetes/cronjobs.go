@@ -73,15 +73,12 @@ func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		// newCronJob := generateCronJob(namespace, service, true, cronJobClient)
-		newController, err := GenerateController(namespace, service, false, cronJobClient, generateCronJobHandler)
+		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
 		
 		newCronJob := newController.(*v1job.CronJob)
-
-
 		newCronJob.Labels = MoUpdateLabels(&newCronJob.Labels, job.ProjectId, &namespace, &service)
 
 		_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions())
@@ -137,8 +134,7 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		// newCronJob := generateCronJob(namespace, service, true, cronJobClient)
-		newController, err := GenerateController(namespace, service, false, cronJobClient, generateCronJobHandler)
+		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
@@ -174,14 +170,12 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		}
 
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		// newCronJob := generateCronJob(namespace, service, true, cronJobClient)
-		newController, err := GenerateController(namespace, service, false, cronJobClient, generateCronJobHandler)
+		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
 		
 		cronJob := newController.(*v1job.CronJob)
-
 
 		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
 		if err != nil {
@@ -206,8 +200,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		// cronJob := generateCronJob(namespace, service, true, cronJobClient)
-		newController, err := GenerateController(namespace, service, false, cronJobClient, generateCronJobHandler)
+		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
@@ -237,8 +230,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		// cronJob := generateCronJob(namespace, service, true, cronJobClient)
-		newController, err := GenerateController(namespace, service, false, cronJobClient, generateCronJobHandler)
+		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
 		if  err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
@@ -262,7 +254,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 	return cmd
 }
 
-func generateCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
+func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
 	newCronJob := punqutils.InitCronJob()
 	
 	objectMeta := &newCronJob.ObjectMeta
@@ -290,6 +282,8 @@ func generateCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServ
 	return objectMeta, &SpecCronJob{*spec}, &newCronJob, nil
 }
 
+// Obsolete: can be removed after testing. just to double check old and new logic
+// 
 // func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, cronjobclient batchv1.CronJobInterface) v1job.CronJob {
 // 	previousCronjob, err := cronjobclient.Get(context.TODO(), service.Name, metav1.GetOptions{})
 // 	if err != nil {
