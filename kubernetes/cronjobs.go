@@ -63,6 +63,8 @@ func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 }
 
 func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	logger.Log.Infof("CreateCronJob K8sServiceDto: %s", service)
+	
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -290,18 +292,21 @@ func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto,
 	}
 
 	// RESOURCES
-	limits := core.ResourceList{}
-	requests := core.ResourceList{}
 	if service.K8sSettings.IsLimitSetup() {
+		limits := core.ResourceList{}
+		requests := core.ResourceList{}
 		limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
 		limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
 		limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
 		requests["cpu"] = resource.MustParse("1m")
 		requests["memory"] = resource.MustParse("1Mi")
 		requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Limits = limits
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Requests = requests
+	} else {
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Limits = nil
+		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Requests = nil
 	}
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Limits = limits
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Requests = requests
 
 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Name = service.Name
 

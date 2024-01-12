@@ -14,7 +14,7 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
-	resource "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	v1depl "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -35,11 +35,17 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		newDeployment := generateDeployment(namespace, service, true, deploymentClient)
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		if  err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
+		
+		// deployment := generateDeployment(namespace, service, false, deploymentClient)
+		deployment := newController.(*v1.Deployment)
 
-		newDeployment.Labels = MoUpdateLabels(&newDeployment.Labels, job.ProjectId, &namespace, &service)
+		deployment.Labels = MoUpdateLabels(&deployment.Labels, job.ProjectId, &namespace, &service)
 
-		_, err = deploymentClient.Create(context.TODO(), &newDeployment, MoCreateOptions())
+		_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 		} else {
@@ -92,13 +98,19 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		newDeployment := generateDeployment(namespace, service, false, deploymentClient)
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		if  err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
+		
+		// deployment := generateDeployment(namespace, service, false, deploymentClient)
+		deployment := newController.(*v1.Deployment)
 
 		updateOptions := metav1.UpdateOptions{
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = deploymentClient.Update(context.TODO(), &newDeployment, updateOptions)
+		_, err = deploymentClient.Update(context.TODO(), deployment, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
 		} else {
@@ -122,9 +134,16 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		deployment := generateDeployment(namespace, service, false, deploymentClient)
 
-		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		if  err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
+		
+		// deployment := generateDeployment(namespace, service, false, deploymentClient)
+		deployment := newController.(*v1.Deployment)
+
+		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()))
 		} else {
@@ -147,10 +166,17 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		deployment := generateDeployment(namespace, service, false, deploymentClient)
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		if  err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
+		
+		// deployment := generateDeployment(namespace, service, false, deploymentClient)
+		deployment := newController.(*v1.Deployment)
+
 		deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
 
-		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
 		} else {
@@ -173,7 +199,15 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		deployment := generateDeployment(namespace, service, false, deploymentClient)
+		
+		newController, err := GenerateController(namespace, service, false, deploymentClient, generateHandler)
+		if  err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
+		
+		// deployment := generateDeployment(namespace, service, false, deploymentClient)
+		deployment := newController.(*v1.Deployment)
+
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
 		if deployment.ObjectMeta.Annotations == nil {
 			deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
@@ -182,7 +216,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		}
 
-		_, err = deploymentClient.Update(context.TODO(), &deployment, metav1.UpdateOptions{})
+		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
 		} else {
@@ -190,6 +224,82 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		}
 	}(cmd, wg)
 	return cmd
+}
+
+func generateHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, interface{}, interface{}, error) {
+	previousDeployment, err := client.(v1depl.DeploymentInterface).Get(context.TODO(), service.Name, metav1.GetOptions{})
+	if err != nil {
+		previousDeployment = nil
+	}
+
+	newDeployment := punqUtils.InitDeployment()
+
+	// check if default deployment exists
+	defaultDeployment := GetCustomDeploymentTemplate()
+	if previousDeployment == nil && defaultDeployment != nil {
+		newDeployment = *defaultDeployment
+	}
+
+	objectMeta := &newDeployment.ObjectMeta
+	spec := &newDeployment.Spec
+
+	// STRATEGY
+	if service.K8sSettings.DeploymentStrategy != "" {
+		if service.K8sSettings.DeploymentStrategy == "rolling" {
+			spec.Strategy.Type = v1.RollingUpdateDeploymentStrategyType
+		} else if service.K8sSettings.DeploymentStrategy == "recreate" {
+			spec.Strategy.Type = v1.RecreateDeploymentStrategyType
+		} else {
+			spec.Strategy.Type = v1.RecreateDeploymentStrategyType
+		}
+	} else {
+		spec.Strategy.Type = v1.RecreateDeploymentStrategyType
+	}
+
+	// SWITCHED ON
+	if service.SwitchedOn {
+		spec.Replicas = punqUtils.Pointer(service.K8sSettings.ReplicaCount)
+	} else {
+		spec.Replicas = punqUtils.Pointer[int32](0)
+	}
+
+	// PAUSE
+	if freshlyCreated && service.ServiceType == dtos.CONTAINER_IMAGE_TEMPLATE {
+		spec.Paused = true
+	} else {
+		spec.Paused = false
+	}
+
+	// ImagePullPolicy
+	if service.K8sSettings.ImagePullPolicy != "" {
+		spec.Template.Spec.Containers[0].ImagePullPolicy = core.PullPolicy(service.K8sSettings.ImagePullPolicy)
+	} else {
+		spec.Template.Spec.Containers[0].ImagePullPolicy = core.PullAlways
+	}
+
+	// PORTS
+	var internalHttpPort *int
+	if len(service.Ports) > 0 {
+		for _, port := range service.Ports {
+			if port.PortType == "HTTPS" {
+				tmp := int(port.InternalPort)
+				internalHttpPort = &tmp
+			}
+		}
+	}
+
+	// PROBES
+	if !service.K8sSettings.ProbesOn {
+		spec.Template.Spec.Containers[0].StartupProbe = nil
+		spec.Template.Spec.Containers[0].LivenessProbe = nil
+		spec.Template.Spec.Containers[0].ReadinessProbe = nil
+	} else if internalHttpPort != nil {
+		spec.Template.Spec.Containers[0].StartupProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+		spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+		spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+	}
+
+	return objectMeta, spec, &newDeployment, nil
 }
 
 func generateDeployment(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, deploymentclient v1depl.DeploymentInterface) v1.Deployment {
