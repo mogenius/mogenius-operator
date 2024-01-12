@@ -1,8 +1,8 @@
+//lint:file-ignore ST1005 Error strings should not be capitalized is ignored throughout this file
 package main
 
 import (
 	"embed"
-	_ "embed"
 	"mogenius-k8s-manager/cmd"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"

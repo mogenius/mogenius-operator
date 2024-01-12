@@ -269,6 +269,18 @@ func ClusterIssuerInstallRequestExample() ClusterIssuerInstallRequest {
 	}
 }
 
+type StatsDataRequest struct {
+	Namespace string `json:"namespace"`
+	PodName   string `json:"podname"`
+}
+
+func StatsDataRequestExampleData() StatsDataRequest {
+	return StatsDataRequest{
+		Namespace: "default",
+		PodName:   "mogenius-k8s-manager-5fdfcb8f85-n4x9l",
+	}
+}
+
 type FilesListRequest struct {
 	Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required"`
 }

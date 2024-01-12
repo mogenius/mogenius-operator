@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/db"
+	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"os/exec"
@@ -108,6 +109,51 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return UninstallMetalLb()
 	case PAT_UNINSTALL_KEPLER:
 		return UninstallKepler()
+
+	case PAT_STATS_PODSTAT_FOR_POD_ALL:
+		data := StatsDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
+		if ctrl == nil {
+			return fmt.Errorf("Could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+		}
+		return dbstats.GetPodStatsEntriesForController(*ctrl)
+	case PAT_STATS_PODSTAT_FOR_POD_LAST:
+		data := StatsDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
+		if ctrl == nil {
+			return fmt.Errorf("Could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+		}
+		return dbstats.GetLastPodStatsEntryForController(*ctrl)
+	case PAT_STATS_TRAFFIC_FOR_POD_ALL:
+		data := StatsDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
+		if ctrl == nil {
+			return fmt.Errorf("Could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+		}
+		return dbstats.GetTrafficStatsEntriesForController(*ctrl)
+	case PAT_STATS_TRAFFIC_FOR_POD_LAST:
+		data := StatsDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
+		if ctrl == nil {
+			return fmt.Errorf("Could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+		}
+		return dbstats.GetLastTrafficStatsEntryForController(*ctrl)
 
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}

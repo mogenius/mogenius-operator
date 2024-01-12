@@ -55,6 +55,11 @@ const (
 	PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM  string = "cluster/read-persistent-volume-claim"
 	PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS string = "cluster/list-persistent-volume-claims"
 
+	PAT_STATS_TRAFFIC_FOR_POD_ALL  string = "stats/traffic/all-for-pod"
+	PAT_STATS_TRAFFIC_FOR_POD_LAST string = "stats/traffic/last-for-pod"
+	PAT_STATS_PODSTAT_FOR_POD_ALL  string = "stats/podstat/all-for-pod"
+	PAT_STATS_PODSTAT_FOR_POD_LAST string = "stats/podstat/last-for-pod"
+
 	PAT_NAMESPACE_CREATE                string = "namespace/create"
 	PAT_NAMESPACE_DELETE                string = "namespace/delete"
 	PAT_NAMESPACE_SHUTDOWN              string = "namespace/shutdown"
@@ -386,6 +391,11 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM,
 	PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM,
 	PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS,
+
+	PAT_STATS_TRAFFIC_FOR_POD_ALL,
+	PAT_STATS_TRAFFIC_FOR_POD_LAST,
+	PAT_STATS_PODSTAT_FOR_POD_ALL,
+	PAT_STATS_PODSTAT_FOR_POD_LAST,
 
 	PAT_NAMESPACE_CREATE,
 	PAT_NAMESPACE_DELETE,

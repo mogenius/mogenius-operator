@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
+	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -27,6 +28,10 @@ func InitApi() {
 	router.Use(CreateLogger("INTERNAL"))
 	router.GET("/healtz", getHealtz)
 	router.POST("/traffic", postTraffic)
+	router.POST("/podstats", postPodStats)
+
+	router.GET("/debug/last-traffic", debugGetLastTraffic)
+	router.GET("/debug/last-pod", debugGetLastPod)
 
 	srv := &http.Server{
 		Addr:    ":1337",
@@ -76,14 +81,17 @@ func getHealtz(c *gin.Context) {
 func postTraffic(c *gin.Context) {
 	var out bytes.Buffer
 	body, _ := io.ReadAll(c.Request.Body)
-	err := json.Indent(&out, []byte(body), "", "  ")
-	if err != nil {
-		fmt.Println(err)
+
+	if utils.CONFIG.Misc.Debug {
+		err := json.Indent(&out, []byte(body), "", "  ")
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(string(out.Bytes()))
 	}
-	fmt.Println(string(out.Bytes()))
 
 	stat := &structs.InterfaceStats{}
-	err = structs.UnmarshalInterfaceStats(stat, out.Bytes())
+	err := structs.UnmarshalInterfaceStats(stat, out.Bytes())
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
@@ -92,4 +100,58 @@ func postTraffic(c *gin.Context) {
 	}
 
 	dbstats.AddInterfaceStatsToDb(*stat)
+}
+
+func postPodStats(c *gin.Context) {
+	var out bytes.Buffer
+	body, _ := io.ReadAll(c.Request.Body)
+
+	if utils.CONFIG.Misc.Debug {
+		err := json.Indent(&out, []byte(body), "", "  ")
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(string(out.Bytes()))
+	}
+
+	stat := &structs.PodStats{}
+	err := structs.UnmarshalPodStats(stat, out.Bytes())
+	if err != nil {
+		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	dbstats.AddPodStatsToDb(*stat)
+}
+
+func debugGetLastTraffic(c *gin.Context) {
+	ns := c.Query("ns")
+	pod := c.Query("pod")
+
+	controller := kubernetes.ControllerForPod(ns, pod)
+	if controller == nil {
+		c.IndentedJSON(http.StatusNotFound, map[string]string{
+			"error": "controller not found",
+		})
+		return
+	}
+	stats := dbstats.GetLastTrafficStatsEntryForController(*controller)
+	c.IndentedJSON(http.StatusOK, stats)
+}
+
+func debugGetLastPod(c *gin.Context) {
+	ns := c.Query("ns")
+	pod := c.Query("pod")
+
+	controller := kubernetes.ControllerForPod(ns, pod)
+	if controller == nil {
+		c.IndentedJSON(http.StatusNotFound, map[string]string{
+			"error": "controller not found",
+		})
+		return
+	}
+	stats := dbstats.GetLastPodStatsEntryForController(*controller)
+	c.IndentedJSON(http.StatusOK, stats)
 }

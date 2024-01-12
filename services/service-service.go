@@ -305,7 +305,7 @@ func updateInfrastructureYaml(service dtos.K8sServiceDto, job structs.Job) []*st
 
 		punqStructs.ExecuteBashCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, service.SettingsYaml, service.GitBranch))
 
-		punqStructs.ExecuteBashCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Add initial files."`, gitDir, service.GitBranch))
+		punqStructs.ExecuteBashCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, service.GitBranch))
 		punqStructs.ExecuteBashCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
 		punqStructs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
 	}
