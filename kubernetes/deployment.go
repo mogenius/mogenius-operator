@@ -226,8 +226,8 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 	return cmd
 }
 
-func generateHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, interface{}, interface{}, error) {
-	previousDeployment, err := client.(v1depl.DeploymentInterface).Get(context.TODO(), service.Name, metav1.GetOptions{})
+func generateHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client v1depl.DeploymentInterface) (*metav1.ObjectMeta, *v1.DeploymentSpec, interface{}, error) {
+	previousDeployment, err := client.Get(context.TODO(), service.Name, metav1.GetOptions{})
 	if err != nil {
 		previousDeployment = nil
 	}

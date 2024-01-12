@@ -25,21 +25,19 @@ type Spec struct {
 	Template v1core.PodTemplateSpec
 }
 
-type controllerHandler func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, interface{}, interface{}, error)
+type controllerHandler func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, *Spec, interface{}, error)
 
 func GenerateController(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}, handler controllerHandler) (interface{}, error) {
-	objectMeta, unspecifiedSpec, ctrl, err := handler(namespace, service, freshlyCreated, client)
+	objectMeta, spec, ctrl, err := handler(namespace, service, freshlyCreated, client)
 	if err != nil {
 		return err, nil
 	}
-	if objectMeta == nil || unspecifiedSpec == nil || ctrl == nil {
+	if objectMeta == nil || spec == nil || ctrl == nil {
 		return fmt.Errorf("one of objectMeta, spec, ctrl is nil"), nil
 	}
 
 	objectMeta.Name = service.Name
 	objectMeta.Namespace = namespace.Name
-
-	spec := unspecifiedSpec.(Spec)
 
 	if spec.Selector == nil {
 		spec.Selector = &metav1.LabelSelector{}
@@ -218,9 +216,9 @@ func exampleUpdateController(job *structs.Job, namespace dtos.K8sNamespaceDto, s
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 
-		hd := func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (error, *metav1.ObjectMeta, interface{}, interface{}) {
+		hd := func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client v1depl.DeploymentInterface) (*metav1.ObjectMeta, *v1.DeploymentSpec, interface{}, error) {
 			
-			previousDeployment, err := client.(v1depl.DeploymentInterface).Get(context.TODO(), service.Name, metav1.GetOptions{})
+			previousDeployment, err := client.Get(context.TODO(), service.Name, metav1.GetOptions{})
 			if err != nil {
 				previousDeployment = nil
 			}
@@ -292,7 +290,7 @@ func exampleUpdateController(job *structs.Job, namespace dtos.K8sNamespaceDto, s
 				spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
 			}
 
-			return nil, objectMeta, spec, &newDeployment
+			return objectMeta, spec, &newDeployment, nil
 		}
 
 		// newDeployment := generateDeployment(namespace, service, false, deploymentClient)
