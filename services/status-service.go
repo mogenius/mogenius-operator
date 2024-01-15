@@ -249,8 +249,20 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 
 func status(resource interface{}) (string, string, string, []metav1.OwnerReference, *metav1.LabelSelector, interface{}) {
 	switch r := resource.(type) {
-	case *appsv1.Deployment:
-		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, r.Status
+	case *appsv1.Deployment: {
+		status := struct{
+			Replicas int32           `json:"replicas,omitempty"`
+			Paused bool              `json:"paused,omitempty"`
+			Image string             `json:"image,omitempty"`
+			StatusObject interface{} `json:"status,omitempty"`
+		}{
+			Replicas: *r.Spec.Replicas,
+			Paused: r.Spec.Paused,
+			Image: r.Spec.Template.Spec.Containers[0].Image,
+			StatusObject: r.Status,
+		}
+		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, status
+	}
 	case *appsv1.ReplicaSet:
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, ReplicaSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *appsv1.StatefulSet:
@@ -259,8 +271,18 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, DaemonSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *batchv1.Job:
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Job.String(), r.OwnerReferences, r.Spec.Selector, r.Status
-	case *batchv1beta1.CronJob:
-		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, r.Spec.JobTemplate.Spec.Selector, r.Status
+	case *batchv1beta1.CronJob: {
+		status := struct{
+			Suspend bool             `json:"suspend,omitempty"`
+			Image string             `json:"image,omitempty"`
+			StatusObject interface{} `json:"status,omitempty"`
+		}{
+			Suspend: *r.Spec.Suspend,
+			Image: r.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image,
+			StatusObject: r.Status,
+		}
+		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, r.Spec.JobTemplate.Spec.Selector, status
+	}
 	default:
 		return "", "", Unkown.String(), []metav1.OwnerReference{}, nil, nil
 	}
