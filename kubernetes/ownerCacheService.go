@@ -9,21 +9,21 @@ import (
 )
 
 type K8sController struct {
-	Kind      string
-	Name      string
-	NameSpace string
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
 }
 
 func NewK8sController(kind string, name string, namespace string) K8sController {
 	return K8sController{
 		Kind:      kind,
 		Name:      name,
-		NameSpace: namespace,
+		Namespace: namespace,
 	}
 }
 
 func (owner *K8sController) Identifier() string {
-	return owner.Kind + "-" + owner.NameSpace + "-" + owner.Name
+	return owner.Kind + "-" + owner.Namespace + "-" + owner.Name
 }
 
 var OwnerCache = make(map[string]K8sController)

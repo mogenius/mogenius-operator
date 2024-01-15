@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
 	api "mogenius-k8s-manager/http"
@@ -54,14 +55,18 @@ var clusterCmd = &cobra.Command{
 			}
 		}
 
-		basicApps, userApps := services.InstallDefaultApplications()
-		fmt.Printf("Seeding Commands (🪴🪴🪴): \"%s\".\n", userApps)
-		if basicApps != "" || userApps != "" {
-			err := utils.ExecuteBashCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
-			if err != nil {
-				logger.Log.Fatalf("Error installing default applications: %s", err.Error())
+		go func() {
+			builder.DISABLEQUEUE = true
+			basicApps, userApps := services.InstallDefaultApplications()
+			if basicApps != "" || userApps != "" {
+				err := utils.ExecuteBashCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
+				fmt.Printf("Seeding Commands (🪴🪴🪴): \"%s\".\n", userApps)
+				if err != nil {
+					logger.Log.Fatalf("Error installing default applications: %s", err.Error())
+				}
 			}
-		}
+			builder.DISABLEQUEUE = false
+		}()
 
 		go api.InitApi()
 		go structs.ConnectToEventQueue()

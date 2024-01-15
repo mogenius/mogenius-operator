@@ -18,11 +18,19 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
+var DISABLEQUEUE bool = true
+
 var currentBuildContext *context.Context
 var currentBuildChannel chan punqStructs.JobStateEnum
 var currentBuildJob *structs.BuildJob
 
 func ProcessQueue() {
+	if DISABLEQUEUE {
+		time.Sleep(3 * time.Second)
+		ProcessQueue()
+		return
+	}
+
 	jobsToBuild := db.GetJobsToBuildFromDb()
 
 	// this must happen outside the transaction to avoid dead-locks

@@ -75,7 +75,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 	if controller == nil {
 		return
 	}
-	controllerIdentifier := controller.Kind + "-" + controller.NameSpace + "-" + controller.Name
+	controllerIdentifier := controller.Kind + "-" + controller.Namespace + "-" + controller.Name
 	err := dbStats.Update(func(tx *bolt.Tx) error {
 		mainBucket := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
 
