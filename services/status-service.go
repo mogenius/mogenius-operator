@@ -258,7 +258,7 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 		}{
 			Replicas: *r.Spec.Replicas,
 			Paused: r.Spec.Paused,
-			Image: r.Spec.Template.Name,
+			Image: r.Spec.Template.Spec.Containers[0].Image,
 			StatusObject: r.Status,
 		}
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, status
@@ -278,7 +278,7 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 			StatusObject interface{} `json:"status,omitempty"`
 		}{
 			Suspend: *r.Spec.Suspend,
-			Image: r.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Name,
+			Image: r.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image,
 			StatusObject: r.Status,
 		}
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, r.Spec.JobTemplate.Spec.Selector, status

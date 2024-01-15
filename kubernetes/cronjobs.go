@@ -15,6 +15,7 @@ import (
 	punqutils "github.com/mogenius/punq/utils"
 	v1job "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 )
 
 func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
@@ -255,6 +256,14 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 }
 
 func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
+	var previousSpec *v1job.CronJobSpec
+	previousCronjob, err := client.(batchv1.CronJobInterface).Get(context.TODO(), service.Name, metav1.GetOptions{})
+	if err != nil {
+		previousCronjob = nil
+	} else {
+		previousSpec = &(*previousCronjob).Spec
+	}
+	
 	newCronJob := punqutils.InitCronJob()
 	
 	objectMeta := &newCronJob.ObjectMeta
@@ -279,7 +288,7 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 		spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
 	}
 
-	return objectMeta, &SpecCronJob{*spec}, &newCronJob, nil
+	return objectMeta, &SpecCronJob{*spec, previousSpec}, &newCronJob, nil
 }
 
 // Obsolete: can be removed after testing. just to double check old and new logic

@@ -18,14 +18,17 @@ import (
 type HasSpec interface {
 	GetSelector() *metav1.LabelSelector
 	GetTemplate() v1core.PodTemplateSpec
+	PreviousGetTemplate() *v1core.PodTemplateSpec
 }
 
 type SpecDeployment struct {
 	Spec v1.DeploymentSpec
+	PreviousSpec *v1.DeploymentSpec
 }
 
 type SpecCronJob struct {
 	Spec v1job.CronJobSpec
+	PreviousSpec *v1job.CronJobSpec
 }
 
 func (spec SpecDeployment) GetSelector() *metav1.LabelSelector {
@@ -36,12 +39,26 @@ func (spec SpecDeployment) GetTemplate() v1core.PodTemplateSpec {
 	return spec.Spec.Template
 }
 
+func (spec SpecDeployment) PreviousGetTemplate() *v1core.PodTemplateSpec {
+	if (spec.PreviousSpec != nil) {
+		return &(*spec.PreviousSpec).Template
+	}
+	return nil
+}
+
 func (spec SpecCronJob) GetSelector() *metav1.LabelSelector {
 	return spec.Spec.JobTemplate.Spec.Selector
 }
 
 func (spec SpecCronJob) GetTemplate() v1core.PodTemplateSpec {
 	return spec.Spec.JobTemplate.Spec.Template
+}
+
+func (spec SpecCronJob) PreviousGetTemplate() *v1core.PodTemplateSpec {
+	if (spec.PreviousSpec != nil) {
+		return &(*spec.PreviousSpec).JobTemplate.Spec.Template
+	}
+	return nil
 }
 
 type customControllerConfigHandler func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error)
@@ -60,6 +77,7 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 
 	specSelector := hasSpec.GetSelector()
 	specTemplate := hasSpec.GetTemplate()
+	previousSpecTemplate := hasSpec.PreviousGetTemplate()
 
 	if specSelector == nil {
 		specSelector = &metav1.LabelSelector{}
@@ -131,14 +149,12 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 			})
 		}
 	} else {
-		specTemplate.Spec.Containers[0].Image = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
 		// this will be setup UNTIL the buildserver overwrites the image with the real one.
-		// ------------------------------------ @todo: check
-		// if previousDeployment != nil {
-		// 	specTemplate.Spec.Containers[0].Image = previousDeployment.specTemplate.Spec.Containers[0].Image
-		// } else {
-		// 	specTemplate.Spec.Containers[0].Image = "ghcr.io/mogenius/mo-default-backend:latest"
-		// }
+		if previousSpecTemplate != nil {
+			specTemplate.Spec.Containers[0].Image = (*previousSpecTemplate).Spec.Containers[0].Image
+			} else {
+			specTemplate.Spec.Containers[0].Image = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
+		}
 	}
 
 	// ENV VARS
