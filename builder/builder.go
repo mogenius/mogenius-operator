@@ -14,11 +14,12 @@ import (
 	"strings"
 	"time"
 
+	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
 var currentBuildContext *context.Context
-var currentBuildChannel chan structs.BuildJobStateEnum
+var currentBuildChannel chan punqStructs.JobStateEnum
 var currentBuildJob *structs.BuildJob
 
 func ProcessQueue() {
@@ -27,7 +28,7 @@ func ProcessQueue() {
 	// this must happen outside the transaction to avoid dead-locks
 	logger.Log.Noticef("Queued %d jobs in build-queue.", len(jobsToBuild))
 	for _, buildJob := range jobsToBuild {
-		currentBuildChannel = make(chan structs.BuildJobStateEnum, 1)
+		currentBuildChannel = make(chan punqStructs.JobStateEnum, 1)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 		currentBuildContext = &ctx
@@ -41,16 +42,16 @@ func ProcessQueue() {
 		select {
 		case <-ctx.Done():
 			logger.Log.Errorf("BUILD TIMEOUT (after %ds)! (%s)", utils.CONFIG.Builder.BuildTimeout, ctx.Err())
-			job.State = structs.BuildJobStateTimeout
-			buildJob.State = structs.BuildJobStateTimeout
+			job.State = punqStructs.JobStateTimeout
+			buildJob.State = punqStructs.JobStateTimeout
 			saveJob(buildJob)
 		case result := <-currentBuildChannel:
 			switch result {
-			case structs.BuildJobStateTimeout:
+			case punqStructs.JobStateTimeout:
 				logger.Log.Warningf("Build '%d' CANCELED successfuly. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
-			case structs.BuildJobStateFailed:
+			case punqStructs.JobStateFailed:
 				logger.Log.Errorf("Build '%d' FAILDED. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
-			case structs.BuildJobStateSucceeded:
+			case punqStructs.JobStateSucceeded:
 				logger.Log.Noticef("Build '%d' finished successfuly. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
 			default:
 				logger.Log.Errorf("Unhandled channelMsg for '%d': %s", buildJob.BuildId, result)
@@ -69,7 +70,7 @@ func ProcessQueue() {
 	}
 }
 
-func build(job structs.Job, buildJob *structs.BuildJob, done chan structs.BuildJobStateEnum, timeoutCtx *context.Context) {
+func build(job structs.Job, buildJob *structs.BuildJob, done chan punqStructs.JobStateEnum, timeoutCtx *context.Context) {
 	job.Start()
 
 	pwd, _ := os.Getwd()
@@ -80,10 +81,10 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan structs.BuildJ
 		if !utils.CONFIG.Misc.Debug {
 			executeCmd(nil, db.PREFIX_CLEANUP, buildJob, nil, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
 		}
-		done <- structs.BuildJobStateSucceeded
+		done <- punqStructs.JobStateSucceeded
 	}()
 
-	updateState(*buildJob, structs.BuildJobStateStarted)
+	updateState(*buildJob, punqStructs.JobStateStarted)
 
 	imageName := fmt.Sprintf("%s-%s", buildJob.Namespace, buildJob.ServiceName)
 	tagName := fmt.Sprintf("%s/%s:%d", buildJob.ContainerRegistryPath, imageName, buildJob.BuildId)
@@ -105,7 +106,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan structs.BuildJ
 	err := executeCmd(cloneCmd, db.PREFIX_GIT_CLONE, buildJob, nil, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("git clone --progress -b %s --single-branch %s %s", buildJob.GitBranch, buildJob.GitRepo, workingDir))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", db.PREFIX_GIT_CLONE, err.Error())
-		done <- structs.BuildJobStateFailed
+		done <- punqStructs.JobStateFailed
 		return
 	}
 
@@ -114,7 +115,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan structs.BuildJ
 	err = executeCmd(lsCmd, db.PREFIX_LS, buildJob, nil, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("ls -lisa %s", workingDir))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", db.PREFIX_LS, err.Error())
-		done <- structs.BuildJobStateFailed
+		done <- punqStructs.JobStateFailed
 		return
 	}
 
@@ -124,7 +125,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan structs.BuildJ
 		err = executeCmd(loginCmd, db.PREFIX_LOGIN, buildJob, nil, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", buildJob.ContainerRegistryUrl, buildJob.ContainerRegistryUser, buildJob.ContainerRegistryPat))
 		if err != nil {
 			logger.Log.Errorf("Error%s: %s", db.PREFIX_LOGIN, err.Error())
-			done <- structs.BuildJobStateFailed
+			done <- punqStructs.JobStateFailed
 			return
 		}
 	}
@@ -134,22 +135,22 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan structs.BuildJ
 	err = executeCmd(buildCmd, db.PREFIX_BUILD, buildJob, nil, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build --network host -f %s %s -t %s -t %s %s", workingDir, buildJob.DockerFile, buildJob.InjectDockerEnvVars, tagName, latestTagName, buildJob.DockerContext))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", db.PREFIX_BUILD, err.Error())
-		done <- structs.BuildJobStateFailed
+		done <- punqStructs.JobStateFailed
 		return
 	}
 
 	// PUSH
 	pushCmd := structs.CreateCommandFromBuildJob("Pushing container", buildJob)
-	err = executeCmd(pushCmd, db.PREFIX_PUSH, buildJob, nil, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", tagName))
-	if err != nil {
-		logger.Log.Errorf("Error%s: %s", db.PREFIX_PUSH, err.Error())
-		done <- structs.BuildJobStateFailed
-		return
-	}
 	err = executeCmd(pushCmd, db.PREFIX_PUSH, buildJob, nil, false, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
 	if err != nil {
 		logger.Log.Errorf("Error%s: %s", db.PREFIX_PUSH, err.Error())
-		done <- structs.BuildJobStateFailed
+		done <- punqStructs.JobStateFailed
+		return
+	}
+	err = executeCmd(pushCmd, db.PREFIX_PUSH, buildJob, nil, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", tagName))
+	if err != nil {
+		logger.Log.Errorf("Error%s: %s", db.PREFIX_PUSH, err.Error())
+		done <- punqStructs.JobStateFailed
 		return
 	}
 
@@ -158,7 +159,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan structs.BuildJ
 	err = updateDeploymentImage(setImageCmd, buildJob, tagName)
 	if err != nil {
 		logger.Log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
-		done <- structs.BuildJobStateFailed
+		done <- punqStructs.JobStateFailed
 		return
 	}
 }
@@ -202,7 +203,7 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 					err := executeCmd(loginCmd, db.PREFIX_LOGIN, nil, &req.ContainerImage, true, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", req.ContainerRegistryPat, req.ContainerRegistryUrl, req.ContainerRegistryUser))
 					if err != nil {
 						logger.Log.Errorf("Error%s: %s", db.PREFIX_LOGIN, err.Error())
-						result.Result.State = structs.BuildJobStateFailed
+						result.Result.State = punqStructs.JobStateFailed
 						result.Error = &loginCmd.Message
 						return
 					}
@@ -216,7 +217,7 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 			err := executeCmd(pullCmd, db.PREFIX_PULL, &buildJob, &req.ContainerImage, false, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker pull %s", req.ContainerImage))
 			if err != nil {
 				logger.Log.Errorf("Error%s: %s", db.PREFIX_PULL, err.Error())
-				result.Result.State = structs.BuildJobStateFailed
+				result.Result.State = punqStructs.JobStateFailed
 				result.Error = &pullCmd.Message
 				return
 			}
@@ -227,7 +228,7 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 			err = executeCmd(scanCmd, db.PREFIX_VUL_SCAN, &buildJob, &req.ContainerImage, true, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("grype %s --add-cpes-if-none -q -o template -t %s", req.ContainerImage, grypeTemplate))
 			if err != nil {
 				logger.Log.Errorf("Error%s: %s", db.PREFIX_VUL_SCAN, err.Error())
-				result.Result.State = structs.BuildJobStateFailed
+				result.Result.State = punqStructs.JobStateFailed
 				result.Error = &scanCmd.Message
 				return
 			}
@@ -265,7 +266,7 @@ func Cancel(buildNo int) structs.BuildCancelResult {
 	if currentBuildContext != nil {
 		if currentBuildJob != nil {
 			if currentBuildJob.BuildId == buildNo {
-				currentBuildChannel <- structs.BuildJobStateCanceled
+				currentBuildChannel <- punqStructs.JobStateCanceled
 				return structs.BuildCancelResult{Result: fmt.Sprintf("Build '%d' canceled successfuly.", buildNo)}
 			} else {
 				return structs.BuildCancelResult{Error: fmt.Sprintf("Error: Build '%d' not running.", buildNo)}
@@ -513,9 +514,9 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 			job.DurationMs = int(elapsedTime.Milliseconds()) + job.DurationMs
 		}
 		if containerImageName == nil {
-			db.SaveBuildResult(structs.BuildJobStateEnum(reportCmd.State), prefix, cmdOutput.String(), startTime, job)
+			db.SaveBuildResult(punqStructs.JobStateEnum(reportCmd.State), prefix, cmdOutput.String(), startTime, job)
 		} else {
-			db.SaveScanResult(structs.BuildJobStateEnum(reportCmd.State), cmdOutput.String(), startTime, *containerImageName, job)
+			db.SaveScanResult(punqStructs.JobStateEnum(reportCmd.State), cmdOutput.String(), startTime, *containerImageName, job)
 		}
 
 		// send notification
@@ -551,7 +552,7 @@ func updateDeploymentImage(reportCmd *structs.Command, job *structs.BuildJob, im
 	return err
 }
 
-func updateState(buildJob structs.BuildJob, newState structs.BuildJobStateEnum) {
+func updateState(buildJob structs.BuildJob, newState punqStructs.JobStateEnum) {
 	db.UpdateStateInDb(buildJob, newState)
 }
 

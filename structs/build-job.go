@@ -4,6 +4,8 @@ import (
 	"mogenius-k8s-manager/logger"
 	"time"
 
+	punq "github.com/mogenius/punq/structs"
+
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -54,7 +56,7 @@ type BuildJob struct {
 	StartTimestamp        string            `json:"startTimestamp"`
 	EndTimestamp          string            `json:"endTimestamp"`
 	InjectDockerEnvVars   string            `json:"injectDockerEnvVars"`
-	State                 BuildJobStateEnum `json:"state"`
+	State                 punq.JobStateEnum `json:"state"`
 	StartedAt             string            `json:"startedAt"`
 	DurationMs            int               `json:"durationMs"`
 	BuildId               int               `json:"buildId"`
@@ -141,7 +143,7 @@ func BuildJobExample() BuildJob {
 		ContainerRegistryUrl:  "docker.io",
 		StartTimestamp:        "1689684071841",
 		InjectDockerEnvVars:   "--build-arg PLACEHOLDER=MOGENIUS",
-		State:                 BuildJobStatePending,
+		State:                 punq.JobStatePending,
 		StartedAt:             time.Now().Format(time.RFC3339),
 		EndTimestamp:          time.Now().Format(time.RFC3339),
 		DurationMs:            0,
@@ -205,7 +207,7 @@ type BuildScanResult struct {
 func CreateBuildScanResult(message string, err string) BuildScanResult {
 	result := BuildScanResult{
 		Result: &BuildJobInfoEntry{
-			State:      BuildJobStatePending,
+			State:      punq.JobStatePending,
 			Result:     message,
 			StartTime:  time.Now().Format(time.RFC3339),
 			FinishTime: "",
@@ -240,7 +242,7 @@ type BuildJobInfos struct {
 }
 
 type BuildJobInfoEntry struct {
-	State      BuildJobStateEnum `json:"state"`
+	State      punq.JobStateEnum `json:"state"`
 	Result     string            `json:"result"`
 	StartTime  string            `json:"startTime"`
 	FinishTime string            `json:"finishTime"`
@@ -248,7 +250,7 @@ type BuildJobInfoEntry struct {
 
 func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoEntry {
 	return BuildJobInfoEntry{
-		State:      BuildJobStatePending,
+		State:      punq.JobStatePending,
 		Result:     "",
 		StartTime:  time.Now().Format(time.RFC3339),
 		FinishTime: "",
@@ -284,7 +286,7 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 	return result
 }
 
-func CreateBuildJobInfoEntryBytes(state BuildJobStateEnum, cmdOutput string, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
+func CreateBuildJobInfoEntryBytes(state punq.JobStateEnum, cmdOutput string, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
 	entry := BuildJobInfoEntry{
 		State:      state,
 		Result:     cmdOutput,
@@ -301,7 +303,7 @@ func CreateBuildJobInfoEntryBytes(state BuildJobStateEnum, cmdOutput string, sta
 
 }
 
-func CreateBuildJobInfoEntryBytesForScan(state BuildJobStateEnum, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
+func CreateBuildJobInfoEntryBytesForScan(state punq.JobStateEnum, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
 	entry := BuildJobInfoEntry{
 		State:      state,
 		Result:     string(cmdOutput),

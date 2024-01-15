@@ -21,6 +21,7 @@ import (
 
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
+	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -199,7 +200,7 @@ func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest) NfsVolumeBackupResponse {
 
 	result = ZipDirAndUploadToS3(mountPath, fmt.Sprintf("backup_%s_%s.zip", r.VolumeName, time.Now().Format(time.RFC3339)), result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
 	if result.Error != "" {
-		job.State = "FAILED"
+		job.State = punqStructs.JobStateFailed
 	}
 
 	wg.Wait()
@@ -219,7 +220,7 @@ func RestoreMogeniusNfsVolume(r NfsVolumeRestoreRequest) NfsVolumeRestoreRespons
 
 	result = UnzipAndReplaceFromS3(r.NamespaceName, r.VolumeName, r.BackupKey, result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
 	if result.Error != "" {
-		job.State = "FAILED"
+		job.State = punqStructs.JobStateFailed
 	}
 
 	wg.Wait()

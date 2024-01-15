@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	punq "github.com/mogenius/punq/structs"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 )
@@ -41,7 +42,7 @@ func CreateCommand(title string, job *Job) *Command {
 		Title:                   title,
 		Message:                 "",
 		StartedAt:               time.Now().Format(time.RFC3339),
-		State:                   "PENDING",
+		State:                   punq.JobStatePending,
 		DurationMs:              0,
 		MustSucceed:             false,
 		ReportToNotificationSvc: true,
@@ -63,7 +64,7 @@ func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
 		Message:                 "",
 		BuildId:                 int(job.BuildId),
 		StartedAt:               time.Now().Format(time.RFC3339),
-		State:                   "PENDING",
+		State:                   punq.JobStatePending,
 		DurationMs:              0,
 		MustSucceed:             false,
 		ReportToNotificationSvc: true,
@@ -135,7 +136,7 @@ func (cmd *Command) Start(msg string) {
 }
 
 func (cmd *Command) Fail(error string) {
-	cmd.State = "FAILED"
+	cmd.State = punq.JobStateFailed
 	cmd.Message = error
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
 	if utils.CONFIG.Misc.Debug {
@@ -145,7 +146,7 @@ func (cmd *Command) Fail(error string) {
 }
 
 func (cmd *Command) Success(msg string) {
-	cmd.State = "SUCCEEDED"
+	cmd.State = punq.JobStateSucceeded
 	cmd.Message = msg
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
 	ReportStateToServer(nil, cmd)
