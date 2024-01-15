@@ -37,7 +37,7 @@ const (
 var db *bolt.DB
 
 func Init() {
-	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbPath, 0600, nil)
+	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		logger.Log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbPath)
 		logger.Log.Fatal(err.Error())
@@ -105,6 +105,12 @@ func Init() {
 	}
 
 	logger.Log.Noticef("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbPath)
+}
+
+func Close() {
+	if db != nil {
+		db.Close()
+	}
 }
 
 func GetJobsToBuildFromDb() []structs.BuildJob {

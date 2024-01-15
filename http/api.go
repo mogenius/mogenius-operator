@@ -31,7 +31,9 @@ func InitApi() {
 	router.POST("/podstats", postPodStats)
 
 	router.GET("/debug/last-traffic", debugGetLastTraffic)
+	router.GET("/debug/traffic", debugGetTraffic)
 	router.GET("/debug/last-pod", debugGetLastPod)
+	router.GET("/debug/pod", debugGetPod)
 
 	srv := &http.Server{
 		Addr:    ":1337",
@@ -130,6 +132,13 @@ func debugGetLastTraffic(c *gin.Context) {
 	ns := c.Query("ns")
 	pod := c.Query("pod")
 
+	if ns == "" || pod == "" {
+		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+			"error": "ns and pod are required",
+		})
+		return
+	}
+
 	controller := kubernetes.ControllerForPod(ns, pod)
 	if controller == nil {
 		c.IndentedJSON(http.StatusNotFound, map[string]string{
@@ -145,6 +154,13 @@ func debugGetLastPod(c *gin.Context) {
 	ns := c.Query("ns")
 	pod := c.Query("pod")
 
+	if ns == "" || pod == "" {
+		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+			"error": "ns and pod are required",
+		})
+		return
+	}
+
 	controller := kubernetes.ControllerForPod(ns, pod)
 	if controller == nil {
 		c.IndentedJSON(http.StatusNotFound, map[string]string{
@@ -153,5 +169,49 @@ func debugGetLastPod(c *gin.Context) {
 		return
 	}
 	stats := dbstats.GetLastPodStatsEntryForController(*controller)
+	c.IndentedJSON(http.StatusOK, stats)
+}
+
+func debugGetTraffic(c *gin.Context) {
+	ns := c.Query("ns")
+	pod := c.Query("pod")
+
+	if ns == "" || pod == "" {
+		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+			"error": "ns and pod are required",
+		})
+		return
+	}
+
+	controller := kubernetes.ControllerForPod(ns, pod)
+	if controller == nil {
+		c.IndentedJSON(http.StatusNotFound, map[string]string{
+			"error": "controller not found",
+		})
+		return
+	}
+	stats := dbstats.GetTrafficStatsEntriesForController(*controller)
+	c.IndentedJSON(http.StatusOK, stats)
+}
+
+func debugGetPod(c *gin.Context) {
+	ns := c.Query("ns")
+	pod := c.Query("pod")
+
+	if ns == "" || pod == "" {
+		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+			"error": "ns and pod are required",
+		})
+		return
+	}
+
+	controller := kubernetes.ControllerForPod(ns, pod)
+	if controller == nil {
+		c.IndentedJSON(http.StatusNotFound, map[string]string{
+			"error": "controller not found",
+		})
+		return
+	}
+	stats := dbstats.GetPodStatsEntriesForController(*controller)
 	c.IndentedJSON(http.StatusOK, stats)
 }

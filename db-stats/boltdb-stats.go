@@ -1,6 +1,7 @@
 package dbstats
 
 import (
+	"fmt"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -22,7 +23,7 @@ var dbStats *bolt.DB
 var cleanupTimer = time.NewTicker(1 * time.Minute)
 
 func Init() {
-	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbStatsPath, 0600, nil)
+	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbStatsPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		logger.Log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbStatsPath)
 		logger.Log.Fatal(err.Error())
@@ -60,6 +61,12 @@ func Init() {
 			cleanupStats()
 		}
 	}()
+}
+
+func Close() {
+	if dbStats != nil {
+		dbStats.Close()
+	}
 }
 
 func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
@@ -128,8 +135,14 @@ func AddPodStatsToDb(stats structs.PodStats) {
 func GetLastTrafficStatsEntryForController(controller kubernetes.K8sController) *structs.InterfaceStats {
 	result := &structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
-		bucket = bucket.Bucket([]byte(controller.Identifier()))
+		b := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
+		if b == nil {
+			return fmt.Errorf("Bucket '%s' not found.", TRAFFIC_BUCKET_NAME)
+		}
+		bucket := b.Bucket([]byte(controller.Identifier()))
+		if bucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", controller.Identifier())
+		}
 		c := bucket.Cursor()
 		k, v := c.Last()
 		if k != nil {
@@ -149,8 +162,14 @@ func GetLastTrafficStatsEntryForController(controller kubernetes.K8sController) 
 func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[]structs.InterfaceStats {
 	result := &[]structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
-		bucket = bucket.Bucket([]byte(controller.Identifier()))
+		b := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
+		if b == nil {
+			return fmt.Errorf("Bucket '%s' not found.", TRAFFIC_BUCKET_NAME)
+		}
+		bucket := b.Bucket([]byte(controller.Identifier()))
+		if bucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", controller.Identifier())
+		}
 		return bucket.ForEach(func(k, v []byte) error {
 			entry := structs.InterfaceStats{}
 			err := structs.UnmarshalInterfaceStats(&entry, v)
@@ -170,8 +189,14 @@ func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[
 func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats {
 	result := &structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
-		bucket = bucket.Bucket([]byte(controller.Identifier()))
+		b := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
+		if b == nil {
+			return fmt.Errorf("Bucket '%s' not found.", POD_STATS_BUCKET_NAME)
+		}
+		bucket := b.Bucket([]byte(controller.Identifier()))
+		if bucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", controller.Identifier())
+		}
 		c := bucket.Cursor()
 		k, v := c.Last()
 		if k != nil {
@@ -191,8 +216,14 @@ func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *str
 func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]structs.PodStats {
 	result := &[]structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
-		bucket = bucket.Bucket([]byte(controller.Identifier()))
+		b := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
+		if b == nil {
+			return fmt.Errorf("Bucket '%s' not found.", POD_STATS_BUCKET_NAME)
+		}
+		bucket := b.Bucket([]byte(controller.Identifier()))
+		if bucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", controller.Identifier())
+		}
 		return bucket.ForEach(func(k, v []byte) error {
 			entry := structs.PodStats{}
 			err := structs.UnmarshalPodStats(&entry, v)

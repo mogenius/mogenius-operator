@@ -317,6 +317,15 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 		case services.PAT_INSTALL_LOCAL_DEV_COMPONENTS:
 			payload = services.ClusterIssuerInstallRequestExample()
 
+		case services.PAT_STATS_PODSTAT_FOR_POD_ALL:
+			payload = services.StatsDataRequestExampleData()
+		case services.PAT_STATS_PODSTAT_FOR_POD_LAST:
+			payload = services.StatsDataRequestExampleData()
+		case services.PAT_STATS_TRAFFIC_FOR_POD_ALL:
+			payload = services.StatsDataRequestExampleData()
+		case services.PAT_STATS_TRAFFIC_FOR_POD_LAST:
+			payload = services.StatsDataRequestExampleData()
+
 		case services.PAT_FILES_LIST:
 			payload = services.FilesListRequestExampleData()
 		case services.PAT_FILES_DOWNLOAD:

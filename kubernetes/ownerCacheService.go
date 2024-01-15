@@ -5,6 +5,7 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	"github.com/mogenius/punq/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type K8sController struct {
@@ -35,71 +36,99 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 	}
 
 	pod := punq.GetPod(namespace, podName, nil)
+	if pod == nil {
+		logger.Log.Errorf("Pod: '%s/%s' not found.", namespace, podName)
+		return nil
+	}
+	ctlr := OwnerFromReference(pod.Namespace, pod.OwnerReferences)
+	if ctlr != nil {
+		OwnerCache[pod.Name] = *ctlr
+		return ctlr
+	}
 
-	if pod.OwnerReferences == nil && len(pod.OwnerReferences) > 0 {
-		owner := pod.OwnerReferences[0]
+	logger.Log.Errorf("Pod: '%s/%s' has no owner.", namespace, podName)
+	return nil
+}
+
+func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8sController {
+	if len(ownerRefs) > 0 {
+		owner := ownerRefs[0]
 
 		switch owner.Kind {
 		case "ReplicaSet":
-			data, err := punq.GetReplicaset(owner.Name, pod.Namespace, nil)
+			data, err := punq.GetReplicaset(namespace, owner.Name, nil)
 			if err == nil && data != nil {
-				if pod.OwnerReferences == nil && len(pod.OwnerReferences) > 0 {
-					OwnerCache[pod.Name] = NewK8sController(data.Kind, data.Name, pod.Namespace)
-					return utils.Pointer(OwnerCache[pod.Name])
+				if data.OwnerReferences == nil {
+					return utils.Pointer(NewK8sController("ReplicaSet", data.Name, namespace))
+				} else {
+					// recurse
+					return OwnerFromReference(namespace, data.OwnerReferences)
 				}
 			}
 			return nil
 		case "Deployment":
-			data, err := punq.GetK8sDeployment(owner.Name, pod.Namespace, nil)
+			data, err := punq.GetK8sDeployment(namespace, owner.Name, nil)
 			if err == nil && data != nil {
-				if pod.OwnerReferences == nil && len(pod.OwnerReferences) > 0 {
-					OwnerCache[pod.Name] = NewK8sController(data.Kind, data.Name, pod.Namespace)
-					return utils.Pointer(OwnerCache[pod.Name])
+				if data.OwnerReferences == nil {
+					return utils.Pointer(NewK8sController("Deployment", data.Name, namespace))
+				} else {
+					// recurse
+					return OwnerFromReference(namespace, data.OwnerReferences)
 				}
 			}
 			return nil
 		case "StatefulSet":
-			data, err := punq.GetStatefulSet(owner.Name, pod.Namespace, nil)
+			data, err := punq.GetStatefulSet(namespace, owner.Name, nil)
 			if err == nil && data != nil {
-				if pod.OwnerReferences == nil && len(pod.OwnerReferences) > 0 {
-					OwnerCache[pod.Name] = NewK8sController(data.Kind, data.Name, pod.Namespace)
-					return utils.Pointer(OwnerCache[pod.Name])
+				if data.OwnerReferences == nil {
+					return utils.Pointer(NewK8sController("StatefulSet", data.Name, namespace))
+				} else {
+					// recurse
+					return OwnerFromReference(namespace, data.OwnerReferences)
 				}
 			}
 			return nil
 		case "DaemonSet":
-			data, err := punq.GetK8sDaemonset(owner.Name, pod.Namespace, nil)
+			data, err := punq.GetK8sDaemonset(namespace, owner.Name, nil)
 			if err == nil && data != nil {
-				if pod.OwnerReferences == nil && len(pod.OwnerReferences) > 0 {
-					OwnerCache[pod.Name] = NewK8sController(data.Kind, data.Name, pod.Namespace)
-					return utils.Pointer(OwnerCache[pod.Name])
+				if data.OwnerReferences == nil {
+					return utils.Pointer(NewK8sController("DaemonSet", data.Name, namespace))
+				} else {
+					// recurse
+					return OwnerFromReference(namespace, data.OwnerReferences)
 				}
 			}
 			return nil
 		case "Job":
-			data, err := punq.GetJob(owner.Name, pod.Namespace, nil)
+			data, err := punq.GetJob(namespace, owner.Name, nil)
 			if err == nil && data != nil {
-				if pod.OwnerReferences == nil && len(pod.OwnerReferences) > 0 {
-					OwnerCache[pod.Name] = NewK8sController(data.Kind, data.Name, pod.Namespace)
-					return utils.Pointer(OwnerCache[pod.Name])
+				if data.OwnerReferences == nil {
+					return utils.Pointer(NewK8sController("Job", data.Name, namespace))
+				} else {
+					// recurse
+					return OwnerFromReference(namespace, data.OwnerReferences)
 				}
 			}
 			return nil
 		case "CronJob":
-			data, err := punq.GetCronjob(owner.Name, pod.Namespace, nil)
+			data, err := punq.GetCronjob(namespace, owner.Name, nil)
 			if err == nil && data != nil {
-				if pod.OwnerReferences == nil && len(pod.OwnerReferences) > 0 {
-					OwnerCache[pod.Name] = NewK8sController(data.Kind, data.Name, pod.Namespace)
-					return utils.Pointer(OwnerCache[pod.Name])
+				if data.OwnerReferences == nil {
+					return utils.Pointer(NewK8sController("CronJob", data.Name, namespace))
+				} else {
+					// recurse
+					return OwnerFromReference(namespace, data.OwnerReferences)
 				}
 			}
 			return nil
 		case "Pod":
-			data := punq.GetPod(pod.Namespace, owner.Name, nil)
+			data := punq.GetPod(namespace, owner.Name, nil)
 			if data != nil {
-				if pod.OwnerReferences == nil && len(pod.OwnerReferences) > 0 {
-					OwnerCache[pod.Name] = NewK8sController(data.Kind, data.Name, pod.Namespace)
-					return utils.Pointer(OwnerCache[pod.Name])
+				if data.OwnerReferences == nil {
+					return utils.Pointer(NewK8sController("Pod", data.Name, namespace))
+				} else {
+					// recurse
+					return OwnerFromReference(namespace, data.OwnerReferences)
 				}
 			}
 			return nil
@@ -108,6 +137,5 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 			return nil
 		}
 	}
-	logger.Log.Errorf("Pod: '%s' has no owner.", pod.Name)
 	return nil
 }

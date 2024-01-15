@@ -270,14 +270,14 @@ func ClusterIssuerInstallRequestExample() ClusterIssuerInstallRequest {
 }
 
 type StatsDataRequest struct {
-	Namespace string `json:"namespace"`
-	PodName   string `json:"podname"`
+	Namespace string `json:"namespace" validate:"required"`
+	PodName   string `json:"podname" validate:"required"`
 }
 
 func StatsDataRequestExampleData() StatsDataRequest {
 	return StatsDataRequest{
-		Namespace: "default",
-		PodName:   "mogenius-k8s-manager-5fdfcb8f85-n4x9l",
+		Namespace: "mogenius",
+		PodName:   "mogenius-k8s-manager-58485d4885-qbwcc",
 	}
 }
 

@@ -37,6 +37,7 @@ var clusterCmd = &cobra.Command{
 
 		utils.SetupClusterSecret(clusterSecret)
 
+		logger.Log.Noticef("Init DB ...")
 		db.Init()
 		dbstats.Init()
 
