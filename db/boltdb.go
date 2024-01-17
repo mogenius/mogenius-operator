@@ -255,6 +255,15 @@ func GetBuildJobListFromDb() []structs.BuildJobListEntry {
 			}
 			result = append(result, job)
 		}
+		// sort result array by buildId
+		for resultIndex := range result {
+			for i := range result {
+				if result[resultIndex].BuildId < result[i].BuildId {
+					result[resultIndex], result[i] = result[i], result[resultIndex]
+				}
+			}
+		}
+		
 		return nil
 	})
 	if err != nil {
