@@ -20,9 +20,6 @@ import (
 func StatusService(r ServiceStatusRequest) interface{} {
 	logger.Log.Debugf("StatusService for (%s): %s %s", r.ServiceName, r.Namespace, r.Controller)
 
-	// Collect status
-	// ? Specs.Containers[n].image === mo-default : pending
-
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		logger.Log.Warningf("Warningf: %s", err.Error())
