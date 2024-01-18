@@ -23,7 +23,7 @@ func NewK8sController(kind string, name string, namespace string) K8sController 
 }
 
 func (owner *K8sController) Identifier() string {
-	return owner.Kind + "-" + owner.Namespace + "-" + owner.Name
+	return owner.Namespace
 }
 
 var OwnerCache = make(map[string]K8sController)

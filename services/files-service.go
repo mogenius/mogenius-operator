@@ -269,6 +269,16 @@ func ClusterIssuerInstallRequestExample() ClusterIssuerInstallRequest {
 	}
 }
 
+type NsStatsDataRequest struct {
+	Namespace string `json:"namespace" validate:"required"`
+}
+
+func NsStatsDataRequestExampleData() NsStatsDataRequest {
+	return NsStatsDataRequest{
+		Namespace: "mogenius",
+	}
+}
+
 type StatsDataRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	PodName   string `json:"podname" validate:"required"`

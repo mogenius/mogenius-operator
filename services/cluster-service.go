@@ -659,15 +659,15 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 	if keplerHostAndPort == "" {
 		keplerservice := kubernetes.ServiceWithLabels("app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler", nil)
 		if keplerservice != nil {
-			keplerHostAndPort = fmt.Sprintf("%s:%d", keplerservice.Spec.ClusterIP, keplerservice.Spec.Ports[0].Port)
+			keplerHostAndPort = fmt.Sprintf("%s:%d", keplerservice.Name, keplerservice.Spec.Ports[0].Port)
 		} else {
 			logger.Log.Errorf("EnergyConsumption Err: kepler service not found.")
 			return structs.CurrentEnergyConsumptionResponse
 		}
-		if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
-			logger.Log.Notice("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
-			keplerHostAndPort = "192.168.178.132:9102"
-		}
+		// if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
+		// 	logger.Log.Warning("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
+		// 	keplerHostAndPort = "192.168.178.132:9102"
+		// }
 	}
 	if structs.KeplerDaemonsetRunningSince == 0 {
 		keplerPod := kubernetes.KeplerPod()

@@ -155,6 +155,35 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return dbstats.GetLastTrafficStatsEntryForController(*ctrl)
 
+	case PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL:
+		data := NsStatsDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return dbstats.GetPodStatsEntriesForNamespace(data.Namespace)
+	case PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST:
+		data := NsStatsDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return dbstats.GetLastPodStatsEntriesForNamespace(data.Namespace)
+	case PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL:
+		data := NsStatsDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return dbstats.GetTrafficStatsEntriesForNamespace(data.Namespace)
+	case PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST:
+		data := NsStatsDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return dbstats.GetLastTrafficStatsEntriesForNamespace(data.Namespace)
+
 	case PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

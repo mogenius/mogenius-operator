@@ -71,16 +71,11 @@ func Close() {
 
 func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
-	controller := kubernetes.ControllerForPod(stats.Namespace, stats.PodName)
-	if controller == nil {
-		return
-	}
-	controllerIdentifier := controller.Kind + "-" + controller.Namespace + "-" + controller.Name
 	err := dbStats.Update(func(tx *bolt.Tx) error {
 		mainBucket := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
 
 		// CREATE A BUCKET FOR EACH POD
-		bucket, err := mainBucket.CreateBucketIfNotExists([]byte(controllerIdentifier))
+		bucket, err := mainBucket.CreateBucketIfNotExists([]byte(stats.Namespace))
 		if err != nil {
 			return err
 		}
@@ -97,21 +92,17 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		return bucket.Put([]byte(string(id)), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error adding stats for '%s': %s", controllerIdentifier, err.Error())
+		logger.Log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
 	}
 }
 
 func AddPodStatsToDb(stats structs.PodStats) {
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
-	controller := kubernetes.ControllerForPod(stats.Namespace, stats.PodName)
-	if controller == nil {
-		return
-	}
 	err := dbStats.Update(func(tx *bolt.Tx) error {
 		mainBucket := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
 
 		// CREATE A BUCKET FOR EACH POD
-		bucket, err := mainBucket.CreateBucketIfNotExists([]byte(controller.Identifier()))
+		bucket, err := mainBucket.CreateBucketIfNotExists([]byte(stats.Namespace))
 		if err != nil {
 			return err
 		}
@@ -128,7 +119,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		return bucket.Put([]byte(string(id)), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error adding stats for '%s': %s", controller.Identifier(), err.Error())
+		logger.Log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
 	}
 }
 
@@ -236,6 +227,132 @@ func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]str
 	})
 	if err != nil {
 		logger.Log.Errorf("GetPodStatsEntriesForController: %s", err.Error())
+	}
+	return result
+}
+
+func GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
+	result := []structs.PodStats{}
+	err := dbStats.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
+		if b == nil {
+			return fmt.Errorf("Bucket '%s' not found.", POD_STATS_BUCKET_NAME)
+		}
+		bucket := b.Bucket([]byte(namespace))
+		if bucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", namespace)
+		}
+		return bucket.ForEach(func(k, v []byte) error {
+			entry := structs.PodStats{}
+			err := structs.UnmarshalPodStats(&entry, v)
+			if err != nil {
+				return err
+			}
+			var newEntry bool = true
+			for _, currentPod := range result {
+				if entry.PodName == currentPod.PodName {
+					newEntry = false
+				}
+
+			}
+			if newEntry {
+				result = append(result, entry)
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		logger.Log.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
+	}
+	return result
+}
+
+func GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
+	result := &[]structs.PodStats{}
+	err := dbStats.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
+		if b == nil {
+			return fmt.Errorf("Bucket '%s' not found.", POD_STATS_BUCKET_NAME)
+		}
+		bucket := b.Bucket([]byte(namespace))
+		if bucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", namespace)
+		}
+		return bucket.ForEach(func(k, v []byte) error {
+			entry := structs.PodStats{}
+			err := structs.UnmarshalPodStats(&entry, v)
+			if err != nil {
+				return err
+			}
+			*result = append(*result, entry)
+			return nil
+		})
+	})
+	if err != nil {
+		logger.Log.Errorf("GetPodStatsEntriesForNamespace: %s", err.Error())
+	}
+	return result
+}
+
+func GetLastTrafficStatsEntriesForNamespace(namespace string) []structs.InterfaceStats {
+	result := []structs.InterfaceStats{}
+	err := dbStats.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
+		if b == nil {
+			return fmt.Errorf("Bucket '%s' not found.", TRAFFIC_BUCKET_NAME)
+		}
+		bucket := b.Bucket([]byte(namespace))
+		if bucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", namespace)
+		}
+		return bucket.ForEach(func(k, v []byte) error {
+			entry := structs.InterfaceStats{}
+			err := structs.UnmarshalInterfaceStats(&entry, v)
+			if err != nil {
+				return err
+			}
+			var newEntry bool = true
+			for _, currentPod := range result {
+				if entry.PodName == currentPod.PodName {
+					newEntry = false
+				}
+
+			}
+			if newEntry {
+				result = append(result, entry)
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		logger.Log.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
+	}
+	return result
+}
+
+func GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats {
+	result := &[]structs.InterfaceStats{}
+	err := dbStats.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
+		if b == nil {
+			return fmt.Errorf("Bucket '%s' not found.", TRAFFIC_BUCKET_NAME)
+		}
+		bucket := b.Bucket([]byte(namespace))
+		if bucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", namespace)
+		}
+		return bucket.ForEach(func(k, v []byte) error {
+			entry := structs.InterfaceStats{}
+			err := structs.UnmarshalInterfaceStats(&entry, v)
+			if err != nil {
+				return err
+			}
+			*result = append(*result, entry)
+			return nil
+		})
+	})
+	if err != nil {
+		logger.Log.Errorf("GetTrafficStatsEntriesForNamespace: %s", err.Error())
 	}
 	return result
 }
