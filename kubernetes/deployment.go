@@ -233,15 +233,15 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	} else {
 		previousSpec = &(*previousDeployment).Spec
 	}
-	
+
 	newDeployment := punqUtils.InitDeployment()
-	
+
 	// check if default deployment exists
 	defaultDeployment := GetCustomDeploymentTemplate()
 	if previousDeployment == nil && defaultDeployment != nil {
 		newDeployment = *defaultDeployment
 	}
-	
+
 	objectMeta := &newDeployment.ObjectMeta
 	spec := &newDeployment.Spec
 
@@ -301,7 +301,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 		spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
 	}
 
-	return objectMeta, &SpecDeployment{*spec, previousSpec}, &newDeployment, nil
+	return objectMeta, &SpecDeployment{spec, previousSpec}, &newDeployment, nil
 }
 
 // Obsolete: can be removed after testing. just to double check old and new logic

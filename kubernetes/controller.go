@@ -17,45 +17,45 @@ import (
 
 type HasSpec interface {
 	GetSelector() *metav1.LabelSelector
-	GetTemplate() v1core.PodTemplateSpec
+	GetTemplate() *v1core.PodTemplateSpec
 	PreviousGetTemplate() *v1core.PodTemplateSpec
 }
 
 type SpecDeployment struct {
-	Spec v1.DeploymentSpec
+	Spec         *v1.DeploymentSpec
 	PreviousSpec *v1.DeploymentSpec
 }
 
 type SpecCronJob struct {
-	Spec v1job.CronJobSpec
+	Spec         *v1job.CronJobSpec
 	PreviousSpec *v1job.CronJobSpec
 }
 
-func (spec SpecDeployment) GetSelector() *metav1.LabelSelector {
+func (spec *SpecDeployment) GetSelector() *metav1.LabelSelector {
 	return spec.Spec.Selector
 }
 
-func (spec SpecDeployment) GetTemplate() v1core.PodTemplateSpec {
-	return spec.Spec.Template
+func (spec *SpecDeployment) GetTemplate() *v1core.PodTemplateSpec {
+	return &spec.Spec.Template
 }
 
-func (spec SpecDeployment) PreviousGetTemplate() *v1core.PodTemplateSpec {
-	if (spec.PreviousSpec != nil) {
+func (spec *SpecDeployment) PreviousGetTemplate() *v1core.PodTemplateSpec {
+	if spec.PreviousSpec != nil {
 		return &(*spec.PreviousSpec).Template
 	}
 	return nil
 }
 
-func (spec SpecCronJob) GetSelector() *metav1.LabelSelector {
+func (spec *SpecCronJob) GetSelector() *metav1.LabelSelector {
 	return spec.Spec.JobTemplate.Spec.Selector
 }
 
-func (spec SpecCronJob) GetTemplate() v1core.PodTemplateSpec {
-	return spec.Spec.JobTemplate.Spec.Template
+func (spec *SpecCronJob) GetTemplate() *v1core.PodTemplateSpec {
+	return &spec.Spec.JobTemplate.Spec.Template
 }
 
-func (spec SpecCronJob) PreviousGetTemplate() *v1core.PodTemplateSpec {
-	if (spec.PreviousSpec != nil) {
+func (spec *SpecCronJob) PreviousGetTemplate() *v1core.PodTemplateSpec {
+	if spec.PreviousSpec != nil {
 		return &(*spec.PreviousSpec).JobTemplate.Spec.Template
 	}
 	return nil
@@ -152,7 +152,7 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 		// this will be setup UNTIL the buildserver overwrites the image with the real one.
 		if previousSpecTemplate != nil {
 			specTemplate.Spec.Containers[0].Image = (*previousSpecTemplate).Spec.Containers[0].Image
-			} else {
+		} else {
 			specTemplate.Spec.Containers[0].Image = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
 		}
 	}
@@ -161,6 +161,7 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 	specTemplate.Spec.Containers[0].Env = []core.EnvVar{}
 	specTemplate.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
 	specTemplate.Spec.Volumes = []core.Volume{}
+
 	for _, envVar := range service.EnvVars {
 		if envVar.Type == "KEY_VAULT" ||
 			envVar.Type == "PLAINTEXT" ||

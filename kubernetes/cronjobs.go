@@ -61,7 +61,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 
 func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	logger.Log.Infof("CreateCronJob K8sServiceDto: %s", service)
-	
+
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -75,10 +75,10 @@ func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
-		if  err != nil {
+		if err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
-		
+
 		newCronJob := newController.(*v1job.CronJob)
 		newCronJob.Labels = MoUpdateLabels(&newCronJob.Labels, job.ProjectId, &namespace, &service)
 
@@ -136,10 +136,10 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
-		if  err != nil {
+		if err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
-		
+
 		newCronJob := newController.(*v1job.CronJob)
 
 		updateOptions := metav1.UpdateOptions{
@@ -172,10 +172,10 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
-		if  err != nil {
+		if err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
-		
+
 		cronJob := newController.(*v1job.CronJob)
 
 		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
@@ -202,7 +202,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
-		if  err != nil {
+		if err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
 		cronJob := newController.(*v1job.CronJob)
@@ -232,10 +232,10 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
-		if  err != nil {
+		if err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
-		cronJob := newController.(*v1job.CronJob)	
+		cronJob := newController.(*v1job.CronJob)
 
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
 		if cronJob.ObjectMeta.Annotations == nil {
@@ -263,9 +263,9 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	} else {
 		previousSpec = &(*previousCronjob).Spec
 	}
-	
+
 	newCronJob := punqutils.InitCronJob()
-	
+
 	objectMeta := &newCronJob.ObjectMeta
 	spec := &newCronJob.Spec
 
@@ -273,7 +273,7 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	if freshlyCreated &&
 		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GIT_REPOSITORY ||
 			service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GIT_REPOSITORY_TEMPLATE) {
-				spec.Suspend = punqutils.Pointer(true)
+		spec.Suspend = punqutils.Pointer(true)
 	} else {
 		spec.Suspend = punqutils.Pointer(!service.SwitchedOn)
 	}
@@ -288,11 +288,11 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 		spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
 	}
 
-	return objectMeta, &SpecCronJob{*spec, previousSpec}, &newCronJob, nil
+	return objectMeta, &SpecCronJob{spec, previousSpec}, &newCronJob, nil
 }
 
 // Obsolete: can be removed after testing. just to double check old and new logic
-// 
+//
 // func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, cronjobclient batchv1.CronJobInterface) v1job.CronJob {
 // 	previousCronjob, err := cronjobclient.Get(context.TODO(), service.Name, metav1.GetOptions{})
 // 	if err != nil {
@@ -301,11 +301,11 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 // 	}
 
 // 	newCronJob := punqutils.InitCronJob()
-	
+
 // 	objectMeta := &newCronJob.ObjectMeta
 // 	objectMeta.Name = service.Name
 // 	objectMeta.Namespace = namespace.Name
-	
+
 // 	spec := &newCronJob.Spec.JobTemplate.Spec
 // 	if spec.Selector == nil {
 // 		spec.Selector = &metav1.LabelSelector{}
@@ -324,7 +324,7 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 // 	// not supported for cron job
 // 	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["app"] = service.Name
 // 	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["ns"] = namespace.Name
-	
+
 // 	// spec.Template.ObjectMeta.Labels["app"] = service.Name
 // 	// spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
 
