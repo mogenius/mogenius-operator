@@ -75,14 +75,14 @@ func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
 }
 
 // XXX NOT USED ANYMORE?
-func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
+func CreateShellCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
 	wg.Add(1)
 	cmd := CreateCommand(title, job)
 	go func(cmd *Command) {
 		defer wg.Done()
 		cmd.Start(title)
 
-		output, err := exec.Command("bash", "-c", shellCmd).Output()
+		output, err := exec.Command("sh", "-c", shellCmd).Output()
 		fmt.Println(string(shellCmd))
 		fmt.Println(string(output))
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -100,9 +100,9 @@ func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGro
 	return cmd
 }
 
-func CreateBashCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
+func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
-		output, err := exec.Command("bash", "-c", shellCmd).Output()
+		output, err := exec.Command("sh", "-c", shellCmd).Output()
 		fmt.Println(string(shellCmd))
 		fmt.Println(string(output))
 		if exitErr, ok := err.(*exec.ExitError); ok {

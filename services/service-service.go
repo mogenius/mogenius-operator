@@ -274,20 +274,20 @@ func initDocker(service dtos.K8sServiceDto, job structs.Job) []*structs.Command 
 	gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
 
 	cmds := []*structs.Command{}
-	punqStructs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
-	punqStructs.ExecuteBashCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, service.GitRepository, gitDir, gitDir, service.GitBranch))
+	punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
+	punqStructs.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, service.GitRepository, gitDir, gitDir, service.GitBranch))
 	if service.App != nil {
 		if service.App.SetupCommands != "" {
-			punqStructs.ExecuteBashCommandSilent("Run Setup Commands", fmt.Sprintf("cd %s; %s", gitDir, service.App.SetupCommands))
+			punqStructs.ExecuteShellCommandSilent("Run Setup Commands", fmt.Sprintf("cd %s; %s", gitDir, service.App.SetupCommands))
 		}
 		if service.App.RepositoryLink != "" {
-			punqStructs.ExecuteBashCommandSilent("Clone files from template", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", service.App.RepositoryLink, gitDir, gitDir, gitDir, gitDir, gitDir))
+			punqStructs.ExecuteShellCommandSilent("Clone files from template", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", service.App.RepositoryLink, gitDir, gitDir, gitDir, gitDir, gitDir))
 		}
 	}
-	punqStructs.ExecuteBashCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add initial files."`, gitDir))
-	punqStructs.ExecuteBashCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
-	punqStructs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
-	punqStructs.ExecuteBashCommandSilent("Wait", "sleep 5")
+	punqStructs.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add initial files."`, gitDir))
+	punqStructs.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
+	punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+	punqStructs.ExecuteShellCommandSilent("Wait", "sleep 5")
 	return cmds
 }
 
@@ -297,14 +297,14 @@ func updateInfrastructureYaml(service dtos.K8sServiceDto, job structs.Job) []*st
 		tempDir := "/temp"
 		gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
 
-		punqStructs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
-		punqStructs.ExecuteBashCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, service.GitRepository, gitDir, gitDir, service.GitBranch))
+		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
+		punqStructs.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, service.GitRepository, gitDir, gitDir, service.GitBranch))
 
-		punqStructs.ExecuteBashCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, service.SettingsYaml, service.GitBranch))
+		punqStructs.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, service.SettingsYaml, service.GitBranch))
 
-		punqStructs.ExecuteBashCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, service.GitBranch))
-		punqStructs.ExecuteBashCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
-		punqStructs.ExecuteBashCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+		punqStructs.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, service.GitBranch))
+		punqStructs.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, service.GitBranch))
+		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
 	}
 
 	return cmds

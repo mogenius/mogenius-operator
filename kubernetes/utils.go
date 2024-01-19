@@ -246,7 +246,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 				mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
 				punqUtils.CreateDirIfNotExist(mountDir)
-				punqStructs.ExecuteBashCommandWithResponse(title, shellCmd)
+				punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
 			}
 		} else {
 			logger.Log.Warningf("No ClusterIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
@@ -271,7 +271,7 @@ func Umount(volumeNamespace string, volumeName string) {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
-			punqStructs.ExecuteBashCommandWithResponse(title, shellCmd)
+			punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
 			punqUtils.DeleteDirIfExist(mountDir)
 		}
 	}()

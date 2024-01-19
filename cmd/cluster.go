@@ -59,7 +59,7 @@ var clusterCmd = &cobra.Command{
 			builder.DISABLEQUEUE = true
 			basicApps, userApps := services.InstallDefaultApplications()
 			if basicApps != "" || userApps != "" {
-				err := utils.ExecuteBashCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
+				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
 				fmt.Printf("Seeding Commands (🪴🪴🪴): \"%s\".\n", userApps)
 				if err != nil {
 					logger.Log.Fatalf("Error installing default applications: %s", err.Error())
@@ -73,10 +73,10 @@ var clusterCmd = &cobra.Command{
 		go structs.ConnectToJobQueue()
 		go mokubernetes.WatchEvents()
 
-		punq.ExecuteBashCommandSilent("Git setup (1/4)", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
-		punq.ExecuteBashCommandSilent("Git setup (2/4)", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
-		punq.ExecuteBashCommandSilent("Git setup (3/4)", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
-		punq.ExecuteBashCommandSilent("Git setup (4/4)", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
+		punq.ExecuteShellCommandSilent("Git setup (1/4)", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
+		punq.ExecuteShellCommandSilent("Git setup (2/4)", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
+		punq.ExecuteShellCommandSilent("Git setup (3/4)", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
+		punq.ExecuteShellCommandSilent("Git setup (4/4)", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
 
 		kubernetes.CreateMogeniusContainerRegistryTlsSecret()
 		kubernetes.CreateMogeniusContainerRegistryIngress()

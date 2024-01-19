@@ -74,9 +74,9 @@ func GetFunctionName() string {
 	return parts[len(parts)-1]
 }
 
-func ExecuteBashCommandSilent(title string, shellCmd string) error {
+func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	result, err := utils.RunOnLocalShell(shellCmd).Output()
-	fmt.Printf("ExecuteBashCommandSilent:\n%s\n", result)
+	fmt.Printf("ExecuteShellCommandSilent:\n%s\n", result)
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
 		errorMsg := string(exitErr.Stderr)

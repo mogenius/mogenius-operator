@@ -34,10 +34,9 @@ ENV GOOS=${GOOS}
 ENV GOARCH=${GOARCH}
 ENV GOARM=${GOARM}
 
-RUN apk add --no-cache bash git nfs-utils curl ca-certificates
+RUN apk add --no-cache git nfs-utils curl ca-certificates
 
 # RUN apk add --no-cache \
-#     bash \
 #     git \
 #     curl \
 #     openssl \
@@ -53,10 +52,10 @@ RUN apk add --no-cache bash git nfs-utils curl ca-certificates
 # RUN npm install -g create-next-app next react react-dom
 
 # Install HELM
-# RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-# RUN chmod 700 get_helm.sh
-# RUN ./get_helm.sh
-# RUN rm get_helm.sh
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+RUN chmod 700 get_helm.sh
+RUN ./get_helm.sh
+RUN rm get_helm.sh
 
 # Install Popeye
 # RUN if [ "${GOARCH}" = "amd64" ]; then \
@@ -82,7 +81,7 @@ RUN apk add --no-cache bash git nfs-utils curl ca-certificates
 # Install grype
 # RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
-RUN adduser -s /bin/bash -D mogee
+RUN adduser -s /bin/sh -D mogee
 
 WORKDIR /app
 
