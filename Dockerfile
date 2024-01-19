@@ -2,6 +2,10 @@ FROM golang:1.21-alpine AS builder
 
 LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit-log here.
 
+RUN apk add --no-cache curl bash
+
+ENV VERIFY_CHECKSUM=false
+
 ARG GOOS
 ARG GOARCH
 ARG GOARM
@@ -24,6 +28,11 @@ RUN go build -ldflags="-extldflags= \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
   -X 'mogenius-k8s-manager/version.Ver=$VERSION'" -o bin/mogenius-k8s-manager .
 
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+RUN chmod 700 get_helm.sh
+RUN ./get_helm.sh
+RUN rm get_helm.sh
+
 FROM docker:dind
 
 ARG GOOS
@@ -34,7 +43,7 @@ ENV GOOS=${GOOS}
 ENV GOARCH=${GOARCH}
 ENV GOARM=${GOARM}
 
-RUN apk add --no-cache git nfs-utils curl ca-certificates
+RUN apk add --no-cache git nfs-utils ca-certificates
 
 # RUN apk add --no-cache \
 #     git \
@@ -52,10 +61,10 @@ RUN apk add --no-cache git nfs-utils curl ca-certificates
 # RUN npm install -g create-next-app next react react-dom
 
 # Install HELM
-RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-RUN chmod 700 get_helm.sh
-RUN ./get_helm.sh
-RUN rm get_helm.sh
+# RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+# RUN chmod 700 get_helm.sh
+# RUN ./get_helm.sh
+# RUN rm get_helm.sh
 
 # Install Popeye
 # RUN if [ "${GOARCH}" = "amd64" ]; then \
@@ -87,6 +96,7 @@ WORKDIR /app
 
 COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
 COPY --from=builder ["/app/grype-json-template", "."]
+COPY --from=builder ["/usr/local/bin/helm", "/usr/local/bin/helm"]
 
 ENV GIN_MODE=release
 
