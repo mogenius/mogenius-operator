@@ -130,6 +130,17 @@ mv k9s /usr/local/bin/.
 rm LICENSE README.md k9s_Linux_amd64.tar.gz get_helm.sh
 ```
 
+# Slim setup (IMPORTANT: DOES NOT MAKE THE IMAGE SMALLER IN OUR PARTICULAR CASE)
+```
+slim build --http-probe=false --exec "curl mogenius.com; git; docker info; helm" \
+--include-path-file /usr/local/bin/dockerd \
+--include-path-file /usr/local/bin/docker \
+--include-path-file /usr/bin/git \
+--include-path-file /usr/local/bin/helm \
+--include-path-file /usr/bin/curl \
+ghcr.io/mogenius/mogenius-k8s-manager-dev:v1.18.19-develop.92
+```
+
 
 ---------------------
 mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform

@@ -18,13 +18,14 @@ const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
 
 func WatchEvents() {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		return
-	}
-
 	var lastResourceVersion = ""
 	for {
+		provider, err := punq.NewKubeProvider(nil)
+		if provider == nil || err != nil {
+			logger.Log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+			return
+		}
+
 		// Create a watcher for all Kubernetes events
 		watcher, err := provider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
 
@@ -33,7 +34,6 @@ func WatchEvents() {
 				lastResourceVersion = ""
 			}
 			log.Printf("Error creating watcher: %v", err)
-			time.Sleep(RETRYTIMEOUT * time.Second) // Wait for 5 seconds before retrying
 			continue
 		} else {
 			logger.Log.Notice("Watcher connected successfully. Start watching events...")

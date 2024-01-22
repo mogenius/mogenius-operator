@@ -2,14 +2,12 @@ package socketclient
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -20,7 +18,6 @@ import (
 	"github.com/fatih/color"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/schollz/progressbar/v3"
-	"gopkg.in/yaml.v2"
 
 	"github.com/gorilla/websocket"
 
@@ -196,7 +193,7 @@ func updateCheck() {
 		return
 	}
 
-	helmData, err := getVersionData()
+	helmData, err := utils.GetVersionData()
 
 	if err != nil {
 		logger.Log.Error(err)
@@ -248,22 +245,6 @@ func updateCheck() {
 	} else {
 		fmt.Printf(" Up-To-Date: 👍 (Your Ver: %s)\n", version.Ver)
 	}
-}
-
-func getVersionData() (*punqStructs.HelmData, error) {
-	response, err := http.Get(utils.CONFIG.Misc.HelmIndex)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	data, _ := io.ReadAll(response.Body)
-	var helmData punqStructs.HelmData
-	err = yaml.Unmarshal(data, &helmData)
-	if err != nil {
-		return nil, err
-	}
-	return &helmData, nil
 }
 
 func notUpToDateAction(helmData *punqStructs.HelmData) {
