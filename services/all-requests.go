@@ -56,6 +56,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return UpgradeK8sManager(data)
 
 	case PAT_CLUSTER_FORCE_RECONNECT:
+		time.Sleep(1 * time.Second)
 		return kubernetes.ClusterForceReconnect()
 
 	case PAT_SYSTEM_CHECK:
