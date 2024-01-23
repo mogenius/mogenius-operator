@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	// "fmt"
 	"mogenius-k8s-manager/builder"
@@ -61,6 +62,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return SystemCheck()
 	case PAT_CLUSTER_RESTART:
 		logger.Log.Noticef("😵😵😵 Received RESTART COMMAND. Restarting now ...")
+		time.Sleep(1 * time.Second)
 		os.Exit(0)
 		return nil
 
