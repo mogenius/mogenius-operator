@@ -10,6 +10,7 @@ import (
 	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -58,6 +59,11 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 
 	case PAT_SYSTEM_CHECK:
 		return SystemCheck()
+	case PAT_CLUSTER_RESTART:
+		logger.Log.Noticef("😵😵😵 Received RESTART COMMAND. Restarting now ...")
+		os.Exit(0)
+		return nil
+
 	case PAT_ENERGY_CONSUMPTION:
 		return EnergyConsumption()
 
