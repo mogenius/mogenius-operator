@@ -208,7 +208,7 @@ func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 				if *req.ContainerRegistryUser != "" && *req.ContainerRegistryPat != "" {
 					loginCmd := structs.CreateCommand("Authenticate with container registry ...", &job)
 					job.AddCmd(loginCmd)
-					err := executeCmd(loginCmd, db.PREFIX_LOGIN, nil, &req.ContainerImage, true, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", *req.ContainerRegistryPat, req.ContainerRegistryUrl, *req.ContainerRegistryUser))
+					err := executeCmd(loginCmd, db.PREFIX_LOGIN, nil, &req.ContainerImage, false, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", *req.ContainerRegistryPat, req.ContainerRegistryUrl, *req.ContainerRegistryUser))
 					if err != nil {
 						logger.Log.Errorf("Error%s: %s", db.PREFIX_LOGIN, err.Error())
 						result.Result.State = punqStructs.JobStateFailed
@@ -520,6 +520,9 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 		if job != nil {
 			elapsedTime := time.Since(startTime)
 			job.DurationMs = int(elapsedTime.Milliseconds()) + job.DurationMs
+		} else {
+			logger.Log.Noticef("Notice: job is nil")
+			return
 		}
 		if containerImageName == nil {
 			db.SaveBuildResult(punqStructs.JobStateEnum(reportCmd.State), prefix, cmdOutput.String(), startTime, job)
