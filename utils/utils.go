@@ -3,6 +3,7 @@ package utils
 import (
 	"embed"
 	"fmt"
+	"io"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/version"
 	"net"
@@ -12,7 +13,9 @@ import (
 	"runtime"
 	"strings"
 
+	punqStructs "github.com/mogenius/punq/structs"
 	"github.com/mogenius/punq/utils"
+	"gopkg.in/yaml.v2"
 )
 
 const APP_NAME = "k8s"
@@ -86,4 +89,20 @@ func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	} else {
 		return nil
 	}
+}
+
+func GetVersionData() (*punqStructs.HelmData, error) {
+	response, err := http.Get(CONFIG.Misc.HelmIndex)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	data, _ := io.ReadAll(response.Body)
+	var helmData punqStructs.HelmData
+	err = yaml.Unmarshal(data, &helmData)
+	if err != nil {
+		return nil, err
+	}
+	return &helmData, nil
 }

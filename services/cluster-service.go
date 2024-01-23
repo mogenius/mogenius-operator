@@ -708,6 +708,11 @@ func SystemCheck() punq.SystemCheckResponse {
 
 	contextName := mokubernetes.CurrentContextName()
 
+	trafficCollectorNewestVersion, podstatsCollectorNewestVersion, err := getCurrentTrafficCollectorAndPodStatsVersion()
+	if err != nil {
+		logger.Log.Errorf("getCurrentTrafficCollectorVersion Err: %s", err.Error())
+	}
+
 	dockerResult, dockerOutput, dockerErr := IsDockerInstalled()
 	kubeCtlMsg := punq.StatusMessage(dockerErr, "If docker is missing in this image, we are screwed ;-)", dockerOutput)
 	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, "", true, false))
@@ -741,11 +746,14 @@ func SystemCheck() punq.SystemCheckResponse {
 	entries = append(entries, clusterIssuerEntry)
 
 	trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, NameTrafficCollector)
+	if trafficCollectorVersion == "" && trafficCollectorInstalledErr == nil {
+		trafficCollectorVersion = "6.6.6" // flag local version without tag
+	}
 	trafficMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameTrafficCollector, trafficCollectorVersion)
 	if trafficCollectorInstalledErr != nil {
 		trafficMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather traffic information you need to install this component.", NameTrafficCollector, contextName)
 	}
-	trafficDescpription := "Collects and exposes detailed traffic data for your mogenius services for better monitoring."
+	trafficDescpription := fmt.Sprintf("Collects and exposes detailed traffic data for your mogenius services for better monitoring. (Installed: %s | Available: %s)", trafficCollectorVersion, trafficCollectorNewestVersion)
 	trafficEntry := punq.CreateSystemCheckEntry(NameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, trafficDescpription, false, true)
 	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
 	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
@@ -755,11 +763,14 @@ func SystemCheck() punq.SystemCheckResponse {
 	entries = append(entries, trafficEntry)
 
 	podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, NamePodStatsCollector)
+	if podStatsCollectorVersion == "" && podStatsCollectorInstalledErr == nil {
+		podStatsCollectorVersion = "6.6.6" // flag local version without tag
+	}
 	podStatsMsg := fmt.Sprintf("%s (Version: %s) is installed.", NamePodStatsCollector, podStatsCollectorVersion)
 	if podStatsCollectorInstalledErr != nil {
 		podStatsMsg = fmt.Sprintf("%s is not installed in context '%s'.\nTo gather pod/event information you need to install this component.", NamePodStatsCollector, contextName)
 	}
-	podStatsDescription := "Collects and exposes status events of pods for services in mogenius."
+	podStatsDescription := fmt.Sprintf("Collects and exposes status events of pods for services in mogenius. (Installed: %s | Available: %s)", podStatsCollectorVersion, podstatsCollectorNewestVersion)
 	podEntry := punq.CreateSystemCheckEntry(NamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, podStatsDescription, true, true)
 	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
 	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
@@ -1397,4 +1408,22 @@ spec:
   addresses:
   - 192.168.66.1-192.168.66.50
   - fc00:f853:0ccd:e797::/124`
+}
+
+func getCurrentTrafficCollectorAndPodStatsVersion() (string, string, error) {
+	data, err := utils.GetVersionData()
+	if err != nil {
+		return "NO_VERSION_FOUND", "NO_VERSION_FOUND", err
+	}
+	podstatsCollector := data.Entries["mogenius-pod-stats-collector"]
+	podstatsResult := "NO_VERSION_FOUND"
+	if len(podstatsCollector) > 0 {
+		podstatsResult = podstatsCollector[0].Version
+	}
+	trafficCollector := data.Entries["mogenius-traffic-collector"]
+	trafficResult := "NO_VERSION_FOUND"
+	if len(trafficCollector) > 0 {
+		trafficResult = trafficCollector[0].Version
+	}
+	return trafficResult, podstatsResult, nil
 }
