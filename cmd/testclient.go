@@ -42,7 +42,7 @@ var testClientCmd = &cobra.Command{
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
 
-		go mokubernetes.WatchEvents()
+		go mokubernetes.NewEventWatcher()
 
 		socketclient.StartK8sManager()
 	},

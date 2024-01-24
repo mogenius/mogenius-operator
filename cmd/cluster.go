@@ -71,7 +71,7 @@ var clusterCmd = &cobra.Command{
 		go api.InitApi()
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
-		go mokubernetes.WatchEvents()
+		go mokubernetes.NewEventWatcher()
 
 		punq.ExecuteShellCommandSilent("Git setup (1/4)", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
 		punq.ExecuteShellCommandSilent("Git setup (2/4)", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
