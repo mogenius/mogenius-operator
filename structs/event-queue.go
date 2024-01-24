@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"context"
 	"fmt"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
@@ -24,55 +25,75 @@ type EventData struct {
 const RETRYTIMEOUT time.Duration = 3
 
 var eventSendMutex sync.Mutex
-var eventQueueConnection *websocket.Conn
+var EventQueueConnection *websocket.Conn
+var eventConnectionGuard = make(chan struct{}, 1)
+var EventConnectionStatus chan bool = make(chan bool)
 var eventDataQueue []EventData = []EventData{}
+var EventConnectionUrl url.URL = url.URL{}
 
 func ConnectToEventQueue() {
 	interrupt := make(chan os.Signal, 1)
 	defer close(interrupt)
 	signal.Notify(interrupt, os.Interrupt)
 
-	ticker := time.NewTicker(1 * time.Second)
-
-	// ALWAYS PROCESS_EVENT_QUEUE
-	go func() {
-		for range ticker.C {
-			_ = processEventQueueNow()
-		}
-	}()
-
 	for {
-		// connect
-		connectEvent()
+		eventConnectionGuard <- struct{}{} // would block if guard channel is already filled
+		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			quit := make(chan struct{})
+
+			go func() {
+				for {
+					select {
+					case <-ticker.C:
+						processEventQueueNow()
+					case <-quit:
+						// close go routine
+						return
+					}
+				}
+			}()
+
+			ctx := context.Background()
+			connectEvent(ctx)
+			ctx.Done()
+			<-eventConnectionGuard
+
+			ticker.Stop()
+			close(quit)
+		}()
 
 		select {
 		case <-interrupt:
 			logger.Log.Fatal("CTRL + C pressed. Terminating.")
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
+
 	}
 }
 
-func connectEvent() {
+func connectEvent(ctx context.Context) {
+	EventConnectionUrl = url.URL{Scheme: utils.CONFIG.EventServer.Scheme, Host: utils.CONFIG.EventServer.Server, Path: utils.CONFIG.EventServer.Path}
+
+	connection, _, err := websocket.DefaultDialer.Dial(EventConnectionUrl.String(), utils.HttpHeader(""))
+	if err != nil {
+		logger.Log.Errorf("Connection to EventServer failed (%s): %s\n", EventConnectionUrl.String(), err.Error())
+		EventConnectionStatus <- false
+	} else {
+		logger.Log.Infof("Connected to EventServer: %s  (%s)\n", EventConnectionUrl.String(), connection.LocalAddr().String())
+		EventQueueConnection = connection
+		EventConnectionStatus <- true
+		Ping(EventQueueConnection, &eventSendMutex)
+	}
+
 	defer func() {
 		// reset everything if connection dies
-		if eventQueueConnection != nil {
-			eventQueueConnection.Close()
+		if EventQueueConnection != nil {
+			EventQueueConnection.Close()
 		}
+		ctx.Done()
+		EventConnectionStatus <- false
 	}()
-
-	connectionUrl := url.URL{Scheme: utils.CONFIG.EventServer.Scheme, Host: utils.CONFIG.EventServer.Server, Path: utils.CONFIG.EventServer.Path}
-
-	connection, _, err := websocket.DefaultDialer.Dial(connectionUrl.String(), utils.HttpHeader(""))
-	if err != nil {
-		logger.Log.Errorf("Connection to EventServer failed (%s): %s\n", connectionUrl.String(), err.Error())
-		return
-	} else {
-		logger.Log.Infof("Connected to EventServer: %s  (%s)\n", connectionUrl.String(), connection.LocalAddr().String())
-		eventQueueConnection = connection
-		Ping(eventQueueConnection, &eventSendMutex)
-		return
-	}
 }
 
 func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32) {
@@ -91,11 +112,11 @@ func processEventQueueNow() error {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 
-	if eventQueueConnection != nil {
+	if EventQueueConnection != nil {
 		for i := 0; i < len(eventDataQueue); i++ {
 			element := eventDataQueue[i]
 
-			err := eventQueueConnection.WriteJSON(element.Datagram)
+			err := EventQueueConnection.WriteJSON(element.Datagram)
 			if err == nil {
 				if element.K8sKind != "" && element.K8sReason != "" && element.K8sMessage != "" {
 					if utils.CONFIG.Misc.LogKubernetesEvents {
@@ -110,9 +131,9 @@ func processEventQueueNow() error {
 		}
 	} else {
 		if utils.CONFIG.Misc.Debug {
-			// logger.Log.Error("eventQueueConnection is nil.")
+			// logger.Log.Error("EventQueueConnection is nil.")
 		}
-		return fmt.Errorf("eventQueueConnection is nil")
+		return fmt.Errorf("EventQueueConnection is nil")
 	}
 	return nil
 }

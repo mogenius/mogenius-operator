@@ -53,6 +53,24 @@ func StartK8sManager() {
 	updateCheck()
 	versionTicker()
 
+	go func() {
+		for status := range structs.EventConnectionStatus {
+			if status {
+				// CONNECTED
+				for {
+					_, _, err := structs.EventQueueConnection.ReadMessage()
+					if err != nil {
+						logger.Log.Errorf("%s -> %s", &structs.EventConnectionUrl, err.Error())
+						break
+					}
+				}
+				structs.EventQueueConnection.Close()
+			} else {
+				// DISCONNECTED
+			}
+		}
+	}()
+
 	for status := range structs.JobConnectionStatus {
 		if status {
 			// CONNECTED
