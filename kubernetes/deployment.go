@@ -34,7 +34,7 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		newController, err := CreateControllerConfiguration(namespace, service, false, deploymentClient, createDeploymentHandler)
+		newController, err := CreateControllerConfiguration(namespace, service, true, deploymentClient, createDeploymentHandler)
 		if err != nil {
 			logger.Log.Errorf("error: %s", err.Error())
 		}
@@ -265,8 +265,8 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 		spec.Replicas = punqUtils.Pointer[int32](0)
 	}
 
-	// PAUSE
-	if freshlyCreated && service.ServiceType == dtos.CONTAINER_IMAGE_TEMPLATE || service.ContainerImage == "" {
+	// PAUSE only on "freshly created" GIT_REPOSITORY or GIT_REPOSITORY_TEMPLATE which needs a build beforehand
+	if freshlyCreated && (service.ServiceType == dtos.GIT_REPOSITORY || service.ServiceType == dtos.GIT_REPOSITORY_TEMPLATE) {
 		spec.Paused = true
 	} else {
 		spec.Paused = false
