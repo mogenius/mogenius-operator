@@ -271,22 +271,24 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	spec := &newCronJob.Spec
 
 	// LABELS
-	if spec.JobTemplate.Spec.Selector == nil {
-		spec.JobTemplate.Spec.Selector = &metav1.LabelSelector{}
+	if objectMeta.Labels == nil {
+		objectMeta.Labels = map[string]string{}
 	}
-	if spec.JobTemplate.Spec.Selector.MatchLabels == nil {
-		spec.JobTemplate.Spec.Selector.MatchLabels = map[string]string{}
-	}
+	objectMeta.Labels["app"] = service.Name
+	objectMeta.Labels["ns"] = namespace.Name
+
 	if spec.JobTemplate.Spec.Template.ObjectMeta.Labels == nil {
 		spec.JobTemplate.Spec.Template.ObjectMeta.Labels = map[string]string{}
 	}
+	spec.JobTemplate.Spec.Template.ObjectMeta.Labels["app"] = service.Name
+	spec.JobTemplate.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
 
 	// INIT CONTAINER
 	if len(spec.JobTemplate.Spec.Template.Spec.Containers) == 0 {
 		spec.JobTemplate.Spec.Template.Spec.Containers = []core.Container{}
 		spec.JobTemplate.Spec.Template.Spec.Containers = append(spec.JobTemplate.Spec.Template.Spec.Containers, core.Container{})
 	}
-	
+
 	// SUSPEND -> PAUSE
 	if freshlyCreated &&
 		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GIT_REPOSITORY ||

@@ -75,14 +75,15 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 	objectMeta.Name = service.Name
 	objectMeta.Namespace = namespace.Name
 
-	specSelector := hasSpec.GetSelector()
+	// LABELS bugfix: labels are diffrent in deployment and cronjob and cannot be generalized
+	// specSelector := hasSpec.GetSelector()
 	specTemplate := hasSpec.GetTemplate()
 	previousSpecTemplate := hasSpec.PreviousGetTemplate()
 
-	specSelector.MatchLabels["app"] = service.Name
-	specSelector.MatchLabels["ns"] = namespace.Name
-	specTemplate.ObjectMeta.Labels["app"] = service.Name
-	specTemplate.ObjectMeta.Labels["ns"] = namespace.Name
+	// specSelector.MatchLabels["app"] = service.Name
+	// specSelector.MatchLabels["ns"] = namespace.Name
+	// specTemplate.ObjectMeta.Labels["app"] = service.Name
+	// specTemplate.ObjectMeta.Labels["ns"] = namespace.Name
 
 	// PORTS
 	if len(service.Ports) > 0 {
