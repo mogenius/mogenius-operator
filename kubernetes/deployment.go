@@ -272,6 +272,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 		spec.Paused = false
 	}
 
+	// LABELS
 	if spec.Selector == nil {
 		spec.Selector = &metav1.LabelSelector{}
 	}
