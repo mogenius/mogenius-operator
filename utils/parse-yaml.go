@@ -2,11 +2,44 @@ package utils
 
 import (
 	v1 "k8s.io/api/apps/v1"
+	v1job "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/kubectl/pkg/scheme"
 )
+
+func InitUpgradeConfigMap() corev1.ConfigMap {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/upgrade-configmap.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app corev1.ConfigMap
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitUpgradeJob() v1job.Job {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/upgrade-job.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app v1job.Job
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
 
 func InitMogeniusNfsPersistentVolumeClaim() corev1.PersistentVolumeClaim {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-nfs-pvc.yaml")

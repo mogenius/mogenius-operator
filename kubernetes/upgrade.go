@@ -56,11 +56,11 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *struct
 		jobClient := provider.ClientSet.BatchV1().Jobs(NAMESPACE)
 		configmapClient := provider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
 
-		configmap := punqUtils.InitUpgradeConfigMap()
+		configmap := utils.InitUpgradeConfigMap()
 		configmap.Namespace = NAMESPACE
 		configmap.Data["values.command"] = command
 
-		job := punqUtils.InitUpgradeJob()
+		job := utils.InitUpgradeJob()
 		job.Namespace = NAMESPACE
 		job.Name = fmt.Sprintf("%s-%s", job.Name, punqUtils.NanoIdSmallLowerCase())
 
