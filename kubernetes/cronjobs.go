@@ -14,6 +14,7 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	punqutils "github.com/mogenius/punq/utils"
 	v1job "k8s.io/api/batch/v1"
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 )
@@ -268,6 +269,25 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 
 	objectMeta := &newCronJob.ObjectMeta
 	spec := &newCronJob.Spec
+
+	// LABELS
+	if objectMeta.Labels == nil {
+		objectMeta.Labels = map[string]string{}
+	}
+	objectMeta.Labels["app"] = service.Name
+	objectMeta.Labels["ns"] = namespace.Name
+
+	if spec.JobTemplate.Spec.Template.ObjectMeta.Labels == nil {
+		spec.JobTemplate.Spec.Template.ObjectMeta.Labels = map[string]string{}
+	}
+	spec.JobTemplate.Spec.Template.ObjectMeta.Labels["app"] = service.Name
+	spec.JobTemplate.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
+
+	// INIT CONTAINER
+	if len(spec.JobTemplate.Spec.Template.Spec.Containers) == 0 {
+		spec.JobTemplate.Spec.Template.Spec.Containers = []core.Container{}
+		spec.JobTemplate.Spec.Template.Spec.Containers = append(spec.JobTemplate.Spec.Template.Spec.Containers, core.Container{})
+	}
 
 	// SUSPEND -> PAUSE
 	if freshlyCreated &&

@@ -272,15 +272,21 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 		spec.Paused = false
 	}
 
+	// LABELS
 	if spec.Selector == nil {
 		spec.Selector = &metav1.LabelSelector{}
 	}
 	if spec.Selector.MatchLabels == nil {
 		spec.Selector.MatchLabels = map[string]string{}
 	}
+	spec.Selector.MatchLabels["app"] = service.Name
+	spec.Selector.MatchLabels["ns"] = namespace.Name
+
 	if spec.Template.ObjectMeta.Labels == nil {
 		spec.Template.ObjectMeta.Labels = map[string]string{}
 	}
+	spec.Template.ObjectMeta.Labels["app"] = service.Name
+	spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
 
 	// CONTAINER
 	if len(spec.Template.Spec.Containers) == 0 {
