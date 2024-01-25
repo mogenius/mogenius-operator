@@ -652,7 +652,7 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 		}
 		// if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
 		// 	logger.Log.Warning("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
-		// 	keplerHostAndPort = "192.168.178.132:9102"
+		// 	keplerHostAndPort = "127.0.0.1:9102"
 		// }
 	}
 	if structs.KeplerDaemonsetRunningSince == 0 {
