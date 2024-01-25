@@ -2,8 +2,16 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"os"
 	"sync"
+
+	punq "github.com/mogenius/punq/kubernetes"
+
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
 )
 
 func CreateHelmChartCmd(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask structs.HelmTaskEnum, helmChartName string, helmFlags string, successFunc func(), failFunc func(output string, err error)) {
@@ -12,4 +20,47 @@ func CreateHelmChartCmd(helmReleaseName string, helmRepoName string, helmRepoUrl
 
 func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGroup) *structs.Command {
 	return structs.CreateShellCommand("Uninstall chart.", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
+}
+
+func HelmStatus(namespace string, chartname string) punq.SystemCheckStatus {
+	settings := cli.New()
+	settings.SetNamespace(namespace)
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), logger.Log.Infof); err != nil {
+		logger.Log.Errorf("HelmStatus Init Error: %s", err.Error())
+		return punq.UNKNOWN_STATUS
+	}
+
+	list := action.NewList(actionConfig)
+	releases, err := list.Run()
+	if err != nil {
+		logger.Log.Errorf("HelmStatus List Error: %s", err.Error())
+		return punq.UNKNOWN_STATUS
+	}
+
+	for _, rel := range releases {
+		if rel.Name == chartname {
+			return OurStatusFromHelmStatus(rel.Info.Status)
+		}
+	}
+
+	return punq.UNKNOWN_STATUS
+}
+
+func OurStatusFromHelmStatus(status release.Status) punq.SystemCheckStatus {
+	switch status {
+	case release.StatusUnknown:
+		return punq.UNKNOWN_STATUS
+	case release.StatusDeployed, release.StatusSuperseded:
+		return punq.INSTALLED
+	case release.StatusUninstalled, release.StatusFailed:
+		return punq.NOT_INSTALLED
+	case release.StatusUninstalling:
+		return punq.UNINSTALLING
+	case release.StatusPendingInstall, release.StatusPendingUpgrade, release.StatusPendingRollback:
+		return punq.INSTALLING
+	default:
+		return punq.UNKNOWN_STATUS
+	}
 }

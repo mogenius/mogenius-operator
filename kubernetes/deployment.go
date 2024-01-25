@@ -272,6 +272,22 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 		spec.Paused = false
 	}
 
+	if spec.Selector == nil {
+		spec.Selector = &metav1.LabelSelector{}
+	}
+	if spec.Selector.MatchLabels == nil {
+		spec.Selector.MatchLabels = map[string]string{}
+	}
+	if spec.Template.ObjectMeta.Labels == nil {
+		spec.Template.ObjectMeta.Labels = map[string]string{}
+	}
+
+	// CONTAINER
+	if len(spec.Template.Spec.Containers) == 0 {
+		spec.Template.Spec.Containers = []core.Container{}
+		spec.Template.Spec.Containers = append(spec.Template.Spec.Containers, core.Container{})
+	}
+
 	// ImagePullPolicy
 	if service.K8sSettings.ImagePullPolicy != "" {
 		spec.Template.Spec.Containers[0].ImagePullPolicy = core.PullPolicy(service.K8sSettings.ImagePullPolicy)

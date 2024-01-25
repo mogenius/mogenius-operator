@@ -79,24 +79,10 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 	specTemplate := hasSpec.GetTemplate()
 	previousSpecTemplate := hasSpec.PreviousGetTemplate()
 
-	if specSelector == nil {
-		specSelector = &metav1.LabelSelector{}
-	}
-	if specSelector.MatchLabels == nil {
-		specSelector.MatchLabels = map[string]string{}
-	}
 	specSelector.MatchLabels["app"] = service.Name
 	specSelector.MatchLabels["ns"] = namespace.Name
-	if specTemplate.ObjectMeta.Labels == nil {
-		specTemplate.ObjectMeta.Labels = map[string]string{}
-	}
 	specTemplate.ObjectMeta.Labels["app"] = service.Name
 	specTemplate.ObjectMeta.Labels["ns"] = namespace.Name
-
-	if len(specTemplate.Spec.Containers) == 0 {
-		specTemplate.Spec.Containers = []core.Container{}
-		specTemplate.Spec.Containers = append(specTemplate.Spec.Containers, core.Container{})
-	}
 
 	// PORTS
 	if len(service.Ports) > 0 {

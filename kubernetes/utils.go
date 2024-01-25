@@ -74,6 +74,10 @@ func NewWorkload(name string, yaml string, description string) K8sNewWorkload {
 }
 
 func CurrentContextName() string {
+	if utils.CONFIG.Kubernetes.RunInCluster {
+		return utils.CONFIG.Kubernetes.ClusterName
+	}
+
 	var kubeconfig string = ""
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = filepath.Join(home, ".kube", "config")
