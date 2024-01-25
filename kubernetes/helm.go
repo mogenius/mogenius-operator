@@ -45,7 +45,7 @@ func HelmStatus(namespace string, chartname string) punq.SystemCheckStatus {
 		}
 	}
 
-	return punq.UNKNOWN_STATUS
+	return punq.NOT_INSTALLED
 }
 
 func OurStatusFromHelmStatus(status release.Status) punq.SystemCheckStatus {
