@@ -710,6 +710,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	certMgrEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameCertManager, certManagerInstalledErr == nil, certManagerMsg, certMgrDescription, false, true)
 	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
 	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
+	certMgrEntry.UpgradePattern = PAT_UPGRADE_CERT_MANAGER
 	certMgrEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
 	entries = append(entries, certMgrEntry)
 
@@ -737,6 +738,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	trafficEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, trafficDescpription, false, true)
 	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
 	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
+	trafficEntry.UpgradePattern = PAT_UPGRADE_TRAFFIC_COLLECTOR
 	trafficEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
 	entries = append(entries, trafficEntry)
 
@@ -752,6 +754,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	podEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, podStatsDescription, true, true)
 	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
 	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
+	podEntry.UpgradePattern = PAT_UPGRADE_PODSTATS_COLLECTOR
 	podEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
 	entries = append(entries, podEntry)
 
@@ -765,6 +768,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, distriDescription, false, true)
 	distriEntry.InstallPattern = PAT_INSTALL_CONTAINER_REGISTRY
 	distriEntry.UninstallPattern = PAT_UNINSTALL_CONTAINER_REGISTRY
+	distriEntry.UpgradePattern = PAT_UPGRADE_CONTAINER_REGISTRY
 	distriEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
 	entries = append(entries, distriEntry)
 
@@ -777,6 +781,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, metallbDescription, false, false)
 	metallbEntry.InstallPattern = PAT_INSTALL_METALLB
 	metallbEntry.UninstallPattern = PAT_UNINSTALL_METALLB
+	metallbEntry.UpgradePattern = PAT_UPGRADE_METALLB
 	metallbEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
 	entries = append(entries, metallbEntry)
 
@@ -789,6 +794,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false)
 	keplerEntry.InstallPattern = PAT_INSTALL_KEPLER
 	keplerEntry.UninstallPattern = PAT_UNINSTALL_KEPLER
+	keplerEntry.UpgradePattern = PAT_UPGRADE_KEPLER
 	keplerEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
 	entries = append(entries, keplerEntry)
 
@@ -812,11 +818,13 @@ func SystemCheck() punq.SystemCheckResponse {
 		if entry.CheckName == NameIngressController {
 			entries[i].InstallPattern = PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UninstallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
+			entries[i].UpgradePattern = PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
 			entries[i].Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
 		}
 		if entry.CheckName == NameMetricsServer {
 			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
 			entries[i].UninstallPattern = PAT_UNINSTALL_METRICS_SERVER
+			entries[i].UpgradePattern = PAT_UPGRADE_METRICS_SERVER
 			entries[i].Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
 		}
 	}
@@ -910,6 +918,24 @@ func InstallTrafficCollector() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
+func UpgradeTrafficCollector() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "mogenius",
+		HelmRepoUrl:     "https://helm.mogenius.com/public",
+		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
+		HelmChartName:   "mogenius/" + utils.HelmReleaseNameTrafficCollector,
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+		HelmTask:        structs.HelmUpgrade,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
 func InstallPodStatsCollector() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
@@ -928,10 +954,25 @@ func InstallPodStatsCollector() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallMetricsServer() string {
-	//helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
-	//helm upgrade --install metrics-server metrics-server/metrics-server
+func UpgradePodStatsCollector() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "mogenius",
+		HelmRepoUrl:     "https://helm.mogenius.com/public",
+		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
+		HelmChartName:   "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+		HelmTask:        structs.HelmUpgrade,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
 
+func InstallMetricsServer() string {
 	r := ClusterHelmRequest{
 		Namespace:       "default",
 		HelmRepoName:    utils.HelmReleaseNameMetricsServer,
@@ -949,10 +990,25 @@ func InstallMetricsServer() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallIngressControllerTreafik() string {
-	// helm repo add traefik https://traefik.github.io/charts
-	// helm install traefik traefik/traefik
+func UpgradeMetricsServer() string {
+	r := ClusterHelmRequest{
+		Namespace:       "default",
+		HelmRepoName:    utils.HelmReleaseNameMetricsServer,
+		HelmRepoUrl:     "https://kubernetes-sigs.github.io/metrics-server/",
+		HelmReleaseName: utils.HelmReleaseNameMetricsServer,
+		HelmChartName:   utils.HelmReleaseNameMetricsServer + "/" + utils.HelmReleaseNameMetricsServer,
+		HelmFlags:       "--set args[0]='--kubelet-insecure-tls' --set args[1]='--secure-port=10250' --set args[2]='--cert-dir=/tmp' --set 'args[3]=--kubelet-preferred-address-types=InternalIP\\,ExternalIP\\,Hostname' --set args[4]='--kubelet-use-node-status-port' --set args[5]='--metric-resolution=15s'",
+		HelmTask:        structs.HelmUpgrade,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
 
+func InstallIngressControllerTreafik() string {
 	r := ClusterHelmRequest{
 		Namespace:       "default",
 		HelmRepoName:    utils.HelmReleaseNameTraefik,
@@ -970,10 +1026,25 @@ func InstallIngressControllerTreafik() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallCertManager() string {
-	// helm repo add jetstack https://charts.jetstack.io
-	// helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace
+func UpgradeIngressControllerTreafik() string {
+	r := ClusterHelmRequest{
+		Namespace:       "default",
+		HelmRepoName:    utils.HelmReleaseNameTraefik,
+		HelmRepoUrl:     "https://traefik.github.io/charts",
+		HelmReleaseName: utils.HelmReleaseNameTraefik,
+		HelmChartName:   utils.HelmReleaseNameTraefik + "/" + utils.HelmReleaseNameTraefik,
+		HelmFlags:       "",
+		HelmTask:        structs.HelmUpgrade,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
 
+func InstallCertManager() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "jetstack",
@@ -991,10 +1062,25 @@ func InstallCertManager() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallContainerRegistry() string {
-	// helm repo add phntom https://phntom.kix.co.il/charts/
-	// helm install distribution-registry phntom/docker-registry -n mogenius
+func UpgradeCertManager() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "jetstack",
+		HelmRepoUrl:     "https://charts.jetstack.io",
+		HelmReleaseName: utils.HelmReleaseNameCertManager,
+		HelmChartName:   "jetstack/" + utils.HelmReleaseNameCertManager,
+		HelmFlags:       fmt.Sprintf("--namespace %s --set startupapicheck.enabled=false --set installCRDs=true", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        structs.HelmUpgrade,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
 
+func InstallContainerRegistry() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "phntom",
@@ -1003,6 +1089,24 @@ func InstallContainerRegistry() string {
 		HelmChartName:   "phntom/docker-registry",
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        structs.HelmInstall,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
+func UpgradeContainerRegistry() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    "phntom",
+		HelmRepoUrl:     "https://phntom.kix.co.il/charts/",
+		HelmReleaseName: utils.HelmReleaseNameDistributionRegistry,
+		HelmChartName:   "phntom/docker-registry",
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        structs.HelmUpgrade,
 	}
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
 		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
@@ -1022,8 +1126,8 @@ func InstallMetalLb() string {
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        structs.HelmInstall,
 	}
-
-	installAfterHelmChart := func() {
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
 		for {
 			// this is important because the control plane needs some time to make the CRDs available
 			time.Sleep(1 * time.Second)
@@ -1038,9 +1142,28 @@ func InstallMetalLb() string {
 				return
 			}
 		}
-	}
-	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, installAfterHelmChart, nil)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
 
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
+func UpgradeMetalLb() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    utils.HelmReleaseNameMetalLb,
+		HelmRepoUrl:     "https://metallb.github.io/metallb",
+		HelmReleaseName: utils.HelmReleaseNameMetalLb,
+		HelmChartName:   utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        structs.HelmUpgrade,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
@@ -1053,6 +1176,24 @@ func InstallKepler() string {
 		HelmChartName:   utils.HelmReleaseNameKepler + "/" + utils.HelmReleaseNameKepler,
 		HelmFlags:       fmt.Sprintf(`--namespace %s --set global.namespace="%s" --set extraEnvVars.EXPOSE_IRQ_COUNTER_METRICS="false" --set extraEnvVars.EXPOSE_KUBELET_METRICS="false" --set extraEnvVars.ENABLE_PROCESS_METRICS="false"`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        structs.HelmInstall,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
+func UpgradeKepler() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    utils.HelmReleaseNameKepler,
+		HelmRepoUrl:     "https://sustainable-computing-io.github.io/kepler-helm-chart",
+		HelmReleaseName: utils.HelmReleaseNameKepler,
+		HelmChartName:   utils.HelmReleaseNameKepler + "/" + utils.HelmReleaseNameKepler,
+		HelmFlags:       fmt.Sprintf(`--namespace %s --set global.namespace="%s" --set extraEnvVars.EXPOSE_IRQ_COUNTER_METRICS="false" --set extraEnvVars.EXPOSE_KUBELET_METRICS="false" --set extraEnvVars.ENABLE_PROCESS_METRICS="false"`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        structs.HelmUpgrade,
 	}
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
 		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)

@@ -30,6 +30,14 @@ const (
 	PAT_UNINSTALL_CONTAINER_REGISTRY         string = "uninstall-container-registry"
 	PAT_UNINSTALL_METALLB                    string = "uninstall-metallb"
 	PAT_UNINSTALL_KEPLER                     string = "uninstall-kepler"
+	PAT_UPGRADE_TRAFFIC_COLLECTOR            string = "upgrade-traffic-collector"
+	PAT_UPGRADE_PODSTATS_COLLECTOR           string = "upgrade-pod-stats-collector"
+	PAT_UPGRADE_METRICS_SERVER               string = "upgrade-metrics-server"
+	PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK   string = "upgrade-ingress-controller-traefik"
+	PAT_UPGRADE_CERT_MANAGER                 string = "upgrade-cert-manager"
+	PAT_UPGRADE_CONTAINER_REGISTRY           string = "upgrade-container-registry"
+	PAT_UPGRADE_METALLB                      string = "upgrade-metallb"
+	PAT_UPGRADE_KEPLER                       string = "upgrade-kepler"
 
 	PAT_FILES_LIST          string = "files/list"
 	PAT_FILES_DOWNLOAD      string = "files/download"
@@ -373,6 +381,14 @@ var COMMAND_REQUESTS = []string{
 	PAT_UNINSTALL_CONTAINER_REGISTRY,
 	PAT_UNINSTALL_METALLB,
 	PAT_UNINSTALL_KEPLER,
+	PAT_UPGRADE_TRAFFIC_COLLECTOR,
+	PAT_UPGRADE_PODSTATS_COLLECTOR,
+	PAT_UPGRADE_METRICS_SERVER,
+	PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK,
+	PAT_UPGRADE_CERT_MANAGER,
+	PAT_UPGRADE_CONTAINER_REGISTRY,
+	PAT_UPGRADE_METALLB,
+	PAT_UPGRADE_KEPLER,
 
 	PAT_FILES_LIST,
 	PAT_FILES_DOWNLOAD,

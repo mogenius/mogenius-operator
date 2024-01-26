@@ -118,6 +118,22 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return UninstallMetalLb()
 	case PAT_UNINSTALL_KEPLER:
 		return UninstallKepler()
+	case PAT_UPGRADE_TRAFFIC_COLLECTOR:
+		return UpgradeTrafficCollector()
+	case PAT_UPGRADE_PODSTATS_COLLECTOR:
+		return UpgradePodStatsCollector()
+	case PAT_UPGRADE_METRICS_SERVER:
+		return UpgradeMetricsServer()
+	case PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK:
+		return UpgradeIngressControllerTreafik()
+	case PAT_UPGRADE_CERT_MANAGER:
+		return UpgradeCertManager()
+	case PAT_UPGRADE_CONTAINER_REGISTRY:
+		return UpgradeContainerRegistry()
+	case PAT_UPGRADE_METALLB:
+		return UpgradeMetalLb()
+	case PAT_UPGRADE_KEPLER:
+		return UpgradeKepler()
 
 	case PAT_STATS_PODSTAT_FOR_POD_ALL:
 		data := StatsDataRequest{}

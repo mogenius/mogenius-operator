@@ -15,7 +15,7 @@ require (
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-tty v0.0.5
-	github.com/mogenius/punq v1.5.0-develop.47
+	github.com/mogenius/punq v1.5.0-develop.48
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/spf13/cobra v1.8.0
