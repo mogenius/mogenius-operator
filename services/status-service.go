@@ -11,7 +11,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
-	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -97,11 +96,11 @@ func controller(namespace string, controllerName string, resourceController Reso
 	case Job:
 		resourceInterface, err = clientset.BatchV1().Jobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case CronJob:
-		resourceInterface, err = clientset.BatchV1beta1().CronJobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface, err = clientset.BatchV1().CronJobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	}
 
 	if err != nil {
-		logger.Log.Warningf("\nWarning fetching resources: %s\n", err)
+		logger.Log.Warningf("\nWarning fetching resources %s, ns: %s, name: %s, err: %s\n", resourceController.String(), namespace, controllerName, err)
 		return nil, err
 	}
 
@@ -268,7 +267,7 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, DaemonSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *batchv1.Job:
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Job.String(), r.OwnerReferences, r.Spec.Selector, r.Status
-	case *batchv1beta1.CronJob: {
+	case *batchv1.CronJob: {
 		status := struct{
 			Suspend bool             `json:"suspend,omitempty"`
 			Image string             `json:"image,omitempty"`
