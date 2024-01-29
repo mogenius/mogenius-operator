@@ -51,12 +51,12 @@ const (
 )
 
 const (
-	MetricsHelmIndex                  = "https://kubernetes-sigs.github.io/metrics-server/index.yaml"
-	IngressControllerTraefikHelmIndex = "https://traefik.github.io/charts/index.yaml"
-	ContainerRegistryHelmIndex        = "https://phntom.kix.co.il/charts/index.yaml"
-	CertManagerHelmIndex              = "https://charts.jetstack.io/index.yaml"
-	KeplerHelmIndex                   = "https://sustainable-computing-io.github.io/kepler-helm-chart/index.yaml"
-	MetalLBHelmIndex                  = "https://metallb.github.io/metallb/index.yaml"
+	MetricsHelmIndex                  = "https://kubernetes-sigs.github.io/metrics-server"
+	IngressControllerTraefikHelmIndex = "https://traefik.github.io/charts"
+	ContainerRegistryHelmIndex        = "https://phntom.kix.co.il/charts"
+	CertManagerHelmIndex              = "https://charts.jetstack.io"
+	KeplerHelmIndex                   = "https://sustainable-computing-io.github.io/kepler-helm-chart"
+	MetalLBHelmIndex                  = "https://metallb.github.io/metallb"
 )
 
 func UpgradeK8sManager(r K8sManagerUpgradeRequest) structs.Job {
