@@ -211,7 +211,7 @@ func updateCheck() {
 		return
 	}
 
-	helmData, err := utils.GetVersionData()
+	helmData, err := utils.GetVersionData(utils.CONFIG.Misc.HelmIndex)
 
 	if err != nil {
 		logger.Log.Error(err)

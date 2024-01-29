@@ -103,8 +103,8 @@ func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	}
 }
 
-func GetVersionData() (*punqStructs.HelmData, error) {
-	response, err := http.Get(CONFIG.Misc.HelmIndex)
+func GetVersionData(url string) (*punqStructs.HelmData, error) {
+	response, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
