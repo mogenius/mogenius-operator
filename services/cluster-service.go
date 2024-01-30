@@ -1223,9 +1223,10 @@ func InstallClusterIssuer(email string) string {
 	retries := 1
 	maxRetries := 10
 	for retries < maxRetries {
+		fmt.Println("EEEEEEEEEEEEEE")
 		ingType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
-			return fmt.Sprintf("Error determining ingress controller type: %s", err.Error())
+			logger.Log.Errorf("InstallClusterIssuer: Error determining ingress controller type: %s", err.Error())
 		}
 		fmt.Println("YYYYYYYYYYYYYYY")
 		if ingType == punq.TRAEFIK || ingType == punq.NGINX {
