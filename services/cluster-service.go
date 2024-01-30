@@ -1497,9 +1497,10 @@ func getCurrentTrafficCollectorAndPodStatsVersion() (string, string, error) {
 }
 
 func getMostCurrentHelmChartVersion(url string, chartname string) string {
+	url = addIndexYAMLtoURL(url)
 	data, err := utils.GetVersionData(url)
 	if err != nil {
-		logger.Log.Error("Error getting helm chart version (%s/%s): ", url, chartname, err)
+		logger.Log.Errorf("Error getting helm chart version (%s/%s): %s", url, chartname, err)
 		return ""
 	}
 	chartsArray := data.Entries[chartname]
@@ -1508,4 +1509,15 @@ func getMostCurrentHelmChartVersion(url string, chartname string) string {
 		result = chartsArray[0].Version
 	}
 	return result
+}
+
+func addIndexYAMLtoURL(url string) string {
+	if !strings.HasSuffix(url, "index.yaml") {
+		// Check if the URL ends with a slash; if not, add one.
+		if !strings.HasSuffix(url, "/") {
+			url += "/"
+		}
+		url += "index.yaml"
+	}
+	return url
 }
