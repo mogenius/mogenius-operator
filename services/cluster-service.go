@@ -912,7 +912,7 @@ func InstallAllLocalDevComponents(email string) string {
 	result += InstallCertManager() + "\n"
 	result += InstallContainerRegistry() + "\n"
 	result += InstallMetalLb() + "\n"
-	result += InstallClusterIssuer(email) + "\n"
+	result += InstallClusterIssuer(email, 0) + "\n"
 	return result
 }
 
@@ -1219,10 +1219,11 @@ func UpgradeKepler() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
-func InstallClusterIssuer(email string) string {
-	retries := 1
-	maxRetries := 10
-	for retries < maxRetries {
+func InstallClusterIssuer(email string, currentRetries int) string {
+	maxRetries := 5
+	if currentRetries >= maxRetries {
+		return "No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first."
+	} else {
 		fmt.Println("EEEEEEEEEEEEEE")
 		ingType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
@@ -1246,16 +1247,18 @@ func InstallClusterIssuer(email string) string {
 				db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
 			}, func(output string, err error) {
 				fmt.Println("BBBBBBBBBBBB")
+				currentRetries++
 				db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+				InstallClusterIssuer(email, currentRetries)
 			})
 			fmt.Println("CCCCCCCCCCCCC")
 			return fmt.Sprintf("Successfully triggert '%s' of '%s' (%s, %s).", r.HelmTask, r.HelmReleaseName, email, strings.ToLower(ingType.String()))
 		}
-		logger.Log.Noticef("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), retries, maxRetries)
+		logger.Log.Noticef("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), currentRetries, maxRetries)
 		time.Sleep(3 * time.Second) // wait for cert-manager to be ready
-		retries++
+		currentRetries++
+		return InstallClusterIssuer(email, currentRetries)
 	}
-	return "No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first."
 }
 
 func UninstallTrafficCollector() string {

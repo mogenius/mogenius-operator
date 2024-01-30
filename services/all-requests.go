@@ -93,7 +93,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return InstallClusterIssuer(data.Email)
+		return InstallClusterIssuer(data.Email, 0)
 	case PAT_INSTALL_CONTAINER_REGISTRY:
 		return InstallContainerRegistry()
 	case PAT_INSTALL_METALLB:
