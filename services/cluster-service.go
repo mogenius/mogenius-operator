@@ -1227,7 +1227,9 @@ func InstallClusterIssuer(email string) string {
 		if err != nil {
 			return fmt.Sprintf("Error determining ingress controller type: %s", err.Error())
 		}
+		fmt.Println("YYYYYYYYYYYYYYY")
 		if ingType == punq.TRAEFIK || ingType == punq.NGINX {
+			fmt.Println("XXXXXXXXX")
 			r := ClusterHelmRequest{
 				Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 				HelmRepoName:    "mogenius",
@@ -1237,19 +1239,22 @@ func InstallClusterIssuer(email string) string {
 				HelmFlags:       fmt.Sprintf(`--replace --namespace %s --set global.clusterissuermail="%s" --set global.ingressclass="%s"`, utils.CONFIG.Kubernetes.OwnNamespace, email, strings.ToLower(ingType.String())),
 				HelmTask:        structs.HelmInstall,
 			}
+			fmt.Println("ZZZZZZZZZZZZZ")
 			mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+				fmt.Println("AAAAAAAAAA")
 				db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
 			}, func(output string, err error) {
+				fmt.Println("BBBBBBBBBBBB")
 				db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
 			})
+			fmt.Println("CCCCCCCCCCCCC")
 			return fmt.Sprintf("Successfully triggert '%s' of '%s' (%s, %s).", r.HelmTask, r.HelmReleaseName, email, strings.ToLower(ingType.String()))
-		} else {
-			logger.Log.Noticef("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), retries, maxRetries)
 		}
+		logger.Log.Noticef("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), retries, maxRetries)
 		time.Sleep(3 * time.Second) // wait for cert-manager to be ready
 		retries++
 	}
-	return fmt.Sprintf("No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first.")
+	return "No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first."
 }
 
 func UninstallTrafficCollector() string {
