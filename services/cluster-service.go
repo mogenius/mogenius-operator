@@ -1221,18 +1221,15 @@ func UpgradeKepler() string {
 
 func InstallClusterIssuer(email string, currentRetries int) string {
 	time.Sleep(3 * time.Second) // wait for cert-manager to be ready
-	maxRetries := 5
+	maxRetries := 10
 	if currentRetries >= maxRetries {
 		return "No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first."
 	} else {
-		fmt.Println("EEEEEEEEEEEEEE")
 		ingType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
 			logger.Log.Errorf("InstallClusterIssuer: Error determining ingress controller type: %s", err.Error())
 		}
-		fmt.Println("YYYYYYYYYYYYYYY")
 		if ingType == punq.TRAEFIK || ingType == punq.NGINX {
-			fmt.Println("XXXXXXXXX")
 			r := ClusterHelmRequest{
 				Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 				HelmRepoName:    "mogenius",
@@ -1242,17 +1239,13 @@ func InstallClusterIssuer(email string, currentRetries int) string {
 				HelmFlags:       fmt.Sprintf(`--replace --namespace %s --set global.clusterissuermail="%s" --set global.ingressclass="%s"`, utils.CONFIG.Kubernetes.OwnNamespace, email, strings.ToLower(ingType.String())),
 				HelmTask:        structs.HelmInstall,
 			}
-			fmt.Println("ZZZZZZZZZZZZZ")
 			mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-				fmt.Println("AAAAAAAAAA")
 				db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
 			}, func(output string, err error) {
-				fmt.Println("BBBBBBBBBBBB")
 				currentRetries++
 				db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
 				InstallClusterIssuer(email, currentRetries)
 			})
-			fmt.Println("CCCCCCCCCCCCC")
 			return fmt.Sprintf("Successfully triggert '%s' of '%s' (%s, %s).", r.HelmTask, r.HelmReleaseName, email, strings.ToLower(ingType.String()))
 		}
 		logger.Log.Noticef("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), currentRetries, maxRetries)
