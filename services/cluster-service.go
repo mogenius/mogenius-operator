@@ -1220,6 +1220,7 @@ func UpgradeKepler() string {
 }
 
 func InstallClusterIssuer(email string, currentRetries int) string {
+	time.Sleep(3 * time.Second) // wait for cert-manager to be ready
 	maxRetries := 5
 	if currentRetries >= maxRetries {
 		return "No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first."
@@ -1255,7 +1256,6 @@ func InstallClusterIssuer(email string, currentRetries int) string {
 			return fmt.Sprintf("Successfully triggert '%s' of '%s' (%s, %s).", r.HelmTask, r.HelmReleaseName, email, strings.ToLower(ingType.String()))
 		}
 		logger.Log.Noticef("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), currentRetries, maxRetries)
-		time.Sleep(3 * time.Second) // wait for cert-manager to be ready
 		currentRetries++
 		return InstallClusterIssuer(email, currentRetries)
 	}
