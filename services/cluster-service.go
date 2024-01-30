@@ -1220,6 +1220,7 @@ func UpgradeKepler() string {
 }
 
 func InstallClusterIssuer(email string) string {
+	time.Sleep(3 * time.Second) // wait for cert-manager to be ready
 	ingType, err := punq.DetermineIngressControllerType(nil)
 	if err != nil {
 		return fmt.Sprintf("Error determining ingress controller type: %s", err.Error())
