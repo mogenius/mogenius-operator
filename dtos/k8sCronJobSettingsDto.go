@@ -1,7 +1,6 @@
 package dtos
 
 type K8sCronJobSettingsDto struct {
-	SourceType K8sServiceTypeEnum `json:"source" validate:"required"`
 	// number of allowed restarts
 	Schedule     string `json:"schedule" validate:"required"`
 	BackoffLimit int32  `json:"backoffLimit,omitempty"`
@@ -11,7 +10,6 @@ type K8sCronJobSettingsDto struct {
 
 func K8sCronJobSettingsDtoExampleData() *K8sCronJobSettingsDto {
 	return &K8sCronJobSettingsDto{
-		SourceType:            CONTAINER_IMAGE,
 		Schedule:              "*/15 * * * *",
 		BackoffLimit:          2,
 		ActiveDeadlineSeconds: 120,

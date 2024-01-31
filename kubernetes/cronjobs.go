@@ -291,8 +291,7 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 
 	// SUSPEND -> PAUSE
 	if freshlyCreated &&
-		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GIT_REPOSITORY ||
-			service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GIT_REPOSITORY_TEMPLATE) {
+		(service.ServiceType == dtos.K8S_CRON_JOB_GIT_REPOSITORY || service.ServiceType == dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE) {
 		spec.Suspend = punqutils.Pointer(true)
 	} else {
 		spec.Suspend = punqutils.Pointer(!service.SwitchedOn)
