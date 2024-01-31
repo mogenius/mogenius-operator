@@ -58,7 +58,7 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	switch r.Service.ServiceType {
 	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8S_CRON_JOB:
+	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.CreateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -88,7 +88,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	switch r.Service.ServiceType {
 	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8S_CRON_JOB:
+	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.DeleteCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -107,7 +107,7 @@ func SetImage(r ServiceSetImageRequest) interface{} {
 	switch r.ServiceType {
 	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
-	case dtos.K8S_CRON_JOB:
+	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
 	}
 
@@ -157,7 +157,7 @@ func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
 	switch r.Service.ServiceType {
 	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		// do nothing
-	case dtos.K8S_CRON_JOB:
+	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.TriggerJobFromCronjob(&job, r.Namespace, r.Service, &wg))
 		job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
 	}
@@ -175,7 +175,7 @@ func Restart(r ServiceRestartRequest) interface{} {
 	switch r.Service.ServiceType {
 	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.RestartDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8S_CRON_JOB:
+	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.RestartCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -194,7 +194,7 @@ func StopService(r ServiceStopRequest) interface{} {
 	switch r.Service.ServiceType {
 	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8S_CRON_JOB:
+	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.StopCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -214,7 +214,7 @@ func StartService(r ServiceStartRequest) interface{} {
 	switch r.Service.ServiceType {
 	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.StartDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8S_CRON_JOB:
+	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.StartCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -223,7 +223,7 @@ func StartService(r ServiceStartRequest) interface{} {
 	switch r.Service.ServiceType {
 	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8S_CRON_JOB:
+	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
@@ -249,7 +249,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	switch r.Service.ServiceType {
 	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
 		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.K8S_CRON_JOB:
+	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 

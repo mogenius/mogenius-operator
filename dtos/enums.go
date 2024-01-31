@@ -11,17 +11,20 @@ const (
 type K8sServiceTypeEnum string
 
 const (
-	GIT_REPOSITORY_TEMPLATE  K8sServiceTypeEnum = "GIT_REPOSITORY_TEMPLATE"
-	GIT_REPOSITORY           K8sServiceTypeEnum = "GIT_REPOSITORY"
-	CONTAINER_IMAGE_TEMPLATE K8sServiceTypeEnum = "CONTAINER_IMAGE_TEMPLATE"
-	CONTAINER_IMAGE          K8sServiceTypeEnum = "CONTAINER_IMAGE"
-	K8S_DEPLOYMENT           K8sServiceTypeEnum = "K8S_DEPLOYMENT"
-	K8S_DAEMONSET            K8sServiceTypeEnum = "K8S_DAEMONSET"
-	K8S_STATEFULSET          K8sServiceTypeEnum = "K8S_STATEFULSET"
-	K8S_REPLICASET           K8sServiceTypeEnum = "K8S_REPLICASET"
-	K8S_JOB                  K8sServiceTypeEnum = "K8S_JOB"
-	K8S_CRON_JOB             K8sServiceTypeEnum = "K8S_CRON_JOB"
-	DOCKER_COMPOSE           K8sServiceTypeEnum = "DOCKER_COMPOSE"
+	GIT_REPOSITORY_TEMPLATE               K8sServiceTypeEnum = "GIT_REPOSITORY_TEMPLATE"
+	GIT_REPOSITORY                        K8sServiceTypeEnum = "GIT_REPOSITORY"
+	CONTAINER_IMAGE_TEMPLATE              K8sServiceTypeEnum = "CONTAINER_IMAGE_TEMPLATE"
+	CONTAINER_IMAGE                       K8sServiceTypeEnum = "CONTAINER_IMAGE"
+	K8S_DEPLOYMENT                        K8sServiceTypeEnum = "K8S_DEPLOYMENT"
+	K8S_DAEMONSET                         K8sServiceTypeEnum = "K8S_DAEMONSET"
+	K8S_STATEFULSET                       K8sServiceTypeEnum = "K8S_STATEFULSET"
+	K8S_REPLICASET                        K8sServiceTypeEnum = "K8S_REPLICASET"
+	K8S_JOB                               K8sServiceTypeEnum = "K8S_JOB"
+	DOCKER_COMPOSE                        K8sServiceTypeEnum = "DOCKER_COMPOSE"
+	K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE  K8sServiceTypeEnum = "K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE"
+	K8S_CRON_JOB_GIT_REPOSITORY           K8sServiceTypeEnum = "K8S_CRON_JOB_GIT_REPOSITORY"
+	K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE K8sServiceTypeEnum = "K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE"
+	K8S_CRON_JOB_CONTAINER_IMAGE          K8sServiceTypeEnum = "K8S_CRON_JOB_CONTAINER_IMAGE"
 )
 
 type ImagePullPolicyEnum string
