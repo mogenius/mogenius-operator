@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/db"
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -164,7 +165,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan punqStructs.Jo
 
 	// UPDATE IMAGE
 	setImageCmd := structs.CreateCommandFromBuildJob("Deploying image", buildJob)
-	err = updateDeploymentImage(setImageCmd, buildJob, tagName)
+	err = updateContainerImage(setImageCmd, buildJob, tagName)
 	if err != nil {
 		logger.Log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
 		done <- punqStructs.JobStateFailed
@@ -544,13 +545,19 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 	}
 }
 
-func updateDeploymentImage(reportCmd *structs.Command, job *structs.BuildJob, imageName string) error {
+func updateContainerImage(reportCmd *structs.Command, job *structs.BuildJob, imageName string) error {
 	startTime := time.Now()
 	if reportCmd != nil {
 		reportCmd.Start(reportCmd.Message)
 	}
 
-	err := kubernetes.UpdateDeploymentImage(job.Namespace, job.ServiceName, imageName)
+	var err error
+	switch job.ServiceType {
+	case dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
+		err = kubernetes.UpdateCronjobImage(job.Namespace, job.ServiceName, imageName)
+	default:
+		err = kubernetes.UpdateDeploymentImage(job.Namespace, job.ServiceName, imageName)
+	}
 
 	elapsedTime := time.Since(startTime)
 	job.DurationMs = int(elapsedTime.Milliseconds()) + job.DurationMs + 1

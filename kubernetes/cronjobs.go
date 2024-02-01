@@ -12,6 +12,7 @@ import (
 	"mogenius-k8s-manager/structs"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	"github.com/mogenius/punq/utils"
 	punqutils "github.com/mogenius/punq/utils"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
@@ -510,6 +511,25 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 
 // 	return newCronJob
 // }
+
+func UpdateCronjobImage(namespaceName string, serviceName string, imageName string) error {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return err
+	}
+	client := provider.ClientSet.BatchV1().CronJobs(namespaceName)
+	crontjobToUpdate, err := client.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// SET NEW IMAGE
+	crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = imageName
+	crontjobToUpdate.Spec.Suspend = utils.Pointer(false)
+
+	_, err = client.Update(context.TODO(), crontjobToUpdate, metav1.UpdateOptions{})
+	return err
+}
 
 func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Set CronJob Image '%s'", imageName), job)

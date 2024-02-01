@@ -70,7 +70,10 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	if r.Service.ServiceType == dtos.GIT_REPOSITORY_TEMPLATE {
 		initDocker(r.Service, job)
 	}
-	if r.Service.ServiceType == dtos.GIT_REPOSITORY || r.Service.ServiceType == dtos.GIT_REPOSITORY_TEMPLATE {
+	if r.Service.ServiceType == dtos.GIT_REPOSITORY ||
+		r.Service.ServiceType == dtos.GIT_REPOSITORY_TEMPLATE ||
+		r.Service.ServiceType == dtos.K8S_CRON_JOB_GIT_REPOSITORY ||
+		r.Service.ServiceType == dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE {
 		updateInfrastructureYaml(r.Service, job)
 	}
 	wg.Wait()

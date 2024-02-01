@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"time"
 
@@ -36,30 +37,31 @@ func ScanImageRequestExample() ScanImageRequest {
 }
 
 type BuildJob struct {
-	JobId                 string            `json:"jobId" validate:"required"`
-	ProjectId             string            `json:"projectId" validate:"required"`
-	NamespaceId           string            `json:"namespaceId" validate:"required"`
-	Namespace             string            `json:"namespace" validate:"required"`
-	ServiceId             string            `json:"serviceId" validate:"required"`
-	ServiceName           string            `json:"serviceName" validate:"required"`
-	GitRepo               string            `json:"gitRepo" validate:"required"`
-	GitBranch             string            `json:"gitBranch" validate:"required"`
-	GitCommitAuthor       string            `json:"gitCommitAuthor" validate:"required"`
-	GitCommitHash         string            `json:"gitCommitHash" validate:"required"`
-	GitCommitMessage      string            `json:"gitCommitMessage" validate:"required"`
-	DockerFile            string            `json:"dockerFile" validate:"required"`
-	DockerContext         string            `json:"dockerContext" validate:"required"`
-	ContainerRegistryPath string            `json:"containerRegistryPath"`
-	ContainerRegistryUser string            `json:"containerRegistryUser"`
-	ContainerRegistryPat  string            `json:"containerRegistryPat"`
-	ContainerRegistryUrl  string            `json:"containerRegistryUrl"`
-	StartTimestamp        string            `json:"startTimestamp"`
-	EndTimestamp          string            `json:"endTimestamp"`
-	InjectDockerEnvVars   string            `json:"injectDockerEnvVars"`
-	State                 punq.JobStateEnum `json:"state"`
-	StartedAt             string            `json:"startedAt"`
-	DurationMs            int               `json:"durationMs"`
-	BuildId               int               `json:"buildId"`
+	JobId                 string                  `json:"jobId" validate:"required"`
+	ProjectId             string                  `json:"projectId" validate:"required"`
+	NamespaceId           string                  `json:"namespaceId" validate:"required"`
+	Namespace             string                  `json:"namespace" validate:"required"`
+	ServiceId             string                  `json:"serviceId" validate:"required"`
+	ServiceName           string                  `json:"serviceName" validate:"required"`
+	GitRepo               string                  `json:"gitRepo" validate:"required"`
+	GitBranch             string                  `json:"gitBranch" validate:"required"`
+	GitCommitAuthor       string                  `json:"gitCommitAuthor" validate:"required"`
+	GitCommitHash         string                  `json:"gitCommitHash" validate:"required"`
+	GitCommitMessage      string                  `json:"gitCommitMessage" validate:"required"`
+	DockerFile            string                  `json:"dockerFile" validate:"required"`
+	DockerContext         string                  `json:"dockerContext" validate:"required"`
+	ContainerRegistryPath string                  `json:"containerRegistryPath"`
+	ContainerRegistryUser string                  `json:"containerRegistryUser"`
+	ContainerRegistryPat  string                  `json:"containerRegistryPat"`
+	ContainerRegistryUrl  string                  `json:"containerRegistryUrl"`
+	StartTimestamp        string                  `json:"startTimestamp"`
+	EndTimestamp          string                  `json:"endTimestamp"`
+	InjectDockerEnvVars   string                  `json:"injectDockerEnvVars"`
+	State                 punq.JobStateEnum       `json:"state"`
+	StartedAt             string                  `json:"startedAt"`
+	DurationMs            int                     `json:"durationMs"`
+	BuildId               int                     `json:"buildId"`
+	ServiceType           dtos.K8sServiceTypeEnum `json:"serviceType"`
 }
 
 func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
