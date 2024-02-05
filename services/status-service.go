@@ -43,6 +43,7 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	// 	return nil
 	// }
 	// logger.Log.Debugf("JOSN: %s", jsonData)
+	go GetEvents(r.Namespace, r.ServiceName, &EventOptions{Limit: 10, Order: EventOrderDesc, Types: EventTypeWarning})
 
 	return resourceItems
 }
