@@ -1,14 +1,14 @@
 package dtos
 
 type K8sServiceSettingsDto struct {
-	LimitCpuCores         float32               `json:"limitCpuCores" validate:"required"`
-	LimitMemoryMB         int                   `json:"limitMemoryMB" validate:"required"`
-	EphemeralStorageMB    int                   `json:"ephemeralStorageMB" validate:"required"`
-	ReplicaCount          int32                 `json:"replicaCount" validate:"required"`
-	DeploymentStrategy    string                `json:"deploymentStrategy" validate:"required"` // "rolling", "recreate"
-	ImagePullPolicy       string                `json:"imagePullPolicy"`                        // "Always", "Never", "IfNotPresent"
-	ProbesOn              bool                  `json:"probesOn,omitempty"`
-	K8sCronJobSettingsDto K8sCronJobSettingsDto `json:"k8sCronJobSettingsDto,omitempty"`
+	LimitCpuCores         float32                `json:"limitCpuCores"`
+	LimitMemoryMB         int                    `json:"limitMemoryMB"`
+	EphemeralStorageMB    int                    `json:"ephemeralStorageMB"`
+	ReplicaCount          int32                  `json:"replicaCount"`
+	DeploymentStrategy    DeploymentStrategyEnum `json:"deploymentStrategy"`
+	ImagePullPolicy       ImagePullPolicyEnum    `json:"imagePullPolicy"`
+	ProbesOn              bool                   `json:"probesOn,omitempty"`
+	K8sCronJobSettingsDto *K8sCronJobSettingsDto `json:"k8sCronJobSettingsDto,omitempty"`
 }
 
 func K8sServiceSettingsDtoExampleData() K8sServiceSettingsDto {
@@ -22,4 +22,8 @@ func K8sServiceSettingsDtoExampleData() K8sServiceSettingsDto {
 		ProbesOn:              false,
 		K8sCronJobSettingsDto: K8sCronJobSettingsDtoExampleData(),
 	}
+}
+
+func (d *K8sServiceSettingsDto) IsLimitSetup() bool {
+	return d.LimitCpuCores != 0 || d.LimitMemoryMB != 0 || d.EphemeralStorageMB != 0
 }

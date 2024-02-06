@@ -20,6 +20,7 @@ const (
 	PAT_INSTALL_CLUSTER_ISSUER               string = "install-cluster-issuer"
 	PAT_INSTALL_CONTAINER_REGISTRY           string = "install-container-registry"
 	PAT_INSTALL_METALLB                      string = "install-metallb"
+	PAT_INSTALL_KEPLER                       string = "install-kepler"
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR          string = "uninstall-traffic-collector"
 	PAT_UNINSTALL_POD_STATS_COLLECTOR        string = "uninstall-pod-stats-collector"
 	PAT_UNINSTALL_METRICS_SERVER             string = "uninstall-metrics-server"
@@ -28,6 +29,15 @@ const (
 	PAT_UNINSTALL_CLUSTER_ISSUER             string = "uninstall-cluster-issuer"
 	PAT_UNINSTALL_CONTAINER_REGISTRY         string = "uninstall-container-registry"
 	PAT_UNINSTALL_METALLB                    string = "uninstall-metallb"
+	PAT_UNINSTALL_KEPLER                     string = "uninstall-kepler"
+	PAT_UPGRADE_TRAFFIC_COLLECTOR            string = "upgrade-traffic-collector"
+	PAT_UPGRADE_PODSTATS_COLLECTOR           string = "upgrade-pod-stats-collector"
+	PAT_UPGRADE_METRICS_SERVER               string = "upgrade-metrics-server"
+	PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK   string = "upgrade-ingress-controller-traefik"
+	PAT_UPGRADE_CERT_MANAGER                 string = "upgrade-cert-manager"
+	PAT_UPGRADE_CONTAINER_REGISTRY           string = "upgrade-container-registry"
+	PAT_UPGRADE_METALLB                      string = "upgrade-metallb"
+	PAT_UPGRADE_KEPLER                       string = "upgrade-kepler"
 
 	PAT_FILES_LIST          string = "files/list"
 	PAT_FILES_DOWNLOAD      string = "files/download"
@@ -41,9 +51,27 @@ const (
 	PAT_CLUSTER_UNINSTALL_HELM_CHART    string = "cluster/uninstall-helm-chart"
 	PAT_CLUSTER_TCP_UDP_CONFIGURATION   string = "cluster/tcp-udp-configuration"
 	PAT_CLUSTER_BACKUP                  string = "cluster/backup"
-	PAT_CLUSTER_WRITE_CONFIGMAP         string = "cluster/write-configmap"
-	PAT_CLUSTER_READ_CONFIGMAP          string = "cluster/read-configmap"
-	PAT_CLUSTER_LIST_CONFIGMAPS         string = "cluster/list-configmaps"
+	PAT_CLUSTER_RESTART                 string = "cluster/restart"
+	PAT_ENERGY_CONSUMPTION              string = "cluster/energy-consumption"
+
+	PAT_CLUSTER_WRITE_CONFIGMAP               string = "cluster/write-configmap"
+	PAT_CLUSTER_READ_CONFIGMAP                string = "cluster/read-configmap"
+	PAT_CLUSTER_LIST_CONFIGMAPS               string = "cluster/list-configmaps"
+	PAT_CLUSTER_WRITE_DEPLOYMENT              string = "cluster/write-deployment"
+	PAT_CLUSTER_READ_DEPLOYMENT               string = "cluster/read-deployment"
+	PAT_CLUSTER_LIST_DEPLOYMENTS              string = "cluster/list-deployments"
+	PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM string = "cluster/write-persistent-volume-claim"
+	PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM  string = "cluster/read-persistent-volume-claim"
+	PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS string = "cluster/list-persistent-volume-claims"
+
+	PAT_STATS_TRAFFIC_FOR_POD_ALL        string = "stats/traffic/all-for-pod"
+	PAT_STATS_TRAFFIC_FOR_POD_LAST       string = "stats/traffic/last-for-pod"
+	PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL  string = "stats/traffic/all-for-namespace"
+	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST string = "stats/traffic/last-for-namespace"
+	PAT_STATS_PODSTAT_FOR_POD_ALL        string = "stats/podstat/all-for-pod"
+	PAT_STATS_PODSTAT_FOR_POD_LAST       string = "stats/podstat/last-for-pod"
+	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL  string = "stats/podstat/all-for-namespace"
+	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST string = "stats/podstat/last-for-namespace"
 
 	PAT_NAMESPACE_CREATE                string = "namespace/create"
 	PAT_NAMESPACE_DELETE                string = "namespace/delete"
@@ -310,6 +338,8 @@ const (
 	PAT_BUILD_JOB_LIST_OF_SERVICE      string = "build/job-list-of-service"
 	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE string = "build/last-job-info-of-service"
 
+	PAT_LOG_LIST_ALL string = "log/list-all"
+
 	PAT_EXEC_SHELL string = "exec/shell"
 
 	PAT_POPEYE_CONSOLE string = "popeye_console"
@@ -341,6 +371,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_INSTALL_CLUSTER_ISSUER,
 	PAT_INSTALL_CONTAINER_REGISTRY,
 	PAT_INSTALL_METALLB,
+	PAT_INSTALL_KEPLER,
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR,
 	PAT_UNINSTALL_POD_STATS_COLLECTOR,
 	PAT_UNINSTALL_METRICS_SERVER,
@@ -349,6 +380,15 @@ var COMMAND_REQUESTS = []string{
 	PAT_UNINSTALL_CLUSTER_ISSUER,
 	PAT_UNINSTALL_CONTAINER_REGISTRY,
 	PAT_UNINSTALL_METALLB,
+	PAT_UNINSTALL_KEPLER,
+	PAT_UPGRADE_TRAFFIC_COLLECTOR,
+	PAT_UPGRADE_PODSTATS_COLLECTOR,
+	PAT_UPGRADE_METRICS_SERVER,
+	PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK,
+	PAT_UPGRADE_CERT_MANAGER,
+	PAT_UPGRADE_CONTAINER_REGISTRY,
+	PAT_UPGRADE_METALLB,
+	PAT_UPGRADE_KEPLER,
 
 	PAT_FILES_LIST,
 	PAT_FILES_DOWNLOAD,
@@ -362,9 +402,26 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_UNINSTALL_HELM_CHART,
 	PAT_CLUSTER_TCP_UDP_CONFIGURATION,
 	PAT_CLUSTER_BACKUP,
+	PAT_CLUSTER_RESTART,
+	PAT_ENERGY_CONSUMPTION,
 	PAT_CLUSTER_WRITE_CONFIGMAP,
 	PAT_CLUSTER_READ_CONFIGMAP,
 	PAT_CLUSTER_LIST_CONFIGMAPS,
+	PAT_CLUSTER_WRITE_DEPLOYMENT,
+	PAT_CLUSTER_READ_DEPLOYMENT,
+	PAT_CLUSTER_LIST_DEPLOYMENTS,
+	PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM,
+	PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM,
+	PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS,
+
+	PAT_STATS_TRAFFIC_FOR_POD_ALL,
+	PAT_STATS_TRAFFIC_FOR_POD_LAST,
+	PAT_STATS_PODSTAT_FOR_POD_ALL,
+	PAT_STATS_PODSTAT_FOR_POD_LAST,
+	PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL,
+	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST,
+	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL,
+	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST,
 
 	PAT_NAMESPACE_CREATE,
 	PAT_NAMESPACE_DELETE,
@@ -634,4 +691,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_EXEC_SHELL,
 
 	PAT_POPEYE_CONSOLE,
+
+	PAT_LOG_LIST_ALL,
 }

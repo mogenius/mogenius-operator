@@ -6,7 +6,7 @@ type K8sNamespaceDto struct {
 	Name              string          `json:"Name" validate:"required"`
 	StorageSizeInMb   int             `json:"storageSizeInMb" validate:"required"`
 	Services          []K8sServiceDto `json:"services" validate:"required"`
-	CloudflareProxied bool            `json:"cloudflareProxied" validate:"required"`
+	CloudflareProxied bool            `json:"cloudflareProxied"`
 }
 
 func K8sNamespaceDtoExampleData() K8sNamespaceDto {

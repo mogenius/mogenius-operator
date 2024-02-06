@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
-	"strings"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -94,7 +93,7 @@ func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 			if aPort.Expose {
 				port := intstr.FromInt(aPort.InternalPort)
 				proto := v1Core.ProtocolTCP // default
-				if strings.ToLower(aPort.PortType) == "udp" {
+				if aPort.PortType == dtos.PortTypeUDP {
 					proto = v1Core.ProtocolUDP
 				}
 				netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{

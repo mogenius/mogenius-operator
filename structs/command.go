@@ -9,9 +9,8 @@ import (
 	"sync"
 	"time"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
-	uuid "github.com/satori/go.uuid"
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 type Command punqStructs.Command
@@ -34,7 +33,7 @@ func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
 
 func CreateCommand(title string, job *Job) *Command {
 	cmd := Command{
-		Id:                      uuid.NewV4().String(),
+		Id:                      punqUtils.NanoId(),
 		JobId:                   job.Id,
 		ProjectId:               job.ProjectId,
 		NamespaceId:             job.NamespaceId,
@@ -42,7 +41,7 @@ func CreateCommand(title string, job *Job) *Command {
 		Title:                   title,
 		Message:                 "",
 		StartedAt:               time.Now().Format(time.RFC3339),
-		State:                   "PENDING",
+		State:                   punqStructs.JobStatePending,
 		DurationMs:              0,
 		MustSucceed:             false,
 		ReportToNotificationSvc: true,
@@ -55,16 +54,16 @@ func CreateCommand(title string, job *Job) *Command {
 
 func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
 	cmd := Command{
-		Id:                      uuid.NewV4().String(),
+		Id:                      punqUtils.NanoId(),
 		JobId:                   job.JobId,
 		ProjectId:               job.ProjectId,
 		NamespaceId:             &job.NamespaceId,
 		ServiceId:               &job.ServiceId,
 		Title:                   title,
 		Message:                 "",
-		BuildId:                 job.BuildId,
+		BuildId:                 int(job.BuildId),
 		StartedAt:               time.Now().Format(time.RFC3339),
-		State:                   "PENDING",
+		State:                   punqStructs.JobStatePending,
 		DurationMs:              0,
 		MustSucceed:             false,
 		ReportToNotificationSvc: true,
@@ -76,14 +75,14 @@ func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
 }
 
 // XXX NOT USED ANYMORE?
-func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
+func CreateShellCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
 	wg.Add(1)
 	cmd := CreateCommand(title, job)
 	go func(cmd *Command) {
 		defer wg.Done()
 		cmd.Start(title)
 
-		output, err := exec.Command("bash", "-c", shellCmd).Output()
+		output, err := exec.Command("sh", "-c", shellCmd).Output()
 		fmt.Println(string(shellCmd))
 		fmt.Println(string(output))
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -101,9 +100,9 @@ func CreateBashCommand(title string, job *Job, shellCmd string, wg *sync.WaitGro
 	return cmd
 }
 
-func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool, status *punq.SystemCheckStatus, doneFunction func()) {
+func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
-		output, err := exec.Command("bash", "-c", shellCmd).Output()
+		output, err := exec.Command("sh", "-c", shellCmd).Output()
 		fmt.Println(string(shellCmd))
 		fmt.Println(string(output))
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -111,33 +110,32 @@ func CreateBashCommandGoRoutine(title string, shellCmd string, uninstalling bool
 			errorMsg := string(exitErr.Stderr)
 			logger.Log.Error(shellCmd)
 			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
-			*status = punq.NOT_INSTALLED
+			if failFunc != nil {
+				failFunc(string(output), exitErr)
+			}
 		} else if err != nil {
 			logger.Log.Error("exec.Command: %s", err.Error())
-			*status = punq.NOT_INSTALLED
+			if failFunc != nil {
+				failFunc(string(output), err)
+			}
 		} else {
 			logger.Log.Noticef("SUCCESS: %s", shellCmd)
-			if uninstalling {
-				*status = punq.NOT_INSTALLED
-			} else {
-				*status = punq.INSTALLED
+			if successFunc != nil {
+				successFunc()
 			}
-		}
-		if doneFunction != nil {
-			doneFunction()
 		}
 	}()
 }
 
 func (cmd *Command) Start(msg string) {
-	cmd.State = "STARTED"
+	cmd.State = punqStructs.JobStateStarted
 	cmd.Message = msg
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
 	ReportStateToServer(nil, cmd)
 }
 
 func (cmd *Command) Fail(error string) {
-	cmd.State = "FAILED"
+	cmd.State = punqStructs.JobStateFailed
 	cmd.Message = error
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
 	if utils.CONFIG.Misc.Debug {
@@ -147,7 +145,7 @@ func (cmd *Command) Fail(error string) {
 }
 
 func (cmd *Command) Success(msg string) {
-	cmd.State = "SUCCEEDED"
+	cmd.State = punqStructs.JobStateSucceeded
 	cmd.Message = msg
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
 	ReportStateToServer(nil, cmd)

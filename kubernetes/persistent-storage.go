@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"strings"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -14,6 +15,32 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
+	result := []structs.Volume{}
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return result, err
+	}
+	pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims("")
+	pvcList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return result, err
+	}
+	for _, pvc := range pvcList.Items {
+		if strings.HasPrefix(pvc.Name, utils.CONFIG.Misc.NfsPodPrefix) {
+			capacity := pvc.Spec.Resources.Requests[v1.ResourceStorage]
+			volName := strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
+			result = append(result, structs.Volume{
+				Namespace:  pvc.Namespace,
+				VolumeName: volName,
+				SizeInGb:   int(capacity.Value() / 1024 / 1024 / 1024),
+			})
+		}
+	}
+	return result, err
+}
 
 // This functions are used to generate the mogenius custom nfs storage solution
 // The order is importent when creating:
@@ -29,7 +56,11 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating PersistentVolumeClaim '%s'.", volumeName))
 
-		storageClass := utils.StorageClassForClusterProvider(string(utils.ClusterProviderCached))
+		storageClass := StorageClassForClusterProvider(utils.ClusterProviderCached)
+		if storageClass == "" {
+			cmd.Fail(fmt.Sprintf("No default storageClass found and could not find storage class for cluster provider '%s'.", utils.ClusterProviderCached))
+			return
+		}
 
 		pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
 		pvc.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
@@ -37,6 +68,12 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		pvc.Spec.StorageClassName = punqUtils.Pointer(storageClass)
 		pvc.Spec.Resources.Requests = v1.ResourceList{}
 		pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+
+		// add labels
+		pvc.Labels = MoAddLabels(&pvc.Labels, map[string]string{
+			"mo-nfs-volume-identifier": fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
+			"mo-nfs-volume-name":       volumeName,
+		})
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -97,6 +134,12 @@ func CreateMogeniusNfsPersistentVolumeForService(job *structs.Job, namespaceName
 		pv.Spec.NFS.Server = nfsService.Spec.ClusterIP
 		pv.Spec.Capacity = v1.ResourceList{}
 		pv.Spec.Capacity[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+
+		// add labels
+		pv.Labels = MoAddLabels(&pv.Labels, map[string]string{
+			"mo-nfs-volume-identifier": fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
+			"mo-nfs-volume-name":       volumeName,
+		})
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -316,4 +359,42 @@ func DeleteMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		}
 	}(cmd, wg)
 	return cmd
+}
+
+func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	client := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespace)
+
+	persistentVolumeClaims, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+
+	// delete all persistentVolumeClaims that do not start with prefix
+	if prefix != "" {
+		for i := len(persistentVolumeClaims.Items) - 1; i >= 0; i-- {
+			if !strings.HasPrefix(persistentVolumeClaims.Items[i].Name, prefix) {
+				persistentVolumeClaims.Items = append(persistentVolumeClaims.Items[:i], persistentVolumeClaims.Items[i+1:]...)
+			}
+		}
+	}
+
+	return WorkloadResult(persistentVolumeClaims.Items, err)
+}
+
+func GetPersistentVolumeClaim(namespace string, name string) K8sWorkloadResult {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	client := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespace)
+
+	deployment, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	return WorkloadResult(deployment, err)
 }

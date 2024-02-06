@@ -106,6 +106,42 @@ helm repo update
 # LINKS
 - [AIR](https://github.com/cosmtrek/air) - Live reload for Go apps
 
+# Quick Setup Ubuntu
+```
+#!/bin/bash
+
+# INSTALL K3S
+curl -sfL https://get.k3s.io | sh
+echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
+chmod a+r /etc/rancher/k3s/k3s.yaml
+source ~/.bashrc
+
+# INSTALL HELM
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+
+# INSTALL K9S
+curl -L -O https://github.com/derailed/k9s/releases/download/v0.30.8/k9s_Linux_amd64.tar.gz
+tar -xzf k9s_Linux_amd64.tar.gz
+mv k9s /usr/local/bin/.
+
+# CLEANUP
+rm LICENSE README.md k9s_Linux_amd64.tar.gz get_helm.sh
+```
+
+# Slim setup (IMPORTANT: DOES NOT MAKE THE IMAGE SMALLER IN OUR PARTICULAR CASE)
+```
+slim build --http-probe=false --exec "curl mogenius.com; git; docker info; helm" \
+--include-path-file /usr/local/bin/dockerd \
+--include-path-file /usr/local/bin/docker \
+--include-path-file /usr/bin/git \
+--include-path-file /usr/local/bin/helm \
+--include-path-file /usr/bin/curl \
+ghcr.io/mogenius/mogenius-k8s-manager-dev:v1.18.19-develop.92
+```
+
+
 
 ---------------------
 mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform

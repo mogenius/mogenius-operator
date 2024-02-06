@@ -11,7 +11,6 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 
-	"github.com/google/uuid"
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -150,7 +149,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 
 	clusterSecret := utils.ClusterSecret{
 		ApiKey:       apikey,
-		ClusterMfaId: uuid.New().String(),
+		ClusterMfaId: punqUtils.NanoId(),
 		ClusterName:  clusterName,
 	}
 

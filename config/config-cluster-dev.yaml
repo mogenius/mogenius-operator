@@ -6,6 +6,7 @@ kubernetes:
   run_in_cluster: true
   default_container_registry: docker.io
   bbolt_db_path: /db/mogenius.db
+  bbolt_db_stats_path: /db/mogenius-stats.db
   local_registry_host: mocr.local.mogenius.io
 
 api_server:

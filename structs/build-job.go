@@ -1,31 +1,25 @@
 package structs
 
 import (
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logger"
 	"time"
+
+	punq "github.com/mogenius/punq/structs"
 
 	jsoniter "github.com/json-iterator/go"
 )
 
-const (
-	BUILD_STATE_FAILED    string = "FAILED"
-	BUILD_STATE_SUCCEEDED string = "SUCCEEDED"
-	BUILD_STATE_STARTED   string = "STARTED"
-	BUILD_STATE_PENDING   string = "PENDING"
-	BUILD_STATE_CANCELED  string = "CANCELED"
-	BUILD_STATE_TIMEOUT   string = "TIMEOUT"
-)
-
 type ScanImageRequest struct {
-	ProjectId             string `json:"projectId"`
-	NamespaceId           string `json:"namespaceId"`
-	ServiceId             string `json:"serviceId"`
-	NamespaceName         string `json:"namespaceName"`
-	ServiceName           string `json:"serviceName"`
-	ContainerImage        string `json:"containerImage"`
-	ContainerRegistryUser string `json:"containerRegistryUser"`
-	ContainerRegistryPat  string `json:"containerRegistryPat"`
-	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
+	ProjectId             string  `json:"projectId" validate:"required"`
+	NamespaceId           string  `json:"namespaceId" validate:"required"`
+	ServiceId             string  `json:"serviceId" validate:"required"`
+	NamespaceName         string  `json:"namespaceName" validate:"required"`
+	ServiceName           string  `json:"serviceName" validate:"required"`
+	ContainerImage        string  `json:"containerImage"`
+	ContainerRegistryUser *string `json:"containerRegistryUser"`
+	ContainerRegistryPat  *string `json:"containerRegistryPat"`
+	ContainerRegistryUrl  string  `json:"containerRegistryUrl" validate:"required"`
 }
 
 func ScanImageRequestExample() ScanImageRequest {
@@ -36,38 +30,49 @@ func ScanImageRequestExample() ScanImageRequest {
 		NamespaceName:         "mac-prod-1xh4p1",
 		ServiceName:           "angular1",
 		ContainerImage:        "mysql:latest",
-		ContainerRegistryUser: "",
-		ContainerRegistryPat:  "",
+		ContainerRegistryUser: nil,
+		ContainerRegistryPat:  nil,
 		ContainerRegistryUrl:  "docker.io",
 	}
 }
 
 type BuildJob struct {
-	// only "clusterId" was removed because we dont need it anymore
-	JobId                 string `json:"jobId"`
-	ProjectId             string `json:"projectId"`
-	NamespaceId           string `json:"namespaceId"`
-	Namespace             string `json:"namespace"`
-	ServiceId             string `json:"serviceId"`
-	ServiceName           string `json:"serviceName"`
-	GitRepo               string `json:"gitRepo"`
-	GitBranch             string `json:"gitBranch"`
-	GitCommitAuthor       string `json:"gitCommitAuthor"`
-	GitCommitHash         string `json:"gitCommitHash"`
-	GitCommitMessage      string `json:"gitCommitMessage"`
-	DockerFile            string `json:"dockerFile"`
-	DockerContext         string `json:"dockerContext"`
-	ContainerRegistryPath string `json:"containerRegistryPath"`
-	ContainerRegistryUser string `json:"containerRegistryUser"`
-	ContainerRegistryPat  string `json:"containerRegistryPat"`
-	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
-	StartTimestamp        string `json:"startTimestamp"`
-	EndTimestamp          string `json:"endTimestamp"`
-	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
-	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING, TIMEOUT
-	StartedAt             string `json:"startedAt"`
-	DurationMs            int    `json:"durationMs"`
-	BuildId               int    `json:"buildId"`
+	JobId                 string                  `json:"jobId" validate:"required"`
+	ProjectId             string                  `json:"projectId" validate:"required"`
+	NamespaceId           string                  `json:"namespaceId" validate:"required"`
+	Namespace             string                  `json:"namespace" validate:"required"`
+	ServiceId             string                  `json:"serviceId" validate:"required"`
+	ServiceName           string                  `json:"serviceName" validate:"required"`
+	GitRepo               string                  `json:"gitRepo" validate:"required"`
+	GitBranch             string                  `json:"gitBranch" validate:"required"`
+	GitCommitAuthor       string                  `json:"gitCommitAuthor" validate:"required"`
+	GitCommitHash         string                  `json:"gitCommitHash" validate:"required"`
+	GitCommitMessage      string                  `json:"gitCommitMessage" validate:"required"`
+	DockerFile            string                  `json:"dockerFile" validate:"required"`
+	DockerContext         string                  `json:"dockerContext" validate:"required"`
+	ContainerRegistryPath string                  `json:"containerRegistryPath"`
+	ContainerRegistryUser string                  `json:"containerRegistryUser"`
+	ContainerRegistryPat  string                  `json:"containerRegistryPat"`
+	ContainerRegistryUrl  string                  `json:"containerRegistryUrl"`
+	StartTimestamp        string                  `json:"startTimestamp"`
+	EndTimestamp          string                  `json:"endTimestamp"`
+	InjectDockerEnvVars   string                  `json:"injectDockerEnvVars"`
+	State                 punq.JobStateEnum       `json:"state"`
+	StartedAt             string                  `json:"startedAt"`
+	DurationMs            int                     `json:"durationMs"`
+	BuildId               int                     `json:"buildId"`
+	ServiceType           dtos.K8sServiceTypeEnum `json:"serviceType"`
+}
+
+func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
+	return BuildJob{
+		JobId:       jobId,
+		ProjectId:   scanRequest.ProjectId,
+		NamespaceId: scanRequest.NamespaceId,
+		Namespace:   scanRequest.NamespaceName,
+		ServiceId:   scanRequest.ServiceId,
+		ServiceName: scanRequest.ServiceName,
+	}
 }
 
 type BuildJobListEntry struct {
@@ -95,6 +100,30 @@ type BuildJobListEntry struct {
 	BuildId               int    `json:"buildId"`
 }
 
+func (b BuildJobListEntry) IsEmpty() bool {
+	return b.JobId == "" &&
+		b.ProjectId == "" &&
+		b.NamespaceId == "" &&
+		b.Namespace == "" &&
+		b.ServiceId == "" &&
+		b.ServiceName == "" &&
+		b.GitRepo == "" &&
+		b.GitBranch == "" &&
+		b.GitCommitAuthor == "" &&
+		b.GitCommitHash == "" &&
+		b.GitCommitMessage == "" &&
+		b.DockerFile == "" &&
+		b.DockerContext == "" &&
+		b.ContainerRegistryPath == "" &&
+		b.ContainerRegistryUrl == "" &&
+		b.StartTimestamp == "" &&
+		b.InjectDockerEnvVars == "" &&
+		b.State == "" &&
+		b.StartedAt == "" &&
+		b.DurationMs == 0 &&
+		b.BuildId == 0
+}
+
 func BuildJobExample() BuildJob {
 	return BuildJob{
 		JobId:                 "na8ggegq2p0pepbvjldlger",
@@ -116,7 +145,7 @@ func BuildJobExample() BuildJob {
 		ContainerRegistryUrl:  "docker.io",
 		StartTimestamp:        "1689684071841",
 		InjectDockerEnvVars:   "--build-arg PLACEHOLDER=MOGENIUS",
-		State:                 BUILD_STATE_PENDING,
+		State:                 punq.JobStatePending,
 		StartedAt:             time.Now().Format(time.RFC3339),
 		EndTimestamp:          time.Now().Format(time.RFC3339),
 		DurationMs:            0,
@@ -125,7 +154,7 @@ func BuildJobExample() BuildJob {
 }
 
 type BuildJobStatusRequest struct {
-	BuildId int `json:"buildId"`
+	BuildId int `json:"buildId" validate:"required"`
 }
 
 func BuildJobStatusRequestExample() BuildJobStatusRequest {
@@ -135,8 +164,8 @@ func BuildJobStatusRequestExample() BuildJobStatusRequest {
 }
 
 type BuildServicesStatusRequest struct {
-	ServiceIds []string `json:"serviceIds"`
-	MaxResults int      `json:"maxResults"`
+	ServiceIds []string `json:"serviceIds" validate:"required"`
+	MaxResults int      `json:"maxResults" validate:"required"`
 }
 
 func BuildServicesStatusRequestExample() BuildServicesStatusRequest {
@@ -147,7 +176,7 @@ func BuildServicesStatusRequestExample() BuildServicesStatusRequest {
 }
 
 type BuildServiceRequest struct {
-	ServiceId  string `json:"serviceId"`
+	ServiceId  string `json:"serviceId" validate:"required"`
 	MaxResults int    `json:"maxResults,omitempty"`
 }
 
@@ -159,7 +188,7 @@ func BuildServiceRequestExample() BuildServiceRequest {
 }
 
 type ListBuildByProjectIdRequest struct {
-	ProjectId string `json:"projectId"`
+	ProjectId string `json:"projectId" validate:"required"`
 }
 
 func ListBuildByProjectIdRequestExample() ListBuildByProjectIdRequest {
@@ -180,7 +209,7 @@ type BuildScanResult struct {
 func CreateBuildScanResult(message string, err string) BuildScanResult {
 	result := BuildScanResult{
 		Result: &BuildJobInfoEntry{
-			State:      BUILD_STATE_PENDING,
+			State:      punq.JobStatePending,
 			Result:     message,
 			StartTime:  time.Now().Format(time.RFC3339),
 			FinishTime: "",
@@ -210,22 +239,27 @@ type BuildJobInfos struct {
 	Login      BuildJobInfoEntry `json:"login"`
 	Build      BuildJobInfoEntry `json:"build"`
 	Push       BuildJobInfoEntry `json:"push"`
-	Scan       BuildJobInfoEntry `json:"scan"`
 	StartTime  string            `json:"startTime"`
 	FinishTime string            `json:"finishTime"`
 }
 
 type BuildJobInfoEntry struct {
-	ProjectId   string `json:"projectId,omitempty"`
-	Namespace   string `json:"namespace,omitempty"`
-	ServiceName string `json:"serviceName,omitempty"`
-	State       string `json:"state"`
-	Result      string `json:"result"`
-	StartTime   string `json:"startTime"`
-	FinishTime  string `json:"finishTime"`
+	State      punq.JobStateEnum `json:"state"`
+	Result     string            `json:"result"`
+	StartTime  string            `json:"startTime"`
+	FinishTime string            `json:"finishTime"`
 }
 
-func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte, scan []byte) BuildJobInfos {
+func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoEntry {
+	return BuildJobInfoEntry{
+		State:      punq.JobStatePending,
+		Result:     "",
+		StartTime:  time.Now().Format(time.RFC3339),
+		FinishTime: "",
+	}
+}
+
+func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte) BuildJobInfos {
 	result := BuildJobInfos{}
 
 	result.BuildId = job.BuildId
@@ -236,7 +270,6 @@ func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, bu
 	result.Login = CreateBuildJobEntryFromData(login)
 	result.Build = CreateBuildJobEntryFromData(build)
 	result.Push = CreateBuildJobEntryFromData(push)
-	result.Scan = CreateBuildJobEntryFromData(scan)
 
 	return result
 }
@@ -255,21 +288,35 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 	return result
 }
 
-func CreateBuildJobInfoEntryBytes(state string, cmdOutput []byte, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
+func CreateBuildJobInfoEntryBytes(state punq.JobStateEnum, cmdOutput string, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
 	entry := BuildJobInfoEntry{
-		ProjectId:   job.ProjectId,
-		Namespace:   job.Namespace,
-		ServiceName: job.ServiceName,
-		State:       state,
-		Result:      string(cmdOutput),
-		StartTime:   startTime.Format(time.RFC3339),
-		FinishTime:  finishTime.Format(time.RFC3339),
+		State:      state,
+		Result:     cmdOutput,
+		StartTime:  startTime.Format(time.RFC3339),
+		FinishTime: finishTime.Format(time.RFC3339),
 	}
 
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(entry)
 	if err != nil {
 		logger.Log.Errorf("createBuildJobInfoEntryBytes ERR: %s", err.Error())
+	}
+	return bytes
+
+}
+
+func CreateBuildJobInfoEntryBytesForScan(state punq.JobStateEnum, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
+	entry := BuildJobInfoEntry{
+		State:      state,
+		Result:     string(cmdOutput),
+		StartTime:  startTime.Format(time.RFC3339),
+		FinishTime: finishTime.Format(time.RFC3339),
+	}
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	bytes, err := json.Marshal(entry)
+	if err != nil {
+		logger.Log.Errorf("CreateBuildJobInfoEntryBytesForScan ERR: %s", err.Error())
 	}
 	return bytes
 

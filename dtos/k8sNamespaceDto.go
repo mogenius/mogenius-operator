@@ -1,15 +1,15 @@
 package dtos
 
 type K8sProjectDto struct {
-	Id                    string `json:"id" validate:"required"`
-	DisplayName           string `json:"displayName" validate:"required"`
-	GitAccessToken        string `json:"gitAccessToken" validate:"required"`
-	GitUserId             string `json:"gitUserId" validate:"required"`
-	GitConnectionType     string `json:"gitConnectionType" validate:"required"` // "GIT_HUB", "GIT_LAB", "BITBUCKET"
-	ClusterName           string `json:"clusterName" validate:"required"`
-	ContainerRegistryUrl  string `json:"containerRegistryUrl" validate:"required"`
-	ContainerRegistryUser string `json:"containerRegistryUser" validate:"required"`
-	ContainerRegistryPat  string `json:"containerRegistryPat" validate:"required"`
+	Id                    string                `json:"id" validate:"required"`
+	DisplayName           string                `json:"displayName" validate:"required"`
+	GitAccessToken        string                `json:"gitAccessToken"`
+	GitUserId             string                `json:"gitUserId"`
+	GitConnectionType     GitConnectionTypeEnum `json:"gitConnectionType"`
+	ClusterName           string                `json:"clusterName" validate:"required"`
+	ContainerRegistryUrl  string                `json:"containerRegistryUrl"`
+	ContainerRegistryUser string                `json:"containerRegistryUser"`
+	ContainerRegistryPat  string                `json:"containerRegistryPat"`
 }
 
 func K8sProjectDtoExampleData() K8sProjectDto {
@@ -18,7 +18,7 @@ func K8sProjectDtoExampleData() K8sProjectDto {
 		DisplayName:           "displayName",
 		GitAccessToken:        "gitAccessToken",
 		GitUserId:             "gitUserId",
-		GitConnectionType:     "GIT_HUB",
+		GitConnectionType:     GitConGitHub,
 		ClusterName:           "clusterName",
 		ContainerRegistryUrl:  "https://index.docker.io/v1",
 		ContainerRegistryUser: "XXX_FAKE_USER",

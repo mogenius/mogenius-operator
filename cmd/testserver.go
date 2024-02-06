@@ -32,16 +32,16 @@ var testServerCmd = &cobra.Command{
 		}
 
 		utils.SetupClusterSecret(clusterSecret)
-		utils.CONFIG.Misc.Stage = "local"
+		utils.CONFIG.Misc.Stage = utils.STAGE_LOCAL
 
 		// INIT MOUNTS
 		if utils.CONFIG.Misc.AutoMountNfs {
-			volumesToMount, err := utils.GetVolumeMountsForK8sManager()
-			if err != nil && utils.CONFIG.Misc.Stage != "local" {
+			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
+			if err != nil && utils.CONFIG.Misc.Stage != utils.STAGE_LOCAL {
 				logger.Log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
 			}
 			for _, vol := range volumesToMount {
-				mokubernetes.Mount(vol.Namespace.Name, vol.VolumeName, nil)
+				mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
 			}
 		}
 

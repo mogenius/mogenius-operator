@@ -11,13 +11,17 @@ import (
 	"strings"
 	"time"
 
+	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
-	v1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/apps/v1"
+	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/kubectl/pkg/scheme"
 )
 
 var (
@@ -70,6 +74,10 @@ func NewWorkload(name string, yaml string, description string) K8sNewWorkload {
 }
 
 func CurrentContextName() string {
+	if utils.CONFIG.Kubernetes.RunInCluster {
+		return utils.CONFIG.Kubernetes.ClusterName
+	}
+
 	var kubeconfig string = ""
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = filepath.Join(home, ".kube", "config")
@@ -100,20 +108,20 @@ func Hostname() string {
 	return provider.ClientConfig.Host
 }
 
-func ListNodes() []v1.Node {
+func ListNodes() []core.Node {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		return []v1.Node{}
+		return []core.Node{}
 	}
 	if provider == nil || err != nil {
 		logger.Log.Fatal("error creating kubeprovider")
-		return []v1.Node{}
+		return []core.Node{}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		logger.Log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
-		return []v1.Node{}
+		return []core.Node{}
 	}
 	return nodeMetricsList.Items
 }
@@ -204,14 +212,32 @@ func MoUpdateLabels(labels *map[string]string, projectId string, namespace *dtos
 	return resultingLabels
 }
 
+func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string) map[string]string {
+	resultingLabels := map[string]string{}
+
+	// transfer existing values
+	if existingLabels != nil {
+		for k, v := range *existingLabels {
+			resultingLabels[k] = v
+		}
+	}
+
+	// populate with mo labels
+	for k, v := range newLabels {
+		resultingLabels[k] = v
+	}
+
+	return resultingLabels
+}
+
 // mount nfs server in k8s-manager
-func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
-	if utils.CONFIG.Misc.Stage == "local" {
+func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) {
+	if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
 		return
 	}
 
 	go func() {
-		var service *v1.Service = nfsService
+		var service *core.Service = nfsService
 		if service == nil {
 			service = ServiceForNfsVolume(volumeNamespace, volumeName)
 		}
@@ -224,7 +250,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 				mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
 				punqUtils.CreateDirIfNotExist(mountDir)
-				punqStructs.ExecuteBashCommandWithResponse(title, shellCmd)
+				punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
 			}
 		} else {
 			logger.Log.Warningf("No ClusterIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
@@ -232,7 +258,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *v1.Service) {
 	}()
 }
 
-func ServiceForNfsVolume(volumeNamespace string, volumeName string) *v1.Service {
+func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Service {
 	services := punq.AllServices(volumeNamespace, nil)
 	for _, srv := range services {
 		if strings.Contains(srv.Name, fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)) {
@@ -249,7 +275,7 @@ func Umount(volumeNamespace string, volumeName string) {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
-			punqStructs.ExecuteBashCommandWithResponse(title, shellCmd)
+			punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
 			punqUtils.DeleteDirIfExist(mountDir)
 		}
 	}()
@@ -262,4 +288,69 @@ func IsLocalClusterSetup() bool {
 	} else {
 		return false
 	}
+}
+
+func GetCustomDeploymentTemplate() *v1.Deployment {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		logger.Log.Error(fmt.Sprintf("GetCustomDeploymentTemplate: %s", err.Error()))
+		return nil
+	}
+	client := provider.ClientSet.CoreV1().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
+	configmap, err := client.Get(context.TODO(), utils.MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME, metav1.GetOptions{})
+	if err != nil {
+		return nil
+	} else {
+		deployment := v1.Deployment{}
+		yamlBytes := []byte(configmap.Data["deployment"])
+		s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+		_, _, err = s.Decode(yamlBytes, nil, &deployment)
+		if err != nil {
+			logger.Log.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
+			return nil
+		}
+		return &deployment
+	}
+}
+
+func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider) string {
+	var nfsStorageClassStr string = ""
+
+	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		logger.Log.Errorf("StorageClassForClusterProvider ERR: %s", err.Error())
+		return nfsStorageClassStr
+	}
+	storageClasses, err := provider.ClientSet.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
+	for _, storageClass := range storageClasses.Items {
+		if storageClass.Annotations["storageclass.kubernetes.io/is-default-class"] == "true" {
+			nfsStorageClassStr = storageClass.Name
+			break
+		}
+	}
+
+	// 2. SOMETIMES WE KNOW IT BETTER THAN KUBERNETES (REASONS: TO EXPENSIVE OR NOT COMPATIBLE WITH OUR NFS SERVER)
+	switch clusterProvider {
+	case punqDtos.EKS:
+		nfsStorageClassStr = "gp2"
+	case punqDtos.GKE:
+		nfsStorageClassStr = "standard-rwo"
+	case punqDtos.AKS:
+		nfsStorageClassStr = "default"
+	case punqDtos.OTC:
+		nfsStorageClassStr = "csi-disk"
+	case punqDtos.BRING_YOUR_OWN:
+		nfsStorageClassStr = "default"
+	case punqDtos.DOCKER_DESKTOP, punqDtos.KIND:
+		nfsStorageClassStr = "hostpath"
+	case punqDtos.K3S:
+		nfsStorageClassStr = "local-path"
+	}
+
+	if nfsStorageClassStr == "" {
+		logger.Log.Errorf("No default storage class found for cluster provider '%s'.", clusterProvider)
+	}
+
+	return nfsStorageClassStr
 }

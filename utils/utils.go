@@ -3,31 +3,38 @@ package utils
 import (
 	"embed"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/version"
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
+	"runtime"
+	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	punqStructs "github.com/mogenius/punq/structs"
+	"github.com/mogenius/punq/utils"
+	"gopkg.in/yaml.v2"
 )
 
 const APP_NAME = "k8s"
+const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-k8s-manager-default-apps"
+const MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME = "mogenius-k8s-manager-default-deployment"
+
+const (
+	HelmReleaseNameTrafficCollector     = "mogenius-traffic-collector"
+	HelmReleaseNamePodStatsCollector    = "mogenius-pod-stats-collector"
+	HelmReleaseNameMetricsServer        = "metrics-server"
+	HelmReleaseNameTraefik              = "traefik"
+	HelmReleaseNameCertManager          = "cert-manager"
+	HelmReleaseNameClusterIssuer        = "clusterissuer"
+	HelmReleaseNameDistributionRegistry = "distribution-registry"
+	HelmReleaseNameMetalLb              = "metallb"
+	HelmReleaseNameKepler               = "kepler"
+)
 
 var YamlTemplatesFolder embed.FS
-
-type NamespaceDisplayName struct {
-	DisplayName string `json:"displayName"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-type Volume struct {
-	Namespace  NamespaceDisplayName `json:"namespace"`
-	VolumeName string               `json:"volumeName"`
-	SizeInGb   int                  `json:"sizeInGb"`
-}
 
 func MountPath(namespaceName string, volumeName string, defaultReturnValue string) string {
 	if CONFIG.Kubernetes.RunInCluster {
@@ -44,31 +51,6 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 	return defaultReturnValue
 }
 
-func StorageClassForClusterProvider(clusterProvider string) string {
-	var nfsStorageClassStr string = "default"
-	// TODO: "DOCKER_ENTERPRISE", "DOKS", "LINODE", "IBM", "ACK", "OKE", "OPEN_SHIFT"
-	switch clusterProvider {
-	case "EKS":
-		nfsStorageClassStr = "gp2"
-	case "GKE":
-		nfsStorageClassStr = "standard-rwo"
-	case "AKS":
-		nfsStorageClassStr = "default"
-	case "OTC":
-		nfsStorageClassStr = "csi-disk"
-	case "BRING_YOUR_OWN":
-		nfsStorageClassStr = "default"
-	case "DOCKER_DESKTOP":
-		nfsStorageClassStr = "hostpath"
-	case "K3S":
-		nfsStorageClassStr = "local-path"
-	default:
-		logger.Log.Errorf("CLUSTERPROVIDER '%s' HAS NOT BEEN TESTED YET! Returning 'default'.", clusterProvider)
-		nfsStorageClassStr = "default"
-	}
-	return nfsStorageClassStr
-}
-
 func HttpHeader(additionalName string) http.Header {
 	return http.Header{
 		"x-authorization":  []string{CONFIG.Kubernetes.ApiKey},
@@ -76,45 +58,6 @@ func HttpHeader(additionalName string) http.Header {
 		"x-app":            []string{fmt.Sprintf("%s%s", APP_NAME, additionalName)},
 		"x-app-version":    []string{version.Ver},
 		"x-cluster-name":   []string{CONFIG.Kubernetes.ClusterName}}
-}
-
-func GetVolumeMountsForK8sManager() ([]Volume, error) {
-	result := []Volume{}
-
-	// Create an http client
-	client := &http.Client{}
-
-	// Create a new request using http
-	url := fmt.Sprintf("%s/storage/k8s/cluster-project-storage/list", CONFIG.ApiServer.Http_Server)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return result, err
-	}
-
-	// Add headers to the http request
-	req.Header = HttpHeader("")
-	// TODO: REMOVE - THIS IS JUST FOR DEBUGGING
-	// if CONFIG.Misc.Debug && CONFIG.Misc.Stage == "local" {
-	// 	req.Header["x-authorization"] = []string{"mo_7bf5c2b5-d7bc-4f0e-b8fc-b29d09108928_0hkga6vjum3p1mvezith"}
-	// 	req.Header["x-cluster-mfa-id"] = []string{"a141bd85-c986-402c-9475-5bdc4679293b"}
-	// }
-
-	// Send the request and get a response
-	resp, err := client.Do(req)
-	if err != nil {
-		return result, err
-	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return result, err
-	}
-
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	err = json.Unmarshal(body, &result)
-	return result, err
 }
 
 // parseIPs parses a slice of IP address strings into a slice of net.IP.
@@ -134,3 +77,44 @@ func Prepend[T any](s []T, values ...T) []T {
 	return append(values, s...)
 }
 
+func GetFunctionName() string {
+	pc, _, _, _ := runtime.Caller(1)
+	fn := runtime.FuncForPC(pc)
+	if fn == nil {
+		return "unknown"
+	}
+
+	// Split the name to get only the function name without the package path
+	parts := strings.Split(fn.Name(), ".")
+	return parts[len(parts)-1]
+}
+
+func ExecuteShellCommandSilent(title string, shellCmd string) error {
+	result, err := utils.RunOnLocalShell(shellCmd).Output()
+	fmt.Printf("ExecuteShellCommandSilent:\n%s\n", result)
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		exitCode := exitErr.ExitCode()
+		errorMsg := string(exitErr.Stderr)
+		return fmt.Errorf("%d: %s", exitCode, errorMsg)
+	} else if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func GetVersionData(url string) (*punqStructs.HelmData, error) {
+	response, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	data, _ := io.ReadAll(response.Body)
+	var helmData punqStructs.HelmData
+	err = yaml.Unmarshal(data, &helmData)
+	if err != nil {
+		return nil, err
+	}
+	return &helmData, nil
+}

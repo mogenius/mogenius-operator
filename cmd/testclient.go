@@ -4,9 +4,12 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"mogenius-k8s-manager/builder"
+	"mogenius-k8s-manager/db"
+	dbstats "mogenius-k8s-manager/db-stats"
+	api "mogenius-k8s-manager/http"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/migrations"
 	socketclient "mogenius-k8s-manager/socket-client"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -19,23 +22,27 @@ var testClientCmd = &cobra.Command{
 	Short: "Print testServerCmd information and exit.",
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		builder.Init()
+		db.Init()
+		dbstats.Init()
+
+		migrations.ExecuteMigrations()
 
 		// INIT MOUNTS
 		if utils.CONFIG.Misc.AutoMountNfs {
-			volumesToMount, err := utils.GetVolumeMountsForK8sManager()
-			if err != nil && utils.CONFIG.Misc.Stage != "local" {
+			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
+			if err != nil && utils.CONFIG.Misc.Stage != utils.STAGE_LOCAL {
 				logger.Log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
 			}
 			for _, vol := range volumesToMount {
-				mokubernetes.Mount(vol.Namespace.Name, vol.VolumeName, nil)
+				mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
 			}
 		}
 
+		go api.InitApi()
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
 
-		go mokubernetes.WatchEvents()
+		go mokubernetes.NewEventWatcher()
 
 		socketclient.StartK8sManager()
 	},

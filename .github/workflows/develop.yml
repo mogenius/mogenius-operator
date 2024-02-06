@@ -8,7 +8,7 @@ on:
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
   DOCKERFILE: Dockerfile-dev
-  HELMNAME: "mogenius-k8s-manager"
+  HELMNAME: "mogenius-k8s-manager-dev"
   HELMREPO: "mogenius/helm-k8s-manager"
 
 jobs:
@@ -205,6 +205,7 @@ jobs:
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
   
+          
       # - name: Grype Vulnerability Scan
       #   run: |
       #     VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))

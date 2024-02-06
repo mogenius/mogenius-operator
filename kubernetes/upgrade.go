@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/utils"
 	"sync"
 
-	"github.com/google/uuid"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,9 +26,9 @@ func ClusterForceReconnect() bool {
 	podClient := provider.ClientSet.CoreV1().Pods(utils.CONFIG.Kubernetes.OwnNamespace)
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-traffic-collector", nil)...)
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-pod-stats-collector", nil)...)
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", "mogenius-k8s-manager", nil)...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", utils.HelmReleaseNameTrafficCollector, nil)...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", utils.HelmReleaseNamePodStatsCollector, nil)...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)
 
 	for _, podName := range podsToKill {
 		logger.Log.Warningf("Restarting %s ...", podName)
@@ -57,13 +56,13 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) *struct
 		jobClient := provider.ClientSet.BatchV1().Jobs(NAMESPACE)
 		configmapClient := provider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
 
-		configmap := punqUtils.InitUpgradeConfigMap()
+		configmap := utils.InitUpgradeConfigMap()
 		configmap.Namespace = NAMESPACE
 		configmap.Data["values.command"] = command
 
-		job := punqUtils.InitUpgradeJob()
+		job := utils.InitUpgradeJob()
 		job.Namespace = NAMESPACE
-		job.Name = fmt.Sprintf("%s-%s", job.Name, uuid.New().String())
+		job.Name = fmt.Sprintf("%s-%s", job.Name, punqUtils.NanoIdSmallLowerCase())
 
 		// CONFIGMAP
 		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})

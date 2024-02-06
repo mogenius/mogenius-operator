@@ -21,15 +21,20 @@ type ClusterSecret struct {
 	ClusterName  string
 }
 
+const STAGE_DEV = "dev"
+const STAGE_PROD = "prod"
+const STAGE_LOCAL = "local"
+
 type Config struct {
 	Kubernetes struct {
 		ApiKey                     string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
 		ClusterName                string `yaml:"cluster_name" env:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
 		OwnNamespace               string `yaml:"own_namespace" env:"OWN_NAMESPACE" env-description:"The Namespace of mogenius platform"`
-		ClusterMfaId               string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"UUID of the Kubernetes Cluster for MFA purpose"`
+		ClusterMfaId               string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"NanoId of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		DefaultContainerRegistry   string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
+		BboltDbStatsPath           string `yaml:"bbolt_db_stats_path" env:"bbolt_db_stats_path" env-description:"Path to the bbolt database. This db stores stats-related information."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
@@ -180,6 +185,7 @@ func PrintSettings() {
 	logger.Log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
 	logger.Log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 	logger.Log.Infof("BboltDbPath:              %s", CONFIG.Kubernetes.BboltDbPath)
+	logger.Log.Infof("BboltDbStatsPath:         %s", CONFIG.Kubernetes.BboltDbStatsPath)
 	logger.Log.Infof("LocalContainerRegistry:   %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
 
 	logger.Log.Infof("API")
@@ -275,15 +281,15 @@ func writeDefaultConfig(stage string) {
 	} else {
 		// default stage is prod
 		if stage == "" {
-			stage = "prod"
+			stage = STAGE_PROD
 		}
 	}
 
-	if stage == "dev" {
+	if stage == STAGE_DEV {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileDev), 0755)
-	} else if stage == "prod" {
+	} else if stage == STAGE_PROD {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileProd), 0755)
-	} else if stage == "local" {
+	} else if stage == STAGE_LOCAL {
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	} else {
 		fmt.Println("No stage set. Using local config.")

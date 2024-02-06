@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"strings"
 	"sync"
 	"time"
 
@@ -13,10 +12,10 @@ import (
 	"mogenius-k8s-manager/structs"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	"github.com/mogenius/punq/utils"
 	punqutils "github.com/mogenius/punq/utils"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 )
@@ -63,6 +62,8 @@ func TriggerJobFromCronjob(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 }
 
 func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	logger.Log.Infof("CreateCronJob K8sServiceDto: %s", service)
+
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -75,11 +76,15 @@ func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		newCronJob := generateCronJob(namespace, service, true, cronJobClient)
+		newController, err := CreateControllerConfiguration(namespace, service, true, cronJobClient, createCronJobHandler)
+		if err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
 
+		newCronJob := newController.(*v1job.CronJob)
 		newCronJob.Labels = MoUpdateLabels(&newCronJob.Labels, job.ProjectId, &namespace, &service)
 
-		_, err = cronJobClient.Create(context.TODO(), &newCronJob, MoCreateOptions())
+		_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions())
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateCronJob ERROR: %s", err.Error()))
 		} else {
@@ -132,13 +137,18 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		newCronJob := generateCronJob(namespace, service, false, cronJobClient)
+		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
+		if err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
+
+		newCronJob := newController.(*v1job.CronJob)
 
 		updateOptions := metav1.UpdateOptions{
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		_, err = cronJobClient.Update(context.TODO(), &newCronJob, updateOptions)
+		_, err = cronJobClient.Update(context.TODO(), newCronJob, updateOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdatingCronJob ERROR: %s", err.Error()))
 		} else {
@@ -163,9 +173,14 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		}
 
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		cronJob := generateCronJob(namespace, service, false, cronJobClient)
+		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
+		if err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
 
-		_, err = cronJobClient.Update(context.TODO(), &cronJob, metav1.UpdateOptions{})
+		cronJob := newController.(*v1job.CronJob)
+
+		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StartingCronJob ERROR: %s", err.Error()))
 		} else {
@@ -188,10 +203,14 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		cronJob := generateCronJob(namespace, service, false, cronJobClient)
+		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
+		if err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
+		cronJob := newController.(*v1job.CronJob)
 		cronJob.Spec.Suspend = punqutils.Pointer(true)
 
-		_, err = cronJobClient.Update(context.TODO(), &cronJob, metav1.UpdateOptions{})
+		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("StopCronJob ERROR: %s", err.Error()))
 		} else {
@@ -214,7 +233,12 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		cronJob := generateCronJob(namespace, service, false, cronJobClient)
+		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
+		if err != nil {
+			logger.Log.Errorf("error: %s", err.Error())
+		}
+		cronJob := newController.(*v1job.CronJob)
+
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
 		if cronJob.ObjectMeta.Annotations == nil {
 			cronJob.ObjectMeta.Annotations = map[string]string{}
@@ -223,7 +247,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 			cronJob.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		}
 
-		_, err = cronJobClient.Update(context.TODO(), &cronJob, metav1.UpdateOptions{})
+		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("RestartCronJob ERROR: %s", err.Error()))
 		} else {
@@ -233,193 +257,278 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 	return cmd
 }
 
-func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, cronjobclient batchv1.CronJobInterface) v1job.CronJob {
-	previousCronjob, err := cronjobclient.Get(context.TODO(), service.Name, metav1.GetOptions{})
+func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
+	var previousSpec *v1job.CronJobSpec
+	previousCronjob, err := client.(batchv1.CronJobInterface).Get(context.TODO(), service.Name, metav1.GetOptions{})
 	if err != nil {
-		//logger.Log.Infof("No previous cronjob found for %s/%s.", namespace.Name, service.Name)
 		previousCronjob = nil
-	}
-
-	// SANITIZE
-	if service.K8sSettings.LimitCpuCores <= 0 {
-		service.K8sSettings.LimitCpuCores = 0.1
-	}
-	if service.K8sSettings.LimitMemoryMB <= 0 {
-		service.K8sSettings.LimitMemoryMB = 16
-	}
-	if service.K8sSettings.EphemeralStorageMB <= 0 {
-		service.K8sSettings.EphemeralStorageMB = 100
-	}
-	if service.K8sSettings.ReplicaCount < 0 {
-		service.K8sSettings.ReplicaCount = 0
+	} else {
+		previousSpec = &(*previousCronjob).Spec
 	}
 
 	newCronJob := punqutils.InitCronJob()
-	newCronJob.ObjectMeta.Name = service.Name
-	newCronJob.ObjectMeta.Namespace = namespace.Name
-	// not supported for cron job
-	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["app"] = service.Name
-	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["ns"] = namespace.Name
-	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["app"] = service.Name
-	newCronJob.Spec.JobTemplate.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
 
-	// STRATEGY
-	// not implemented
+	objectMeta := &newCronJob.ObjectMeta
+	spec := &newCronJob.Spec
 
-	// SUSPEND -> SWITCHED ON
-	// newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
+	// LABELS
+	if objectMeta.Labels == nil {
+		objectMeta.Labels = map[string]string{}
+	}
+	objectMeta.Labels["app"] = service.Name
+	objectMeta.Labels["ns"] = namespace.Name
+
+	if spec.JobTemplate.Spec.Template.ObjectMeta.Labels == nil {
+		spec.JobTemplate.Spec.Template.ObjectMeta.Labels = map[string]string{}
+	}
+	spec.JobTemplate.Spec.Template.ObjectMeta.Labels["app"] = service.Name
+	spec.JobTemplate.Spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
+
+	// INIT CONTAINER
+	if len(spec.JobTemplate.Spec.Template.Spec.Containers) == 0 {
+		spec.JobTemplate.Spec.Template.Spec.Containers = []core.Container{}
+		spec.JobTemplate.Spec.Template.Spec.Containers = append(spec.JobTemplate.Spec.Template.Spec.Containers, core.Container{})
+	}
 
 	// SUSPEND -> PAUSE
 	if freshlyCreated &&
-		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepository ||
-			service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GitRepositoryTemplate) {
-		newCronJob.Spec.Suspend = punqutils.Pointer(true)
+		(service.ServiceType == dtos.K8S_CRON_JOB_GIT_REPOSITORY || service.ServiceType == dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE) {
+		spec.Suspend = punqutils.Pointer(true)
 	} else {
-		newCronJob.Spec.Suspend = punqutils.Pointer(!service.SwitchedOn)
+		spec.Suspend = punqutils.Pointer(!service.SwitchedOn)
 	}
 
 	// CRON_JOB SETTINGS
-	newCronJob.Spec.Schedule = service.K8sSettings.K8sCronJobSettingsDto.Schedule
+	spec.Schedule = service.K8sSettings.K8sCronJobSettingsDto.Schedule
 
 	if service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds > 0 {
-		newCronJob.Spec.JobTemplate.Spec.ActiveDeadlineSeconds = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
+		spec.JobTemplate.Spec.ActiveDeadlineSeconds = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
 	}
 	if service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit > 0 {
-		newCronJob.Spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
+		spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
 	}
 
-	// PORTS
-	if len(service.Ports) > 0 {
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
-		// newDeployment.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
-		for _, port := range service.Ports {
-			if port.Expose {
-				newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports, core.ContainerPort{
-					ContainerPort: int32(port.InternalPort),
-				})
-			}
-		}
-	} else {
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = nil
+	return objectMeta, &SpecCronJob{spec, previousSpec}, &newCronJob, nil
+}
+
+// Obsolete: can be removed after testing. just to double check old and new logic
+//
+// func generateCronJob(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, cronjobclient batchv1.CronJobInterface) v1job.CronJob {
+// 	previousCronjob, err := cronjobclient.Get(context.TODO(), service.Name, metav1.GetOptions{})
+// 	if err != nil {
+// 		//logger.Log.Infof("No previous cronjob found for %s/%s.", namespace.Name, service.Name)
+// 		previousCronjob = nil
+// 	}
+
+// 	newCronJob := punqutils.InitCronJob()
+
+// 	objectMeta := &newCronJob.ObjectMeta
+// 	objectMeta.Name = service.Name
+// 	objectMeta.Namespace = namespace.Name
+
+// 	spec := &newCronJob.Spec.JobTemplate.Spec
+// 	if spec.Selector == nil {
+// 		spec.Selector = &metav1.LabelSelector{}
+// 	}
+// 	if spec.Selector.MatchLabels == nil {
+// 		spec.Selector.MatchLabels = map[string]string{}
+// 	}
+// 	spec.Selector.MatchLabels["app"] = service.Name
+// 	spec.Selector.MatchLabels["ns"] = namespace.Name
+// 	if spec.Template.ObjectMeta.Labels == nil {
+// 		spec.Template.ObjectMeta.Labels = map[string]string{}
+// 	}
+// 	spec.Template.ObjectMeta.Labels["app"] = service.Name
+// 	spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
+
+// 	// not supported for cron job
+// 	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["app"] = service.Name
+// 	// newCronJob.Spec.JobTemplate.Spec.Selector.MatchLabels["ns"] = namespace.Name
+
+// 	// spec.Template.ObjectMeta.Labels["app"] = service.Name
+// 	// spec.Template.ObjectMeta.Labels["ns"] = namespace.Name
+
+// 	// STRATEGY
+// 	// not implemented
+
+// 	// SUSPEND -> SWITCHED ON
+// 	// newCronJob.Spec.Suspend = utils.Pointer(!service.SwitchedOn)
+
+// 	// SUSPEND -> PAUSE
+// 	if freshlyCreated &&
+// 		(service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GIT_REPOSITORY ||
+// 			service.K8sSettings.K8sCronJobSettingsDto.SourceType == dtos.GIT_REPOSITORY_TEMPLATE) {
+// 		newCronJob.Spec.Suspend = punqutils.Pointer(true)
+// 	} else {
+// 		newCronJob.Spec.Suspend = punqutils.Pointer(!service.SwitchedOn)
+// 	}
+
+// 	// CRON_JOB SETTINGS
+// 	newCronJob.Spec.Schedule = service.K8sSettings.K8sCronJobSettingsDto.Schedule
+
+// 	if service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds > 0 {
+// 		newCronJob.Spec.JobTemplate.Spec.ActiveDeadlineSeconds = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.ActiveDeadlineSeconds)
+// 	}
+// 	if service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit > 0 {
+// 		newCronJob.Spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(service.K8sSettings.K8sCronJobSettingsDto.BackoffLimit)
+// 	}
+
+// 	// PORTS
+// 	if len(service.Ports) > 0 {
+// 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
+// 		// newDeployment.Spec.Template.Spec.Containers[0].Ports = []core.ContainerPort{}
+// 		for _, port := range service.Ports {
+// 			if port.Expose {
+// 				newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports, core.ContainerPort{
+// 					ContainerPort: int32(port.InternalPort),
+// 				})
+// 			}
+// 		}
+// 	} else {
+// 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Ports = nil
+// 	}
+
+// 	// RESOURCES
+// 	if service.K8sSettings.IsLimitSetup() {
+// 		limits := core.ResourceList{}
+// 		requests := core.ResourceList{}
+// 		limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
+// 		limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
+// 		limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+// 		requests["cpu"] = resource.MustParse("1m")
+// 		requests["memory"] = resource.MustParse("1Mi")
+// 		requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
+// 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Limits = limits
+// 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Requests = requests
+// 	} else {
+// 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Limits = nil
+// 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Requests = nil
+// 	}
+
+// 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Name = service.Name
+
+// 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Command = []string{}
+// 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args = []string{}
+
+// 	// IMAGE
+// 	if service.ContainerImage != "" {
+// 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
+// 		if service.ContainerImageCommand != "" {
+// 			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Command = punqutils.ParseJsonStringArray(service.ContainerImageCommand)
+// 		}
+// 		if service.ContainerImageCommandArgs != "" {
+// 			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args = punqutils.ParseJsonStringArray(service.ContainerImageCommandArgs)
+// 		}
+// 		if service.ContainerImageRepoSecretDecryptValue != "" {
+// 			newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
+// 			newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{
+// 				Name: fmt.Sprintf("%s-container-secret", service.Name),
+// 			})
+// 		}
+// 	} else {
+// 		// this will be setup UNTIL the buildserver overwrites the image with the real one.
+// 		if previousCronjob != nil {
+// 			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = previousCronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image
+// 		} else {
+// 			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = "ghcr.io/mogenius/mo-default-backend:latest"
+// 		}
+// 	}
+
+// 	// ENV VARS
+// 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env = []core.EnvVar{}
+// 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
+// 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes = []core.Volume{}
+// 	for _, envVar := range service.EnvVars {
+// 		if envVar.Type == "KEY_VAULT" ||
+// 			envVar.Type == "PLAINTEXT" ||
+// 			envVar.Type == "HOSTNAME" {
+// 			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env, core.EnvVar{
+// 				Name: envVar.Name,
+// 				ValueFrom: &core.EnvVarSource{
+// 					SecretKeyRef: &core.SecretKeySelector{
+// 						Key: envVar.Name,
+// 						LocalObjectReference: core.LocalObjectReference{
+// 							Name: service.Name,
+// 						},
+// 					},
+// 				},
+// 			})
+// 		}
+// 		if envVar.Type == "VOLUME_MOUNT" {
+// 			// VOLUMEMOUNT
+// 			// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
+// 			components := strings.Split(envVar.Value, ":")
+// 			if len(components) == 3 {
+// 				volumeName := components[0]    // e.g. MY_COOL_NAME
+// 				srcPath := components[1]       // e.g. subpath/to/heaven
+// 				containerPath := components[2] // e.g. /mo-data
+
+// 				// subPath must be relative
+// 				if strings.HasPrefix(srcPath, "/") {
+// 					srcPath = strings.Replace(srcPath, "/", "", 1)
+// 				}
+// 				newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].VolumeMounts = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
+// 					MountPath: containerPath,
+// 					SubPath:   srcPath,
+// 					Name:      volumeName,
+// 				})
+
+// 				// VOLUME
+// 				nfsService := ServiceForNfsVolume(namespace.Name, volumeName)
+// 				if nfsService != nil {
+// 					newCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes, core.Volume{
+// 						Name: volumeName,
+// 						VolumeSource: core.VolumeSource{
+// 							NFS: &core.NFSVolumeSource{
+// 								Path:   "/exports",
+// 								Server: nfsService.Spec.ClusterIP,
+// 							},
+// 						},
+// 					})
+// 				} else {
+// 					logger.Log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
+// 				}
+// 			} else {
+// 				logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
+// 			}
+// 		}
+// 	}
+
+// 	// IMAGE PULL SECRET
+// 	if ContainerSecretDoesExistForStage(namespace) {
+// 		containerSecretName := "container-secret-" + namespace.Name
+// 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
+// 		newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
+// 	}
+
+// 	// PROBES OFF
+// 	// not implemented
+
+// 	// SECURITY CONTEXT
+// 	// TODO wieder in betrieb nehmen
+// 	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
+// 	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].SecurityContext = nil
+
+// 	return newCronJob
+// }
+
+func UpdateCronjobImage(namespaceName string, serviceName string, imageName string) error {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return err
+	}
+	client := provider.ClientSet.BatchV1().CronJobs(namespaceName)
+	crontjobToUpdate, err := client.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		return err
 	}
 
-	// RESOURCES
-	limits := core.ResourceList{}
-	limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
-	limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
-	limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Limits = limits
-	requests := core.ResourceList{}
-	requests["cpu"] = resource.MustParse("1m")
-	requests["memory"] = resource.MustParse("1Mi")
-	requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Resources.Requests = requests
+	// SET NEW IMAGE
+	crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = imageName
+	crontjobToUpdate.Spec.Suspend = utils.Pointer(false)
 
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Name = service.Name
-
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Command = []string{}
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args = []string{}
-
-	// IMAGE
-	if service.ContainerImage != "" {
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = service.ContainerImage
-		if service.ContainerImageCommand != "" {
-			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Command = punqutils.ParseJsonStringArray(service.ContainerImageCommand)
-		}
-		if service.ContainerImageCommandArgs != "" {
-			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args = punqutils.ParseJsonStringArray(service.ContainerImageCommandArgs)
-		}
-		if service.ContainerImageRepoSecretDecryptValue != "" {
-			newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
-			newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{
-				Name: fmt.Sprintf("%s-container-secret", service.Name),
-			})
-		}
-	} else {
-		// this will be setup UNTIL the buildserver overwrites the image with the real one.
-		if previousCronjob != nil {
-			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = previousCronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image
-		} else {
-			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = "ghcr.io/mogenius/mo-default-backend:latest"
-		}
-	}
-
-	// ENV VARS
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env = []core.EnvVar{}
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes = []core.Volume{}
-	for _, envVar := range service.EnvVars {
-		if envVar.Type == "KEY_VAULT" ||
-			envVar.Type == "PLAINTEXT" ||
-			envVar.Type == "HOSTNAME" {
-			newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Env, core.EnvVar{
-				Name: envVar.Name,
-				ValueFrom: &core.EnvVarSource{
-					SecretKeyRef: &core.SecretKeySelector{
-						Key: envVar.Name,
-						LocalObjectReference: core.LocalObjectReference{
-							Name: service.Name,
-						},
-					},
-				},
-			})
-		}
-		if envVar.Type == "VOLUME_MOUNT" {
-			// VOLUMEMOUNT
-			// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
-			components := strings.Split(envVar.Value, ":")
-			if len(components) == 3 {
-				volumeName := components[0]    // e.g. MY_COOL_NAME
-				srcPath := components[1]       // e.g. subpath/to/heaven
-				containerPath := components[2] // e.g. /mo-data
-
-				// subPath must be relative
-				if strings.HasPrefix(srcPath, "/") {
-					srcPath = strings.Replace(srcPath, "/", "", 1)
-				}
-				newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].VolumeMounts = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].VolumeMounts, core.VolumeMount{
-					MountPath: containerPath,
-					SubPath:   srcPath,
-					Name:      volumeName,
-				})
-
-				// VOLUME
-				nfsService := ServiceForNfsVolume(namespace.Name, volumeName)
-				if nfsService != nil {
-					newCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.Volumes, core.Volume{
-						Name: volumeName,
-						VolumeSource: core.VolumeSource{
-							NFS: &core.NFSVolumeSource{
-								Path:   "/exports",
-								Server: nfsService.Spec.ClusterIP,
-							},
-						},
-					})
-				} else {
-					logger.Log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
-				}
-			} else {
-				logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
-			}
-		}
-	}
-
-	// IMAGE PULL SECRET
-	if ContainerSecretDoesExistForStage(namespace) {
-		containerSecretName := "container-secret-" + namespace.Name
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = []core.LocalObjectReference{}
-		newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets = append(newCronJob.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
-	}
-
-	// PROBES OFF
-	// not implemented
-
-	// SECURITY CONTEXT
-	// TODO wieder in betrieb nehmen
-	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
-	newCronJob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].SecurityContext = nil
-
-	return newCronJob
+	_, err = client.Update(context.TODO(), crontjobToUpdate, metav1.UpdateOptions{})
+	return err
 }
 
 func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {

@@ -2,96 +2,65 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
+	"os"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
+
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
 )
 
-func CreateHelmChartCmd(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask string, helmChartName string, helmFlags string, uninstalling bool, status *punq.SystemCheckStatus, doneFunction func()) {
-	structs.CreateBashCommandGoRoutine("Add/Update Helm Repo & Execute chart.", fmt.Sprintf("helm repo add %s %s; helm repo update; helm %s %s %s %s", helmRepoName, helmRepoUrl, helmTask, helmReleaseName, helmChartName, helmFlags), uninstalling, status, doneFunction)
+func CreateHelmChartCmd(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask structs.HelmTaskEnum, helmChartName string, helmFlags string, successFunc func(), failFunc func(output string, err error)) {
+	structs.CreateShellCommandGoRoutine("Add/Update Helm Repo & Execute chart.", fmt.Sprintf("helm repo add %s %s; helm repo update; helm %s %s %s %s", helmRepoName, helmRepoUrl, helmTask, helmReleaseName, helmChartName, helmFlags), successFunc, failFunc)
 }
 
 func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGroup) *structs.Command {
-	return structs.CreateBashCommand("Uninstall chart.", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
+	return structs.CreateShellCommand("Uninstall chart.", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
 }
 
-// func InstallMogeniusNfsStorage(job *structs.Job, clusterProvider string, wg *sync.WaitGroup) []*structs.Command {
-// 	cmds := []*structs.Command{}
+func HelmStatus(namespace string, chartname string) punq.SystemCheckStatus {
+	settings := cli.New()
+	settings.SetNamespace(namespace)
 
-// 	addRepoCmd := structs.CreateBashCommand("Install/Update helm repo.", job, "sleep 1", wg)
-// 	cmds = append(cmds, addRepoCmd)
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), logger.Log.Infof); err != nil {
+		logger.Log.Errorf("HelmStatus Init Error: %s", err.Error())
+		return punq.UNKNOWN_STATUS
+	}
 
-// 	nfsStorageClassStr := ""
+	list := action.NewList(actionConfig)
+	releases, err := list.Run()
+	if err != nil {
+		logger.Log.Errorf("HelmStatus List Error: %s", err.Error())
+		return punq.UNKNOWN_STATUS
+	}
 
-// 	// "BRING_YOUR_OWN", "EKS", "AKS", "GKE", "DOCKER_ENTERPRISE", "DOKS", "LINODE", "IBM", "ACK", "OKE", "OTC", "OPEN_SHIFT"
-// 	switch clusterProvider {
-// 	case "EKS":
-// 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=gp2"
-// 	case "GKE":
-// 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=standard-rwo"
-// 	case "AKS":
-// 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=default"
-// 	case "OTC":
-// 		nfsStorageClassStr = " --set-string nfsStorageClass.backendStorageClass=csi-disk"
-// 	default:
-// 		// nothing to do
-// 		errMsg := fmt.Sprintf("CLUSTERPROVIDER '%s' HAS NOT BEEN TESTED YET!", clusterProvider)
-// 		logger.Log.Errorf(errMsg)
-// 		addRepoCmd.Fail(errMsg)
-// 		return cmds
-// 	}
-// 	instRelCmd := structs.CreateBashCommand("Install helm release.", job, fmt.Sprintf("helm repo add mo-openebs-nfs https://openebs.github.io/dynamic-nfs-provisioner; helm repo update; helm install mogenius-nfs-storage mo-openebs-nfs/nfs-provisioner -n %s --set analytics.enabled=false%s", utils.CONFIG.Kubernetes.OwnNamespace, nfsStorageClassStr), wg)
-// 	cmds = append(cmds, instRelCmd)
+	for _, rel := range releases {
+		if rel.Name == chartname {
+			return OurStatusFromHelmStatus(rel.Info.Status)
+		}
+	}
 
-// 	return cmds
-// }
+	return punq.NOT_INSTALLED
+}
 
-// func UninstallMogeniusNfsStorage(job *structs.Job, wg *sync.WaitGroup) []*structs.Command {
-// 	cmds := []*structs.Command{}
-
-// 	uninstRelCmd := structs.CreateBashCommand("Uninstall helm release.", job, fmt.Sprintf("helm uninstall mogenius-nfs-storage -n %s", utils.CONFIG.Kubernetes.OwnNamespace), wg)
-// 	cmds = append(cmds, uninstRelCmd)
-// 	// storageClassCmd := DeleteMogeniusNfsStorageClass(job, c, wg)
-// 	// cmds = append(cmds, storageClassCmd)
-
-// 	return cmds
-// }
-
-// func AllHelmCharts(namespaceName string) []cmapi.CertificateRequest {
-// 	result := []cmapi.CertificateRequest{}
-
-// 	provider := NewKubeProvider(nil)
-// 	resources, err := provider.ClientSet.Discovery().ServerPreferredResources()
-// 	if err != nil {
-// 		logger.Log.Errorf("ServerPreferredResources Error: %s", err.Error())
-// 		return result
-// 	}
-
-// 	for _, certificate := range certificatesList.Items {
-// 		if !utils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, certificate.ObjectMeta.Namespace) {
-// 			result = append(result, certificate)
-// 		}
-// 	}
-// 	return result
-// }
-
-// func UpdateHelmChart(data cmapi.CertificateRequest) K8sWorkloadResult {
-// 	provider, err := NewKubeProviderCertManager()
-// 	certificateClient := provider.ClientSet.CertmanagerV1().CertificateRequests(data.Namespace)
-// 	_, err := certificateClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
-// 	if err != nil {
-// 		return WorkloadResult(nil, err)
-// 	}
-// 	return WorkloadResult(nil, nil)
-// }
-
-// func DeleteK8sHelmChart(data cmapi.CertificateRequest) K8sWorkloadResult {
-// 	provider, err := NewKubeProviderCertManager()
-// 	certificateClient := provider.ClientSet.CertmanagerV1().CertificateRequests(data.Namespace)
-// 	err := certificateClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
-// 	if err != nil {
-// 		return WorkloadResult(nil, err)
-// 	}
-// 	return WorkloadResult(nil, nil)
-// }
+func OurStatusFromHelmStatus(status release.Status) punq.SystemCheckStatus {
+	switch status {
+	case release.StatusUnknown:
+		return punq.UNKNOWN_STATUS
+	case release.StatusDeployed, release.StatusSuperseded:
+		return punq.INSTALLED
+	case release.StatusUninstalled, release.StatusFailed:
+		return punq.NOT_INSTALLED
+	case release.StatusUninstalling:
+		return punq.UNINSTALLING
+	case release.StatusPendingInstall, release.StatusPendingUpgrade, release.StatusPendingRollback:
+		return punq.INSTALLING
+	default:
+		return punq.UNKNOWN_STATUS
+	}
+}

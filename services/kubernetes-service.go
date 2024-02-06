@@ -48,50 +48,50 @@ func K8sUpdateReplicaSet(r K8sUpdateReplicaSetRequest) interface{} {
 	return punq.UpdateK8sReplicaset(*r.Data, nil)
 }
 
-func K8sDeleteNamespace(r K8sDeleteNamespaceRequest) interface{} {
-	return punq.DeleteK8sNamespace(*r.Data, nil)
+func K8sDeleteNamespace(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sNamespaceBy(r.Namespace, nil)
 }
 
-func K8sDeleteDeployment(r K8sDeleteDeploymentRequest) interface{} {
-	return punq.DeleteK8sDeployment(*r.Data, nil)
+func K8sDeleteDeployment(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sDeploymentBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeleteService(r K8sDeleteServiceRequest) interface{} {
-	return punq.DeleteK8sService(*r.Data, nil)
+func K8sDeleteService(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sServiceBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeletePod(r K8sDeletePodRequest) interface{} {
-	return punq.DeleteK8sPod(*r.Data, nil)
+func K8sDeletePod(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sPodBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeleteIngress(r K8sDeleteIngressRequest) interface{} {
-	return punq.DeleteK8sIngress(*r.Data, nil)
+func K8sDeleteIngress(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sIngressBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeleteConfigMap(r K8sDeleteConfigmapRequest) interface{} {
-	return punq.DeleteK8sConfigmap(*r.Data, nil)
+func K8sDeleteConfigMap(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sConfigmapBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeleteSecret(r K8sDeleteSecretRequest) interface{} {
-	return punq.DeleteK8sSecret(*r.Data, nil)
+func K8sDeleteSecret(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sSecretBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeleteDaemonSet(r K8sDeleteDaemonsetRequest) interface{} {
-	return punq.DeleteK8sDaemonSet(*r.Data, nil)
+func K8sDeleteDaemonSet(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sDaemonSetBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeleteStatefulset(r K8sDeleteStatefulsetRequest) interface{} {
-	return punq.DeleteK8sStatefulset(*r.Data, nil)
+func K8sDeleteStatefulset(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sStatefulsetBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeleteJob(r K8sDeleteJobRequest) interface{} {
-	return punq.DeleteK8sJob(*r.Data, nil)
+func K8sDeleteJob(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sJobBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeleteCronJob(r K8sDeleteCronjobRequest) interface{} {
-	return punq.DeleteK8sCronJob(*r.Data, nil)
+func K8sDeleteCronJob(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sCronJobBy(r.Namespace, r.Name, nil)
 }
 
-func K8sDeleteReplicaSet(r K8sDeleteReplicasetRequest) interface{} {
-	return punq.DeleteK8sReplicaset(*r.Data, nil)
+func K8sDeleteReplicaSet(r K8sDeleteResourceRequest) interface{} {
+	return punq.DeleteK8sReplicasetBy(r.Namespace, r.Name, nil)
 }

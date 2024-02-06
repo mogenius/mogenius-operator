@@ -2,25 +2,22 @@ package socketclient
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
-	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/schollz/progressbar/v3"
-	"gopkg.in/yaml.v2"
 
 	"github.com/gorilla/websocket"
 
@@ -29,6 +26,16 @@ import (
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 )
+
+var SuppressedPayloads = []string{
+	services.PAT_CLUSTERRESOURCEINFO,
+	services.PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST,
+	services.PAT_SERVICE_STATUS,
+	services.PAT_STORAGE_STATS,
+	services.PAT_STORAGE_NAMESPACE_STATS,
+	services.PAT_BUILD_LAST_JOB_OF_SERVICES,
+	services.PAT_BUILD_SCAN,
+}
 
 func StartK8sManager() {
 	interrupt := make(chan os.Signal, 1)
@@ -45,6 +52,24 @@ func StartK8sManager() {
 
 	updateCheck()
 	versionTicker()
+
+	go func() {
+		for status := range structs.EventConnectionStatus {
+			if status {
+				// CONNECTED
+				for {
+					_, _, err := structs.EventQueueConnection.ReadMessage()
+					if err != nil {
+						logger.Log.Errorf("%s -> %s", &structs.EventConnectionUrl, err.Error())
+						break
+					}
+				}
+				structs.EventQueueConnection.Close()
+			} else {
+				// DISCONNECTED
+			}
+		}
+	}()
 
 	for status := range structs.JobConnectionStatus {
 		if status {
@@ -66,6 +91,10 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	var openFile *os.File
 	bar := progressbar.DefaultSilent(0)
 
+	maxGoroutines := 10
+	semaphoreChan := make(chan struct{}, maxGoroutines)
+	var wg sync.WaitGroup
+
 	defer func() {
 		close(done)
 	}()
@@ -80,7 +109,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				continue
 			}
 			if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
-				preparedFileName = punqUtils.Pointer(fmt.Sprintf("%s.zip", uuid.New().String()))
+				preparedFileName = punqUtils.Pointer(fmt.Sprintf("%s.zip", punqUtils.NanoId()))
 				rawDataStr = strings.Replace(rawDataStr, "######START_UPLOAD######;", "", 1)
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
@@ -119,19 +148,31 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				if jsonErr != nil {
 					logger.Log.Errorf("%s", jsonErr.Error())
 				}
+				validationErr := utils.ValidateJSON(datagram)
+				if validationErr != nil {
+					logger.Log.Errorf("Received malformed Datagram: %s", datagram.Pattern)
+					continue
+				}
 
 				datagram.DisplayReceiveSummary()
 
-				if utils.CONFIG.Misc.Debug {
-					punqStructs.PrettyPrint(datagram)
+				if isSuppressed := punqUtils.Contains(SuppressedPayloads, datagram.Pattern); !isSuppressed {
+					if utils.CONFIG.Misc.Debug {
+						punqStructs.PrettyPrint(datagram)
+					}
 				}
 
 				if punqUtils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
 					// ####### COMMAND
+					semaphoreChan <- struct{}{}
+
+					wg.Add(1)
 					go func() {
+						defer wg.Done()
 						responsePayload := services.ExecuteCommandRequest(datagram)
 						result := structs.CreateDatagramRequest(datagram, responsePayload)
 						result.Send()
+						<-semaphoreChan
 					}()
 				} else if punqUtils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 					preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
@@ -170,7 +211,7 @@ func updateCheck() {
 		return
 	}
 
-	helmData, err := getVersionData()
+	helmData, err := utils.GetVersionData(utils.CONFIG.Misc.HelmIndex)
 
 	if err != nil {
 		logger.Log.Error(err)
@@ -222,22 +263,6 @@ func updateCheck() {
 	} else {
 		fmt.Printf(" Up-To-Date: 👍 (Your Ver: %s)\n", version.Ver)
 	}
-}
-
-func getVersionData() (*punqStructs.HelmData, error) {
-	response, err := http.Get(utils.CONFIG.Misc.HelmIndex)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	data, _ := ioutil.ReadAll(response.Body)
-	var helmData punqStructs.HelmData
-	err = yaml.Unmarshal(data, &helmData)
-	if err != nil {
-		return nil, err
-	}
-	return &helmData, nil
 }
 
 func notUpToDateAction(helmData *punqStructs.HelmData) {

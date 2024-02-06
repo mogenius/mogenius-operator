@@ -27,7 +27,7 @@ import (
 var loadTestStartTime time.Time
 var loadTestPattern string = "list/pods"
 var loadTestTotalBytes int64 = 0
-var loadTestRequests int = 10000
+var loadTestRequests int = 1000
 var loadTestReceived int = 0
 
 var upgrader = websocket.Upgrader{
@@ -154,13 +154,13 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 							logger.Log.Error(err.Error())
 						}
 					} else if datagram.Pattern != "KubernetesEvent" {
-						RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
-						fmt.Printf("%s\n", RECEIVCOLOR(punqUtils.FillWith("RECEIVED", 22, " ")))
-						datagram.DisplayBeautiful()
-
 						if datagram.Pattern == loadTestPattern {
 							loadTestTotalBytes += datagram.GetSize()
 							loadTestReceived++
+						} else {
+							RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
+							fmt.Printf("%s\n", RECEIVCOLOR(punqUtils.FillWith("RECEIVED", 22, " ")))
+							datagram.DisplayBeautiful()
 						}
 						if loadTestReceived > 0 {
 							fmt.Printf("Result (%d): %s / %s \n", loadTestReceived, time.Since(loadTestStartTime), punqUtils.BytesToHumanReadable(loadTestTotalBytes))
@@ -250,8 +250,10 @@ func ReadInput() {
 			loadTestStartTime = time.Now()
 			loadTestReceived = 0
 			for i := 0; i < loadTestRequests; i++ {
-				datagram := requestCmdFromCluster(services.PAT_LIST_PODS)
-				loadTestTotalBytes = datagram.GetSize()
+				go func() {
+					datagram := requestCmdFromCluster(services.PAT_LIST_PODS)
+					loadTestTotalBytes = datagram.GetSize()
+				}()
 			}
 		case "k":
 			closeAllConnections()
@@ -291,12 +293,38 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 		case services.PAT_CLUSTER_READ_CONFIGMAP:
 			payload = services.ClusterGetConfigMapExample()
 		case services.PAT_CLUSTER_LIST_CONFIGMAPS:
-			payload = services.ClusterListConfigMapsExample()
+			payload = services.ClusterListWorkloadsExample()
+		// TODO
+		// case services.PAT_CLUSTER_WRITE_DEPLOYMENT:
+		// 	payload = services.ClusterWriteConfigMapExample()
+		case services.PAT_CLUSTER_READ_DEPLOYMENT:
+			payload = services.ClusterGetDeploymentExample()
+		case services.PAT_CLUSTER_LIST_DEPLOYMENTS:
+			payload = services.ClusterListWorkloadsExample()
+		// TODO
+		// case services.PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM:
+		// 	payload = services.ClusterWriteConfigMapExample()
+		case services.PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM:
+			payload = services.ClusterGetPersistentVolumeExample()
+		case services.PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS:
+			payload = services.ClusterListWorkloadsExample()
 		case services.PAT_INSTALL_CLUSTER_ISSUER:
 			payload = services.ClusterIssuerInstallRequestExample()
 
 		case services.PAT_UPGRADEK8SMANAGER:
 			payload = services.K8sManagerUpgradeRequestExample()
+
+		case services.PAT_INSTALL_LOCAL_DEV_COMPONENTS:
+			payload = services.ClusterIssuerInstallRequestExample()
+
+		case services.PAT_STATS_PODSTAT_FOR_POD_ALL:
+			payload = services.StatsDataRequestExampleData()
+		case services.PAT_STATS_PODSTAT_FOR_POD_LAST:
+			payload = services.StatsDataRequestExampleData()
+		case services.PAT_STATS_TRAFFIC_FOR_POD_ALL:
+			payload = services.StatsDataRequestExampleData()
+		case services.PAT_STATS_TRAFFIC_FOR_POD_LAST:
+			payload = services.StatsDataRequestExampleData()
 
 		case services.PAT_FILES_LIST:
 			payload = services.FilesListRequestExampleData()
@@ -480,37 +508,37 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = services.K8sUpdateNetworkPolicyExample()
 
 		case services.PAT_DELETE_NAMESPACE:
-			payload = services.K8sDeleteNamespaceRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_DEPLOYMENT:
-			payload = services.K8sDeleteDeploymentRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_SERVICE:
-			payload = services.K8sDeleteServiceRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_POD:
-			payload = services.K8sDeletePodRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_INGRESS:
-			payload = services.K8sDeleteIngressRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_CONFIGMAP:
-			payload = services.K8sDeleteConfigmapRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_SECRET:
-			payload = services.K8sDeleteSecretRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_DAEMONSET:
-			payload = services.K8sDeleteDaemonsetRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_STATEFULSET:
-			payload = services.K8sDeleteStatefulsetRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_JOB:
-			payload = services.K8sDeleteJobRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_CRONJOB:
-			payload = services.K8sDeleteCronjobRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_REPLICASET:
-			payload = services.K8sDeleteReplicaSetRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_PERSISTENT_VOLUME:
-			payload = services.K8sDeletePersistentVolumeRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_PERSISTENT_VOLUME_CLAIM:
-			payload = services.K8sDeletePersistentVolumeClaimRequestExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_NETWORK_POLICY:
-			payload = services.K8sDeleteNetworkPolicyExample()
+			payload = services.K8sDeleteResourceRequestExample()
 		case services.PAT_DELETE_STORAGE_CLASS:
-			payload = services.K8sDeleteStorageClassExample()
+			payload = services.K8sDeleteResourceRequestExample()
 
 		case services.PAT_BUILDER_STATUS:
 			payload = nil
