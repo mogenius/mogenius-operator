@@ -33,13 +33,11 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	defer close(eventsChan)
 
 	// Context with timeout to handle cancellation and timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
 	// Run a goroutine to fetch k8s events then push them into the channel before timeout
 	go func() {
-		start := time.Now()
-
 		r := punq.AllEvents(r.Namespace, nil)
 
 		var events []v1.Event
@@ -51,9 +49,6 @@ func StatusService(r ServiceStatusRequest) interface{} {
 		}
 
 		events = r.Result.([]v1.Event)
-
-		duration := time.Since(start)
-		logger.Log.Debugf("punq.AllEvents function executed in: %s\n", duration)
 
 		// Push the events into the channel
 		select {
