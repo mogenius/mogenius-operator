@@ -176,7 +176,7 @@ jobs:
 
   helm-chart:
     # needs: [prepare]
-    needs: [prepare, build-amd64, build-arm64, build-arm64-linux, merge-images]
+    needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
     runs-on: ubuntu-latest
 
     steps:
