@@ -43,7 +43,7 @@ ENV GOOS=${GOOS}
 ENV GOARCH=${GOARCH}
 ENV GOARM=${GOARM}
 
-RUN apk add --no-cache curl git nfs-utils ca-certificates jq
+RUN apk add --no-cache curl git nfs-utils ca-certificates
 
 # RUN apk add --no-cache \
 #     git \

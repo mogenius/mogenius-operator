@@ -14,7 +14,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -29,7 +28,7 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	}
 
 	// Create a channel to receive an array of events
-	eventsChan := make(chan []v1.Event, 1)
+	eventsChan := make(chan []corev1.Event, 1)
 	defer close(eventsChan)
 
 	// Context with timeout to handle cancellation and timeout
@@ -40,15 +39,15 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	go func() {
 		r := punq.AllEvents(r.Namespace, nil)
 
-		var events []v1.Event
+		var events []corev1.Event
 		if r.Error != nil {
 			logger.Log.Warningf("Warning fetching events: %s", r.Error)
-			events = []v1.Event{}
+			events = []corev1.Event{}
 			eventsChan <- events
 			return
 		}
 
-		events = r.Result.([]v1.Event)
+		events = r.Result.([]corev1.Event)
 
 		// Push the events into the channel
 		select {
@@ -370,13 +369,13 @@ func ServiceStatusRequestExample() ServiceStatusRequest {
 }
 
 type ResourceItem struct {
-	Kind         string      `json:"kind"`
-	Name         string      `json:"name"`
-	Namespace    string      `json:"namespace"`
-	OwnerName    string      `json:"ownerName,omitempty"`
-	OwnerKind    string      `json:"ownerKind,omitempty"`
-	StatusObject interface{} `json:"statusObject,omitempty"`
-	Events       []v1.Event  `json:"events,omitempty"`
+	Kind         string         `json:"kind"`
+	Name         string         `json:"name"`
+	Namespace    string         `json:"namespace"`
+	OwnerName    string         `json:"ownerName,omitempty"`
+	OwnerKind    string         `json:"ownerKind,omitempty"`
+	StatusObject interface{}    `json:"statusObject,omitempty"`
+	Events       []corev1.Event `json:"events,omitempty"`
 }
 
 func (item ResourceItem) String() string {
