@@ -5,7 +5,7 @@ metadata:
   name: nfs-namespace-pv
 spec:
   storageClassName: ""
-  persistentVolumeReclaimPolicy: Retain
+  persistentVolumeReclaimPolicy: Delete
   volumeMode: Filesystem
   accessModes:
   - ReadWriteMany

@@ -166,6 +166,10 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 	pvcs := punq.AllPersistentVolumeClaims(r.NamespaceName, nil)
 
 	for _, pvc := range pvcs {
+		// skip pvcs which are not mogenius-nfs
+		if !strings.HasPrefix(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix)) {
+			continue
+		}
 		// remove podname "nfs-server-pod-"
 		pvc.Name = strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
 
