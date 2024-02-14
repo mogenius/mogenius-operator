@@ -177,19 +177,65 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 		}
 
 		mountPath := utils.MountPath(r.NamespaceName, pvc.Name, "/")
-		usage, err := disk.Usage(mountPath)
-		if err != nil {
-			logger.Log.Errorf("StatsMogeniusNfsNamespace Err: %s %s", mountPath, err.Error())
-			continue
+
+		if utils.ClusterProviderCached == punqDtos.DOCKER_DESKTOP || utils.ClusterProviderCached == punqDtos.K3S {
+			var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
+			entry.FreeBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value()) - usedBytes
+			entry.UsedBytes = usedBytes
+			entry.TotalBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value())
 		} else {
-			entry.FreeBytes = usage.Free
-			entry.UsedBytes = usage.Used
-			entry.TotalBytes = usage.Total
+			usage, err := disk.Usage(mountPath)
+			if err != nil {
+				logger.Log.Errorf("StatsMogeniusNfsNamespace Err: %s %s", mountPath, err.Error())
+				continue
+			} else {
+				entry.FreeBytes = usage.Free
+				entry.UsedBytes = usage.Used
+				entry.TotalBytes = usage.Total
+			}
 		}
-		logger.Log.Infof("💾: '%s' -> %s / %s (%s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), fmt.Sprintf("%.1f%%", usage.UsedPercent))
+
+		logger.Log.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), punqUtils.BytesToHumanReadable(int64(entry.FreeBytes)))
 		result = append(result, entry)
 	}
 	return result
+}
+
+func sumAllBytesOfFolder(root string) uint64 {
+	var total uint64
+	var wg sync.WaitGroup
+	fileSizes := make(chan uint64)
+
+	// Start a goroutine to sum file sizes.
+	go func() {
+		for size := range fileSizes {
+			total += size
+		}
+	}()
+
+	// Walk the file tree concurrently.
+	filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				info, err := d.Info()
+				if err != nil {
+					return // handle error
+				}
+				fileSizes <- uint64(info.Size())
+			}()
+		}
+		return nil
+	})
+
+	wg.Wait()
+	close(fileSizes) // Close channel to finish summing
+
+	return total
 }
 
 func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest) NfsVolumeBackupResponse {
