@@ -4,6 +4,7 @@ import (
 	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/logger"
 	"sort"
+	"sync"
 	"time"
 
 	"context"
@@ -18,6 +19,34 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// Run a goroutine to fetch k8s events then push them into the channel before timeout
+func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, eventsChan chan<- []corev1.Event) {
+	defer wg.Done()
+
+	r := punq.AllEvents(namespace, nil)
+
+	var events []corev1.Event
+	if r.Error != nil {
+		logger.Log.Warningf("Warning fetching events: %s", r.Error)
+		events = []corev1.Event{}
+		eventsChan <- events
+		return
+	}
+
+	if r.Result != nil {
+		events = r.Result.([]corev1.Event)
+	}
+
+	// Push the events into the channel
+	select {
+	case <-ctx.Done():
+		logger.Log.Debugf("go: timeout waiting for events")
+		return
+	case eventsChan <- events:
+		logger.Log.Debugf("go: push the events into the channel")
+	}
+}
+
 func StatusService(r ServiceStatusRequest) interface{} {
 	logger.Log.Debugf("StatusService for (%s): %s %s", r.ServiceName, r.Namespace, r.Controller)
 
@@ -29,31 +58,19 @@ func StatusService(r ServiceStatusRequest) interface{} {
 
 	// Create a channel to receive an array of events
 	eventsChan := make(chan []corev1.Event, 1)
-	defer close(eventsChan)
+	var wg sync.WaitGroup
 
 	// Context with timeout to handle cancellation and timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
+	wg.Add(1)
 	// Run a goroutine to fetch k8s events then push them into the channel before timeout
+	go requestEvents(r.Namespace, ctx, &wg, eventsChan)
+
 	go func() {
-		r := punq.AllEvents(r.Namespace, nil)
-
-		var events []corev1.Event
-		if r.Error != nil {
-			logger.Log.Warningf("Warning fetching events: %s", r.Error)
-			events = []corev1.Event{}
-			eventsChan <- events
-			return
-		}
-
-		events = r.Result.([]corev1.Event)
-
-		// Push the events into the channel
-		select {
-		case eventsChan <- events:
-		case <-ctx.Done():
-		}
+		wg.Wait()         // Wait for all goroutines to finish.
+		close(eventsChan) // IMPORTANT!: Safely close channel after all sends are done.
 	}()
 
 	resourceItems := []ResourceItem{}
@@ -69,10 +86,15 @@ func StatusService(r ServiceStatusRequest) interface{} {
 
 	// Wait for the result from the channel or timeout
 	select {
-	case events := <-eventsChan:
-		// Sort events by lastTimestamp from oldest to newest
+	case events, ok := <-eventsChan:
+		if !ok {
+			logger.Log.Warningf("Warning event channel closed.")
+			break
+		}
+
+		// Sort events by lastTimestamp from newest to oldest
 		sort.SliceStable(events, func(i, j int) bool {
-			return events[i].LastTimestamp.Time.Before(events[j].LastTimestamp.Time)
+			return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
 		})
 
 		// Iterate events and add them to resourceItems
@@ -86,7 +108,7 @@ func StatusService(r ServiceStatusRequest) interface{} {
 			}
 		}
 	case <-ctx.Done():
-		logger.Log.Warningf("Timeout waiting for events")
+		logger.Log.Warningf("Warning timeout waiting for events")
 	}
 
 	// Debug logs
