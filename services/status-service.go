@@ -3,6 +3,9 @@ package services
 import (
 	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/logger"
+	"sort"
+	"sync"
+	"time"
 
 	"context"
 	"fmt"
@@ -16,6 +19,34 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// Run a goroutine to fetch k8s events then push them into the channel before timeout
+func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, eventsChan chan<- []corev1.Event) {
+	defer wg.Done()
+
+	r := punq.AllEvents(namespace, nil)
+
+	var events []corev1.Event
+	if r.Error != nil {
+		logger.Log.Warningf("Warning fetching events: %s", r.Error)
+		events = []corev1.Event{}
+		eventsChan <- events
+		return
+	}
+
+	if r.Result != nil {
+		events = r.Result.([]corev1.Event)
+	}
+
+	// Push the events into the channel
+	select {
+	case <-ctx.Done():
+		logger.Log.Debugf("go: timeout waiting for events")
+		return
+	case eventsChan <- events:
+		logger.Log.Debugf("go: push the events into the channel")
+	}
+}
+
 func StatusService(r ServiceStatusRequest) interface{} {
 	logger.Log.Debugf("StatusService for (%s): %s %s", r.ServiceName, r.Namespace, r.Controller)
 
@@ -24,6 +55,23 @@ func StatusService(r ServiceStatusRequest) interface{} {
 		logger.Log.Warningf("Warningf: %s", err.Error())
 		return nil
 	}
+
+	// Create a channel to receive an array of events
+	eventsChan := make(chan []corev1.Event, 1)
+	var wg sync.WaitGroup
+
+	// Context with timeout to handle cancellation and timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	wg.Add(1)
+	// Run a goroutine to fetch k8s events then push them into the channel before timeout
+	go requestEvents(r.Namespace, ctx, &wg, eventsChan)
+
+	go func() {
+		wg.Wait()         // Wait for all goroutines to finish.
+		close(eventsChan) // IMPORTANT!: Safely close channel after all sends are done.
+	}()
 
 	resourceItems := []ResourceItem{}
 	resourceItems, err = kubernetesItems(r.Namespace, r.ServiceName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
@@ -36,13 +84,40 @@ func StatusService(r ServiceStatusRequest) interface{} {
 		logger.Log.Warningf("Warning buildItem: %v", err)
 	}
 
+	// Wait for the result from the channel or timeout
+	select {
+	case events, ok := <-eventsChan:
+		if !ok {
+			logger.Log.Warningf("Warning event channel closed.")
+			break
+		}
+
+		// Sort events by lastTimestamp from newest to oldest
+		sort.SliceStable(events, func(i, j int) bool {
+			return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
+		})
+
+		// Iterate events and add them to resourceItems
+	EventLoop:
+		for _, event := range events {
+			for i, item := range resourceItems {
+				if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
+					resourceItems[i].Events = append(resourceItems[i].Events, event)
+					continue EventLoop
+				}
+			}
+		}
+	case <-ctx.Done():
+		logger.Log.Warningf("Warning timeout waiting for events")
+	}
+
 	// Debug logs
 	// jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
 	// if err != nil {
 	// 	logger.Log.Warningf("Warning marshaling JSON: %v", err)
 	// 	return nil
 	// }
-	// logger.Log.Debugf("JOSN: %s", jsonData)
+	// logger.Log.Debugf("JSON: %s", jsonData)
 
 	return resourceItems
 }
@@ -245,20 +320,21 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 
 func status(resource interface{}) (string, string, string, []metav1.OwnerReference, *metav1.LabelSelector, interface{}) {
 	switch r := resource.(type) {
-	case *appsv1.Deployment: {
-		status := struct{
-			Replicas int32           `json:"replicas,omitempty"`
-			Paused bool              `json:"paused,omitempty"`
-			Image string             `json:"image,omitempty"`
-			StatusObject interface{} `json:"status,omitempty"`
-		}{
-			Replicas: *r.Spec.Replicas,
-			Paused: r.Spec.Paused,
-			Image: r.Spec.Template.Spec.Containers[0].Image,
-			StatusObject: r.Status,
+	case *appsv1.Deployment:
+		{
+			status := struct {
+				Replicas     int32       `json:"replicas,omitempty"`
+				Paused       bool        `json:"paused,omitempty"`
+				Image        string      `json:"image,omitempty"`
+				StatusObject interface{} `json:"status,omitempty"`
+			}{
+				Replicas:     *r.Spec.Replicas,
+				Paused:       r.Spec.Paused,
+				Image:        r.Spec.Template.Spec.Containers[0].Image,
+				StatusObject: r.Status,
+			}
+			return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, status
 		}
-		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, status
-	}
 	case *appsv1.ReplicaSet:
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, ReplicaSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *appsv1.StatefulSet:
@@ -268,32 +344,33 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 	case *batchv1.Job:
 		var labelSelector = metav1.LabelSelector{
 			MatchLabels: map[string]string{
-				"ns": r.Spec.Template.ObjectMeta.Labels["ns"],
+				"ns":  r.Spec.Template.ObjectMeta.Labels["ns"],
 				"app": r.Spec.Template.ObjectMeta.Labels["app"],
 			},
 		}
 
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Job.String(), r.OwnerReferences, &labelSelector, r.Status
-	case *batchv1.CronJob: {
-		status := struct{
-			Suspend bool             `json:"suspend,omitempty"`
-			Image string             `json:"image,omitempty"`
-			StatusObject interface{} `json:"status,omitempty"`
-		}{
-			Suspend: *r.Spec.Suspend,
-			Image: r.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image,
-			StatusObject: r.Status,
-		}
+	case *batchv1.CronJob:
+		{
+			status := struct {
+				Suspend      bool        `json:"suspend,omitempty"`
+				Image        string      `json:"image,omitempty"`
+				StatusObject interface{} `json:"status,omitempty"`
+			}{
+				Suspend:      *r.Spec.Suspend,
+				Image:        r.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image,
+				StatusObject: r.Status,
+			}
 
-		var labelSelector = metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"ns": r.ObjectMeta.Labels["ns"],
-				"app": r.ObjectMeta.Labels["app"],
-			},
-		}
+			var labelSelector = metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"ns":  r.ObjectMeta.Labels["ns"],
+					"app": r.ObjectMeta.Labels["app"],
+				},
+			}
 
-		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, &labelSelector, status
-	}
+			return r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, &labelSelector, status
+		}
 	default:
 		return "", "", Unkown.String(), []metav1.OwnerReference{}, nil, nil
 	}
@@ -314,12 +391,13 @@ func ServiceStatusRequestExample() ServiceStatusRequest {
 }
 
 type ResourceItem struct {
-	Kind         string      `json:"kind"`
-	Name         string      `json:"name"`
-	Namespace    string      `json:"namespace"`
-	OwnerName    string      `json:"ownerName,omitempty"`
-	OwnerKind    string      `json:"ownerKind,omitempty"`
-	StatusObject interface{} `json:"statusObject,omitempty"`
+	Kind         string         `json:"kind"`
+	Name         string         `json:"name"`
+	Namespace    string         `json:"namespace"`
+	OwnerName    string         `json:"ownerName,omitempty"`
+	OwnerKind    string         `json:"ownerKind,omitempty"`
+	StatusObject interface{}    `json:"statusObject,omitempty"`
+	Events       []corev1.Event `json:"events,omitempty"`
 }
 
 func (item ResourceItem) String() string {
