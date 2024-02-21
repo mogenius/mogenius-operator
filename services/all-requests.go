@@ -1952,7 +1952,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 
 	var previousResReq *rest.Request
 	if terminatedState != nil {
-		tmpPreviousResReq, err := PreviousPodLogStream(data)
+		tmpPreviousResReq, err := PreviousPodLogStream(data.Namespace, data.PodId)
 		if err != nil {
 			logger.Log.Error(err.Error())
 		} else {
@@ -2044,7 +2044,49 @@ func K8sNotification(d structs.Datagram) interface{} {
 
 func execShConnection(podCmdConnectionRequest PodCmdConnectionRequest) {
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("kubectl exec -it -c %s -n %s %s -- sh -c \"clear; echo -e '\033[97;104m Connected to %s/%s/%s (using $0): \033[0m'; (type bash >/dev/null 2>&1 && exec bash || type ash >/dev/null 2>&1 && exec ash || type sh >/dev/null 2>&1 && exec sh || type ksh >/dev/null 2>&1 && exec ksh || type csh >/dev/null 2>&1 && exec csh || type zsh >/dev/null 2>&1 && exec zsh)\"", podCmdConnectionRequest.Container, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container))
-	utils.XTermCommandStreamConnection("exec-sh", podCmdConnectionRequest.CmdConnection, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container, cmd)
+	utils.XTermCommandStreamConnection("exec-sh", podCmdConnectionRequest.CmdConnection, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container, cmd, nil)
+}
+
+func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.Reader {
+	ctx := context.Background()
+	cancelCtx, endGofunc := context.WithCancel(ctx)
+	defer endGofunc()
+
+	pod := punq.PodStatus(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, false, nil)
+	terminatedState := punq.LastTerminatedStateIfAny(pod)
+
+	var previousRestReq *rest.Request
+	if terminatedState != nil {
+		tmpPreviousResReq, err := PreviousPodLogStream(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod)
+		if err != nil {
+			logger.Log.Error(err.Error())
+		} else {
+			previousRestReq = tmpPreviousResReq
+		}
+	}
+
+	if previousRestReq == nil {
+		return nil
+	}
+
+	var previousStream io.ReadCloser
+	tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
+	} else {
+		previousStream = tmpPreviousStream
+	}
+
+	lastState := punq.LastTerminatedStateToString(terminatedState)
+
+	nl := strings.NewReader("\n")
+	previousState := strings.NewReader(lastState)
+	headlineLastLog := strings.NewReader("Last Log:\n")
+	line := strings.NewReader("------------------------------------------------\n")
+	headlineCurrentLog := strings.NewReader("Current Log:\n")
+
+	return io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, line, nl, headlineCurrentLog, nl)
 }
 
 func logStreamConnection(podCmdConnectionRequest PodCmdConnectionRequest) {
@@ -2052,5 +2094,5 @@ func logStreamConnection(podCmdConnectionRequest PodCmdConnectionRequest) {
 		podCmdConnectionRequest.LogTail = "1000"
 	}
 	cmd := exec.Command("kubectl", "logs", "-f", podCmdConnectionRequest.Pod, fmt.Sprintf("--tail=%s", podCmdConnectionRequest.LogTail), "-c", podCmdConnectionRequest.Container, "-n", podCmdConnectionRequest.Namespace)
-	utils.XTermCommandStreamConnection("log", podCmdConnectionRequest.CmdConnection, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container, cmd)
+	utils.XTermCommandStreamConnection("log", podCmdConnectionRequest.CmdConnection, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container, cmd, GetPreviousLogContent(podCmdConnectionRequest))
 }

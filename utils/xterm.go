@@ -2,7 +2,7 @@ package utils
 
 import (
 	"encoding/json"
-	punq "github.com/mogenius/punq/kubernetes"
+	"io"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"net/url"
@@ -11,6 +11,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	punq "github.com/mogenius/punq/kubernetes"
 
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
@@ -74,7 +76,7 @@ func WsConnection(cmdType string, namespace string, pod string, container string
 	}
 }
 
-func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnectionRequest, namespace string, pod string, container string, cmd *exec.Cmd) {
+func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnectionRequest, namespace string, pod string, container string, cmd *exec.Cmd, injectPreContent io.Reader) {
 	if cmdConnectionRequest.WebsocketScheme == "" {
 		logger.Log.Error("WebsocketScheme is empty")
 		return
@@ -215,6 +217,27 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 		}
 
 		if string(reader) == "PEER_IS_READY" {
+			log.Println("Peer is ready")
+
+			if injectPreContent != nil {
+				buf := make([]byte, 1024)
+				for {
+					n, err := injectPreContent.Read(buf)
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+
+						log.Printf("WriteMessage: %s", err.Error())
+						break
+					}
+
+					if err := conn.WriteMessage(websocket.TextMessage, buf[:n]); err != nil {
+						log.Printf("WriteMessage: %s", err.Error())
+					}
+				}
+			}
+
 			continue
 		}
 
