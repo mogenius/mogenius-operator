@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/kubernetes"
@@ -2078,15 +2079,19 @@ func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.R
 		previousStream = tmpPreviousStream
 	}
 
+	data, err := io.ReadAll(previousStream)
+	if err != nil {
+		log.Printf("failed to read data: %v", err)
+	}
+
 	lastState := punq.LastTerminatedStateToString(terminatedState)
 
-	nl := strings.NewReader("\n")
+	nl := strings.NewReader("\r\n")
 	previousState := strings.NewReader(lastState)
-	headlineLastLog := strings.NewReader("Last Log:\n")
-	line := strings.NewReader("------------------------------------------------\n")
-	headlineCurrentLog := strings.NewReader("Current Log:\n")
+	headlineLastLog := strings.NewReader("Last Log:\r\n")
+	headlineCurrentLog := strings.NewReader("\r\nCurrent Log:\r\n")
 
-	return io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, line, nl, headlineCurrentLog, nl)
+	return io.MultiReader(previousState, nl, headlineLastLog, strings.NewReader(string(data)), nl, headlineCurrentLog)
 }
 
 func logStreamConnection(podCmdConnectionRequest PodCmdConnectionRequest) {
