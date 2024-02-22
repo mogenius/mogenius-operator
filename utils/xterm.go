@@ -1,8 +1,9 @@
 package utils
 
 import (
+	"encoding/base64"
 	"encoding/json"
-	punq "github.com/mogenius/punq/kubernetes"
+	"io"
 	"log"
 	"mogenius-k8s-manager/logger"
 	"net/url"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	punq "github.com/mogenius/punq/kubernetes"
 
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
@@ -74,7 +77,54 @@ func WsConnection(cmdType string, namespace string, pod string, container string
 	}
 }
 
-func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnectionRequest, namespace string, pod string, container string, cmd *exec.Cmd) {
+func InjectContent(content io.Reader, conn *websocket.Conn) {
+	// Read full content for pre-injection
+	input, err := io.ReadAll(content)
+	if err != nil {
+		log.Printf("failed to read data: %v", err)
+	}
+
+	// Encode for security reasons and send to pseudoterminal to be executed
+	// Use pty as a bridge for correct formatting
+	encodedData := base64.StdEncoding.EncodeToString(input)
+	bash := exec.Command("bash", "-c", "echo \""+encodedData+"\" | base64 -d")
+	ttytmp, err := pty.Start(bash)
+	if err != nil {
+		log.Printf("Unable to start tmp pty/cmd: %s", err.Error())
+		if conn != nil {
+			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+			if err != nil {
+				log.Printf("WriteMessage: %s", err.Error())
+			}
+		}
+		return
+	}
+	defer func() { _ = ttytmp.Close() }()
+
+	// Read from pseudoterminal and send to websocket
+	buf := make([]byte, 1024)
+	for {
+		n, err := ttytmp.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			log.Printf("WriteMessage: %s", err.Error())
+			break
+		}
+		if conn != nil {
+			if err := conn.WriteMessage(websocket.BinaryMessage, buf[:n]); err != nil {
+				log.Printf("WriteMessage: %s", err.Error())
+				break
+			}
+		} else {
+			break
+		}
+	}
+}
+
+func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnectionRequest, namespace string, pod string, container string, cmd *exec.Cmd, injectPreContent io.Reader) {
 	if cmdConnectionRequest.WebsocketScheme == "" {
 		logger.Log.Error("WebsocketScheme is empty")
 		return
@@ -172,6 +222,10 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 	}()
 
 	go func() {
+		if injectPreContent != nil {
+			InjectContent(injectPreContent, conn)
+		}
+
 		for {
 			buf := make([]byte, 1024)
 			read, err := tty.Read(buf)

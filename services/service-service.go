@@ -139,8 +139,8 @@ func PodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
 	return punq.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds), nil)
 }
 
-func PreviousPodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
-	return punq.StreamPreviousLog(r.Namespace, r.PodId, nil)
+func PreviousPodLogStream(namespace, podName string) (*rest.Request, error) {
+	return punq.StreamPreviousLog(namespace, podName, nil)
 }
 
 func PodStatus(r ServiceResourceStatusRequest) interface{} {
