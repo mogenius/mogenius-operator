@@ -52,7 +52,7 @@ func ShutdownNamespace(r NamespaceShutdownRequest) structs.Job {
 	job.Start()
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, &wg))
 	wg.Wait()
 	job.Finish()
 	return job

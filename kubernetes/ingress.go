@@ -22,7 +22,7 @@ const (
 	INGRESS_PREFIX = "ingress"
 )
 
-func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Updating ingress setup.", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -51,13 +51,22 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		ingressName := INGRESS_PREFIX + "-" + namespace.Name
+		ingressName := INGRESS_PREFIX + "-" + service.Name + "-" + "XXX_CONTAINER_NAME_XXX"
 
 		config := networkingv1.Ingress(ingressName, namespace.Name)
+
+		// check if ingress already exists
+		existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+		if existingIngress != nil && err == nil {
+			extractedConfig, err = networkingv1.ExtractIngress(existingIngress, "")
+			if err == nil {
+				config = extractedConfig
+			}
+		}
+
 		config.WithAnnotations(loadDefaultAnnotations())
 
-		// remove the issuer if cloudflare takes over controll over certificate
-		if namespace.CloudflareProxied || IsLocalClusterSetup() {
+		if IsLocalClusterSetup() {
 			delete(config.Annotations, "cert-manager.io/cluster-issuer")
 		}
 
@@ -72,10 +81,6 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 
 		// 1. All Services
 		for _, service := range namespace.Services {
-			// SKIP service if marked for delete
-			if skipForDelete != nil && skipForDelete.Id == service.Id {
-				continue
-			}
 			// SWITCHED OFF
 			if !service.SwitchedOn {
 				continue
@@ -91,31 +96,21 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 				}
 
 				// 2. ALL CNAMES
-				// if len(service.CNames) == 0 {
-				// 	spec.Rules = append(spec.Rules, *createIngressRule(service.FullHostname, service.Name, int32(port.InternalPort)))
-				// }
 				for _, cname := range service.CNames {
 					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.Name, int32(port.InternalPort)))
-					if !namespace.CloudflareProxied {
-						tlsHosts = append(tlsHosts, cname)
-					}
+					tlsHosts = append(tlsHosts, cname)
 				}
 			}
-			// if !namespace.CloudflareProxied && len(service.CNames) == 0 {
-			// 	tlsHosts = append(tlsHosts, service.FullHostname)
-			// }
 
 		}
-		if !namespace.CloudflareProxied {
-			spec.TLS = append(spec.TLS, networkingv1.IngressTLSApplyConfiguration{
-				Hosts:      tlsHosts,
-				SecretName: &namespace.Name,
-			})
-		}
+		spec.TLS = append(spec.TLS, networkingv1.IngressTLSApplyConfiguration{
+			Hosts:      tlsHosts,
+			SecretName: &namespace.Name,
+		})
 
-		if redirectTo != nil {
-			config.Annotations["nginx.ingress.kubernetes.io/permanent-redirect"] = *redirectTo
-		}
+		// if redirectTo != nil {
+		// 	config.Annotations["nginx.ingress.kubernetes.io/permanent-redirect"] = *redirectTo
+		// }
 
 		config.WithSpec(spec)
 

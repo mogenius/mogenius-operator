@@ -440,7 +440,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		data.Service.ApplyDefaults()
 		return CreateService(data)
 	case PAT_SERVICE_DELETE:
 		data := ServiceDeleteRequest{}
@@ -448,7 +447,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		data.Service.ApplyDefaults()
 		return DeleteService(data)
 	case PAT_SERVICE_POD_IDS:
 		data := ServiceGetPodIdsRequest{}

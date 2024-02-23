@@ -66,7 +66,7 @@ func CreateService(r ServiceCreateRequest) interface{} {
 		job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
 		job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
 	}
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 	if r.Service.ServiceType == dtos.GIT_REPOSITORY_TEMPLATE {
 		initDocker(r.Service, job)
 	}
@@ -96,7 +96,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	}
 
 	job.AddCmd(mokubernetes.DeleteNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, XXX, &wg)) // XXX: service is not available here
 	wg.Wait()
 	job.Finish()
 	return job
@@ -162,7 +162,7 @@ func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
 		// do nothing
 	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
 		job.AddCmd(mokubernetes.TriggerJobFromCronjob(&job, r.Namespace, r.Service, &wg))
-		job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+		job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 	}
 
 	wg.Wait()
@@ -183,7 +183,7 @@ func Restart(r ServiceRestartRequest) interface{} {
 	}
 
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -202,7 +202,7 @@ func StopService(r ServiceStopRequest) interface{} {
 	}
 
 	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -230,7 +230,7 @@ func StartService(r ServiceStartRequest) interface{} {
 		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
@@ -258,7 +258,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 
 	updateInfrastructureYaml(r.Service, job)
 
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 	wg.Wait()
 	job.Finish()
 	return job
