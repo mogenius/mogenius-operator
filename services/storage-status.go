@@ -81,9 +81,13 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 	storageStatus.SetClient(provider.ClientSet)
 
 	if StorageAPIObjectFromString(r.StorageAPIObject) == StorageTypePersistentVolume {
-		storageStatus.GetByPVName(r.Name)
+		if _, err := storageStatus.GetByPVName(r.Name); err != nil {
+			return NfsStatusResponse{Error: err.Error()}
+		}
 	} else if StorageAPIObjectFromString(r.StorageAPIObject) == StorageTypePersistentVolumeClaim {
-		storageStatus.GetByPVCName(r.Namespace, r.Name)
+		if _, err := storageStatus.GetByPVCName(r.Namespace, r.Name); err != nil {
+			return NfsStatusResponse{Error: err.Error()}
+		}
 	} else {
 		return NfsStatusResponse{Error: "Invalid StorageAPIObject"}
 	}
@@ -219,28 +223,28 @@ EventLoop:
 	for {
 		select {
 		case events, ok := <-pvsEventsChan:
+			processedPvs = true
 			if !ok {
 				fmt.Println("Warning PV event channel closed.")
 				break
 			}
 			s.VolumeEvents = events
-			processedPvs = true
 
 		case events, ok := <-pvcsEventsChan:
+			processedPvcs = true
 			if !ok {
 				fmt.Println("Warning PVC event channel closed.")
 				break
 			}
 			s.VolumeClaimEvents = events
-			processedPvcs = true
 
 		case pods, ok := <-podsEventsChan:
+			processedPods = true
 			if !ok {
 				fmt.Println("Warning Pods event channel closed.")
 				break
 			}
 			s.UsedBy = pods
-			processedPods = true
 
 		case chanError = <-errorChan:
 			break EventLoop
