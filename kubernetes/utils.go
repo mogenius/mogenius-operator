@@ -200,7 +200,7 @@ func MoUpdateLabels(labels *map[string]string, projectId string, namespace *dtos
 	resultingLabels["createdBy"] = DEPLOYMENTNAME
 	if service != nil {
 		resultingLabels["mo-service-id"] = service.Id
-		resultingLabels["mo-service-name"] = service.Name
+		resultingLabels["mo-service-name"] = service.ControllerName
 	}
 	if namespace != nil {
 		resultingLabels["mo-namespace-id"] = namespace.Id
@@ -323,6 +323,10 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 		return nfsStorageClassStr
 	}
 	storageClasses, err := provider.ClientSet.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		logger.Log.Errorf("StorageClassForClusterProvider List ERR: %s", err.Error())
+		return nfsStorageClassStr
+	}
 	for _, storageClass := range storageClasses.Items {
 		if storageClass.Annotations["storageclass.kubernetes.io/is-default-class"] == "true" {
 			nfsStorageClassStr = storageClass.Name

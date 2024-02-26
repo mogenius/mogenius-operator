@@ -440,7 +440,7 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 
 	_, mountPathExists := os.Stat(mountPath)
 	if os.IsNotExist(mountPathExists) {
-		return "", fmt.Errorf("The volume '%s' does not exist.", data.VolumeName)
+		return "", fmt.Errorf("the volume '%s' does not exist", data.VolumeName)
 	}
 
 	if strings.HasSuffix(mountPath, "/") {

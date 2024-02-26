@@ -33,7 +33,7 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		}
 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 		configMap := punqUtils.InitConfigMap()
-		configMap.ObjectMeta.Name = service.Name
+		configMap.ObjectMeta.Name = service.ControllerName
 		configMap.ObjectMeta.Namespace = namespace.Name
 		delete(configMap.Data, "XXX") // delete example data
 
@@ -44,7 +44,7 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created ConfigMap '%s'.", service.Name))
+			cmd.Success(fmt.Sprintf("Created ConfigMap '%s'.", service.ControllerName))
 		}
 	}(cmd, wg)
 	return cmd
@@ -68,11 +68,11 @@ func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
-		err = configMapClient.Delete(context.TODO(), service.Name, deleteOptions)
+		err = configMapClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted configMap '%s'.", service.Name))
+			cmd.Success(fmt.Sprintf("Deleted configMap '%s'.", service.ControllerName))
 		}
 	}(cmd, wg)
 	return cmd
@@ -95,7 +95,7 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		}
 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 		configMap := punqUtils.InitConfigMap()
-		configMap.ObjectMeta.Name = service.Name
+		configMap.ObjectMeta.Name = service.ControllerName
 		configMap.ObjectMeta.Namespace = namespace.Name
 		delete(configMap.Data, "XXX") // delete example data
 
@@ -109,7 +109,7 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Update configMap '%s'.", service.Name))
+			cmd.Success(fmt.Sprintf("Update configMap '%s'.", service.ControllerName))
 		}
 	}(cmd, wg)
 	return cmd

@@ -44,7 +44,7 @@ func ProcessQueue() {
 		currentBuildJob = &buildJob
 		defer cancel()
 
-		job := structs.CreateJob(fmt.Sprintf("Building '%s'", buildJob.ServiceName), buildJob.ProjectId, &buildJob.NamespaceId, nil)
+		job := structs.CreateJob(fmt.Sprintf("Building '%s'", buildJob.ControllerName), buildJob.ProjectId, &buildJob.NamespaceId, nil)
 
 		go build(job, &buildJob, currentBuildChannel, &ctx)
 
@@ -95,7 +95,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan punqStructs.Jo
 
 	updateState(*buildJob, punqStructs.JobStateStarted)
 
-	imageName := fmt.Sprintf("%s-%s", buildJob.Namespace, buildJob.ServiceName)
+	imageName := fmt.Sprintf("%s-%s", buildJob.Namespace, buildJob.ControllerName)
 	tagName := fmt.Sprintf("%s/%s:%d", buildJob.ContainerRegistryPath, imageName, buildJob.BuildId)
 	latestTagName := fmt.Sprintf("%s/%s:latest", buildJob.ContainerRegistryPath, imageName)
 
@@ -175,7 +175,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, done chan punqStructs.Jo
 
 func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
 	if req.ContainerImage == "" {
-		imagename, err := kubernetes.GetDeploymentImage(req.NamespaceName, req.ServiceName)
+		imagename, err := kubernetes.GetDeploymentImage(req.NamespaceName, req.ControllerName)
 		if err != nil || imagename == "" {
 			return structs.CreateBuildScanResult("", "Error: No image found in deployment.")
 		}
@@ -536,10 +536,10 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 		if strings.HasSuffix(prefix, "-") {
 			cleanPrefix, _ = strings.CutSuffix(cleanPrefix, "-")
 		}
-		data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, newLine, reportCmd.State)
+		data := structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ControllerName, job.ProjectId, newLine, reportCmd.State)
 		// send start-signal when first line is received
 		if lineNumber == 0 {
-			structs.EventServerSendData(structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ServiceName, job.ProjectId, "####START####", reportCmd.State), "", "", "", 0)
+			structs.EventServerSendData(structs.CreateDatagramBuildLogs(cleanPrefix, job.Namespace, job.ControllerName, job.ProjectId, "####START####", reportCmd.State), "", "", "", 0)
 		}
 		structs.EventServerSendData(data, "", "", "", 0)
 	}
@@ -554,9 +554,9 @@ func updateContainerImage(reportCmd *structs.Command, job *structs.BuildJob, ima
 	var err error
 	switch job.ServiceType {
 	case dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
-		err = kubernetes.UpdateCronjobImage(job.Namespace, job.ServiceName, imageName)
+		err = kubernetes.UpdateCronjobImage(job.Namespace, job.ControllerName, imageName)
 	default:
-		err = kubernetes.UpdateDeploymentImage(job.Namespace, job.ServiceName, imageName)
+		err = kubernetes.UpdateDeploymentImage(job.Namespace, job.ControllerName, imageName)
 	}
 
 	elapsedTime := time.Since(startTime)

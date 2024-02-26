@@ -352,7 +352,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	}
 	result.Data = output
 
-	os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 777)
+	os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 0777)
 
 	fmt.Printf("\nSKIP   : %s\n", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
 	fmt.Printf("\nALL    : %s\n", allResources.Display())

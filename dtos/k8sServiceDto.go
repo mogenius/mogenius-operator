@@ -11,6 +11,42 @@ type K8sServiceDto struct {
 	Containers         []K8sContainerDto        `json:"containers"`
 }
 
+func (k *K8sServiceDto) HasContainerWithGitRepo() bool {
+	for _, v := range k.Containers {
+		if v.Type == CONTAINER_GIT_REPOSITORY {
+			return true
+		}
+	}
+	return false
+}
+
+func (k *K8sServiceDto) HasSeedRepo() bool {
+	for _, v := range k.Containers {
+		if v.AppGitRepositoryCloneUrl != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (k *K8sServiceDto) HasPorts() bool {
+	for _, v := range k.Containers {
+		if len(v.Ports) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (k *K8sServiceDto) GetImageRepoSecretDecryptValue() *string {
+	for _, v := range k.Containers {
+		if v.ContainerImageRepoSecretDecryptValue != nil {
+			return v.ContainerImageRepoSecretDecryptValue
+		}
+	}
+	return nil
+}
+
 func K8sServiceDtoExampleData() K8sServiceDto {
 	return K8sServiceDto{
 		Id:                 "B0919ACB-92DD-416C-AF67-E59AD4B25265",

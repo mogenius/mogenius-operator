@@ -9,7 +9,6 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
-	core "k8s.io/api/core/v1"
 	v1core "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,7 +71,7 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 		return nil, fmt.Errorf("one of objectMeta, ctrl is nil")
 	}
 
-	objectMeta.Name = service.Name
+	objectMeta.Name = service.ControllerName
 	objectMeta.Namespace = namespace.Name
 
 	// LABELS bugfix: labels are diffrent in deployment and cronjob and cannot be generalized
@@ -85,145 +84,147 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 	// specTemplate.ObjectMeta.Labels["app"] = service.Name
 	// specTemplate.ObjectMeta.Labels["ns"] = namespace.Name
 
-	// PORTS
-	if len(service.Ports) > 0 {
-		specTemplate.Spec.Containers[0].Ports = []core.ContainerPort{}
-		for _, port := range service.Ports {
-			if port.Expose {
-				specTemplate.Spec.Containers[0].Ports = append(specTemplate.Spec.Containers[0].Ports, core.ContainerPort{
-					ContainerPort: int32(port.InternalPort),
+	for index, container := range service.Containers {
+		// PORTS
+		if len(container.Ports) > 0 {
+			specTemplate.Spec.Containers[index].Ports = []v1core.ContainerPort{}
+			for _, port := range container.Ports {
+				if port.Expose {
+					specTemplate.Spec.Containers[index].Ports = append(specTemplate.Spec.Containers[index].Ports, v1core.ContainerPort{
+						ContainerPort: int32(port.InternalPort),
+					})
+				}
+			}
+		} else {
+			specTemplate.Spec.Containers[index].Ports = nil
+		}
+
+		// RESOURCES
+		if container.KubernetesLimits.IsLimitSetup() {
+			limits := v1core.ResourceList{}
+			requests := v1core.ResourceList{}
+			limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", container.KubernetesLimits.LimitCpuCores*1000))
+			limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", container.KubernetesLimits.LimitMemoryMB))
+			limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", container.KubernetesLimits.EphemeralStorageMB))
+			requests["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", container.KubernetesLimits.LimitCpuCores*200))                 // 20% of limit
+			requests["memory"] = resource.MustParse(fmt.Sprintf("%dMi", int(float64(container.KubernetesLimits.LimitMemoryMB)*0.2))) // 20% of limit
+			requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", container.KubernetesLimits.EphemeralStorageMB))
+			specTemplate.Spec.Containers[index].Resources.Limits = limits
+			specTemplate.Spec.Containers[index].Resources.Requests = requests
+		} else {
+			specTemplate.Spec.Containers[index].Resources.Limits = nil
+			specTemplate.Spec.Containers[index].Resources.Requests = nil
+		}
+
+		specTemplate.Spec.Containers[index].Name = service.ControllerName
+		specTemplate.Spec.Containers[index].Command = []string{}
+		specTemplate.Spec.Containers[index].Args = []string{}
+
+		// IMAGE
+		if container.ContainerImage != nil {
+			specTemplate.Spec.Containers[index].Image = *container.ContainerImage
+			if container.ContainerImageCommand != nil {
+				specTemplate.Spec.Containers[index].Command = punqUtils.ParseJsonStringArray(*container.ContainerImageCommand)
+			}
+			if container.ContainerImageCommandArgs != nil {
+				specTemplate.Spec.Containers[index].Args = punqUtils.ParseJsonStringArray(*container.ContainerImageCommandArgs)
+			}
+			if container.ContainerImageRepoSecretDecryptValue != nil {
+				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
+				specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{
+					Name: fmt.Sprintf("container-secret-service-%s", service.ControllerName),
 				})
 			}
-		}
-	} else {
-		specTemplate.Spec.Containers[0].Ports = nil
-	}
-
-	// RESOURCES
-	if service.K8sSettings.IsLimitSetup() {
-		limits := core.ResourceList{}
-		requests := core.ResourceList{}
-		limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*1000))
-		limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.LimitMemoryMB))
-		limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
-		requests["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", service.K8sSettings.LimitCpuCores*200))                 // 20% of limit
-		requests["memory"] = resource.MustParse(fmt.Sprintf("%dMi", int(float64(service.K8sSettings.LimitMemoryMB)*0.2))) // 20% of limit
-		requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", service.K8sSettings.EphemeralStorageMB))
-		specTemplate.Spec.Containers[0].Resources.Limits = limits
-		specTemplate.Spec.Containers[0].Resources.Requests = requests
-	} else {
-		specTemplate.Spec.Containers[0].Resources.Limits = nil
-		specTemplate.Spec.Containers[0].Resources.Requests = nil
-	}
-
-	specTemplate.Spec.Containers[0].Name = service.Name
-	specTemplate.Spec.Containers[0].Command = []string{}
-	specTemplate.Spec.Containers[0].Args = []string{}
-
-	// IMAGE
-	if service.ContainerImage != "" {
-		specTemplate.Spec.Containers[0].Image = service.ContainerImage
-		if service.ContainerImageCommand != "" {
-			specTemplate.Spec.Containers[0].Command = punqUtils.ParseJsonStringArray(service.ContainerImageCommand)
-		}
-		if service.ContainerImageCommandArgs != "" {
-			specTemplate.Spec.Containers[0].Args = punqUtils.ParseJsonStringArray(service.ContainerImageCommandArgs)
-		}
-		if service.ContainerImageRepoSecretDecryptValue != "" {
-			specTemplate.Spec.ImagePullSecrets = []core.LocalObjectReference{}
-			specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, core.LocalObjectReference{
-				Name: fmt.Sprintf("container-secret-service-%s", service.Name),
-			})
-		}
-	} else {
-		// this will be setup UNTIL the buildserver overwrites the image with the real one.
-		if previousSpecTemplate != nil {
-			specTemplate.Spec.Containers[0].Image = (*previousSpecTemplate).Spec.Containers[0].Image
 		} else {
-			specTemplate.Spec.Containers[0].Image = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
+			// this will be setup UNTIL the buildserver overwrites the image with the real one.
+			if previousSpecTemplate != nil {
+				specTemplate.Spec.Containers[index].Image = (*previousSpecTemplate).Spec.Containers[index].Image
+			} else {
+				specTemplate.Spec.Containers[index].Image = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
+			}
 		}
-	}
 
-	// ENV VARS
-	specTemplate.Spec.Containers[0].Env = []core.EnvVar{}
-	specTemplate.Spec.Containers[0].VolumeMounts = []core.VolumeMount{}
-	specTemplate.Spec.Volumes = []core.Volume{}
+		// ENV VARS
+		specTemplate.Spec.Containers[index].Env = []v1core.EnvVar{}
+		specTemplate.Spec.Containers[index].VolumeMounts = []v1core.VolumeMount{}
+		specTemplate.Spec.Volumes = []v1core.Volume{}
 
-	for _, envVar := range service.EnvVars {
-		if envVar.Type == "KEY_VAULT" ||
-			envVar.Type == "PLAINTEXT" ||
-			envVar.Type == "HOSTNAME" {
-			specTemplate.Spec.Containers[0].Env = append(specTemplate.Spec.Containers[0].Env, core.EnvVar{
-				Name: envVar.Name,
-				ValueFrom: &core.EnvVarSource{
-					SecretKeyRef: &core.SecretKeySelector{
-						Key: envVar.Name,
-						LocalObjectReference: core.LocalObjectReference{
-							Name: service.Name,
+		for _, envVar := range container.EnvVars {
+			if envVar.Type == "KEY_VAULT" ||
+				envVar.Type == "PLAINTEXT" ||
+				envVar.Type == "HOSTNAME" {
+				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
+					Name: envVar.Name,
+					ValueFrom: &v1core.EnvVarSource{
+						SecretKeyRef: &v1core.SecretKeySelector{
+							Key: envVar.Name,
+							LocalObjectReference: v1core.LocalObjectReference{
+								Name: service.ControllerName,
+							},
 						},
 					},
-				},
-			})
-		}
-		if envVar.Type == "VOLUME_MOUNT" {
-			// VOLUMEMOUNT
-			// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
-			components := strings.Split(envVar.Value, ":")
-			if len(components) == 3 {
-				volumeName := components[0]    // e.g. MY_COOL_NAME
-				srcPath := components[1]       // e.g. subpath/to/heaven
-				containerPath := components[2] // e.g. /mo-data
-
-				// subPath must be relative
-				if strings.HasPrefix(srcPath, "/") {
-					srcPath = strings.Replace(srcPath, "/", "", 1)
-				}
-				specTemplate.Spec.Containers[0].VolumeMounts = append(specTemplate.Spec.Containers[0].VolumeMounts, core.VolumeMount{
-					MountPath: containerPath,
-					SubPath:   srcPath,
-					Name:      volumeName,
 				})
+			}
+			if envVar.Type == "VOLUME_MOUNT" {
+				// VOLUMEMOUNT
+				// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
+				components := strings.Split(envVar.Value, ":")
+				if len(components) == 3 {
+					volumeName := components[0]    // e.g. MY_COOL_NAME
+					srcPath := components[1]       // e.g. subpath/to/heaven
+					containerPath := components[2] // e.g. /mo-data
 
-				// VOLUME
-				nfsService := ServiceForNfsVolume(namespace.Name, volumeName)
-				if nfsService != nil {
-					// VolumeName cannot be duplicated
-					isUnique := true
-					for _, v := range specTemplate.Spec.Volumes {
-						if v.Name == volumeName {
-							isUnique = false
-						}
+					// subPath must be relative
+					if strings.HasPrefix(srcPath, "/") {
+						srcPath = strings.Replace(srcPath, "/", "", 1)
 					}
-					if isUnique {
-						specTemplate.Spec.Volumes = append(specTemplate.Spec.Volumes, core.Volume{
-							Name: volumeName,
-							VolumeSource: core.VolumeSource{
-								PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-									ClaimName: volumeName,
+					specTemplate.Spec.Containers[index].VolumeMounts = append(specTemplate.Spec.Containers[index].VolumeMounts, v1core.VolumeMount{
+						MountPath: containerPath,
+						SubPath:   srcPath,
+						Name:      volumeName,
+					})
+
+					// VOLUME
+					nfsService := ServiceForNfsVolume(namespace.Name, volumeName)
+					if nfsService != nil {
+						// VolumeName cannot be duplicated
+						isUnique := true
+						for _, v := range specTemplate.Spec.Volumes {
+							if v.Name == volumeName {
+								isUnique = false
+							}
+						}
+						if isUnique {
+							specTemplate.Spec.Volumes = append(specTemplate.Spec.Volumes, v1core.Volume{
+								Name: volumeName,
+								VolumeSource: v1core.VolumeSource{
+									PersistentVolumeClaim: &v1core.PersistentVolumeClaimVolumeSource{
+										ClaimName: volumeName,
+									},
 								},
-							},
-						})
+							})
+						}
+					} else {
+						logger.Log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
 					}
 				} else {
-					logger.Log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
+					logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
 				}
-			} else {
-				logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
 			}
 		}
+
+		// SECURITY CONTEXT
+		// TODO XXX wieder in betrieb nehmen
+		//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
+		specTemplate.Spec.Containers[index].SecurityContext = nil
 	}
 
 	// IMAGE PULL SECRET
-	if ContainerSecretDoesExistForStage(namespace) && service.ContainerImageRepoSecretDecryptValue == "" {
+	if ContainerSecretDoesExistForStage(namespace) && service.GetImageRepoSecretDecryptValue() != nil {
 		containerSecretName := "container-secret-" + namespace.Name
-		specTemplate.Spec.ImagePullSecrets = []core.LocalObjectReference{}
-		specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, core.LocalObjectReference{Name: containerSecretName})
+		specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
+		specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{Name: containerSecretName})
 	}
-
-	// SECURITY CONTEXT
-	// TODO wieder in betrieb nehmen
-	//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
-	specTemplate.Spec.Containers[0].SecurityContext = nil
 
 	return controller, nil
 }

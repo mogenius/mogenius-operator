@@ -6,6 +6,7 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/structs"
+	"github.com/mogenius/punq/utils"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -13,26 +14,30 @@ import (
 type ScanImageRequest struct {
 	ProjectId             string  `json:"projectId" validate:"required"`
 	NamespaceId           string  `json:"namespaceId" validate:"required"`
-	ServiceId             string  `json:"serviceId" validate:"required"`
 	NamespaceName         string  `json:"namespaceName" validate:"required"`
-	ServiceName           string  `json:"serviceName" validate:"required"`
+	ServiceId             string  `json:"serviceId" validate:"required"`
+	ControllerName        string  `json:"controllerName" validate:"required"`
+	ContainerName         string  `json:"containerName"`
 	ContainerImage        string  `json:"containerImage"`
+	ContainerRegistryPath *string `json:"containerRegistryPath"`
+	ContainerRegistryUrl  *string `json:"containerRegistryUrl"`
 	ContainerRegistryUser *string `json:"containerRegistryUser"`
 	ContainerRegistryPat  *string `json:"containerRegistryPat"`
-	ContainerRegistryUrl  string  `json:"containerRegistryUrl" validate:"required"`
 }
 
 func ScanImageRequestExample() ScanImageRequest {
 	return ScanImageRequest{
 		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
 		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
+		NamespaceName:         "docker-desktop-prod-8ds57s",
 		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
-		NamespaceName:         "mac-prod-1xh4p1",
-		ServiceName:           "angular1",
+		ControllerName:        "alpinetest",
+		ContainerName:         "alpinetest-container",
 		ContainerImage:        "mysql:latest",
+		ContainerRegistryPath: utils.Pointer("docker.io/biltisberger"),
+		ContainerRegistryUrl:  utils.Pointer("docker.io"),
 		ContainerRegistryUser: nil,
 		ContainerRegistryPat:  nil,
-		ContainerRegistryUrl:  "docker.io",
 	}
 }
 
@@ -42,7 +47,7 @@ type BuildJob struct {
 	NamespaceId           string                  `json:"namespaceId" validate:"required"`
 	Namespace             string                  `json:"namespace" validate:"required"`
 	ServiceId             string                  `json:"serviceId" validate:"required"`
-	ServiceName           string                  `json:"serviceName" validate:"required"`
+	ControllerName        string                  `json:"controllerName" validate:"required"`
 	GitRepo               string                  `json:"gitRepo" validate:"required"`
 	GitBranch             string                  `json:"gitBranch" validate:"required"`
 	GitCommitAuthor       string                  `json:"gitCommitAuthor" validate:"required"`
@@ -66,12 +71,12 @@ type BuildJob struct {
 
 func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
 	return BuildJob{
-		JobId:       jobId,
-		ProjectId:   scanRequest.ProjectId,
-		NamespaceId: scanRequest.NamespaceId,
-		Namespace:   scanRequest.NamespaceName,
-		ServiceId:   scanRequest.ServiceId,
-		ServiceName: scanRequest.ServiceName,
+		JobId:          jobId,
+		ProjectId:      scanRequest.ProjectId,
+		NamespaceId:    scanRequest.NamespaceId,
+		Namespace:      scanRequest.NamespaceName,
+		ServiceId:      scanRequest.ServiceId,
+		ControllerName: scanRequest.ControllerName,
 	}
 }
 
@@ -131,7 +136,7 @@ func BuildJobExample() BuildJob {
 		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
 		Namespace:             "docker-desktop-prod-8ds57s",
 		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
-		ServiceName:           "alpinetest",
+		ControllerName:        "alpinetest",
 		GitRepo:               "https://x-access-token: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@github.com/beneiltis/bene.git",
 		GitBranch:             "main",
 		GitCommitAuthor:       "mogenius git-user",

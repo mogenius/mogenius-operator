@@ -17,6 +17,7 @@ type K8sContainerDto struct {
 	DockerfileName                       *string               `json:"dockerfileName"`
 	DockerContext                        *string               `json:"dockerContext"`
 	AppGitRepositoryCloneUrl             *string               `json:"appGitRepositoryCloneUrl"`
+	AppSetupCommands                     *string               `json:"appSetupCommands"`
 	KubernetesLimits                     K8sServiceSettingsDto `json:"KubernetesLimits"`
 	CNames                               []string              `json:"cNames"`
 	EnvVars                              []K8sEnvVarDto        `json:"envVars"`

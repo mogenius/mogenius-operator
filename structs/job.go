@@ -116,6 +116,9 @@ func (j *Job) Finish() {
 }
 
 func (j *Job) AddCmd(cmd *Command) {
+	if cmd == nil {
+		return
+	}
 	j.Commands = append(j.Commands, cmd)
 }
 

@@ -51,92 +51,118 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		ingressName := INGRESS_PREFIX + "-" + service.Name + "-" + "XXX_CONTAINER_NAME_XXX"
+		for _, container := range service.Containers {
+			ingressName := INGRESS_PREFIX + "-" + service.ControllerName + "-" + container.Name
 
-		config := networkingv1.Ingress(ingressName, namespace.Name)
+			config := networkingv1.Ingress(ingressName, namespace.Name)
 
-		// check if ingress already exists
-		existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
-		if existingIngress != nil && err == nil {
-			extractedConfig, err = networkingv1.ExtractIngress(existingIngress, "")
-			if err == nil {
-				config = extractedConfig
-			}
-		}
-
-		config.WithAnnotations(loadDefaultAnnotations())
-
-		if IsLocalClusterSetup() {
-			delete(config.Annotations, "cert-manager.io/cluster-issuer")
-		}
-
-		spec := networkingv1.IngressSpec()
-
-		if ingressControllerType == punq.NGINX {
-			spec.IngressClassName = punqUtils.Pointer("nginx")
-		} else if ingressControllerType == punq.TRAEFIK {
-			spec.IngressClassName = punqUtils.Pointer("traefik")
-		}
-		tlsHosts := []string{}
-
-		// 1. All Services
-		for _, service := range namespace.Services {
-			// SWITCHED OFF
-			if !service.SwitchedOn {
-				continue
+			// check if ingress already exists
+			existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+			if existingIngress != nil && err == nil {
+				extractedConfig, err := networkingv1.ExtractIngress(existingIngress, "")
+				if err == nil {
+					config = extractedConfig
+				}
 			}
 
-			for _, port := range service.Ports {
+			config.WithAnnotations(loadDefaultAnnotations())
+
+			if IsLocalClusterSetup() {
+				delete(config.Annotations, "cert-manager.io/cluster-issuer")
+			}
+
+			spec := networkingv1.IngressSpec()
+
+			if ingressControllerType == punq.NGINX {
+				spec.IngressClassName = punqUtils.Pointer("nginx")
+			} else if ingressControllerType == punq.TRAEFIK {
+				spec.IngressClassName = punqUtils.Pointer("traefik")
+			}
+			tlsHosts := []string{}
+
+			for _, port := range container.Ports {
 				// SKIP UNEXPOSED PORTS
 				if !port.Expose {
 					continue
 				}
-				if port.PortType != "HTTPS" {
+				if port.PortType != dtos.PortTypeHTTPS {
 					continue
 				}
 
 				// 2. ALL CNAMES
-				for _, cname := range service.CNames {
-					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.Name, int32(port.InternalPort)))
+				for _, cname := range container.CNames {
+					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.ControllerName, int32(port.InternalPort)))
 					tlsHosts = append(tlsHosts, cname)
 				}
 			}
+			spec.TLS = append(spec.TLS, networkingv1.IngressTLSApplyConfiguration{
+				Hosts:      tlsHosts,
+				SecretName: &namespace.Name,
+			})
 
+			// if redirectTo != nil {
+			// 	config.Annotations["nginx.ingress.kubernetes.io/permanent-redirect"] = *redirectTo
+			// }
+
+			config.WithSpec(spec)
+
+			// BEFORE UPDATING INGRESS WE SETUP THE CERTIFICATES FOR ALL HOSTNAMES
+			UpdateNamespaceCertificate(namespace.Name, tlsHosts)
+
+			if len(spec.Rules) <= 0 {
+				existingIngress, ingErr := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+				if existingIngress != nil && ingErr == nil {
+					err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+					if err != nil {
+						cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
+						return
+					} else {
+						cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName))
+					}
+				} else {
+					cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
+				}
+			} else {
+				_, err := ingressClient.Apply(context.TODO(), config, applyOptions)
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()))
+					return
+				} else {
+					cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", ingressName))
+				}
+			}
 		}
-		spec.TLS = append(spec.TLS, networkingv1.IngressTLSApplyConfiguration{
-			Hosts:      tlsHosts,
-			SecretName: &namespace.Name,
-		})
+	}(cmd, wg)
+	return cmd
+}
 
-		// if redirectTo != nil {
-		// 	config.Annotations["nginx.ingress.kubernetes.io/permanent-redirect"] = *redirectTo
-		// }
+func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Deleting ingress setup.", job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start("Deleting ingress setup.")
 
-		config.WithSpec(spec)
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
+		}
+		ingressClient := provider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
 
-		// BEFORE UPDATING INGRESS WE SETUP THE CERTIFICATES FOR ALL HOSTNAMES
-		UpdateNamespaceCertificate(namespace.Name, tlsHosts)
-
-		if len(spec.Rules) <= 0 {
-			existingIngress, ingErr := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
-			if existingIngress != nil && ingErr == nil {
+		for _, container := range service.Containers {
+			ingressName := INGRESS_PREFIX + "-" + service.ControllerName + "-" + container.Name
+			existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+			if existingIngress != nil && err == nil {
 				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
 					cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName))
+					cmd.Success(fmt.Sprintf("Deleted Ingress '%s'.", ingressName))
 				}
 			} else {
 				cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
-			}
-		} else {
-			_, err := ingressClient.Apply(context.TODO(), config, applyOptions)
-			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()))
-				return
-			} else {
-				cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", ingressName))
 			}
 		}
 	}(cmd, wg)

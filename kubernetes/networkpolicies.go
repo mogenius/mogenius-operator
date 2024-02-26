@@ -76,7 +76,7 @@ func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", service.Name))
+		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", service.ControllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -85,23 +85,25 @@ func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 		netpol := punqUtils.InitNetPolService()
-		netpol.ObjectMeta.Name = service.Name
+		netpol.ObjectMeta.Name = service.ControllerName
 		netpol.ObjectMeta.Namespace = namespace.Name
 		netpol.Spec.Ingress[0].Ports = []v1.NetworkPolicyPort{} //reset before using
 
-		for _, aPort := range service.Ports {
-			if aPort.Expose {
-				port := intstr.FromInt(aPort.InternalPort)
-				proto := v1Core.ProtocolTCP // default
-				if aPort.PortType == dtos.PortTypeUDP {
-					proto = v1Core.ProtocolUDP
+		for _, container := range service.Containers {
+			for _, aPort := range container.Ports {
+				if aPort.Expose {
+					port := intstr.FromInt(aPort.InternalPort)
+					proto := v1Core.ProtocolTCP // default
+					if aPort.PortType == dtos.PortTypeUDP {
+						proto = v1Core.ProtocolUDP
+					}
+					netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
+						Port: &port, Protocol: &proto,
+					})
 				}
-				netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
-					Port: &port, Protocol: &proto,
-				})
 			}
 		}
-		netpol.Spec.PodSelector.MatchLabels["app"] = service.Name
+		netpol.Spec.PodSelector.MatchLabels["app"] = service.ControllerName
 
 		netpol.Labels = MoUpdateLabels(&netpol.Labels, job.ProjectId, &namespace, &service)
 
@@ -109,7 +111,7 @@ func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", service.Name))
+			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", service.ControllerName))
 		}
 	}(cmd, wg)
 	return cmd
@@ -120,7 +122,7 @@ func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.Name))
+		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.ControllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -129,11 +131,11 @@ func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 
-		err = netPolClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
+		err = netPolClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.Name))
+			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.ControllerName))
 		}
 	}(cmd, wg)
 	return cmd
