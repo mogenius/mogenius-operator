@@ -1927,6 +1927,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return StatsMogeniusNfsNamespace(data)
+	case PAT_STORAGE_STATUS:
+		data := NfsStatusRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return StatusMogeniusNfs(data)
 	case PAT_POPEYE_CONSOLE:
 		return PopeyeConsole()
 	case PAT_LOG_LIST_ALL:

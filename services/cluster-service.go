@@ -693,6 +693,19 @@ type NfsVolumeRestoreResponse struct {
 	Error      string `json:"error,omitempty"`
 }
 
+// @TODO: add request/respionse example for nfs status
+
+type NfsStatusRequest struct {
+	Name             string `json:"name" validate:"required"`
+	Namespace        string `json:"namespace" validate:"required"`
+	StorageAPIObject string `json:"type" validate:"required"`
+}
+
+type NfsStatusResponse struct {
+	Status interface{} `json:"status,omitempty"`
+	Error  string      `json:"error,omitempty"`
+}
+
 var keplerHostAndPort string = ""
 
 var energyConsumptionCollectionInProgress bool = false

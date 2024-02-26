@@ -325,6 +325,7 @@ const (
 	PAT_STORAGE_RESTORE_VOLUME  string = "storage/restore-volume"
 	PAT_STORAGE_STATS           string = "storage/stats"
 	PAT_STORAGE_NAMESPACE_STATS string = "storage/namespace/stats"
+	PAT_STORAGE_STATUS          string = "storage/status"
 
 	PAT_BUILDER_STATUS                 string = "build/builder-status"
 	PAT_BUILD_INFOS                    string = "build/info"
@@ -675,6 +676,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_STORAGE_RESTORE_VOLUME,
 	PAT_STORAGE_STATS,
 	PAT_STORAGE_NAMESPACE_STATS,
+	PAT_STORAGE_STATUS,
 
 	PAT_BUILDER_STATUS,
 	PAT_BUILD_INFOS,
