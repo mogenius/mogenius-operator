@@ -469,13 +469,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return ServicePodStatus(data)
-	case PAT_SERVICE_SET_IMAGE:
-		data := ServiceSetImageRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return SetImage(data)
+	// case PAT_SERVICE_SET_IMAGE:
+	// 	data := ServiceSetImageRequest{}
+	// 	structs.MarshalUnmarshal(&datagram, &data)
+	// 	if err := utils.ValidateJSON(data); err != nil {
+	// 		return err
+	// 	}
+	// 	return SetImage(data)
 	case PAT_SERVICE_LOG:
 		data := ServiceGetLogRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

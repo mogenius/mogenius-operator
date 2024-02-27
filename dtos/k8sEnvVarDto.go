@@ -16,7 +16,7 @@ func K8sEnvVarDtoExampleData() K8sEnvVarDto {
 
 func K8sEnvVarVolumeMountDtoExampleData() K8sEnvVarDto {
 	return K8sEnvVarDto{
-		Name:  "xxx name",
+		Name:  "yyy name",
 		Value: "benetest:/:/test",
 		Type:  EnvVarVolumeMount,
 	}

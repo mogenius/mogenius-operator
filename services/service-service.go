@@ -99,22 +99,22 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	return job
 }
 
-func SetImage(r ServiceSetImageRequest) interface{} {
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId)
-	job.Start()
+// func SetImage(r ServiceSetImageRequest) interface{} {
+// 	var wg sync.WaitGroup
+// 	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId)
+// 	job.Start()
 
-	switch r.ServiceType {
-	case dtos.GIT_REPOSITORY_TEMPLATE, dtos.GIT_REPOSITORY, dtos.CONTAINER_IMAGE_TEMPLATE, dtos.CONTAINER_IMAGE, dtos.K8S_DEPLOYMENT:
-		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
-	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE, dtos.K8S_CRON_JOB_GIT_REPOSITORY, dtos.K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE:
-		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ServiceName, r.ImageName, &wg))
-	}
+// 	switch r.ServiceType {
+// 	case dtos.K8S_DEPLOYMENT:
+// 		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ControllerName, r.ImageName, &wg))
+// 	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE:
+// 		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ControllerName, r.ImageName, r.co&wg))
+// 	}
 
-	wg.Wait()
-	job.Finish()
-	return job
-}
+// 	wg.Wait()
+// 	job.Finish()
+// 	return job
+// }
 
 func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
 	return punq.PodIdsFor(r.Namespace, &r.ServiceId, nil)
@@ -388,28 +388,28 @@ func ServicePodsRequestExample() ServicePodsRequest {
 	}
 }
 
-type ServiceSetImageRequest struct {
-	ProjectId          string                  `json:"projectId" validate:"required"`
-	NamespaceId        string                  `json:"namespaceId" validate:"required"`
-	ServiceId          string                  `json:"serviceId" validate:"required"`
-	NamespaceName      string                  `json:"namespaceName" validate:"required"`
-	ServiceName        string                  `json:"serviceName" validate:"required"`
-	ServiceDisplayName string                  `json:"serviceDisplayName" validate:"required"`
-	ImageName          string                  `json:"imageName" validate:"required"`
-	ServiceType        dtos.K8sServiceTypeEnum `json:"serviceType,omitempty"`
-}
+// type ServiceSetImageRequest struct {
+// 	ProjectId          string                  `json:"projectId" validate:"required"`
+// 	NamespaceId        string                  `json:"namespaceId" validate:"required"`
+// 	ServiceId          string                  `json:"serviceId" validate:"required"`
+// 	NamespaceName      string                  `json:"namespaceName" validate:"required"`
+// 	ControllerName     string                  `json:"controllerName" validate:"required"`
+// 	ServiceDisplayName string                  `json:"serviceDisplayName" validate:"required"`
+// 	ImageName          string                  `json:"imageName" validate:"required"`
+// 	ServiceType        dtos.K8sServiceTypeEnum `json:"serviceType,omitempty"`
+// }
 
-func ServiceSetImageRequestExample() ServiceSetImageRequest {
-	return ServiceSetImageRequest{
-		ProjectId:          "PROJECTID",
-		ServiceId:          "SERVICEID",
-		NamespaceId:        "NAMESPACEID",
-		NamespaceName:      "NAMESPACENAMe",
-		ServiceName:        "SERVICENAME",
-		ServiceDisplayName: "ServiceDisplayName",
-		ImageName:          "nginx:latest",
-	}
-}
+// func ServiceSetImageRequestExample() ServiceSetImageRequest {
+// 	return ServiceSetImageRequest{
+// 		ProjectId:          "PROJECTID",
+// 		ServiceId:          "SERVICEID",
+// 		NamespaceId:        "NAMESPACEID",
+// 		NamespaceName:      "NAMESPACENAMe",
+// 		ControllerName:     "ControllerNAME",
+// 		ServiceDisplayName: "ServiceDisplayName",
+// 		ImageName:          "nginx:latest",
+// 	}
+// }
 
 type ServiceGetLogRequest struct {
 	Namespace string     `json:"namespace" validate:"required"`

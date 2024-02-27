@@ -56,9 +56,9 @@ func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
 	cmd := Command{
 		Id:                      punqUtils.NanoId(),
 		JobId:                   job.JobId,
-		ProjectId:               job.ProjectId,
-		NamespaceId:             &job.NamespaceId,
-		ServiceId:               &job.ServiceId,
+		ProjectId:               job.Project.Id,
+		NamespaceId:             &job.Namespace.Id,
+		ServiceId:               &job.Service.Id,
 		Title:                   title,
 		Message:                 "",
 		BuildId:                 int(job.BuildId),

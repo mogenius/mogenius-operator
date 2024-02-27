@@ -223,14 +223,14 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 	}
 }
 
-func RemovePortFromService(job *structs.Job, namespace string, serviceName string, port int32, wg *sync.WaitGroup) *structs.Command {
+func RemovePortFromService(job *structs.Job, namespace string, controllerName string, port int32, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Remove Port from Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Remove Port '%d'.", port))
 
-		service := punq.ServiceFor(namespace, serviceName, nil)
+		service := punq.ServiceFor(namespace, controllerName, nil)
 		if service != nil {
 			wasModified := false
 			for index, aPort := range service.Spec.Ports {
@@ -263,19 +263,19 @@ func RemovePortFromService(job *structs.Job, namespace string, serviceName strin
 				return
 			}
 		}
-		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, serviceName))
+		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, controllerName))
 	}(cmd, wg)
 	return cmd
 }
 
-func AddPortToService(job *structs.Job, namespace string, serviceName string, port int32, protocol string, wg *sync.WaitGroup) *structs.Command {
+func AddPortToService(job *structs.Job, namespace string, controllerName string, port int32, protocol string, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Add Port to Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Add Port '%d'.", port))
 
-		service := punq.ServiceFor(namespace, serviceName, nil)
+		service := punq.ServiceFor(namespace, controllerName, nil)
 		if service != nil {
 			provider, err := punq.NewKubeProvider(nil)
 			if err != nil {
@@ -283,7 +283,7 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 				return
 			}
 			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{
-				Name:       fmt.Sprintf("%d-%s", port, serviceName),
+				Name:       fmt.Sprintf("%d-%s", port, controllerName),
 				Port:       port,
 				Protocol:   v1.Protocol(protocol),
 				TargetPort: intstr.FromInt(int(port)),
@@ -298,7 +298,7 @@ func AddPortToService(job *structs.Job, namespace string, serviceName string, po
 			cmd.Success(fmt.Sprintf("Port %d added successfully removed.", port))
 			return
 		}
-		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, serviceName))
+		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, controllerName))
 	}(cmd, wg)
 	return cmd
 }

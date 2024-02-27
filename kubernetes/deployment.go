@@ -258,7 +258,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	spec.Replicas = punqUtils.Pointer(int32(service.ReplicaCount))
 
 	// PAUSE only on "freshly created" or Repository-Types which needs a build beforehand
-	if freshlyCreated && (service.HasContainerWithGitRepo()) {
+	if freshlyCreated && service.HasContainerWithGitRepo() {
 		spec.Paused = true
 	} else {
 		spec.Paused = false
@@ -322,12 +322,12 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	return objectMeta, &SpecDeployment{spec, previousSpec}, &newDeployment, nil
 }
 
-func SetDeploymentImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
+func SetDeploymentImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", serviceName))
+		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", controllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -335,56 +335,69 @@ func SetDeploymentImage(job *structs.Job, namespaceName string, serviceName stri
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
-		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
 			return
 		}
 
 		// SET NEW IMAGE
-		deploymentToUpdate.Spec.Template.Spec.Containers[0].Image = imageName
+		for index, container := range deploymentToUpdate.Spec.Template.Spec.Containers {
+			if container.Name == containerName {
+				deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
+			}
+		}
 		deploymentToUpdate.Spec.Paused = false
 
 		_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", serviceName))
+			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", controllerName))
 		}
 	}(cmd, wg)
 	return cmd
 }
 
-func UpdateDeploymentImage(namespaceName string, serviceName string, imageName string) error {
+func UpdateDeploymentImage(namespaceName string, controllerName string, containerName string, imageName string) error {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		return err
 	}
 	deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
-	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	// SET NEW IMAGE
-	deploymentToUpdate.Spec.Template.Spec.Containers[0].Image = imageName
+	for index, container := range deploymentToUpdate.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
+		}
+	}
 	deploymentToUpdate.Spec.Paused = false
 
 	_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 	return err
 }
 
-func GetDeploymentImage(namespaceName string, serviceName string) (string, error) {
+func GetDeploymentImage(namespaceName string, controllerName string, containerName string) (string, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		return "", err
 	}
 	deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
-	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	return deploymentToUpdate.Spec.Template.Spec.Containers[0].Image, nil
+	for _, container := range deploymentToUpdate.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			return container.Image, nil
+		}
+	}
+	return "", fmt.Errorf("Container '%s' not found in Deployment '%s'", containerName, controllerName)
 }
 
 func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {

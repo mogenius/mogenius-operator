@@ -200,7 +200,7 @@ func loadDefaultAnnotations() map[string]string {
 	return result
 }
 
-func createIngressRule(hostname string, serviceName string, port int32) *networkingv1.IngressRuleApplyConfiguration {
+func createIngressRule(hostname string, controllerName string, port int32) *networkingv1.IngressRuleApplyConfiguration {
 	rule := networkingv1.IngressRule()
 	rule.Host = &hostname
 	path := "/"
@@ -213,7 +213,7 @@ func createIngressRule(hostname string, serviceName string, port int32) *network
 				Path:     &path,
 				Backend: &networkingv1.IngressBackendApplyConfiguration{
 					Service: &networkingv1.IngressServiceBackendApplyConfiguration{
-						Name: &serviceName,
+						Name: &controllerName,
 						Port: &networkingv1.ServiceBackendPortApplyConfiguration{
 							Number: &port,
 						},

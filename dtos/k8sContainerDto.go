@@ -1,6 +1,10 @@
 package dtos
 
-import "github.com/mogenius/punq/utils"
+import (
+	"fmt"
+
+	"github.com/mogenius/punq/utils"
+)
 
 type K8sContainerDto struct {
 	Id                                   string                `json:"id" validate:"required"`
@@ -25,6 +29,16 @@ type K8sContainerDto struct {
 	SettingsYaml                         *string               `json:"settingsYaml,omitempty"`
 }
 
+func (k *K8sContainerDto) GetInjectDockerEnvVars() string {
+	result := ""
+	for _, v := range k.EnvVars {
+		if v.Type == EnvVarPlainText || v.Type == EnvVarKeyVault {
+			result += fmt.Sprintf("--build-arg %s=%s ", v.Name, v.Value)
+		}
+	}
+	return result
+}
+
 func K8sContainerDtoExampleData() K8sContainerDto {
 	return K8sContainerDto{
 		Id:                                   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
@@ -40,7 +54,7 @@ func K8sContainerDtoExampleData() K8sContainerDto {
 		GitBranch:                            utils.Pointer("main"),
 		DockerfileName:                       utils.Pointer("Dockerfile"),
 		DockerContext:                        utils.Pointer("."),
-		AppGitRepositoryCloneUrl:             utils.Pointer("XXX_git_clone_url"),
+		AppGitRepositoryCloneUrl:             utils.Pointer("YYY_git_clone_url"),
 		KubernetesLimits:                     K8sServiceSettingsDtoExampleData(),
 		CNames:                               []string{"cname1.com", "cname2.com"},
 		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData(), K8sEnvVarVolumeMountDtoExampleData()},

@@ -263,7 +263,7 @@ func GetBuildJobListFromDb() []structs.BuildJobListEntry {
 				}
 			}
 		}
-		
+
 		return nil
 	})
 	if err != nil {
@@ -369,7 +369,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 			if err == nil {
 				// THIS IS A FILTER TO HANDLE DUPLICATED REQUESTS
 				// if job.GitCommitHash == buildJob.GitCommitHash {
-				// 	err = fmt.Errorf("Duplicate BuildJob '%s (%s)' found. Not adding to Queue.", job.ServiceName, job.GitCommitHash)
+				// 	err = fmt.Errorf("Duplicate BuildJob '%s (%s)' found. Not adding to Queue.", job.ControllerName, job.GitCommitHash)
 				// 	logger.Log.Error(err.Error())
 				// 	return err
 				// }

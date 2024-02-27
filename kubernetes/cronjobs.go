@@ -309,31 +309,35 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	return objectMeta, &SpecCronJob{spec, previousSpec}, &newCronJob, nil
 }
 
-func UpdateCronjobImage(namespaceName string, serviceName string, imageName string) error {
+func UpdateCronjobImage(namespaceName string, controllerName string, containerName string, imageName string) error {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		return err
 	}
 	client := provider.ClientSet.BatchV1().CronJobs(namespaceName)
-	crontjobToUpdate, err := client.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	crontjobToUpdate, err := client.Get(context.TODO(), controllerName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	// SET NEW IMAGE
-	crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = imageName
+	for index, container := range crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
+		}
+	}
 	crontjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
 
 	_, err = client.Update(context.TODO(), crontjobToUpdate, metav1.UpdateOptions{})
 	return err
 }
 
-func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string, imageName string, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand(fmt.Sprintf("Set CronJob Image '%s'", imageName), job)
+func SetCronJobImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand(fmt.Sprintf("Set CronJob Image '%s %s'", containerName, imageName), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Set Image in CronJob '%s'.", serviceName))
+		cmd.Start(fmt.Sprintf("Set Image in CronJob '%s'.", controllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -341,21 +345,25 @@ func SetCronJobImage(job *structs.Job, namespaceName string, serviceName string,
 			return
 		}
 		cronjobClient := provider.ClientSet.BatchV1().CronJobs(namespaceName)
-		cronjobToUpdate, err := cronjobClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+		cronjobToUpdate, err := cronjobClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
 			return
 		}
 
 		// SET NEW IMAGE
-		cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image = imageName
+		for index, container := range cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers {
+			if container.Name == containerName {
+				cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
+			}
+		}
 		cronjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
 
 		_, err = cronjobClient.Update(context.TODO(), cronjobToUpdate, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Set new image in CronJob '%s'.", serviceName))
+			cmd.Success(fmt.Sprintf("Set new image in CronJob '%s'.", controllerName))
 		}
 	}(cmd, wg)
 	return cmd
