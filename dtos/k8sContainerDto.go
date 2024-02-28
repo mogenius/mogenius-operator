@@ -18,6 +18,9 @@ type K8sContainerDto struct {
 	ContainerImageRepoSecretDecryptValue *string               `json:"containerImageRepoSecretDecryptValue" `
 	GitRepository                        *string               `json:"gitRepository"`
 	GitBranch                            *string               `json:"gitBranch"`
+	GitCommitAuthor                      *string               `json:"gitCommitAuthor"`
+	GitCommitHash                        *string               `json:"gitCommitHash"`
+	GitCommitMessage                     *string               `json:"gitCommitMessage"`
 	DockerfileName                       *string               `json:"dockerfileName"`
 	DockerContext                        *string               `json:"dockerContext"`
 	AppGitRepositoryCloneUrl             *string               `json:"appGitRepositoryCloneUrl"`

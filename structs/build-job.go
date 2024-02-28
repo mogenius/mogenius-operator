@@ -42,7 +42,7 @@ func ScanImageRequestExample() ScanImageRequest {
 }
 
 type BuildJob struct {
-	JobId string `json:"jobId" validate:"required"`
+	JobId string `json:"jobId"`
 	// ProjectId             string                  `json:"projectId" validate:"required"`
 	// NamespaceId           string                  `json:"namespaceId" validate:"required"`
 	// Namespace             string                  `json:"namespace" validate:"required"`
@@ -67,10 +67,6 @@ type BuildJob struct {
 	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
-
-	GitCommitAuthor  string `json:"gitCommitAuthor" validate:"required"`
-	GitCommitHash    string `json:"gitCommitHash" validate:"required"`
-	GitCommitMessage string `json:"gitCommitMessage" validate:"required"`
 }
 
 func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
@@ -143,9 +139,9 @@ func BuildJobExample() BuildJob {
 		// ControllerName:        "alpinetest",
 		// GitRepo:               "https://x-access-token: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@github.com/beneiltis/bene.git",
 		// GitBranch:             "main",
-		GitCommitAuthor:  "mogenius git-user",
-		GitCommitHash:    "abe52a64e682cedf77f131e595119f6c2f6a1c84",
-		GitCommitMessage: "[skip ci]: Add initial files.",
+		// GitCommitAuthor:  "mogenius git-user",
+		// GitCommitHash:    "abe52a64e682cedf77f131e595119f6c2f6a1c84",
+		// GitCommitMessage: "[skip ci]: Add initial files.",
 		// DockerFile:            "Dockerfile",
 		// DockerContext:         ".",
 		// ContainerRegistryPath: "docker.io/biltisberger",
