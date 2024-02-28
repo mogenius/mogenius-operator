@@ -10,7 +10,7 @@ type K8sProjectDto struct {
 	GitUserId             *string                `json:"gitUserId"`
 	GitConnectionType     *GitConnectionTypeEnum `json:"gitConnectionType"`
 	ClusterId             string                 `json:"clusterId" validate:"required"`
-	ClusterDisplayName    string                 `json:"clusterDisplyName" validate:"required"`
+	ClusterDisplayName    string                 `json:"clusterDisplayName" validate:"required"`
 	ClusterMfaId          string                 `json:"clusterMfaId" validate:"required"`
 	ContainerRegistryPath *string                `json:"containerRegistryPath"`
 	ContainerRegistryUrl  *string                `json:"containerRegistryUrl"`
