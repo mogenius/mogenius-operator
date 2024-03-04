@@ -122,7 +122,7 @@ func (s *StorageStatus) GetByPVCName(namespace, name string) (*StorageStatus, er
 	s.PersistentVolume = pv.Name
 
 	s.provisioningType()
-	if _, err := s.collectCommonData(); err != nil {
+	if _, err := s.collectEventsAndUsedByPods(); err != nil {
 		return s, err
 	}
 
@@ -163,7 +163,7 @@ func (s *StorageStatus) GetByPVName(name string) (*StorageStatus, error) {
 	}
 
 	s.provisioningType()
-	if _, err := s.collectCommonData(); err != nil {
+	if _, err := s.collectEventsAndUsedByPods(); err != nil {
 		return s, err
 	}
 
@@ -178,7 +178,7 @@ func (s *StorageStatus) provisioningType() {
 	}
 }
 
-func (s *StorageStatus) collectCommonData() (*StorageStatus, error) {
+func (s *StorageStatus) collectEventsAndUsedByPods() (*StorageStatus, error) {
 	pvcsEventsChan := make(chan []v1.Event, 1)
 	pvsEventsChan := make(chan []v1.Event, 1)
 	podsEventsChan := make(chan []string, 1)
@@ -193,7 +193,7 @@ func (s *StorageStatus) collectCommonData() (*StorageStatus, error) {
 	defer cancel()
 
 	wg.Add(1)
-	go s.getUsedBy(ctx, &wg, podsEventsChan, errorChan)
+	go s.getUsedByPods(ctx, &wg, podsEventsChan, errorChan)
 
 	if s.PersistenVolumeClaimObject.Name != "" {
 		wg.Add(1)
@@ -348,7 +348,7 @@ func (s *StorageStatus) getEvents(name, kind string, ctx context.Context, wg *sy
 	}
 }
 
-func (s *StorageStatus) getUsedBy(ctx context.Context, wg *sync.WaitGroup, channel chan<- []string, errChannel chan<- error) {
+func (s *StorageStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, channel chan<- []string, errChannel chan<- error) {
 	defer wg.Done()
 
 	if s.client == nil {
