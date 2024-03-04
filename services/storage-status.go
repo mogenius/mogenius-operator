@@ -341,10 +341,10 @@ func (s *StorageStatus) getEvents(name, kind string, ctx context.Context, wg *sy
 	// Push the events into the channel
 	select {
 	case <-ctx.Done():
-		logger.Log.Debugf("async: timeout waiting for events: %s\n", kind)
+		logger.Log.Debugf("Async: timeout waiting for events: %s\n", kind)
 		return
 	case channel <- events:
-		logger.Log.Debugf("async: push the events into the channel: %s\n", kind)
+		logger.Log.Debugf("Async: push the events into the channel: %s\n", kind)
 	}
 }
 
@@ -380,9 +380,9 @@ func (s *StorageStatus) getUsedBy(ctx context.Context, wg *sync.WaitGroup, chann
 	// Push the events into the channel
 	select {
 	case <-ctx.Done():
-		logger.Log.Debugf("async: timeout waiting for events: Pods")
+		logger.Log.Debugf("Async: timeout waiting for pods")
 		return
 	case channel <- usedBy:
-		logger.Log.Debugf("async: push the events into the channel: Pods")
+		logger.Log.Debugf("Async: push pods into the channel")
 	}
 }
