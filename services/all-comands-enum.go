@@ -46,6 +46,7 @@ const (
 	PAT_FILES_CHOWN         string = "files/chown"
 	PAT_FILES_CHMOD         string = "files/chmod"
 	PAT_FILES_DELETE        string = "files/delete"
+	PAT_FILES_INFO          string = "files/info"
 
 	PAT_CLUSTER_EXECUTE_HELM_CHART_TASK string = "cluster/execute-helm-chart-task"
 	PAT_CLUSTER_UNINSTALL_HELM_CHART    string = "cluster/uninstall-helm-chart"
@@ -398,6 +399,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_FILES_CHOWN,
 	PAT_FILES_CHMOD,
 	PAT_FILES_DELETE,
+	PAT_FILES_INFO,
 
 	PAT_CLUSTER_EXECUTE_HELM_CHART_TASK,
 	PAT_CLUSTER_UNINSTALL_HELM_CHART,
