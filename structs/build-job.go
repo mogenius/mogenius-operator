@@ -69,65 +69,81 @@ type BuildJob struct {
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
-func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
-	return BuildJob{
-		// JobId:          jobId,
-		// ProjectId:      scanRequest.ProjectId,
-		// NamespaceId:    scanRequest.NamespaceId,
-		// Namespace:      scanRequest.NamespaceName,
-		// ServiceId:      scanRequest.ServiceId,
-		// ControllerName: scanRequest.ControllerName,
-	}
-}
-
-type BuildJobListEntry struct {
-	// only "clusterId" was removed because we dont need it anymore
-	JobId                 string `json:"jobId"`
-	ProjectId             string `json:"projectId"`
-	NamespaceId           string `json:"namespaceId"`
-	Namespace             string `json:"namespace"`
-	ServiceId             string `json:"serviceId"`
-	ControllerName        string `json:"controllerName"`
-	GitRepo               string `json:"gitRepo"`
-	GitBranch             string `json:"gitBranch"`
-	GitCommitAuthor       string `json:"gitCommitAuthor"`
-	GitCommitHash         string `json:"gitCommitHash"`
-	GitCommitMessage      string `json:"gitCommitMessage"`
-	DockerFile            string `json:"dockerFile"`
-	DockerContext         string `json:"dockerContext"`
-	ContainerRegistryPath string `json:"containerRegistryPath"`
-	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
-	StartTimestamp        string `json:"startTimestamp"`
-	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
-	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING
-	StartedAt             string `json:"startedAt"`
-	DurationMs            int    `json:"durationMs"`
-	BuildId               int    `json:"buildId"`
-}
-
-func (b BuildJobListEntry) IsEmpty() bool {
+func (b BuildJob) IsEmpty() bool {
 	return b.JobId == "" &&
-		b.ProjectId == "" &&
-		b.NamespaceId == "" &&
-		b.Namespace == "" &&
-		b.ServiceId == "" &&
-		b.ControllerName == "" &&
-		b.GitRepo == "" &&
-		b.GitBranch == "" &&
-		b.GitCommitAuthor == "" &&
-		b.GitCommitHash == "" &&
-		b.GitCommitMessage == "" &&
-		b.DockerFile == "" &&
-		b.DockerContext == "" &&
-		b.ContainerRegistryPath == "" &&
-		b.ContainerRegistryUrl == "" &&
 		b.StartTimestamp == "" &&
-		b.InjectDockerEnvVars == "" &&
+		b.EndTimestamp == "" &&
 		b.State == "" &&
 		b.StartedAt == "" &&
 		b.DurationMs == 0 &&
 		b.BuildId == 0
 }
+
+func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
+	return BuildJob{
+		JobId: jobId,
+		Project: dtos.K8sProjectDto{
+			Id: scanRequest.ProjectId,
+		},
+		Namespace: dtos.K8sNamespaceDto{
+			Id:   scanRequest.NamespaceId,
+			Name: scanRequest.NamespaceName,
+		},
+		Service: dtos.K8sServiceDto{
+			Id:             scanRequest.ServiceId,
+			ControllerName: scanRequest.ControllerName,
+		},
+	}
+}
+
+// type BuildJobListEntry struct {
+// 	// only "clusterId" was removed because we dont need it anymore
+// 	JobId                 string `json:"jobId"`
+// 	ProjectId             string `json:"projectId"`
+// 	NamespaceId           string `json:"namespaceId"`
+// 	Namespace             string `json:"namespace"`
+// 	ServiceId             string `json:"serviceId"`
+// 	ControllerName        string `json:"controllerName"`
+// 	GitRepo               string `json:"gitRepo"`
+// 	GitBranch             string `json:"gitBranch"`
+// 	GitCommitAuthor       string `json:"gitCommitAuthor"`
+// 	GitCommitHash         string `json:"gitCommitHash"`
+// 	GitCommitMessage      string `json:"gitCommitMessage"`
+// 	DockerFile            string `json:"dockerFile"`
+// 	DockerContext         string `json:"dockerContext"`
+// 	ContainerRegistryPath string `json:"containerRegistryPath"`
+// 	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
+// 	StartTimestamp        string `json:"startTimestamp"`
+// 	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
+// 	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING
+// 	StartedAt             string `json:"startedAt"`
+// 	DurationMs            int    `json:"durationMs"`
+// 	BuildId               int    `json:"buildId"`
+// }
+
+// func (b BuildJobListEntry) IsEmpty() bool {
+// 	return b.JobId == "" &&
+// 		b.ProjectId == "" &&
+// 		b.NamespaceId == "" &&
+// 		b.Namespace == "" &&
+// 		b.ServiceId == "" &&
+// 		b.ControllerName == "" &&
+// 		b.GitRepo == "" &&
+// 		b.GitBranch == "" &&
+// 		b.GitCommitAuthor == "" &&
+// 		b.GitCommitHash == "" &&
+// 		b.GitCommitMessage == "" &&
+// 		b.DockerFile == "" &&
+// 		b.DockerContext == "" &&
+// 		b.ContainerRegistryPath == "" &&
+// 		b.ContainerRegistryUrl == "" &&
+// 		b.StartTimestamp == "" &&
+// 		b.InjectDockerEnvVars == "" &&
+// 		b.State == "" &&
+// 		b.StartedAt == "" &&
+// 		b.DurationMs == 0 &&
+// 		b.BuildId == 0
+// }
 
 func BuildJobExample() BuildJob {
 	return BuildJob{

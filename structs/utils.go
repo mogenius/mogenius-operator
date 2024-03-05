@@ -16,6 +16,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 const PingSeconds = 3
@@ -69,18 +70,22 @@ func UnmarshalLog(dst *Log, data []byte) error {
 	return nil
 }
 
-func UnmarshalJobListEntry(dst *BuildJobListEntry, data []byte) error {
+func UnmarshalJobListEntry(dst *BuildJob, data []byte) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(data, dst)
 	if err != nil {
 		return err
 	}
 	if dst != nil {
-		u, err := url.Parse(dst.GitRepo)
-		if err != nil {
-			dst.GitRepo = ""
-		} else {
-			dst.GitRepo = fmt.Sprintf("%s%s", u.Host, u.Path)
+		for index, container := range dst.Service.Containers {
+			if container.GitRepository != nil {
+				u, err := url.Parse(*container.GitRepository)
+				if err != nil {
+					dst.Service.Containers[index].GitRepository = punqUtils.Pointer("")
+				} else {
+					dst.Service.Containers[index].GitRepository = punqUtils.Pointer(fmt.Sprintf("%s%s", u.Host, u.Path))
+				}
+			}
 		}
 	}
 	return nil

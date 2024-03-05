@@ -21,6 +21,7 @@ type ClusterSecret struct {
 	ClusterName  string
 }
 
+const STAGE_PRE_DEV = "pre-dev"
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
@@ -78,6 +79,7 @@ type Config struct {
 }
 
 var DefaultConfigLocalFile string
+var DefaultConfigClusterFilePreDev string
 var DefaultConfigClusterFileDev string
 var DefaultConfigClusterFileProd string
 var CONFIG Config
@@ -286,6 +288,8 @@ func writeDefaultConfig(stage string) {
 	}
 
 	if stage == STAGE_DEV {
+		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFilePreDev), 0755)
+	} else if stage == STAGE_DEV {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileDev), 0755)
 	} else if stage == STAGE_PROD {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileProd), 0755)

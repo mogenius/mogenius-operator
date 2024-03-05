@@ -293,6 +293,9 @@ func CreateMogeniusContainerRegistryIngress() {
 }
 
 func CreateMogeniusContainerRegistryTlsSecret() {
+	// 1. Request a certificate from mogenius.com
+	// 2. Create a secret with the certificate
+
 	secret := utils.InitMogeniusContainerRegistrySecret()
 	secret.Namespace = utils.CONFIG.Kubernetes.OwnNamespace
 

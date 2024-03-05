@@ -102,7 +102,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, container dtos.K8sContai
 
 	updateState(*buildJob, punqStructs.JobStateStarted)
 
-	imageName := fmt.Sprintf("%s-%s", buildJob.Namespace, buildJob.Service.ControllerName)
+	imageName := fmt.Sprintf("%s-%s", buildJob.Namespace.Name, buildJob.Service.ControllerName)
 	tagName := fmt.Sprintf("%s/%s:%d", *buildJob.Project.ContainerRegistryPath, imageName, buildJob.BuildId)
 	latestTagName := fmt.Sprintf("%s/%s:latest", *buildJob.Project.ContainerRegistryPath, imageName)
 
@@ -298,60 +298,60 @@ func Delete(buildNo int) structs.BuildDeleteResult {
 	return structs.BuildDeleteResult{Result: fmt.Sprintf("Build '%d' deleted successfuly (or has been deleted before).", buildNo)}
 }
 
-func ListAll() []structs.BuildJobListEntry {
+func ListAll() []structs.BuildJob {
 	return db.GetBuildJobListFromDb()
 }
 
-func ListByProjectId(projectId string) []structs.BuildJobListEntry {
-	result := []structs.BuildJobListEntry{}
+func ListByProjectId(projectId string) []structs.BuildJob {
+	result := []structs.BuildJob{}
 
 	list := ListAll()
 	for _, queueEntry := range list {
-		if queueEntry.ProjectId == projectId {
+		if queueEntry.Project.Id == projectId {
 			result = append(result, queueEntry)
 		}
 	}
 	return result
 }
 
-func ListByServiceId(serviceId string) []structs.BuildJobListEntry {
-	result := []structs.BuildJobListEntry{}
+func ListByServiceId(serviceId string) []structs.BuildJob {
+	result := []structs.BuildJob{}
 
 	list := ListAll()
 	for _, queueEntry := range list {
-		if queueEntry.ServiceId == serviceId {
+		if queueEntry.Service.Id == serviceId {
 			result = append(result, queueEntry)
 		}
 	}
 	return result
 }
 
-func ListByServiceByNamespaceAndControllerName(namespace, controllerName string) []structs.BuildJobListEntry {
-	result := []structs.BuildJobListEntry{}
+func ListByServiceByNamespaceAndControllerName(namespace, controllerName string) []structs.BuildJob {
+	result := []structs.BuildJob{}
 
 	list := ListAll()
 	for _, queueEntry := range list {
-		if queueEntry.ControllerName == controllerName && queueEntry.Namespace == namespace {
+		if queueEntry.Service.ControllerName == controllerName && queueEntry.Namespace.Name == namespace {
 			result = append(result, queueEntry)
 		}
 	}
 	return result
 }
 
-func ListByServiceIds(serviceIds []string) []structs.BuildJobListEntry {
-	result := []structs.BuildJobListEntry{}
+func ListByServiceIds(serviceIds []string) []structs.BuildJob {
+	result := []structs.BuildJob{}
 
 	list := ListAll()
 	for _, queueEntry := range list {
-		if punqUtils.Contains(serviceIds, queueEntry.ServiceId) {
+		if punqUtils.Contains(serviceIds, queueEntry.Service.Id) {
 			result = append(result, queueEntry)
 		}
 	}
 	return result
 }
 
-func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJobListEntry {
-	result := []structs.BuildJobListEntry{}
+func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJob {
+	result := []structs.BuildJob{}
 
 	list := ListByServiceId(serviceId)
 	for i := len(list) - 1; i >= 0; i-- {
@@ -362,8 +362,8 @@ func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJobLis
 	return result
 }
 
-func LastNJobsPerServices(maxResults int, serviceIds []string) []structs.BuildJobListEntry {
-	result := []structs.BuildJobListEntry{}
+func LastNJobsPerServices(maxResults int, serviceIds []string) []structs.BuildJob {
+	result := []structs.BuildJob{}
 
 	list := ListByServiceIds(serviceIds)
 	for i := len(list) - 1; i >= 0; i-- {
@@ -374,8 +374,8 @@ func LastNJobsPerServices(maxResults int, serviceIds []string) []structs.BuildJo
 	return result
 }
 
-func LastJobForService(serviceId string) structs.BuildJobListEntry {
-	result := structs.BuildJobListEntry{}
+func LastJobForService(serviceId string) structs.BuildJob {
+	result := structs.BuildJob{}
 
 	list := ListByServiceId(serviceId)
 	if len(list) > 0 {
@@ -384,8 +384,8 @@ func LastJobForService(serviceId string) structs.BuildJobListEntry {
 	return result
 }
 
-func LastJobForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJobListEntry {
-	result := structs.BuildJobListEntry{}
+func LastJobForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJob {
+	result := structs.BuildJob{}
 
 	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
 	if len(list) > 0 {
@@ -397,7 +397,7 @@ func LastJobForNamespaceAndControllerName(namespace, controllerName string) stru
 func LastBuildForService(serviceId string) structs.BuildJobInfos {
 	result := structs.BuildJobInfos{}
 
-	var lastJob *structs.BuildJobListEntry
+	var lastJob *structs.BuildJob
 	list := ListByServiceId(serviceId)
 	if len(list) > 0 {
 		lastJob = &list[len(list)-1]
@@ -413,7 +413,7 @@ func LastBuildForService(serviceId string) structs.BuildJobInfos {
 func LastBuildForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJobInfos {
 	result := structs.BuildJobInfos{}
 
-	var lastJob *structs.BuildJobListEntry
+	var lastJob *structs.BuildJob
 	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
 	if len(list) > 0 {
 		lastJob = &list[len(list)-1]

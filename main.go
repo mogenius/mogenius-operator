@@ -18,6 +18,9 @@ import (
 //go:embed config/config-local.yaml
 var DefaultConfigLocalFile string
 
+//go:embed config/config-cluster-pre-dev.yaml
+var DefaultConfigClusterFilePreDev string
+
 //go:embed config/config-cluster-dev.yaml
 var DefaultConfigClusterFileDev string
 
@@ -39,6 +42,7 @@ func main() {
 
 	utils.PrintLogo()
 	logger.Init()
+	utils.DefaultConfigClusterFilePreDev = DefaultConfigClusterFilePreDev
 	utils.DefaultConfigClusterFileDev = DefaultConfigClusterFileDev
 	utils.DefaultConfigClusterFileProd = DefaultConfigClusterFileProd
 	utils.DefaultConfigLocalFile = DefaultConfigLocalFile
