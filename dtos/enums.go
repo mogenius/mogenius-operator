@@ -60,3 +60,21 @@ const (
 	PortTypeTCP   PortTypeEnum = "TCP"
 	PortTypeUDP   PortTypeEnum = "UDP"
 )
+
+type K8sServiceControllerEnum string
+
+const (
+	DEPLOYMENT   K8sServiceControllerEnum = "Deployment"
+	REPLICA_SET  K8sServiceControllerEnum = "ReplicaSet"
+	STATEFUL_SET K8sServiceControllerEnum = "StatefulSet"
+	DAEMON_SET   K8sServiceControllerEnum = "DaemonSet"
+	JOB          K8sServiceControllerEnum = "Job"
+	CRON_JOB     K8sServiceControllerEnum = "CronJob"
+)
+
+type K8sContainerTypeEnum string
+
+const (
+	CONTAINER_GIT_REPOSITORY  K8sContainerTypeEnum = "GIT_REPOSITORY"
+	CONTAINER_CONTAINER_IMAGE K8sContainerTypeEnum = "CONTAINER_IMAGE"
+)

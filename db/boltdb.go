@@ -10,6 +10,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -241,14 +242,14 @@ func GetBuildJobInfosFromDb(buildId int) structs.BuildJobInfos {
 	return result
 }
 
-func GetBuildJobListFromDb() []structs.BuildJobListEntry {
-	result := []structs.BuildJobListEntry{}
+func GetBuildJobListFromDb() []structs.BuildJob {
+	result := []structs.BuildJob{}
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		c := bucket.Cursor()
 		prefix := []byte(PREFIX_QUEUE)
 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
-			job := structs.BuildJobListEntry{}
+			job := structs.BuildJob{}
 			err := structs.UnmarshalJobListEntry(&job, jobData)
 			if err != nil {
 				return err
@@ -263,7 +264,7 @@ func GetBuildJobListFromDb() []structs.BuildJobListEntry {
 				}
 			}
 		}
-		
+
 		return nil
 	})
 	if err != nil {
@@ -355,6 +356,14 @@ func DeleteFromDb(bucket string, prefix string, buildNo int) error {
 }
 
 func AddToDb(buildJob structs.BuildJob) (int, error) {
+	// setup usefull defaults
+	if buildJob.JobId == "" {
+		buildJob.JobId = punqUtils.NanoId()
+	}
+	if buildJob.State == "" {
+		buildJob.State = punqStructs.JobStatePending
+	}
+
 	var nextBuildId uint64 = 0
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
@@ -369,7 +378,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 			if err == nil {
 				// THIS IS A FILTER TO HANDLE DUPLICATED REQUESTS
 				// if job.GitCommitHash == buildJob.GitCommitHash {
-				// 	err = fmt.Errorf("Duplicate BuildJob '%s (%s)' found. Not adding to Queue.", job.ServiceName, job.GitCommitHash)
+				// 	err = fmt.Errorf("Duplicate BuildJob '%s (%s)' found. Not adding to Queue.", job.ControllerName, job.GitCommitHash)
 				// 	logger.Log.Error(err.Error())
 				// 	return err
 				// }

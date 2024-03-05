@@ -1,0 +1,54 @@
+kubernetes:
+  api_key: YOUR_API_KEY
+  cluster_name: your-cluster-name
+  own_namespace: mogenius
+  cluster_mfa_id:
+  run_in_cluster: true
+  default_container_registry: docker.io
+  bbolt_db_path: /db/mogenius.db
+  bbolt_db_stats_path: /db/mogenius-stats.db
+  local_registry_host: mocr.local.mogenius.io
+
+api_server:
+  http_server: https://platform-api.pre-dev.mogenius.com
+  ws_server: k8s-ws.dev.mogenius.com
+  ws_server_scheme: wss
+  ws_path: /ws
+
+event_server:
+  server: k8s-dispatcher.dev.mogenius.com
+  scheme: wss
+  path: /ws
+
+shell_server:
+  server: XXX.dev.mogenius.com
+  scheme: wss
+  path: /ws
+
+misc:
+  stage: dev
+  default_mount_path: /mo-data
+  debug: true
+  auto_mount_nfs: true
+  log_kubernetes_events: false
+  ignore_namespaces: ["kube-system"]
+  ignore_resources_backup:
+    [
+      "events.k8s.io/v1",
+      "events.k8s.io/v1beta1",
+      "metrics.k8s.io/v1beta1",
+      "discovery.k8s.io/v1",
+    ]
+  check_for_updates: 86400
+  helm_index: https://helm.mogenius.com/public/index.yaml
+  nfs_pod_prefix: nfs-server-pod
+
+builder:
+  max_build_time: 3600   # 1 hour
+  max_scan_time: 200     # seconds
+
+git:
+  user_email: git@mogenius.com
+  user_name: mogenius git-user
+  default_branch: main
+  add_ignored_file: false

@@ -22,7 +22,7 @@ const (
 	INGRESS_PREFIX = "ingress"
 )
 
-func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo *string, skipForDelete *dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Updating ingress setup.", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -51,97 +51,118 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, redirectTo 
 			FieldManager: DEPLOYMENTNAME,
 		}
 
-		ingressName := INGRESS_PREFIX + "-" + namespace.Name
+		for _, container := range service.Containers {
+			ingressName := INGRESS_PREFIX + "-" + service.ControllerName + "-" + container.Name
 
-		config := networkingv1.Ingress(ingressName, namespace.Name)
-		config.WithAnnotations(loadDefaultAnnotations())
+			config := networkingv1.Ingress(ingressName, namespace.Name)
 
-		// remove the issuer if cloudflare takes over controll over certificate
-		if namespace.CloudflareProxied || IsLocalClusterSetup() {
-			delete(config.Annotations, "cert-manager.io/cluster-issuer")
-		}
-
-		spec := networkingv1.IngressSpec()
-
-		if ingressControllerType == punq.NGINX {
-			spec.IngressClassName = punqUtils.Pointer("nginx")
-		} else if ingressControllerType == punq.TRAEFIK {
-			spec.IngressClassName = punqUtils.Pointer("traefik")
-		}
-		tlsHosts := []string{}
-
-		// 1. All Services
-		for _, service := range namespace.Services {
-			// SKIP service if marked for delete
-			if skipForDelete != nil && skipForDelete.Id == service.Id {
-				continue
-			}
-			// SWITCHED OFF
-			if !service.SwitchedOn {
-				continue
+			// check if ingress already exists
+			existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+			if existingIngress != nil && err == nil {
+				extractedConfig, err := networkingv1.ExtractIngress(existingIngress, "")
+				if err == nil {
+					config = extractedConfig
+				}
 			}
 
-			for _, port := range service.Ports {
+			config.WithAnnotations(loadDefaultAnnotations())
+
+			if IsLocalClusterSetup() {
+				delete(config.Annotations, "cert-manager.io/cluster-issuer")
+			}
+
+			spec := networkingv1.IngressSpec()
+
+			if ingressControllerType == punq.NGINX {
+				spec.IngressClassName = punqUtils.Pointer("nginx")
+			} else if ingressControllerType == punq.TRAEFIK {
+				spec.IngressClassName = punqUtils.Pointer("traefik")
+			}
+			tlsHosts := []string{}
+
+			for _, port := range container.Ports {
 				// SKIP UNEXPOSED PORTS
 				if !port.Expose {
 					continue
 				}
-				if port.PortType != "HTTPS" {
+				if port.PortType != dtos.PortTypeHTTPS {
 					continue
 				}
 
 				// 2. ALL CNAMES
-				// if len(service.CNames) == 0 {
-				// 	spec.Rules = append(spec.Rules, *createIngressRule(service.FullHostname, service.Name, int32(port.InternalPort)))
-				// }
-				for _, cname := range service.CNames {
-					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.Name, int32(port.InternalPort)))
-					if !namespace.CloudflareProxied {
-						tlsHosts = append(tlsHosts, cname)
-					}
+				for _, cname := range container.CNames {
+					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.ControllerName, int32(port.InternalPort)))
+					tlsHosts = append(tlsHosts, cname)
 				}
 			}
-			// if !namespace.CloudflareProxied && len(service.CNames) == 0 {
-			// 	tlsHosts = append(tlsHosts, service.FullHostname)
-			// }
-
-		}
-		if !namespace.CloudflareProxied {
 			spec.TLS = append(spec.TLS, networkingv1.IngressTLSApplyConfiguration{
 				Hosts:      tlsHosts,
 				SecretName: &namespace.Name,
 			})
+
+			// if redirectTo != nil {
+			// 	config.Annotations["nginx.ingress.kubernetes.io/permanent-redirect"] = *redirectTo
+			// }
+
+			config.WithSpec(spec)
+
+			// BEFORE UPDATING INGRESS WE SETUP THE CERTIFICATES FOR ALL HOSTNAMES
+			UpdateNamespaceCertificate(namespace.Name, tlsHosts)
+
+			if len(spec.Rules) <= 0 {
+				existingIngress, ingErr := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+				if existingIngress != nil && ingErr == nil {
+					err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+					if err != nil {
+						cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
+						return
+					} else {
+						cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName))
+					}
+				} else {
+					cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
+				}
+			} else {
+				_, err := ingressClient.Apply(context.TODO(), config, applyOptions)
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()))
+					return
+				} else {
+					cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", ingressName))
+				}
+			}
 		}
+	}(cmd, wg)
+	return cmd
+}
 
-		if redirectTo != nil {
-			config.Annotations["nginx.ingress.kubernetes.io/permanent-redirect"] = *redirectTo
+func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	cmd := structs.CreateCommand("Deleting ingress setup.", job)
+	wg.Add(1)
+	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start("Deleting ingress setup.")
+
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			return
 		}
+		ingressClient := provider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
 
-		config.WithSpec(spec)
-
-		// BEFORE UPDATING INGRESS WE SETUP THE CERTIFICATES FOR ALL HOSTNAMES
-		UpdateNamespaceCertificate(namespace.Name, tlsHosts)
-
-		if len(spec.Rules) <= 0 {
-			existingIngress, ingErr := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
-			if existingIngress != nil && ingErr == nil {
+		for _, container := range service.Containers {
+			ingressName := INGRESS_PREFIX + "-" + service.ControllerName + "-" + container.Name
+			existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+			if existingIngress != nil && err == nil {
 				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
 					cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName))
+					cmd.Success(fmt.Sprintf("Deleted Ingress '%s'.", ingressName))
 				}
 			} else {
 				cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
-			}
-		} else {
-			_, err := ingressClient.Apply(context.TODO(), config, applyOptions)
-			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()))
-				return
-			} else {
-				cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", ingressName))
 			}
 		}
 	}(cmd, wg)
@@ -179,7 +200,7 @@ func loadDefaultAnnotations() map[string]string {
 	return result
 }
 
-func createIngressRule(hostname string, serviceName string, port int32) *networkingv1.IngressRuleApplyConfiguration {
+func createIngressRule(hostname string, controllerName string, port int32) *networkingv1.IngressRuleApplyConfiguration {
 	rule := networkingv1.IngressRule()
 	rule.Host = &hostname
 	path := "/"
@@ -192,7 +213,7 @@ func createIngressRule(hostname string, serviceName string, port int32) *network
 				Path:     &path,
 				Backend: &networkingv1.IngressBackendApplyConfiguration{
 					Service: &networkingv1.IngressServiceBackendApplyConfiguration{
-						Name: &serviceName,
+						Name: &controllerName,
 						Port: &networkingv1.ServiceBackendPortApplyConfiguration{
 							Number: &port,
 						},
@@ -272,6 +293,9 @@ func CreateMogeniusContainerRegistryIngress() {
 }
 
 func CreateMogeniusContainerRegistryTlsSecret() {
+	// 1. Request a certificate from mogenius.com
+	// 2. Create a secret with the certificate
+
 	secret := utils.InitMogeniusContainerRegistrySecret()
 	secret.Namespace = utils.CONFIG.Kubernetes.OwnNamespace
 

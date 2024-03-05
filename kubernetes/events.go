@@ -11,13 +11,11 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	v1Core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/util/retry"
 
 	"k8s.io/client-go/tools/cache"
@@ -101,7 +99,7 @@ func NewEventWatcher() {
 		Duration: 1 * time.Second,
 		Factor:   2.0,
 		Jitter:   0.1,
-	}, errors.IsServiceUnavailable, func() error {
+	}, apierrors.IsServiceUnavailable, func() error {
 		return watchEvents(provider)
 	})
 
@@ -168,7 +166,7 @@ func NewEventWatcher() {
 	// select {}
 }
 
-func processEvent(event *corev1.Event) (string, error) {
+func processEvent(event *v1Core.Event) (string, error) {
 	if event != nil {
 		eventDto := dtos.CreateEvent(string(event.Type), event)
 		datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
@@ -187,22 +185,22 @@ func watchEvents(provider *punq.KubeProvider) error {
 	lw := cache.NewListWatchFromClient(
 		provider.ClientSet.CoreV1().RESTClient(),
 		"events",
-		corev1.NamespaceAll,
+		v1Core.NamespaceAll,
 		fields.Nothing(),
 	)
 
-	informer := cache.NewSharedInformer(lw, &corev1.Event{}, 0)
+	informer := cache.NewSharedInformer(lw, &v1Core.Event{}, 0)
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			event := obj.(*corev1.Event)
+			event := obj.(*v1Core.Event)
 			processEvent(event)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			event := newObj.(*corev1.Event)
+			event := newObj.(*v1Core.Event)
 			processEvent(event)
 		},
 		DeleteFunc: func(obj interface{}) {
-			event := obj.(*corev1.Event)
+			event := obj.(*v1Core.Event)
 			processEvent(event)
 		},
 	})

@@ -1,102 +1,87 @@
 package dtos
 
 type K8sServiceDto struct {
-	Id                                   string                `json:"id" validate:"required"`
-	DisplayName                          string                `json:"displayName" validate:"required"`
-	FullHostname                         string                `json:"fullHostname"`
-	CNames                               []string              `json:"cNames"`
-	GitRepository                        string                `json:"gitRepository"`
-	GitBranch                            string                `json:"gitBranch"`
-	ContainerImage                       string                `json:"containerImage"`
-	ContainerImageRepoSecretDecryptValue string                `json:"containerImageRepoSecretDecryptValue" `
-	ContainerImageCommand                string                `json:"containerImageCommand"`
-	ContainerImageCommandArgs            string                `json:"containerImageCommandArgs"`
-	DockerfileName                       string                `json:"dockerfileName" validate:"required"`
-	DockerContext                        string                `json:"dockerContext" validate:"required"`
-	App                                  *K8sAppDto            `json:"app"`
-	Name                                 string                `json:"name" validate:"required"`
-	K8sSettings                          K8sServiceSettingsDto `json:"k8sSettings"`
-	EnvVars                              []K8sEnvVarDto        `json:"envVars"`
-	Ports                                []K8sPortsDto         `json:"ports"`
-	SwitchedOn                           bool                  `json:"switchedOn"`
-	ServiceType                          K8sServiceTypeEnum    `json:"serviceType,omitempty"`
-	SettingsYaml                         string                `json:"settingsYaml,omitempty"`
+	Id                 string                   `json:"id" validate:"required"`
+	DisplayName        string                   `json:"displayName" validate:"required"`
+	ControllerName     string                   `json:"controllerName"`
+	Controller         K8sServiceControllerEnum `json:"controller"`
+	ReplicaCount       int                      `json:"replicaCount"`
+	DeploymentStrategy DeploymentStrategyEnum   `json:"deploymentStrategy"`
+	CronJobSettings    *K8sCronJobSettingsDto   `json:"cronJobSettings"`
+	Containers         []K8sContainerDto        `json:"containers"`
 }
 
-func (dto *K8sServiceDto) ApplyDefaults() {
-	if dto.ServiceType == "" {
-		dto.ServiceType = K8S_DEPLOYMENT
+func (k *K8sServiceDto) HasContainerWithGitRepo() bool {
+	for _, v := range k.Containers {
+		if v.Type == CONTAINER_GIT_REPOSITORY {
+			return true
+		}
 	}
+	return false
+}
+
+func (k *K8sServiceDto) HasSeedRepo() bool {
+	for _, v := range k.Containers {
+		if v.AppGitRepositoryCloneUrl != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (k *K8sServiceDto) HasPorts() bool {
+	for _, v := range k.Containers {
+		if len(v.Ports) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (k *K8sServiceDto) GetImageRepoSecretDecryptValue() *string {
+	for _, v := range k.Containers {
+		if v.ContainerImageRepoSecretDecryptValue != nil {
+			return v.ContainerImageRepoSecretDecryptValue
+		}
+	}
+	return nil
 }
 
 func K8sServiceDtoExampleData() K8sServiceDto {
 	return K8sServiceDto{
-		Id:                                   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		DisplayName:                          "displayName",
-		CNames:                               []string{},
-		GitRepository:                        "gitRepository",
-		GitBranch:                            "main",
-		ContainerImage:                       "nginx:latest",
-		ContainerImageRepoSecretDecryptValue: "containerImageRepoSecretDecryptValue",
-		ContainerImageCommand:                "[\"/bin/sh\"]",
-		ContainerImageCommandArgs:            "[\"-c\", \"while true; do date; sleep 1; done\"]",
-		DockerfileName:                       "Dockerfile",
-		DockerContext:                        ".",
-		App:                                  K8sAppDtoDockerExampleData(),
-		Name:                                 "name",
-		K8sSettings:                          K8sServiceSettingsDtoExampleData(),
-		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData(), K8sEnvVarVolumeMountDtoExampleData()},
-		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData(), K8sPortsDtoExternalExampleData()},
-		SwitchedOn:                           true,
-		SettingsYaml:                         "",
+		Id:                 "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		DisplayName:        "displayName",
+		ControllerName:     "controllerName",
+		Controller:         DEPLOYMENT,
+		ReplicaCount:       1,
+		DeploymentStrategy: StrategyRecreate,
+		CronJobSettings:    nil,
+		Containers:         []K8sContainerDto{K8sContainerDtoExampleData()},
 	}
 }
 
 func K8sServiceContainerImageDtoExampleData() K8sServiceDto {
 	return K8sServiceDto{
-		Id:                                   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		DisplayName:                          "displayName",
-		FullHostname:                         "fullhostname.iltis.io",
-		CNames:                               []string{},
-		GitRepository:                        "gitRepository",
-		GitBranch:                            "main",
-		ContainerImage:                       "nginx:latest",
-		ContainerImageRepoSecretDecryptValue: "",
-		ContainerImageCommand:                "",
-		ContainerImageCommandArgs:            "",
-		DockerfileName:                       "Dockerfile",
-		DockerContext:                        ".",
-		App:                                  K8sAppDtoDockerExampleData(),
-		Name:                                 "name",
-		K8sSettings:                          K8sServiceSettingsDtoExampleData(),
-		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData()},
-		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData()},
-		SwitchedOn:                           true,
-		SettingsYaml:                         "",
+		Id:                 "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		DisplayName:        "displayName",
+		ControllerName:     "controllerName",
+		Controller:         DEPLOYMENT,
+		ReplicaCount:       1,
+		DeploymentStrategy: StrategyRecreate,
+		CronJobSettings:    nil,
+		Containers:         []K8sContainerDto{K8sContainerDtoExampleData()},
 	}
 }
 
 func K8sServiceCronJobExampleData() K8sServiceDto {
 	return K8sServiceDto{
-		Id:                                   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		DisplayName:                          "displayName",
-		FullHostname:                         "fullhostname.iltis.io",
-		CNames:                               []string{},
-		GitRepository:                        "",
-		GitBranch:                            "",
-		ContainerImage:                       "busybox:1.28",
-		ContainerImageRepoSecretDecryptValue: "",
-		ContainerImageCommand:                "[\"/bin/sh\"]",
-		ContainerImageCommandArgs:            "[\"-c\", \"date; echo Hello, World\"]",
-		DockerfileName:                       "",
-		DockerContext:                        "",
-		App:                                  K8sAppDtoDockerExampleData(),
-		Name:                                 "name",
-		K8sSettings:                          K8sServiceSettingsDtoExampleData(),
-		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData()},
-		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData()},
-		SwitchedOn:                           true,
-		ServiceType:                          "K8S_CRONJOB",
-		SettingsYaml:                         "",
+		Id:                 "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		DisplayName:        "displayName",
+		ControllerName:     "controllerName",
+		Controller:         CRON_JOB,
+		ReplicaCount:       1,
+		DeploymentStrategy: StrategyRecreate,
+		CronJobSettings:    &K8sCronJobSettingsDto{},
+		Containers:         []K8sContainerDto{K8sContainerDtoExampleData()},
 	}
 }

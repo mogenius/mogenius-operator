@@ -145,7 +145,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
 		if ctrl == nil {
-			return fmt.Errorf("Could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+			return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
 		}
 		return dbstats.GetPodStatsEntriesForController(*ctrl)
 	case PAT_STATS_PODSTAT_FOR_POD_LAST:
@@ -156,7 +156,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
 		if ctrl == nil {
-			return fmt.Errorf("Could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+			return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
 		}
 		return dbstats.GetLastPodStatsEntryForController(*ctrl)
 	case PAT_STATS_TRAFFIC_FOR_POD_ALL:
@@ -167,7 +167,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
 		if ctrl == nil {
-			return fmt.Errorf("Could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+			return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
 		}
 		return dbstats.GetTrafficStatsEntriesForController(*ctrl)
 	case PAT_STATS_TRAFFIC_FOR_POD_LAST:
@@ -178,7 +178,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
 		if ctrl == nil {
-			return fmt.Errorf("Could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+			return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
 		}
 		return dbstats.GetLastTrafficStatsEntryForController(*ctrl)
 
@@ -448,7 +448,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		data.Service.ApplyDefaults()
 		return CreateService(data)
 	case PAT_SERVICE_DELETE:
 		data := ServiceDeleteRequest{}
@@ -456,7 +455,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		data.Service.ApplyDefaults()
 		return DeleteService(data)
 	case PAT_SERVICE_POD_IDS:
 		data := ServiceGetPodIdsRequest{}
@@ -479,14 +477,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return ServicePodStatus(data)
-	case PAT_SERVICE_SET_IMAGE:
-		data := ServiceSetImageRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		data.ApplyDefaults()
-		return SetImage(data)
+	// case PAT_SERVICE_SET_IMAGE:
+	// 	data := ServiceSetImageRequest{}
+	// 	structs.MarshalUnmarshal(&datagram, &data)
+	// 	if err := utils.ValidateJSON(data); err != nil {
+	// 		return err
+	// 	}
+	// 	return SetImage(data)
 	case PAT_SERVICE_LOG:
 		data := ServiceGetLogRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -514,7 +511,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		data.Service.ApplyDefaults()
 		return Restart(data)
 	case PAT_SERVICE_STOP:
 		data := ServiceStopRequest{}
@@ -522,7 +518,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		data.Service.ApplyDefaults()
 		return StopService(data)
 	case PAT_SERVICE_START:
 		data := ServiceStartRequest{}
@@ -530,7 +525,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		data.Service.ApplyDefaults()
 		return StartService(data)
 	case PAT_SERVICE_UPDATE_SERVICE:
 		data := ServiceUpdateRequest{}
@@ -538,7 +532,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		data.Service.ApplyDefaults()
 		return UpdateService(data)
 	case PAT_SERVICE_TRIGGER_JOB:
 		data := ServiceTriggerJobRequest{}
@@ -546,7 +539,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		data.Service.ApplyDefaults()
 		return TriggerJobService(data)
 	case PAT_SERVICE_STATUS:
 		data := ServiceStatusRequest{}

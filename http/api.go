@@ -43,7 +43,7 @@ func InitApi() {
 	// it won't block the graceful shutdown handling below
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
-			logger.Log.Info("listen: %s\n", err)
+			logger.Log.Info("listen: %s\n", err.Error())
 		}
 	}()
 

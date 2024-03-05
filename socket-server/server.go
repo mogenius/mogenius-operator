@@ -376,8 +376,8 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = services.ServicePodExistsRequestExample()
 		case services.PAT_SERVICE_PODS:
 			payload = services.ServicePodsRequestExample()
-		case services.PAT_SERVICE_SET_IMAGE:
-			payload = services.ServiceSetImageRequestExample()
+		// case services.PAT_SERVICE_SET_IMAGE:
+		// 	payload = services.ServiceSetImageRequestExample()
 		case services.PAT_SERVICE_LOG:
 			payload = services.ServiceGetLogRequestExample()
 		case services.PAT_SERVICE_LOG_ERROR:

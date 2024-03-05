@@ -86,10 +86,10 @@ const (
 	PAT_NAMESPACE_RESTORE               string = "namespace/restore"
 	PAT_NAMESPACE_RESOURCE_YAML         string = "namespace/resource-yaml"
 
-	PAT_SERVICE_CREATE          string = "service/create"
-	PAT_SERVICE_DELETE          string = "service/delete"
-	PAT_SERVICE_POD_IDS         string = "service/pod-ids"
-	PAT_SERVICE_SET_IMAGE       string = "service/set-image"
+	PAT_SERVICE_CREATE  string = "service/create"
+	PAT_SERVICE_DELETE  string = "service/delete"
+	PAT_SERVICE_POD_IDS string = "service/pod-ids"
+	// PAT_SERVICE_SET_IMAGE       string = "service/set-image"
 	PAT_SERVICE_LOG             string = "service/log"
 	PAT_SERVICE_LOG_ERROR       string = "service/log-error"
 	PAT_SERVICE_RESOURCE_STATUS string = "service/resource-status"
@@ -441,7 +441,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_CREATE,
 	PAT_SERVICE_DELETE,
 	PAT_SERVICE_POD_IDS,
-	PAT_SERVICE_SET_IMAGE,
+	// PAT_SERVICE_SET_IMAGE,
 	PAT_SERVICE_LOG,
 	PAT_SERVICE_LOG_ERROR,
 	PAT_SERVICE_RESOURCE_STATUS,

@@ -28,15 +28,17 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		}
 		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
 		secret := punqUtils.InitSecret()
-		secret.ObjectMeta.Name = service.Name
+		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
 		delete(secret.StringData, "PRIVATE_KEY") // delete example data
 
-		for _, envVar := range service.EnvVars {
-			if envVar.Type == "KEY_VAULT" ||
-				envVar.Type == "PLAINTEXT" ||
-				envVar.Type == "HOSTNAME" {
-				secret.StringData[envVar.Name] = envVar.Value
+		for _, container := range service.Containers {
+			for _, envVar := range container.EnvVars {
+				if envVar.Type == "KEY_VAULT" ||
+					envVar.Type == "PLAINTEXT" ||
+					envVar.Type == "HOSTNAME" {
+					secret.StringData[envVar.Name] = envVar.Value
+				}
 			}
 		}
 
@@ -46,7 +48,7 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created secret '%s'.", service.Name))
+			cmd.Success(fmt.Sprintf("Created secret '%s'.", service.ControllerName))
 		}
 	}(cmd, wg)
 	return cmd
@@ -70,11 +72,11 @@ func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
-		err = secretClient.Delete(context.TODO(), service.Name, deleteOptions)
+		err = secretClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted secret '%s'.", service.Name))
+			cmd.Success(fmt.Sprintf("Deleted secret '%s'.", service.ControllerName))
 		}
 	}(cmd, wg)
 	return cmd
@@ -100,9 +102,14 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
 
-		authStr := fmt.Sprintf("%s:%s", project.ContainerRegistryUser, project.ContainerRegistryPat)
+		if project.ContainerRegistryUser == nil || project.ContainerRegistryPat == nil || project.ContainerRegistryUrl == nil {
+			cmd.Fail("ERROR: ContainerRegistryUser, ContainerRegistryPat & ContainerRegistryUrl cannot be nil.")
+			return
+		}
+
+		authStr := fmt.Sprintf("%s:%s", *project.ContainerRegistryUser, *project.ContainerRegistryPat)
 		authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
-		jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, project.ContainerRegistryUrl, project.ContainerRegistryUser, project.ContainerRegistryPat, authStrBase64)
+		jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, *project.ContainerRegistryUrl, *project.ContainerRegistryUser, *project.ContainerRegistryPat, authStrBase64)
 
 		secretStringData := make(map[string]string)
 		secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
@@ -133,13 +140,18 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 }
 
 func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
+	if service.GetImageRepoSecretDecryptValue() == nil {
+		return nil
+	}
+
 	cmd := structs.CreateCommand("Create Container secret for service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(fmt.Sprintf("Creating Container secret '%s' for service.", namespace.Name))
 
-		secretName := "container-secret-service-" + service.Name
+		secretName := "container-secret-service-" + service.ControllerName
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -153,7 +165,7 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 		secret.ObjectMeta.Namespace = namespace.Name
 
 		secretStringData := make(map[string]string)
-		secretStringData[".dockerconfigjson"] = service.ContainerImageRepoSecretDecryptValue
+		secretStringData[".dockerconfigjson"] = *service.GetImageRepoSecretDecryptValue()
 		secret.StringData = secretStringData
 
 		secret.Labels = MoUpdateLabels(&secret.Labels, job.ProjectId, &namespace, nil)
@@ -222,15 +234,17 @@ func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		}
 		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
 		secret := punqUtils.InitSecret()
-		secret.ObjectMeta.Name = service.Name
+		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
 		delete(secret.StringData, "PRIVATE_KEY") // delete example data
 
-		for _, envVar := range service.EnvVars {
-			if envVar.Type == "KEY_VAULT" ||
-				envVar.Type == "PLAINTEXT" ||
-				envVar.Type == "HOSTNAME" {
-				secret.StringData[envVar.Name] = envVar.Value
+		for _, container := range service.Containers {
+			for _, envVar := range container.EnvVars {
+				if envVar.Type == "KEY_VAULT" ||
+					envVar.Type == "PLAINTEXT" ||
+					envVar.Type == "HOSTNAME" {
+					secret.StringData[envVar.Name] = envVar.Value
+				}
 			}
 		}
 
@@ -242,7 +256,7 @@ func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		if err != nil {
 			cmd.Fail(fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Update secret '%s'.", service.Name))
+			cmd.Success(fmt.Sprintf("Update secret '%s'.", service.ControllerName))
 		}
 	}(cmd, wg)
 	return cmd

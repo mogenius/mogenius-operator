@@ -48,7 +48,7 @@ func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, ev
 }
 
 func StatusService(r ServiceStatusRequest) interface{} {
-	logger.Log.Debugf("StatusService for (%s): %s %s", r.ServiceName, r.Namespace, r.Controller)
+	logger.Log.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
@@ -74,12 +74,12 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	}()
 
 	resourceItems := []ResourceItem{}
-	resourceItems, err = kubernetesItems(r.Namespace, r.ServiceName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
+	resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
 	if err != nil {
 		logger.Log.Warningf("Warning statusItems: %v", err)
 	}
 
-	resourceItems, err = buildItem(r.Namespace, r.ServiceName, resourceItems)
+	resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
 	if err != nil {
 		logger.Log.Warningf("Warning buildItem: %v", err)
 	}
@@ -201,7 +201,7 @@ func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kube
 }
 
 func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
-	lastJob := builder.LastJobForNamespaceAndServiceName(namespace, name)
+	lastJob := builder.LastJobForNamespaceAndControllerName(namespace, name)
 	if lastJob.IsEmpty() {
 		return resourceItems, nil
 	}
@@ -377,16 +377,16 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 }
 
 type ServiceStatusRequest struct {
-	Namespace   string `json:"namespace" validate:"required"`
-	ServiceName string `json:"serviceName" validate:"required"`
-	Controller  string `json:"controller" validate:"required"`
+	Namespace      string `json:"namespace" validate:"required"`
+	ControllerName string `json:"controllerName" validate:"required"`
+	Controller     string `json:"controller" validate:"required"`
 }
 
 func ServiceStatusRequestExample() ServiceStatusRequest {
 	return ServiceStatusRequest{
-		Namespace:   "YOUR-NAMESPACE",
-		ServiceName: "YOUR-SERVICE-NAME",
-		Controller:  Deployment.String(),
+		Namespace:      "YOUR-NAMESPACE",
+		ControllerName: "YOUR-SERVICE-NAME",
+		Controller:     Deployment.String(),
 	}
 }
 

@@ -144,7 +144,17 @@ func Download(r FilesDownloadRequest) interface{} {
 	multiPartWriter.Close()
 
 	// Upload the file
-	response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), buf)
+	req, err := http.NewRequest("POST", r.PostTo, buf)
+	if err != nil {
+		fmt.Printf("Error sending request: %s", err)
+		result.Error = err.Error()
+		return result
+	}
+	req.Header = utils.HttpHeader("")
+	req.Header.Set("Content-Type", multiPartWriter.FormDataContentType())
+
+	client := &http.Client{}
+	response, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Error sending request: %s", err)
 		result.Error = err.Error()
@@ -450,7 +460,7 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 
 	_, mountPathExists := os.Stat(mountPath)
 	if os.IsNotExist(mountPathExists) {
-		return "", fmt.Errorf("The volume '%s' does not exist.", data.VolumeName)
+		return "", fmt.Errorf("the volume '%s' does not exist", data.VolumeName)
 	}
 
 	if strings.HasSuffix(mountPath, "/") {

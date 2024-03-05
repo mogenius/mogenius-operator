@@ -7,7 +7,6 @@ import (
 
 	"github.com/fatih/color"
 	punqStructs "github.com/mogenius/punq/structs"
-	"github.com/mogenius/punq/utils"
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
@@ -29,7 +28,7 @@ func CreateDatagramFromNotification(data *dtos.K8sNotificationDto) Datagram {
 		created = time.Now()
 	}
 	datagram := Datagram{
-		Id:        utils.NanoId(),
+		Id:        punqUtils.NanoId(),
 		Pattern:   "K8sNotificationDto",
 		Payload:   data,
 		CreatedAt: created,
@@ -39,7 +38,7 @@ func CreateDatagramFromNotification(data *dtos.K8sNotificationDto) Datagram {
 
 func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	datagram := Datagram{
-		Id:        utils.NanoId(),
+		Id:        punqUtils.NanoId(),
 		Pattern:   pattern,
 		Payload:   data,
 		CreatedAt: time.Now(),
@@ -49,24 +48,24 @@ func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 
 func CreateDatagram(pattern string) Datagram {
 	datagram := Datagram{
-		Id:        utils.NanoId(),
+		Id:        punqUtils.NanoId(),
 		Pattern:   pattern,
 		CreatedAt: time.Now(),
 	}
 	return datagram
 }
 
-func CreateDatagramBuildLogs(prefix string, namespace string, serviceName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
+func CreateDatagramBuildLogs(prefix string, namespace string, controllerName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
 	datagram := Datagram{
-		Id:      utils.NanoId(),
+		Id:      punqUtils.NanoId(),
 		Pattern: "build-logs-notification",
 		Payload: map[string]interface{}{
-			"logId":       prefix,
-			"namespace":   namespace,
-			"serviceName": serviceName,
-			"projectId":   projectId,
-			"line":        line,
-			"state":       state,
+			"logId":          prefix,
+			"namespace":      namespace,
+			"controllerName": controllerName,
+			"projectId":      projectId,
+			"line":           line,
+			"state":          state,
 		},
 		CreatedAt: time.Now(),
 	}
@@ -84,7 +83,7 @@ func CreateDatagramAck(pattern string, id string) Datagram {
 
 func CreateEmptyDatagram() Datagram {
 	datagram := Datagram{
-		Id:        utils.NanoId(),
+		Id:        punqUtils.NanoId(),
 		Pattern:   "",
 		CreatedAt: time.Now(),
 	}

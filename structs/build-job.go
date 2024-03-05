@@ -6,6 +6,7 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/structs"
+	"github.com/mogenius/punq/utils"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -13,143 +14,163 @@ import (
 type ScanImageRequest struct {
 	ProjectId             string  `json:"projectId" validate:"required"`
 	NamespaceId           string  `json:"namespaceId" validate:"required"`
-	ServiceId             string  `json:"serviceId" validate:"required"`
 	NamespaceName         string  `json:"namespaceName" validate:"required"`
-	ServiceName           string  `json:"serviceName" validate:"required"`
+	ServiceId             string  `json:"serviceId" validate:"required"`
+	ControllerName        string  `json:"controllerName" validate:"required"`
+	ContainerName         string  `json:"containerName"`
 	ContainerImage        string  `json:"containerImage"`
+	ContainerRegistryPath *string `json:"containerRegistryPath"`
+	ContainerRegistryUrl  *string `json:"containerRegistryUrl"`
 	ContainerRegistryUser *string `json:"containerRegistryUser"`
 	ContainerRegistryPat  *string `json:"containerRegistryPat"`
-	ContainerRegistryUrl  string  `json:"containerRegistryUrl" validate:"required"`
 }
 
 func ScanImageRequestExample() ScanImageRequest {
 	return ScanImageRequest{
 		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
 		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
+		NamespaceName:         "docker-desktop-prod-8ds57s",
 		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
-		NamespaceName:         "mac-prod-1xh4p1",
-		ServiceName:           "angular1",
+		ControllerName:        "alpinetest",
+		ContainerName:         "alpinetest-container",
 		ContainerImage:        "mysql:latest",
+		ContainerRegistryPath: utils.Pointer("docker.io/biltisberger"),
+		ContainerRegistryUrl:  utils.Pointer("docker.io"),
 		ContainerRegistryUser: nil,
 		ContainerRegistryPat:  nil,
-		ContainerRegistryUrl:  "docker.io",
 	}
 }
 
 type BuildJob struct {
-	JobId                 string                  `json:"jobId" validate:"required"`
-	ProjectId             string                  `json:"projectId" validate:"required"`
-	NamespaceId           string                  `json:"namespaceId" validate:"required"`
-	Namespace             string                  `json:"namespace" validate:"required"`
-	ServiceId             string                  `json:"serviceId" validate:"required"`
-	ServiceName           string                  `json:"serviceName" validate:"required"`
-	GitRepo               string                  `json:"gitRepo" validate:"required"`
-	GitBranch             string                  `json:"gitBranch" validate:"required"`
-	GitCommitAuthor       string                  `json:"gitCommitAuthor" validate:"required"`
-	GitCommitHash         string                  `json:"gitCommitHash" validate:"required"`
-	GitCommitMessage      string                  `json:"gitCommitMessage" validate:"required"`
-	DockerFile            string                  `json:"dockerFile" validate:"required"`
-	DockerContext         string                  `json:"dockerContext" validate:"required"`
-	ContainerRegistryPath string                  `json:"containerRegistryPath"`
-	ContainerRegistryUser string                  `json:"containerRegistryUser"`
-	ContainerRegistryPat  string                  `json:"containerRegistryPat"`
-	ContainerRegistryUrl  string                  `json:"containerRegistryUrl"`
-	StartTimestamp        string                  `json:"startTimestamp"`
-	EndTimestamp          string                  `json:"endTimestamp"`
-	InjectDockerEnvVars   string                  `json:"injectDockerEnvVars"`
-	State                 punq.JobStateEnum       `json:"state"`
-	StartedAt             string                  `json:"startedAt"`
-	DurationMs            int                     `json:"durationMs"`
-	BuildId               int                     `json:"buildId"`
-	ServiceType           dtos.K8sServiceTypeEnum `json:"serviceType"`
+	JobId string `json:"jobId"`
+	// ProjectId             string                  `json:"projectId" validate:"required"`
+	// NamespaceId           string                  `json:"namespaceId" validate:"required"`
+	// Namespace             string                  `json:"namespace" validate:"required"`
+	// ServiceId             string                  `json:"serviceId" validate:"required"`
+	// ControllerName        string                  `json:"controllerName" validate:"required"`
+	// GitRepo               string                  `json:"gitRepo" validate:"required"`
+	// DockerFile            string                  `json:"dockerFile" validate:"required"`
+	// DockerContext         string                  `json:"dockerContext" validate:"required"`
+	// ContainerRegistryPath string                  `json:"containerRegistryPath"`
+	// ContainerRegistryUser string                  `json:"containerRegistryUser"`
+	// ContainerRegistryPat  string                  `json:"containerRegistryPat"`
+	// ContainerRegistryUrl  string                  `json:"containerRegistryUrl"`
+	StartTimestamp string `json:"startTimestamp"`
+	EndTimestamp   string `json:"endTimestamp"`
+	// InjectDockerEnvVars   string                  `json:"injectDockerEnvVars"`
+	State      punq.JobStateEnum `json:"state"`
+	StartedAt  string            `json:"startedAt"`
+	DurationMs int               `json:"durationMs"`
+	BuildId    int               `json:"buildId"`
+	// ServiceType           dtos.K8sServiceTypeEnum `json:"serviceType"`
+
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
+	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
+	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
-func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
-	return BuildJob{
-		JobId:       jobId,
-		ProjectId:   scanRequest.ProjectId,
-		NamespaceId: scanRequest.NamespaceId,
-		Namespace:   scanRequest.NamespaceName,
-		ServiceId:   scanRequest.ServiceId,
-		ServiceName: scanRequest.ServiceName,
-	}
-}
-
-type BuildJobListEntry struct {
-	// only "clusterId" was removed because we dont need it anymore
-	JobId                 string `json:"jobId"`
-	ProjectId             string `json:"projectId"`
-	NamespaceId           string `json:"namespaceId"`
-	Namespace             string `json:"namespace"`
-	ServiceId             string `json:"serviceId"`
-	ServiceName           string `json:"serviceName"`
-	GitRepo               string `json:"gitRepo"`
-	GitBranch             string `json:"gitBranch"`
-	GitCommitAuthor       string `json:"gitCommitAuthor"`
-	GitCommitHash         string `json:"gitCommitHash"`
-	GitCommitMessage      string `json:"gitCommitMessage"`
-	DockerFile            string `json:"dockerFile"`
-	DockerContext         string `json:"dockerContext"`
-	ContainerRegistryPath string `json:"containerRegistryPath"`
-	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
-	StartTimestamp        string `json:"startTimestamp"`
-	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
-	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING
-	StartedAt             string `json:"startedAt"`
-	DurationMs            int    `json:"durationMs"`
-	BuildId               int    `json:"buildId"`
-}
-
-func (b BuildJobListEntry) IsEmpty() bool {
+func (b BuildJob) IsEmpty() bool {
 	return b.JobId == "" &&
-		b.ProjectId == "" &&
-		b.NamespaceId == "" &&
-		b.Namespace == "" &&
-		b.ServiceId == "" &&
-		b.ServiceName == "" &&
-		b.GitRepo == "" &&
-		b.GitBranch == "" &&
-		b.GitCommitAuthor == "" &&
-		b.GitCommitHash == "" &&
-		b.GitCommitMessage == "" &&
-		b.DockerFile == "" &&
-		b.DockerContext == "" &&
-		b.ContainerRegistryPath == "" &&
-		b.ContainerRegistryUrl == "" &&
 		b.StartTimestamp == "" &&
-		b.InjectDockerEnvVars == "" &&
+		b.EndTimestamp == "" &&
 		b.State == "" &&
 		b.StartedAt == "" &&
 		b.DurationMs == 0 &&
 		b.BuildId == 0
 }
 
+func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
+	return BuildJob{
+		JobId: jobId,
+		Project: dtos.K8sProjectDto{
+			Id: scanRequest.ProjectId,
+		},
+		Namespace: dtos.K8sNamespaceDto{
+			Id:   scanRequest.NamespaceId,
+			Name: scanRequest.NamespaceName,
+		},
+		Service: dtos.K8sServiceDto{
+			Id:             scanRequest.ServiceId,
+			ControllerName: scanRequest.ControllerName,
+		},
+	}
+}
+
+// type BuildJobListEntry struct {
+// 	// only "clusterId" was removed because we dont need it anymore
+// 	JobId                 string `json:"jobId"`
+// 	ProjectId             string `json:"projectId"`
+// 	NamespaceId           string `json:"namespaceId"`
+// 	Namespace             string `json:"namespace"`
+// 	ServiceId             string `json:"serviceId"`
+// 	ControllerName        string `json:"controllerName"`
+// 	GitRepo               string `json:"gitRepo"`
+// 	GitBranch             string `json:"gitBranch"`
+// 	GitCommitAuthor       string `json:"gitCommitAuthor"`
+// 	GitCommitHash         string `json:"gitCommitHash"`
+// 	GitCommitMessage      string `json:"gitCommitMessage"`
+// 	DockerFile            string `json:"dockerFile"`
+// 	DockerContext         string `json:"dockerContext"`
+// 	ContainerRegistryPath string `json:"containerRegistryPath"`
+// 	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
+// 	StartTimestamp        string `json:"startTimestamp"`
+// 	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
+// 	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING
+// 	StartedAt             string `json:"startedAt"`
+// 	DurationMs            int    `json:"durationMs"`
+// 	BuildId               int    `json:"buildId"`
+// }
+
+// func (b BuildJobListEntry) IsEmpty() bool {
+// 	return b.JobId == "" &&
+// 		b.ProjectId == "" &&
+// 		b.NamespaceId == "" &&
+// 		b.Namespace == "" &&
+// 		b.ServiceId == "" &&
+// 		b.ControllerName == "" &&
+// 		b.GitRepo == "" &&
+// 		b.GitBranch == "" &&
+// 		b.GitCommitAuthor == "" &&
+// 		b.GitCommitHash == "" &&
+// 		b.GitCommitMessage == "" &&
+// 		b.DockerFile == "" &&
+// 		b.DockerContext == "" &&
+// 		b.ContainerRegistryPath == "" &&
+// 		b.ContainerRegistryUrl == "" &&
+// 		b.StartTimestamp == "" &&
+// 		b.InjectDockerEnvVars == "" &&
+// 		b.State == "" &&
+// 		b.StartedAt == "" &&
+// 		b.DurationMs == 0 &&
+// 		b.BuildId == 0
+// }
+
 func BuildJobExample() BuildJob {
 	return BuildJob{
-		JobId:                 "na8ggegq2p0pepbvjldlger",
-		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
-		NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
-		Namespace:             "docker-desktop-prod-8ds57s",
-		ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
-		ServiceName:           "alpinetest",
-		GitRepo:               "https://x-access-token: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@github.com/beneiltis/bene.git",
-		GitBranch:             "main",
-		GitCommitAuthor:       "mogenius git-user",
-		GitCommitHash:         "abe52a64e682cedf77f131e595119f6c2f6a1c84",
-		GitCommitMessage:      "[skip ci]: Add initial files.",
-		DockerFile:            "Dockerfile",
-		DockerContext:         ".",
-		ContainerRegistryPath: "docker.io/biltisberger",
-		ContainerRegistryUser: "biltisberger",
-		ContainerRegistryPat:  "XXXX",
-		ContainerRegistryUrl:  "docker.io",
-		StartTimestamp:        "1689684071841",
-		InjectDockerEnvVars:   "--build-arg PLACEHOLDER=MOGENIUS",
-		State:                 punq.JobStatePending,
-		StartedAt:             time.Now().Format(time.RFC3339),
-		EndTimestamp:          time.Now().Format(time.RFC3339),
-		DurationMs:            0,
-		BuildId:               1,
+		JobId: "na8ggegq2p0pepbvjldlger",
+		// ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
+		// NamespaceId:           "32a399ba-3a48-462b-8293-11b667d3a1fa",
+		// Namespace:             "docker-desktop-prod-8ds57s",
+		// ServiceId:             "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
+		// ControllerName:        "alpinetest",
+		// GitRepo:               "https://x-access-token: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@github.com/beneiltis/bene.git",
+		// GitBranch:             "main",
+		// GitCommitAuthor:  "mogenius git-user",
+		// GitCommitHash:    "abe52a64e682cedf77f131e595119f6c2f6a1c84",
+		// GitCommitMessage: "[skip ci]: Add initial files.",
+		// DockerFile:            "Dockerfile",
+		// DockerContext:         ".",
+		// ContainerRegistryPath: "docker.io/biltisberger",
+		// ContainerRegistryUser: "biltisberger",
+		// ContainerRegistryPat:  "YYY",
+		// ContainerRegistryUrl:  "docker.io",
+		StartTimestamp: "1689684071841",
+		// InjectDockerEnvVars:   "--build-arg PLACEHOLDER=MOGENIUS",
+		State:        punq.JobStatePending,
+		StartedAt:    time.Now().Format(time.RFC3339),
+		EndTimestamp: time.Now().Format(time.RFC3339),
+		DurationMs:   0,
+		BuildId:      1,
 	}
 }
 
@@ -170,7 +191,7 @@ type BuildServicesStatusRequest struct {
 
 func BuildServicesStatusRequestExample() BuildServicesStatusRequest {
 	return BuildServicesStatusRequest{
-		ServiceIds: []string{"XXX", "ef7af4d2-8939-4c94-bbe1-a3e7018e8306", "ZZZ"},
+		ServiceIds: []string{"YYY", "ef7af4d2-8939-4c94-bbe1-a3e7018e8306", "ZZZ"},
 		MaxResults: 14,
 	}
 }

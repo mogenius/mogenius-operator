@@ -28,7 +28,7 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 	cmds = append(cmds, mokubernetes.CreateNamespace(job, r.Project, r.Namespace))
 	cmds = append(cmds, mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, wg))
 
-	if r.Project.ContainerRegistryUser != "" && r.Project.ContainerRegistryPat != "" {
+	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
 		cmds = append(cmds, mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg))
 	}
 	return cmds
@@ -52,7 +52,7 @@ func ShutdownNamespace(r NamespaceShutdownRequest) structs.Job {
 	job.Start()
 	job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 	wg.Wait()
 	job.Finish()
 	return job

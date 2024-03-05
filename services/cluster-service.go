@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/db"
-	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
@@ -716,7 +715,7 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 	}
 
 	if keplerHostAndPort == "" {
-		keplerservice := kubernetes.ServiceWithLabels("app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler", nil)
+		keplerservice := mokubernetes.ServiceWithLabels("app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler", nil)
 		if keplerservice != nil {
 			keplerHostAndPort = fmt.Sprintf("%s:%d", keplerservice.Name, keplerservice.Spec.Ports[0].Port)
 		} else {
@@ -729,7 +728,7 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 		// }
 	}
 	if structs.KeplerDaemonsetRunningSince == 0 {
-		keplerPod := kubernetes.KeplerPod()
+		keplerPod := mokubernetes.KeplerPod()
 		if keplerPod != nil && keplerPod.Status.StartTime != nil {
 			structs.KeplerDaemonsetRunningSince = keplerPod.Status.StartTime.Time.Unix()
 		}
@@ -785,7 +784,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
 	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
 	certMgrEntry.UpgradePattern = PAT_UPGRADE_CERT_MANAGER
-	certMgrEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
+	certMgrEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
 	entries = append(entries, certMgrEntry)
 
 	_, clusterIssuerInstalledErr := punq.GetClusterIssuer(NameClusterIssuerResource, nil)
@@ -797,7 +796,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	clusterIssuerEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, clusterIssuerDescription, false, true, "", "")
 	clusterIssuerEntry.InstallPattern = PAT_INSTALL_CLUSTER_ISSUER
 	clusterIssuerEntry.UninstallPattern = PAT_UNINSTALL_CLUSTER_ISSUER
-	clusterIssuerEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
+	clusterIssuerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
 	entries = append(entries, clusterIssuerEntry)
 
 	trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
@@ -813,7 +812,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
 	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
 	trafficEntry.UpgradePattern = PAT_UPGRADE_TRAFFIC_COLLECTOR
-	trafficEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
+	trafficEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
 	entries = append(entries, trafficEntry)
 
 	podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
@@ -829,7 +828,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
 	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
 	podEntry.UpgradePattern = PAT_UPGRADE_PODSTATS_COLLECTOR
-	podEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
+	podEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
 	entries = append(entries, podEntry)
 
 	distributionRegistryName := "distribution-registry-docker-registry"
@@ -844,7 +843,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	distriEntry.InstallPattern = PAT_INSTALL_CONTAINER_REGISTRY
 	distriEntry.UninstallPattern = PAT_UNINSTALL_CONTAINER_REGISTRY
 	distriEntry.UpgradePattern = PAT_UPGRADE_CONTAINER_REGISTRY
-	distriEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
+	distriEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
 	entries = append(entries, distriEntry)
 
 	metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, "metallb-controller")
@@ -858,7 +857,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	metallbEntry.InstallPattern = PAT_INSTALL_METALLB
 	metallbEntry.UninstallPattern = PAT_UNINSTALL_METALLB
 	metallbEntry.UpgradePattern = PAT_UPGRADE_METALLB
-	metallbEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
+	metallbEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
 	entries = append(entries, metallbEntry)
 
 	keplerVersion, keplerInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
@@ -872,7 +871,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	keplerEntry.InstallPattern = PAT_INSTALL_KEPLER
 	keplerEntry.UninstallPattern = PAT_UNINSTALL_KEPLER
 	keplerEntry.UpgradePattern = PAT_UPGRADE_KEPLER
-	keplerEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
+	keplerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
 	entries = append(entries, keplerEntry)
 
 	clusterIps := punq.GetClusterExternalIps(nil)
@@ -884,7 +883,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, "", false, false, "", "")
 	entries = append(entries, localDevSetupEntry)
 
-	nfsStorageClass := kubernetes.StorageClassForClusterProvider(utils.ClusterProviderCached)
+	nfsStorageClass := mokubernetes.StorageClassForClusterProvider(utils.ClusterProviderCached)
 	nfsStorageClassMsg := fmt.Sprintf("NFS StorageClass '%s' found.", nfsStorageClass)
 	nfsStorageClassEntry := punq.CreateSystemCheckEntry(NameNfsStorageClass, nfsStorageClass != "", nfsStorageClassMsg, "", true, false, "", "")
 	entries = append(entries, nfsStorageClassEntry)
@@ -897,14 +896,14 @@ func SystemCheck() punq.SystemCheckResponse {
 			entries[i].UninstallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UpgradePattern = PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
-			entries[i].Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
+			entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
 		}
 		if entry.CheckName == NameMetricsServer {
 			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
 			entries[i].UninstallPattern = PAT_UNINSTALL_METRICS_SERVER
 			entries[i].UpgradePattern = PAT_UPGRADE_METRICS_SERVER
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
-			entries[i].Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
+			entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
 		}
 	}
 	// update entries specificly for certain cluster vendors
@@ -930,7 +929,7 @@ func UpdateSystemCheckStatusForClusterVendor(entries []punq.SystemCheckEntry) []
 	}
 
 	// if public IP is available we skip metallLB
-	nodes := kubernetes.ListNodes()
+	nodes := mokubernetes.ListNodes()
 	for _, node := range nodes {
 		for _, addr := range node.Status.Addresses {
 			ip, err := netip.ParseAddr(addr.Address)
