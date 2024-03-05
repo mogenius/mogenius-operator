@@ -47,6 +47,7 @@ func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 	info, err := os.Stat(path)
 	if err != nil {
 		logger.Log.Warningf("FileStat Err: %s", err.Error())
+		return PersistentFileDto{}
 	}
 
 	fileType := "file"
