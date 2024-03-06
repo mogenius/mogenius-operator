@@ -94,7 +94,7 @@ func DeleteHelmChart(r ClusterHelmUninstallRequest) structs.Job {
 
 func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, &r.NamespaceId, nil)
+	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceName, nil, nil)
 	job.Start()
 	// FOR K8SMANAGER
 	job.AddCmd(mokubernetes.CreateMogeniusNfsServiceSync(&job, r.NamespaceName, r.VolumeName))
@@ -114,7 +114,7 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 
 func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, &r.NamespaceId, nil)
+	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceName, nil, nil)
 	job.Start()
 	// FOR K8SMANAGER
 	job.AddCmd(mokubernetes.DeleteMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
@@ -591,7 +591,6 @@ func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
 }
 
 type NfsVolumeRequest struct {
-	NamespaceId   string `json:"namespaceId" validate:"required"`
 	NamespaceName string `json:"namespaceName" validate:"required"`
 	VolumeName    string `json:"volumeName" validate:"required"`
 	SizeInGb      int    `json:"sizeInGb" validate:"required"`
@@ -599,7 +598,6 @@ type NfsVolumeRequest struct {
 
 func NfsVolumeRequestExample() NfsVolumeRequest {
 	return NfsVolumeRequest{
-		NamespaceId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		NamespaceName: "name",
 		VolumeName:    "my-fancy-volume-name",
 		SizeInGb:      10,
