@@ -33,10 +33,10 @@ func Init() {
 	// ### TRAFFIC BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(TRAFFIC_BUCKET_NAME))
-		if err != nil {
-			return err
+		if err == nil {
+			logger.Log.Noticef("Bucket '%s' created 🚀.", TRAFFIC_BUCKET_NAME)
 		}
-		return nil
+		return err
 	})
 	if err != nil {
 		logger.Log.Errorf("Error creating bucket ('%s'): %s", TRAFFIC_BUCKET_NAME, err)
@@ -45,10 +45,10 @@ func Init() {
 	// ### STATS BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(POD_STATS_BUCKET_NAME))
-		if err != nil {
-			return err
+		if err == nil {
+			logger.Log.Noticef("Bucket '%s' created 🚀.", POD_STATS_BUCKET_NAME)
 		}
-		return nil
+		return err
 	})
 	if err != nil {
 		logger.Log.Errorf("Error creating bucket ('%s'): %s", POD_STATS_BUCKET_NAME, err)
@@ -74,7 +74,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 	err := dbStats.Update(func(tx *bolt.Tx) error {
 		mainBucket := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
 
-		// CREATE A BUCKET FOR EACH POD
+		// CREATE A BUCKET FOR EACH NAMESPACE
 		bucket, err := mainBucket.CreateBucketIfNotExists([]byte(stats.Namespace))
 		if err != nil {
 			return err
@@ -89,7 +89,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 
 		// add new Entry
 		id, _ := bucket.NextSequence() // auto increment
-		return bucket.Put([]byte(string(id)), []byte(punqStructs.PrettyPrintString(stats)))
+		return bucket.Put([]byte(fmt.Sprint(id)), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		logger.Log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())

@@ -43,12 +43,12 @@ func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, ev
 		logger.Log.Debugf("go: timeout waiting for events")
 		return
 	case eventsChan <- events:
-		logger.Log.Debugf("go: push the events into the channel")
+		//logger.Log.Debugf("go: push the events into the channel")
 	}
 }
 
 func StatusService(r ServiceStatusRequest) interface{} {
-	logger.Log.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
+	//logger.Log.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
