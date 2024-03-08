@@ -287,7 +287,7 @@ func writeDefaultConfig(stage string) {
 		}
 	}
 
-	if stage == STAGE_DEV {
+	if stage == STAGE_PRE_DEV {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFilePreDev), 0755)
 	} else if stage == STAGE_DEV {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileDev), 0755)
