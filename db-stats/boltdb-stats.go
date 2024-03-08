@@ -17,7 +17,7 @@ const (
 	POD_STATS_BUCKET_NAME = "pod-stats"
 )
 
-const MAX_DATA_POINTS = 100
+const MAX_DATA_POINTS = 1000
 
 var dbStats *bolt.DB
 var cleanupTimer = time.NewTicker(1 * time.Minute)
@@ -305,24 +305,30 @@ func GetLastTrafficStatsEntriesForNamespace(namespace string) []structs.Interfac
 		if bucket == nil {
 			return fmt.Errorf("Bucket '%s' not found.", namespace)
 		}
-		return bucket.ForEach(func(k, v []byte) error {
+
+		c := bucket.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
 			entry := structs.InterfaceStats{}
 			err := structs.UnmarshalInterfaceStats(&entry, v)
 			if err != nil {
 				return err
 			}
 			var newEntry bool = true
-			for _, currentPod := range result {
-				if entry.PodName == currentPod.PodName {
+			for i := 0; i < len(result); i++ {
+				if entry.PodName == result[i].PodName {
 					newEntry = false
-				}
 
+					if isFirstTimestampNewer(entry.CreatedAt, result[i].CreatedAt) {
+						result[i] = entry
+					}
+					break
+				}
 			}
 			if newEntry {
 				result = append(result, entry)
 			}
-			return nil
-		})
+		}
+		return nil
 	})
 	if err != nil {
 		logger.Log.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
@@ -402,4 +408,20 @@ func cleanupStats() {
 	if err != nil {
 		logger.Log.Errorf("cleanupStats: %s", err.Error())
 	}
+}
+
+func isFirstTimestampNewer(ts1, ts2 string) bool {
+	// Parse the timestamps using RFC 3339 format
+	t1, err := time.Parse(time.RFC3339, ts1)
+	if err != nil {
+		logger.Log.Error(fmt.Errorf("error parsing ts1: %w", err))
+	}
+
+	t2, err := time.Parse(time.RFC3339, ts2)
+	if err != nil {
+		logger.Log.Error(fmt.Errorf("error parsing ts2: %w", err))
+	}
+
+	// Check if the first timestamp is strictly newer than the second
+	return t1.After(t2)
 }
