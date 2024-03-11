@@ -20,11 +20,6 @@ event_server:
   scheme: wss
   path: /ws
 
-shell_server:
-  server: XXX.dev.mogenius.com
-  scheme: wss
-  path: /ws
-
 misc:
   stage: dev
   default_mount_path: /mo-data
@@ -44,8 +39,10 @@ misc:
   nfs_pod_prefix: nfs-server-pod
 
 builder:
-  max_build_time: 3600   # 1 hour
-  max_scan_time: 200     # seconds
+  max_build_time: 3600      # 1 hour
+  max_scan_time: 200        # seconds
+  max_data_points: 1000     # history data points
+  max_concurrent_builds: 3  # max concurrent builds
 
 git:
   user_email: git@mogenius.com

@@ -24,9 +24,10 @@ var DISABLEQUEUE bool = true
 var currentBuildContext *context.Context
 var currentBuildChannel chan punqStructs.JobStateEnum
 var currentBuildJob *structs.BuildJob
+var currentNumberOfRunningJobs int = 0
 
 func ProcessQueue() {
-	if DISABLEQUEUE {
+	if DISABLEQUEUE || currentNumberOfRunningJobs >= utils.CONFIG.Builder.MaxConcurrentBuilds {
 		time.Sleep(3 * time.Second)
 		ProcessQueue()
 		return
@@ -50,7 +51,8 @@ func ProcessQueue() {
 			currentBuildJob = &buildJob
 			defer cancel()
 
-			job := structs.CreateJob(fmt.Sprintf("Building '%s'", buildJob.Service.ControllerName), buildJob.Project.Id, &buildJob.Namespace.Id, &buildJob.Service.Id)
+			currentNumberOfRunningJobs++
+			job := structs.CreateJob(fmt.Sprintf("[%d/%d] Building '%s'", currentNumberOfRunningJobs, utils.CONFIG.Builder.MaxConcurrentBuilds, buildJob.Service.ControllerName), buildJob.Project.Id, &buildJob.Namespace.Id, &buildJob.Service.Id)
 
 			go build(job, &buildJob, container, currentBuildChannel, &ctx)
 
@@ -82,6 +84,7 @@ func ProcessQueue() {
 			currentBuildContext = nil
 			currentBuildChannel = nil
 			currentBuildJob = nil
+			currentNumberOfRunningJobs--
 		}
 	}
 }

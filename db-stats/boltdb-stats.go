@@ -17,8 +17,6 @@ const (
 	POD_STATS_BUCKET_NAME = "pod-stats"
 )
 
-const MAX_DATA_POINTS = 1000
-
 var dbStats *bolt.DB
 var cleanupTimer = time.NewTicker(1 * time.Minute)
 
@@ -81,7 +79,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		}
 
 		// DELETE FIRST IF TO MANY DATA POINTS
-		if bucket.Stats().KeyN > MAX_DATA_POINTS {
+		if bucket.Stats().KeyN > utils.CONFIG.Builder.MaxDataPoints {
 			c := bucket.Cursor()
 			k, _ := c.First()
 			bucket.Delete(k)
@@ -108,7 +106,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		}
 
 		// DELETE FIRST IF TO MANY DATA POINTS
-		if bucket.Stats().KeyN > MAX_DATA_POINTS {
+		if bucket.Stats().KeyN > utils.CONFIG.Builder.MaxDataPoints {
 			c := bucket.Cursor()
 			k, _ := c.First()
 			bucket.Delete(k)
@@ -116,7 +114,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 
 		// add new Entry
 		id, _ := bucket.NextSequence() // auto increment
-		return bucket.Put([]byte(string(id)), []byte(punqStructs.PrettyPrintString(stats)))
+		return bucket.Put([]byte(fmt.Sprint(id)), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		logger.Log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
