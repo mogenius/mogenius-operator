@@ -87,11 +87,15 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 
 		// add new Entry
 		id, _ := bucket.NextSequence() // auto increment
-		return bucket.Put([]byte(fmt.Sprint(id)), []byte(punqStructs.PrettyPrintString(stats)))
+		return bucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		logger.Log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
 	}
+}
+
+func sequenceToKey(id uint64) []byte {
+	return []byte(fmt.Sprintf("%020d", id))
 }
 
 func AddPodStatsToDb(stats structs.PodStats) {
@@ -114,7 +118,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 
 		// add new Entry
 		id, _ := bucket.NextSequence() // auto increment
-		return bucket.Put([]byte(fmt.Sprint(id)), []byte(punqStructs.PrettyPrintString(stats)))
+		return bucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		logger.Log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())

@@ -43,6 +43,15 @@ imagePullPolicy: Never
 ```
 After that simply restart the deployment and you are good to go.
 
+# bolt-db debugging
+```
+apk add go
+go install github.com/br0xen/boltbrowser@latest
+cp /db/mogenius-stats.db mogenius-stats1.db
+cp /db/mogenius.db mogenius1.db
+/root/go/bin/boltbrowser mogenius-stats1.db
+```
+
 
 # Helm Install
 ```
