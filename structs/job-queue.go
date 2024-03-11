@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	punqStructs "github.com/mogenius/punq/structs"
 )
 
 var jobDataQueue []Datagram = []Datagram{}
@@ -103,6 +104,9 @@ func processJobNow() {
 			err := JobQueueConnection.WriteJSON(element)
 			if err == nil {
 				element.DisplaySentSummary(i+1, len(jobDataQueue))
+				if utils.CONFIG.Misc.Debug {
+					punqStructs.PrettyPrint(element.Payload)
+				}
 				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {
 				logger.Log.Error(err)

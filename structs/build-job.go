@@ -42,27 +42,13 @@ func ScanImageRequestExample() ScanImageRequest {
 }
 
 type BuildJob struct {
-	JobId string `json:"jobId"`
-	// ProjectId             string                  `json:"projectId" validate:"required"`
-	// NamespaceId           string                  `json:"namespaceId" validate:"required"`
-	// Namespace             string                  `json:"namespace" validate:"required"`
-	// ServiceId             string                  `json:"serviceId" validate:"required"`
-	// ControllerName        string                  `json:"controllerName" validate:"required"`
-	// GitRepo               string                  `json:"gitRepo" validate:"required"`
-	// DockerFile            string                  `json:"dockerFile" validate:"required"`
-	// DockerContext         string                  `json:"dockerContext" validate:"required"`
-	// ContainerRegistryPath string                  `json:"containerRegistryPath"`
-	// ContainerRegistryUser string                  `json:"containerRegistryUser"`
-	// ContainerRegistryPat  string                  `json:"containerRegistryPat"`
-	// ContainerRegistryUrl  string                  `json:"containerRegistryUrl"`
-	StartTimestamp string `json:"startTimestamp"`
-	EndTimestamp   string `json:"endTimestamp"`
-	// InjectDockerEnvVars   string                  `json:"injectDockerEnvVars"`
-	State      punq.JobStateEnum `json:"state"`
-	StartedAt  string            `json:"startedAt"`
-	DurationMs int               `json:"durationMs"`
-	BuildId    int               `json:"buildId"`
-	// ServiceType           dtos.K8sServiceTypeEnum `json:"serviceType"`
+	JobId          string            `json:"jobId"`
+	StartTimestamp string            `json:"startTimestamp"`
+	EndTimestamp   string            `json:"endTimestamp"`
+	State          punq.JobStateEnum `json:"state"`
+	StartedAt      string            `json:"startedAt"`
+	DurationMs     int               `json:"durationMs"`
+	BuildId        int               `json:"buildId"`
 
 	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`

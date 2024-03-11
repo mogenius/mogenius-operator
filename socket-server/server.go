@@ -325,6 +325,10 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = services.StatsDataRequestExampleData()
 		case services.PAT_STATS_TRAFFIC_FOR_POD_LAST:
 			payload = services.StatsDataRequestExampleData()
+		case services.PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST:
+			payload = services.NsStatsDataRequestExampleData()
+		case services.PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL:
+			payload = services.NsStatsDataRequestExampleData()
 
 		case services.PAT_FILES_LIST:
 			payload = services.FilesListRequestExampleData()

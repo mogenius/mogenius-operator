@@ -295,7 +295,7 @@ type NsStatsDataRequest struct {
 
 func NsStatsDataRequestExampleData() NsStatsDataRequest {
 	return NsStatsDataRequest{
-		Namespace: "mogenius",
+		Namespace: "fuckumucku2-prod-3z7yz9",
 	}
 }
 
