@@ -158,6 +158,22 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
 		}
 		return dbstats.GetLastPodStatsEntryForController(*ctrl)
+
+	case PAT_STATS_TRAFFIC_FOR_CONTROLLER_ALL:
+		data := kubernetes.K8sController{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return dbstats.GetTrafficStatsEntriesForController(data)
+	case PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST:
+		data := kubernetes.K8sController{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return dbstats.GetLastTrafficStatsEntryForController(data)
+
 	case PAT_STATS_TRAFFIC_FOR_POD_ALL:
 		data := StatsDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
