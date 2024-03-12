@@ -65,14 +65,16 @@ const (
 	PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM  string = "cluster/read-persistent-volume-claim"
 	PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS string = "cluster/list-persistent-volume-claims"
 
-	PAT_STATS_TRAFFIC_FOR_POD_ALL        string = "stats/traffic/all-for-pod"
-	PAT_STATS_TRAFFIC_FOR_POD_LAST       string = "stats/traffic/last-for-pod"
-	PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL  string = "stats/traffic/all-for-namespace"
-	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST string = "stats/traffic/last-for-namespace"
-	PAT_STATS_PODSTAT_FOR_POD_ALL        string = "stats/podstat/all-for-pod"
-	PAT_STATS_PODSTAT_FOR_POD_LAST       string = "stats/podstat/last-for-pod"
-	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL  string = "stats/podstat/all-for-namespace"
-	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST string = "stats/podstat/last-for-namespace"
+	PAT_STATS_TRAFFIC_FOR_POD_ALL         string = "stats/traffic/all-for-pod"
+	PAT_STATS_TRAFFIC_FOR_POD_LAST        string = "stats/traffic/last-for-pod"
+	PAT_STATS_TRAFFIC_FOR_CONTROLLER_ALL  string = "stats/traffic/all-for-controller"
+	PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST string = "stats/traffic/last-for-controller"
+	PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL   string = "stats/traffic/all-for-namespace"
+	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST  string = "stats/traffic/last-for-namespace"
+	PAT_STATS_PODSTAT_FOR_POD_ALL         string = "stats/podstat/all-for-pod"
+	PAT_STATS_PODSTAT_FOR_POD_LAST        string = "stats/podstat/last-for-pod"
+	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL   string = "stats/podstat/all-for-namespace"
+	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST  string = "stats/podstat/last-for-namespace"
 
 	PAT_NAMESPACE_CREATE                string = "namespace/create"
 	PAT_NAMESPACE_DELETE                string = "namespace/delete"
@@ -419,6 +421,8 @@ var COMMAND_REQUESTS = []string{
 
 	PAT_STATS_TRAFFIC_FOR_POD_ALL,
 	PAT_STATS_TRAFFIC_FOR_POD_LAST,
+	PAT_STATS_TRAFFIC_FOR_CONTROLLER_ALL,
+	PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST,
 	PAT_STATS_PODSTAT_FOR_POD_ALL,
 	PAT_STATS_PODSTAT_FOR_POD_LAST,
 	PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL,

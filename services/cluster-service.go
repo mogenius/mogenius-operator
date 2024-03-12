@@ -781,7 +781,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	certMgrEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameCertManager, certManagerInstalledErr == nil, certManagerMsg, certMgrDescription, false, true, certManagerVersion, currentCertManagerVersion)
 	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
 	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
-	certMgrEntry.UpgradePattern = PAT_UPGRADE_CERT_MANAGER
+	certMgrEntry.UpgradePattern = "" // PAT_UPGRADE_CERT_MANAGER
 	certMgrEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
 	entries = append(entries, certMgrEntry)
 
@@ -840,7 +840,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, distriDescription, false, true, distriRegistryVersion, currentDistriRegistryVersion)
 	distriEntry.InstallPattern = PAT_INSTALL_CONTAINER_REGISTRY
 	distriEntry.UninstallPattern = PAT_UNINSTALL_CONTAINER_REGISTRY
-	distriEntry.UpgradePattern = PAT_UPGRADE_CONTAINER_REGISTRY
+	distriEntry.UpgradePattern = "" // PAT_UPGRADE_CONTAINER_REGISTRY
 	distriEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
 	entries = append(entries, distriEntry)
 
@@ -854,7 +854,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, metallbDescription, false, true, metallbVersion, currentMetallbVersion)
 	metallbEntry.InstallPattern = PAT_INSTALL_METALLB
 	metallbEntry.UninstallPattern = PAT_UNINSTALL_METALLB
-	metallbEntry.UpgradePattern = PAT_UPGRADE_METALLB
+	metallbEntry.UpgradePattern = "" // PAT_UPGRADE_METALLB
 	metallbEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
 	entries = append(entries, metallbEntry)
 
@@ -868,7 +868,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false, keplerVersion, currentKeplerVersion)
 	keplerEntry.InstallPattern = PAT_INSTALL_KEPLER
 	keplerEntry.UninstallPattern = PAT_UNINSTALL_KEPLER
-	keplerEntry.UpgradePattern = PAT_UPGRADE_KEPLER
+	keplerEntry.UpgradePattern = "" // PAT_UPGRADE_KEPLER
 	keplerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
 	entries = append(entries, keplerEntry)
 
@@ -892,14 +892,14 @@ func SystemCheck() punq.SystemCheckResponse {
 		if entry.CheckName == NameIngressController {
 			entries[i].InstallPattern = PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UninstallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
-			entries[i].UpgradePattern = PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
+			entries[i].UpgradePattern = "" // PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
 			entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
 		}
 		if entry.CheckName == NameMetricsServer {
 			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
 			entries[i].UninstallPattern = PAT_UNINSTALL_METRICS_SERVER
-			entries[i].UpgradePattern = PAT_UPGRADE_METRICS_SERVER
+			entries[i].UpgradePattern = "" // PAT_UPGRADE_METRICS_SERVER
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
 			entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
 		}

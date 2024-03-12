@@ -49,11 +49,6 @@ type Config struct {
 		Scheme string `yaml:"scheme" env:"event_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
 	} `yaml:"event_server"`
-	ShellServer struct {
-		Server string `yaml:"server" env:"shell_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
-		Scheme string `yaml:"scheme" env:"shell_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
-		Path   string `yaml:"path" env:"shell_path" env-description:"Server Path" env-default:"/ws-shell"`
-	} `yaml:"shell_server"`
 	Misc struct {
 		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
@@ -67,8 +62,10 @@ type Config struct {
 		NfsPodPrefix          string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
 	} `yaml:"misc"`
 	Builder struct {
-		BuildTimeout int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
-		ScanTimeout  int `yaml:"max_scan_time" env:"max_build_time" env-description:"Seconds until the vulnerability scan will be canceled." env-default:"200"`
+		BuildTimeout        int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
+		ScanTimeout         int `yaml:"max_scan_time" env:"max_build_time" env-description:"Seconds until the vulnerability scan will be canceled." env-default:"200"`
+		MaxDataPoints       int `yaml:"max_data_points" env:"max_data_points" env-description:"After x data points to collection will be overwritten LIFO principle." env-default:"1000"`
+		MaxConcurrentBuilds int `yaml:"max_concurrent_builds" env:"max_concurrent_builds" env-description:"Number of concurrent builds." env-default:"3"`
 	} `yaml:"builder"`
 	Git struct {
 		GitUserEmail      string `yaml:"git_user_email" env:"git_user_email" env-description:"Email address which is used when interacting with git." env-default:"git@mogenius.com"`
@@ -201,11 +198,6 @@ func PrintSettings() {
 	logger.Log.Infof("EventScheme:              %s", CONFIG.EventServer.Scheme)
 	logger.Log.Infof("EventPath:                %s\n\n", CONFIG.EventServer.Path)
 
-	logger.Log.Infof("SHELL")
-	logger.Log.Infof("ShellServer:              %s", CONFIG.ShellServer.Server)
-	logger.Log.Infof("ShellScheme:              %s", CONFIG.ShellServer.Scheme)
-	logger.Log.Infof("ShellPath:                %s\n\n", CONFIG.ShellServer.Path)
-
 	logger.Log.Infof("MISC")
 	logger.Log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
 	logger.Log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
@@ -217,6 +209,12 @@ func PrintSettings() {
 	logger.Log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
 	logger.Log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
 	logger.Log.Infof("NfsPodPrefix:             %s\n\n", CONFIG.Misc.NfsPodPrefix)
+
+	logger.Log.Infof("BUILDER")
+	logger.Log.Infof("BuildTimeout:             %d", CONFIG.Builder.BuildTimeout)
+	logger.Log.Infof("ScanTimeout:              %d", CONFIG.Builder.ScanTimeout)
+	logger.Log.Infof("MaxDataPoints:            %d", CONFIG.Builder.MaxDataPoints)
+	logger.Log.Infof("MaxConcurrentBuilds:      %d\n\n", CONFIG.Builder.MaxConcurrentBuilds)
 
 	logger.Log.Infof("GIT")
 	logger.Log.Infof("GitUserEmail:             %s", CONFIG.Git.GitUserEmail)
