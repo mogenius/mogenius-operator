@@ -46,6 +46,7 @@ const (
 	PAT_FILES_CHOWN         string = "files/chown"
 	PAT_FILES_CHMOD         string = "files/chmod"
 	PAT_FILES_DELETE        string = "files/delete"
+	PAT_FILES_INFO          string = "files/info"
 
 	PAT_CLUSTER_EXECUTE_HELM_CHART_TASK string = "cluster/execute-helm-chart-task"
 	PAT_CLUSTER_UNINSTALL_HELM_CHART    string = "cluster/uninstall-helm-chart"
@@ -327,6 +328,7 @@ const (
 	PAT_STORAGE_RESTORE_VOLUME  string = "storage/restore-volume"
 	PAT_STORAGE_STATS           string = "storage/stats"
 	PAT_STORAGE_NAMESPACE_STATS string = "storage/namespace/stats"
+	PAT_STORAGE_STATUS          string = "storage/status"
 
 	PAT_BUILDER_STATUS                 string = "build/builder-status"
 	PAT_BUILD_INFOS                    string = "build/info"
@@ -399,6 +401,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_FILES_CHOWN,
 	PAT_FILES_CHMOD,
 	PAT_FILES_DELETE,
+	PAT_FILES_INFO,
 
 	PAT_CLUSTER_EXECUTE_HELM_CHART_TASK,
 	PAT_CLUSTER_UNINSTALL_HELM_CHART,
@@ -679,6 +682,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_STORAGE_RESTORE_VOLUME,
 	PAT_STORAGE_STATS,
 	PAT_STORAGE_NAMESPACE_STATS,
+	PAT_STORAGE_STATUS,
 
 	PAT_BUILDER_STATUS,
 	PAT_BUILD_INFOS,

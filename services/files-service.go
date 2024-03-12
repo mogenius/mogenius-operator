@@ -33,6 +33,16 @@ func List(r FilesListRequest) []dtos.PersistentFileDto {
 	return result
 }
 
+func Info(r dtos.PersistentFileRequestDto) dtos.PersistentFileDto {
+	result := dtos.PersistentFileDto{}
+	pathToFile, err := verify(&r)
+	if err != nil {
+		logger.Log.Errorf("file info verify error: %s", err.Error())
+		return result
+	}
+	return dtos.PersistentFileDtoFrom(pathToFile, pathToFile)
+}
+
 func Download(r FilesDownloadRequest) interface{} {
 	result := FilesDownloadResponse{
 		SizeInBytes: 0,
@@ -418,7 +428,7 @@ func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
 		if strings.Count(relPath, string(os.PathSeparator)) > maxDepth {
 			return fs.SkipDir
 		}
-		result = append(result, dtos.PersistentFileDtoFrom(rootDir, path, d))
+		result = append(result, dtos.PersistentFileDtoFrom(rootDir, path))
 		return nil
 	})
 	return result, err

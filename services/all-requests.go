@@ -9,6 +9,7 @@ import (
 	"log"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"os"
@@ -275,6 +276,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return Download(data)
+	case PAT_FILES_INFO:
+		data := dtos.PersistentFileRequestDto{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return Info(data)
 
 	case PAT_CLUSTER_EXECUTE_HELM_CHART_TASK:
 		data := ClusterHelmRequest{}
@@ -1935,6 +1943,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return StatsMogeniusNfsNamespace(data)
+	case PAT_STORAGE_STATUS:
+		data := NfsStatusRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return StatusMogeniusNfs(data)
 	case PAT_POPEYE_CONSOLE:
 		return PopeyeConsole()
 	case PAT_LOG_LIST_ALL:
