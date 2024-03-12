@@ -522,6 +522,7 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 	}
 	newLine += line
 	newLine += "\n"
+	newLine = cleanPasswords(job, newLine)
 	cmdOutput.Write([]byte(newLine))
 	if saveLog {
 		if job != nil {
@@ -549,6 +550,29 @@ func processLine(enableTimestamp bool, saveLog bool, prefix string, lineNumber i
 		}
 		structs.EventServerSendData(data, "", "", "", 0)
 	}
+}
+
+func cleanPasswords(job *structs.BuildJob, line string) string {
+	if job == nil {
+		return line
+	}
+	if job.Project.GitAccessToken != nil {
+		line = strings.ReplaceAll(line, *job.Project.GitAccessToken, "****")
+	}
+	if job.Project.ContainerRegistryPat != nil {
+		line = strings.ReplaceAll(line, *job.Project.ContainerRegistryPat, "****")
+	}
+	if job.Project.ContainerRegistryUser != nil {
+		line = strings.ReplaceAll(line, *job.Project.ContainerRegistryUser, "****")
+	}
+	for _, container := range job.Service.Containers {
+		for _, v := range container.EnvVars {
+			if v.Type == dtos.EnvVarKeyVault {
+				line = strings.ReplaceAll(line, v.Value, "****")
+			}
+		}
+	}
+	return line
 }
 
 func updateContainerImage(reportCmd *structs.Command, job *structs.BuildJob, containerName string, imageName string) error {

@@ -375,13 +375,8 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
-			if err == nil {
-				// THIS IS A FILTER TO HANDLE DUPLICATED REQUESTS
-				// if job.GitCommitHash == buildJob.GitCommitHash {
-				// 	err = fmt.Errorf("Duplicate BuildJob '%s (%s)' found. Not adding to Queue.", job.ControllerName, job.GitCommitHash)
-				// 	logger.Log.Error(err.Error())
-				// 	return err
-				// }
+			if err != nil {
+				logger.Log.Errorf("AddToDb (unmarshall) ERR: %s", err.Error())
 			}
 		}
 		buildJob.BuildId = int(nextBuildId)
