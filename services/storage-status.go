@@ -61,8 +61,8 @@ type StorageStatus struct {
 	//
 	Namespace             string     `json:"namespace"`
 	Provisioning          string     `json:"provisioning"`
-	PersistentVolume      string     `json:"persistentVolume"`
-	PersistentVolumeClaim string     `json:"persistentVolumeClaims"`
+	PersistentVolume      string     `json:"persistentVolume,omitempty"`
+	PersistentVolumeClaim string     `json:"persistentVolumeClaims,omitempty"`
 	UsedBy                []string   `json:"usedBy,omitempty"`
 	VolumeEvents          []v1.Event `json:"volumeEvents,omitempty"`
 	VolumeClaimEvents     []v1.Event `json:"volumeClaimEvents,omitempty"`
@@ -82,11 +82,11 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 
 	if StorageAPIObjectFromString(r.StorageAPIObject) == StorageTypePersistentVolume {
 		if _, err := storageStatus.GetByPVName(r.Name); err != nil {
-			return NfsStatusResponse{Error: err.Error()}
+			return NfsStatusResponse{Status: storageStatus, Error: err.Error()}
 		}
 	} else if StorageAPIObjectFromString(r.StorageAPIObject) == StorageTypePersistentVolumeClaim {
 		if _, err := storageStatus.GetByPVCName(r.Namespace, r.Name); err != nil {
-			return NfsStatusResponse{Error: err.Error()}
+			return NfsStatusResponse{Status: storageStatus, Error: err.Error()}
 		}
 	} else {
 		return NfsStatusResponse{Error: "Invalid StorageAPIObject"}
@@ -115,7 +115,7 @@ func (s *StorageStatus) GetByPVCName(namespace, name string) (*StorageStatus, er
 	// Get the PV from volumeName
 	pv, err := s.getPV(pvc.Spec.VolumeName)
 	if err != nil {
-		logger.Log.Warningf("Warning getting PV: %v\n", err)
+		logger.Log.Warningf("Warning getting PV from pvc.Spec.VolumeName: %v, error: %v\n", pvc.Spec.VolumeName, err)
 		return s, err
 	}
 	s.PersistentVolumeObject = pv

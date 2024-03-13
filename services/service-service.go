@@ -807,7 +807,7 @@ type ServiceResourceStatusRequest struct {
 	Resource   string `json:"resource" validate:"required"` // pods, services, deployments
 	Namespace  string `json:"namespace" validate:"required"`
 	Name       string `json:"name" validate:"required"`
-	StatusOnly bool   `json:"statusOnly" validate:"required"`
+	StatusOnly bool   `json:"statusOnly"`
 }
 
 func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
