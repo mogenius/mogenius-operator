@@ -139,14 +139,16 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		PrintSettings()
 	}
 
-	if CONFIG.Misc.Debug {
-		log.SetReportCaller(true)
-	}
-
+	// SET LOGGING
+	log.SetReportCaller(CONFIG.Misc.Debug)
 	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
 		log.SetFormatter(&log.JSONFormatter{})
 	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
-		log.SetFormatter(&log.TextFormatter{})
+		log.SetFormatter(&log.TextFormatter{
+			ForceColors:      true,
+			DisableTimestamp: true,
+			DisableQuote:     true,
+		})
 	} else {
 		log.SetFormatter(&log.TextFormatter{})
 	}

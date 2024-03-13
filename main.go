@@ -41,11 +41,17 @@ func main() {
 		dbstats.Close()
 	}()
 
-	utils.PrintLogo()
-
+	// DEFAULT LOGGING
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.TraceLevel)
 	log.AddHook(&utils.SecretRedactionHook{})
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:      true,
+		DisableTimestamp: true,
+		DisableQuote:     true,
+	})
+
+	utils.PrintLogo()
 
 	utils.DefaultConfigClusterFilePreDev = DefaultConfigClusterFilePreDev
 	utils.DefaultConfigClusterFileDev = DefaultConfigClusterFileDev
