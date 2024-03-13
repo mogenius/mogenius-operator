@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"strings"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -215,7 +215,7 @@ func WriteConfigMap(namespace string, name string, data string, labels map[strin
 			return err
 		}
 	} else {
-		logger.Log.Errorf("CreateOrUpdateConfigMap ERROR: %s", err.Error())
+		log.Errorf("CreateOrUpdateConfigMap ERROR: %s", err.Error())
 		return err
 	}
 	return nil

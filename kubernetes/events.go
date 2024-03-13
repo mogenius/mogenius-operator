@@ -3,9 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"log"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"time"
 
@@ -18,6 +16,7 @@ import (
 
 	"k8s.io/client-go/util/retry"
 
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -32,7 +31,7 @@ func WatchEvents() {
 	for {
 		provider, err := punq.NewKubeProvider(nil)
 		if provider == nil || err != nil {
-			logger.Log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+			log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 			return
 		}
 
@@ -46,12 +45,11 @@ func WatchEvents() {
 			log.Printf("Error creating watcher: %v", err)
 			continue
 		} else {
-			logger.Log.Notice("Watcher connected successfully. Start watching events...")
+			log.Info("Watcher connected successfully. Start watching events...")
 		}
 
 		// Start watching events
 		for event := range watcher.ResultChan() {
-			//fmt.Println(event)
 			if event.Object != nil {
 				eventDto := dtos.CreateEvent(string(event.Type), event.Object)
 				datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
@@ -67,20 +65,20 @@ func WatchEvents() {
 					structs.EventServerSendData(datagram, kind, reason, message, count)
 				} else if event.Type == "ERROR" {
 					var errObj *v1.Status = event.Object.(*v1.Status)
-					logger.Log.Errorf("WATCHER (%d): '%s'", errObj.Code, errObj.Message)
-					logger.Log.Error("WATCHER: Reset lastResourceVersion to empty.")
+					log.Errorf("WATCHER (%d): '%s'", errObj.Code, errObj.Message)
+					log.Error("WATCHER: Reset lastResourceVersion to empty.")
 					lastResourceVersion = ""
 					time.Sleep(RETRYTIMEOUT * time.Second) // Wait for 5 seconds before retrying
 					break
 				}
 			} else {
-				logger.Log.Errorf("WATCHER: Malformed event received Restarting watcher.")
+				log.Errorf("WATCHER: Malformed event received Restarting watcher.")
 				break
 			}
 		}
 
 		// If the watcher channel is closed, wait for 5 seconds before retrying
-		logger.Log.Errorf("Watcher channel closed. Waiting before retrying with '%s' ...", lastResourceVersion)
+		log.Errorf("Watcher channel closed. Waiting before retrying with '%s' ...", lastResourceVersion)
 		watcher.Stop()
 		time.Sleep(RETRYTIMEOUT * time.Second)
 	}
@@ -89,7 +87,7 @@ func WatchEvents() {
 func NewEventWatcher() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		logger.Log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -132,7 +130,7 @@ func NewEventWatcher() {
 	// 		},
 	// 	})
 	// 	if err != nil {
-	// 		logger.Log.Errorf("Error adding event handler: %s", err.Error())
+	// 		log.Errorf("Error adding event handler: %s", err.Error())
 	// 		return err
 	// 	}
 

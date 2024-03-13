@@ -3,7 +3,6 @@ package structs
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"os/exec"
 	"sync"
@@ -11,6 +10,7 @@ import (
 
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type Command punqStructs.Command
@@ -83,16 +83,17 @@ func CreateShellCommand(title string, job *Job, shellCmd string, wg *sync.WaitGr
 		cmd.Start(title)
 
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		fmt.Println(string(shellCmd))
-		fmt.Println(string(output))
+		log.Info(string(shellCmd))
+		log.Info(string(output))
+
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
-			logger.Log.Error(shellCmd)
-			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
+			log.Error(shellCmd)
+			log.Errorf("%d: %s", exitCode, errorMsg)
 			cmd.Fail(fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
 		} else if err != nil {
-			logger.Log.Error("exec.Command: %s", err.Error())
+			log.Errorf("exec.Command: %s", err.Error())
 		} else {
 			cmd.Success(title)
 		}
@@ -103,23 +104,23 @@ func CreateShellCommand(title string, job *Job, shellCmd string, wg *sync.WaitGr
 func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		fmt.Println(string(shellCmd))
-		fmt.Println(string(output))
+		log.Info(string(shellCmd))
+		log.Info(string(output))
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
-			logger.Log.Error(shellCmd)
-			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
+			log.Error(shellCmd)
+			log.Errorf("%d: %s", exitCode, errorMsg)
 			if failFunc != nil {
 				failFunc(string(output), exitErr)
 			}
 		} else if err != nil {
-			logger.Log.Error("exec.Command: %s", err.Error())
+			log.Errorf("exec.Command: %s", err.Error())
 			if failFunc != nil {
 				failFunc(string(output), err)
 			}
 		} else {
-			logger.Log.Noticef("SUCCESS: %s", shellCmd)
+			log.Infof("SUCCESS: %s", shellCmd)
 			if successFunc != nil {
 				successFunc()
 			}
@@ -139,7 +140,7 @@ func (cmd *Command) Fail(error string) {
 	cmd.Message = error
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
 	if utils.CONFIG.Misc.Debug {
-		logger.Log.Errorf("Command '%s' failed: %s", cmd.Title, error)
+		log.Errorf("Command '%s' failed: %s", cmd.Title, error)
 	}
 	ReportStateToServer(nil, cmd)
 }

@@ -3,7 +3,6 @@ package db
 import (
 	"bytes"
 	"fmt"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"time"
@@ -11,6 +10,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -40,8 +40,8 @@ var db *bolt.DB
 func Init() {
 	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		logger.Log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbPath)
-		logger.Log.Fatal(err.Error())
+		log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbPath)
+		log.Fatal(err.Error())
 	}
 	// ### BUILD BUCKET ###
 	db = database
@@ -53,7 +53,7 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("Error creating bucket ('%s'): %s", BUILD_BUCKET_NAME, err)
+		log.Errorf("Error creating bucket ('%s'): %s", BUILD_BUCKET_NAME, err)
 	}
 	// ### SCAN BUCKET ### create a new scan bucket on every startup
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -76,7 +76,7 @@ func Init() {
 			return nil
 		})
 		if err != nil {
-			logger.Log.Errorf("Error recreating bucket ('%s'): %s", SCAN_BUCKET_NAME, err)
+			log.Errorf("Error recreating bucket ('%s'): %s", SCAN_BUCKET_NAME, err)
 		}
 	}
 	// ### LOG BUCKET ###
@@ -89,7 +89,7 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
+		log.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
 	}
 
 	// ### MIGRATION BUCKET ###
@@ -102,10 +102,10 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
+		log.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
 	}
 
-	logger.Log.Noticef("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbPath)
+	log.Infof("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbPath)
 }
 
 func Close() {
@@ -127,13 +127,13 @@ func GetJobsToBuildFromDb() []structs.BuildJob {
 					result = append(result, job)
 				}
 			} else {
-				logger.Log.Errorf("ProcessQueue (unmarshall) ERR: %s", err.Error())
+				log.Errorf("ProcessQueue (unmarshall) ERR: %s", err.Error())
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetJobsToBuildFromDb (db) ERR: %s", err.Error())
+		log.Errorf("GetJobsToBuildFromDb (db) ERR: %s", err.Error())
 	}
 	return result
 }
@@ -164,7 +164,7 @@ func StartScanInCache(data structs.BuildJobInfoEntry, imageName string) {
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		bytes, err := json.Marshal(data)
 		if err != nil {
-			logger.Log.Errorf("Error %s: %s", PREFIX_VUL_SCAN, err.Error())
+			log.Errorf("Error %s: %s", PREFIX_VUL_SCAN, err.Error())
 		}
 		bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, imageName)), bytes)
 		return nil
@@ -210,7 +210,7 @@ func GetBuilderStatus() structs.BuilderStatus {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
+		log.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
 	}
 	return result
 }
@@ -236,7 +236,7 @@ func GetBuildJobInfosFromDb(buildId int) structs.BuildJobInfos {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetBuildJobFromDb (db) ERR: %s", err.Error())
+		log.Errorf("GetBuildJobFromDb (db) ERR: %s", err.Error())
 	}
 
 	return result
@@ -268,7 +268,7 @@ func GetBuildJobListFromDb() []structs.BuildJob {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetBuildJobListFromDb: %s", err.Error())
+		log.Errorf("GetBuildJobListFromDb: %s", err.Error())
 	}
 	return result
 }
@@ -281,15 +281,15 @@ func UpdateStateInDb(buildJob structs.BuildJob, newState punqStructs.JobStateEnu
 		err := structs.UnmarshalJob(&job, jobData)
 		if err == nil {
 			job.State = newState
-			return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(job)))
+			return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(utils.PrettyPrintInterface(job)))
 		}
 		return err
 	})
 	if err != nil {
 		errStr := fmt.Sprintf("Error updating state for build '%d'. REASON: %s", buildJob.BuildId, err.Error())
-		logger.Log.Error(errStr)
+		log.Error(errStr)
 	}
-	logger.Log.Infof(fmt.Sprintf("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState))
+	log.Infof(fmt.Sprintf("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState))
 }
 
 func PositionInQueueFromDb(buildId int) int {
@@ -322,10 +322,10 @@ func PositionInQueueFromDb(buildId int) int {
 func SaveJobInDb(buildJob structs.BuildJob) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
+		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(utils.PrettyPrintInterface(buildJob)))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error saving job '%d'.", buildJob.BuildId)
+		log.Errorf("Error saving job '%d'.", buildJob.BuildId)
 	}
 }
 
@@ -338,13 +338,13 @@ func PrintAllEntriesFromDb(bucket string, prefix string) {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err != nil {
-				logger.Log.Noticef("bucket=%s, key=%s, value=%s\n", bucket, k, job.BuildId)
+				log.Infof("bucket=%s, key=%s, value=%s\n", bucket, k, job.BuildId)
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("printAllEntries: %s", err.Error())
+		log.Errorf("printAllEntries: %s", err.Error())
 	}
 }
 
@@ -375,17 +375,12 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
-			if err == nil {
-				// THIS IS A FILTER TO HANDLE DUPLICATED REQUESTS
-				// if job.GitCommitHash == buildJob.GitCommitHash {
-				// 	err = fmt.Errorf("Duplicate BuildJob '%s (%s)' found. Not adding to Queue.", job.ControllerName, job.GitCommitHash)
-				// 	logger.Log.Error(err.Error())
-				// 	return err
-				// }
+			if err != nil {
+				log.Errorf("AddToDb (unmarshall) ERR: %s", err.Error())
 			}
 		}
 		buildJob.BuildId = int(nextBuildId)
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
+		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(utils.PrettyPrintInterface(buildJob)))
 	})
 	return int(nextBuildId), err
 }
@@ -397,7 +392,7 @@ func SaveScanResult(state punqStructs.JobStateEnum, cmdOutput string, startTime 
 		return bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, containerImageName)), entry)
 	})
 	if err != nil {
-		logger.Log.Errorf("Error saving scan result for '%s'.", containerImageName)
+		log.Errorf("Error saving scan result for '%s'.", containerImageName)
 	}
 	return err
 }
@@ -409,7 +404,7 @@ func SaveBuildResult(state punqStructs.JobStateEnum, prefix string, cmdOutput st
 		return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), entry)
 	})
 	if err != nil {
-		logger.Log.Errorf("Error saving build result for '%d'.", job.BuildId)
+		log.Errorf("Error saving build result for '%d'.", job.BuildId)
 	}
 	return err
 }
@@ -422,7 +417,7 @@ func AddLogToDb(title string, message string, category structs.Category, logType
 		return bucket.Put([]byte(fmt.Sprintf("%s_%s_%s", entry.CreatedAt, entry.Category, entry.Type)), structs.LogBytes(entry))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error adding log for '%s'.", title)
+		log.Errorf("Error adding log for '%s'.", title)
 	}
 	return err
 }
@@ -444,7 +439,7 @@ func ListLogFromDb() []structs.Log {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("ListLog: %s", err.Error())
+		log.Errorf("ListLog: %s", err.Error())
 	}
 	return result
 }
@@ -457,7 +452,7 @@ func AddMigrationToDb(name string) error {
 		return bucket.Put([]byte(entry.Name), structs.MigrationBytes(entry))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error adding migration '%s'.", name)
+		log.Errorf("Error adding migration '%s'.", name)
 	}
 	return err
 }

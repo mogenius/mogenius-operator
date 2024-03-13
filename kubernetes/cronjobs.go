@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqutils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,7 +61,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 }
 
 func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	logger.Log.Infof("CreateCronJob K8sServiceDto: %s", service)
+	log.Infof("CreateCronJob K8sServiceDto: %s", service)
 
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating CronJob '%s'.", namespace.Name), job)
 	wg.Add(1)
@@ -83,7 +83,7 @@ func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, true, cronJobClient, createCronJobHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 
 		newCronJob := newController.(*v1job.CronJob)
@@ -144,7 +144,7 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 
 		newCronJob := newController.(*v1job.CronJob)
@@ -180,7 +180,7 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 
 		cronJob := newController.(*v1job.CronJob)
@@ -210,7 +210,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 		cronJob := newController.(*v1job.CronJob)
 		cronJob.Spec.Suspend = punqutils.Pointer(true)
@@ -240,7 +240,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 		cronJob := newController.(*v1job.CronJob)
 
@@ -384,7 +384,7 @@ func AllCronjobs(namespaceName string) K8sWorkloadResult {
 	}
 	cronJobList, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
-		logger.Log.Errorf("AllCronjobs ERROR: %s", err.Error())
+		log.Errorf("AllCronjobs ERROR: %s", err.Error())
 		return WorkloadResult(nil, err)
 	}
 
@@ -427,8 +427,8 @@ func DescribeK8sCronJob(namespace string, name string) K8sWorkloadResult {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logger.Log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		logger.Log.Errorf("Error: %s", string(output))
+		log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+		log.Errorf("Error: %s", string(output))
 		return WorkloadResult(nil, string(output))
 	}
 	return WorkloadResult(string(output), nil)

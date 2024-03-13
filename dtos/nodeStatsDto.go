@@ -1,9 +1,8 @@
 package dtos
 
 import (
-	"fmt"
-
 	punq "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type NodeStat struct {
@@ -20,7 +19,7 @@ type NodeStat struct {
 }
 
 func (o *NodeStat) PrintPretty() {
-	fmt.Printf("%s: %s %s [%s/%s] - CPUs: %d, RAM: %s, Ephemeral: %s, MaxPods: %d\n",
+	log.Infof("%s: %s %s [%s/%s] - CPUs: %d, RAM: %s, Ephemeral: %s, MaxPods: %d\n",
 		o.Name,
 		o.KubletVersion,
 		o.OsImage,

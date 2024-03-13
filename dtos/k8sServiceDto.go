@@ -1,5 +1,7 @@
 package dtos
 
+import utils "mogenius-k8s-manager/utils"
+
 type K8sServiceDto struct {
 	Id                 string                   `json:"id" validate:"required"`
 	DisplayName        string                   `json:"displayName" validate:"required"`
@@ -9,6 +11,16 @@ type K8sServiceDto struct {
 	DeploymentStrategy DeploymentStrategyEnum   `json:"deploymentStrategy"`
 	CronJobSettings    *K8sCronJobSettingsDto   `json:"cronJobSettings"`
 	Containers         []K8sContainerDto        `json:"containers"`
+}
+
+func (s *K8sServiceDto) AddSecretsToRedaction() {
+	for _, container := range s.Containers {
+		utils.AddSecret(container.ContainerImageRepoSecretDecryptValue)
+		utils.AddSecret(container.ContainerImageRepoSecretId)
+		for _, envSecret := range container.EnvVars {
+			utils.AddSecret(&envSecret.Value)
+		}
+	}
 }
 
 func (k *K8sServiceDto) HasContainerWithGitRepo() bool {

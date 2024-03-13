@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -189,7 +189,7 @@ func loadDefaultAnnotations() map[string]string {
 		if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
 			var annotations map[string]string
 			if err := json.Unmarshal([]byte(annotationsRaw), &annotations); err != nil {
-				fmt.Println("Error unmarshalling annotations from mogenius-default-ingress-values:", err)
+				log.Errorf("Error unmarshalling annotations from mogenius-default-ingress-values: %s", err.Error())
 				return result
 			}
 			for key, value := range annotations {
@@ -252,21 +252,21 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 					indexesToRemove = append(indexesToRemove, index)
 				}
 			}
-			logger.Log.Infof("Following indexes will be remove: %v", indexesToRemove)
+			log.Infof("Following indexes will be remove: %v", indexesToRemove)
 			if len(indexesToRemove) > 0 {
 				for _, indexToRemove := range indexesToRemove {
 					service.Spec.Ports = punqUtils.Remove(service.Spec.Ports, indexToRemove)
 				}
-				logger.Log.Infof("%d indexes successfully remove.", len(indexesToRemove))
+				log.Infof("%d indexes successfully remove.", len(indexesToRemove))
 
 				// TODO wieder einkommentieren wenn ordentlich getest in DEV. sieht gut aus.
 				//UpdateServiceWith(service)
 			}
 			return
 		}
-		logger.Log.Error("IngressController has no ports defined.")
+		log.Error("IngressController has no ports defined.")
 	}
-	logger.Log.Error("Could not load service mogenius/mogenius-ingress-nginx-controller.")
+	log.Error("Could not load service mogenius/mogenius-ingress-nginx-controller.")
 }
 
 func CreateMogeniusContainerRegistryIngress() {
@@ -275,7 +275,7 @@ func CreateMogeniusContainerRegistryIngress() {
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		logger.Log.Error(fmt.Sprintf("CreateMogeniusContainerRegistryIngress ERROR: %s", err.Error()))
+		log.Error(fmt.Sprintf("CreateMogeniusContainerRegistryIngress ERROR: %s", err.Error()))
 	}
 
 	client := provider.ClientSet.NetworkingV1().Ingresses(ing.Namespace)
@@ -283,12 +283,12 @@ func CreateMogeniusContainerRegistryIngress() {
 	if apierrors.IsNotFound(err) {
 		_, err = client.Create(context.TODO(), &ing, metav1.CreateOptions{})
 		if err == nil {
-			logger.Log.Noticef("Created ingress '%s' in namespace '%s'.", ing.Name, ing.Namespace)
+			log.Infof("Created ingress '%s' in namespace '%s'.", ing.Name, ing.Namespace)
 		} else {
-			logger.Log.Errorf("CreateMogeniusContainerRegistryIngress ERROR: %s", err.Error())
+			log.Errorf("CreateMogeniusContainerRegistryIngress ERROR: %s", err.Error())
 		}
 	} else {
-		logger.Log.Noticef("Ingress '%s' in namespace '%s' already exists.", ing.Name, ing.Namespace)
+		log.Infof("Ingress '%s' in namespace '%s' already exists.", ing.Name, ing.Namespace)
 	}
 }
 
@@ -301,7 +301,7 @@ func CreateMogeniusContainerRegistryTlsSecret() {
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		logger.Log.Error(fmt.Sprintf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error()))
+		log.Error(fmt.Sprintf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error()))
 	}
 
 	client := provider.ClientSet.CoreV1().Secrets(secret.Namespace)
@@ -310,11 +310,11 @@ func CreateMogeniusContainerRegistryTlsSecret() {
 	if apierrors.IsNotFound(err) {
 		_, err = client.Create(context.TODO(), &secret, metav1.CreateOptions{})
 		if err == nil {
-			logger.Log.Noticef("Created secret '%s' in namespace '%s'.", secret.Name, secret.Namespace)
+			log.Infof("Created secret '%s' in namespace '%s'.", secret.Name, secret.Namespace)
 		} else {
-			logger.Log.Errorf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error())
+			log.Errorf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error())
 		}
 	} else {
-		logger.Log.Noticef("Secret '%s' in namespace '%s' already exists.", secret.Name, secret.Namespace)
+		log.Infof("Secret '%s' in namespace '%s' already exists.", secret.Name, secret.Namespace)
 	}
 }

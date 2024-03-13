@@ -3,13 +3,13 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -31,10 +31,10 @@ func ClusterForceReconnect() bool {
 	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)
 
 	for _, podName := range podsToKill {
-		logger.Log.Warningf("Restarting %s ...", podName)
+		log.Warningf("Restarting %s ...", podName)
 		err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{})
 		if err != nil {
-			logger.Log.Errorf("ClusterForceReconnect ERR: %s", err.Error())
+			log.Errorf("ClusterForceReconnect ERR: %s", err.Error())
 		}
 	}
 

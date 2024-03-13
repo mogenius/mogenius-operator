@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -144,12 +144,12 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 	ingControllerService := punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller", nil)
 
 	if tcpConfigmap == nil {
-		logger.Log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp")
+		log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp")
 		return
 	}
 
 	if udpConfigmap == nil {
-		logger.Log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp")
+		log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp")
 		return
 	}
 
@@ -211,15 +211,15 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 	// 4. write results to k8s
 	tcpResult := punq.UpdateK8sConfigMap(*tcpConfigmap, nil)
 	if tcpResult.Error != nil {
-		logger.Log.Errorf("UpdateK8sConfigMap: %s", tcpResult)
+		log.Errorf("UpdateK8sConfigMap: %s", tcpResult)
 	}
 	udpResult := punq.UpdateK8sConfigMap(*udpConfigmap, nil)
 	if udpResult.Error != nil {
-		logger.Log.Errorf("UpdateK8sConfigMap: %s", udpResult)
+		log.Errorf("UpdateK8sConfigMap: %s", udpResult)
 	}
 	ingContrResult := punq.UpdateK8sService(*ingControllerService, nil)
 	if ingContrResult.Error != nil {
-		logger.Log.Errorf("UpdateK8sConfigMap: %s", ingContrResult)
+		log.Errorf("UpdateK8sConfigMap: %s", ingContrResult)
 	}
 }
 
@@ -343,23 +343,23 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 func ServiceWithLabels(labelSelector string, contextId *string) *v1.Service {
 	provider, err := punq.NewKubeProvider(contextId)
 	if err != nil {
-		logger.Log.Errorf("ServiceWith ERROR: %s", err.Error())
+		log.Errorf("ServiceWith ERROR: %s", err.Error())
 		return nil
 	}
 	serviceClient := provider.ClientSet.CoreV1().Services("")
 	service, err := serviceClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
-		logger.Log.Errorf("ServiceFor ERROR: %s", err.Error())
+		log.Errorf("ServiceFor ERROR: %s", err.Error())
 		return nil
 	}
 
 	if len(service.Items) == 1 {
 		return &service.Items[0]
 	} else if len(service.Items) > 1 {
-		logger.Log.Errorf("ServiceFor ERR: More (%d) than one service found for '%s'. Returning first one.", len(service.Items), labelSelector)
+		log.Errorf("ServiceFor ERR: More (%d) than one service found for '%s'. Returning first one.", len(service.Items), labelSelector)
 		return &service.Items[0]
 	} else {
-		logger.Log.Errorf("ServiceFor ERR: No service found for labelsSelector '%s'.", labelSelector)
+		log.Errorf("ServiceFor ERR: No service found for labelsSelector '%s'.", labelSelector)
 		return nil
 	}
 }

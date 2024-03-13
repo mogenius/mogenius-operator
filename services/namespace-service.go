@@ -3,13 +3,13 @@ package services
 import (
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"os"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func CreateNamespace(r NamespaceCreateRequest) structs.Job {
@@ -79,9 +79,9 @@ func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClu
 }
 
 func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
-	logger.Log.Infof("CleanupIngressPorts: %d ports received from DB.", len(r.Ports))
+	log.Infof("CleanupIngressPorts: %d ports received from DB.", len(r.Ports))
 	if len(r.Ports) <= 0 {
-		logger.Log.Error("Received empty ports list. Something seems wrong. Skipping process.")
+		log.Error("Received empty ports list. Something seems wrong. Skipping process.")
 		return nil
 	}
 	mokubernetes.CleanupIngressControllerServicePorts(r.Ports)

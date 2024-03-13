@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"net/url"
@@ -13,6 +11,8 @@ import (
 	"os/signal"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
@@ -94,7 +94,7 @@ func UnmarshalJobListEntry(dst *BuildJob, data []byte) error {
 func SendData(sendToServer string, data []byte) {
 	resp, err := http.Post(sendToServer, "application/json", bytes.NewBuffer(data))
 	if err != nil {
-		logger.Log.Errorf("Error occurred during sending the request. Error: %s", err)
+		log.Errorf("Error occurred during sending the request. Error: %s", err)
 	} else {
 		defer resp.Body.Close()
 	}
@@ -104,17 +104,17 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 	header := utils.HttpHeader("-logs")
 	connection, _, err := websocket.DefaultDialer.Dial(sendToServer, header)
 	if err != nil {
-		logger.Log.Errorf("Connection to stream endpoint (%s) failed: %s\n", sendToServer, err.Error())
+		log.Errorf("Connection to stream endpoint (%s) failed: %s\n", sendToServer, err.Error())
 	} else {
 		// API send ack when it is ready to receive messages.
 		connection.SetReadDeadline(time.Now().Add(2 * time.Second))
 		_, ack, err := connection.ReadMessage()
 		if err != nil {
-			logger.Log.Errorf("Error reading ack message: %s.", err)
+			log.Errorf("Error reading ack message: %s.", err)
 			return
 		}
 
-		logger.Log.Infof("Ready ack from stream endpoint: %s.", string(ack))
+		log.Infof("Ready ack from stream endpoint: %s.", string(ack))
 
 		buf := make([]byte, 1024)
 		for {
@@ -122,18 +122,18 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 				n, err := reader.Read(buf)
 				if err != nil {
 					if err != io.EOF {
-						logger.Log.Errorf("Unexpected stop of stream: %s.", sendToServer)
+						log.Errorf("Unexpected stop of stream: %s.", sendToServer)
 					}
 					return
 				}
 				if connection != nil {
 					// debugging
 					// str := string(buf[:n])
-					// logger.Log.Infof("Send data ws: %s.", str)
+					// log.Infof("Send data ws: %s.", str)
 
 					err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
 					if err != nil {
-						logger.Log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
+						log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
 						return
 					}
 
@@ -144,7 +144,7 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 					// 	}
 					// }
 				} else {
-					logger.Log.Errorf("%s - connection cannot be nil.", sendToServer)
+					log.Errorf("%s - connection cannot be nil.", sendToServer)
 					return
 				}
 			} else {

@@ -6,18 +6,15 @@ package cmd
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io/ioutil"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logger"
 	socketserver "mogenius-k8s-manager/socket-server"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-
-	punqStructs "github.com/mogenius/punq/structs"
 )
 
 var testServerCmd = &cobra.Command{
@@ -28,7 +25,7 @@ var testServerCmd = &cobra.Command{
 		// SETUP SECRET
 		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist()
 		if err != nil {
-			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
+			log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
 
 		utils.SetupClusterSecret(clusterSecret)
@@ -38,7 +35,7 @@ var testServerCmd = &cobra.Command{
 		if utils.CONFIG.Misc.AutoMountNfs {
 			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
 			if err != nil && utils.CONFIG.Misc.Stage != utils.STAGE_LOCAL {
-				logger.Log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
+				log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
 			}
 			for _, vol := range volumesToMount {
 				mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
@@ -57,12 +54,12 @@ var testServerCmd = &cobra.Command{
 			for {
 				select {
 				case <-cancelCtx.Done():
-					fmt.Println("done")
+					log.Debug("done")
 					return
 				default:
 					for reader.Scan() {
 						lastBytes := reader.Bytes()
-						fmt.Println(string(lastBytes))
+						log.Debug(string(lastBytes))
 					}
 				}
 			}
@@ -74,13 +71,13 @@ var testServerCmd = &cobra.Command{
 
 			data, err := ioutil.ReadAll(c.Request.Body)
 			if err != nil {
-				fmt.Println(err.Error())
+				log.Errorf("build-notification-test: %s", err.Error())
 			}
-			punqStructs.PrettyPrintJSON(data)
+			utils.PrettyPrintInterfaceLog(data)
 
 		})
 		socketserver.Init(router)
-		logger.Log.Noticef("Started WS server %s 🚀", utils.CONFIG.ApiServer.Ws_Server)
+		log.Infof("Started WS server %s 🚀", utils.CONFIG.ApiServer.Ws_Server)
 
 		go socketserver.ReadInput()
 		router.Run()
