@@ -2,12 +2,12 @@ package kubernetes
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"os"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	log "github.com/sirupsen/logrus"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
@@ -27,15 +27,15 @@ func HelmStatus(namespace string, chartname string) punq.SystemCheckStatus {
 	settings.SetNamespace(namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), logger.Log.Infof); err != nil {
-		logger.Log.Errorf("HelmStatus Init Error: %s", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), log.Infof); err != nil {
+		log.Errorf("HelmStatus Init Error: %s", err.Error())
 		return punq.UNKNOWN_STATUS
 	}
 
 	list := action.NewList(actionConfig)
 	releases, err := list.Run()
 	if err != nil {
-		logger.Log.Errorf("HelmStatus List Error: %s", err.Error())
+		log.Errorf("HelmStatus List Error: %s", err.Error())
 		return punq.UNKNOWN_STATUS
 	}
 

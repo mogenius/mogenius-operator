@@ -4,8 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
-	"log"
-	"mogenius-k8s-manager/logger"
 	"net/url"
 	"os"
 	"os/exec"
@@ -17,6 +15,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 type CmdConnectionRequest struct {
@@ -45,9 +44,9 @@ func WsConnection(cmdType string, namespace string, pod string, container string
 		dialer := &websocket.Dialer{}
 		c, _, err := dialer.Dial(u.String(), headers)
 		if err != nil {
-			logger.Log.Errorf("Failed to connect, retrying in 5 seconds: %s", err.Error())
+			log.Errorf("Failed to connect, retrying in 5 seconds: %s", err.Error())
 			if currentRetries >= maxRetries {
-				logger.Log.Errorf("Max retries reached, exiting.")
+				log.Errorf("Max retries reached, exiting.")
 				return nil, err
 			}
 			time.Sleep(5 * time.Second)
@@ -55,16 +54,16 @@ func WsConnection(cmdType string, namespace string, pod string, container string
 			continue
 		}
 
-		// logger.Log.Infof("Connected to %s", u.String())
+		// log.Infof("Connected to %s", u.String())
 
 		// API send ack when it is ready to receive messages.
 		c.SetReadDeadline(time.Now().Add(5 * time.Second))
 		_, _, err = c.ReadMessage()
 		if err != nil {
-			logger.Log.Errorf("Failed to receive ack-ready, retrying in 5 seconds: %s", err.Error())
+			log.Errorf("Failed to receive ack-ready, retrying in 5 seconds: %s", err.Error())
 			time.Sleep(5 * time.Second)
 			if currentRetries >= maxRetries {
-				logger.Log.Errorf("Max retries reached, exiting.")
+				log.Errorf("Max retries reached, exiting.")
 				return c, err
 			}
 			currentRetries++
@@ -72,7 +71,7 @@ func WsConnection(cmdType string, namespace string, pod string, container string
 		}
 
 		c.SetReadDeadline(time.Time{})
-		// logger.Log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
+		// log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
 		return c, nil
 	}
 }
@@ -126,12 +125,12 @@ func InjectContent(content io.Reader, conn *websocket.Conn) {
 
 func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnectionRequest, namespace string, pod string, container string, cmd *exec.Cmd, injectPreContent io.Reader) {
 	if cmdConnectionRequest.WebsocketScheme == "" {
-		logger.Log.Error("WebsocketScheme is empty")
+		log.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if cmdConnectionRequest.WebsocketHost == "" {
-		logger.Log.Error("WebsocketHost is empty")
+		log.Error("WebsocketHost is empty")
 		return
 	}
 
@@ -145,10 +144,10 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 	}()
 
 	if err != nil {
-		logger.Log.Errorf("Unable to connect to websocket: %s", err.Error())
+		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
 	}
-	logger.Log.Infof("Connected to %s", websocketUrl.String())
+	log.Infof("Connected to %s", websocketUrl.String())
 
 	// Check if pod exists
 	podExists := punq.PodExists(namespace, pod, nil)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
@@ -12,6 +11,7 @@ import (
 
 	v1cm "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	v2 "k8s.io/api/autoscaling/v2"
 	v1job "k8s.io/api/batch/v1"
@@ -36,7 +36,7 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	// check if namespace exists and CREATE IT IF NOT
 	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name, nil)
 	if nsErr != nil {
-		logger.Log.Warning(nsErr.Error())
+		log.Warning(nsErr.Error())
 	}
 	if !nsExists {
 		nsReq := NamespaceCreateRequest{
@@ -268,11 +268,11 @@ func initDocker(service dtos.K8sServiceDto, job structs.Job) []*structs.Command 
 
 	for _, container := range service.Containers {
 		if container.GitRepository == nil {
-			logger.Log.Errorf("%s: GitRepository cannot be nil", container.Name)
+			log.Errorf("%s: GitRepository cannot be nil", container.Name)
 			continue
 		}
 		if container.GitBranch == nil {
-			logger.Log.Errorf("%s: GitBranch cannot be nil", container.Name)
+			log.Errorf("%s: GitBranch cannot be nil", container.Name)
 			continue
 		}
 		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
@@ -295,15 +295,15 @@ func updateInfrastructureYaml(service dtos.K8sServiceDto, job structs.Job) []*st
 	for _, container := range service.Containers {
 		if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 			if container.GitRepository == nil {
-				logger.Log.Errorf("%s: GitRepository cannot be nil", container.Name)
+				log.Errorf("%s: GitRepository cannot be nil", container.Name)
 				continue
 			}
 			if container.GitBranch == nil {
-				logger.Log.Errorf("%s: GitBranch cannot be nil", container.Name)
+				log.Errorf("%s: GitBranch cannot be nil", container.Name)
 				continue
 			}
 			if container.SettingsYaml == nil {
-				logger.Log.Errorf("%s: SettingsYaml cannot be nil", container.Name)
+				log.Errorf("%s: SettingsYaml cannot be nil", container.Name)
 				continue
 			}
 

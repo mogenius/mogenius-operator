@@ -1,10 +1,11 @@
 package structs
 
 import (
-	"mogenius-k8s-manager/logger"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Migration struct {
@@ -25,7 +26,7 @@ func MigrationBytes(migration Migration) []byte {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(migration)
 	if err != nil {
-		logger.Log.Errorf("MigrationBytes ERR: %s", err.Error())
+		log.Errorf("MigrationBytes ERR: %s", err.Error())
 	}
 	return bytes
 }

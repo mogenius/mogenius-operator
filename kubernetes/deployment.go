@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +20,7 @@ import (
 )
 
 func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	logger.Log.Infof("CreateDeployment K8sServiceDto: %s", service)
+	log.Infof("CreateDeployment K8sServiceDto: %s", service)
 
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name), job)
 	wg.Add(1)
@@ -36,7 +36,7 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, true, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
@@ -99,7 +99,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
@@ -136,7 +136,7 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		newController, err := CreateControllerConfiguration(namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
@@ -167,7 +167,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newController, err := CreateControllerConfiguration(namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
@@ -201,7 +201,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 
 		newController, err := CreateControllerConfiguration(namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			logger.Log.Errorf("error: %s", err.Error())
+			log.Errorf("error: %s", err.Error())
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)

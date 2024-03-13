@@ -3,7 +3,6 @@ package structs
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type EventData struct {
@@ -65,7 +66,7 @@ func ConnectToEventQueue() {
 
 		select {
 		case <-interrupt:
-			logger.Log.Fatal("CTRL + C pressed. Terminating.")
+			log.Fatal("CTRL + C pressed. Terminating.")
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
@@ -77,10 +78,10 @@ func connectEvent(ctx context.Context) {
 
 	connection, _, err := websocket.DefaultDialer.Dial(EventConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
-		logger.Log.Errorf("Connection to EventServer failed (%s): %s\n", EventConnectionUrl.String(), err.Error())
+		log.Errorf("Connection to EventServer failed (%s): %s\n", EventConnectionUrl.String(), err.Error())
 		EventConnectionStatus <- false
 	} else {
-		logger.Log.Infof("Connected to EventServer: %s  (%s)\n", EventConnectionUrl.String(), connection.LocalAddr().String())
+		log.Infof("Connected to EventServer: %s  (%s)\n", EventConnectionUrl.String(), connection.LocalAddr().String())
 		EventQueueConnection = connection
 		EventConnectionStatus <- true
 		Ping(EventQueueConnection, &eventSendMutex)
@@ -125,13 +126,13 @@ func processEventQueueNow() error {
 				}
 				eventDataQueue = RemoveEventIndex(eventDataQueue, i)
 			} else {
-				logger.Log.Error(err)
+				log.Error(err)
 				return err
 			}
 		}
 	} else {
 		if utils.CONFIG.Misc.Debug {
-			// logger.Log.Error("EventQueueConnection is nil.")
+			// log.Error("EventQueueConnection is nil.")
 		}
 		return fmt.Errorf("EventQueueConnection is nil")
 	}

@@ -7,12 +7,13 @@ import (
 	"mogenius-k8s-manager/cmd"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //go:embed config/config-local.yaml
@@ -35,13 +36,19 @@ func main() {
 		quit := make(chan os.Signal)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		<-quit
-		logger.Log.Warning("Shutting down bbolt server...")
+		log.Warning("Shutting down bbolt server...")
 		db.Close()
 		dbstats.Close()
 	}()
 
 	utils.PrintLogo()
-	logger.Init()
+
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.TraceLevel)
+	log.SetReportCaller(true)
+	log.AddHook(&utils.SecretRedactionHook{})
+	log.SetFormatter(&log.JSONFormatter{})
+
 	utils.DefaultConfigClusterFilePreDev = DefaultConfigClusterFilePreDev
 	utils.DefaultConfigClusterFileDev = DefaultConfigClusterFileDev
 	utils.DefaultConfigClusterFileProd = DefaultConfigClusterFileProd

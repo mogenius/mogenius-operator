@@ -3,12 +3,12 @@ package structs
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"time"
 
 	"github.com/fatih/color"
 	punq "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type DefaultResponse struct {
@@ -153,7 +153,7 @@ func ReportStateToServer(job *Job, cmd *Command) {
 		}
 	} else {
 		skipEvent = true
-		logger.Log.Error("Job AND Command cannot be nil")
+		log.Error("Job AND Command cannot be nil")
 	}
 
 	if data != nil {
@@ -162,7 +162,7 @@ func ReportStateToServer(job *Job, cmd *Command) {
 		EventServerSendData(result, "", "", "", 1)
 	} else {
 		if !skipEvent {
-			logger.Log.Error("Serialization failed.")
+			log.Error("Serialization failed.")
 		}
 	}
 }

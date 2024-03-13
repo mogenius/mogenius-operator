@@ -16,8 +16,8 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-tty v0.0.5
 	github.com/mogenius/punq v1.5.0-develop.50
-	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/schollz/progressbar/v3 v3.13.1
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	go.etcd.io/bbolt v1.3.8
 	gopkg.in/yaml.v2 v2.4.0
@@ -112,6 +112,7 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
@@ -124,7 +125,6 @@ require (
 	github.com/rubenv/sql-migrate v1.5.2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect

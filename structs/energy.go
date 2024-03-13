@@ -1,12 +1,13 @@
 package structs
 
 import (
-	"mogenius-k8s-manager/logger"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type EnergyConsumptionEntry struct {
@@ -89,7 +90,7 @@ func CreateEnergyConsumptionResponse(input string, index int) *EnergyConsumption
 		SecondsBetweenInspections: EnergyConsumptionTimeInterval,
 	}
 
-	logger.Log.Noticef("EnergyConsumptionMeasurement (%d/%d): %d entries - %d joule - %d watt \n", index+1, EnergyConsumptionResponseSize, len(entries), totalEnergyInJoule, watts)
+	log.Infof("EnergyConsumptionMeasurement (%d/%d): %d entries - %d joule - %d watt \n", index+1, EnergyConsumptionResponseSize, len(entries), totalEnergyInJoule, watts)
 
 	return &CurrentEnergyConsumptionResponse[index]
 }

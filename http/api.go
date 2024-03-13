@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
@@ -19,6 +18,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 func InitApi() {
@@ -43,7 +43,7 @@ func InitApi() {
 	// it won't block the graceful shutdown handling below
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
-			logger.Log.Info("listen: %s\n", err.Error())
+			log.Info("listen: %s\n", err.Error())
 		}
 	}()
 
@@ -55,7 +55,7 @@ func InitApi() {
 	// kill -9 is syscall.SIGKILL but can't be caught, so don't need to add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	logger.Log.Warning("Shutting down server...")
+	log.Warning("Shutting down server...")
 
 	// The context is used to inform the server it has 5 seconds to finish
 	// the request it is currently handling
@@ -63,10 +63,10 @@ func InitApi() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Log.Warning("Server forced to shutdown:", err)
+		log.Warning("Server forced to shutdown:", err)
 	}
 
-	logger.Log.Warning("Server exiting")
+	log.Warning("Server exiting")
 }
 
 func getHealtz(c *gin.Context) {

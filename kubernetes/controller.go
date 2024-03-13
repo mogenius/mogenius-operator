@@ -3,10 +3,10 @@ package kubernetes
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	v1core "k8s.io/api/core/v1"
@@ -205,10 +205,10 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 							})
 						}
 					} else {
-						logger.Log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
+						log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
 					}
 				} else {
-					logger.Log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
+					log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
 				}
 			}
 		}

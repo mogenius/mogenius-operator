@@ -3,6 +3,7 @@ package structs
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/utils"
 	"time"
 
 	"github.com/fatih/color"
@@ -102,7 +103,7 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
 	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), punqStructs.DurationStrSince(d.CreatedAt))
 	fmt.Printf("%s %s\n", SIZECOLOR("Size:    "), punqUtils.BytesToHumanReadable(d.GetSize()))
-	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), punqStructs.PrettyPrintString(d.Payload))
+	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), utils.PrettyPrintInterface(d.Payload))
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
@@ -126,5 +127,5 @@ func (d *Datagram) Send() {
 }
 
 func (d *Datagram) GetSize() int64 {
-	return int64(len(punqStructs.PrettyPrintString(d)))
+	return int64(len(utils.PrettyPrintInterface(d)))
 }

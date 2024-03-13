@@ -11,7 +11,6 @@ import (
 	api "mogenius-k8s-manager/http"
 	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/migrations"
 	"mogenius-k8s-manager/services"
 	socketclient "mogenius-k8s-manager/socket-client"
@@ -19,6 +18,7 @@ import (
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/structs"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -33,12 +33,12 @@ var clusterCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist()
 		if err != nil {
-			logger.Log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
+			log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
 
 		utils.SetupClusterSecret(clusterSecret)
 
-		logger.Log.Noticef("Init DB ...")
+		log.Infof("Init DB ...")
 		db.Init()
 		dbstats.Init()
 
@@ -48,7 +48,7 @@ var clusterCmd = &cobra.Command{
 		if utils.CONFIG.Misc.AutoMountNfs {
 			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
 			if err != nil && utils.CONFIG.Misc.Stage != utils.STAGE_LOCAL {
-				logger.Log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
+				log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
 			}
 			for _, vol := range volumesToMount {
 				mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
@@ -62,7 +62,7 @@ var clusterCmd = &cobra.Command{
 				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
 				fmt.Printf("Seeding Commands (🪴🪴🪴): \"%s\".\n", userApps)
 				if err != nil {
-					logger.Log.Fatalf("Error installing default applications: %s", err.Error())
+					log.Fatalf("Error installing default applications: %s", err.Error())
 				}
 			}
 			builder.DISABLEQUEUE = false

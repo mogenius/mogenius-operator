@@ -2,7 +2,6 @@ package structs
 
 import (
 	"context"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
@@ -11,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	punqStructs "github.com/mogenius/punq/structs"
+	log "github.com/sirupsen/logrus"
 )
 
 var jobDataQueue []Datagram = []Datagram{}
@@ -57,7 +56,7 @@ func ConnectToJobQueue() {
 
 		select {
 		case <-interrupt:
-			logger.Log.Fatal("CTRL + C pressed. Terminating.")
+			log.Fatal("CTRL + C pressed. Terminating.")
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
@@ -69,10 +68,10 @@ func connectJob(ctx context.Context) {
 
 	connection, _, err := websocket.DefaultDialer.Dial(JobConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
-		logger.Log.Errorf("Connection to JobServer failed (%s): %s\n", JobConnectionUrl.String(), err.Error())
+		log.Errorf("Connection to JobServer failed (%s): %s\n", JobConnectionUrl.String(), err.Error())
 		JobConnectionStatus <- false
 	} else {
-		logger.Log.Infof("Connected to JobServer: %s  (%s)\n", JobConnectionUrl.String(), connection.LocalAddr().String())
+		log.Infof("Connected to JobServer: %s  (%s)\n", JobConnectionUrl.String(), connection.LocalAddr().String())
 		JobQueueConnection = connection
 		JobConnectionStatus <- true
 		Ping(JobQueueConnection, &JobSendMutex)
@@ -105,17 +104,17 @@ func processJobNow() {
 			if err == nil {
 				element.DisplaySentSummary(i+1, len(jobDataQueue))
 				if utils.CONFIG.Misc.Debug {
-					punqStructs.PrettyPrint(element.Payload)
+					utils.PrettyPrintInterface(element.Payload)
 				}
 				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {
-				logger.Log.Error(err)
+				log.Error(err)
 				return
 			}
 		}
 	} else {
 		if utils.CONFIG.Misc.Debug {
-			logger.Log.Error("jobQueueConnection is nil.")
+			log.Error("jobQueueConnection is nil.")
 		}
 	}
 }

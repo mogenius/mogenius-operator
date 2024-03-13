@@ -5,11 +5,11 @@ import (
 	"os"
 	"strings"
 
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
@@ -40,7 +40,7 @@ func Deploy() {
 	addDeployment(provider)
 	_, err = CreateClusterSecretIfNotExist()
 	if err != nil {
-		logger.Log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
+		log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
 	}
 }
 
@@ -81,7 +81,7 @@ func addRbac(provider *punq.KubeProvider) error {
 	}
 
 	// CREATE RBAC
-	logger.Log.Info("Creating mogenius-k8s-manager RBAC ...")
+	log.Info("Creating mogenius-k8s-manager RBAC ...")
 	_, err := provider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Create(context.TODO(), serviceAccount, MoCreateOptions())
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
@@ -94,7 +94,7 @@ func addRbac(provider *punq.KubeProvider) error {
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
-	logger.Log.Info("Created mogenius-k8s-manager RBAC.")
+	log.Info("Created mogenius-k8s-manager RBAC.")
 	return nil
 }
 
@@ -108,18 +108,18 @@ func applyNamespace(provider *punq.KubeProvider) {
 		FieldManager: DEPLOYMENTNAME,
 	}
 
-	logger.Log.Info("Creating mogenius-k8s-manager namespace ...")
+	log.Info("Creating mogenius-k8s-manager namespace ...")
 	result, err := serviceClient.Apply(context.TODO(), namespace, applyOptions)
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 	}
-	logger.Log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
+	log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
 func CreateClusterSecretIfNotExist() (utils.ClusterSecret, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		logger.Log.Fatal("Error creating kubeprovider")
+		log.Fatal("Error creating kubeprovider")
 	}
 
 	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
@@ -133,7 +133,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	apikey := os.Getenv("api_key")
 	if apikey == "" {
 		if utils.CONFIG.Kubernetes.RunInCluster {
-			logger.Log.Fatal("Environment Variable 'api_key' is missing.")
+			log.Fatal("Environment Variable 'api_key' is missing.")
 		} else {
 			apikey = utils.CONFIG.Kubernetes.ApiKey
 		}
@@ -141,7 +141,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	clusterName := os.Getenv("cluster_name")
 	if clusterName == "" {
 		if utils.CONFIG.Kubernetes.RunInCluster {
-			logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
+			log.Fatal("Environment Variable 'cluster_name' is missing.")
 		} else {
 			clusterName = utils.CONFIG.Kubernetes.ClusterName
 		}
@@ -167,17 +167,17 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
 
 	if existingSecret == nil || getErr != nil {
-		logger.Log.Info("Creating new mogenius secret ...")
+		log.Info("Creating new mogenius secret ...")
 		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
-			logger.Log.Error(err)
+			log.Error(err)
 			return clusterSecret, err
 		}
-		logger.Log.Info("Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
+		log.Info("Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
 	} else {
 		if string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
 			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
-			logger.Log.Info("Updating existing mogenius secret ...")
+			log.Info("Updating existing mogenius secret ...")
 			// keep existing mfa-id if possible
 			if string(existingSecret.Data["cluster-mfa-id"]) != "" {
 				clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
@@ -185,13 +185,13 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			}
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
-				logger.Log.Error(err)
+				log.Error(err)
 				return clusterSecret, err
 			}
-			logger.Log.Info("Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
+			log.Info("Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
 		} else {
 			clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
-			logger.Log.Info("Using existing mogenius secret.")
+			log.Info("Using existing mogenius secret.")
 		}
 	}
 
@@ -254,12 +254,12 @@ func addDeployment(provider *punq.KubeProvider) {
 	deployment.WithSpec(applyconfapp.DeploymentSpec().WithSelector(labelSelector).WithTemplate(podTemplate))
 
 	// Create Deployment
-	logger.Log.Info("Creating mogenius-k8s-manager deployment ...")
+	log.Info("Creating mogenius-k8s-manager deployment ...")
 	result, err := deploymentClient.Apply(context.TODO(), deployment, applyOptions)
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 	}
-	logger.Log.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
+	log.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
 }
 
 func ApplyYamlString(yamlContent string) error {

@@ -1,10 +1,10 @@
 package structs
 
 import (
-	"mogenius-k8s-manager/logger"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
+	log "github.com/sirupsen/logrus"
 )
 
 type LogType string
@@ -45,11 +45,11 @@ func CreateLog(id uint64, title string, message string, category Category, logTy
 	}
 }
 
-func LogBytes(log Log) []byte {
+func LogBytes(logEntry Log) []byte {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	bytes, err := json.Marshal(log)
+	bytes, err := json.Marshal(logEntry)
 	if err != nil {
-		logger.Log.Errorf("LogBytes ERR: %s", err.Error())
+		log.Errorf("LogBytes ERR: %s", err.Error())
 	}
 	return bytes
 }

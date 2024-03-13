@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/dtos"
@@ -19,9 +18,10 @@ import (
 
 	// "fmt"
 	"mogenius-k8s-manager/builder"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"net/url"
+
+	log "github.com/sirupsen/logrus"
 
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
@@ -64,7 +64,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case PAT_SYSTEM_CHECK:
 		return SystemCheck()
 	case PAT_CLUSTER_RESTART:
-		logger.Log.Noticef("😵😵😵 Received RESTART COMMAND. Restarting now ...")
+		log.Infof("😵😵😵 Received RESTART COMMAND. Restarting now ...")
 		time.Sleep(1 * time.Second)
 		os.Exit(0)
 		return nil
@@ -78,6 +78,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.AddSecretsToRedaction()
 		return InstallAllLocalDevComponents(data.Email)
 	case PAT_INSTALL_TRAFFIC_COLLECTOR:
 		return InstallTrafficCollector()
@@ -95,6 +96,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.AddSecretsToRedaction()
 		return InstallClusterIssuer(data.Email, 0)
 	case PAT_INSTALL_CONTAINER_REGISTRY:
 		return InstallContainerRegistry()
@@ -379,6 +381,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Project.AddSecretsToRedaction()
 		return CreateNamespace(data)
 	case PAT_NAMESPACE_DELETE:
 		data := NamespaceDeleteRequest{}
@@ -393,6 +396,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Service.AddSecretsToRedaction()
 		return ShutdownNamespace(data)
 	case PAT_NAMESPACE_POD_IDS:
 		data := NamespacePodIdsRequest{}
@@ -464,6 +468,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Service.AddSecretsToRedaction()
+		data.Project.AddSecretsToRedaction()
 		return CreateService(data)
 	case PAT_SERVICE_DELETE:
 		data := ServiceDeleteRequest{}
@@ -471,6 +477,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Service.AddSecretsToRedaction()
+		data.Project.AddSecretsToRedaction()
 		return DeleteService(data)
 	case PAT_SERVICE_POD_IDS:
 		data := ServiceGetPodIdsRequest{}
@@ -527,6 +535,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Service.AddSecretsToRedaction()
 		return Restart(data)
 	case PAT_SERVICE_STOP:
 		data := ServiceStopRequest{}
@@ -534,6 +543,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Service.AddSecretsToRedaction()
 		return StopService(data)
 	case PAT_SERVICE_START:
 		data := ServiceStartRequest{}
@@ -541,6 +551,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Service.AddSecretsToRedaction()
 		return StartService(data)
 	case PAT_SERVICE_UPDATE_SERVICE:
 		data := ServiceUpdateRequest{}
@@ -548,6 +559,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Project.AddSecretsToRedaction()
+		data.Service.AddSecretsToRedaction()
 		return UpdateService(data)
 	case PAT_SERVICE_TRIGGER_JOB:
 		data := ServiceTriggerJobRequest{}
@@ -1857,6 +1870,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Project.AddSecretsToRedaction()
+		data.Service.AddSecretsToRedaction()
 		return builder.Add(data)
 	case PAT_BUILD_SCAN:
 		data := structs.ScanImageRequest{}
@@ -1864,6 +1879,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.AddSecretsToRedaction()
 		return builder.Scan(data)
 	case PAT_BUILD_CANCEL:
 		data := structs.BuildJob{}
@@ -1871,6 +1887,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.Project.AddSecretsToRedaction()
+		data.Service.AddSecretsToRedaction()
 		return builder.Cancel(data.BuildId)
 	case PAT_BUILD_DELETE:
 		data := structs.BuildJobStatusRequest{}
@@ -1921,6 +1939,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.AddSecretsToRedaction()
 		return BackupMogeniusNfsVolume(data)
 	case PAT_STORAGE_RESTORE_VOLUME:
 		data := NfsVolumeRestoreRequest{}
@@ -1928,6 +1947,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.AddSecretsToRedaction()
 		return RestoreMogeniusNfsVolume(data)
 	case PAT_STORAGE_STATS:
 		data := NfsVolumeStatsRequest{}
@@ -1967,7 +1987,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if err != nil {
 		result.Error = err.Error()
 		result.Success = false
-		logger.Log.Error(result.Error)
+		log.Error(result.Error)
 		return result
 	}
 
@@ -1978,7 +1998,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if terminatedState != nil {
 		tmpPreviousResReq, err := PreviousPodLogStream(data.Namespace, data.PodId)
 		if err != nil {
-			logger.Log.Error(err.Error())
+			log.Error(err.Error())
 		} else {
 			previousResReq = tmpPreviousResReq
 		}
@@ -1988,15 +2008,15 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if err != nil {
 		result.Error = err.Error()
 		result.Success = false
-		logger.Log.Error(result.Error)
+		log.Error(result.Error)
 		return result
 	}
 
 	if terminatedState != nil {
-		logger.Log.Infof("Logger try multiStreamData")
+		log.Infof("Logger try multiStreamData")
 		go multiStreamData(previousResReq, restReq, terminatedState, url.String())
 	} else {
-		logger.Log.Infof("Logger try streamData")
+		log.Infof("Logger try streamData")
 		go streamData(restReq, url.String())
 	}
 
@@ -2010,7 +2030,7 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	cancelCtx, endGofunc := context.WithCancel(ctx)
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
-		logger.Log.Error(err.Error())
+		log.Error(err.Error())
 	} else {
 		structs.SendDataWs(toServerUrl, stream)
 	}
@@ -2027,7 +2047,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	if previousRestReq != nil {
 		tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 		if err != nil {
-			logger.Log.Error(err.Error())
+			log.Error(err.Error())
 			previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 		} else {
 			previousStream = tmpPreviousStream
@@ -2036,7 +2056,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
-		logger.Log.Error(err.Error())
+		log.Error(err.Error())
 		stream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 	}
 
@@ -2062,7 +2082,7 @@ func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
 }
 
 func K8sNotification(d structs.Datagram) interface{} {
-	logger.Log.Infof("Received '%s'.", d.Pattern)
+	log.Infof("Received '%s'.", d.Pattern)
 	return nil
 }
 
@@ -2083,7 +2103,7 @@ func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.R
 	if terminatedState != nil {
 		tmpPreviousResReq, err := PreviousPodLogStream(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod)
 		if err != nil {
-			logger.Log.Error(err.Error())
+			log.Error(err.Error())
 		} else {
 			previousRestReq = tmpPreviousResReq
 		}
@@ -2096,7 +2116,7 @@ func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.R
 	var previousStream io.ReadCloser
 	tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 	if err != nil {
-		logger.Log.Error(err.Error())
+		log.Error(err.Error())
 		previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 	} else {
 		previousStream = tmpPreviousStream

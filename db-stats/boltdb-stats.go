@@ -3,12 +3,11 @@ package dbstats
 import (
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"time"
 
-	punqStructs "github.com/mogenius/punq/structs"
+	log "github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -23,8 +22,8 @@ var cleanupTimer = time.NewTicker(1 * time.Minute)
 func Init() {
 	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbStatsPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		logger.Log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbStatsPath)
-		logger.Log.Fatal(err.Error())
+		log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbStatsPath)
+		log.Fatal(err.Error())
 	}
 	dbStats = database
 
@@ -32,27 +31,27 @@ func Init() {
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(TRAFFIC_BUCKET_NAME))
 		if err == nil {
-			logger.Log.Noticef("Bucket '%s' created 🚀.", TRAFFIC_BUCKET_NAME)
+			log.Infof("Bucket '%s' created 🚀.", TRAFFIC_BUCKET_NAME)
 		}
 		return err
 	})
 	if err != nil {
-		logger.Log.Errorf("Error creating bucket ('%s'): %s", TRAFFIC_BUCKET_NAME, err)
+		log.Errorf("Error creating bucket ('%s'): %s", TRAFFIC_BUCKET_NAME, err)
 	}
 
 	// ### STATS BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(POD_STATS_BUCKET_NAME))
 		if err == nil {
-			logger.Log.Noticef("Bucket '%s' created 🚀.", POD_STATS_BUCKET_NAME)
+			log.Infof("Bucket '%s' created 🚀.", POD_STATS_BUCKET_NAME)
 		}
 		return err
 	})
 	if err != nil {
-		logger.Log.Errorf("Error creating bucket ('%s'): %s", POD_STATS_BUCKET_NAME, err)
+		log.Errorf("Error creating bucket ('%s'): %s", POD_STATS_BUCKET_NAME, err)
 	}
 
-	logger.Log.Noticef("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbStatsPath)
+	log.Infof("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbStatsPath)
 
 	go func() {
 		for range cleanupTimer.C {
@@ -87,10 +86,10 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 
 		// add new Entry
 		id, _ := bucket.NextSequence() // auto increment
-		return bucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
+		return bucket.Put(sequenceToKey(id), []byte(utils.PrettyPrintInterface(stats)))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
+		log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
 	}
 }
 
@@ -118,10 +117,10 @@ func AddPodStatsToDb(stats structs.PodStats) {
 
 		// add new Entry
 		id, _ := bucket.NextSequence() // auto increment
-		return bucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
+		return bucket.Put(sequenceToKey(id), []byte(utils.PrettyPrintInterface(stats)))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
+		log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
 	}
 }
 
@@ -147,7 +146,7 @@ func GetLastTrafficStatsEntryForController(controller kubernetes.K8sController) 
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetLastTrafficStatsEntryForController: %s", err.Error())
+		log.Errorf("GetLastTrafficStatsEntryForController: %s", err.Error())
 	}
 	return result
 }
@@ -174,7 +173,7 @@ func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[
 		})
 	})
 	if err != nil {
-		logger.Log.Errorf("GetTrafficStatsEntriesForController: %s", err.Error())
+		log.Errorf("GetTrafficStatsEntriesForController: %s", err.Error())
 	}
 	return result
 }
@@ -201,7 +200,7 @@ func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *str
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetLastPodStatsEntryForController: %s", err.Error())
+		log.Errorf("GetLastPodStatsEntryForController: %s", err.Error())
 	}
 	return result
 }
@@ -228,7 +227,7 @@ func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]str
 		})
 	})
 	if err != nil {
-		logger.Log.Errorf("GetPodStatsEntriesForController: %s", err.Error())
+		log.Errorf("GetPodStatsEntriesForController: %s", err.Error())
 	}
 	return result
 }
@@ -264,7 +263,7 @@ func GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
 		})
 	})
 	if err != nil {
-		logger.Log.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
+		log.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
 	}
 	return result
 }
@@ -291,7 +290,7 @@ func GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
 		})
 	})
 	if err != nil {
-		logger.Log.Errorf("GetPodStatsEntriesForNamespace: %s", err.Error())
+		log.Errorf("GetPodStatsEntriesForNamespace: %s", err.Error())
 	}
 	return result
 }
@@ -333,7 +332,7 @@ func GetLastTrafficStatsEntriesForNamespace(namespace string) []structs.Interfac
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
+		log.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
 	}
 	return result
 }
@@ -360,7 +359,7 @@ func GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceSt
 		})
 	})
 	if err != nil {
-		logger.Log.Errorf("GetTrafficStatsEntriesForNamespace: %s", err.Error())
+		log.Errorf("GetTrafficStatsEntriesForNamespace: %s", err.Error())
 	}
 	return result
 }
@@ -408,7 +407,7 @@ func cleanupStats() {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("cleanupStats: %s", err.Error())
+		log.Errorf("cleanupStats: %s", err.Error())
 	}
 }
 
@@ -416,12 +415,12 @@ func isFirstTimestampNewer(ts1, ts2 string) bool {
 	// Parse the timestamps using RFC 3339 format
 	t1, err := time.Parse(time.RFC3339, ts1)
 	if err != nil {
-		logger.Log.Error(fmt.Errorf("error parsing ts1: %w", err))
+		log.Error(fmt.Errorf("error parsing ts1: %w", err))
 	}
 
 	t2, err := time.Parse(time.RFC3339, ts2)
 	if err != nil {
-		logger.Log.Error(fmt.Errorf("error parsing ts2: %w", err))
+		log.Error(fmt.Errorf("error parsing ts2: %w", err))
 	}
 
 	// Check if the first timestamp is strictly newer than the second

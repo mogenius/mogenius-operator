@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -22,6 +21,8 @@ import (
 	"github.com/mattn/go-tty"
 	punqUtils "github.com/mogenius/punq/utils"
 	"github.com/schollz/progressbar/v3"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var loadTestStartTime time.Time
@@ -58,7 +59,7 @@ func Init(r *gin.Engine) {
 // func wsShellHandler(w http.ResponseWriter, r *http.Request) {
 // 	c, err := upgrader.Upgrade(w, r, nil)
 // 	if err != nil {
-// 		logger.Log.Error("websocket connection err:", err)
+// 		log.Error("websocket connection err:", err)
 // 		return
 // 	}
 // 	defer c.Close()
@@ -94,7 +95,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 
 	connection, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logger.Log.Error("websocket connection err:", err)
+		log.Error("websocket connection err:", err)
 		return
 	}
 
@@ -107,7 +108,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 	for {
 		msgType, msg, err := connection.ReadMessage()
 		if err != nil {
-			logger.Log.Error("websocket read err:", err)
+			log.Error("websocket read err:", err)
 			break
 		}
 
@@ -129,7 +130,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 			datagramValidationError := validate.Struct(datagram)
 
 			if datagramValidationError != nil {
-				logger.Log.Errorf("Invalid datagram: %s", datagramValidationError.Error())
+				log.Errorf("Invalid datagram: %s", datagramValidationError.Error())
 				continue
 			} else {
 				if punqUtils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) ||
@@ -145,7 +146,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 						}
 						err := os.WriteFile("backup.yaml", []byte(backupData), os.ModePerm)
 						if err != nil {
-							logger.Log.Error(err.Error())
+							log.Error(err.Error())
 						}
 					} else if datagram.Pattern != "KubernetesEvent" {
 						if datagram.Pattern == loadTestPattern {
@@ -161,17 +162,17 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 						}
 					}
 				} else {
-					logger.Log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
+					log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 				}
 			}
 		case websocket.CloseMessage:
-			logger.Log.Warning("Received websocket.CloseMessage.")
+			log.Warning("Received websocket.CloseMessage.")
 		case websocket.PingMessage:
-			logger.Log.Warning("Received websocket.PingMessage.")
+			log.Warning("Received websocket.PingMessage.")
 		case websocket.PongMessage:
-			logger.Log.Warning("Received websocket.PongMessage.")
+			log.Warning("Received websocket.PongMessage.")
 		default:
-			logger.Log.Warningf("Received unknown messageType '%d' via websocket.", msgType)
+			log.Warningf("Received unknown messageType '%d' via websocket.", msgType)
 		}
 	}
 }
@@ -184,17 +185,17 @@ func validateHeader(c *gin.Context) string {
 
 	apiKey := c.Request.Header.Get("x-authorization")
 	if apiKey != utils.CONFIG.Kubernetes.ApiKey {
-		logger.Log.Errorf("Invalid x-authorization: '%s'", apiKey)
+		log.Errorf("Invalid x-authorization: '%s'", apiKey)
 		return ""
 	}
 
 	clusterName := c.Request.Header.Get("x-cluster-name")
 	if clusterName == "" {
-		logger.Log.Errorf("Invalid x-cluster-name: '%s'", clusterName)
+		log.Errorf("Invalid x-cluster-name: '%s'", clusterName)
 		return ""
 	}
 
-	logger.Log.Infof("New client connected %s -> %s (Agent: %s)", c.Request.RequestURI, c.Request.RemoteAddr, userAgent)
+	log.Infof("New client connected %s -> %s (Agent: %s)", c.Request.RequestURI, c.Request.RemoteAddr, userAgent)
 	return clusterName
 }
 
@@ -206,14 +207,14 @@ func addConnection(wsconnection *websocket.Conn, clusterName string) {
 }
 
 func printShortcuts() {
-	logger.Log.Notice("Keyboard shortcusts: ")
-	logger.Log.Notice("h:     help")
-	logger.Log.Notice("l:     list clusters")
-	logger.Log.Notice("s:     send command to cluster")
-	logger.Log.Notice("c:     close blocked connection")
-	logger.Log.Notice("k:     close all connections")
-	logger.Log.Notice("x:     perform load test")
-	logger.Log.Notice("q:     quit application")
+	log.Info("Keyboard shortcusts: ")
+	log.Info("h:     help")
+	log.Info("l:     list clusters")
+	log.Info("s:     send command to cluster")
+	log.Info("c:     close blocked connection")
+	log.Info("k:     close all connections")
+	log.Info("x:     perform load test")
+	log.Info("q:     quit application")
 }
 
 func ReadInput() {
@@ -221,14 +222,14 @@ func ReadInput() {
 
 	tty, err := tty.Open()
 	if err != nil {
-		logger.Log.Fatalf("Error opening terminal: %s", err.Error())
+		log.Fatalf("Error opening terminal: %s", err.Error())
 	}
 	defer tty.Close()
 
 	for {
 		r, err := tty.ReadRune()
 		if err != nil {
-			logger.Log.Fatalf("Error reading from terminal: %s", err.Error())
+			log.Fatalf("Error reading from terminal: %s", err.Error())
 		}
 		switch string(r) {
 		case "h":
@@ -254,7 +255,7 @@ func ReadInput() {
 		case "q":
 			os.Exit(0)
 		default:
-			logger.Log.Errorf("Unrecognized character '%s'.", r)
+			log.Errorf("Unrecognized character '%s'.", r)
 			printShortcuts()
 		}
 	}
@@ -586,7 +587,7 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 		err := cluster.Connection.WriteJSON(datagram)
 		serverSendMutex.Unlock()
 		if err != nil {
-			logger.Log.Error(err.Error())
+			log.Error(err.Error())
 		}
 		datagram.DisplayBeautiful()
 
@@ -596,7 +597,7 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 		}
 		return &datagram
 	}
-	logger.Log.Error("Not connected to any cluster.")
+	log.Error("Not connected to any cluster.")
 	return nil
 }
 
@@ -611,7 +612,7 @@ func selectCommands() string {
 	var number int
 	_, err := fmt.Scanf("%d", &number)
 	if err != nil {
-		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(allCommands)-1)
+		log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(allCommands)-1)
 		return ""
 	}
 	fmt.Println(number)
@@ -619,7 +620,7 @@ func selectCommands() string {
 	if len(allCommands) >= number {
 		return allCommands[number]
 	} else {
-		logger.Log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(allCommands)-1)
+		log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(allCommands)-1)
 		return ""
 	}
 }
@@ -627,13 +628,13 @@ func selectCommands() string {
 func sendFile() {
 	err := utils.ZipSource("./video.mp4", "test.zip")
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 		return
 	}
 
 	file, err := os.Open("./test.zip")
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 		return
 	}
 	info, err := file.Stat()
@@ -641,7 +642,7 @@ func sendFile() {
 	if err == nil {
 		totalSize = info.Size()
 	} else {
-		logger.Log.Error(err)
+		log.Error(err)
 		return
 	}
 
@@ -665,12 +666,12 @@ func sendFile() {
 			bar.Add(chunk)
 		}
 		if err != nil {
-			logger.Log.Errorf("reading bytes error: %s", err.Error())
+			log.Errorf("reading bytes error: %s", err.Error())
 		}
 		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######END_UPLOAD######;"))
 		serverSendMutex.Unlock()
 	} else {
-		logger.Log.Error("reader cannot be nil")
-		logger.Log.Error("file size cannot be nil")
+		log.Error("reader cannot be nil")
+		log.Error("file size cannot be nil")
 	}
 }

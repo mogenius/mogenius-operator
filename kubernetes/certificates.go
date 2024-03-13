@@ -4,11 +4,11 @@ import (
 	"context"
 	"strings"
 
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +16,7 @@ import (
 
 func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 	if utils.CONFIG.Misc.Debug {
-		logger.Log.Noticef("Updating Ingress for [%s] ...", strings.Join(hostNames, ", "))
+		log.Infof("Updating Ingress for [%s] ...", strings.Join(hostNames, ", "))
 	}
 	if len(hostNames) <= 0 {
 		return
@@ -32,7 +32,7 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 			createNew = true
 		}
 		if apierrors.IsForbidden(err) {
-			logger.Log.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
+			log.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
 			return
 		}
 	}
@@ -52,7 +52,7 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 	if foundChanges {
 		provider, err := punq.NewKubeProviderCertManager(nil)
 		if provider == nil || err != nil {
-			logger.Log.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
+			log.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
 			return
 		}
 		if createNew {
@@ -64,7 +64,7 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 			provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Create(context.TODO(), &cert, metav1.CreateOptions{})
 
 			if utils.CONFIG.Misc.Debug {
-				logger.Log.Info("Certificate has been created because something changed.")
+				log.Info("Certificate has been created because something changed.")
 			}
 			return
 		} else {
@@ -80,12 +80,12 @@ func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 			provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Update(context.TODO(), cert, metav1.UpdateOptions{})
 
 			if utils.CONFIG.Misc.Debug {
-				logger.Log.Info("Certificate has been updated because something changed.")
+				log.Info("Certificate has been updated because something changed.")
 			}
 			return
 		}
 	}
 	if utils.CONFIG.Misc.Debug {
-		logger.Log.Info("Certificate has NOT been updated/created because nothing changed.")
+		log.Info("Certificate has NOT been updated/created because nothing changed.")
 	}
 }

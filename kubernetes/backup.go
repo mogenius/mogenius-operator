@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"os"
@@ -18,6 +17,7 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -97,7 +97,7 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 			_, err = namespaceClient.Apply(context.TODO(), newNs, v1.ApplyOptions{FieldManager: DEPLOYMENTNAME})
 			time.Sleep(3 * time.Second) // Wait for 3 for namespace to be created
 			if err != nil {
-				logger.Log.Error(err.Error())
+				log.Error(err.Error())
 			}
 		}
 
@@ -112,11 +112,11 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 			if err != nil {
 				aResult := fmt.Sprintf("%d) (%s) FAILED  : %s/%s '%s'", index+1, namespaceName, obj.GetKind(), obj.GetName(), err.Error())
 				result.Messages = append(result.Messages, aResult)
-				logger.Log.Error(aResult)
+				log.Error(aResult)
 			} else {
 				aResult := fmt.Sprintf("%d) (%s) SUCCESS : %s/%s", index+1, namespaceName, obj.GetKind(), obj.GetName())
 				result.Messages = append(result.Messages, aResult)
-				logger.Log.Info(aResult)
+				log.Info(aResult)
 			}
 		}
 	}
@@ -187,7 +187,7 @@ func ApplyUnstructured(ctx context.Context, dynamicClient dynamic.Interface, res
 	// 		return nil, fmt.Errorf("retrieving current configuration of:\n%s\nfrom server for:%v", unstructuredObj.GetName(), err)
 	// 	}
 
-	// 	logger.Log.Infof("The resource %s creating", unstructuredObj.GetName())
+	// 	log.Infof("The resource %s creating", unstructuredObj.GetName())
 	// 	// Create the resource if it doesn't exist
 	// 	// First, update the annotation such as kubectl apply
 	// 	if err := util.CreateApplyAnnotation(&unstructuredObj, unstructured.UnstructuredJSONScheme); err != nil {
@@ -200,7 +200,7 @@ func ApplyUnstructured(ctx context.Context, dynamicClient dynamic.Interface, res
 	// metadata, _ := meta.Accessor(currentUnstr)
 	// annotationMap := metadata.GetAnnotations()
 	// if _, ok := annotationMap[corev1.LastAppliedConfigAnnotation]; !ok {
-	// 	logger.Log.Warningf("[%s] apply should be used on resource created by either kubectl create --save-config or apply", metadata.GetName())
+	// 	log.Warningf("[%s] apply should be used on resource created by either kubectl create --save-config or apply", metadata.GetName())
 	// }
 
 	// patchBytes, patchType, err := Patch(currentUnstr, modified, unstructuredObj.GetName(), *gvk)

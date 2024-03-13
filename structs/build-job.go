@@ -2,11 +2,12 @@ package structs
 
 import (
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/utils"
 	"time"
 
 	punq "github.com/mogenius/punq/structs"
-	"github.com/mogenius/punq/utils"
+	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -25,6 +26,11 @@ type ScanImageRequest struct {
 	ContainerRegistryPat  *string `json:"containerRegistryPat"`
 }
 
+func (s *ScanImageRequest) AddSecretsToRedaction() {
+	utils.AddSecret(s.ContainerRegistryUser)
+	utils.AddSecret(s.ContainerRegistryPat)
+}
+
 func ScanImageRequestExample() ScanImageRequest {
 	return ScanImageRequest{
 		ProjectId:             "6dbd5930-e3f0-4594-9888-2003c6325f9a",
@@ -34,8 +40,8 @@ func ScanImageRequestExample() ScanImageRequest {
 		ControllerName:        "alpinetest",
 		ContainerName:         "alpinetest-container",
 		ContainerImage:        "mysql:latest",
-		ContainerRegistryPath: utils.Pointer("docker.io/biltisberger"),
-		ContainerRegistryUrl:  utils.Pointer("docker.io"),
+		ContainerRegistryPath: punqUtils.Pointer("docker.io/biltisberger"),
+		ContainerRegistryUrl:  punqUtils.Pointer("docker.io"),
 		ContainerRegistryUser: nil,
 		ContainerRegistryPat:  nil,
 	}
@@ -288,7 +294,7 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal(data, &result)
 		if err != nil {
-			logger.Log.Errorf("createBuildJobEntryFromData ERR: %s", err.Error())
+			log.Errorf("createBuildJobEntryFromData ERR: %s", err.Error())
 		}
 	}
 
@@ -306,7 +312,7 @@ func CreateBuildJobInfoEntryBytes(state punq.JobStateEnum, cmdOutput string, sta
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(entry)
 	if err != nil {
-		logger.Log.Errorf("createBuildJobInfoEntryBytes ERR: %s", err.Error())
+		log.Errorf("createBuildJobInfoEntryBytes ERR: %s", err.Error())
 	}
 	return bytes
 
@@ -323,7 +329,7 @@ func CreateBuildJobInfoEntryBytesForScan(state punq.JobStateEnum, cmdOutput []by
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(entry)
 	if err != nil {
-		logger.Log.Errorf("CreateBuildJobInfoEntryBytesForScan ERR: %s", err.Error())
+		log.Errorf("CreateBuildJobInfoEntryBytesForScan ERR: %s", err.Error())
 	}
 	return bytes
 

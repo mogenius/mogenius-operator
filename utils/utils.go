@@ -4,7 +4,6 @@ import (
 	"embed"
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/version"
 	"net"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 
 	punqStructs "github.com/mogenius/punq/structs"
 	"github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -43,7 +43,7 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 		pwd, err := os.Getwd()
 		pwd += "/temp"
 		if err != nil {
-			logger.Log.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
+			log.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
 		} else {
 			return pwd
 		}

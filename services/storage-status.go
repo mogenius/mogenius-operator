@@ -3,12 +3,12 @@ package services
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/logger"
 	"sort"
 	"sync"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -69,11 +69,11 @@ type StorageStatus struct {
 }
 
 func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
-	logger.Log.Debugf("Storage status for (%s): %s %s", r.StorageAPIObject, r.Namespace, r.Name)
+	log.Debugf("Storage status for (%s): %s %s", r.StorageAPIObject, r.Namespace, r.Name)
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		logger.Log.Warningf("Warning: %s", err.Error())
+		log.Warningf("Warning: %s", err.Error())
 		return NfsStatusResponse{Error: err.Error()}
 	}
 
@@ -104,7 +104,7 @@ func (s *StorageStatus) SetClient(client *kubernetes.Clientset) {
 func (s *StorageStatus) GetByPVCName(namespace, name string) (*StorageStatus, error) {
 	pvc, err := s.getPVC(namespace, name)
 	if err != nil {
-		logger.Log.Warningf("Warning getting PVC: %v\n", err)
+		log.Warningf("Warning getting PVC: %v\n", err)
 		return nil, err
 	}
 
@@ -115,7 +115,7 @@ func (s *StorageStatus) GetByPVCName(namespace, name string) (*StorageStatus, er
 	// Get the PV from volumeName
 	pv, err := s.getPV(pvc.Spec.VolumeName)
 	if err != nil {
-		logger.Log.Warningf("Warning getting PV: %v\n", err)
+		log.Warningf("Warning getting PV: %v\n", err)
 		return s, err
 	}
 	s.PersistentVolumeObject = pv
@@ -132,7 +132,7 @@ func (s *StorageStatus) GetByPVCName(namespace, name string) (*StorageStatus, er
 func (s *StorageStatus) GetByPVName(name string) (*StorageStatus, error) {
 	pv, err := s.getPV(name)
 	if err != nil {
-		logger.Log.Warningf("Warning getting PV: %v\n", err)
+		log.Warningf("Warning getting PV: %v\n", err)
 		return nil, err
 	}
 
@@ -143,7 +143,7 @@ func (s *StorageStatus) GetByPVName(name string) (*StorageStatus, error) {
 	if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Kind == StorageTypePersistentVolumeClaim.String() {
 		pvc, err := s.getPVC(pv.Spec.ClaimRef.Namespace, pv.Spec.ClaimRef.Name)
 		if err != nil {
-			logger.Log.Warningf("Warning getting PVC: %v\n", err)
+			log.Warningf("Warning getting PVC: %v\n", err)
 			return s, err
 		}
 
@@ -153,7 +153,7 @@ func (s *StorageStatus) GetByPVName(name string) (*StorageStatus, error) {
 	} else {
 		pvc, err := s.findPVCByPVName(pv.Name)
 		if err != nil {
-			logger.Log.Warningf("Warning getting PVC: %v\n", err)
+			log.Warningf("Warning getting PVC: %v\n", err)
 			return s, err
 		}
 
@@ -214,7 +214,7 @@ func (s *StorageStatus) collectEventsAndUsedByPods() (*StorageStatus, error) {
 		close(pvcsEventsChan)
 		close(errorChan)
 
-		logger.Log.Debug("All goroutines channels closed: podsEventsChan,pvsEventsChan,pvcsEventsChan,errorChan.")
+		log.Debug("All goroutines channels closed: podsEventsChan,pvsEventsChan,pvcsEventsChan,errorChan.")
 	}()
 
 	var chanError error
@@ -225,7 +225,7 @@ EventLoop:
 		case events, ok := <-pvsEventsChan:
 			processedPvs = true
 			if !ok {
-				logger.Log.Debug("Warning PV event channel closed.")
+				log.Debug("Warning PV event channel closed.")
 				break
 			}
 			s.VolumeEvents = events
@@ -233,7 +233,7 @@ EventLoop:
 		case events, ok := <-pvcsEventsChan:
 			processedPvcs = true
 			if !ok {
-				logger.Log.Debug("Warning PVC event channel closed.")
+				log.Debug("Warning PVC event channel closed.")
 				break
 			}
 			s.VolumeClaimEvents = events
@@ -241,7 +241,7 @@ EventLoop:
 		case pods, ok := <-podsEventsChan:
 			processedPods = true
 			if !ok {
-				logger.Log.Debug("Warning Pods event channel closed.")
+				log.Debug("Warning Pods event channel closed.")
 				break
 			}
 			s.UsedBy = pods
@@ -250,7 +250,7 @@ EventLoop:
 			break EventLoop
 
 		case <-ctx.Done():
-			logger.Log.Debug("Warning timeout waiting for events")
+			log.Debug("Warning timeout waiting for events")
 			break EventLoop
 		}
 
@@ -341,10 +341,10 @@ func (s *StorageStatus) getEvents(name, kind string, ctx context.Context, wg *sy
 	// Push the events into the channel
 	select {
 	case <-ctx.Done():
-		logger.Log.Debugf("Async: timeout waiting for events: %s\n", kind)
+		log.Debugf("Async: timeout waiting for events: %s\n", kind)
 		return
 	case channel <- events:
-		logger.Log.Debugf("Async: push the events into the channel: %s\n", kind)
+		log.Debugf("Async: push the events into the channel: %s\n", kind)
 	}
 }
 
@@ -380,9 +380,9 @@ func (s *StorageStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, c
 	// Push the events into the channel
 	select {
 	case <-ctx.Done():
-		logger.Log.Debugf("Async: timeout waiting for pods")
+		log.Debugf("Async: timeout waiting for pods")
 		return
 	case channel <- usedBy:
-		logger.Log.Debugf("Async: push pods into the channel")
+		log.Debugf("Async: push pods into the channel")
 	}
 }

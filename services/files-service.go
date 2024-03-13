@@ -9,7 +9,6 @@ import (
 	"math"
 	"mime/multipart"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func List(r FilesListRequest) []dtos.PersistentFileDto {
@@ -28,7 +28,7 @@ func List(r FilesListRequest) []dtos.PersistentFileDto {
 	}
 	result, err = listFiles(pathToFile, 0)
 	if err != nil {
-		logger.Log.Errorf("Files List Error: %s", err.Error())
+		log.Errorf("Files List Error: %s", err.Error())
 	}
 	return result
 }
@@ -37,7 +37,7 @@ func Info(r dtos.PersistentFileRequestDto) dtos.PersistentFileDto {
 	result := dtos.PersistentFileDto{}
 	pathToFile, err := verify(&r)
 	if err != nil {
-		logger.Log.Errorf("file info verify error: %s", err.Error())
+		log.Errorf("file info verify error: %s", err.Error())
 		return result
 	}
 	return dtos.PersistentFileDtoFrom(pathToFile, pathToFile)
@@ -111,7 +111,7 @@ func Download(r FilesDownloadRequest) interface{} {
 		})
 
 		if err != nil {
-			logger.Log.Errorf("directory zip walk files error: %s", err.Error())
+			log.Errorf("directory zip walk files error: %s", err.Error())
 			result.Error = err.Error()
 			return result
 		}
@@ -119,7 +119,7 @@ func Download(r FilesDownloadRequest) interface{} {
 		// Close the zip archive
 		err = zipWriter.Close()
 		if err != nil {
-			logger.Log.Errorf("zip error: %s", err.Error())
+			log.Errorf("zip error: %s", err.Error())
 			result.Error = err.Error()
 			return result
 		}
@@ -173,14 +173,14 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	// 1: VERIFY
 	targetDestination, err := verify(&fileReq.File)
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 	}
 	fmt.Printf("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 	}
 	for _, file := range files {
 		fmt.Println("uncompress: " + file)
@@ -281,6 +281,10 @@ func Delete(r FilesDeleteRequest) interface{} {
 
 type ClusterIssuerInstallRequest struct {
 	Email string `json:"email" validate:"required,email"`
+}
+
+func (p *ClusterIssuerInstallRequest) AddSecretsToRedaction() {
+	utils.AddSecret(&p.Email)
 }
 
 func ClusterIssuerInstallRequestExample() ClusterIssuerInstallRequest {
