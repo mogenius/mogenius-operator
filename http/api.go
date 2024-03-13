@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/structs"
@@ -86,9 +85,9 @@ func postTraffic(c *gin.Context) {
 	if utils.CONFIG.Misc.Debug {
 		err := json.Indent(&out, []byte(body), "", "  ")
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 		}
-		fmt.Println(string(out.Bytes()))
+		log.Info(string(out.Bytes()))
 	}
 
 	stat := &structs.InterfaceStats{}
@@ -110,9 +109,9 @@ func postPodStats(c *gin.Context) {
 	if utils.CONFIG.Misc.Debug {
 		err := json.Indent(&out, []byte(body), "", "  ")
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 		}
-		fmt.Println(string(out.Bytes()))
+		log.Info(string(out.Bytes()))
 	}
 
 	stat := &structs.PodStats{}

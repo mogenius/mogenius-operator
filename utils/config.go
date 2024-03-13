@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"mogenius-k8s-manager/version"
 	"net/http"
 	"os"
@@ -51,6 +50,7 @@ type Config struct {
 	} `yaml:"event_server"`
 	Misc struct {
 		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
+		LogFormat             string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"text"`
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		LogKubernetesEvents   bool     `yaml:"log_kubernetes_events" env:"log_kubernetes_events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
 		DefaultMountPath      string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
@@ -140,6 +140,18 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	}
 
 	if CONFIG.Misc.Debug {
+		log.SetReportCaller(true)
+	}
+
+	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
+		log.SetFormatter(&log.JSONFormatter{})
+	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
+		log.SetFormatter(&log.TextFormatter{})
+	} else {
+		log.SetFormatter(&log.TextFormatter{})
+	}
+
+	if CONFIG.Misc.Debug {
 		log.Info("Starting serice for pprof in localhost:6060")
 		go func() {
 			log.Info(http.ListenAndServe("localhost:6060", nil))
@@ -200,6 +212,7 @@ func PrintSettings() {
 
 	log.Infof("MISC")
 	log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
+	log.Infof("LogFormat:                %s", CONFIG.Misc.LogFormat)
 	log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
 	log.Infof("AutoMountNfs:             %t", CONFIG.Misc.AutoMountNfs)
 	log.Infof("LogKubernetesEvents:      %t", CONFIG.Misc.LogKubernetesEvents)
@@ -226,8 +239,7 @@ func PrintSettings() {
 }
 
 func PrintVersionInfo() {
-	fmt.Println("")
-	log.Infof("Version:     %s", version.Ver)
+	log.Infof("\nVersion:     %s", version.Ver)
 	log.Infof("Branch:      %s", version.Branch)
 	log.Infof("Hash:        %s", version.GitCommitHash)
 	log.Infof("BuildAt:     %s", version.BuildTimestamp)
@@ -258,9 +270,9 @@ func DeleteCurrentConfig() {
 	_, configPath := GetDirectories("")
 	err := os.Remove(configPath)
 	if err != nil {
-		fmt.Printf("Error removing config file. '%s'.", err.Error())
+		log.Errorf("Error removing config file. '%s'.", err.Error())
 	} else {
-		fmt.Printf("%s succesfuly deleted.", configPath)
+		log.Infof("%s succesfuly deleted.", configPath)
 	}
 }
 
@@ -294,7 +306,7 @@ func writeDefaultConfig(stage string) {
 	} else if stage == STAGE_LOCAL {
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	} else {
-		fmt.Println("No stage set. Using local config.")
+		log.Warnf("No stage set. Using local config.")
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	}
 	if err != nil {

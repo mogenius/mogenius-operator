@@ -6,7 +6,6 @@ package cmd
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io/ioutil"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	socketserver "mogenius-k8s-manager/socket-server"
@@ -55,12 +54,12 @@ var testServerCmd = &cobra.Command{
 			for {
 				select {
 				case <-cancelCtx.Done():
-					fmt.Println("done")
+					log.Debug("done")
 					return
 				default:
 					for reader.Scan() {
 						lastBytes := reader.Bytes()
-						fmt.Println(string(lastBytes))
+						log.Debug(string(lastBytes))
 					}
 				}
 			}
@@ -72,7 +71,7 @@ var testServerCmd = &cobra.Command{
 
 			data, err := ioutil.ReadAll(c.Request.Body)
 			if err != nil {
-				fmt.Println(err.Error())
+				log.Errorf("build-notification-test: %s", err.Error())
 			}
 			utils.PrettyPrintInterfaceLog(data)
 

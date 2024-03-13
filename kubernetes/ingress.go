@@ -189,7 +189,7 @@ func loadDefaultAnnotations() map[string]string {
 		if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
 			var annotations map[string]string
 			if err := json.Unmarshal([]byte(annotationsRaw), &annotations); err != nil {
-				fmt.Println("Error unmarshalling annotations from mogenius-default-ingress-values:", err)
+				log.Errorf("Error unmarshalling annotations from mogenius-default-ingress-values: %s", err.Error())
 				return result
 			}
 			for key, value := range annotations {

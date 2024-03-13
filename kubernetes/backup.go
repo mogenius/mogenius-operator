@@ -68,7 +68,6 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 		}
 		obj, _, err := yaml2.NewDecodingSerializer(unstructured.UnstructuredJSONScheme).Decode(objRaw.Raw, nil, nil)
 		if err != nil {
-			fmt.Println(string(objRaw.Raw))
 			result.Messages = append(result.Messages, err.Error())
 			break
 		}
@@ -354,10 +353,10 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 
 	os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 0777)
 
-	fmt.Printf("\nSKIP   : %s\n", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
-	fmt.Printf("\nALL    : %s\n", allResources.Display())
-	fmt.Printf("\nSKIPPED: %s\n", skippedGroups.Display())
-	fmt.Printf("\nUSED   : %s\n", usedResources.Display())
+	log.Infof("\nSKIP   : %s\n", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
+	log.Infof("\nALL    : %s\n", allResources.Display())
+	log.Infof("\nSKIPPED: %s\n", skippedGroups.Display())
+	log.Infof("\nUSED   : %s\n", usedResources.Display())
 
 	return result, nil
 }

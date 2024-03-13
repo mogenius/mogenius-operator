@@ -60,7 +60,7 @@ var clusterCmd = &cobra.Command{
 			basicApps, userApps := services.InstallDefaultApplications()
 			if basicApps != "" || userApps != "" {
 				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
-				fmt.Printf("Seeding Commands (🪴🪴🪴): \"%s\".\n", userApps)
+				log.Infof("Seeding Commands (🪴🪴🪴): \"%s\".\n", userApps)
 				if err != nil {
 					log.Fatalf("Error installing default applications: %s", err.Error())
 				}

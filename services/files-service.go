@@ -126,14 +126,14 @@ func Download(r FilesDownloadRequest) interface{} {
 	} else {
 		// SEND FILE TO HTTP
 		if err != nil {
-			fmt.Printf("Error creating form file: %s", err)
+			log.Errorf("Error creating form file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
 
 		_, err = io.Copy(w, file)
 		if err != nil {
-			fmt.Printf("Error copying file: %s", err)
+			log.Errorf("Error copying file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
@@ -146,7 +146,7 @@ func Download(r FilesDownloadRequest) interface{} {
 	// Upload the file
 	req, err := http.NewRequest("POST", r.PostTo, buf)
 	if err != nil {
-		fmt.Printf("Error sending request: %s", err)
+		log.Errorf("Error sending request: %s", err)
 		result.Error = err.Error()
 		return result
 	}
@@ -156,7 +156,7 @@ func Download(r FilesDownloadRequest) interface{} {
 	client := &http.Client{}
 	response, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("Error sending request: %s", err)
+		log.Errorf("Error sending request: %s", err)
 		result.Error = err.Error()
 		return result
 	}
@@ -175,7 +175,7 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	if err != nil {
 		log.Error(err)
 	}
-	fmt.Printf("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
+	log.Infof("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
@@ -183,7 +183,7 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 		log.Error(err)
 	}
 	for _, file := range files {
-		fmt.Println("uncompress: " + file)
+		log.Info("uncompress: " + file)
 	}
 	return nil
 }
@@ -428,7 +428,6 @@ func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
 			return err
 		}
 		relPath, _ := filepath.Rel(rootDir, path)
-		//fmt.Printf("%d %s\n", strings.Count(relPath, string(os.PathSeparator)), path)
 		if strings.Count(relPath, string(os.PathSeparator)) > maxDepth {
 			return fs.SkipDir
 		}

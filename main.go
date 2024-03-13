@@ -45,9 +45,7 @@ func main() {
 
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.TraceLevel)
-	log.SetReportCaller(true)
 	log.AddHook(&utils.SecretRedactionHook{})
-	log.SetFormatter(&log.JSONFormatter{})
 
 	utils.DefaultConfigClusterFilePreDev = DefaultConfigClusterFilePreDev
 	utils.DefaultConfigClusterFileDev = DefaultConfigClusterFileDev

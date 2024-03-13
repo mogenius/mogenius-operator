@@ -83,8 +83,9 @@ func CreateShellCommand(title string, job *Job, shellCmd string, wg *sync.WaitGr
 		cmd.Start(title)
 
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		fmt.Println(string(shellCmd))
-		fmt.Println(string(output))
+		log.Info(string(shellCmd))
+		log.Info(string(output))
+
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
@@ -103,8 +104,8 @@ func CreateShellCommand(title string, job *Job, shellCmd string, wg *sync.WaitGr
 func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		fmt.Println(string(shellCmd))
-		fmt.Println(string(output))
+		log.Info(string(shellCmd))
+		log.Info(string(output))
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)

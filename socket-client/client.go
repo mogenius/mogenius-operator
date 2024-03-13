@@ -45,9 +45,7 @@ func StartK8sManager() {
 		utils.PrintVersionInfo()
 		utils.PrintSettings()
 	} else {
-		fmt.Println(punqUtils.FillWith("", 90, "#"))
-		fmt.Printf("###   CURRENT CONTEXT: %s   ###\n", punqUtils.FillWith(mokubernetes.CurrentContextName(), 61, " "))
-		fmt.Println(punqUtils.FillWith("", 90, "#"))
+		log.Infof("\n%s\n###   CURRENT CONTEXT: %s   ###\n%s\n", punqUtils.FillWith("", 90, "#"), punqUtils.FillWith(mokubernetes.CurrentContextName(), 61, " "), punqUtils.FillWith("", 90, "#"))
 	}
 
 	updateCheck()
@@ -81,8 +79,6 @@ func StartK8sManager() {
 			// DISCONNECTED
 		}
 	}
-
-	fmt.Println("omg")
 }
 
 func parseMessage(done chan struct{}, c *websocket.Conn) {
@@ -204,34 +200,30 @@ func versionTicker() {
 }
 
 func updateCheck() {
-	fmt.Print("Checking for updates ...")
+	log.Info("Checking for updates ...")
 
 	if !punqUtils.IsProduction() {
-		fmt.Println(" (skipped) [not production].")
+		log.Warn(" (skipped) [not production].")
 		return
 	}
 
 	helmData, err := utils.GetVersionData(utils.CONFIG.Misc.HelmIndex)
-
 	if err != nil {
-		log.Error(err)
+		log.Errorf("GetVersionData ERR: %s", err.Error())
 		return
 	}
 	// VALIDATE RESPONSE
 	if len(helmData.Entries) < 1 {
-		fmt.Printf("\n")
-		log.Errorf("HelmIndex Entries length <= 0. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		log.Errorf("\nHelmIndex Entries length <= 0. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
 	mogeniusPlatform, doesExist := helmData.Entries["mogenius-platform"]
 	if !doesExist {
-		fmt.Printf("\n")
-		log.Errorf("HelmIndex does not contain the field 'mogenius-platform'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		log.Errorf("\nHelmIndex does not contain the field 'mogenius-platform'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
 	if len(mogeniusPlatform) <= 0 {
-		fmt.Printf("\n")
-		log.Errorf("Field 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		log.Errorf("\nField 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
 	var mok8smanager *punqStructs.HelmDependency = nil
@@ -247,46 +239,45 @@ func updateCheck() {
 	}
 
 	if version.Ver != mok8smanager.Version {
-		fmt.Printf("\n")
-		fmt.Printf("####################################################################\n")
-		fmt.Printf("####################################################################\n")
-		fmt.Printf("######                  %s                ######\n", color.BlueString("NEW VERSION AVAILABLE!"))
-		fmt.Printf("######               %s              ######\n", color.YellowString(" UPDATE AS FAST AS POSSIBLE"))
-		fmt.Printf("######                                                        ######\n")
-		fmt.Printf("######                    Available: %s                    ######\n", color.GreenString(mok8smanager.Version))
-		fmt.Printf("######                    In-Use:    %s                    ######\n", color.RedString(version.Ver))
-		fmt.Printf("######                                                        ######\n")
-		fmt.Printf("######   %s   ######\n", color.RedString("Not updating might result in service interruption."))
-		fmt.Printf("####################################################################\n")
-		fmt.Printf("####################################################################\n")
+		log.Warnf("\n####################################################################\n"+
+			"####################################################################\n"+
+			"######                  %s                ######\n"+
+			"######               %s              ######\n"+
+			"######                                                        ######\n"+
+			"######                    Available: %s                    ######\n"+
+			"######                    In-Use:    %s                    ######\n"+
+			"######                                                        ######\n"+
+			"######   %s   ######\n", color.RedString("Not updating might result in service interruption.")+
+			"####################################################################\n"+
+			"####################################################################\n", color.BlueString("NEW VERSION AVAILABLE!"), color.YellowString(" UPDATE AS FAST AS POSSIBLE"), color.GreenString(mok8smanager.Version), color.RedString(version.Ver))
 		notUpToDateAction(helmData)
 	} else {
-		fmt.Printf(" Up-To-Date: 👍 (Your Ver: %s)\n", version.Ver)
+		log.Infof(" Up-To-Date: 👍 (Your Ver: %s)\n", version.Ver)
 	}
 }
 
 func notUpToDateAction(helmData *punqStructs.HelmData) {
 	localVer, err := semver.NewVersion(version.Ver)
 	if err != nil {
-		log.Error("Error parsing local version: %s", err.Error())
+		log.Errorf("Error parsing local version: %s", err.Error())
 		return
 	}
 
 	remoteVer, err := semver.NewVersion(helmData.Entries["mogenius-k8s-manager"][0].Version)
 	if err != nil {
-		log.Error("Error parsing remote version: %s", err.Error())
+		log.Errorf("Error parsing remote version: %s", err.Error())
 		return
 	}
 
 	constraint, err := semver.NewConstraint(">= " + version.Ver)
 	if err != nil {
-		log.Error("Error parsing constraint version: %s", err.Error())
+		log.Errorf("Error parsing constraint version: %s", err.Error())
 		return
 	}
 
 	_, errors := constraint.Validate(remoteVer)
 	for _, m := range errors {
-		fmt.Println(m)
+		log.Error(m)
 	}
 	// Local version > Remote version (likely development version)
 	if remoteVer.LessThan(localVer) {

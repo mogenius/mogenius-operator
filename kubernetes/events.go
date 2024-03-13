@@ -50,7 +50,6 @@ func WatchEvents() {
 
 		// Start watching events
 		for event := range watcher.ResultChan() {
-			//fmt.Println(event)
 			if event.Object != nil {
 				eventDto := dtos.CreateEvent(string(event.Type), event.Object)
 				datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)

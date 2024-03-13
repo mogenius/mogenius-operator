@@ -22,6 +22,7 @@ event_server:
 
 misc:
   stage: dev
+  log_format: json # json or text
   default_mount_path: /mo-data
   debug: true
   auto_mount_nfs: true
