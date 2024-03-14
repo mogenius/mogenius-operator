@@ -82,18 +82,18 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 
 	if StorageAPIObjectFromString(r.StorageAPIObject) == StorageTypePersistentVolume {
 		if _, err := storageStatus.GetByPVName(r.Name); err != nil {
-			return NfsStatusResponse{Status: storageStatus, Error: err.Error()}
+			return NfsStatusResponse{StorageStatus: storageStatus, Error: err.Error()}
 		}
 	} else if StorageAPIObjectFromString(r.StorageAPIObject) == StorageTypePersistentVolumeClaim {
 		if _, err := storageStatus.GetByPVCName(r.Namespace, r.Name); err != nil {
-			return NfsStatusResponse{Status: storageStatus, Error: err.Error()}
+			return NfsStatusResponse{StorageStatus: storageStatus, Error: err.Error()}
 		}
 	} else {
 		return NfsStatusResponse{Error: "Invalid StorageAPIObject"}
 	}
 
 	return NfsStatusResponse{
-		Status: storageStatus,
+		StorageStatus: storageStatus,
 	}
 }
 

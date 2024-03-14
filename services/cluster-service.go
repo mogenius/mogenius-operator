@@ -711,8 +711,8 @@ type NfsStatusRequest struct {
 }
 
 type NfsStatusResponse struct {
-	Status interface{} `json:"status,omitempty"`
-	Error  string      `json:"error,omitempty"`
+	StorageStatus interface{} `json:"storageStatus,omitempty"`
+	Error         string      `json:"error,omitempty"`
 }
 
 var keplerHostAndPort string = ""
