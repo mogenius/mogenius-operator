@@ -31,10 +31,10 @@ var SuppressedPayloads = []string{
 	services.PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST,
 	services.PAT_SERVICE_STATUS,
 	services.PAT_STORAGE_STATS,
+	services.PAT_STORAGE_STATUS,
 	services.PAT_STORAGE_NAMESPACE_STATS,
 	services.PAT_BUILD_LAST_JOB_OF_SERVICES,
 	services.PAT_BUILD_SCAN,
-	services.PAT_SERVICE_STATUS,
 }
 
 func StartK8sManager() {
