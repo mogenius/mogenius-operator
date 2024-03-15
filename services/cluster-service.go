@@ -703,16 +703,20 @@ type NfsVolumeRestoreResponse struct {
 }
 
 // @TODO: add request/respionse example for nfs status
-
 type NfsStatusRequest struct {
 	Name             string `json:"name" validate:"required"`
-	Namespace        string `json:"namespace" validate:"required"`
+	Namespace        string `json:"namespace"`
 	StorageAPIObject string `json:"type" validate:"required"`
 }
 
 type NfsStatusResponse struct {
-	StorageStatus interface{} `json:"storageStatus,omitempty"`
-	Error         string      `json:"error,omitempty"`
+	VolumeName string                `json:"volumeName"`
+	TotalBytes uint64                `json:"totalBytes"`
+	FreeBytes  uint64                `json:"freeBytes"`
+	UsedBytes  uint64                `json:"usedBytes"`
+	Status     VolumeStatusType      `json:"status"`
+	Messages   []VolumeStatusMessage `json:"messages,omitempty"`
+	UsedByPods []string              `json:"usedByPods,omitempty"`
 }
 
 var keplerHostAndPort string = ""
