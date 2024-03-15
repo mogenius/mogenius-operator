@@ -20,8 +20,6 @@ import (
 )
 
 func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	log.Infof("CreateDeployment K8sServiceDto: %s", service)
-
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name), job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {

@@ -178,11 +178,11 @@ func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 			err := c.WriteMessage(websocket.PingMessage, nil)
 			sendMutex.Unlock()
 			if err != nil {
-				log.Println("pingTicker ERROR:", err)
+				log.Error("pingTicker ERROR:", err)
 				return err
 			}
 		case <-interrupt:
-			log.Println("interrupt")
+			log.Error("interrupt")
 
 			// Cleanly close the connection by sending a close message and then
 			// waiting (with timeout) for the server to close the connection.
@@ -190,7 +190,7 @@ func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			sendMutex.Unlock()
 			if err != nil {
-				log.Println("write close:", err)
+				log.Error("write close:", err)
 				return err
 			}
 			select {

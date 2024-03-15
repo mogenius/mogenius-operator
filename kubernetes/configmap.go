@@ -24,11 +24,8 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		cmd.Start(fmt.Sprintf("Creating ConfigMap '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
 		if provider == nil || err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
@@ -86,11 +83,8 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
 		if provider == nil || err != nil {
+			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)

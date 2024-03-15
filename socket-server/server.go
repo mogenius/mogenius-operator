@@ -139,8 +139,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 						backupData := datagram.Payload.(map[string]interface{})["data"].(string)
 						name := datagram.Payload.(map[string]interface{})["namespaceName"].(string)
 						messages := datagram.Payload.(map[string]interface{})["messages"].([]interface{})
-						fmt.Printf("Backuped '%s'. Saved to 'backup.yaml'. Bytes=%d", name, len(backupData))
-						fmt.Println("Messages:")
+						log.Infof("Backuped '%s'. Saved to 'backup.yaml'. Bytes=%d", name, len(backupData))
+						log.Info("Messages:")
 						for _, msg := range messages {
 							fmt.Println(msg)
 						}
@@ -154,11 +154,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 							loadTestReceived++
 						} else {
 							RECEIVCOLOR := color.New(color.FgBlack, color.BgBlue).SprintFunc()
-							fmt.Printf("%s\n", RECEIVCOLOR(punqUtils.FillWith("RECEIVED", 22, " ")))
+							log.Infof("%s\n", RECEIVCOLOR(punqUtils.FillWith("RECEIVED", 22, " ")))
 							datagram.DisplayBeautiful()
 						}
 						if loadTestReceived > 0 {
-							fmt.Printf("Result (%d): %s / %s \n", loadTestReceived, time.Since(loadTestStartTime), punqUtils.BytesToHumanReadable(loadTestTotalBytes))
+							log.Infof("Result (%d): %s / %s \n", loadTestReceived, time.Since(loadTestStartTime), punqUtils.BytesToHumanReadable(loadTestTotalBytes))
 						}
 					}
 				} else {
@@ -605,7 +605,7 @@ func selectCommands() string {
 	allCommands := append([]string{}, services.COMMAND_REQUESTS...)
 	allCommands = append(allCommands, services.BINARY_REQUEST_UPLOAD...)
 	for index, patternName := range allCommands {
-		fmt.Printf("%d: %s\n", index, patternName)
+		log.Infof("%d: %s\n", index, patternName)
 	}
 
 	fmt.Println("input number:")
@@ -657,16 +657,13 @@ func sendFile() {
 			chunk, err := reader.Read(buf)
 			if err != nil {
 				if err != io.EOF {
-					fmt.Println(err)
+					log.Errorf("reading bytes error: %s", err.Error())
 				}
 				bar.Finish()
 				break
 			}
 			cluster.Connection.WriteMessage(websocket.BinaryMessage, buf)
 			bar.Add(chunk)
-		}
-		if err != nil {
-			log.Errorf("reading bytes error: %s", err.Error())
 		}
 		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######END_UPLOAD######;"))
 		serverSendMutex.Unlock()

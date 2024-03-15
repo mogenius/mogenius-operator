@@ -68,10 +68,10 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	}
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 	if r.Service.HasSeedRepo() {
-		initDocker(r.Service, job)
+		initDocker(r.Service)
 	}
 	if r.Service.HasContainerWithGitRepo() {
-		updateInfrastructureYaml(r.Service, job)
+		updateInfrastructureYaml(r.Service)
 	}
 	wg.Wait()
 	job.Finish()
@@ -246,7 +246,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
-	updateInfrastructureYaml(r.Service, job)
+	updateInfrastructureYaml(r.Service)
 
 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 	wg.Wait()
@@ -262,7 +262,7 @@ func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 	}
 }
 
-func initDocker(service dtos.K8sServiceDto, job structs.Job) []*structs.Command {
+func initDocker(service dtos.K8sServiceDto) []*structs.Command {
 	tempDir := "/temp"
 	gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
 
@@ -291,7 +291,7 @@ func initDocker(service dtos.K8sServiceDto, job structs.Job) []*structs.Command 
 	return []*structs.Command{}
 }
 
-func updateInfrastructureYaml(service dtos.K8sServiceDto, job structs.Job) []*structs.Command {
+func updateInfrastructureYaml(service dtos.K8sServiceDto) []*structs.Command {
 	for _, container := range service.Containers {
 		if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 			if container.GitRepository == nil {

@@ -98,9 +98,6 @@ func CurrentContextName() string {
 
 func Hostname() string {
 	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return ""
-	}
 	if provider == nil || err != nil {
 		log.Fatal("error creating kubeprovider")
 	}
@@ -110,9 +107,6 @@ func Hostname() string {
 
 func ListNodes() []core.Node {
 	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return []core.Node{}
-	}
 	if provider == nil || err != nil {
 		log.Fatal("error creating kubeprovider")
 		return []core.Node{}

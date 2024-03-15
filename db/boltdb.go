@@ -367,7 +367,6 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 	var nextBuildId uint64 = 0
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		nextBuildId, _ = bucket.NextSequence() // auto increment
 
 		// FIRST: CHECK FOR DUPLICATES
 		c := bucket.Cursor()
@@ -377,8 +376,20 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 			err := structs.UnmarshalJob(&job, jobData)
 			if err != nil {
 				log.Errorf("AddToDb (unmarshall) ERR: %s", err.Error())
+				continue
+			}
+			//
+			if (job.State == punqStructs.JobStatePending || job.State == punqStructs.JobStateStarted) && job.Service.ControllerName == buildJob.Service.ControllerName {
+				for _, container := range job.Service.Containers {
+					for _, jobContainer := range buildJob.Service.Containers {
+						if *jobContainer.GitCommitHash == *container.GitCommitHash {
+							return fmt.Errorf("Duplicate Commit-Hash (%s) found skipping build.", *container.GitCommitHash)
+						}
+					}
+				}
 			}
 		}
+		nextBuildId, _ = bucket.NextSequence() // auto increment
 		buildJob.BuildId = int(nextBuildId)
 		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(utils.PrettyPrintInterface(buildJob)))
 	})

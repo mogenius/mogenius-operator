@@ -37,7 +37,7 @@ func ProcessQueue() {
 	jobsToBuild := db.GetJobsToBuildFromDb()
 
 	// this must happen outside the transaction to avoid dead-locks
-	log.Infof("Queued %d jobs in build-queue.", len(jobsToBuild))
+	log.Infof("Queued %d/%d jobs in build-queue.", len(jobsToBuild), utils.CONFIG.Builder.MaxConcurrentBuilds)
 	for _, buildJob := range jobsToBuild {
 		for _, container := range buildJob.Service.Containers {
 			// only build git-repositories
@@ -53,7 +53,7 @@ func ProcessQueue() {
 			defer cancel()
 
 			currentNumberOfRunningJobs++
-			job := structs.CreateJob(fmt.Sprintf("[%d/%d] Building '%s'", currentNumberOfRunningJobs, utils.CONFIG.Builder.MaxConcurrentBuilds, buildJob.Service.ControllerName), buildJob.Project.Id, &buildJob.Namespace.Id, &buildJob.Service.Id)
+			job := structs.CreateJob(fmt.Sprintf("[%d/%d] Building '%s' (commit: %s)", currentNumberOfRunningJobs, utils.CONFIG.Builder.MaxConcurrentBuilds, buildJob.Service.ControllerName, *container.GitCommitHash), buildJob.Project.Id, &buildJob.Namespace.Id, &buildJob.Service.Id)
 
 			go build(job, &buildJob, container, currentBuildChannel, &ctx)
 
@@ -268,7 +268,7 @@ func BuildJobInfos(buildId int) structs.BuildJobInfos {
 func Add(buildJob structs.BuildJob) structs.BuildAddResult {
 	nextBuildId, err := db.AddToDb(buildJob)
 	if err != nil {
-		log.Errorf("Error adding job '%d' to bucket. REASON: %s", nextBuildId, err.Error())
+		log.Errorf("Error adding job for '%s/%s'. REASON: %s", buildJob.Namespace.Name, buildJob.Service.ControllerName, err.Error())
 		return structs.BuildAddResult{BuildId: nextBuildId}
 	}
 
