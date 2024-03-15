@@ -28,11 +28,8 @@ import (
 
 func Deploy() {
 	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return
-	}
 	if provider == nil || err != nil {
-		panic("Error creating kubeprovider")
+		log.Fatal("Error creating kubeprovider")
 	}
 
 	applyNamespace(provider)

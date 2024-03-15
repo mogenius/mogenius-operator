@@ -9,7 +9,6 @@ import (
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
 	api "mogenius-k8s-manager/http"
-	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/migrations"
 	"mogenius-k8s-manager/services"
@@ -60,12 +59,13 @@ var clusterCmd = &cobra.Command{
 			basicApps, userApps := services.InstallDefaultApplications()
 			if basicApps != "" || userApps != "" {
 				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
-				log.Infof("Seeding Commands (🪴🪴🪴): \"%s\".\n", userApps)
+				log.Infof("Seeding Commands ( 🪴 🪴 🪴 ): \"%s\".\n", userApps)
 				if err != nil {
 					log.Fatalf("Error installing default applications: %s", err.Error())
 				}
 			}
 			builder.DISABLEQUEUE = false
+			builder.ProcessQueue() // Process the queue maybe there are builds left to build
 		}()
 
 		go api.InitApi()
@@ -78,8 +78,8 @@ var clusterCmd = &cobra.Command{
 		punq.ExecuteShellCommandSilent("Git setup (3/4)", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
 		punq.ExecuteShellCommandSilent("Git setup (4/4)", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
 
-		kubernetes.CreateMogeniusContainerRegistryTlsSecret()
-		kubernetes.CreateMogeniusContainerRegistryIngress()
+		mokubernetes.CreateMogeniusContainerRegistryTlsSecret()
+		mokubernetes.CreateMogeniusContainerRegistryIngress()
 
 		socketclient.StartK8sManager()
 	},

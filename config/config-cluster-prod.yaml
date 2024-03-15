@@ -23,8 +23,10 @@ event_server:
 misc:
   stage: prod
   log_format: json # json or text
+  log_level: info  # panic, fatal, error, warn, info, debug, trace
   default_mount_path: /mo-data
   debug: false
+  debug_log_caller: false
   auto_mount_nfs: true
   log_kubernetes_events: false
   ignore_namespaces: ["kube-system"]

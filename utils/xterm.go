@@ -80,7 +80,7 @@ func InjectContent(content io.Reader, conn *websocket.Conn) {
 	// Read full content for pre-injection
 	input, err := io.ReadAll(content)
 	if err != nil {
-		log.Printf("failed to read data: %v", err)
+		log.Errorf("failed to read data: %v", err)
 	}
 
 	// Encode for security reasons and send to pseudoterminal to be executed
@@ -89,11 +89,11 @@ func InjectContent(content io.Reader, conn *websocket.Conn) {
 	bash := exec.Command("bash", "-c", "echo \""+encodedData+"\" | base64 -d")
 	ttytmp, err := pty.Start(bash)
 	if err != nil {
-		log.Printf("Unable to start tmp pty/cmd: %s", err.Error())
+		log.Errorf("Unable to start tmp pty/cmd: %s", err.Error())
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			if err != nil {
-				log.Printf("WriteMessage: %s", err.Error())
+				log.Errorf("WriteMessage: %s", err.Error())
 			}
 		}
 		return
@@ -109,12 +109,12 @@ func InjectContent(content io.Reader, conn *websocket.Conn) {
 				break
 			}
 
-			log.Printf("WriteMessage: %s", err.Error())
+			log.Errorf("WriteMessage: %s", err.Error())
 			break
 		}
 		if conn != nil {
 			if err := conn.WriteMessage(websocket.BinaryMessage, buf[:n]); err != nil {
-				log.Printf("WriteMessage: %s", err.Error())
+				log.Errorf("WriteMessage: %s", err.Error())
 				break
 			}
 		} else {
@@ -147,18 +147,18 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
 	}
-	log.Infof("Connected to %s", websocketUrl.String())
+	//log.Infof("Connected to %s", websocketUrl.String())
 
 	// Check if pod exists
 	podExists := punq.PodExists(namespace, pod, nil)
-	if podExists.PodExists == false {
+	if !podExists.PodExists {
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
 			if err != nil {
-				log.Printf("WriteMessage: %s", err.Error())
+				log.Errorf("WriteMessage: %s", err.Error())
 			}
 		}
-		log.Printf("Pod %s does not exist, closing connection.", pod)
+		log.Errorf("Pod %s does not exist, closing connection.", pod)
 		return
 	}
 
@@ -166,11 +166,11 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 	cmd.Env = append(os.Environ(), "TERM=xterm-color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
-		log.Printf("Unable to start pty/cmd: %s", err.Error())
+		log.Errorf("Unable to start pty/cmd: %s", err.Error())
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			if err != nil {
-				log.Printf("WriteMessage: %s", err.Error())
+				log.Errorf("WriteMessage: %s", err.Error())
 			}
 		}
 		return
@@ -180,7 +180,7 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				log.Println("write close:", err)
+				log.Error("write close:", err)
 			}
 		}
 		cmd.Process.Kill()
@@ -191,14 +191,14 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 	go func() {
 		err := cmd.Wait()
 		if err != nil {
-			log.Printf("cmd wait: %s", err.Error())
+			log.Errorf("cmd wait: %s", err.Error())
 			if exiterr, ok := err.(*exec.ExitError); ok {
 				if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 					if status.ExitStatus() == 137 {
 						if conn != nil {
 							err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
 							if err != nil {
-								log.Printf("WriteMessage: %s", err.Error())
+								log.Errorf("WriteMessage: %s", err.Error())
 							}
 						}
 					}
@@ -209,15 +209,14 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 				closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 				err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
 				if err != nil {
-					log.Printf("WriteMessage: %s", err.Error())
+					log.Errorf("WriteMessage: %s", err.Error())
 				}
 			}
 			cmd.Process.Kill()
 			cmd.Process.Wait()
 			tty.Close()
-			log.Printf("Terminal closed.")
+			log.Info("Terminal closed.")
 		}
-		return
 	}()
 
 	go func() {
@@ -229,13 +228,13 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 			buf := make([]byte, 1024)
 			read, err := tty.Read(buf)
 			if err != nil {
-				log.Printf("Unable to read from pty/cmd: %s", err.Error())
+				log.Errorf("Unable to read from pty/cmd: %s", err.Error())
 				return
 			}
 			if conn != nil {
 				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
 				if err != nil {
-					log.Printf("WriteMessage: %s", err.Error())
+					log.Errorf("WriteMessage: %s", err.Error())
 				}
 				continue
 			}
@@ -246,7 +245,7 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 	for {
 		_, reader, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("Unable to grab next reader: %s", err.Error())
+			log.Errorf("Unable to grab next reader: %s", err.Error())
 			return
 		}
 
@@ -256,12 +255,12 @@ func XTermCommandStreamConnection(cmdType string, cmdConnectionRequest CmdConnec
 			var resizeMessage CmdWindowSize
 			err := json.Unmarshal([]byte(str), &resizeMessage)
 			if err != nil {
-				log.Printf("%s", err.Error())
+				log.Errorf("%s", err.Error())
 				continue
 			}
 
 			if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
-				log.Printf("Unable to resize: %s", err.Error())
+				log.Errorf("Unable to resize: %s", err.Error())
 				continue
 			}
 			continue

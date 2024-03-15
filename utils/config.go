@@ -51,7 +51,9 @@ type Config struct {
 	Misc struct {
 		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		LogFormat             string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"text"`
+		LogLevel              string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: panic, fatal, error, warn, info, debug, trace" env-default:"info"`
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
+		DebugLogCaller        bool     `yaml:"debug_log_caller" env:"debug_log_caller" env-description:"If set to true, the calling function will be logged." env-default:"false"`
 		LogKubernetesEvents   bool     `yaml:"log_kubernetes_events" env:"log_kubernetes_events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
 		DefaultMountPath      string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
 		IgnoreNamespaces      []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
@@ -140,7 +142,14 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	}
 
 	// SET LOGGING
-	log.SetReportCaller(CONFIG.Misc.Debug)
+	log.SetReportCaller(CONFIG.Misc.DebugLogCaller)
+	logLevel, err := log.ParseLevel(CONFIG.Misc.LogLevel)
+	if err != nil {
+		logLevel = log.InfoLevel
+		log.Error("Error parsing log level. Using default log level: info")
+	}
+	log.SetLevel(logLevel)
+
 	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
 		log.SetFormatter(&log.JSONFormatter{})
 	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
@@ -216,6 +225,7 @@ func PrintSettings() {
 	log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
 	log.Infof("LogFormat:                %s", CONFIG.Misc.LogFormat)
 	log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
+	log.Infof("DebugLogCaller:           %t", CONFIG.Misc.DebugLogCaller)
 	log.Infof("AutoMountNfs:             %t", CONFIG.Misc.AutoMountNfs)
 	log.Infof("LogKubernetesEvents:      %t", CONFIG.Misc.LogKubernetesEvents)
 	log.Infof("DefaultMountPath:         %s", CONFIG.Misc.DefaultMountPath)

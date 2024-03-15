@@ -42,7 +42,7 @@ func WatchEvents() {
 			if apierrors.IsGone(err) {
 				lastResourceVersion = ""
 			}
-			log.Printf("Error creating watcher: %v", err)
+			log.Errorf("Error creating watcher: %s", err.Error())
 			continue
 		} else {
 			log.Info("Watcher connected successfully. Start watching events...")

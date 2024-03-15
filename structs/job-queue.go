@@ -104,7 +104,7 @@ func processJobNow() {
 			if err == nil {
 				element.DisplaySentSummary(i+1, len(jobDataQueue))
 				if utils.CONFIG.Misc.Debug {
-					utils.PrettyPrintInterface(element.Payload)
+					log.Info(utils.PrettyPrintInterface(element.Payload))
 				}
 				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {
