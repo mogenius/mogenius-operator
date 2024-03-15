@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,43 +18,61 @@ import (
 
 const (
 	// milliseconds
-	StorageStatusTimeout = 250
+	VolumeStatusTimeout = 250
 )
 
-type StorageAPIObject int
+type VolumeAPIObject int
 
 const (
-	StorageTypePersistentVolume StorageAPIObject = iota
-	StorageTypePersistentVolumeClaim
+	VolumeTypePersistentVolume VolumeAPIObject = iota
+	VolumeTypePersistentVolumeClaim
 )
 
-func (s StorageAPIObject) String() string {
+func (s VolumeAPIObject) String() string {
 	return [...]string{"PersistentVolume", "PersistentVolumeClaim"}[s]
 }
 
-func StorageAPIObjectFromString(s string) StorageAPIObject {
+func StorageAPIObjectFromString(s string) VolumeAPIObject {
 	switch s {
-	case StorageTypePersistentVolume.String():
-		return StorageTypePersistentVolume
-	case StorageTypePersistentVolumeClaim.String():
-		return StorageTypePersistentVolumeClaim
+	case VolumeTypePersistentVolume.String():
+		return VolumeTypePersistentVolume
+	case VolumeTypePersistentVolumeClaim.String():
+		return VolumeTypePersistentVolumeClaim
 	default:
 		return -1
 	}
 }
 
-type Provisioning int
+type VolumeStatusType string
 
 const (
-	Dynamic Provisioning = iota
-	Manual
+	VolumeStatusTypePending VolumeStatusType = "PENDING"
+	VolumeStatusTypeBound   VolumeStatusType = "BOUND"
+	VolumeStatusTypeError   VolumeStatusType = "ERROR"
+	VolumeStatusTypeWarning VolumeStatusType = "WARNING"
 )
 
-func (p Provisioning) String() string {
+type VolumeStatusMessageType string
+
+const (
+	VolumeStatusMessageTypeInfo    VolumeStatusMessageType = "INFO"
+	VolumeStatusMessageTypeSuccess VolumeStatusMessageType = "SUCCESS"
+	VolumeStatusMessageTypeError   VolumeStatusMessageType = "ERROR"
+	VolumeStatusMessageTypeWarning VolumeStatusMessageType = "WARNING"
+)
+
+type VolumeProvisioningType int
+
+const (
+	VolumeProvisioningTypeDynamic VolumeProvisioningType = iota
+	VolumeProvisioningTypeManual
+)
+
+func (p VolumeProvisioningType) String() string {
 	return [...]string{"Dynamic", "Manual"}[p]
 }
 
-type StorageStatus struct {
+type VolumeStatus struct {
 	client *kubernetes.Clientset
 	//
 	PersistentVolume            *v1.PersistentVolume      `json:"persistentVolume,omitempty"`
@@ -68,40 +88,149 @@ type StorageStatus struct {
 	usedBy                    []string
 }
 
+type VolumeStatusMessage struct {
+	Type    VolumeStatusMessageType `json:"type"`
+	Message string                  `json:"message"`
+}
+
 func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 	log.Debugf("Storage status for (%s): %s %s", r.StorageAPIObject, r.Namespace, r.Name)
+
+	nfsVolumeStatsResponse := StatsMogeniusNfsVolume(NfsVolumeStatsRequest{NamespaceName: r.Namespace, VolumeName: r.Name})
+
+	nfsStatusResponse := NfsStatusResponse{
+		VolumeName: nfsVolumeStatsResponse.VolumeName,
+		TotalBytes: nfsVolumeStatsResponse.TotalBytes,
+		FreeBytes:  nfsVolumeStatsResponse.FreeBytes,
+		UsedBytes:  nfsVolumeStatsResponse.UsedBytes,
+	}
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		log.Warningf("Warning: %s", err.Error())
-		return NfsStatusResponse{Error: err.Error()}
+		nfsStatusResponse.ProcessNfsStatusResponse(nil, err)
+		return nfsStatusResponse
 	}
 
-	storageStatus := StorageStatus{}
+	storageStatus := VolumeStatus{}
 	storageStatus.SetClient(provider.ClientSet)
 
-	if StorageAPIObjectFromString(r.StorageAPIObject) == StorageTypePersistentVolume {
+	if StorageAPIObjectFromString(r.StorageAPIObject) == VolumeTypePersistentVolume {
 		if _, err := storageStatus.GetByPVName(r.Name); err != nil {
-			return NfsStatusResponse{StorageStatus: storageStatus, Error: err.Error()}
+			nfsStatusResponse.ProcessNfsStatusResponse(&storageStatus, err)
+			return nfsStatusResponse
 		}
-	} else if StorageAPIObjectFromString(r.StorageAPIObject) == StorageTypePersistentVolumeClaim {
+	} else if StorageAPIObjectFromString(r.StorageAPIObject) == VolumeTypePersistentVolumeClaim {
 		if _, err := storageStatus.GetByPVCName(r.Namespace, r.Name); err != nil {
-			return NfsStatusResponse{StorageStatus: storageStatus, Error: err.Error()}
+			nfsStatusResponse.ProcessNfsStatusResponse(&storageStatus, err)
+			return nfsStatusResponse
 		}
 	} else {
-		return NfsStatusResponse{Error: "Invalid StorageAPIObject"}
+		nfsStatusResponse.ProcessNfsStatusResponse(nil, errors.New("invalid StorageAPIObject"))
+		return nfsStatusResponse
 	}
 
-	return NfsStatusResponse{
-		StorageStatus: storageStatus,
+	nfsStatusResponse.ProcessNfsStatusResponse(&storageStatus, nil)
+	return nfsStatusResponse
+}
+
+func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error) {
+	if s == nil && err != nil {
+		v.Status = VolumeStatusTypeError
+		v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeError, Message: err.Error()})
+		return
+	}
+
+	if s != nil {
+		v.UsedByPods = s.usedBy
+
+		if s.PersistentVolumeClaim != nil && s.PersistentVolume != nil {
+			// pv phase 'failed or pvc phase 'lost'
+			notOk := false
+			notOk = notOk || (s.PersistentVolume != nil && s.PersistentVolume.Status.Phase == v1.VolumeFailed)
+			notOk = notOk || (s.PersistentVolumeClaim != nil && s.PersistentVolumeClaim.Status.Phase == v1.ClaimLost)
+
+			if notOk {
+				v.Status = VolumeStatusTypeError
+				v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeError, Message: "Volume phase failed or claim phase lost"})
+				v.Messages = append(v.Messages, s.messages()...)
+				return
+			}
+
+			success := true
+			success = success && (s.PersistentVolume != nil && s.PersistentVolume.Status.Phase == v1.VolumeBound)
+			success = success && (s.PersistentVolumeClaim != nil && s.PersistentVolumeClaim.Status.Phase == v1.ClaimBound)
+			// iterate over usedByPods and check if they are running and only if pod name start with pvc.Name
+			for _, pod := range s.UsedByPods {
+				if strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) && pod.Status.Phase != v1.PodRunning {
+					success = false
+					break
+				}
+			}
+
+			if success {
+				v.Status = VolumeStatusTypeBound
+				v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeSuccess, Message: "Volume is bound"})
+				return
+			}
+		}
+	}
+
+	v.Status = VolumeStatusTypePending
+	v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeInfo, Message: "Volume is processing"})
+	if err != nil {
+		v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeError, Message: err.Error()})
 	}
 }
 
-func (s *StorageStatus) SetClient(client *kubernetes.Clientset) {
+func (s *VolumeStatus) messages() []VolumeStatusMessage {
+	// convert PersistentVolumeEvents and PersistentVolumeClaimEvents into messages
+	var messages []VolumeStatusMessage
+
+	sort.SliceStable(s.PersistentVolumeEvents, func(i, j int) bool {
+		return s.PersistentVolumeEvents[i].LastTimestamp.Time.After(s.PersistentVolumeEvents[j].LastTimestamp.Time)
+	})
+
+	for _, event := range s.PersistentVolumeEvents {
+		var messageType VolumeStatusMessageType
+		if event.Type == "Warning" {
+			messageType = VolumeStatusMessageTypeWarning
+		} else {
+			messageType = VolumeStatusMessageTypeInfo
+		}
+
+		messages = append(messages, VolumeStatusMessage{
+			Type:    messageType,
+			Message: fmt.Sprintf("PersitentVolume: %s", event.Message),
+		})
+	}
+
+	sort.SliceStable(s.PersistentVolumeClaimEvents, func(i, j int) bool {
+		return s.PersistentVolumeClaimEvents[i].LastTimestamp.Time.After(s.PersistentVolumeClaimEvents[j].LastTimestamp.Time)
+	})
+
+	for _, event := range s.PersistentVolumeClaimEvents {
+		var messageType VolumeStatusMessageType
+		if event.Type == "Warning" {
+			messageType = VolumeStatusMessageTypeWarning
+		} else {
+			messageType = VolumeStatusMessageTypeInfo
+		}
+
+		messages = append(messages, VolumeStatusMessage{
+			Type:    messageType,
+			Message: fmt.Sprintf("PersitentVolumeClaim: %s", event.Message),
+		})
+	}
+
+	return messages
+}
+
+func (s *VolumeStatus) SetClient(client *kubernetes.Clientset) {
 	s.client = client
 }
 
-func (s *StorageStatus) GetByPVCName(namespace, name string) (*StorageStatus, error) {
+func (s *VolumeStatus) GetByPVCName(namespace, name string) (*VolumeStatus, error) {
 	pvc, err := s.getPVC(namespace, name)
 	if err != nil {
 		log.Warningf("Warning getting PVC: %v\n", err)
@@ -129,7 +258,7 @@ func (s *StorageStatus) GetByPVCName(namespace, name string) (*StorageStatus, er
 	return s, nil
 }
 
-func (s *StorageStatus) GetByPVName(name string) (*StorageStatus, error) {
+func (s *VolumeStatus) GetByPVName(name string) (*VolumeStatus, error) {
 	pv, err := s.getPV(name)
 	if err != nil {
 		log.Warningf("Warning getting PV: %v\n", err)
@@ -140,7 +269,7 @@ func (s *StorageStatus) GetByPVName(name string) (*StorageStatus, error) {
 	s.persistentVolumeName = pv.Name
 
 	// ClaimRef is only set when bounded, other states handled via pvc
-	if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Kind == StorageTypePersistentVolumeClaim.String() {
+	if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Kind == VolumeTypePersistentVolumeClaim.String() {
 		pvc, err := s.getPVC(pv.Spec.ClaimRef.Namespace, pv.Spec.ClaimRef.Name)
 		if err != nil {
 			log.Warningf("Warning getting PVC: %v\n", err)
@@ -170,15 +299,15 @@ func (s *StorageStatus) GetByPVName(name string) (*StorageStatus, error) {
 	return s, nil
 }
 
-func (s *StorageStatus) provisioningType() {
+func (s *VolumeStatus) provisioningType() {
 	if s.PersistentVolume != nil && s.PersistentVolume.Spec.StorageClassName != "" {
-		s.Provisioning = Dynamic.String()
+		s.Provisioning = VolumeProvisioningTypeDynamic.String()
 	} else {
-		s.Provisioning = Manual.String()
+		s.Provisioning = VolumeProvisioningTypeManual.String()
 	}
 }
 
-func (s *StorageStatus) collectEventsAndUsedByPods() (*StorageStatus, error) {
+func (s *VolumeStatus) collectEventsAndUsedByPods() (*VolumeStatus, error) {
 	pvcsEventsChan := make(chan []v1.Event, 1)
 	pvsEventsChan := make(chan []v1.Event, 1)
 	podsEventsChan := make(chan []string, 1)
@@ -189,7 +318,7 @@ func (s *StorageStatus) collectEventsAndUsedByPods() (*StorageStatus, error) {
 	var wg sync.WaitGroup
 
 	// Context with timeout to handle cancellation and timeout
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(StorageStatusTimeout)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(VolumeStatusTimeout)*time.Millisecond)
 	defer cancel()
 
 	wg.Add(1)
@@ -197,12 +326,12 @@ func (s *StorageStatus) collectEventsAndUsedByPods() (*StorageStatus, error) {
 
 	if s.PersistentVolumeClaim.Name != "" {
 		wg.Add(1)
-		go s.getEvents(s.PersistentVolumeClaim.Name, StorageTypePersistentVolumeClaim.String(), ctx, &wg, pvcsEventsChan, errorChan)
+		go s.getEvents(s.PersistentVolumeClaim.Name, VolumeTypePersistentVolumeClaim.String(), ctx, &wg, pvcsEventsChan, errorChan)
 	}
 
 	if s.PersistentVolume.Name != "" {
 		wg.Add(1)
-		go s.getEvents(s.PersistentVolume.Name, StorageTypePersistentVolume.String(), ctx, &wg, pvsEventsChan, errorChan)
+		go s.getEvents(s.PersistentVolume.Name, VolumeTypePersistentVolume.String(), ctx, &wg, pvsEventsChan, errorChan)
 	}
 
 	go func() {
@@ -268,7 +397,7 @@ EventLoop:
 	return s, nil
 }
 
-func (s *StorageStatus) findPVCByPVName(name string) (*v1.PersistentVolumeClaim, error) {
+func (s *VolumeStatus) findPVCByPVName(name string) (*v1.PersistentVolumeClaim, error) {
 	if s.client == nil {
 		return nil, fmt.Errorf("client is not set")
 	}
@@ -288,7 +417,7 @@ func (s *StorageStatus) findPVCByPVName(name string) (*v1.PersistentVolumeClaim,
 	return &pvcs.Items[0], nil
 }
 
-func (s *StorageStatus) getPVC(namespace, name string) (*v1.PersistentVolumeClaim, error) {
+func (s *VolumeStatus) getPVC(namespace, name string) (*v1.PersistentVolumeClaim, error) {
 	if s.client == nil {
 		return nil, fmt.Errorf("client is not set")
 	}
@@ -301,7 +430,7 @@ func (s *StorageStatus) getPVC(namespace, name string) (*v1.PersistentVolumeClai
 	return pvc, nil
 }
 
-func (s *StorageStatus) getPV(name string) (*v1.PersistentVolume, error) {
+func (s *VolumeStatus) getPV(name string) (*v1.PersistentVolume, error) {
 	if s.client == nil {
 		return nil, fmt.Errorf("client is not set")
 	}
@@ -314,7 +443,7 @@ func (s *StorageStatus) getPV(name string) (*v1.PersistentVolume, error) {
 	return pv, nil
 }
 
-func (s *StorageStatus) getEvents(name, kind string, ctx context.Context, wg *sync.WaitGroup, channel chan<- []v1.Event, errChannel chan<- error) {
+func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, wg *sync.WaitGroup, channel chan<- []v1.Event, errChannel chan<- error) {
 	defer wg.Done()
 
 	if s.client == nil {
@@ -348,7 +477,7 @@ func (s *StorageStatus) getEvents(name, kind string, ctx context.Context, wg *sy
 	}
 }
 
-func (s *StorageStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, channel chan<- []string, errChannel chan<- error) {
+func (s *VolumeStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, channel chan<- []string, errChannel chan<- error) {
 	defer wg.Done()
 
 	if s.client == nil {
