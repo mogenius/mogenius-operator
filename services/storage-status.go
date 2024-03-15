@@ -94,9 +94,13 @@ type VolumeStatusMessage struct {
 }
 
 func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
-	log.Debugf("Storage status for (%s): %s %s", r.StorageAPIObject, r.Namespace, r.Name)
+	// normalize name, convert no prefixed 'nfs-server-pod-' to prefixed and vice versa
+	nonPrefixName := strings.TrimPrefix(r.Name, "nfs-server-pod-")
+	prefixName := "nfs-server-pod-" + nonPrefixName
 
-	nfsVolumeStatsResponse := StatsMogeniusNfsVolume(NfsVolumeStatsRequest{NamespaceName: r.Namespace, VolumeName: r.Name})
+	log.Debugf("Storage status for (%s): %s nonPrefixName:%s, prefixName:%s", r.StorageAPIObject, r.Namespace, nonPrefixName, prefixName)
+
+	nfsVolumeStatsResponse := StatsMogeniusNfsVolume(NfsVolumeStatsRequest{NamespaceName: r.Namespace, VolumeName: nonPrefixName})
 
 	nfsStatusResponse := NfsStatusResponse{
 		VolumeName: nfsVolumeStatsResponse.VolumeName,
@@ -116,12 +120,12 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 	storageStatus.SetClient(provider.ClientSet)
 
 	if StorageAPIObjectFromString(r.StorageAPIObject) == VolumeTypePersistentVolume {
-		if _, err := storageStatus.GetByPVName(r.Name); err != nil {
+		if _, err := storageStatus.GetByPVName(prefixName); err != nil {
 			nfsStatusResponse.ProcessNfsStatusResponse(&storageStatus, err)
 			return nfsStatusResponse
 		}
 	} else if StorageAPIObjectFromString(r.StorageAPIObject) == VolumeTypePersistentVolumeClaim {
-		if _, err := storageStatus.GetByPVCName(r.Namespace, r.Name); err != nil {
+		if _, err := storageStatus.GetByPVCName(r.Namespace, prefixName); err != nil {
 			nfsStatusResponse.ProcessNfsStatusResponse(&storageStatus, err)
 			return nfsStatusResponse
 		}
@@ -160,13 +164,17 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 			success := true
 			success = success && (s.PersistentVolume != nil && s.PersistentVolume.Status.Phase == v1.VolumeBound)
 			success = success && (s.PersistentVolumeClaim != nil && s.PersistentVolumeClaim.Status.Phase == v1.ClaimBound)
+
 			// iterate over usedByPods and check if they are running and only if pod name start with pvc.Name
+			boundedPodRunning := false
 			for _, pod := range s.UsedByPods {
-				if strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) && pod.Status.Phase != v1.PodRunning {
-					success = false
+				if strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) && pod.Status.Phase == v1.PodRunning {
+					boundedPodRunning = true
 					break
 				}
 			}
+
+			success = success && boundedPodRunning
 
 			if success {
 				v.Status = VolumeStatusTypeBound
