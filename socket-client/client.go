@@ -154,7 +154,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				if isSuppressed := punqUtils.Contains(SuppressedPayloads, datagram.Pattern); !isSuppressed {
 					if utils.CONFIG.Misc.Debug {
-						utils.PrettyPrintInterface(datagram)
+						log.Info(utils.PrettyPrintInterface(datagram))
 					}
 				}
 
