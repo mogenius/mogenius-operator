@@ -45,7 +45,7 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 		return ctlr
 	}
 
-	log.Errorf("Pod: '%s/%s' has no owner.", namespace, podName)
+	log.Debugf("Pod: '%s/%s' has no owner.", namespace, podName)
 	return nil
 }
 

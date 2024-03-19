@@ -112,7 +112,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		return controllerBucket.Put(sequenceToKey(id), []byte(utils.PrettyPrintInterface(stats)))
 	})
 	if err != nil {
-		log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
+		log.Errorf("Error adding interface stats for '%s': %s", stats.Namespace, err.Error())
 	}
 }
 
@@ -143,7 +143,7 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 		return nodeBucket.Put(sequenceToKey(id), []byte(utils.PrettyPrintInterface(stats)))
 	})
 	if err != nil {
-		log.Errorf("Error adding stats for '%s': %s", stats.Name, err.Error())
+		log.Errorf("Error adding node stats for '%s': %s", stats.Name, err.Error())
 	}
 }
 
@@ -160,10 +160,14 @@ func AddPodStatsToDb(stats structs.PodStats) {
 
 		// CREATE A BUCKET FOR EACH CONTROLLER
 		controller := kubernetes.ControllerForPod(stats.Namespace, stats.PodName)
-		if controller == nil {
+		if controller == nil && stats.Namespace != "kube-system" {
 			return fmt.Errorf("Controller not found for '%s/%s'", stats.Namespace, stats.PodName)
 		}
-		controllerBucket, err := namespaceBucket.CreateBucketIfNotExists([]byte(controller.Name))
+		ctrlName := stats.Namespace
+		if stats.Namespace != "kube-system" {
+			ctrlName = controller.Name
+		}
+		controllerBucket, err := namespaceBucket.CreateBucketIfNotExists([]byte(ctrlName))
 		if err != nil {
 			return err
 		}
@@ -180,7 +184,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		return controllerBucket.Put(sequenceToKey(id), []byte(utils.PrettyPrintInterface(stats)))
 	})
 	if err != nil {
-		log.Errorf("Error adding stats for '%s': %s", stats.Namespace, err.Error())
+		log.Errorf("Error adding pod stats for '%s': %s", stats.Namespace, err.Error())
 	}
 }
 
