@@ -37,7 +37,6 @@ image: ghcr.io/mogenius/mogenius-k8s-manager:latest
 imagePullPolicy: Always
 
 TO:
-
 image: localk8smanager:latest
 imagePullPolicy: Never
 ```
