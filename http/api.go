@@ -83,12 +83,12 @@ func postTraffic(c *gin.Context) {
 	var out bytes.Buffer
 	body, _ := io.ReadAll(c.Request.Body)
 
-	if utils.CONFIG.Misc.Debug {
+	if utils.CONFIG.Misc.LogIncomingStats {
 		err := json.Indent(&out, []byte(body), "", "  ")
 		if err != nil {
 			log.Error(err)
 		}
-		log.Info(string(out.Bytes()))
+		log.Info(out.String())
 	}
 
 	stat := &structs.InterfaceStats{}
@@ -107,12 +107,12 @@ func postPodStats(c *gin.Context) {
 	var out bytes.Buffer
 	body, _ := io.ReadAll(c.Request.Body)
 
-	if utils.CONFIG.Misc.Debug {
+	if utils.CONFIG.Misc.LogIncomingStats {
 		err := json.Indent(&out, []byte(body), "", "  ")
 		if err != nil {
 			log.Error(err)
 		}
-		log.Info(string(out.Bytes()))
+		log.Info(out.String())
 	}
 
 	stat := &structs.PodStats{}
@@ -131,12 +131,12 @@ func postNodeStats(c *gin.Context) {
 	var out bytes.Buffer
 	body, _ := io.ReadAll(c.Request.Body)
 
-	if utils.CONFIG.Misc.Debug {
+	if utils.CONFIG.Misc.LogIncomingStats {
 		err := json.Indent(&out, []byte(body), "", "  ")
 		if err != nil {
 			log.Error(err)
 		}
-		log.Info(string(out.Bytes()))
+		log.Info(out.String())
 	}
 
 	stat := &structs.NodeStats{}

@@ -24,6 +24,7 @@ misc:
   stage: prod
   log_format: json # json or text
   log_level: info  # panic, fatal, error, warn, info, debug, trace
+  log_incoming_stats: false
   default_mount_path: /mo-data
   debug: false
   debug_log_caller: false

@@ -52,6 +52,7 @@ type Config struct {
 		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		LogFormat             string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"text"`
 		LogLevel              string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: panic, fatal, error, warn, info, debug, trace" env-default:"info"`
+		LogIncomingStats      bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
 		Debug                 bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		DebugLogCaller        bool     `yaml:"debug_log_caller" env:"debug_log_caller" env-description:"If set to true, the calling function will be logged." env-default:"false"`
 		LogKubernetesEvents   bool     `yaml:"log_kubernetes_events" env:"log_kubernetes_events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
@@ -224,6 +225,7 @@ func PrintSettings() {
 	log.Infof("MISC")
 	log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
 	log.Infof("LogFormat:                %s", CONFIG.Misc.LogFormat)
+	log.Infof("LogIncomingStats:         %t", CONFIG.Misc.LogIncomingStats)
 	log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
 	log.Infof("DebugLogCaller:           %t", CONFIG.Misc.DebugLogCaller)
 	log.Infof("AutoMountNfs:             %t", CONFIG.Misc.AutoMountNfs)
