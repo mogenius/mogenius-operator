@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	TRAFFIC_BUCKET_NAME   = "traffic-stats"
-	POD_STATS_BUCKET_NAME = "pod-stats"
+	TRAFFIC_BUCKET_NAME    = "traffic-stats"
+	POD_STATS_BUCKET_NAME  = "pod-stats"
+	NODE_STATS_BUCKET_NAME = "node-stats"
 )
 
 var dbStats *bolt.DB
@@ -39,7 +40,7 @@ func Init() {
 		log.Errorf("Error creating bucket ('%s'): %s", TRAFFIC_BUCKET_NAME, err)
 	}
 
-	// ### STATS BUCKET ###
+	// ### POD STATS BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(POD_STATS_BUCKET_NAME))
 		if err == nil {
@@ -49,6 +50,18 @@ func Init() {
 	})
 	if err != nil {
 		log.Errorf("Error creating bucket ('%s'): %s", POD_STATS_BUCKET_NAME, err)
+	}
+
+	// ### NODE STATS BUCKET ###
+	err = dbStats.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(NODE_STATS_BUCKET_NAME))
+		if err == nil {
+			log.Infof("Bucket '%s' created 🚀.", NODE_STATS_BUCKET_NAME)
+		}
+		return err
+	})
+	if err != nil {
+		log.Errorf("Error creating bucket ('%s'): %s", NODE_STATS_BUCKET_NAME, err)
 	}
 
 	log.Infof("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbStatsPath)
@@ -105,6 +118,33 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 
 func sequenceToKey(id uint64) []byte {
 	return []byte(fmt.Sprintf("%020d", id))
+}
+
+func AddNodeStatsToDb(stats structs.NodeStats) {
+	stats.CreatedAt = time.Now().Format(time.RFC3339)
+	err := dbStats.Update(func(tx *bolt.Tx) error {
+		mainBucket := tx.Bucket([]byte(NODE_STATS_BUCKET_NAME))
+
+		// CREATE A BUCKET FOR EACH NODE
+		nodeBucket, err := mainBucket.CreateBucketIfNotExists([]byte(stats.Name))
+		if err != nil {
+			return err
+		}
+
+		// DELETE FIRST IF TO MANY DATA POINTS
+		if nodeBucket.Stats().KeyN > utils.CONFIG.Builder.MaxDataPoints {
+			c := nodeBucket.Cursor()
+			k, _ := c.First()
+			nodeBucket.Delete(k)
+		}
+
+		// add new Entry
+		id, _ := nodeBucket.NextSequence() // auto increment
+		return nodeBucket.Put(sequenceToKey(id), []byte(utils.PrettyPrintInterface(stats)))
+	})
+	if err != nil {
+		log.Errorf("Error adding stats for '%s': %s", stats.Name, err.Error())
+	}
 }
 
 func AddPodStatsToDb(stats structs.PodStats) {

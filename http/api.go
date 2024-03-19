@@ -27,6 +27,7 @@ func InitApi() {
 	router.GET("/healtz", getHealtz)
 	router.POST("/traffic", postTraffic)
 	router.POST("/podstats", postPodStats)
+	router.POST("/nodestats", postNodeStats)
 
 	router.GET("/debug/last-traffic", debugGetLastTraffic)
 	router.GET("/debug/traffic", debugGetTraffic)
@@ -124,6 +125,30 @@ func postPodStats(c *gin.Context) {
 	}
 
 	dbstats.AddPodStatsToDb(*stat)
+}
+
+func postNodeStats(c *gin.Context) {
+	var out bytes.Buffer
+	body, _ := io.ReadAll(c.Request.Body)
+
+	if utils.CONFIG.Misc.Debug {
+		err := json.Indent(&out, []byte(body), "", "  ")
+		if err != nil {
+			log.Error(err)
+		}
+		log.Info(string(out.Bytes()))
+	}
+
+	stat := &structs.NodeStats{}
+	err := structs.UnmarshalNodeStats(stat, out.Bytes())
+	if err != nil {
+		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	dbstats.AddNodeStatsToDb(*stat)
 }
 
 func debugGetLastTraffic(c *gin.Context) {

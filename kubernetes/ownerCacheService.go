@@ -131,6 +131,21 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 				}
 			}
 			return nil
+		case "Node":
+			data, err := punq.GetK8sNode(owner.Name, nil)
+			if err != nil {
+				log.Errorf("Error getting node: %s", err)
+				return nil
+			}
+			if data != nil {
+				if data.OwnerReferences == nil {
+					return utils.Pointer(NewK8sController("Node", data.Name, ""))
+				} else {
+					// recurse
+					return OwnerFromReference(namespace, data.OwnerReferences)
+				}
+			}
+			return nil
 		default:
 			log.Errorf("NOT IMPLEMENTED owner kind: %s", owner.Kind)
 			return nil
