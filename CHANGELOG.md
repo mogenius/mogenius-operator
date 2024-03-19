@@ -1,3 +1,16 @@
+# Changelog
+
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+### [1.18.28](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.18.28-develop.18...v1.18.28) (2024-03-19)
+
+
+### Bug Fixes
+
+* added nodestats. ([2b6fabe](https://github.com/mogenius/mogenius-k8s-manager/commit/2b6fabe67dff8ac796405fd6f7b4bb2c0e51f4f7))
+* incoming stat logging now optional. ([9240de4](https://github.com/mogenius/mogenius-k8s-manager/commit/9240de4dae5f44606398e19d138e48d85be70d9d))
+* nodestats cleanup improved. ([afb89e2](https://github.com/mogenius/mogenius-k8s-manager/commit/afb89e2220574e69002e9a3dae7a5762a8bcd382))
+* nodestats improved. ([b229449](https://github.com/mogenius/mogenius-k8s-manager/commit/b229449afc5b27b735ec0a26c7cb9035f1e7569b))
 
 ### [1.16.10](https://github.com/mogenius/mogenius-k8s-manager/compare/v1.16.9...v1.16.10) (2023-09-19)
 
