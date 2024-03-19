@@ -26,17 +26,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var SuppressedPayloads = []string{
-	services.PAT_CLUSTERRESOURCEINFO,
-	services.PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST,
-	services.PAT_SERVICE_STATUS,
-	services.PAT_STORAGE_STATS,
-	services.PAT_STORAGE_STATUS,
-	services.PAT_STORAGE_NAMESPACE_STATS,
-	services.PAT_BUILD_LAST_JOB_OF_SERVICES,
-	services.PAT_BUILD_SCAN,
-}
-
 func StartK8sManager() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -152,13 +141,13 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				datagram.DisplayReceiveSummary()
 
-				if isSuppressed := punqUtils.Contains(SuppressedPayloads, datagram.Pattern); !isSuppressed {
+				if isSuppressed := punqUtils.Contains(structs.SUPPRESSED_OUTPUT_PATTERN, datagram.Pattern); !isSuppressed {
 					if utils.CONFIG.Misc.Debug {
 						log.Info(utils.PrettyPrintInterface(datagram))
 					}
 				}
 
-				if punqUtils.Contains(services.COMMAND_REQUESTS, datagram.Pattern) {
+				if punqUtils.Contains(structs.COMMAND_REQUESTS, datagram.Pattern) {
 					// ####### COMMAND
 					semaphoreChan <- struct{}{}
 
@@ -170,7 +159,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 						result.Send()
 						<-semaphoreChan
 					}()
-				} else if punqUtils.Contains(services.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
+				} else if punqUtils.Contains(structs.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 					preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
 
 					var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)

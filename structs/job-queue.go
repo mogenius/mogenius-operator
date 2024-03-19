@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	punqUtils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -103,8 +104,10 @@ func processJobNow() {
 			err := JobQueueConnection.WriteJSON(element)
 			if err == nil {
 				element.DisplaySentSummary(i+1, len(jobDataQueue))
-				if utils.CONFIG.Misc.Debug {
-					log.Info(utils.PrettyPrintInterface(element.Payload))
+				if isSuppressed := punqUtils.Contains(SUPPRESSED_OUTPUT_PATTERN, element.Pattern); !isSuppressed {
+					if utils.CONFIG.Misc.Debug {
+						log.Info(utils.PrettyPrintInterface(element.Payload))
+					}
 				}
 				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {

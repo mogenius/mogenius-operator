@@ -795,9 +795,9 @@ func SystemCheck() punq.SystemCheckResponse {
 	certMgrDescription := "Install the cert-manager to automatically issue Let's Encrypt certificates to your services."
 	currentCertManagerVersion := getMostCurrentHelmChartVersion(CertManagerHelmIndex, utils.HelmReleaseNameCertManager)
 	certMgrEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameCertManager, certManagerInstalledErr == nil, certManagerMsg, certMgrDescription, false, true, certManagerVersion, currentCertManagerVersion)
-	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
-	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
-	certMgrEntry.UpgradePattern = "" // PAT_UPGRADE_CERT_MANAGER
+	certMgrEntry.InstallPattern = structs.PAT_INSTALL_CERT_MANAGER
+	certMgrEntry.UninstallPattern = structs.PAT_UNINSTALL_CERT_MANAGER
+	certMgrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CERT_MANAGER
 	certMgrEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
 	entries = append(entries, certMgrEntry)
 
@@ -808,8 +808,8 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	clusterIssuerDescription := "Responsible for signing certificates."
 	clusterIssuerEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, clusterIssuerDescription, false, true, "", "")
-	clusterIssuerEntry.InstallPattern = PAT_INSTALL_CLUSTER_ISSUER
-	clusterIssuerEntry.UninstallPattern = PAT_UNINSTALL_CLUSTER_ISSUER
+	clusterIssuerEntry.InstallPattern = structs.PAT_INSTALL_CLUSTER_ISSUER
+	clusterIssuerEntry.UninstallPattern = structs.PAT_UNINSTALL_CLUSTER_ISSUER
 	clusterIssuerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
 	entries = append(entries, clusterIssuerEntry)
 
@@ -823,9 +823,9 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	trafficDescpription := fmt.Sprintf("Collects and exposes detailed traffic data for your mogenius services for better monitoring. (Installed: %s | Available: %s)", trafficCollectorVersion, trafficCollectorNewestVersion)
 	trafficEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, trafficDescpription, false, true, trafficCollectorVersion, trafficCollectorNewestVersion)
-	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
-	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
-	trafficEntry.UpgradePattern = PAT_UPGRADE_TRAFFIC_COLLECTOR
+	trafficEntry.InstallPattern = structs.PAT_INSTALL_TRAFFIC_COLLECTOR
+	trafficEntry.UninstallPattern = structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR
+	trafficEntry.UpgradePattern = structs.PAT_UPGRADE_TRAFFIC_COLLECTOR
 	trafficEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
 	entries = append(entries, trafficEntry)
 
@@ -839,9 +839,9 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	podStatsDescription := fmt.Sprintf("Collects and exposes status events of pods for services in mogenius. (Installed: %s | Available: %s)", podStatsCollectorVersion, podstatsCollectorNewestVersion)
 	podEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, podStatsDescription, true, true, podStatsCollectorVersion, podstatsCollectorNewestVersion)
-	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
-	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
-	podEntry.UpgradePattern = PAT_UPGRADE_PODSTATS_COLLECTOR
+	podEntry.InstallPattern = structs.PAT_INSTALL_POD_STATS_COLLECTOR
+	podEntry.UninstallPattern = structs.PAT_UNINSTALL_POD_STATS_COLLECTOR
+	podEntry.UpgradePattern = structs.PAT_UPGRADE_PODSTATS_COLLECTOR
 	podEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
 	entries = append(entries, podEntry)
 
@@ -854,9 +854,9 @@ func SystemCheck() punq.SystemCheckResponse {
 	distriDescription := "A Docker-based container registry inside Kubernetes."
 	currentDistriRegistryVersion := getMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
 	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, distriDescription, false, true, distriRegistryVersion, currentDistriRegistryVersion)
-	distriEntry.InstallPattern = PAT_INSTALL_CONTAINER_REGISTRY
-	distriEntry.UninstallPattern = PAT_UNINSTALL_CONTAINER_REGISTRY
-	distriEntry.UpgradePattern = "" // PAT_UPGRADE_CONTAINER_REGISTRY
+	distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
+	distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
+	distriEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CONTAINER_REGISTRY
 	distriEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
 	entries = append(entries, distriEntry)
 
@@ -868,9 +868,9 @@ func SystemCheck() punq.SystemCheckResponse {
 	metallbDescription := "A load balancer for local clusters (e.g. Docker Desktop, k3s, minikube, etc.)."
 	currentMetallbVersion := getMostCurrentHelmChartVersion(MetalLBHelmIndex, utils.HelmReleaseNameMetalLb)
 	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, metallbDescription, false, true, metallbVersion, currentMetallbVersion)
-	metallbEntry.InstallPattern = PAT_INSTALL_METALLB
-	metallbEntry.UninstallPattern = PAT_UNINSTALL_METALLB
-	metallbEntry.UpgradePattern = "" // PAT_UPGRADE_METALLB
+	metallbEntry.InstallPattern = structs.PAT_INSTALL_METALLB
+	metallbEntry.UninstallPattern = structs.PAT_UNINSTALL_METALLB
+	metallbEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METALLB
 	metallbEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
 	entries = append(entries, metallbEntry)
 
@@ -882,9 +882,9 @@ func SystemCheck() punq.SystemCheckResponse {
 	keplerDescription := "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption."
 	currentKeplerVersion := getMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
 	keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false, keplerVersion, currentKeplerVersion)
-	keplerEntry.InstallPattern = PAT_INSTALL_KEPLER
-	keplerEntry.UninstallPattern = PAT_UNINSTALL_KEPLER
-	keplerEntry.UpgradePattern = "" // PAT_UPGRADE_KEPLER
+	keplerEntry.InstallPattern = structs.PAT_INSTALL_KEPLER
+	keplerEntry.UninstallPattern = structs.PAT_UNINSTALL_KEPLER
+	keplerEntry.UpgradePattern = "" // structs.PAT_UPGRADE_KEPLER
 	keplerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
 	entries = append(entries, keplerEntry)
 
@@ -906,16 +906,16 @@ func SystemCheck() punq.SystemCheckResponse {
 	for i := 0; i < len(entries); i++ {
 		entry := entries[i]
 		if entry.CheckName == NameIngressController {
-			entries[i].InstallPattern = PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
-			entries[i].UninstallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
-			entries[i].UpgradePattern = "" // PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
+			entries[i].InstallPattern = structs.PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
+			entries[i].UninstallPattern = structs.PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
+			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
 			entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
 		}
 		if entry.CheckName == NameMetricsServer {
-			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
-			entries[i].UninstallPattern = PAT_UNINSTALL_METRICS_SERVER
-			entries[i].UpgradePattern = "" // PAT_UPGRADE_METRICS_SERVER
+			entries[i].InstallPattern = structs.PAT_INSTALL_METRICS_SERVER
+			entries[i].UninstallPattern = structs.PAT_UNINSTALL_METRICS_SERVER
+			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_METRICS_SERVER
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
 			entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
 		}

@@ -444,45 +444,55 @@ func cleanupStats() {
 	err := dbStats.Update(func(tx *bolt.Tx) error {
 		// TRAFFIC
 		bucketTraffic := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
-		c := bucketTraffic.Cursor()
-		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			subBucket := bucketTraffic.Bucket(k)
-			for kSub, _ := subBucket.Cursor().First(); kSub != nil; kSub, _ = subBucket.Cursor().Next() {
-				entry := structs.InterfaceStats{}
-				err := structs.UnmarshalInterfaceStats(&entry, subBucket.Get(kSub))
-				if err != nil {
-					return fmt.Errorf("cleanupStatsTraffic: %s", err.Error())
-				}
-				if isMoreThan14DaysOld(entry.CreatedAt) {
-					err := bucketTraffic.DeleteBucket(k)
+		bucketTraffic.ForEach(func(k, v []byte) error {
+			namespaceBucket := bucketTraffic.Bucket(k)
+			namespaceBucket.ForEach(func(k, v []byte) error {
+				controllerBucket := namespaceBucket.Bucket(k)
+				controllerBucket.ForEach(func(k, v []byte) error {
+					entry := structs.InterfaceStats{}
+					err := structs.UnmarshalInterfaceStats(&entry, v)
 					if err != nil {
 						return fmt.Errorf("cleanupStatsTraffic: %s", err.Error())
 					}
-				}
-			}
-		}
+					if isMoreThan14DaysOld(entry.CreatedAt) {
+						err := controllerBucket.DeleteBucket(k)
+						if err != nil {
+							return fmt.Errorf("cleanupStatsTraffic: %s", err.Error())
+						}
+					}
+					return nil
+				})
+				return nil
+			})
+			return nil
+		})
 		// PODS
 		bucketPods := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
-		c = bucketPods.Cursor()
-		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			subBucket := bucketPods.Bucket(k)
-			for kSub, _ := subBucket.Cursor().First(); kSub != nil; kSub, _ = subBucket.Cursor().Next() {
-				entry := structs.PodStats{}
-				err := structs.UnmarshalPodStats(&entry, subBucket.Get(kSub))
-				if err != nil {
-					return fmt.Errorf("cleanupStatsPods: %s", err.Error())
-				}
-				if isMoreThan14DaysOld(entry.CreatedAt) {
-					err := bucketPods.DeleteBucket(k)
+		bucketPods.ForEach(func(k, v []byte) error {
+			namespaceBucket := bucketPods.Bucket(k)
+			namespaceBucket.ForEach(func(k, v []byte) error {
+				controllerBucket := namespaceBucket.Bucket(k)
+				controllerBucket.ForEach(func(k, v []byte) error {
+					entry := structs.PodStats{}
+					err := structs.UnmarshalPodStats(&entry, v)
 					if err != nil {
 						return fmt.Errorf("cleanupStatsPods: %s", err.Error())
 					}
-				}
-			}
-		}
+					if isMoreThan14DaysOld(entry.CreatedAt) {
+						err := controllerBucket.DeleteBucket(k)
+						if err != nil {
+							return fmt.Errorf("cleanupStatsPods: %s", err.Error())
+						}
+					}
+					return nil
+				})
+				return nil
+			})
+			return nil
+		})
 		// Nodes
 		bucketNodes := tx.Bucket([]byte(NODE_STATS_BUCKET_NAME))
-		c = bucketNodes.Cursor()
+		c := bucketNodes.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
 			subBucket := bucketNodes.Bucket(k)
 			for kSub, _ := subBucket.Cursor().First(); kSub != nil; kSub, _ = subBucket.Cursor().Next() {

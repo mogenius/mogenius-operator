@@ -7,7 +7,6 @@ import (
 type InterfaceStats struct {
 	Ip                 string                         `json:"ip"`
 	PodName            string                         `json:"podName"`
-	ContainerName      string                         `json:"containerName"`
 	Namespace          string                         `json:"namespace"`
 	PacketsSum         uint64                         `json:"packetsSum"`
 	TransmitBytes      uint64                         `json:"transmitBytes"`
