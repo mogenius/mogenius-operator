@@ -5,10 +5,15 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
+)
+
+const (
+	DB_SCHEMA_VERSION = "1"
 )
 
 const (
@@ -21,9 +26,10 @@ var dbStats *bolt.DB
 var cleanupTimer = time.NewTicker(1 * time.Minute)
 
 func Init() {
-	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbStatsPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
+	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbStatsPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
+	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbStatsPath)
+		log.Errorf("Error opening bbolt database from '%s'.", dbPath)
 		log.Fatal(err.Error())
 	}
 	dbStats = database
@@ -64,7 +70,7 @@ func Init() {
 		log.Errorf("Error creating bucket ('%s'): %s", NODE_STATS_BUCKET_NAME, err)
 	}
 
-	log.Infof("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbStatsPath)
+	log.Infof("bbold started 🚀 (Path: '%s')", dbPath)
 
 	go func() {
 		for range cleanupTimer.C {

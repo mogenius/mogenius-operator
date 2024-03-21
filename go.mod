@@ -9,6 +9,7 @@ require (
 	github.com/creack/pty v1.1.20
 	github.com/fatih/color v1.15.0
 	github.com/gin-gonic/gin v1.9.1
+	github.com/go-echarts/go-echarts/v2 v2.4.0-rc1
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/gorilla/websocket v1.5.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0

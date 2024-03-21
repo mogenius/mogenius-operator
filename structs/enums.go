@@ -83,6 +83,7 @@ const (
 	PAT_STATS_PODSTAT_FOR_POD_LAST        string = "stats/podstat/last-for-pod"
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL   string = "stats/podstat/all-for-namespace"
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST  string = "stats/podstat/last-for-namespace"
+	PAT_STATS_CHART_FOR_POD               string = "stats/chart/for-pod"
 
 	PAT_NAMESPACE_CREATE                string = "namespace/create"
 	PAT_NAMESPACE_DELETE                string = "namespace/delete"
@@ -437,6 +438,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST,
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL,
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST,
+	PAT_STATS_CHART_FOR_POD,
 
 	PAT_NAMESPACE_CREATE,
 	PAT_NAMESPACE_DELETE,

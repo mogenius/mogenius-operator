@@ -5,20 +5,20 @@ import (
 )
 
 type InterfaceStats struct {
-	Ip                 string                         `json:"ip"`
-	PodName            string                         `json:"podName"`
-	Namespace          string                         `json:"namespace"`
-	PacketsSum         uint64                         `json:"packetsSum"`
-	TransmitBytes      uint64                         `json:"transmitBytes"`
-	ReceivedBytes      uint64                         `json:"receivedBytes"`
-	UnknownBytes       uint64                         `json:"unknownBytes"`
-	LocalTransmitBytes uint64                         `json:"localTransmitBytes"`
-	LocalReceivedBytes uint64                         `json:"localReceivedBytes"`
-	TransmitStartBytes uint64                         `json:"transmitStartBytes"`
-	ReceivedStartBytes uint64                         `json:"receivedStartBytes"`
-	StartTime          string                         `json:"startTime"`
-	CreatedAt          string                         `json:"createdAt"`
-	Connections        map[uint64]InterfaceConnection `json:"connections"`
+	Ip                 string            `json:"ip"`
+	PodName            string            `json:"podName"`
+	Namespace          string            `json:"namespace"`
+	PacketsSum         uint64            `json:"packetsSum"`
+	TransmitBytes      uint64            `json:"transmitBytes"`
+	ReceivedBytes      uint64            `json:"receivedBytes"`
+	UnknownBytes       uint64            `json:"unknownBytes"`
+	LocalTransmitBytes uint64            `json:"localTransmitBytes"`
+	LocalReceivedBytes uint64            `json:"localReceivedBytes"`
+	TransmitStartBytes uint64            `json:"transmitStartBytes"`
+	ReceivedStartBytes uint64            `json:"receivedStartBytes"`
+	StartTime          string            `json:"startTime"`
+	CreatedAt          string            `json:"createdAt"`
+	SocketConnections  map[string]uint64 `json:"socketConnections"`
 }
 
 type InterfaceConnection struct {

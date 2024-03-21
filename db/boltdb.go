@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"strings"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -12,6 +13,10 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
+)
+
+const (
+	DB_SCHEMA_VERSION = "1"
 )
 
 const (
@@ -38,9 +43,10 @@ const (
 var db *bolt.DB
 
 func Init() {
-	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
+	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
+	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbPath)
+		log.Errorf("Error opening bbolt database from '%s'.", dbPath)
 		log.Fatal(err.Error())
 	}
 	// ### BUILD BUCKET ###
@@ -105,7 +111,7 @@ func Init() {
 		log.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
 	}
 
-	log.Infof("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbPath)
+	log.Infof("bbold started 🚀 (Path: '%s')", dbPath)
 }
 
 func Close() {

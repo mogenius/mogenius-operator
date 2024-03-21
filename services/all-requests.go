@@ -229,6 +229,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return dbstats.GetLastTrafficStatsEntriesForNamespace(data.Namespace)
 
+	case structs.PAT_STATS_CHART_FOR_POD:
+		data := ChartPodDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return RenderPodNetworkTreePage(data.Namespace, data.PodName)
+
 	case structs.PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

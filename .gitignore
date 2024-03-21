@@ -5,8 +5,8 @@ video.mp4
 .DS_Store
 mo-data
 backup.yaml
-mogenius.db
-mogenius-stats.db
+mogenius*.db
+mogenius-stats*.db
 CHANGELOG.md
 .idea/
 .envrc

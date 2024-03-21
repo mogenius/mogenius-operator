@@ -46,8 +46,8 @@ After that simply restart the deployment and you are good to go.
 ```
 apk add go
 go install github.com/br0xen/boltbrowser@latest
-cp /db/mogenius-stats.db mogenius-stats1.db
-cp /db/mogenius.db mogenius1.db
+cp /db/mogenius-stats-1.db mogenius-stats1.db
+cp /db/mogenius-1.db mogenius1.db
 /root/go/bin/boltbrowser mogenius-stats1.db
 ```
 
