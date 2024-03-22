@@ -490,15 +490,15 @@ func executeCmd(reportCmd *structs.Command, prefix string, job *structs.BuildJob
 	}()
 
 	// Waiting for the command to finish
-	execErr = cmd.Wait()
+	waitErr := cmd.Wait()
 
-	if execErr != nil {
-		log.Errorf("Failed to execute command (%s): %v", cmd.String(), execErr)
+	if waitErr != nil {
+		log.Errorf("Failed wait for command (%s): %v", cmd.String(), waitErr)
 		log.Errorf("Error: %s", cmdOutput.String())
 		if reportCmd != nil {
-			reportCmd.Fail(fmt.Sprintf("%s: %s", execErr.Error(), cmdOutput.String()))
+			reportCmd.Fail(fmt.Sprintf("%s: %s", waitErr.Error(), cmdOutput.String()))
 			processLine(enableTimestamp, saveLog, prefix, -1, "", job, containerImageName, startTime, reportCmd, &cmdOutput)
-			return execErr
+			return waitErr
 		}
 	}
 	if utils.CONFIG.Misc.Debug && job != nil {

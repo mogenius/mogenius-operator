@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	punqStructs "github.com/mogenius/punq/structs"
 	log "github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
@@ -115,7 +116,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 
 		// add new Entry
 		id, _ := controllerBucket.NextSequence() // auto increment
-		return controllerBucket.Put(sequenceToKey(id), []byte(utils.PrettyPrintInterface(stats)))
+		return controllerBucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		log.Errorf("Error adding interface stats for '%s': %s", stats.Namespace, err.Error())
@@ -146,7 +147,7 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 
 		// add new Entry
 		id, _ := nodeBucket.NextSequence() // auto increment
-		return nodeBucket.Put(sequenceToKey(id), []byte(utils.PrettyPrintInterface(stats)))
+		return nodeBucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		log.Errorf("Error adding node stats for '%s': %s", stats.Name, err.Error())
@@ -187,7 +188,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 
 		// add new Entry
 		id, _ := controllerBucket.NextSequence() // auto increment
-		return controllerBucket.Put(sequenceToKey(id), []byte(utils.PrettyPrintInterface(stats)))
+		return controllerBucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		log.Errorf("Error adding pod stats for '%s': %s", stats.Namespace, err.Error())

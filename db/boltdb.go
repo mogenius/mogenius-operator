@@ -287,7 +287,7 @@ func UpdateStateInDb(buildJob structs.BuildJob, newState punqStructs.JobStateEnu
 		err := structs.UnmarshalJob(&job, jobData)
 		if err == nil {
 			job.State = newState
-			return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(utils.PrettyPrintInterface(job)))
+			return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(job)))
 		}
 		return err
 	})
@@ -328,7 +328,7 @@ func PositionInQueueFromDb(buildId int) int {
 func SaveJobInDb(buildJob structs.BuildJob) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(utils.PrettyPrintInterface(buildJob)))
+		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	if err != nil {
 		log.Errorf("Error saving job '%d'.", buildJob.BuildId)
@@ -397,7 +397,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 		}
 		nextBuildId, _ = bucket.NextSequence() // auto increment
 		buildJob.BuildId = int(nextBuildId)
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(utils.PrettyPrintInterface(buildJob)))
+		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	return int(nextBuildId), err
 }
