@@ -11,6 +11,7 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -71,7 +72,7 @@ func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 	return cmd
 }
 
-func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Create NetworkPolicy Service", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -109,7 +110,11 @@ func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 
 		_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
+			if apierrors.IsAlreadyExists(err) {
+				cmd.Success(fmt.Sprintf("NetworkPolicy already exists '%s'.", service.ControllerName))
+			} else {
+				cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
+			}
 		} else {
 			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", service.ControllerName))
 		}

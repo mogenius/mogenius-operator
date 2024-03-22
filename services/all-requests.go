@@ -471,14 +471,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return result
 
 	case structs.PAT_SERVICE_CREATE:
-		data := ServiceCreateRequest{}
+		data := ServiceUpdateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		data.Service.AddSecretsToRedaction()
 		data.Project.AddSecretsToRedaction()
-		return CreateService(data)
+		return UpdateService(data)
 	case structs.PAT_SERVICE_DELETE:
 		data := ServiceDeleteRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

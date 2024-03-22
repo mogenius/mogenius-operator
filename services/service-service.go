@@ -28,9 +28,9 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
-func CreateService(r ServiceCreateRequest) interface{} {
+func UpdateService(r ServiceUpdateRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
+	job := structs.CreateJob("Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
 
 	// check if namespace exists and CREATE IT IF NOT
@@ -52,24 +52,18 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	if r.Service.GetImageRepoSecretDecryptValue() != nil {
 		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
 	}
-
-	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateOrCreateSecrete(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.CreateOrUpdateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
+	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
+		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
 	case dtos.CRON_JOB:
-		job.AddCmd(mokubernetes.CreateCronJob(&job, r.Namespace, r.Service, &wg))
+		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
 	}
 
-	if r.Service.HasPorts() {
-		job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
-		job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
-	}
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
-	if r.Service.HasSeedRepo() {
-		initDocker(r.Service)
-	}
 	if r.Service.HasContainerWithGitRepo() {
 		updateInfrastructureYaml(r.Service)
 	}
@@ -77,6 +71,56 @@ func CreateService(r ServiceCreateRequest) interface{} {
 	job.Finish()
 	return job
 }
+
+// func CreateService(r ServiceCreateRequest) interface{} {
+// 	var wg sync.WaitGroup
+// 	job := structs.CreateJob("Create Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
+// 	job.Start()
+
+// 	// check if namespace exists and CREATE IT IF NOT
+// 	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name, nil)
+// 	if nsErr != nil {
+// 		log.Warning(nsErr.Error())
+// 	}
+// 	if !nsExists {
+// 		nsReq := NamespaceCreateRequest{
+// 			Project:   r.Project,
+// 			Namespace: r.Namespace,
+// 		}
+// 		job.AddCmds(CreateNamespaceCmds(&job, nsReq, &wg))
+// 	}
+
+// 	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
+// 		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
+// 	}
+// 	if r.Service.GetImageRepoSecretDecryptValue() != nil {
+// 		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
+// 	}
+
+// 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
+
+// 	switch r.Service.Controller {
+// 	case dtos.DEPLOYMENT:
+// 		job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
+// 	case dtos.CRON_JOB:
+// 		job.AddCmd(mokubernetes.CreateCronJob(&job, r.Namespace, r.Service, &wg))
+// 	}
+
+// 	if r.Service.HasPorts() {
+// 		job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
+// 		job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
+// 	}
+// 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
+// 	if r.Service.HasSeedRepo() {
+// 		initDocker(r.Service)
+// 	}
+// 	if r.Service.HasContainerWithGitRepo() {
+// 		updateInfrastructureYaml(r.Service)
+// 	}
+// 	wg.Wait()
+// 	job.Finish()
+// 	return job
+// }
 
 func DeleteService(r ServiceDeleteRequest) interface{} {
 	var wg sync.WaitGroup
@@ -226,34 +270,6 @@ func StartService(r ServiceStartRequest) interface{} {
 	return job
 }
 
-func UpdateService(r ServiceUpdateRequest) interface{} {
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
-	job.Start()
-	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
-	}
-	if r.Service.GetImageRepoSecretDecryptValue() != nil {
-		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
-	}
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateSecrete(&job, r.Namespace, r.Service, &wg))
-
-	switch r.Service.Controller {
-	case dtos.DEPLOYMENT:
-		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
-	case dtos.CRON_JOB:
-		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
-	}
-
-	updateInfrastructureYaml(r.Service)
-
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
-	wg.Wait()
-	job.Finish()
-	return job
-}
-
 func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 	return dtos.TcpUdpClusterConfigurationDto{
 		IngressServices: punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller", nil),
@@ -322,20 +338,6 @@ func updateInfrastructureYaml(service dtos.K8sServiceDto) []*structs.Command {
 	}
 
 	return []*structs.Command{}
-}
-
-type ServiceCreateRequest struct {
-	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
-}
-
-func ServiceCreateRequestExample() ServiceCreateRequest {
-	return ServiceCreateRequest{
-		Project:   dtos.K8sProjectDtoExampleData(),
-		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Service:   dtos.K8sServiceDtoExampleData(),
-	}
 }
 
 type ServiceDeleteRequest struct {

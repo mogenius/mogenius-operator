@@ -220,7 +220,7 @@ func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg 
 	return cmd
 }
 
-func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
 	cmd := structs.CreateCommand("Update Kubernetes secret", job)
 	wg.Add(1)
 	go func(cmd *structs.Command, wg *sync.WaitGroup) {
@@ -248,13 +248,18 @@ func UpdateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			}
 		}
 
-		updateOptions := metav1.UpdateOptions{
-			FieldManager: DEPLOYMENTNAME,
-		}
-
-		_, err = secretClient.Update(context.TODO(), &secret, updateOptions)
+		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()))
+			if apierrors.IsNotFound(err) {
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
+				} else {
+					cmd.Success(fmt.Sprintf("Created secret '%s'.", service.ControllerName))
+				}
+			} else {
+				cmd.Fail(fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()))
+			}
 		} else {
 			cmd.Success(fmt.Sprintf("Update secret '%s'.", service.ControllerName))
 		}

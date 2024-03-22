@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	v1depl "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -103,13 +104,18 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
 		deployment := newController.(*v1.Deployment)
 
-		updateOptions := metav1.UpdateOptions{
-			FieldManager: DEPLOYMENTNAME,
-		}
-
-		_, err = deploymentClient.Update(context.TODO(), deployment, updateOptions)
+		_, err = deploymentClient.Update(context.TODO(), deployment, MoUpdateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
+			if apierrors.IsNotFound(err) {
+				_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions())
+				if err != nil {
+					cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
+				} else {
+					cmd.Success(fmt.Sprintf("Created deployment '%s'.", namespace.Name))
+				}
+			} else {
+				cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
+			}
 		} else {
 			cmd.Success(fmt.Sprintf("Updating deployment '%s'.", namespace.Name))
 		}

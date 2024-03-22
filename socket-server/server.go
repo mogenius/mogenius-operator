@@ -372,7 +372,7 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = services.NamespaceResourceYamlRequestExample()
 
 		case structs.PAT_SERVICE_CREATE:
-			payload = services.ServiceCreateRequestExample()
+			payload = services.ServiceUpdateRequestExample()
 		case structs.PAT_SERVICE_DELETE:
 			payload = services.ServiceDeleteRequestExample()
 		case structs.PAT_SERVICE_POD_IDS:
