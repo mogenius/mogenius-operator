@@ -235,7 +235,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return RenderPodNetworkTreePage(data.Namespace, data.PodName)
+		return RenderPodNetworkTreePageJson(data.Namespace, data.PodName)
 
 	case structs.PAT_FILES_LIST:
 		data := FilesListRequest{}

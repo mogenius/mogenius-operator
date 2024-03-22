@@ -99,7 +99,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request, clusterName string) {
 		return
 	}
 
-	defer connection.Close()
+	defer func() {
+		if connection != nil {
+			connection.Close()
+		}
+	}()
 
 	if r.RequestURI == utils.CONFIG.ApiServer.WS_Path {
 		addConnection(connection, clusterName)

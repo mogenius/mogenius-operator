@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
+	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
@@ -29,10 +30,13 @@ func InitApi() {
 	router.POST("/podstats", postPodStats)
 	router.POST("/nodestats", postNodeStats)
 
-	router.GET("/debug/last-traffic", debugGetLastTraffic)
-	router.GET("/debug/traffic", debugGetTraffic)
-	router.GET("/debug/last-ns", debugGetLastNs)
-	router.GET("/debug/ns", debugGetNs)
+	if utils.CONFIG.Misc.Debug {
+		router.GET("/debug/last-traffic", debugGetLastTraffic)
+		router.GET("/debug/traffic", debugGetTraffic)
+		router.GET("/debug/last-ns", debugGetLastNs)
+		router.GET("/debug/ns", debugGetNs)
+		router.GET("/debug/chart", debugChart)
+	}
 
 	srv := &http.Server{
 		Addr:    ":1337",
@@ -174,4 +178,11 @@ func debugGetNs(c *gin.Context) {
 	ns := c.Query("ns")
 	stats := dbstats.GetPodStatsEntriesForNamespace(ns)
 	c.IndentedJSON(http.StatusOK, stats)
+}
+
+func debugChart(c *gin.Context) {
+	ns := c.Query("namespace")
+	podname := c.Query("podname")
+	html := services.RenderPodNetworkTreePageHtml(ns, podname)
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }

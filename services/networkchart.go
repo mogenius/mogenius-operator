@@ -221,12 +221,18 @@ func processDataPoints(data map[string]uint64) []DataPoint {
 }
 
 func generateTree(data structs.InterfaceStats, controller kubernetes.K8sController) *charts.Tree {
-	title := fmt.Sprintf("Graph of %s/%s (NS: '%s' Pod '%s')", controller.Kind, controller.Name, data.Namespace, data.PodName)
-	subtitle := fmt.Sprintf("Packets Captured: %d - Total Rx: %s - Total Tx: %s - Since: %s",
+	title := fmt.Sprintf(""+
+		"%s/%s\n"+
+		"%s/%s", controller.Kind, controller.Name, data.Namespace, data.PodName)
+	subtitle := fmt.Sprintf(""+
+		"Packets Captured: %d\n"+
+		"Total Rx:         %s\n"+
+		"Total Tx:         %s\n"+
+		"Uptime:           %s",
 		data.PacketsSum, utils.BytesToHumanReadable(int64(data.ReceivedBytes)+int64(data.LocalReceivedBytes)+int64(data.ReceivedStartBytes)),
 		utils.BytesToHumanReadable(int64(data.TransmitBytes)+int64(data.LocalTransmitBytes)+int64(data.TransmitStartBytes)),
-		data.StartTime)
-
+		utils.JsonStringToHumanDuration(data.StartTime),
+	)
 	graph := charts.NewTree()
 	graph.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{Width: "100%", Height: "95vh"}),
@@ -262,7 +268,7 @@ func generateTree(data structs.InterfaceStats, controller kubernetes.K8sControll
 
 type TreeExamples struct{}
 
-func RenderPodNetworkTreePage(namespace string, podName string) map[string]interface{} {
+func RenderPodNetworkTreePageJson(namespace string, podName string) map[string]interface{} {
 	ctrl := kubernetes.ControllerForPod(namespace, podName)
 	if ctrl == nil {
 		return map[string]interface{}{"error": fmt.Sprintf("could not find controller for pod %s in namespace %s", podName, namespace)}
@@ -277,8 +283,26 @@ func RenderPodNetworkTreePage(namespace string, podName string) map[string]inter
 	page.AddCharts(
 		tree,
 	)
-	//data := page.RenderContent()
-	result := tree.JSON()
 
+	result := tree.JSON()
 	return result
+}
+func RenderPodNetworkTreePageHtml(namespace string, podName string) string {
+	ctrl := kubernetes.ControllerForPod(namespace, podName)
+	if ctrl == nil {
+		return fmt.Sprintf("could not find controller for pod %s in namespace %s", podName, namespace)
+	}
+	stats := dbstats.GetLastTrafficStatsEntryForController(*ctrl)
+	if stats == nil {
+		return fmt.Sprintf("could not find stats for pod %s in namespace %s", podName, namespace)
+	}
+
+	tree := generateTree(*stats, *ctrl)
+	page := components.NewPage()
+	page.AddCharts(
+		tree,
+	)
+
+	data := page.RenderContent()
+	return string(data)
 }
