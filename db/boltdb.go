@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"sync"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -32,6 +33,11 @@ const (
 	PREFIX_CLEANUP = "cleanup"
 
 	MAX_ENTRY_LENGTH = 1024 * 1024 * 50 // 50 MB
+)
+
+var (
+	// Der Mutex, der von AddToDb-Funktionen verwendet wird, um gleichzeitigen Zugriff zu verhindern
+	dbAddMutex sync.Mutex
 )
 
 var db *bolt.DB
@@ -355,6 +361,9 @@ func DeleteFromDb(bucket string, prefix string, buildNo int) error {
 }
 
 func AddToDb(buildJob structs.BuildJob) (int, error) {
+	dbAddMutex.Lock()
+	defer dbAddMutex.Unlock()
+
 	var nextBuildId uint64 = 0
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
