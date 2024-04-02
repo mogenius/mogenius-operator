@@ -263,7 +263,7 @@ func GetBuildJobListFromDb() []structs.BuildJobListEntry {
 				}
 			}
 		}
-		
+
 		return nil
 	})
 	if err != nil {
@@ -367,12 +367,11 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err == nil {
-				// THIS IS A FILTER TO HANDLE DUPLICATED REQUESTS
-				// if job.GitCommitHash == buildJob.GitCommitHash {
-				// 	err = fmt.Errorf("Duplicate BuildJob '%s (%s)' found. Not adding to Queue.", job.ServiceName, job.GitCommitHash)
-				// 	logger.Log.Error(err.Error())
-				// 	return err
-				// }
+				if (job.State == punqStructs.JobStatePending || job.State == punqStructs.JobStateStarted) && job.ServiceName == buildJob.ServiceName {
+					if job.GitCommitHash == buildJob.GitCommitHash {
+						return fmt.Errorf("Duplicate Commit-Hash (%s) found skipping build.", job.GitCommitHash)
+					}
+				}
 			}
 		}
 		buildJob.BuildId = int(nextBuildId)
