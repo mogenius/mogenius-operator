@@ -1,16 +1,16 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	gitexporter "mogenius-k8s-manager/git-exporter"
+
 	"mogenius-k8s-manager/structs"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -22,67 +22,6 @@ import (
 
 const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
-
-// TODO: REMOVE if NewEventWatcher works
-// TODO: REMOVE if NewEventWatcher works
-// TODO: REMOVE if NewEventWatcher works
-func WatchEvents() {
-	var lastResourceVersion = ""
-	for {
-		provider, err := punq.NewKubeProvider(nil)
-		if provider == nil || err != nil {
-			log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
-			return
-		}
-
-		// Create a watcher for all Kubernetes events
-		watcher, err := provider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
-
-		if err != nil || watcher == nil {
-			if apierrors.IsGone(err) {
-				lastResourceVersion = ""
-			}
-			log.Errorf("Error creating watcher: %s", err.Error())
-			continue
-		} else {
-			log.Info("Watcher connected successfully. Start watching events...")
-		}
-
-		// Start watching events
-		for event := range watcher.ResultChan() {
-			if event.Object != nil {
-				eventDto := dtos.CreateEvent(string(event.Type), event.Object)
-				datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
-
-				eventObj, isEvent := event.Object.(*v1Core.Event)
-				if isEvent {
-					lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
-					message := eventObj.Message
-					kind := eventObj.InvolvedObject.Kind
-					reason := eventObj.Reason
-					count := eventObj.Count
-					// if currentVersion > lastVersion {
-					structs.EventServerSendData(datagram, kind, reason, message, count)
-				} else if event.Type == "ERROR" {
-					var errObj *v1.Status = event.Object.(*v1.Status)
-					log.Errorf("WATCHER (%d): '%s'", errObj.Code, errObj.Message)
-					log.Error("WATCHER: Reset lastResourceVersion to empty.")
-					lastResourceVersion = ""
-					time.Sleep(RETRYTIMEOUT * time.Second) // Wait for 5 seconds before retrying
-					break
-				}
-			} else {
-				log.Errorf("WATCHER: Malformed event received Restarting watcher.")
-				break
-			}
-		}
-
-		// If the watcher channel is closed, wait for 5 seconds before retrying
-		log.Errorf("Watcher channel closed. Waiting before retrying with '%s' ...", lastResourceVersion)
-		watcher.Stop()
-		time.Sleep(RETRYTIMEOUT * time.Second)
-	}
-}
 
 func NewEventWatcher() {
 	provider, err := punq.NewKubeProvider(nil)
@@ -103,65 +42,6 @@ func NewEventWatcher() {
 
 	// Wait forever
 	select {}
-
-	// // Function to start watching events
-	// watchEvents := func() error {
-	// 	// Define the listwatch for all events
-	// 	listWatch := cache.NewListWatchFromClient(
-	// 		provider.ClientSet.CoreV1().RESTClient(),
-	// 		"events",
-	// 		v1Core.NamespaceAll,
-	// 		fields.Nothing(),
-	// 	)
-
-	// 	informer := cache.NewSharedInformer(listWatch, &corev1.Event{}, 0)
-	// 	_, err = informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-	// 		AddFunc: func(obj interface{}) {
-	// 			event := obj.(*corev1.Event)
-	// 			processEvent(event)
-	// 		},
-	// 		UpdateFunc: func(oldObj, newObj interface{}) {
-	// 			event := newObj.(*corev1.Event)
-	// 			processEvent(event)
-	// 		},
-	// 		DeleteFunc: func(obj interface{}) {
-	// 			event := obj.(*corev1.Event)
-	// 			processEvent(event)
-	// 		},
-	// 	})
-	// 	if err != nil {
-	// 		log.Errorf("Error adding event handler: %s", err.Error())
-	// 		return err
-	// 	}
-
-	// 	stopCh := make(chan struct{})
-	// 	go informer.Run(stopCh)
-
-	// 	// Handle reconnection in case of lost connection
-	// 	go func() error {
-	// 		for {
-	// 			if !cache.WaitForCacheSync(stopCh, informer.HasSynced) {
-	// 				err := fmt.Errorf("Timed out waiting for caches to sync")
-	// 				runtime.HandleError(err)
-	// 				return err
-	// 			}
-	// 			<-stopCh
-	// 			time.Sleep(5 * time.Second) // Wait before reconnecting
-	// 			stopCh = make(chan struct{})
-	// 		}
-	// 	}()
-	// }
-
-	// // Retry watching events with exponential backoff in case of failures
-	// retry.OnError(wait.Backoff{
-	// 	Steps:    5,
-	// 	Duration: 1 * time.Second,
-	// 	Factor:   2.0,
-	// 	Jitter:   0.1,
-	// }, errors.IsServiceUnavailable, watchEvents)
-
-	// // Wait forever
-	// select {}
 }
 
 func processEvent(event *v1Core.Event) (string, error) {
@@ -172,6 +52,7 @@ func processEvent(event *v1Core.Event) (string, error) {
 		kind := event.InvolvedObject.Kind
 		reason := event.Reason
 		count := event.Count
+		gitexporter.CheckEvent(event)
 		structs.EventServerSendData(datagram, kind, reason, message, count)
 		return event.ObjectMeta.ResourceVersion, nil
 	} else {

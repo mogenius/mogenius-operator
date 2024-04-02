@@ -4,6 +4,7 @@ __debug*
 video.mp4
 .DS_Store
 mo-data
+mo-data
 backup.yaml
 mogenius*.db
 mogenius-stats*.db

@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
+	gitexporter "mogenius-k8s-manager/git-exporter"
 	api "mogenius-k8s-manager/http"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/migrations"
@@ -40,6 +41,7 @@ var clusterCmd = &cobra.Command{
 		log.Infof("Init DB ...")
 		db.Init()
 		dbstats.Init()
+		gitexporter.Init()
 
 		migrations.ExecuteMigrations()
 
