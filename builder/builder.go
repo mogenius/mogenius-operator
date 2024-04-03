@@ -25,8 +25,10 @@ var currentBuildContext *context.Context
 var currentBuildChannel chan punqStructs.JobStateEnum
 var currentBuildJob *structs.BuildJob
 
+var buildInProgress bool = false
+
 func ProcessQueue() {
-	if DISABLEQUEUE {
+	if DISABLEQUEUE || buildInProgress {
 		time.Sleep(3 * time.Second)
 		ProcessQueue()
 		return
@@ -77,6 +79,7 @@ func ProcessQueue() {
 		currentBuildChannel = nil
 		currentBuildJob = nil
 	}
+	buildInProgress = false
 }
 
 func build(job structs.Job, buildJob *structs.BuildJob, done chan punqStructs.JobStateEnum, timeoutCtx *context.Context) {
