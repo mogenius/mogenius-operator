@@ -374,14 +374,15 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 		prefix := []byte(PREFIX_QUEUE)
 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
 			job := structs.BuildJob{}
-			err := structs.UnmarshalJob(&job, jobData)
-			if err == nil {
-				if (job.State == punqStructs.JobStatePending || job.State == punqStructs.JobStateStarted) && job.ServiceName == buildJob.ServiceName {
-					if job.GitCommitHash == buildJob.GitCommitHash {
-						return fmt.Errorf("Duplicate Commit-Hash (%s) found skipping build.", job.GitCommitHash)
-					}
-				}
-			}
+			structs.UnmarshalJob(&job, jobData)
+			// if err == nil {
+			// TODO: XXX - Check for duplicates wieder einbauen. aktuell führrt das dazu das monorepos kein setimage ausführen können
+			// if (job.State == punqStructs.JobStatePending || job.State == punqStructs.JobStateStarted) && job.ServiceName == buildJob.ServiceName {
+			// 	if job.GitCommitHash == buildJob.GitCommitHash {
+			// 		return fmt.Errorf("Duplicate Commit-Hash (%s) found skipping build.", job.GitCommitHash)
+			// 	}
+			// }
+			// }
 		}
 		buildJob.BuildId = int(nextBuildId)
 		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
