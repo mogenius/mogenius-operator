@@ -8,6 +8,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
+	punqKubernetes "github.com/mogenius/punq/kubernetes"
 	punq "github.com/mogenius/punq/structs"
 	log "github.com/sirupsen/logrus"
 	v1Core "k8s.io/api/core/v1"
@@ -38,6 +39,148 @@ func Init() {
 	if err != nil {
 		log.Errorf("Error creating git repository: %s", err.Error())
 	}
+	initAll()
+}
+
+func initAll() {
+	workloadCounter := 0
+
+	namespaces := punqKubernetes.ListAllNamespace(nil)
+	for _, v := range namespaces {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	pods := punqKubernetes.AllPods("", nil)
+	for _, v := range pods {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	secrets := punqKubernetes.AllSecrets("", nil)
+	for _, v := range secrets {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	services := punqKubernetes.AllServices("", nil)
+	for _, v := range services {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	deployments := punqKubernetes.AllDeployments("", nil)
+	for _, v := range deployments {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	configmaps := punqKubernetes.AllConfigmaps("", nil)
+	for _, v := range configmaps {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	replicasets := punqKubernetes.AllReplicasets("", nil)
+	for _, v := range replicasets {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	daemonsets := punqKubernetes.AllDaemonsets("", nil)
+	for _, v := range daemonsets {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	ingresses := punqKubernetes.AllIngresses("", nil)
+	for _, v := range ingresses {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	certs := punqKubernetes.AllCertificates("", nil)
+	for _, v := range certs {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	crbs := punqKubernetes.AllClusterRoleBindings(nil)
+	for _, v := range crbs {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	cr := punqKubernetes.AllClusterRoles(nil)
+	for _, v := range cr {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	ci := punqKubernetes.AllClusterIssuers(nil)
+	for _, v := range ci {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	ingClass := punqKubernetes.AllIngressClasses(nil)
+	for _, v := range ingClass {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	clusterIssuers := punqKubernetes.AllClusterIssuers(nil)
+	for _, v := range clusterIssuers {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	cronJobs := punqKubernetes.AllCronjobs("", nil)
+	for _, v := range cronJobs {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	jobs := punqKubernetes.AllJobs("", nil)
+	for _, v := range jobs {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	netpol := punqKubernetes.AllNetworkPolicies("", nil)
+	for _, v := range netpol {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	pvs := punqKubernetes.AllPersistentVolumesRaw(nil)
+	for _, v := range pvs {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	pvcs := punqKubernetes.AllPersistentVolumeClaims("", nil)
+	for _, v := range pvcs {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	prioClass := punqKubernetes.AllPriorityClasses(nil)
+	for _, v := range prioClass {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	rq := punqKubernetes.AllResourceQuotas("", nil)
+	for _, v := range rq {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	roles := punqKubernetes.AllRoles("", nil)
+	for _, v := range roles {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	rb := punqKubernetes.AllRoleBindings("", nil)
+	for _, v := range rb {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	serviceAcc := punqKubernetes.AllServiceAccounts("", nil)
+	for _, v := range serviceAcc {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	statefullsets := punqKubernetes.AllStatefulSets("", nil)
+	for _, v := range statefullsets {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	storageClasses := punqKubernetes.AllStorageClasses(nil)
+	for _, v := range storageClasses {
+		writeResourceYaml(v.Kind, v.Namespace, v.Name, v, &workloadCounter)
+	}
+
+	log.Infof("Initialized git repository with %d workloads. 💪", workloadCounter)
 }
 
 func CheckEvent(event *v1Core.Event) {
@@ -60,8 +203,19 @@ func CheckEvent(event *v1Core.Event) {
 	}
 }
 
+func getResourceYamlRaw(kind string, namespace string, resourceName string) string {
+	data := punq.ExecuteShellCommandWithResponse("Get resource yaml", fmt.Sprintf("kubectl get %s -n %s %s -o yaml", kind, namespace, resourceName))
+	cleanedData := cleanYaml(data)
+	return cleanedData
+}
+
 func getResourceYaml(event *v1Core.Event) string {
 	data := punq.ExecuteShellCommandWithResponse("Get resource yaml", fmt.Sprintf("kubectl get %s -n %s %s -o yaml", event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name))
+	cleanedData := cleanYaml(data)
+	return cleanedData
+}
+
+func cleanYaml(data string) string {
 	var dataMap map[string]interface{}
 	err := yaml.Unmarshal([]byte(data), &dataMap)
 	if err != nil {
@@ -84,6 +238,27 @@ func getResourceYaml(event *v1Core.Event) string {
 	return string(cleanedYaml)
 }
 
+func writeResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}, workloadCounter *int) {
+	if kind == "" {
+		log.Errorf("Kind is empty for resource %s:%s/%s", kind, namespace, resourceName)
+		return
+	}
+	yamlData, err := yaml.Marshal(dataInf)
+	if err != nil {
+		fmt.Printf("Error marshaling to YAML: %v\n", err)
+		return
+	}
+	createFolderForResource(kind)
+	data := cleanYaml(string(yamlData))
+	filename := fileNameForRaw(kind, namespace, resourceName)
+	err = os.WriteFile(filename, []byte(data), 0755)
+	if err != nil {
+		log.Errorf("Error writing resource %s:%s/%s file: %s", kind, namespace, resourceName, err.Error())
+		return
+	}
+	*workloadCounter++
+}
+
 func saveResourceYaml(event *v1Core.Event) error {
 	data := getResourceYaml(event)
 	err := os.WriteFile(fileNameForResource(event), []byte(data), 0755)
@@ -97,6 +272,14 @@ func deleteResourceYaml(event *v1Core.Event) error {
 
 func fileNameForResource(event *v1Core.Event) string {
 	name := fmt.Sprintf("%s/%s/%s/%s-%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+	return name
+}
+
+func fileNameForRaw(kind string, namespace string, resourceName string) string {
+	name := fmt.Sprintf("%s/%s/%s/%s-%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, namespace, resourceName)
+	if namespace == "" {
+		name = fmt.Sprintf("%s/%s/%s/%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, resourceName)
+	}
 	return name
 }
 

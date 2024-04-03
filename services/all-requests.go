@@ -683,21 +683,21 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllStatefulSets(data.NamespaceName, nil)
+		return punq.AllK8sStatefulSets(data.NamespaceName, nil)
 	case structs.PAT_LIST_JOBS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllJobs(data.NamespaceName, nil)
+		return punq.AllK8sJobs(data.NamespaceName, nil)
 	case structs.PAT_LIST_CRONJOBS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllCronjobs(data.NamespaceName, nil)
+		return punq.AllK8sCronjobs(data.NamespaceName, nil)
 	case structs.PAT_LIST_REPLICASETS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -711,7 +711,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllPersistentVolumes(nil)
+		return punq.AllK8sPersistentVolumes(nil)
 	case structs.PAT_LIST_PERSISTENT_VOLUME_CLAIMS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -725,14 +725,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllHpas(data.NamespaceName, nil)
+		return punq.AllK8sHpas(data.NamespaceName, nil)
 	case structs.PAT_LIST_EVENTS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllEvents(data.NamespaceName, nil)
+		return punq.AllK8sEvents(data.NamespaceName, nil)
 	case structs.PAT_LIST_CERTIFICATES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -746,7 +746,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllCertificateSigningRequests(data.NamespaceName, nil)
+		return punq.AllK8sCertificateSigningRequests(data.NamespaceName, nil)
 	case structs.PAT_LIST_ORDERS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -760,55 +760,55 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllIssuer(data.NamespaceName, nil)
+		return punq.AllK8sIssuer(data.NamespaceName, nil)
 	case structs.PAT_LIST_CLUSTERISSUERS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllClusterIssuers(nil)
+		return punq.AllK8sClusterIssuers(nil)
 	case structs.PAT_LIST_SERVICE_ACCOUNT:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllServiceAccounts(data.NamespaceName, nil)
+		return punq.AllK8sServiceAccounts(data.NamespaceName, nil)
 	case structs.PAT_LIST_ROLE:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllRoles(data.NamespaceName, nil)
+		return punq.AllK8sRoles(data.NamespaceName, nil)
 	case structs.PAT_LIST_ROLE_BINDING:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllRoleBindings(data.NamespaceName, nil)
+		return punq.AllK8sRoleBindings(data.NamespaceName, nil)
 	case structs.PAT_LIST_CLUSTER_ROLE:
-		return punq.AllClusterRoles(nil)
+		return punq.AllK8sClusterRoles(nil)
 	case structs.PAT_LIST_CLUSTER_ROLE_BINDING:
-		return punq.AllClusterRoleBindings(nil)
+		return punq.AllK8sClusterRoleBindings(nil)
 	case structs.PAT_LIST_VOLUME_ATTACHMENT:
-		return punq.AllVolumeAttachments(nil)
+		return punq.AllK8sVolumeAttachments(nil)
 	case structs.PAT_LIST_NETWORK_POLICY:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllNetworkPolicies(data.NamespaceName, nil)
+		return punq.AllK8sNetworkPolicies(data.NamespaceName, nil)
 	case structs.PAT_LIST_STORAGE_CLASS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllStorageClasses(nil)
+		return punq.AllK8sStorageClasses(nil)
 	case structs.PAT_LIST_CUSTOM_RESOURCE_DEFINITIONS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -823,14 +823,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllEndpoints(data.NamespaceName, nil)
+		return punq.AllK8sEndpoints(data.NamespaceName, nil)
 	case structs.PAT_LIST_LEASES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllLeases(data.NamespaceName, nil)
+		return punq.AllK8sLeases(data.NamespaceName, nil)
 	case structs.PAT_LIST_PRIORITYCLASSES:
 		return punq.AllPriorityClasses(nil)
 	case structs.PAT_LIST_VOLUMESNAPSHOTS:
@@ -847,7 +847,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllResourceQuotas(data.NamespaceName, nil)
+		return punq.AllK8sResourceQuotas(data.NamespaceName, nil)
 
 	case structs.PAT_DESCRIBE_NAMESPACE:
 		data := K8sDescribeRequest{}

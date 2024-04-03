@@ -23,7 +23,7 @@ import (
 func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, eventsChan chan<- []corev1.Event) {
 	defer wg.Done()
 
-	r := punq.AllEvents(namespace, nil)
+	r := punq.AllK8sEvents(namespace, nil)
 
 	var events []corev1.Event
 	if r.Error != nil {
