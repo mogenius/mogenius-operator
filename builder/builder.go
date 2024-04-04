@@ -48,7 +48,7 @@ func ProcessQueue() {
 
 		job := structs.CreateJob(fmt.Sprintf("Building '%s'", buildJob.ServiceName), buildJob.ProjectId, &buildJob.NamespaceId, nil)
 
-		go build(job, &buildJob, currentBuildChannel, &ctx)
+		build(job, &buildJob, currentBuildChannel, &ctx)
 
 		select {
 		case <-ctx.Done():
