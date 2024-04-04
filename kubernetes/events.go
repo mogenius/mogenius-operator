@@ -54,6 +54,7 @@ func ResourceWatcher() {
 	go WatchNetworkPolicies()
 	go WatchJobs()
 	go WatchCronJobs()
+	go WatchDaemonSets()
 }
 
 func processEvent(event *v1Core.Event) (string, error) {

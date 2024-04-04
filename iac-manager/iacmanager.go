@@ -1,9 +1,11 @@
 package iacmanager
 
 import (
+	"bytes"
 	"fmt"
 	"mogenius-k8s-manager/utils"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +24,9 @@ import (
 
 // Runtime tasks:
 // 1. Check for incoming events
+// git remote add origin https://github.com/beneiltis/iactest.git
+// git branch -M main
+// git push -u origin main
 
 const (
 	GIT_VAULT_FOLDER = "git-vault"
@@ -45,6 +50,7 @@ func Init() {
 		log.Errorf("Error creating git repository: %s", err.Error())
 	}
 	initAll()
+	PullChanges()
 }
 
 func initAll() {
@@ -319,15 +325,77 @@ func CommitChanges(author string, message string, filePaths []string) error {
 			return err
 		}
 	}
-
-	// TODO: if repo is known we can push the changes
-	// pushCmd := fmt.Sprintf("cd %s; git commit -m \"%s\" --author=\"%s\"", folder, message, author)
-	// err = utils.ExecuteShellCommandSilent(commitCmd, commitCmd)
-	// if err != nil {
-	// 	log.Errorf("Error committing files to git repository: %s", err.Error())
-	// 	return err
-	// }
 	return nil
+}
+
+func PullChanges() (updatedFiles []string, deletedFiles []string) {
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+
+	// Pull changes from the remote repository
+	cmd := exec.Command("git", "pull", "origin", "main")
+	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", "GIT_PASSWORD=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")
+	cmd.Dir = folder
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if out.String() == "Already up to date.\n" {
+		log.Info("No changes to pull from the remote repository. 🔄")
+		return
+	}
+	if err != nil {
+		log.Errorf("Error running git diff: %s %s %s", err.Error(), out.String(), stderr.String())
+		return
+	}
+
+	//Get the list of updated or newly added files since the last pull
+	updatedFiles, err = getGitFiles(folder, "HEAD@{1}", "HEAD", "--name-only", "--diff-filter=AM")
+	if err != nil {
+		fmt.Println("Error getting added/updated files:", err)
+		return
+	}
+
+	// Get the list of deleted files since the last pull
+	deletedFiles, err = getGitFiles(folder, "HEAD@{1}", "HEAD", "--name-only", "--diff-filter=D")
+	if err != nil {
+		fmt.Println("Error getting deleted files:", err)
+		return
+	}
+
+	log.Info("🔄🔄🔄 Pulled changes from the remote repository. 🔄🔄🔄")
+	log.Infof("Added/Updated Files (%d):", len(updatedFiles))
+	for _, file := range updatedFiles {
+		log.Info(file)
+	}
+
+	log.Infof("Deleted Files (%d):", len(deletedFiles))
+	for _, file := range deletedFiles {
+		log.Info(file)
+	}
+	return updatedFiles, deletedFiles
+}
+
+func getGitFiles(workDir string, ref string, options ...string) ([]string, error) {
+	args := []string{"diff", ref}
+	args = append(args, options...)
+	cmd := exec.Command("git", args...)
+	cmd.Dir = workDir
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		return nil, fmt.Errorf("Error running git diff: %s %s %s", err.Error(), out.String(), stderr.String())
+	}
+
+	output := strings.TrimSpace(out.String())
+	if output == "" {
+		return []string{}, nil
+	}
+
+	return strings.Split(output, "\n"), nil
 }
 
 func DebounceFunc(interval time.Duration, function func()) func() {
