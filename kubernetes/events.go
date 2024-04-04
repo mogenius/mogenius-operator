@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	gitexporter "mogenius-k8s-manager/git-exporter"
 
 	"mogenius-k8s-manager/structs"
 	"time"
@@ -23,7 +22,7 @@ import (
 const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
 
-func NewEventWatcher() {
+func EventWatcher() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
@@ -44,6 +43,19 @@ func NewEventWatcher() {
 	select {}
 }
 
+func ResourceWatcher() {
+	go WatchConfigmaps()
+	go WatchDeployments()
+	go WatchPods()
+	go WatchIngresses()
+	go WatchSecrets()
+	go WatchServices()
+	go WatchNamespaces()
+	go WatchNetworkPolicies()
+	go WatchJobs()
+	go WatchCronJobs()
+}
+
 func processEvent(event *v1Core.Event) (string, error) {
 	if event != nil {
 		eventDto := dtos.CreateEvent(string(event.Type), event)
@@ -52,7 +64,6 @@ func processEvent(event *v1Core.Event) (string, error) {
 		kind := event.InvolvedObject.Kind
 		reason := event.Reason
 		count := event.Count
-		gitexporter.CheckEvent(event)
 		structs.EventServerSendData(datagram, kind, reason, message, count)
 		return event.ObjectMeta.ResourceVersion, nil
 	} else {
@@ -61,15 +72,7 @@ func processEvent(event *v1Core.Event) (string, error) {
 }
 
 func watchEvents(provider *punq.KubeProvider) error {
-	lw := cache.NewListWatchFromClient(
-		provider.ClientSet.CoreV1().RESTClient(),
-		"events",
-		v1Core.NamespaceAll,
-		fields.Nothing(),
-	)
-
-	informer := cache.NewSharedInformer(lw, &v1Core.Event{}, 0)
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
 			processEvent(event)
@@ -82,13 +85,21 @@ func watchEvents(provider *punq.KubeProvider) error {
 			event := obj.(*v1Core.Event)
 			processEvent(event)
 		},
-	})
+	}
+	listWatch := cache.NewListWatchFromClient(
+		provider.ClientSet.CoreV1().RESTClient(),
+		"events",
+		v1Core.NamespaceAll,
+		fields.Nothing(),
+	)
+	eventInformer := cache.NewSharedInformer(listWatch, &v1Core.Event{}, 0)
+	eventInformer.AddEventHandler(handler)
 
 	stopCh := make(chan struct{})
-	go informer.Run(stopCh)
+	go eventInformer.Run(stopCh)
 
 	// Wait for the informer to sync and start processing events
-	if !cache.WaitForCacheSync(stopCh, informer.HasSynced) {
+	if !cache.WaitForCacheSync(stopCh, eventInformer.HasSynced) {
 		return fmt.Errorf("failed to sync cache")
 	}
 

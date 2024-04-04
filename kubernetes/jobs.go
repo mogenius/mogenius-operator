@@ -1,44 +1,22 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
 	iacmanager "mogenius-k8s-manager/iac-manager"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
+	v1job "k8s.io/api/batch/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 )
 
-func KeplerPod() *v1.Pod {
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		log.Errorf("KeplerPod ERROR: %s", err.Error())
-		return nil
-	}
-	podClient := provider.ClientSet.CoreV1().Pods("")
-	pods, err := podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler"})
-	if err != nil {
-		log.Errorf("KeplerPod ERROR: %s", err.Error())
-		return nil
-	}
-	for _, pod := range pods.Items {
-		if pod.GenerateName == "kepler-" {
-			return &pod
-		}
-	}
-	return nil
-}
-
-func WatchPods() {
+func WatchJobs() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
@@ -52,41 +30,41 @@ func WatchPods() {
 		Factor:   2.0,
 		Jitter:   0.1,
 	}, apierrors.IsServiceUnavailable, func() error {
-		return watchPods(provider, "pods")
+		return watchJobs(provider, "jobs")
 	})
 
 	// Wait forever
 	select {}
 }
 
-func watchPods(provider *punq.KubeProvider, kindName string) error {
+func watchJobs(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			castedObj := obj.(*v1.Pod)
-			castedObj.Kind = "Pod"
-			castedObj.APIVersion = "v1"
+			castedObj := obj.(*v1job.Job)
+			castedObj.Kind = "Job"
+			castedObj.APIVersion = "batch/v1"
 			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			castedObj := newObj.(*v1.Pod)
-			castedObj.Kind = "Pod"
-			castedObj.APIVersion = "v1"
+			castedObj := newObj.(*v1job.Job)
+			castedObj.Kind = "Job"
+			castedObj.APIVersion = "batch/v1"
 			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		DeleteFunc: func(obj interface{}) {
-			castedObj := obj.(*v1.Pod)
-			castedObj.Kind = "Pod"
-			castedObj.APIVersion = "v1"
+			castedObj := obj.(*v1job.Job)
+			castedObj.Kind = "Job"
+			castedObj.APIVersion = "batch/v1"
 			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(
-		provider.ClientSet.CoreV1().RESTClient(),
+		provider.ClientSet.BatchV1().RESTClient(),
 		kindName,
 		v1Core.NamespaceAll,
 		fields.Nothing(),
 	)
-	resourceInformer := cache.NewSharedInformer(listWatch, &v1.Pod{}, 0)
+	resourceInformer := cache.NewSharedInformer(listWatch, &v1job.Job{}, 0)
 	resourceInformer.AddEventHandler(handler)
 
 	stopCh := make(chan struct{})

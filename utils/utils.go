@@ -103,6 +103,19 @@ func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	}
 }
 
+func ExecuteShellCommandRealySilent(title string, shellCmd string) error {
+	result, err := utils.RunOnLocalShell(shellCmd).Output()
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		exitCode := exitErr.ExitCode()
+		errorMsg := string(exitErr.Stderr)
+		return fmt.Errorf("%d: %s %s", exitCode, errorMsg, string(result))
+	} else if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
 func GetVersionData(url string) (*punqStructs.HelmData, error) {
 	response, err := http.Get(url)
 	if err != nil {

@@ -8,8 +8,8 @@ import (
 	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
-	gitexporter "mogenius-k8s-manager/git-exporter"
 	api "mogenius-k8s-manager/http"
+	iacmanager "mogenius-k8s-manager/iac-manager"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/migrations"
 	"mogenius-k8s-manager/services"
@@ -41,7 +41,7 @@ var clusterCmd = &cobra.Command{
 		log.Infof("Init DB ...")
 		db.Init()
 		dbstats.Init()
-		gitexporter.Init()
+		iacmanager.Init()
 
 		migrations.ExecuteMigrations()
 
@@ -73,7 +73,8 @@ var clusterCmd = &cobra.Command{
 		go api.InitApi()
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
-		go mokubernetes.NewEventWatcher()
+		go mokubernetes.EventWatcher()
+		go mokubernetes.ResourceWatcher()
 
 		punq.ExecuteShellCommandSilent("Git setup (1/4)", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
 		punq.ExecuteShellCommandSilent("Git setup (2/4)", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))

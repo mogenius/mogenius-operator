@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"mogenius-k8s-manager/dtos"
+	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/structs"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -15,8 +16,14 @@ import (
 	log "github.com/sirupsen/logrus"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
+	v1Core "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/util/wait"
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/retry"
 )
 
 func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string, wg *sync.WaitGroup) *structs.Command {
@@ -437,4 +444,76 @@ func NewK8sCronJob() K8sNewWorkload {
 		punq.RES_CRON_JOB,
 		punqutils.InitCronJobYaml(),
 		"A CronJob creates Jobs on a repeating schedule, like the cron utility in Unix-like systems. In this example, a CronJob named 'my-cronjob' is created. It runs a Job every minute. Each Job creates a Pod with a single container from the 'my-cronjob-image' image.")
+}
+
+func WatchCronJobs() {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		return
+	}
+
+	// Retry watching resources with exponential backoff in case of failures
+	retry.OnError(wait.Backoff{
+		Steps:    5,
+		Duration: 1 * time.Second,
+		Factor:   2.0,
+		Jitter:   0.1,
+	}, apierrors.IsServiceUnavailable, func() error {
+		return watchCronJobs(provider, "cronjobs")
+	})
+
+	// Wait forever
+	select {}
+}
+
+func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
+	handler := cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			castedObj := obj.(*v1job.CronJob)
+			castedObj.Kind = "CronJob"
+			castedObj.APIVersion = "batch/v1"
+			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			castedObj := newObj.(*v1job.CronJob)
+			castedObj.Kind = "CronJob"
+			castedObj.APIVersion = "batch/v1"
+			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+		},
+		DeleteFunc: func(obj interface{}) {
+			castedObj := obj.(*v1job.CronJob)
+			castedObj.Kind = "CronJob"
+			castedObj.APIVersion = "batch/v1"
+			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name)
+		},
+	}
+	listWatch := cache.NewListWatchFromClient(
+		provider.ClientSet.BatchV1().RESTClient(),
+		kindName,
+		v1Core.NamespaceAll,
+		fields.Nothing(),
+	)
+	resourceInformer := cache.NewSharedInformer(listWatch, &v1job.CronJob{}, 0)
+	resourceInformer.AddEventHandler(handler)
+
+	stopCh := make(chan struct{})
+	go resourceInformer.Run(stopCh)
+
+	// Wait for the informer to sync and start processing events
+	if !cache.WaitForCacheSync(stopCh, resourceInformer.HasSynced) {
+		return fmt.Errorf("failed to sync cache")
+	}
+
+	// This loop will keep the function alive as long as the stopCh is not closed
+	for {
+		select {
+		case <-stopCh:
+			// stopCh closed, return from the function
+			return nil
+		case <-time.After(30 * time.Second):
+			// This is to avoid a tight loop in case stopCh is never closed.
+			// You can adjust the time as per your needs.
+		}
+	}
 }
