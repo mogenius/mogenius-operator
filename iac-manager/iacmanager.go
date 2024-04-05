@@ -35,6 +35,10 @@ const (
 var ProcessedObjects = 0
 var commitMutex sync.Mutex
 
+var changedFiles []string
+
+var syncInProcess = false
+
 func Init() {
 	// Create a git repository
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
@@ -49,149 +53,54 @@ func Init() {
 	if err != nil {
 		log.Errorf("Error creating git repository: %s", err.Error())
 	}
-	initAll()
-	PullChanges()
+	setupRemote()
+	SyncChangesTimer()
 }
 
-func initAll() {
-	workloadCounter := 0
+func SyncChangesTimer() {
+	ticker := time.NewTicker(time.Duration(utils.CONFIG.Iac.PollingIntervalSecs) * time.Second)
+	quit := make(chan struct{}) // Create a channel to signal the ticker to stop
 
-	// namespaces := punqKubernetes.ListAllNamespace(nil)
-	// for _, v := range namespaces {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				SyncChanges()
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+}
 
-	// pods := punqKubernetes.AllPods("", nil)
-	// for _, v := range pods {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
+func SyncChanges() {
+	if gitHasRemotes() {
+		if !syncInProcess {
+			syncInProcess = true
+			updatedFiles, deletedFiles := pullChanges()
+			for _, v := range updatedFiles {
+				kubernetesApplyResource(v)
+			}
+			for _, v := range deletedFiles {
+				kubernetesDeleteResource(v)
+			}
+			pushChanges()
+			syncInProcess = false
+		}
+	}
+}
 
-	// secrets := punqKubernetes.AllSecrets("", nil)
-	// for _, v := range secrets {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// services := punqKubernetes.AllServices("", nil)
-	// for _, v := range services {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// deployments := punqKubernetes.AllDeployments("", nil)
-	// for _, v := range deployments {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// configmaps := punqKubernetes.AllConfigmaps("", nil)
-	// for _, v := range configmaps {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// replicasets := punqKubernetes.AllReplicasets("", nil)
-	// for _, v := range replicasets {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// daemonsets := punqKubernetes.AllDaemonsets("", nil)
-	// for _, v := range daemonsets {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// ingresses := punqKubernetes.AllIngresses("", nil)
-	// for _, v := range ingresses {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// certs := punqKubernetes.AllCertificates("", nil)
-	// for _, v := range certs {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// crbs := punqKubernetes.AllClusterRoleBindings(nil)
-	// for _, v := range crbs {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// cr := punqKubernetes.AllClusterRoles(nil)
-	// for _, v := range cr {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// ci := punqKubernetes.AllClusterIssuers(nil)
-	// for _, v := range ci {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// ingClass := punqKubernetes.AllIngressClasses(nil)
-	// for _, v := range ingClass {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// clusterIssuers := punqKubernetes.AllClusterIssuers(nil)
-	// for _, v := range clusterIssuers {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// cronJobs := punqKubernetes.AllCronjobs("", nil)
-	// for _, v := range cronJobs {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// jobs := punqKubernetes.AllJobs("", nil)
-	// for _, v := range jobs {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// netpol := punqKubernetes.AllNetworkPolicies("", nil)
-	// for _, v := range netpol {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// pvs := punqKubernetes.AllPersistentVolumesRaw(nil)
-	// for _, v := range pvs {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// pvcs := punqKubernetes.AllPersistentVolumeClaims("", nil)
-	// for _, v := range pvcs {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// prioClass := punqKubernetes.AllPriorityClasses(nil)
-	// for _, v := range prioClass {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// rq := punqKubernetes.AllResourceQuotas("", nil)
-	// for _, v := range rq {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// roles := punqKubernetes.AllRoles("", nil)
-	// for _, v := range roles {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// rb := punqKubernetes.AllRoleBindings("", nil)
-	// for _, v := range rb {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// serviceAcc := punqKubernetes.AllServiceAccounts("", nil)
-	// for _, v := range serviceAcc {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// statefullsets := punqKubernetes.AllStatefulSets("", nil)
-	// for _, v := range statefullsets {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	// storageClasses := punqKubernetes.AllStorageClasses(nil)
-	// for _, v := range storageClasses {
-	// 	WriteResourceYaml(v.Kind, v.Namespace, v.Name, v)
-	// }
-
-	log.Infof("Initialized git repository with %d workloads. 💪", workloadCounter)
+func setupRemote() {
+	if utils.CONFIG.Iac.RepoUrl == "" {
+		return
+	}
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	remoteCmd := fmt.Sprintf("cd %s; git remote add origin %s", folder, utils.CONFIG.Iac.RepoUrl)
+	err := utils.ExecuteShellCommandSilent(remoteCmd, remoteCmd)
+	if err != nil {
+		log.Errorf("Error setting up remote: %s", err.Error())
+	}
 }
 
 func cleanYaml(data string) string {
@@ -224,7 +133,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 	}
 	yamlData, err := yaml.Marshal(dataInf)
 	if err != nil {
-		fmt.Printf("Error marshaling to YAML: %v\n", err)
+		log.Errorf("Error marshaling to YAML: %s\n", err.Error())
 		return
 	}
 	createFolderForResource(kind)
@@ -250,7 +159,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string) erro
 }
 
 func fileNameForRaw(kind string, namespace string, resourceName string) string {
-	name := fmt.Sprintf("%s/%s/%s/%s-%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, namespace, resourceName)
+	name := fmt.Sprintf("%s/%s/%s/%s_%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, namespace, resourceName)
 	if namespace == "" {
 		name = fmt.Sprintf("%s/%s/%s/%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, resourceName)
 	}
@@ -270,6 +179,25 @@ func createFolderForResource(resource string) error {
 		}
 	}
 	return nil
+}
+
+func gitHasRemotes() bool {
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	cmd := exec.Command("git", "remote", "-v")
+	cmd.Dir = folder
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		log.Errorf("Error checking git remotes: %s %s %s", err.Error(), out.String(), stderr.String())
+		return false
+	}
+	if len(out.String()) > 0 {
+		return true
+	}
+	return false
 }
 
 // removeFieldAtPath recursively searches through the data structure.
@@ -309,6 +237,7 @@ func CommitChanges(author string, message string, filePaths []string) error {
 	for _, v := range filePaths {
 		addCmd := fmt.Sprintf("cd %s; git add %s", folder, v)
 		err := utils.ExecuteShellCommandRealySilent(addCmd, addCmd)
+		changedFiles = append(changedFiles, v)
 		if err != nil {
 			log.Errorf("Error adding files to git repository: %s", err.Error())
 			return err
@@ -328,7 +257,10 @@ func CommitChanges(author string, message string, filePaths []string) error {
 	return nil
 }
 
-func PullChanges() (updatedFiles []string, deletedFiles []string) {
+func pullChanges() (updatedFiles []string, deletedFiles []string) {
+	if !utils.CONFIG.Iac.AllowPull {
+		return
+	}
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 
 	// Pull changes from the remote repository
@@ -341,39 +273,79 @@ func PullChanges() (updatedFiles []string, deletedFiles []string) {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if out.String() == "Already up to date.\n" {
-		log.Info("No changes to pull from the remote repository. 🔄")
-		return
+		log.Infof("Pulled changes from the remote repository (Modified: %d / Deleted: %d). 🔄🔄🔄", len(updatedFiles), len(deletedFiles))
+		return updatedFiles, deletedFiles
 	}
 	if err != nil {
-		log.Errorf("Error running git diff: %s %s %s", err.Error(), out.String(), stderr.String())
-		return
+		if !strings.Contains(stderr.String(), "Your local changes to the following files would be overwritten by merge") {
+			log.Errorf("Error running git diff: %s %s %s", err.Error(), out.String(), stderr.String())
+		}
+		return updatedFiles, deletedFiles
 	}
+
+	// Wait for the changes to be pulled
+	time.Sleep(1 * time.Second)
 
 	//Get the list of updated or newly added files since the last pull
 	updatedFiles, err = getGitFiles(folder, "HEAD@{1}", "HEAD", "--name-only", "--diff-filter=AM")
 	if err != nil {
-		fmt.Println("Error getting added/updated files:", err)
-		return
+		log.Errorf("Error getting added/updated files: %s", err.Error())
+		return updatedFiles, deletedFiles
 	}
 
 	// Get the list of deleted files since the last pull
 	deletedFiles, err = getGitFiles(folder, "HEAD@{1}", "HEAD", "--name-only", "--diff-filter=D")
 	if err != nil {
-		fmt.Println("Error getting deleted files:", err)
+		log.Errorf("Error getting deleted files: %s", err.Error())
 		return
 	}
 
-	log.Info("🔄🔄🔄 Pulled changes from the remote repository. 🔄🔄🔄")
-	log.Infof("Added/Updated Files (%d):", len(updatedFiles))
-	for _, file := range updatedFiles {
-		log.Info(file)
-	}
+	log.Infof("Pulled changes from the remote repository (Modified: %d / Deleted: %d). 🔄🔄🔄", len(updatedFiles), len(deletedFiles))
+	if utils.CONFIG.Misc.Debug {
+		log.Infof("Added/Updated Files (%d):", len(updatedFiles))
+		for _, file := range updatedFiles {
+			log.Info(file)
+		}
 
-	log.Infof("Deleted Files (%d):", len(deletedFiles))
-	for _, file := range deletedFiles {
-		log.Info(file)
+		log.Infof("Deleted Files (%d):", len(deletedFiles))
+		for _, file := range deletedFiles {
+			log.Info(file)
+		}
 	}
 	return updatedFiles, deletedFiles
+}
+
+func pushChanges() {
+	if !utils.CONFIG.Iac.AllowPush {
+		return
+	}
+	if len(changedFiles) <= 0 {
+		return
+	}
+
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+
+	// Push changes to the remote repository
+	cmd := exec.Command("git", "push", "origin", "main")
+	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", "GIT_PASSWORD=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")
+	cmd.Dir = folder
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if stderr.String() != "Everything up-to-date\n" {
+		log.Infof("Pushed %d changes to remote repository. 🔄🔄🔄", len(changedFiles))
+		if utils.CONFIG.Misc.Debug {
+			for _, file := range changedFiles {
+				log.Info(file)
+			}
+		}
+	}
+	if err != nil {
+		log.Errorf("Error running git push: %s %s %s", err.Error(), out.String(), stderr.String())
+	}
+	changedFiles = []string{}
 }
 
 func getGitFiles(workDir string, ref string, options ...string) ([]string, error) {
@@ -411,5 +383,46 @@ func DebounceFunc(interval time.Duration, function func()) func() {
 		}
 
 		timer = time.AfterFunc(interval, function)
+	}
+}
+
+func kubernetesDeleteResource(file string) {
+	parts := strings.Split(file, "/")
+	filename := strings.Replace(parts[len(parts)-1], ".yaml", "", -1)
+	partsName := strings.Split(filename, "_")
+	kind := parts[0]
+	namespace := ""
+	name := ""
+	if len(partsName) > 1 {
+		namespace = fmt.Sprintf("--namespace=%s ", partsName[0])
+		name = partsName[1]
+	}
+
+	if kind == "" {
+		log.Errorf("Kind cannot be empty. File: %s", file)
+		return
+	}
+	if name == "" {
+		log.Errorf("Name cannot be empty. File: %s", file)
+		return
+	}
+
+	delCmd := fmt.Sprintf("kubectl delete %s %s%s", kind, namespace, name)
+	err := utils.ExecuteShellCommandRealySilent(delCmd, delCmd)
+	if err != nil {
+		log.Errorf("Error deleting resource: %s", err.Error())
+	} else {
+		log.Infof("✅ Deleted resource %s%s%s", kind, namespace, name)
+	}
+}
+
+func kubernetesApplyResource(file string) {
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	delCmd := fmt.Sprintf("kubectl apply -f %s/%s", folder, file)
+	err := utils.ExecuteShellCommandRealySilent(delCmd, delCmd)
+	if err != nil {
+		log.Errorf("Error applying file %s: %s", file, err.Error())
+	} else {
+		log.Infof("✅ Applied file: %s", file)
 	}
 }

@@ -3,6 +3,8 @@ package kubernetes
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/utils"
+	"strings"
 
 	"mogenius-k8s-manager/structs"
 	"time"
@@ -44,17 +46,49 @@ func EventWatcher() {
 }
 
 func ResourceWatcher() {
-	go WatchConfigmaps()
-	go WatchDeployments()
-	go WatchPods()
-	go WatchIngresses()
-	go WatchSecrets()
-	go WatchServices()
-	go WatchNamespaces()
-	go WatchNetworkPolicies()
-	go WatchJobs()
-	go WatchCronJobs()
-	go WatchDaemonSets()
+	log.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
+	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
+		switch workload {
+		case "configmaps":
+			go WatchConfigmaps()
+			log.Infof("Started watching Configmaps 🚀.")
+		case "deployments":
+			go WatchDeployments()
+			log.Infof("Started watching Deployments 🚀.")
+		case "pods":
+			go WatchPods()
+			log.Infof("Started watching Pods 🚀.")
+		case "ingresses":
+			go WatchIngresses()
+			log.Infof("Started watching Ingresses 🚀.")
+		case "secrets":
+			go WatchSecrets()
+			log.Infof("Started watching Secrets 🚀.")
+		case "services":
+			go WatchServices()
+			log.Infof("Started watching Services 🚀.")
+		case "namespaces":
+			go WatchNamespaces()
+			log.Infof("Started watching Namespaces 🚀.")
+		case "networkpolicies":
+			go WatchNetworkPolicies()
+			log.Infof("Started watching NetworkPolicies 🚀.")
+		case "jobs":
+			go WatchJobs()
+			log.Infof("Started watching Jobs 🚀.")
+		case "cronjobs":
+			go WatchCronJobs()
+			log.Infof("Started watching CronJobs 🚀.")
+		case "daemonsets":
+			go WatchDaemonSets()
+			log.Infof("Started watching DaemonSets 🚀.")
+		case "statefulsets":
+			go WatchStatefulSets()
+			log.Infof("Started watching StatefulSets 🚀.")
+		default:
+			log.Errorf("🚫 Unknown resource type: %s", workload)
+		}
+	}
 }
 
 func processEvent(event *v1Core.Event) (string, error) {

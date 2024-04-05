@@ -20,6 +20,14 @@ event_server:
   scheme: ws
   path: /ws-event
 
+iac:
+  repo_url:
+  repo_pat:
+  polling_interval_secs: 10
+  allow_push: true
+  allow_pull: true
+  sync_workloads: ["namespaces", "pods", "deployments", "statefulsets", "services", "ingresses", "configmaps", "secrets", "jobs", "cronjobs", "daemonsets", "networkpolicies"]
+
 misc:
   stage: local
   log_format: json # json or text

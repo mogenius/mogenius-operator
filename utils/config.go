@@ -48,6 +48,14 @@ type Config struct {
 		Scheme string `yaml:"scheme" env:"event_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
 	} `yaml:"event_server"`
+	Iac struct {
+		RepoUrl             string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url." env-default:""`
+		RepoPat             string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat." env-default:""`
+		PollingIntervalSecs int      `yaml:"polling_interval_secs" env:"sync_polling_interval_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
+		AllowPush           bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo." env-default:"true"`
+		AllowPull           bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo." env-default:"true"`
+		SyncWorkloads       []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync." env-default:""`
+	} `yaml:"iac"`
 	Misc struct {
 		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		LogFormat             string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"text"`
@@ -215,12 +223,20 @@ func PrintSettings() {
 	log.Infof("HttpServer:               %s", CONFIG.ApiServer.Http_Server)
 	log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
 	log.Infof("WsScheme:                 %s", CONFIG.ApiServer.Ws_Scheme)
-	log.Infof("WsPath:                   %s", CONFIG.ApiServer.WS_Path)
+	log.Infof("WsPath:                   %s\n\n", CONFIG.ApiServer.WS_Path)
 
 	log.Infof("EVENTS")
 	log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
 	log.Infof("EventScheme:              %s", CONFIG.EventServer.Scheme)
 	log.Infof("EventPath:                %s\n\n", CONFIG.EventServer.Path)
+
+	log.Infof("IAC")
+	log.Infof("RepoUrl:                 %s", CONFIG.Iac.RepoUrl)
+	log.Infof("RepoPat:                 %s", CONFIG.Iac.RepoPat)
+	log.Infof("PollingIntervalSecs:     %d", CONFIG.Iac.PollingIntervalSecs)
+	log.Infof("AllowPull:               %t", CONFIG.Iac.AllowPull)
+	log.Infof("AllowPush:               %t", CONFIG.Iac.AllowPush)
+	log.Infof("SyncWorkloads:           %s\n\n", strings.Join(CONFIG.Iac.SyncWorkloads, ","))
 
 	log.Infof("MISC")
 	log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
