@@ -62,6 +62,7 @@ const (
 	PAT_CLUSTER_BACKUP                  string = "cluster/backup"
 	PAT_CLUSTER_RESTART                 string = "cluster/restart"
 	PAT_ENERGY_CONSUMPTION              string = "cluster/energy-consumption"
+	PAT_CLUSTER_SYNC_REPO               string = "cluster/sync-repo"
 
 	PAT_CLUSTER_WRITE_CONFIGMAP               string = "cluster/write-configmap"
 	PAT_CLUSTER_READ_CONFIGMAP                string = "cluster/read-configmap"
@@ -418,6 +419,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_BACKUP,
 	PAT_CLUSTER_RESTART,
 	PAT_ENERGY_CONSUMPTION,
+	PAT_CLUSTER_SYNC_REPO,
 	PAT_CLUSTER_WRITE_CONFIGMAP,
 	PAT_CLUSTER_READ_CONFIGMAP,
 	PAT_CLUSTER_LIST_CONFIGMAPS,

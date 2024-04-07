@@ -53,7 +53,13 @@ func Init() {
 	if err != nil {
 		log.Errorf("Error creating git repository: %s", err.Error())
 	}
-	setupRemote()
+
+	// Set up the remote repository
+	if !gitHasRemotes() {
+		SetupRemote()
+	}
+
+	// START SYNCING CHANGES
 	SyncChangesTimer()
 }
 
@@ -91,16 +97,53 @@ func SyncChanges() {
 	}
 }
 
-func setupRemote() {
+func SetupRemote() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
-		return
+		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
 	}
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	remoteCmd := fmt.Sprintf("cd %s; git remote add origin %s", folder, utils.CONFIG.Iac.RepoUrl)
-	err := utils.ExecuteShellCommandSilent(remoteCmd, remoteCmd)
+	remoteCmdStr := fmt.Sprintf("cd %s; git remote add origin %s", folder, utils.CONFIG.Iac.RepoUrl)
+	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
 	if err != nil {
 		log.Errorf("Error setting up remote: %s", err.Error())
+		return err
 	}
+	return nil
+}
+
+func CheckRepoAccess() bool {
+	if utils.CONFIG.Iac.RepoUrl == "" {
+		log.Warn("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
+		return false
+	}
+	if utils.CONFIG.Iac.RepoPat == "" {
+		log.Warn("Repository PAT is empty. Please set the repository PAT in the configuration file or as env var.")
+	}
+	// Insert the PAT into the repository URL
+	repoURLWithPAT := insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat)
+
+	// Prepare the `git ls-remote` command
+	cmd := exec.Command("git", "ls-remote", repoURLWithPAT)
+
+	// Execute the command
+	if err := cmd.Run(); err != nil {
+		// If there's an error, access is likely not available
+		return false
+	}
+
+	// If the command succeeds, access is available
+	return true
+}
+
+// insertPATIntoURL inserts the PAT into the Git repository URL for authentication
+func insertPATIntoURL(gitRepoURL, pat string) string {
+	if pat == "" {
+		return gitRepoURL
+	}
+	if !strings.HasPrefix(gitRepoURL, "https://") {
+		return gitRepoURL // Non-HTTPS URLs are not handled here
+	}
+	return strings.Replace(gitRepoURL, "https://", "https://"+pat+"@", 1)
 }
 
 func cleanYaml(data string) string {
@@ -166,7 +209,6 @@ func fileNameForRaw(kind string, namespace string, resourceName string) string {
 	return name
 }
 
-// Create a folder for every incoming resource
 func createFolderForResource(resource string) error {
 	basePath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	resourceFolder := fmt.Sprintf("%s/%s", basePath, resource)
@@ -265,7 +307,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 
 	// Pull changes from the remote repository
 	cmd := exec.Command("git", "pull", "origin", "main")
-	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", "GIT_PASSWORD=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")
+	cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", fmt.Sprintf("GIT_PASSWORD=%s", utils.CONFIG.Iac.RepoPat)) // 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
 	cmd.Dir = folder
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -368,22 +410,6 @@ func getGitFiles(workDir string, ref string, options ...string) ([]string, error
 	}
 
 	return strings.Split(output, "\n"), nil
-}
-
-func DebounceFunc(interval time.Duration, function func()) func() {
-	var timer *time.Timer
-	var mu sync.Mutex
-
-	return func() {
-		mu.Lock()
-		defer mu.Unlock()
-
-		if timer != nil {
-			timer.Stop()
-		}
-
-		timer = time.AfterFunc(interval, function)
-	}
 }
 
 func kubernetesDeleteResource(file string) {

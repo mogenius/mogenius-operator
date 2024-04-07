@@ -35,7 +35,7 @@ func Deploy() {
 	applyNamespace(provider)
 	addRbac(provider)
 	addDeployment(provider)
-	_, err = CreateClusterSecretIfNotExist()
+	_, err = CreateOrUpdateClusterSecret("", "")
 	if err != nil {
 		log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
 	}
@@ -113,7 +113,12 @@ func applyNamespace(provider *punq.KubeProvider) {
 	log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
-func CreateClusterSecretIfNotExist() (utils.ClusterSecret, error) {
+func AddSynRepoData(syncRepo string, syncRepoPat string) error {
+	_, err := CreateOrUpdateClusterSecret(syncRepo, syncRepoPat)
+	return err
+}
+
+func CreateOrUpdateClusterSecret(syncRepo string, syncRepoPat string) (utils.ClusterSecret, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		log.Fatal("Error creating kubeprovider")
@@ -122,10 +127,10 @@ func CreateClusterSecretIfNotExist() (utils.ClusterSecret, error) {
 	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
 
 	existingSecret, getErr := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
-	return writeMogeniusSecret(secretClient, existingSecret, getErr)
+	return writeMogeniusSecret(secretClient, existingSecret, getErr, syncRepo, syncRepoPat)
 }
 
-func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error) (utils.ClusterSecret, error) {
+func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error, syncRepo string, syncRepoPat string) (utils.ClusterSecret, error) {
 	// CREATE NEW SECRET
 	apikey := os.Getenv("api_key")
 	if apikey == "" {
@@ -145,10 +150,18 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	}
 
 	clusterSecret := utils.ClusterSecret{
-		ApiKey:       apikey,
-		ClusterMfaId: punqUtils.NanoId(),
-		ClusterName:  clusterName,
+		ApiKey:      apikey,
+		ClusterName: clusterName,
 	}
+
+	if existingSecret != nil {
+		clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
+	} else {
+		clusterSecret.ClusterMfaId = punqUtils.NanoId()
+	}
+
+	clusterSecret.SyncRepoUrl = syncRepo
+	clusterSecret.SyncRepoPat = syncRepoPat
 
 	// This prevents lokal k8s-manager installations from overwriting cluster secrets
 	if !utils.CONFIG.Kubernetes.RunInCluster {
@@ -159,9 +172,12 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	secret.ObjectMeta.Name = NAMESPACE
 	secret.ObjectMeta.Namespace = NAMESPACE
 	delete(secret.StringData, "PRIVATE_KEY") // delete example data
+	delete(secret.StringData, "exampleData") // delete example data
 	secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 	secret.StringData["api-key"] = clusterSecret.ApiKey
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
+	secret.StringData["sync-repo-url"] = clusterSecret.SyncRepoUrl
+	secret.StringData["sync-repo-pat"] = clusterSecret.SyncRepoPat
 
 	if existingSecret == nil || getErr != nil {
 		log.Info("Creating new mogenius secret ...")
@@ -173,7 +189,9 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		log.Info("Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
 	} else {
 		if string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
-			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
+			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName ||
+			string(existingSecret.Data["sync-repo-url"]) != clusterSecret.SyncRepoUrl ||
+			string(existingSecret.Data["sync-repo-pat"]) != clusterSecret.SyncRepoPat {
 			log.Info("Updating existing mogenius secret ...")
 			// keep existing mfa-id if possible
 			if string(existingSecret.Data["cluster-mfa-id"]) != "" {
@@ -187,7 +205,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			}
 			log.Info("Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
 		} else {
-			clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
 			log.Info("Using existing mogenius secret.")
 		}
 	}

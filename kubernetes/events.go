@@ -86,7 +86,7 @@ func ResourceWatcher() {
 			go WatchStatefulSets()
 			log.Infof("Started watching StatefulSets 🚀.")
 		default:
-			log.Errorf("🚫 Unknown resource type: %s", workload)
+			log.Fatalf("🚫 Unknown resource type: %s", workload)
 		}
 	}
 }

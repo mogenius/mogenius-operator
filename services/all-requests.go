@@ -72,6 +72,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_ENERGY_CONSUMPTION:
 		return EnergyConsumption()
 
+	case structs.PAT_CLUSTER_SYNC_REPO:
+		data := AddSyncRepoRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return kubernetes.AddSynRepoData(data.Repo, data.Pat)
+
 	case structs.PAT_INSTALL_LOCAL_DEV_COMPONENTS:
 		data := ClusterIssuerInstallRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

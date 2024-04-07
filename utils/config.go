@@ -18,6 +18,8 @@ type ClusterSecret struct {
 	ApiKey       string
 	ClusterMfaId string
 	ClusterName  string
+	SyncRepoUrl  string
+	SyncRepoPat  string
 }
 
 const STAGE_PRE_DEV = "pre-dev"
@@ -32,7 +34,6 @@ type Config struct {
 		OwnNamespace               string `yaml:"own_namespace" env:"OWN_NAMESPACE" env-description:"The Namespace of mogenius platform"`
 		ClusterMfaId               string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"NanoId of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
-		DefaultContainerRegistry   string `yaml:"default_container_registry" env:"default_container_registry" env-description:"Default Container Image Registry"`
 		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
 		BboltDbStatsPath           string `yaml:"bbolt_db_stats_path" env:"bbolt_db_stats_path" env-description:"Path to the bbolt database. This db stores stats-related information."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
@@ -205,6 +206,12 @@ func SetupClusterSecret(clusterSecret ClusterSecret) {
 	if clusterSecret.ClusterName != "" && CONFIG.Kubernetes.RunInCluster {
 		CONFIG.Kubernetes.ClusterName = clusterSecret.ClusterName
 	}
+	if clusterSecret.ClusterName != "" && CONFIG.Kubernetes.RunInCluster {
+		CONFIG.Iac.RepoUrl = clusterSecret.SyncRepoUrl
+	}
+	if clusterSecret.ClusterName != "" && CONFIG.Kubernetes.RunInCluster {
+		CONFIG.Iac.RepoPat = clusterSecret.SyncRepoPat
+	}
 }
 
 func PrintSettings() {
@@ -213,7 +220,6 @@ func PrintSettings() {
 	log.Infof("ClusterName:              %s", CONFIG.Kubernetes.ClusterName)
 	log.Infof("ClusterMfaId:             %s", CONFIG.Kubernetes.ClusterMfaId)
 	log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
-	log.Infof("DefaultContainerRegistry: %s", CONFIG.Kubernetes.DefaultContainerRegistry)
 	log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
 	log.Infof("BboltDbPath:              %s", CONFIG.Kubernetes.BboltDbPath)
 	log.Infof("BboltDbStatsPath:         %s", CONFIG.Kubernetes.BboltDbStatsPath)

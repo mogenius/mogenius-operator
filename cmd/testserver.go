@@ -23,7 +23,7 @@ var testServerCmd = &cobra.Command{
 	Long:  `Print testServerCmd information and exit.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// SETUP SECRET
-		clusterSecret, err := mokubernetes.CreateClusterSecretIfNotExist()
+		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret("", "")
 		if err != nil {
 			log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}

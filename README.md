@@ -89,7 +89,6 @@ helm repo update
 | own_namespace              | mogenius                                    | The Namespace of mogenius platform.     | 
 | cluster_mfa_id             | [auto_generated]                            | UUID of the Kubernetes Cluster for MFA purpose.       | 
 | run_in_cluster             | true                                        | If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context.     |
-| default_container_registry | docker.io                                   | Default Container Image Registry.    | 
 | bbolt_db_path              | bbolt_db_path                               | Path to the bbolt database. This db stores build-related information. |
 | api_ws_server              | 127.0.0.1:8080                              | This depends on your stage. local/dev/prod. Prod: "k8s-ws.mogenius.com"     | 
 | api_ws_path                | /ws                                         | The path of the api server.    | 
