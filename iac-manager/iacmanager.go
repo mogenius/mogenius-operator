@@ -19,14 +19,8 @@ import (
 // 2. create a folder for every incoming resource
 // 3. Clean the workload from unnecessary fields, and metadata
 // 4. store a file for every incoming workload
-// 5. commit the changes
-// 6. push the changes periodically
-
-// Runtime tasks:
-// 1. Check for incoming events
-// git remote add origin https://github.com/beneiltis/iactest.git
-// git branch -M main
-// git push -u origin main
+// 5. commit changes
+// 6. pull/push changes periodically
 
 const (
 	GIT_VAULT_FOLDER = "git-vault"
@@ -60,41 +54,7 @@ func Init() {
 	}
 
 	// START SYNCING CHANGES
-	SyncChangesTimer()
-}
-
-func SyncChangesTimer() {
-	ticker := time.NewTicker(time.Duration(utils.CONFIG.Iac.PollingIntervalSecs) * time.Second)
-	quit := make(chan struct{}) // Create a channel to signal the ticker to stop
-
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				SyncChanges()
-			case <-quit:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-}
-
-func SyncChanges() {
-	if gitHasRemotes() {
-		if !syncInProcess {
-			syncInProcess = true
-			updatedFiles, deletedFiles := pullChanges()
-			for _, v := range updatedFiles {
-				kubernetesApplyResource(v)
-			}
-			for _, v := range deletedFiles {
-				kubernetesDeleteResource(v)
-			}
-			pushChanges()
-			syncInProcess = false
-		}
-	}
+	syncChangesTimer()
 }
 
 func SetupRemote() error {
@@ -102,22 +62,32 @@ func SetupRemote() error {
 		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
 	}
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	remoteCmdStr := fmt.Sprintf("cd %s; git remote add origin %s", folder, utils.CONFIG.Iac.RepoUrl)
+	remoteCmdStr := fmt.Sprintf("cd %s; git remote add origin %s", folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat))
 	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
 	if err != nil {
 		log.Errorf("Error setting up remote: %s", err.Error())
 		return err
 	}
+	branchCmdStr := fmt.Sprintf("cd %s; git branch -M main", folder)
+	err = utils.ExecuteShellCommandSilent(branchCmdStr, branchCmdStr)
+	if err != nil {
+		log.Errorf("Error setting up branch: %s", err.Error())
+		return err
+	}
+
 	return nil
 }
 
-func CheckRepoAccess() bool {
+func CheckRepoAccess() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
-		log.Warn("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
-		return false
+		err := fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
+		log.Error(err)
+		return err
 	}
 	if utils.CONFIG.Iac.RepoPat == "" {
-		log.Warn("Repository PAT is empty. Please set the repository PAT in the configuration file or as env var.")
+		err := fmt.Errorf("Repository PAT is empty. Please set the repository PAT in the configuration file or as env var.")
+		log.Error(err)
+		return err
 	}
 	// Insert the PAT into the repository URL
 	repoURLWithPAT := insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat)
@@ -125,17 +95,65 @@ func CheckRepoAccess() bool {
 	// Prepare the `git ls-remote` command
 	cmd := exec.Command("git", "ls-remote", repoURLWithPAT)
 
-	// Execute the command
 	if err := cmd.Run(); err != nil {
-		// If there's an error, access is likely not available
-		return false
+		return err
 	}
-
-	// If the command succeeds, access is available
-	return true
+	return nil
 }
 
-// insertPATIntoURL inserts the PAT into the Git repository URL for authentication
+func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
+	// AllowManualClusterChanges is false - all changes will be reversed
+	if !utils.CONFIG.Iac.AllowManualClusterChanges {
+		filename := fileNameForRaw(kind, namespace, resourceName)
+		kubernetesApplyRevertFromPath(filename)
+		return
+	}
+
+	if !utils.CONFIG.Iac.AllowPush {
+		return
+	}
+	if kind == "" {
+		log.Errorf("Kind is empty for resource %s:%s/%s", kind, namespace, resourceName)
+		return
+	}
+	yamlData, err := yaml.Marshal(dataInf)
+	if err != nil {
+		log.Errorf("Error marshaling to YAML: %s\n", err.Error())
+		return
+	}
+	createFolderForResource(kind)
+	data := cleanYaml(string(yamlData))
+	filename := fileNameForRaw(kind, namespace, resourceName)
+	err = os.WriteFile(filename, []byte(data), 0755)
+	if err != nil {
+		log.Errorf("Error writing resource %s:%s/%s file: %s", kind, namespace, resourceName, err.Error())
+		return
+	}
+	ProcessedObjects++
+	log.Infof("Detected %s change. Updated %s/%s. 🧹", kind, namespace, resourceName)
+	commitChanges("", fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName), []string{filename})
+}
+
+func DeleteResourceYaml(kind string, namespace string, resourceName string) error {
+	// AllowManualClusterChanges is false - all changes will be reversed
+	if !utils.CONFIG.Iac.AllowManualClusterChanges {
+		filename := fileNameForRaw(kind, namespace, resourceName)
+		kubernetesApplyRevertFromPath(filename)
+		return nil
+	}
+
+	if !utils.CONFIG.Iac.AllowPush {
+		return nil
+	}
+
+	filename := fileNameForRaw(kind, namespace, resourceName)
+	err := os.Remove(filename)
+	log.Infof("Detected %s deletion. Removed %s/%s. ♻️", kind, namespace, resourceName)
+	commitChanges("", fmt.Sprintf("Deleted [%s] %s/%s", kind, namespace, resourceName), []string{filename})
+
+	return err
+}
+
 func insertPATIntoURL(gitRepoURL, pat string) string {
 	if pat == "" {
 		return gitRepoURL
@@ -169,36 +187,38 @@ func cleanYaml(data string) string {
 	return string(cleanedYaml)
 }
 
-func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
-	if kind == "" {
-		log.Errorf("Kind is empty for resource %s:%s/%s", kind, namespace, resourceName)
-		return
-	}
-	yamlData, err := yaml.Marshal(dataInf)
-	if err != nil {
-		log.Errorf("Error marshaling to YAML: %s\n", err.Error())
-		return
-	}
-	createFolderForResource(kind)
-	data := cleanYaml(string(yamlData))
-	filename := fileNameForRaw(kind, namespace, resourceName)
-	err = os.WriteFile(filename, []byte(data), 0755)
-	if err != nil {
-		log.Errorf("Error writing resource %s:%s/%s file: %s", kind, namespace, resourceName, err.Error())
-		return
-	}
-	ProcessedObjects++
-	log.Infof("Detected %s change. Updated %s/%s. 🧹", kind, namespace, resourceName)
-	CommitChanges("", fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName), []string{filename})
+func syncChangesTimer() {
+	ticker := time.NewTicker(time.Duration(utils.CONFIG.Iac.PollingIntervalSecs) * time.Second)
+	quit := make(chan struct{}) // Create a channel to signal the ticker to stop
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				syncChanges()
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }
 
-func DeleteResourceYaml(kind string, namespace string, resourceName string) error {
-	filename := fileNameForRaw(kind, namespace, resourceName)
-	err := os.Remove(filename)
-	log.Infof("Detected %s deletion. Removed %s/%s. ♻️", kind, namespace, resourceName)
-	CommitChanges("", fmt.Sprintf("Deleted [%s] %s/%s", kind, namespace, resourceName), []string{filename})
-
-	return err
+func syncChanges() {
+	if gitHasRemotes() {
+		if !syncInProcess {
+			syncInProcess = true
+			updatedFiles, deletedFiles := pullChanges()
+			for _, v := range updatedFiles {
+				kubernetesApplyResource(v)
+			}
+			for _, v := range deletedFiles {
+				kubernetesDeleteResource(v)
+			}
+			pushChanges()
+			syncInProcess = false
+		}
+	}
 }
 
 func fileNameForRaw(kind string, namespace string, resourceName string) string {
@@ -242,33 +262,13 @@ func gitHasRemotes() bool {
 	return false
 }
 
-// removeFieldAtPath recursively searches through the data structure.
-// If the current path matches the target path, it removes the specified field.
-func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
-	// Check if the current path matches the target path for removal.
-	if len(currentPath) >= len(targetPath) && strings.Join(currentPath[len(currentPath)-len(targetPath):], "/") == strings.Join(targetPath, "/") {
-		delete(data, field)
-	}
-	// Continue searching within the map.
-	for key, value := range data {
-		switch v := value.(type) {
-		case map[string]interface{}:
-			removeFieldAtPath(v, field, targetPath, append(currentPath, key))
-		case []interface{}:
-			for i, item := range v {
-				if itemMap, ok := item.(map[string]interface{}); ok {
-					// Construct a new path for each item in the list.
-					newPath := append(currentPath, fmt.Sprintf("%s[%d]", key, i))
-					removeFieldAtPath(itemMap, field, targetPath, newPath)
-				}
-			}
-		}
-	}
-}
-
-func CommitChanges(author string, message string, filePaths []string) error {
+func commitChanges(author string, message string, filePaths []string) error {
 	commitMutex.Lock()
 	defer commitMutex.Unlock()
+
+	if !utils.CONFIG.Iac.AllowPush {
+		return nil
+	}
 
 	if author == "" {
 		author = fmt.Sprintf("%s <%s>", utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
@@ -307,7 +307,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 
 	// Pull changes from the remote repository
 	cmd := exec.Command("git", "pull", "origin", "main")
-	cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", fmt.Sprintf("GIT_PASSWORD=%s", utils.CONFIG.Iac.RepoPat)) // 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
+	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", fmt.Sprintf("GIT_PASSWORD=%s", utils.CONFIG.Iac.RepoPat)) // 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
 	cmd.Dir = folder
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -320,7 +320,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 	}
 	if err != nil {
 		if !strings.Contains(stderr.String(), "Your local changes to the following files would be overwritten by merge") {
-			log.Errorf("Error running git diff: %s %s %s", err.Error(), out.String(), stderr.String())
+			log.Errorf("Error running git pull origin main (%s): %s %s %s", utils.CONFIG.Iac.RepoUrl, err.Error(), out.String(), stderr.String())
 		}
 		return updatedFiles, deletedFiles
 	}
@@ -401,7 +401,7 @@ func getGitFiles(workDir string, ref string, options ...string) ([]string, error
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		return nil, fmt.Errorf("Error running git diff: %s %s %s", err.Error(), out.String(), stderr.String())
+		return nil, fmt.Errorf("Error running git %s (%s): %s %s %s", strings.Join(args, " "), utils.CONFIG.Iac.RepoUrl, err.Error(), out.String(), stderr.String())
 	}
 
 	output := strings.TrimSpace(out.String())
@@ -444,11 +444,48 @@ func kubernetesDeleteResource(file string) {
 
 func kubernetesApplyResource(file string) {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	delCmd := fmt.Sprintf("kubectl apply -f %s/%s", folder, file)
-	err := utils.ExecuteShellCommandRealySilent(delCmd, delCmd)
+	applyCmd := fmt.Sprintf("kubectl apply -f %s/%s", folder, file)
+	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 	if err != nil {
 		log.Errorf("Error applying file %s: %s", file, err.Error())
 	} else {
 		log.Infof("✅ Applied file: %s", file)
+	}
+}
+
+func kubernetesApplyRevertFromPath(path string) {
+	if strings.Contains(path, "/pods/") {
+		return
+	}
+	applyCmd := fmt.Sprintf("kubectl apply -f %s", path)
+	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
+	if err != nil {
+		log.Errorf("Error applying revert file %s: %s", path, err.Error())
+	} else {
+		log.Infof("🚓 Applied revert file: %s", path)
+	}
+}
+
+// removeFieldAtPath recursively searches through the data structure.
+// If the current path matches the target path, it removes the specified field.
+func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
+	// Check if the current path matches the target path for removal.
+	if len(currentPath) >= len(targetPath) && strings.Join(currentPath[len(currentPath)-len(targetPath):], "/") == strings.Join(targetPath, "/") {
+		delete(data, field)
+	}
+	// Continue searching within the map.
+	for key, value := range data {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			removeFieldAtPath(v, field, targetPath, append(currentPath, key))
+		case []interface{}:
+			for i, item := range v {
+				if itemMap, ok := item.(map[string]interface{}); ok {
+					// Construct a new path for each item in the list.
+					newPath := append(currentPath, fmt.Sprintf("%s[%d]", key, i))
+					removeFieldAtPath(itemMap, field, targetPath, newPath)
+				}
+			}
+		}
 	}
 }

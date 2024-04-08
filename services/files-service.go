@@ -279,11 +279,6 @@ func Delete(r FilesDeleteRequest) interface{} {
 	return nil
 }
 
-type AddSyncRepoRequest struct {
-	Repo string `json:"repo" validate:"required"`
-	Pat  string `json:"pat"`
-}
-
 type ClusterIssuerInstallRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }

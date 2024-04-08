@@ -31,7 +31,7 @@ var clusterCmd = &cobra.Command{
 	This cmd starts the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret("", "")
+		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
 		if err != nil {
 			log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
 		}
@@ -76,10 +76,11 @@ var clusterCmd = &cobra.Command{
 		go mokubernetes.EventWatcher()
 		go mokubernetes.ResourceWatcher()
 
-		punq.ExecuteShellCommandSilent("Git setup (1/4)", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
-		punq.ExecuteShellCommandSilent("Git setup (2/4)", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
-		punq.ExecuteShellCommandSilent("Git setup (3/4)", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
-		punq.ExecuteShellCommandSilent("Git setup (4/4)", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
+		punq.ExecuteShellCommandSilent("Git setup (1/5)", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
+		punq.ExecuteShellCommandSilent("Git setup (2/5)", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
+		punq.ExecuteShellCommandSilent("Git setup (3/5)", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
+		punq.ExecuteShellCommandSilent("Git setup (4/5)", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
+		punq.ExecuteShellCommandSilent("Git setup (5/5)", `git config --global pull.rebase false`)
 
 		mokubernetes.CreateMogeniusContainerRegistryTlsSecret()
 		mokubernetes.CreateMogeniusContainerRegistryIngress()

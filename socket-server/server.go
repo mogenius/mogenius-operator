@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -286,6 +287,9 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = services.ClusterHelmUninstallRequestExample()
 		case structs.PAT_CLUSTER_TCP_UDP_CONFIGURATION:
 			payload = nil
+
+		case structs.PAT_CLUSTER_SYNC_REPO:
+			payload = dtos.AddSyncRepoRequestExampleData()
 
 		case structs.PAT_CLUSTER_WRITE_CONFIGMAP:
 			payload = services.ClusterWriteConfigMapExample()

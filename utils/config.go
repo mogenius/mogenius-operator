@@ -15,11 +15,15 @@ import (
 
 // This object will initially created in secrets when the software is installed into the cluster for the first time (resource: secret -> mogenius/mogenius)
 type ClusterSecret struct {
-	ApiKey       string
-	ClusterMfaId string
-	ClusterName  string
-	SyncRepoUrl  string
-	SyncRepoPat  string
+	ApiKey                    string
+	ClusterMfaId              string
+	ClusterName               string
+	SyncRepoUrl               string
+	SyncRepoPat               string
+	SyncAllowPull             bool
+	SyncAllowPush             bool
+	AllowManualClusterChanges bool
+	SyncFrequencyInSec        int
 }
 
 const STAGE_PRE_DEV = "pre-dev"
@@ -50,12 +54,13 @@ type Config struct {
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
 	} `yaml:"event_server"`
 	Iac struct {
-		RepoUrl             string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url." env-default:""`
-		RepoPat             string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat." env-default:""`
-		PollingIntervalSecs int      `yaml:"polling_interval_secs" env:"sync_polling_interval_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
-		AllowPush           bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo." env-default:"true"`
-		AllowPull           bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo." env-default:"true"`
-		SyncWorkloads       []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync." env-default:""`
+		RepoUrl                   string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url." env-default:""`
+		RepoPat                   string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat." env-default:""`
+		PollingIntervalSecs       int      `yaml:"polling_interval_secs" env:"sync_polling_interval_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
+		AllowPush                 bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo." env-default:"true"`
+		AllowPull                 bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo." env-default:"true"`
+		AllowManualClusterChanges bool     `yaml:"allow_manual_cluster_changes" env:"sync_allow_manual_cluster_changes" env-description:"IAC manager will revert all changes made from inside the cluster." env-default:"true"`
+		SyncWorkloads             []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync." env-default:""`
 	} `yaml:"iac"`
 	Misc struct {
 		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
@@ -196,82 +201,79 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 }
 
 func SetupClusterSecret(clusterSecret ClusterSecret) {
-	// LOCAL ALWAYS WINS
-	if clusterSecret.ClusterMfaId != "" && CONFIG.Kubernetes.RunInCluster {
+	if clusterSecret.ClusterMfaId != "" {
 		CONFIG.Kubernetes.ClusterMfaId = clusterSecret.ClusterMfaId
-	}
-	if clusterSecret.ApiKey != "" && CONFIG.Kubernetes.RunInCluster {
 		CONFIG.Kubernetes.ApiKey = clusterSecret.ApiKey
-	}
-	if clusterSecret.ClusterName != "" && CONFIG.Kubernetes.RunInCluster {
 		CONFIG.Kubernetes.ClusterName = clusterSecret.ClusterName
-	}
-	if clusterSecret.ClusterName != "" && CONFIG.Kubernetes.RunInCluster {
 		CONFIG.Iac.RepoUrl = clusterSecret.SyncRepoUrl
-	}
-	if clusterSecret.ClusterName != "" && CONFIG.Kubernetes.RunInCluster {
 		CONFIG.Iac.RepoPat = clusterSecret.SyncRepoPat
+		CONFIG.Iac.AllowPull = clusterSecret.SyncAllowPull
+		CONFIG.Iac.AllowPush = clusterSecret.SyncAllowPush
+		CONFIG.Iac.AllowManualClusterChanges = clusterSecret.AllowManualClusterChanges
+		CONFIG.Iac.PollingIntervalSecs = clusterSecret.SyncFrequencyInSec
+
 	}
 }
 
 func PrintSettings() {
 	log.Infof("KUBERNETES")
-	log.Infof("OwnNamespace:             %s", CONFIG.Kubernetes.OwnNamespace)
-	log.Infof("ClusterName:              %s", CONFIG.Kubernetes.ClusterName)
-	log.Infof("ClusterMfaId:             %s", CONFIG.Kubernetes.ClusterMfaId)
-	log.Infof("RunInCluster:             %t", CONFIG.Kubernetes.RunInCluster)
-	log.Infof("ApiKey:                   %s", CONFIG.Kubernetes.ApiKey)
-	log.Infof("BboltDbPath:              %s", CONFIG.Kubernetes.BboltDbPath)
-	log.Infof("BboltDbStatsPath:         %s", CONFIG.Kubernetes.BboltDbStatsPath)
-	log.Infof("LocalContainerRegistry:   %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
+	log.Infof("OwnNamespace:              %s", CONFIG.Kubernetes.OwnNamespace)
+	log.Infof("ClusterName:               %s", CONFIG.Kubernetes.ClusterName)
+	log.Infof("ClusterMfaId:              %s", CONFIG.Kubernetes.ClusterMfaId)
+	log.Infof("RunInCluster:              %t", CONFIG.Kubernetes.RunInCluster)
+	log.Infof("ApiKey:                    %s", CONFIG.Kubernetes.ApiKey)
+	log.Infof("BboltDbPath:               %s", CONFIG.Kubernetes.BboltDbPath)
+	log.Infof("BboltDbStatsPath:          %s", CONFIG.Kubernetes.BboltDbStatsPath)
+	log.Infof("LocalContainerRegistry:    %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
 
 	log.Infof("API")
-	log.Infof("HttpServer:               %s", CONFIG.ApiServer.Http_Server)
-	log.Infof("WsServer:                 %s", CONFIG.ApiServer.Ws_Server)
-	log.Infof("WsScheme:                 %s", CONFIG.ApiServer.Ws_Scheme)
-	log.Infof("WsPath:                   %s\n\n", CONFIG.ApiServer.WS_Path)
+	log.Infof("HttpServer:                %s", CONFIG.ApiServer.Http_Server)
+	log.Infof("WsServer:                  %s", CONFIG.ApiServer.Ws_Server)
+	log.Infof("WsScheme:                  %s", CONFIG.ApiServer.Ws_Scheme)
+	log.Infof("WsPath:                    %s\n\n", CONFIG.ApiServer.WS_Path)
 
 	log.Infof("EVENTS")
-	log.Infof("EventServer:              %s", CONFIG.EventServer.Server)
-	log.Infof("EventScheme:              %s", CONFIG.EventServer.Scheme)
-	log.Infof("EventPath:                %s\n\n", CONFIG.EventServer.Path)
+	log.Infof("EventServer:               %s", CONFIG.EventServer.Server)
+	log.Infof("EventScheme:               %s", CONFIG.EventServer.Scheme)
+	log.Infof("EventPath:                 %s\n\n", CONFIG.EventServer.Path)
 
 	log.Infof("IAC")
-	log.Infof("RepoUrl:                 %s", CONFIG.Iac.RepoUrl)
-	log.Infof("RepoPat:                 %s", CONFIG.Iac.RepoPat)
-	log.Infof("PollingIntervalSecs:     %d", CONFIG.Iac.PollingIntervalSecs)
-	log.Infof("AllowPull:               %t", CONFIG.Iac.AllowPull)
-	log.Infof("AllowPush:               %t", CONFIG.Iac.AllowPush)
-	log.Infof("SyncWorkloads:           %s\n\n", strings.Join(CONFIG.Iac.SyncWorkloads, ","))
+	log.Infof("RepoUrl:                   %s", CONFIG.Iac.RepoUrl)
+	log.Infof("RepoPat:                   %s", CONFIG.Iac.RepoPat)
+	log.Infof("PollingIntervalSecs:       %d", CONFIG.Iac.PollingIntervalSecs)
+	log.Infof("AllowPull:                 %t", CONFIG.Iac.AllowPull)
+	log.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
+	log.Infof("AllowManualClusterChanges: %t", CONFIG.Iac.AllowManualClusterChanges)
+	log.Infof("SyncWorkloads:             %s\n\n", strings.Join(CONFIG.Iac.SyncWorkloads, ","))
 
 	log.Infof("MISC")
-	log.Infof("Stage:                    %s", CONFIG.Misc.Stage)
-	log.Infof("LogFormat:                %s", CONFIG.Misc.LogFormat)
-	log.Infof("LogIncomingStats:         %t", CONFIG.Misc.LogIncomingStats)
-	log.Infof("Debug:                    %t", CONFIG.Misc.Debug)
-	log.Infof("DebugLogCaller:           %t", CONFIG.Misc.DebugLogCaller)
-	log.Infof("AutoMountNfs:             %t", CONFIG.Misc.AutoMountNfs)
-	log.Infof("LogKubernetesEvents:      %t", CONFIG.Misc.LogKubernetesEvents)
-	log.Infof("DefaultMountPath:         %s", CONFIG.Misc.DefaultMountPath)
-	log.Infof("IgnoreResourcesBackup:    %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
-	log.Infof("IgnoreNamespaces:         %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
-	log.Infof("CheckForUpdates:          %d", CONFIG.Misc.CheckForUpdates)
-	log.Infof("HelmIndex:                %s", CONFIG.Misc.HelmIndex)
-	log.Infof("NfsPodPrefix:             %s\n\n", CONFIG.Misc.NfsPodPrefix)
+	log.Infof("Stage:                     %s", CONFIG.Misc.Stage)
+	log.Infof("LogFormat:                 %s", CONFIG.Misc.LogFormat)
+	log.Infof("LogIncomingStats:          %t", CONFIG.Misc.LogIncomingStats)
+	log.Infof("Debug:                     %t", CONFIG.Misc.Debug)
+	log.Infof("DebugLogCaller:            %t", CONFIG.Misc.DebugLogCaller)
+	log.Infof("AutoMountNfs:              %t", CONFIG.Misc.AutoMountNfs)
+	log.Infof("LogKubernetesEvents:       %t", CONFIG.Misc.LogKubernetesEvents)
+	log.Infof("DefaultMountPath:          %s", CONFIG.Misc.DefaultMountPath)
+	log.Infof("IgnoreResourcesBackup:     %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
+	log.Infof("IgnoreNamespaces:          %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
+	log.Infof("CheckForUpdates:           %d", CONFIG.Misc.CheckForUpdates)
+	log.Infof("HelmIndex:                 %s", CONFIG.Misc.HelmIndex)
+	log.Infof("NfsPodPrefix:              %s\n\n", CONFIG.Misc.NfsPodPrefix)
 
 	log.Infof("BUILDER")
-	log.Infof("BuildTimeout:             %d", CONFIG.Builder.BuildTimeout)
-	log.Infof("ScanTimeout:              %d", CONFIG.Builder.ScanTimeout)
-	log.Infof("MaxDataPoints:            %d", CONFIG.Builder.MaxDataPoints)
-	log.Infof("MaxConcurrentBuilds:      %d\n\n", CONFIG.Builder.MaxConcurrentBuilds)
+	log.Infof("BuildTimeout:              %d", CONFIG.Builder.BuildTimeout)
+	log.Infof("ScanTimeout:               %d", CONFIG.Builder.ScanTimeout)
+	log.Infof("MaxDataPoints:             %d", CONFIG.Builder.MaxDataPoints)
+	log.Infof("MaxConcurrentBuilds:       %d\n\n", CONFIG.Builder.MaxConcurrentBuilds)
 
 	log.Infof("GIT")
-	log.Infof("GitUserEmail:             %s", CONFIG.Git.GitUserEmail)
-	log.Infof("GitUserName:              %s", CONFIG.Git.GitUserName)
-	log.Infof("GitDefaultBranch:         %s", CONFIG.Git.GitDefaultBranch)
-	log.Infof("GitAddIgnoredFile:        %s\n\n", CONFIG.Git.GitAddIgnoredFile)
+	log.Infof("GitUserEmail:              %s", CONFIG.Git.GitUserEmail)
+	log.Infof("GitUserName:               %s", CONFIG.Git.GitUserName)
+	log.Infof("GitDefaultBranch:          %s", CONFIG.Git.GitDefaultBranch)
+	log.Infof("GitAddIgnoredFile:         %s\n\n", CONFIG.Git.GitAddIgnoredFile)
 
-	log.Infof("Config:                   %s\n\n", ConfigPath)
+	log.Infof("Config:                    %s\n\n", ConfigPath)
 }
 
 func PrintVersionInfo() {

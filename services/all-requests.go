@@ -9,6 +9,7 @@ import (
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/dtos"
+	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"os"
@@ -73,12 +74,23 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return EnergyConsumption()
 
 	case structs.PAT_CLUSTER_SYNC_REPO:
-		data := AddSyncRepoRequest{}
+		data := dtos.AddSyncRepoRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return kubernetes.AddSynRepoData(data.Repo, data.Pat)
+		err := kubernetes.AddSynRepoData(&data)
+		if err == nil {
+			err = iacmanager.SetupRemote()
+			if err != nil {
+				return err
+			}
+			err = iacmanager.CheckRepoAccess()
+			if err != nil {
+				return err
+			}
+		}
+		return err
 
 	case structs.PAT_INSTALL_LOCAL_DEV_COMPONENTS:
 		data := ClusterIssuerInstallRequest{}

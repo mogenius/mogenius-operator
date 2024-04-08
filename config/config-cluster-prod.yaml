@@ -25,6 +25,7 @@ iac:
   polling_interval_secs: 10
   allow_push: true
   allow_pull: true
+  allow_manual_cluster_changes: true
   sync_workloads: ["namespaces", "pods", "deployments", "statefulsets", "services", "ingresses", "configmaps", "secrets", "jobs", "cronjobs", "daemonsets", "networkpolicies"]
 
 misc:
