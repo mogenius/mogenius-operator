@@ -27,6 +27,8 @@ iac:
   allow_pull: true
   allow_manual_cluster_changes: true
   sync_workloads: ["namespaces", "pods", "deployments", "statefulsets", "services", "ingresses", "configmaps", "secrets", "jobs", "cronjobs", "daemonsets", "networkpolicies"]
+  show_diff_in_log: true
+  log_changes: true
 
 misc:
   stage: dev

@@ -12,6 +12,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
+	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -102,10 +103,18 @@ func CheckRepoAccess() error {
 }
 
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
+	if utils.CONFIG.Iac.ShowDiffInLog {
+		filename := fileNameForRaw(kind, namespace, resourceName)
+		diff := createDiff(kind, namespace, resourceName, dataInf)
+		if diff != "" {
+			log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+			log.Warnf("Diff: \n%s", diff)
+			kubernetesApplyRevertFromPath(filename)
+		}
+	}
+
 	// AllowManualClusterChanges is false - all changes will be reversed
 	if !utils.CONFIG.Iac.AllowManualClusterChanges {
-		filename := fileNameForRaw(kind, namespace, resourceName)
-		kubernetesApplyRevertFromPath(filename)
 		return
 	}
 
@@ -130,11 +139,13 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		return
 	}
 	ProcessedObjects++
-	log.Infof("Detected %s change. Updated %s/%s. 🧹", kind, namespace, resourceName)
+	if utils.CONFIG.Iac.LogChanges {
+		log.Infof("Detected %s change. Updated %s/%s. 🧹", kind, namespace, resourceName)
+	}
 	commitChanges("", fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName), []string{filename})
 }
 
-func DeleteResourceYaml(kind string, namespace string, resourceName string) error {
+func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) error {
 	// AllowManualClusterChanges is false - all changes will be reversed
 	if !utils.CONFIG.Iac.AllowManualClusterChanges {
 		filename := fileNameForRaw(kind, namespace, resourceName)
@@ -148,10 +159,43 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string) erro
 
 	filename := fileNameForRaw(kind, namespace, resourceName)
 	err := os.Remove(filename)
-	log.Infof("Detected %s deletion. Removed %s/%s. ♻️", kind, namespace, resourceName)
+	if utils.CONFIG.Iac.LogChanges {
+		log.Infof("Detected %s deletion. Removed %s/%s. ♻️", kind, namespace, resourceName)
+	}
 	commitChanges("", fmt.Sprintf("Deleted [%s] %s/%s", kind, namespace, resourceName), []string{filename})
 
 	return err
+}
+
+func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) string {
+	filename := fileNameForRaw(kind, namespace, resourceName)
+	yamlData1, err := os.ReadFile(filename)
+	if err != nil {
+		log.Errorf("Error opening file: %s\n", err.Error())
+		return ""
+	}
+
+	yamlRawData2, err := yaml.Marshal(dataInf)
+	yamlData2 := cleanYaml(string(yamlRawData2))
+	if err != nil {
+		log.Errorf("Error marshaling to YAML: %s\n", err.Error())
+		return ""
+	}
+
+	var obj1, obj2 interface{}
+
+	err = yaml.Unmarshal(yamlData1, &obj1)
+	if err != nil {
+		log.Errorf("Error unmarshalling yaml: %s", err.Error())
+	}
+
+	err = yaml.Unmarshal([]byte(yamlData2), &obj2)
+	if err != nil {
+		panic(err)
+	}
+
+	diff := cmp.Diff(obj1, obj2)
+	return diff
 }
 
 func insertPATIntoURL(gitRepoURL, pat string) string {
@@ -175,6 +219,7 @@ func cleanYaml(data string) string {
 	removeFieldAtPath(dataMap, "selfLink", []string{"metadata"}, []string{})
 	removeFieldAtPath(dataMap, "generation", []string{"metadata"}, []string{})
 	removeFieldAtPath(dataMap, "managedFields", []string{"metadata"}, []string{})
+	removeFieldAtPath(dataMap, "kubectl.kubernetes.io/last-applied-configuration", []string{"annotations"}, []string{})
 
 	removeFieldAtPath(dataMap, "creationTimestamp", []string{}, []string{})
 	removeFieldAtPath(dataMap, "resourceVersion", []string{}, []string{})
@@ -457,6 +502,9 @@ func kubernetesApplyRevertFromPath(path string) {
 	if strings.Contains(path, "/pods/") {
 		return
 	}
+	if strings.Contains(path, "mogenius-k8s-manager") {
+		return
+	}
 	applyCmd := fmt.Sprintf("kubectl apply -f %s", path)
 	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 	if err != nil {
@@ -489,3 +537,54 @@ func removeFieldAtPath(data map[string]interface{}, field string, targetPath []s
 		}
 	}
 }
+
+// func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
+// 	// Check if the current path matches the target path for removal.
+// 	if len(currentPath) >= len(targetPath) && strings.Join(currentPath[len(currentPath)-len(targetPath):], "/") == strings.Join(targetPath, "/") {
+// 		delete(data, field)
+// 	}
+// 	// Continue searching within the map.
+// 	for key, value := range data {
+// 		switch v := value.(type) {
+// 		case map[string]interface{}:
+// 			removeFieldAtPath(v, field, targetPath, append(currentPath, key))
+// 			// After processing the nested map, check if it's empty and remove it if so.
+// 			if len(v) == 0 {
+// 				delete(data, key)
+// 			}
+// 		case []interface{}:
+// 			for i, item := range v {
+// 				if itemMap, ok := item.(map[string]interface{}); ok {
+// 					// Construct a new path for each item in the list.
+// 					newPath := append(currentPath, fmt.Sprintf("%s[%d]", key, i))
+// 					removeFieldAtPath(itemMap, field, targetPath, newPath)
+// 				}
+// 			}
+// 			// Clean up the slice if it becomes empty after deletion.
+// 			if len(v) == 0 {
+// 				delete(data, key)
+// 			}
+// 		default:
+// 			// Check and delete empty values here.
+// 			if isEmptyValue(value) {
+// 				delete(data, key)
+// 			}
+// 		}
+// 	}
+// }
+
+// // Helper function to determine if a value is "empty" for our purposes.
+// func isEmptyValue(value interface{}) bool {
+// 	switch v := value.(type) {
+// 	case string:
+// 		return v == ""
+// 	case []interface{}:
+// 		return len(v) == 0
+// 	case map[string]interface{}:
+// 		return len(v) == 0
+// 	case nil:
+// 		return true
+// 	default:
+// 		return false
+// 	}
+// }

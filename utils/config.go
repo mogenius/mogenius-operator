@@ -61,6 +61,8 @@ type Config struct {
 		AllowPull                 bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo." env-default:"true"`
 		AllowManualClusterChanges bool     `yaml:"allow_manual_cluster_changes" env:"sync_allow_manual_cluster_changes" env-description:"IAC manager will revert all changes made from inside the cluster." env-default:"true"`
 		SyncWorkloads             []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync." env-default:""`
+		ShowDiffInLog             bool     `yaml:"show_diff_in_log" env:"sync_show_diff_in_log" env-description:"Show all changes of resources as diff in operator log." env-default:"true"`
+		LogChanges                bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry." env-default:"true"`
 	} `yaml:"iac"`
 	Misc struct {
 		Stage                 string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
@@ -244,7 +246,9 @@ func PrintSettings() {
 	log.Infof("AllowPull:                 %t", CONFIG.Iac.AllowPull)
 	log.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
 	log.Infof("AllowManualClusterChanges: %t", CONFIG.Iac.AllowManualClusterChanges)
-	log.Infof("SyncWorkloads:             %s\n\n", strings.Join(CONFIG.Iac.SyncWorkloads, ","))
+	log.Infof("SyncWorkloads:             %s", strings.Join(CONFIG.Iac.SyncWorkloads, ","))
+	log.Infof("LogChanges:                %t", CONFIG.Iac.LogChanges)
+	log.Infof("ShowDiffInLog:             %t\n\n", CONFIG.Iac.ShowDiffInLog)
 
 	log.Infof("MISC")
 	log.Infof("Stage:                     %s", CONFIG.Misc.Stage)

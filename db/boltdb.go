@@ -111,12 +111,43 @@ func Init() {
 		log.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
 	}
 
+	// RESET STARTED JOBS TO PENDING
+	resetStartedJobsToPendingOnInit()
+
 	log.Infof("bbold started 🚀 (Path: '%s')", dbPath)
 }
 
 func Close() {
 	if db != nil {
 		db.Close()
+	}
+}
+
+// if a job was started and the server was restarted/crashed, we need to reset the state to pending to resume the builld
+func resetStartedJobsToPendingOnInit() {
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		c := bucket.Cursor()
+		prefix := []byte(PREFIX_QUEUE)
+		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
+			job := structs.BuildJob{}
+			err := structs.UnmarshalJob(&job, jobData)
+			if err != nil {
+				log.Errorf("Init (unmarshall) ERR: %s", err.Error())
+				continue
+			}
+			if job.State == punqStructs.JobStateStarted {
+				job.State = punqStructs.JobStatePending
+				err := bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, job.BuildId)), []byte(punqStructs.PrettyPrintString(job)))
+				if err != nil {
+					log.Errorf("Init (update) ERR: %s", err.Error())
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("Init (db) ERR: %s", err.Error())
 	}
 }
 

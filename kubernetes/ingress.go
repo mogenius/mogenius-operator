@@ -365,7 +365,7 @@ func watchIngresses(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v1.Ingress)
 			castedObj.Kind = "Ingress"
 			castedObj.APIVersion = "networking.k8s.io/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name)
+			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

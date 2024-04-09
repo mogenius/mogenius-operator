@@ -1528,7 +1528,6 @@ else
 		curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm.tar.gz;
 	else
 		echo "Unsupported architecture";
-		exit 1;
 	fi
 	tar -xf popeye.tar.gz popeye
 	chmod +x popeye

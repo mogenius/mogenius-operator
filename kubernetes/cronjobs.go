@@ -485,7 +485,7 @@ func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v1job.CronJob)
 			castedObj.Kind = "CronJob"
 			castedObj.APIVersion = "batch/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name)
+			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

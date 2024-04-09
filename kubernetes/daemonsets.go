@@ -55,7 +55,7 @@ func watchDaemonSets(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v1Apps.DaemonSet)
 			castedObj.Kind = "DaemonSet"
 			castedObj.APIVersion = "apps/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name)
+			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

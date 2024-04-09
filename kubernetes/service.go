@@ -411,7 +411,7 @@ func watchServices(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v1.Service)
 			castedObj.Kind = "Service"
 			castedObj.APIVersion = "v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name)
+			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

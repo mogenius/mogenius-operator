@@ -115,7 +115,7 @@ func watchNamespaces(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v1.Namespace)
 			castedObj.Kind = "Namespace"
 			castedObj.APIVersion = "v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name)
+			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

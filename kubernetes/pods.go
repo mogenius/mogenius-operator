@@ -77,7 +77,7 @@ func watchPods(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v1.Pod)
 			castedObj.Kind = "Pod"
 			castedObj.APIVersion = "v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name)
+			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(
