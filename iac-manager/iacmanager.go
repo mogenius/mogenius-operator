@@ -12,7 +12,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/kylelemons/godebug/pretty"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -104,17 +104,17 @@ func CheckRepoAccess() error {
 
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
 	if utils.CONFIG.Iac.ShowDiffInLog {
-		filename := fileNameForRaw(kind, namespace, resourceName)
 		diff := createDiff(kind, namespace, resourceName, dataInf)
 		if diff != "" {
-			log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
 			log.Warnf("Diff: \n%s", diff)
-			kubernetesApplyRevertFromPath(filename)
 		}
 	}
 
 	// AllowManualClusterChanges is false - all changes will be reversed
 	if !utils.CONFIG.Iac.AllowManualClusterChanges {
+		log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+		filename := fileNameForRaw(kind, namespace, resourceName)
+		kubernetesApplyRevertFromPath(filename)
 		return
 	}
 
@@ -146,6 +146,13 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 }
 
 func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) error {
+	if utils.CONFIG.Iac.ShowDiffInLog {
+		diff := createDiff(kind, namespace, resourceName, objectToDelete)
+		if diff != "" {
+			log.Warnf("Diff: \n%s", diff)
+		}
+	}
+
 	// AllowManualClusterChanges is false - all changes will be reversed
 	if !utils.CONFIG.Iac.AllowManualClusterChanges {
 		filename := fileNameForRaw(kind, namespace, resourceName)
@@ -171,7 +178,7 @@ func createDiff(kind string, namespace string, resourceName string, dataInf inte
 	filename := fileNameForRaw(kind, namespace, resourceName)
 	yamlData1, err := os.ReadFile(filename)
 	if err != nil {
-		log.Errorf("Error opening file: %s\n", err.Error())
+		log.Errorf("Error opening file for diff: %s\n", err.Error())
 		return ""
 	}
 
@@ -186,16 +193,16 @@ func createDiff(kind string, namespace string, resourceName string, dataInf inte
 
 	err = yaml.Unmarshal(yamlData1, &obj1)
 	if err != nil {
-		log.Errorf("Error unmarshalling yaml: %s", err.Error())
+		log.Errorf("Error unmarshalling yaml1 for diff: %s", err.Error())
 	}
 
 	err = yaml.Unmarshal([]byte(yamlData2), &obj2)
 	if err != nil {
-		panic(err)
+		log.Errorf("Error unmarshalling yaml2 for diff: %s", err.Error())
 	}
 
-	diff := cmp.Diff(obj1, obj2)
-	return diff
+	diffRaw := pretty.Compare(obj1, obj2)
+	return diffRaw
 }
 
 func insertPATIntoURL(gitRepoURL, pat string) string {
@@ -516,28 +523,6 @@ func kubernetesApplyRevertFromPath(path string) {
 
 // removeFieldAtPath recursively searches through the data structure.
 // If the current path matches the target path, it removes the specified field.
-func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
-	// Check if the current path matches the target path for removal.
-	if len(currentPath) >= len(targetPath) && strings.Join(currentPath[len(currentPath)-len(targetPath):], "/") == strings.Join(targetPath, "/") {
-		delete(data, field)
-	}
-	// Continue searching within the map.
-	for key, value := range data {
-		switch v := value.(type) {
-		case map[string]interface{}:
-			removeFieldAtPath(v, field, targetPath, append(currentPath, key))
-		case []interface{}:
-			for i, item := range v {
-				if itemMap, ok := item.(map[string]interface{}); ok {
-					// Construct a new path for each item in the list.
-					newPath := append(currentPath, fmt.Sprintf("%s[%d]", key, i))
-					removeFieldAtPath(itemMap, field, targetPath, newPath)
-				}
-			}
-		}
-	}
-}
-
 // func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
 // 	// Check if the current path matches the target path for removal.
 // 	if len(currentPath) >= len(targetPath) && strings.Join(currentPath[len(currentPath)-len(targetPath):], "/") == strings.Join(targetPath, "/") {
@@ -548,10 +533,6 @@ func removeFieldAtPath(data map[string]interface{}, field string, targetPath []s
 // 		switch v := value.(type) {
 // 		case map[string]interface{}:
 // 			removeFieldAtPath(v, field, targetPath, append(currentPath, key))
-// 			// After processing the nested map, check if it's empty and remove it if so.
-// 			if len(v) == 0 {
-// 				delete(data, key)
-// 			}
 // 		case []interface{}:
 // 			for i, item := range v {
 // 				if itemMap, ok := item.(map[string]interface{}); ok {
@@ -560,31 +541,57 @@ func removeFieldAtPath(data map[string]interface{}, field string, targetPath []s
 // 					removeFieldAtPath(itemMap, field, targetPath, newPath)
 // 				}
 // 			}
-// 			// Clean up the slice if it becomes empty after deletion.
-// 			if len(v) == 0 {
-// 				delete(data, key)
-// 			}
-// 		default:
-// 			// Check and delete empty values here.
-// 			if isEmptyValue(value) {
-// 				delete(data, key)
-// 			}
 // 		}
 // 	}
 // }
 
-// // Helper function to determine if a value is "empty" for our purposes.
-// func isEmptyValue(value interface{}) bool {
-// 	switch v := value.(type) {
-// 	case string:
-// 		return v == ""
-// 	case []interface{}:
-// 		return len(v) == 0
-// 	case map[string]interface{}:
-// 		return len(v) == 0
-// 	case nil:
-// 		return true
-// 	default:
-// 		return false
-// 	}
-// }
+func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
+	// Check if the current path matches the target path for removal.
+	if len(currentPath) >= len(targetPath) && strings.Join(currentPath[len(currentPath)-len(targetPath):], "/") == strings.Join(targetPath, "/") {
+		delete(data, field)
+	}
+	// Continue searching within the map.
+	for key, value := range data {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			removeFieldAtPath(v, field, targetPath, append(currentPath, key))
+			// After processing the nested map, check if it's empty and remove it if so.
+			if len(v) == 0 {
+				delete(data, key)
+			}
+		case []interface{}:
+			for i, item := range v {
+				if itemMap, ok := item.(map[string]interface{}); ok {
+					// Construct a new path for each item in the list.
+					newPath := append(currentPath, fmt.Sprintf("%s[%d]", key, i))
+					removeFieldAtPath(itemMap, field, targetPath, newPath)
+				}
+			}
+			// Clean up the slice if it becomes empty after deletion.
+			if len(v) == 0 {
+				delete(data, key)
+			}
+		default:
+			// Check and delete empty values here.
+			if isEmptyValue(value) {
+				delete(data, key)
+			}
+		}
+	}
+}
+
+// Helper function to determine if a value is "empty" for our purposes.
+func isEmptyValue(value interface{}) bool {
+	switch v := value.(type) {
+	case string:
+		return v == ""
+	case []interface{}:
+		return len(v) == 0
+	case map[string]interface{}:
+		return len(v) == 0
+	case nil:
+		return true
+	default:
+		return false
+	}
+}

@@ -15,6 +15,7 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/json-iterator/go v1.1.12
+	github.com/kylelemons/godebug v1.1.0
 	github.com/mattn/go-tty v0.0.5
 	github.com/mogenius/punq v1.5.0-develop.64
 	github.com/schollz/progressbar/v3 v3.13.1
