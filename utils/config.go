@@ -212,8 +212,12 @@ func SetupClusterSecret(clusterSecret ClusterSecret) {
 		CONFIG.Iac.AllowPull = clusterSecret.SyncAllowPull
 		CONFIG.Iac.AllowPush = clusterSecret.SyncAllowPush
 		CONFIG.Iac.AllowManualClusterChanges = clusterSecret.AllowManualClusterChanges
-		CONFIG.Iac.PollingIntervalSecs = clusterSecret.SyncFrequencyInSec
 
+		if clusterSecret.SyncFrequencyInSec <= 5 {
+			clusterSecret.SyncFrequencyInSec = 5
+		} else {
+			CONFIG.Iac.PollingIntervalSecs = clusterSecret.SyncFrequencyInSec
+		}
 	}
 }
 
