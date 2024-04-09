@@ -85,7 +85,6 @@ type VolumeStatus struct {
 	//
 	persistentVolumeName      string
 	persistentVolumeClaimName string
-	usedBy                    []string
 }
 
 type VolumeStatusMessage struct {
@@ -130,7 +129,7 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 			return nfsStatusResponse
 		}
 	} else {
-		nfsStatusResponse.ProcessNfsStatusResponse(nil, errors.New("invalid StorageAPIObject"))
+		nfsStatusResponse.ProcessNfsStatusResponse(nil, errors.New("Invalid StorageAPIObject"))
 		return nfsStatusResponse
 	}
 
@@ -146,8 +145,8 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 	}
 
 	if s != nil {
-		v.UsedByPods = s.usedBy
-
+		// check pv and pvc
+		bounded := false
 		if s.PersistentVolumeClaim != nil && s.PersistentVolume != nil {
 			// pv phase 'failed or pvc phase 'lost'
 			notOk := false
@@ -161,33 +160,99 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 				return
 			}
 
-			success := true
-			success = success && (s.PersistentVolume != nil && s.PersistentVolume.Status.Phase == v1.VolumeBound)
-			success = success && (s.PersistentVolumeClaim != nil && s.PersistentVolumeClaim.Status.Phase == v1.ClaimBound)
+			bounded = true
+			bounded = bounded && (s.PersistentVolume != nil && s.PersistentVolume.Status.Phase == v1.VolumeBound)
+			bounded = bounded && (s.PersistentVolumeClaim != nil && s.PersistentVolumeClaim.Status.Phase == v1.ClaimBound)
+		}
 
-			// iterate over usedByPods and check if they are running and only if pod name start with pvc.Name
-			boundedPodRunning := false
-			for _, pod := range s.UsedByPods {
-				if strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) && pod.Status.Phase == v1.PodRunning {
-					boundedPodRunning = true
+		// check nfs-pod
+
+		// use index to remove our helper nfs-pod from usedPods array
+		index := -1
+		indexToRemove := -1
+
+		// iterate over usedByPods and check if they are running and only if pod name start with pvc.Name
+		boundedPodRunning := false
+		for _, pod := range s.UsedByPods {
+			index++
+
+			if strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) {
+				indexToRemove = index
+
+				// terminating
+				if pod.ObjectMeta.DeletionTimestamp != nil {
+					message := fmt.Sprintf("Terminating since %s. Grace period %v sec.", pod.ObjectMeta.DeletionTimestamp.Format(time.RFC3339), *pod.ObjectMeta.DeletionGracePeriodSeconds)
+					v.Status = VolumeStatusTypeWarning
+					v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeWarning, Message: message})
 					break
 				}
-			}
 
-			success = success && boundedPodRunning
+				// check if the pod is runnung
+				if  pod.Status.Phase == v1.PodRunning {
+					if len(pod.Status.ContainerStatuses) > 0 {
+						containerStatus := pod.Status.ContainerStatuses[0]
+						// check if the container is ready and started and in state running
+						if containerStatus.State.Running != nil && containerStatus.Ready && *containerStatus.Started {
+							boundedPodRunning = true
+						} else {
+							// check if lastState exists and add warning message
+							if containerStatus.LastTerminationState.Terminated != nil {
+								message := fmt.Sprintf("Last termination state: %s, %s. Exit code: %v ", containerStatus.LastTerminationState.Terminated.Reason, containerStatus.LastTerminationState.Terminated.Message, containerStatus.LastTerminationState.Terminated.ExitCode)
+								if containerStatus.LastTerminationState.Terminated.ExitCode != 0 {
+									v.Status = VolumeStatusTypeError
+									v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeError, Message: message})
+								} else {
+									v.Status = VolumeStatusTypeWarning
+									v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeWarning, Message: message})
+								}
+							}
 
-			if success {
-				v.Status = VolumeStatusTypeBound
-				v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeSuccess, Message: "Volume is bound"})
-				return
+							// check if container is waiting and restarted add warning message
+							if containerStatus.State.Waiting != nil && containerStatus.RestartCount > 0 {
+								message := fmt.Sprintf("Container is waiting. Restarted %v. %s, %s", containerStatus.RestartCount, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
+								
+								v.Status = VolumeStatusTypeError
+								v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeError, Message: message})
+							}
+
+							if len(v.Messages) > 0 {
+								break
+							}
+						}
+					}
+				}
+				break
 			}
+		}
+
+		// remove our helper nfs-pod from usedPods array
+		if indexToRemove > -1 {
+			s.UsedByPods = append(s.UsedByPods[:indexToRemove], s.UsedByPods[indexToRemove+1:]...)
+		}
+
+		for _, pod := range s.UsedByPods {
+			v.UsedByPods = append(v.UsedByPods, pod.ObjectMeta.Name)
+		}
+
+		// pv, pvc and nfs-pod are bounded and running 
+		if bounded && boundedPodRunning {
+			v.Status = VolumeStatusTypeBound
+			v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeSuccess, Message: "Volume is bound"})
+			return
 		}
 	}
 
-	v.Status = VolumeStatusTypePending
-	v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeInfo, Message: "Volume is processing"})
+	// check if there are any messages
+	if len(v.Messages) > 0 && (v.Status == VolumeStatusTypeError || v.Status == VolumeStatusTypeWarning) {
+		return
+	}
+	
 	if err != nil {
+		v.Status = VolumeStatusTypeError
 		v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeError, Message: err.Error()})
+	} else {
+		v.Status = VolumeStatusTypePending
+		v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeInfo, Message: "Volume is processing"})
 	}
 }
 
@@ -375,13 +440,11 @@ EventLoop:
 			}
 			s.PersistentVolumeClaimEvents = events
 
-		case pods, ok := <-podsEventsChan:
+		case _, ok := <-podsEventsChan:
 			processedPods = true
 			if !ok {
 				log.Debug("Warning Pods event channel closed.")
-				break
 			}
-			s.usedBy = pods
 
 		case chanError = <-errorChan:
 			break EventLoop
