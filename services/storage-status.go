@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mogenius-k8s-manager/utils"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -93,19 +95,18 @@ type VolumeStatusMessage struct {
 }
 
 func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
+	prefix := fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix)
 	// normalize name, convert no prefixed 'nfs-server-pod-' to prefixed and vice versa
-	nonPrefixName := strings.TrimPrefix(r.Name, "nfs-server-pod-")
-	prefixName := "nfs-server-pod-" + nonPrefixName
+	nonPrefixName := strings.TrimPrefix(r.Name, prefix)
+	prefixName := prefix + nonPrefixName
 
-	log.Debugf("Storage status for (%s): %s nonPrefixName:%s, prefixName:%s", r.StorageAPIObject, r.Namespace, nonPrefixName, prefixName)
-
-	nfsVolumeStatsResponse := StatsMogeniusNfsVolume(NfsVolumeStatsRequest{NamespaceName: r.Namespace, VolumeName: nonPrefixName})
+	log.Debugf("Storage status for (%s): nonPrefixName:%s, prefixName:%s", r.StorageAPIObject, nonPrefixName, prefixName)
 
 	nfsStatusResponse := NfsStatusResponse{
-		VolumeName: nfsVolumeStatsResponse.VolumeName,
-		TotalBytes: nfsVolumeStatsResponse.TotalBytes,
-		FreeBytes:  nfsVolumeStatsResponse.FreeBytes,
-		UsedBytes:  nfsVolumeStatsResponse.UsedBytes,
+		VolumeName: nonPrefixName,
+		TotalBytes: 0,
+		FreeBytes:  0,
+		UsedBytes:  0,
 	}
 
 	provider, err := punq.NewKubeProvider(nil)
@@ -145,13 +146,32 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 	}
 
 	if s != nil {
+		// Begin storage size logic
+		if s.PersistentVolumeClaim != nil {
+			mountPath := utils.MountPath(s.Namespace, v.VolumeName, "/")
+
+			if utils.ClusterProviderCached == punqDtos.DOCKER_DESKTOP || utils.ClusterProviderCached == punqDtos.K3S {
+				var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
+				v.FreeBytes = uint64(s.PersistentVolumeClaim.Spec.Resources.Requests.Storage().Value()) - usedBytes
+				v.UsedBytes = usedBytes
+				v.TotalBytes = uint64(s.PersistentVolumeClaim.Spec.Resources.Requests.Storage().Value())
+			} else {
+				free, used, total, _ := diskUsage(mountPath)
+				v.FreeBytes = free
+				v.UsedBytes = used
+				v.TotalBytes = total
+			}
+		}
+
+		// Begin status logic
+
 		// check pv and pvc
 		bounded := false
 		if s.PersistentVolumeClaim != nil && s.PersistentVolume != nil {
 			// pv phase 'failed or pvc phase 'lost'
 			notOk := false
-			notOk = notOk || (s.PersistentVolume != nil && s.PersistentVolume.Status.Phase == v1.VolumeFailed)
-			notOk = notOk || (s.PersistentVolumeClaim != nil && s.PersistentVolumeClaim.Status.Phase == v1.ClaimLost)
+			notOk = notOk || s.PersistentVolume.Status.Phase == v1.VolumeFailed
+			notOk = notOk || s.PersistentVolumeClaim.Status.Phase == v1.ClaimLost
 
 			if notOk {
 				v.Status = VolumeStatusTypeError
@@ -161,8 +181,8 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 			}
 
 			bounded = true
-			bounded = bounded && (s.PersistentVolume != nil && s.PersistentVolume.Status.Phase == v1.VolumeBound)
-			bounded = bounded && (s.PersistentVolumeClaim != nil && s.PersistentVolumeClaim.Status.Phase == v1.ClaimBound)
+			bounded = bounded && s.PersistentVolume.Status.Phase == v1.VolumeBound
+			bounded = bounded && s.PersistentVolumeClaim.Status.Phase == v1.ClaimBound
 		}
 
 		// check nfs-pod
@@ -176,7 +196,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 		for _, pod := range s.UsedByPods {
 			index++
 
-			if strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) {
+			if s.PersistentVolumeClaim != nil && strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) {
 				indexToRemove = index
 
 				// terminating
@@ -230,6 +250,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 			s.UsedByPods = append(s.UsedByPods[:indexToRemove], s.UsedByPods[indexToRemove+1:]...)
 		}
 
+		// add usedByPods to response
 		for _, pod := range s.UsedByPods {
 			v.UsedByPods = append(v.UsedByPods, pod.ObjectMeta.Name)
 		}
