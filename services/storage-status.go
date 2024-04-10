@@ -100,7 +100,7 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 	nonPrefixName := strings.TrimPrefix(r.Name, prefix)
 	prefixName := prefix + nonPrefixName
 
-	log.Debugf("Storage status for (%s): %s nonPrefixName:%s, prefixName:%s", r.StorageAPIObject, r.Namespace, nonPrefixName, prefixName)
+	log.Debugf("Storage status for (%s): nonPrefixName:%s, prefixName:%s", r.StorageAPIObject, nonPrefixName, prefixName)
 
 	nfsStatusResponse := NfsStatusResponse{
 		VolumeName: nonPrefixName,
