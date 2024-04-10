@@ -208,10 +208,13 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 func sumAllBytesOfFolder(root string) uint64 {
 	var total uint64
 	var wg sync.WaitGroup
+	var sumWg sync.WaitGroup
 	fileSizes := make(chan uint64)
-
+	
+	sumWg.Add(1)
 	// Start a goroutine to sum file sizes.
 	go func() {
+		defer sumWg.Done() // Signal completion of summing
 		for size := range fileSizes {
 			total += size
 		}
@@ -238,6 +241,7 @@ func sumAllBytesOfFolder(root string) uint64 {
 
 	wg.Wait()
 	close(fileSizes) // Close channel to finish summing
+	sumWg.Wait() // Wait for summing to complete
 
 	return total
 }
