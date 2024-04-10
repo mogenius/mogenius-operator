@@ -170,8 +170,8 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 		if s.PersistentVolumeClaim != nil && s.PersistentVolume != nil {
 			// pv phase 'failed or pvc phase 'lost'
 			notOk := false
-			notOk = notOk || (s.PersistentVolume != nil && s.PersistentVolume.Status.Phase == v1.VolumeFailed)
-			notOk = notOk || (s.PersistentVolumeClaim != nil && s.PersistentVolumeClaim.Status.Phase == v1.ClaimLost)
+			notOk = notOk || s.PersistentVolume.Status.Phase == v1.VolumeFailed
+			notOk = notOk || s.PersistentVolumeClaim.Status.Phase == v1.ClaimLost
 
 			if notOk {
 				v.Status = VolumeStatusTypeError
@@ -181,8 +181,8 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 			}
 
 			bounded = true
-			bounded = bounded && (s.PersistentVolume != nil && s.PersistentVolume.Status.Phase == v1.VolumeBound)
-			bounded = bounded && (s.PersistentVolumeClaim != nil && s.PersistentVolumeClaim.Status.Phase == v1.ClaimBound)
+			bounded = bounded && s.PersistentVolume.Status.Phase == v1.VolumeBound
+			bounded = bounded && s.PersistentVolumeClaim.Status.Phase == v1.ClaimBound
 		}
 
 		// check nfs-pod
@@ -196,7 +196,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 		for _, pod := range s.UsedByPods {
 			index++
 
-			if strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) {
+			if s.PersistentVolumeClaim != nil && strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) {
 				indexToRemove = index
 
 				// terminating
