@@ -132,25 +132,27 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 }
 
 func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
+	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "/")
+	free, used, total, _ := diskUsage(mountPath)
 	result := NfsVolumeStatsResponse{
 		VolumeName: r.VolumeName,
-		FreeBytes:  0,
-		UsedBytes:  0,
-		TotalBytes: 0,
+		FreeBytes:  free,
+		UsedBytes:  used,
+		TotalBytes: total,
 	}
 
-	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "/")
+	log.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(result.UsedBytes)), punqUtils.BytesToHumanReadable(int64(result.TotalBytes)), punqUtils.BytesToHumanReadable(int64(result.FreeBytes)))
+	return result
+}
+
+func diskUsage(mountPath string) (uint64, uint64, uint64, error) {
 	usage, err := disk.Usage(mountPath)
 	if err != nil {
 		log.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
-		return result
+		return 0,0,0, err
 	} else {
-		result.FreeBytes = usage.Free
-		result.UsedBytes = usage.Used
-		result.TotalBytes = usage.Total
+		return usage.Free, usage.Used, usage.Total, nil
 	}
-	log.Infof("💾: '%s' -> %s / %s (%s)", mountPath, punqUtils.BytesToHumanReadable(int64(result.UsedBytes)), punqUtils.BytesToHumanReadable(int64(result.TotalBytes)), fmt.Sprintf("%.1f%%", usage.UsedPercent))
-	return result
 }
 
 func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsResponse {
@@ -187,14 +189,13 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 			entry.UsedBytes = usedBytes
 			entry.TotalBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value())
 		} else {
-			usage, err := disk.Usage(mountPath)
+			free, used, total, err := diskUsage(mountPath)
 			if err != nil {
-				log.Errorf("StatsMogeniusNfsNamespace Err: %s %s", mountPath, err.Error())
 				continue
 			} else {
-				entry.FreeBytes = usage.Free
-				entry.UsedBytes = usage.Used
-				entry.TotalBytes = usage.Total
+				entry.FreeBytes = free
+				entry.UsedBytes = used
+				entry.TotalBytes = total
 			}
 		}
 
