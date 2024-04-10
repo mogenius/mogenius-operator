@@ -147,7 +147,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 
 func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) error {
 	if utils.CONFIG.Iac.ShowDiffInLog {
-		diff := createDiff(kind, namespace, resourceName, objectToDelete)
+		diff := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
 		if diff != "" {
 			log.Warnf("Diff: \n%s", diff)
 		}
@@ -176,10 +176,9 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 
 func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) string {
 	filename := fileNameForRaw(kind, namespace, resourceName)
-	yamlData1, err := os.ReadFile(filename)
-	if err != nil {
-		log.Errorf("Error opening file for diff: %s\n", err.Error())
-		return ""
+	yamlData1, _ := os.ReadFile(filename)
+	if yamlData1 == nil {
+		yamlData1 = []byte{}
 	}
 
 	yamlRawData2, err := yaml.Marshal(dataInf)
@@ -194,6 +193,9 @@ func createDiff(kind string, namespace string, resourceName string, dataInf inte
 	err = yaml.Unmarshal(yamlData1, &obj1)
 	if err != nil {
 		log.Errorf("Error unmarshalling yaml1 for diff: %s", err.Error())
+	}
+	if obj1 == nil {
+		obj1 = make(map[string]interface{})
 	}
 
 	err = yaml.Unmarshal([]byte(yamlData2), &obj2)
