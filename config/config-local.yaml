@@ -32,7 +32,7 @@ iac:
 
 misc:
   stage: local
-  log_format: json # json or text
+  log_format: text # json or text
   log_level: info  # panic, fatal, error, warn, info, debug, trace
   log_incoming_stats: false
   default_mount_path: /mo-data
