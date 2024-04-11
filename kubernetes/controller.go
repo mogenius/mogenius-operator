@@ -116,7 +116,7 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 			specTemplate.Spec.Containers[index].Resources.Requests = nil
 		}
 
-		specTemplate.Spec.Containers[index].Name = service.ControllerName
+		specTemplate.Spec.Containers[index].Name = container.Name
 		specTemplate.Spec.Containers[index].Command = []string{}
 		specTemplate.Spec.Containers[index].Args = []string{}
 
