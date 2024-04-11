@@ -149,7 +149,7 @@ func diskUsage(mountPath string) (uint64, uint64, uint64, error) {
 	usage, err := disk.Usage(mountPath)
 	if err != nil {
 		log.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
-		return 0,0,0, err
+		return 0, 0, 0, err
 	} else {
 		return usage.Free, usage.Used, usage.Total, nil
 	}
@@ -210,7 +210,7 @@ func sumAllBytesOfFolder(root string) uint64 {
 	var wg sync.WaitGroup
 	var sumWg sync.WaitGroup
 	fileSizes := make(chan uint64)
-	
+
 	sumWg.Add(1)
 	// Start a goroutine to sum file sizes.
 	go func() {
@@ -241,7 +241,7 @@ func sumAllBytesOfFolder(root string) uint64 {
 
 	wg.Wait()
 	close(fileSizes) // Close channel to finish summing
-	sumWg.Wait() // Wait for summing to complete
+	sumWg.Wait()     // Wait for summing to complete
 
 	return total
 }
@@ -915,14 +915,18 @@ func SystemCheck() punq.SystemCheckResponse {
 			entries[i].UninstallPattern = structs.PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
-			entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
+			if entries[i].Status != punq.INSTALLED {
+				entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
+			}
 		}
 		if entry.CheckName == NameMetricsServer {
 			entries[i].InstallPattern = structs.PAT_INSTALL_METRICS_SERVER
 			entries[i].UninstallPattern = structs.PAT_UNINSTALL_METRICS_SERVER
 			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_METRICS_SERVER
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
-			entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
+			if entries[i].Status != punq.INSTALLED {
+				entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
+			}
 		}
 	}
 	// update entries specificly for certain cluster vendors
