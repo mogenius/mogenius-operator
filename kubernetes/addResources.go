@@ -163,21 +163,37 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		}
 		clusterSecret.SyncRepoUrl = string(existingSecret.Data["sync-repo-url"])
 		clusterSecret.SyncRepoPat = string(existingSecret.Data["sync-repo-pat"])
-		syncPull, err := strconv.ParseBool(string(existingSecret.Data["sync-allow-pull"]))
-		if err == nil {
-			clusterSecret.SyncAllowPull = syncPull
+		if string(existingSecret.Data["sync-allow-pull"]) != "" {
+			syncPull, err := strconv.ParseBool(string(existingSecret.Data["sync-allow-pull"]))
+			if err == nil {
+				clusterSecret.SyncAllowPull = syncPull
+			}
+		} else {
+			clusterSecret.SyncAllowPull = true
 		}
-		syncPush, err := strconv.ParseBool(string(existingSecret.Data["sync-allow-push"]))
-		if err == nil {
-			clusterSecret.SyncAllowPush = syncPush
+		if string(existingSecret.Data["sync-allow-push"]) != "" {
+			syncPush, err := strconv.ParseBool(string(existingSecret.Data["sync-allow-push"]))
+			if err == nil {
+				clusterSecret.SyncAllowPush = syncPush
+			}
+		} else {
+			clusterSecret.SyncAllowPush = true
 		}
-		syncAllowManClustChange, err := strconv.ParseBool(string(existingSecret.Data["allow-manual-cluster-changes"]))
-		if err == nil {
-			clusterSecret.AllowManualClusterChanges = syncAllowManClustChange
+		if string(existingSecret.Data["allow-manual-cluster-changes"]) != "" {
+			syncAllowManClustChange, err := strconv.ParseBool(string(existingSecret.Data["allow-manual-cluster-changes"]))
+			if err == nil {
+				clusterSecret.AllowManualClusterChanges = syncAllowManClustChange
+			}
+		} else {
+			clusterSecret.AllowManualClusterChanges = true
 		}
-		freqSec, err := strconv.ParseInt(string(existingSecret.Data["sync-frequency-in-sec"]), 10, 64)
-		if err == nil {
-			clusterSecret.SyncFrequencyInSec = int(freqSec)
+		if string(existingSecret.Data["sync-frequency-in-sec"]) != "" {
+			freqSec, err := strconv.ParseInt(string(existingSecret.Data["sync-frequency-in-sec"]), 10, 64)
+			if err == nil {
+				clusterSecret.SyncFrequencyInSec = int(freqSec)
+			}
+		} else {
+			clusterSecret.SyncFrequencyInSec = 10
 		}
 
 	}
