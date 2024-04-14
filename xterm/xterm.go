@@ -30,6 +30,7 @@ type WsConnectionRequest struct {
 
 type PodCmdConnectionRequest struct {
 	Namespace    string              `json:"namespace" validate:"required"`
+	Controller   string              `json:"controller" validate:"required"`
 	Pod          string              `json:"pod" validate:"required"`
 	Container    string              `json:"container" validate:"required"`
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
@@ -50,7 +51,7 @@ type CmdWindowSize struct {
 	Cols uint16 `json:"cols"`
 }
 
-func WsConnection(cmdType string, namespace string, pod string, container string, u url.URL, wsConnectionRequest WsConnectionRequest) (*websocket.Conn, error) {
+func WsConnection(cmdType string, namespace string, controller string, pod string, container string, u url.URL, wsConnectionRequest WsConnectionRequest) (*websocket.Conn, error) {
 	maxRetries := 6
 	currentRetries := 0
 	for {
@@ -59,8 +60,10 @@ func WsConnection(cmdType string, namespace string, pod string, container string
 		headers.Add("x-channel-id", wsConnectionRequest.ChannelId)
 		headers.Add("x-cmd", cmdType)
 		headers.Add("x-namespace", namespace)
+		headers.Add("x-controller", controller)
 		headers.Add("x-pod-name", pod)
 		headers.Add("x-container", container)
+		headers.Add("x-type", "k8s")
 
 		dialer := &websocket.Dialer{}
 		c, _, err := dialer.Dial(u.String(), headers)
@@ -144,7 +147,16 @@ func InjectContent(content io.Reader, conn *websocket.Conn) {
 	}
 }
 
-func XTermCommandStreamConnection(cmdType string, wsConnectionRequest WsConnectionRequest, namespace string, pod string, container string, cmd *exec.Cmd, injectPreContent io.Reader) {
+func XTermCommandStreamConnection(
+	cmdType string,
+	wsConnectionRequest WsConnectionRequest,
+	namespace string,
+	controller string,
+	pod string,
+	container string,
+	cmd *exec.Cmd,
+	injectPreContent io.Reader,
+) {
 	if wsConnectionRequest.WebsocketScheme == "" {
 		log.Error("WebsocketScheme is empty")
 		return
@@ -156,7 +168,7 @@ func XTermCommandStreamConnection(cmdType string, wsConnectionRequest WsConnecti
 	}
 
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
-	conn, err := WsConnection(cmdType, namespace, pod, container, websocketUrl, wsConnectionRequest)
+	conn, err := WsConnection(cmdType, namespace, controller, pod, container, websocketUrl, wsConnectionRequest)
 
 	defer func() {
 		if conn != nil {
@@ -309,7 +321,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	}
 
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
-	conn, err := WsConnection("build-logs", namespace, controller, container, websocketUrl, wsConnectionRequest)
+	conn, err := WsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest)
 
 	defer func() {
 		if conn != nil {
