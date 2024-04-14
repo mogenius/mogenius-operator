@@ -3,8 +3,10 @@ package db
 import (
 	"bytes"
 	"fmt"
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,13 +27,13 @@ const (
 	LOG_BUCKET_NAME       = "mogenius-logs"
 	MIGRATION_BUCKET_NAME = "mogenius-migrations"
 
-	PREFIX_GIT_CLONE = "clone-"
-	PREFIX_LS        = "ls-"
-	PREFIX_LOGIN     = "login-"
-	PREFIX_BUILD     = "build-"
-	PREFIX_PULL      = "push-"
-	PREFIX_PUSH      = "push-"
-	PREFIX_QUEUE     = "queue-"
+	// PREFIX_GIT_CLONE = "clone"
+	// PREFIX_LS        = "ls"
+	// PREFIX_LOGIN     = "login"
+	//PREFIX_BUILD     = "build"
+	//PREFIX_PULL      = "pull"
+	//PREFIX_PUSH  = "push"
+	PREFIX_QUEUE = "queue"
 
 	PREFIX_VUL_SCAN = "scan"
 
@@ -138,7 +140,8 @@ func resetStartedJobsToPendingOnInit() {
 			}
 			if job.State == punqStructs.JobStateStarted {
 				job.State = punqStructs.JobStatePending
-				err := bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, job.BuildId)), []byte(punqStructs.PrettyPrintString(job)))
+				key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(job.BuildId))
+				err := bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
 				if err != nil {
 					log.Errorf("Init (update) ERR: %s", err.Error())
 				}
@@ -252,24 +255,105 @@ func GetBuilderStatus() structs.BuilderStatus {
 	return result
 }
 
-func GetBuildJobInfosFromDb(buildId int) structs.BuildJobInfos {
+func GetLastBuildJobInfosFromDb(data structs.LastBuildTaskListRequest) structs.BuildJobInfos {
+	result := structs.BuildJobInfos{}
+	err := db.View(func(tx *bolt.Tx) error {
+
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		cursorBuild := bucket.Cursor()
+
+		buildJobInfoEntryKey := structs.BuildJobInfoEntryKey{
+			Prefix:     structs.PrefixNone,
+			BuildId:    0,
+			Namespace:  data.Namespace,
+			Controller: data.Controller,
+			Container:  data.Container,
+		}
+		suffix := buildJobInfoEntryKey.LastBuildJobInfosKeySuffix(data.Namespace, data.Controller, data.Container)
+		var lastBuildKey string
+		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
+			if strings.HasSuffix(string(k), suffix) {
+				lastBuildKey = string(k)
+				break
+			}
+		}
+
+		parts := strings.Split(lastBuildKey, "___")
+		if len(parts) >= 3 {
+			buildId := parts[1]
+			lastBuildId, err := strconv.ParseUint(buildId, 10, 64)
+			if err != nil {
+				log.Errorf("GetLastBuildJobInfosFromDb: %s", err.Error())
+				return err
+			}
+			result = GetBuildJobInfosFromDb(lastBuildId)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("GetBuildJobListFromDb: %s", err.Error())
+	}
+	return result
+
+}
+func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfos {
 	result := structs.BuildJobInfos{}
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		cursorBuild := bucket.Cursor()
 
-		queueEntry := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildId)))
-		job := structs.BuildJob{}
-		err := structs.UnmarshalJob(&job, queueEntry)
-		if err != nil {
-			return err
+		//key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
+		//queueEntry := bucket.Get([]byte(key))
+		//job := structs.BuildJob{}
+		//err := structs.UnmarshalJob(&job, queueEntry)
+		//if err != nil {
+		//	return err
+		//}
+		//for k, value := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
+		//	if strings.Contains(string(k), fmt.Sprintf("___%s___", id)) {
+		//		log.Info(value)
+		//		break
+		//	}
+		//}
+		//
+		//if namespace == "" || controller == "" || container == "" {
+		//	return fmt.Errorf("Not build found for id '%d'.", buildId)
+		//}
+
+		buildJobInfoEntryKey := structs.BuildJobInfoEntryKey{
+			Prefix:     structs.PrefixBuild,
+			BuildId:    buildId,
+			Namespace:  "",
+			Controller: "",
+			Container:  "",
+		}
+		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
+			if strings.HasPrefix(string(k), buildJobInfoEntryKey.GetBuildJobInfosSuffix()) {
+				buildTemp := structs.CreateBuildJobEntryFromData(bucket.Get(k))
+				buildJobInfoEntryKey.Namespace = buildTemp.Namespace
+				buildJobInfoEntryKey.Controller = buildTemp.Controller
+				buildJobInfoEntryKey.Container = buildTemp.Container
+				break
+			}
 		}
 
-		clone := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_GIT_CLONE, buildId)))
-		ls := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LS, buildId)))
-		login := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LOGIN, buildId)))
-		build := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_BUILD, buildId)))
-		push := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_PUSH, buildId)))
-		result = structs.CreateBuildJobInfos(job, clone, ls, login, build, push)
+		buildJobInfoEntryKey.Prefix = structs.PrefixGitClone
+		clone := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
+		log.Info(buildJobInfoEntryKey.Key())
+		log.Info(string(clone))
+
+		buildJobInfoEntryKey.Prefix = structs.PrefixLs
+		ls := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
+
+		buildJobInfoEntryKey.Prefix = structs.PrefixLogin
+		login := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
+
+		buildJobInfoEntryKey.Prefix = structs.PrefixBuild
+		build := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
+
+		buildJobInfoEntryKey.Prefix = structs.PrefixPush
+		push := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
+		result = structs.CreateBuildJobInfos(clone, ls, login, build, push)
 		return nil
 	})
 	if err != nil {
@@ -277,6 +361,19 @@ func GetBuildJobInfosFromDb(buildId int) structs.BuildJobInfos {
 	}
 
 	return result
+}
+
+func GetItemByKey(key string) []byte {
+	rawData := []byte{}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		rawData = bucket.Get([]byte(key))
+		return nil
+	})
+	if err != nil {
+		log.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
+	}
+	return rawData
 }
 
 func GetBuildJobListFromDb() []structs.BuildJob {
@@ -313,12 +410,13 @@ func GetBuildJobListFromDb() []structs.BuildJob {
 func UpdateStateInDb(buildJob structs.BuildJob, newState punqStructs.JobStateEnum) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		jobData := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)))
+		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildJob.BuildId))
+		jobData := bucket.Get([]byte(key))
 		job := structs.BuildJob{}
 		err := structs.UnmarshalJob(&job, jobData)
 		if err == nil {
 			job.State = newState
-			return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(job)))
+			return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
 		}
 		return err
 	})
@@ -329,7 +427,7 @@ func UpdateStateInDb(buildJob structs.BuildJob, newState punqStructs.JobStateEnu
 	log.Infof(fmt.Sprintf("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState))
 }
 
-func PositionInQueueFromDb(buildId int) int {
+func PositionInQueueFromDb(buildId uint64) int {
 	positionInQueue := 0
 
 	err := db.View(func(tx *bolt.Tx) error {
@@ -359,7 +457,8 @@ func PositionInQueueFromDb(buildId int) int {
 func SaveJobInDb(buildJob structs.BuildJob) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
+		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildJob.BuildId))
+		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	if err != nil {
 		log.Errorf("Error saving job '%d'.", buildJob.BuildId)
@@ -385,10 +484,11 @@ func PrintAllEntriesFromDb(bucket string, prefix string) {
 	}
 }
 
-func DeleteFromDb(bucket string, prefix string, buildNo int) error {
+func DeleteFromDb(bucket string, prefix string, buildNo uint64) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucket))
-		return bucket.Delete([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildNo)))
+		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildNo))
+		return bucket.Delete([]byte(key))
 	})
 }
 
@@ -427,8 +527,9 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 			}
 		}
 		nextBuildId, _ = bucket.NextSequence() // auto increment
-		buildJob.BuildId = int(nextBuildId)
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
+		buildJob.BuildId = nextBuildId
+		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(nextBuildId))
+		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	return int(nextBuildId), err
 }
@@ -436,8 +537,9 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 func SaveScanResult(state punqStructs.JobStateEnum, cmdOutput string, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
-		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)
-		return bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, containerImageName)), entry)
+		log.Errorf("TODO - SCAN ...")
+		// entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)
+		return bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, containerImageName)), []byte("entry"))
 	})
 	if err != nil {
 		log.Errorf("Error saving scan result for '%s'.", containerImageName)
@@ -445,11 +547,25 @@ func SaveScanResult(state punqStructs.JobStateEnum, cmdOutput string, startTime 
 	return err
 }
 
-func SaveBuildResult(state punqStructs.JobStateEnum, prefix string, cmdOutput string, startTime time.Time, job *structs.BuildJob) error {
+func SaveBuildResult(
+	state punqStructs.JobStateEnum,
+	prefix structs.BuildPrefixEnum,
+	cmdOutput string,
+	startTime time.Time,
+	job *structs.BuildJob,
+	container *dtos.K8sContainerDto,
+) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), entry)
+		buildJobInfoEntryKey := structs.BuildJobInfoEntryKey{
+			Prefix:     prefix,
+			BuildId:    job.BuildId,
+			Namespace:  job.Namespace.Name,
+			Controller: job.Service.ControllerName,
+			Container:  container.Name,
+		}
+		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), prefix, job, container)
+		return bucket.Put([]byte(buildJobInfoEntryKey.Key()), entry)
 	})
 	if err != nil {
 		log.Errorf("Error saving build result for '%d'.", job.BuildId)

@@ -57,18 +57,20 @@ func CreateDatagram(pattern string) Datagram {
 	return datagram
 }
 
-func CreateDatagramBuildLogs(prefix string, namespace string, controllerName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
+func CreateDatagramBuildLogs(payload BuildJobInfos) Datagram {
+	// func CreateDatagramBuildLogs(prefix string, namespace string, controllerName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
 	datagram := Datagram{
 		Id:      punqUtils.NanoId(),
 		Pattern: "build-logs-notification",
-		Payload: map[string]interface{}{
-			"logId":          prefix,
-			"namespace":      namespace,
-			"controllerName": controllerName,
-			"projectId":      projectId,
-			"line":           line,
-			"state":          state,
-		},
+		Payload: payload,
+		//Payload: map[string]interface{}{
+		//	"logId":          prefix,
+		//	"namespace":      namespace,
+		//	"controllerName": controllerName,
+		//	"projectId":      projectId,
+		//	"line":           line,
+		//	"state":          state,
+		//},
 		CreatedAt: time.Now(),
 	}
 	return datagram

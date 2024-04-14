@@ -434,14 +434,6 @@ type ServiceLogStreamRequest struct {
 	PostTo       string `json:"postTo" validate:"required"`
 }
 
-type PodCmdConnectionRequest struct {
-	Namespace     string                     `json:"namespace" validate:"required"`
-	Pod           string                     `json:"pod" validate:"required"`
-	Container     string                     `json:"container" validate:"required"`
-	CmdConnection utils.CmdConnectionRequest `json:"cmdConnectionRequest" validate:"required"`
-	LogTail       string                     `json:"logTail"`
-}
-
 type CmdWindowSize struct {
 	Rows uint16 `json:"rows"`
 	Cols uint16 `json:"cols"`

@@ -12,6 +12,7 @@ import (
 	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
+	"mogenius-k8s-manager/xterm"
 	"os"
 	"os/exec"
 	"strings"
@@ -614,7 +615,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return logStream(data, datagram)
 
 	case structs.PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST:
-		data := PodCmdConnectionRequest{}
+		data := xterm.PodCmdConnectionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
@@ -623,12 +624,22 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return nil
 
 	case structs.PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST:
-		data := PodCmdConnectionRequest{}
+		data := xterm.PodCmdConnectionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
 		go logStreamConnection(data)
+		return nil
+
+	case structs.PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST:
+		data := xterm.BuildLogConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		log.Info(datagram)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go buildLogStreamConnection(data)
 		return nil
 
 	case structs.PAT_LIST_CREATE_TEMPLATES:
@@ -1883,6 +1894,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return builder.BuildJobInfos(data.BuildId)
+	case structs.PAT_BUILD_LAST_INFOS:
+		data := structs.LastBuildTaskListRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return builder.LastBuildInfos(data)
 	case structs.PAT_BUILD_LIST_ALL:
 		return builder.ListAll()
 	case structs.PAT_BUILD_LIST_BY_PROJECT:
@@ -2114,12 +2132,12 @@ func K8sNotification(d structs.Datagram) interface{} {
 	return nil
 }
 
-func execShConnection(podCmdConnectionRequest PodCmdConnectionRequest) {
+func execShConnection(podCmdConnectionRequest xterm.PodCmdConnectionRequest) {
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("kubectl exec -it -c %s -n %s %s -- sh -c \"clear; echo -e '\033[97;104m Connected to %s/%s/%s (using $0): \033[0m'; (type bash >/dev/null 2>&1 && exec bash || type ash >/dev/null 2>&1 && exec ash || type sh >/dev/null 2>&1 && exec sh || type ksh >/dev/null 2>&1 && exec ksh || type csh >/dev/null 2>&1 && exec csh || type zsh >/dev/null 2>&1 && exec zsh)\"", podCmdConnectionRequest.Container, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container))
-	utils.XTermCommandStreamConnection("exec-sh", podCmdConnectionRequest.CmdConnection, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container, cmd, nil)
+	xterm.XTermCommandStreamConnection("exec-sh", podCmdConnectionRequest.WsConnection, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container, cmd, nil)
 }
 
-func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.Reader {
+func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest) io.Reader {
 	ctx := context.Background()
 	cancelCtx, endGofunc := context.WithCancel(ctx)
 	defer endGofunc()
@@ -2165,10 +2183,15 @@ func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.R
 	return io.MultiReader(previousState, nl, headlineLastLog, strings.NewReader(string(data)), nl, headlineCurrentLog)
 }
 
-func logStreamConnection(podCmdConnectionRequest PodCmdConnectionRequest) {
+func logStreamConnection(podCmdConnectionRequest xterm.PodCmdConnectionRequest) {
 	if podCmdConnectionRequest.LogTail == "" {
 		podCmdConnectionRequest.LogTail = "1000"
 	}
 	cmd := exec.Command("kubectl", "logs", "-f", podCmdConnectionRequest.Pod, fmt.Sprintf("--tail=%s", podCmdConnectionRequest.LogTail), "-c", podCmdConnectionRequest.Container, "-n", podCmdConnectionRequest.Namespace)
-	utils.XTermCommandStreamConnection("log", podCmdConnectionRequest.CmdConnection, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container, cmd, GetPreviousLogContent(podCmdConnectionRequest))
+	xterm.XTermCommandStreamConnection("log", podCmdConnectionRequest.WsConnection, podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, podCmdConnectionRequest.Container, cmd, GetPreviousLogContent(podCmdConnectionRequest))
+}
+
+func buildLogStreamConnection(buildLogConnectionRequest xterm.BuildLogConnectionRequest) {
+	log.Info(buildLogConnectionRequest)
+	xterm.XTermBuildLogStreamConnection(buildLogConnectionRequest.WsConnection, buildLogConnectionRequest.Namespace, buildLogConnectionRequest.Controller, buildLogConnectionRequest.Container, buildLogConnectionRequest.BuildTask, buildLogConnectionRequest.BuildId)
 }

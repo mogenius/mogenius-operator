@@ -112,9 +112,10 @@ const (
 	PAT_SERVICE_TRIGGER_JOB     string = "service/trigger-job"
 	PAT_SERVICE_STATUS          string = "service/status"
 
-	PAT_SERVICE_LOG_STREAM                    string = "service/log-stream"
-	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST    string = "service/exec-sh-connection-request"
-	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST string = "service/log-stream-connection-request"
+	PAT_SERVICE_LOG_STREAM                          string = "service/log-stream"
+	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST          string = "service/exec-sh-connection-request"
+	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST       string = "service/log-stream-connection-request"
+	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST string = "service/build-log-stream-connection-request"
 
 	PAT_LIST_CREATE_TEMPLATES string = "list/create-templates"
 
@@ -342,6 +343,7 @@ const (
 
 	PAT_BUILDER_STATUS                 string = "build/builder-status"
 	PAT_BUILD_INFOS                    string = "build/info"
+	PAT_BUILD_LAST_INFOS               string = "build/last-infos"
 	PAT_BUILD_LIST_ALL                 string = "build/list-all"
 	PAT_BUILD_LIST_BY_PROJECT          string = "build/list-by-project"
 	PAT_BUILD_ADD                      string = "build/add"
@@ -471,6 +473,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_LOG_STREAM,
 	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST,
 	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST,
+	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST,
 
 	PAT_LIST_CREATE_TEMPLATES,
 
@@ -698,6 +701,7 @@ var COMMAND_REQUESTS = []string{
 
 	PAT_BUILDER_STATUS,
 	PAT_BUILD_INFOS,
+	PAT_BUILD_LAST_INFOS,
 	PAT_BUILD_LIST_ALL,
 	PAT_BUILD_LIST_BY_PROJECT,
 	PAT_BUILD_ADD,

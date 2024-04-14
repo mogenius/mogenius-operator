@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/utils"
 	"time"
@@ -54,7 +55,7 @@ type BuildJob struct {
 	State          punq.JobStateEnum `json:"state"`
 	StartedAt      string            `json:"startedAt"`
 	DurationMs     int               `json:"durationMs"`
-	BuildId        int               `json:"buildId"`
+	BuildId        uint64            `json:"buildId"`
 
 	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
@@ -167,7 +168,13 @@ func BuildJobExample() BuildJob {
 }
 
 type BuildJobStatusRequest struct {
-	BuildId int `json:"buildId" validate:"required"`
+	BuildId uint64 `json:"buildId" validate:"required"`
+}
+
+type LastBuildTaskListRequest struct {
+	Namespace  string `json:"namespace" validate:"required"`
+	Controller string `json:"controller" validate:"required"`
+	Container  string `json:"container" validate:"required"`
 }
 
 func BuildJobStatusRequestExample() BuildJobStatusRequest {
@@ -246,21 +253,67 @@ type BuildDeleteResult struct {
 }
 
 type BuildJobInfos struct {
-	BuildId    int               `json:"buildId"`
-	Clone      BuildJobInfoEntry `json:"clone"`
-	Ls         BuildJobInfoEntry `json:"ls"`
-	Login      BuildJobInfoEntry `json:"login"`
-	Build      BuildJobInfoEntry `json:"build"`
-	Push       BuildJobInfoEntry `json:"push"`
-	StartTime  string            `json:"startTime"`
-	FinishTime string            `json:"finishTime"`
+	BuildId    uint64 `json:"buildId"`
+	ProjectId  string `json:"projectId"`
+	Namespace  string `json:"namespace"`
+	Controller string `json:"controller"`
+	Container  string `json:"container"`
+
+	StartTime  string `json:"startTime"`
+	FinishTime string `json:"finishTime"`
+
+	Clone BuildJobInfoEntry `json:"clone"`
+	Ls    BuildJobInfoEntry `json:"ls"`
+	Login BuildJobInfoEntry `json:"login"`
+	Build BuildJobInfoEntry `json:"build"`
+	Push  BuildJobInfoEntry `json:"push"`
 }
 
+type BuildPrefixEnum string
+
+const (
+	PrefixGitClone BuildPrefixEnum = "clone"
+	PrefixLs       BuildPrefixEnum = "ls"
+	PrefixLogin    BuildPrefixEnum = "login"
+	PrefixBuild    BuildPrefixEnum = "build"
+	PrefixPull     BuildPrefixEnum = "pull"
+	PrefixPush     BuildPrefixEnum = "push"
+
+	PrefixNone BuildPrefixEnum = "none"
+)
+
 type BuildJobInfoEntry struct {
+	Prefix     BuildPrefixEnum `json:"prefix"`
+	BuildId    uint64          `json:"buildId"`
+	ProjectId  string          `json:"projectId"`
+	Namespace  string          `json:"namespace"`
+	Controller string          `json:"controller"`
+	Container  string          `json:"container"`
+
 	State      punq.JobStateEnum `json:"state"`
 	Result     string            `json:"result"`
 	StartTime  string            `json:"startTime"`
 	FinishTime string            `json:"finishTime"`
+}
+
+type BuildJobInfoEntryKey struct {
+	Prefix     BuildPrefixEnum `json:"prefix"`
+	BuildId    uint64          `json:"buildId"`
+	Namespace  string          `json:"namespace"`
+	Controller string          `json:"controller"`
+	Container  string          `json:"container"`
+}
+
+func (b BuildJobInfoEntryKey) Key() string {
+	return fmt.Sprintf("%s___%s___%s___%s___%s", b.Prefix, utils.SequenceToKey(b.BuildId), b.Namespace, b.Controller, b.Container)
+}
+
+func (b BuildJobInfoEntryKey) LastBuildJobInfosKeySuffix(namespace string, controller string, container string) string {
+	return fmt.Sprintf("___%s___%s___%s", namespace, controller, container)
+}
+
+func (b BuildJobInfoEntryKey) GetBuildJobInfosSuffix() string {
+	return fmt.Sprintf("%s___%s___", b.Prefix, utils.SequenceToKey(b.BuildId))
 }
 
 func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoEntry {
@@ -272,17 +325,32 @@ func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoE
 	}
 }
 
-func CreateBuildJobInfos(job BuildJob, clone []byte, ls []byte, login []byte, build []byte, push []byte) BuildJobInfos {
+func CreateBuildJobInfos(clone []byte, ls []byte, login []byte, build []byte, push []byte) BuildJobInfos {
 	result := BuildJobInfos{}
 
-	result.BuildId = job.BuildId
-	result.StartTime = job.StartedAt
-	result.FinishTime = job.EndTimestamp
-	result.Clone = CreateBuildJobEntryFromData(clone)
-	result.Ls = CreateBuildJobEntryFromData(ls)
-	result.Login = CreateBuildJobEntryFromData(login)
-	result.Build = CreateBuildJobEntryFromData(build)
-	result.Push = CreateBuildJobEntryFromData(push)
+	cloneEntity := CreateBuildJobEntryFromData(clone)
+	lsEntity := CreateBuildJobEntryFromData(ls)
+	loginEntity := CreateBuildJobEntryFromData(login)
+	buildEntity := CreateBuildJobEntryFromData(build)
+	pushEntity := CreateBuildJobEntryFromData(push)
+
+	result.BuildId = cloneEntity.BuildId
+	result.ProjectId = cloneEntity.ProjectId
+	result.Namespace = cloneEntity.Namespace
+	result.Controller = cloneEntity.Controller
+	result.Container = cloneEntity.Container
+
+	result.StartTime = cloneEntity.StartTime
+	result.FinishTime = pushEntity.FinishTime
+
+	//result.StartTime = job.StartedAt
+	//result.FinishTime = job.EndTimestamp
+
+	result.Clone = cloneEntity
+	result.Ls = lsEntity
+	result.Login = loginEntity
+	result.Build = buildEntity
+	result.Push = pushEntity
 
 	return result
 }
@@ -301,8 +369,23 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 	return result
 }
 
-func CreateBuildJobInfoEntryBytes(state punq.JobStateEnum, cmdOutput string, startTime time.Time, finishTime time.Time, job *BuildJob) []byte {
+func CreateBuildJobInfoEntryBytes(
+	state punq.JobStateEnum,
+	cmdOutput string,
+	startTime time.Time,
+	finishTime time.Time,
+	prefix BuildPrefixEnum,
+	job *BuildJob,
+	container *dtos.K8sContainerDto,
+) []byte {
 	entry := BuildJobInfoEntry{
+		Prefix:     prefix,
+		BuildId:    job.BuildId,
+		ProjectId:  job.Project.Id,
+		Namespace:  job.Namespace.Name,
+		Controller: job.Service.ControllerName,
+		Container:  container.Name,
+
 		State:      state,
 		Result:     cmdOutput,
 		StartTime:  startTime.Format(time.RFC3339),
