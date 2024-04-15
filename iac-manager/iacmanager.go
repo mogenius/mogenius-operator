@@ -69,7 +69,7 @@ func SetupRemote() error {
 		log.Errorf("Error setting up remote: %s", err.Error())
 		return err
 	}
-	branchCmdStr := fmt.Sprintf("cd %s; git branch -M main", folder)
+	branchCmdStr := fmt.Sprintf("cd %s; git branch -M %s", folder, utils.CONFIG.Iac.RepoBranch)
 	err = utils.ExecuteShellCommandSilent(branchCmdStr, branchCmdStr)
 	if err != nil {
 		log.Errorf("Error setting up branch: %s", err.Error())
@@ -360,7 +360,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 
 	// Pull changes from the remote repository
-	cmd := exec.Command("git", "pull", "origin", "main")
+	cmd := exec.Command("git", "pull", "origin", utils.CONFIG.Iac.RepoBranch)
 	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", fmt.Sprintf("GIT_PASSWORD=%s", utils.CONFIG.Iac.RepoPat)) // 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
 	cmd.Dir = folder
 	var out bytes.Buffer
@@ -374,7 +374,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 	}
 	if err != nil {
 		if !strings.Contains(stderr.String(), "Your local changes to the following files would be overwritten by merge") {
-			log.Errorf("Error running git pull origin main (%s): %s %s %s", utils.CONFIG.Iac.RepoUrl, err.Error(), out.String(), stderr.String())
+			log.Errorf("Error running git pull origin %s (%s): %s %s %s", utils.CONFIG.Iac.RepoBranch, utils.CONFIG.Iac.RepoUrl, err.Error(), out.String(), stderr.String())
 		}
 		return updatedFiles, deletedFiles
 	}
@@ -422,7 +422,7 @@ func pushChanges() {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 
 	// Push changes to the remote repository
-	cmd := exec.Command("git", "push", "origin", "main")
+	cmd := exec.Command("git", "push", "origin", utils.CONFIG.Iac.RepoBranch)
 	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", "GIT_PASSWORD=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")
 	cmd.Dir = folder
 	var out bytes.Buffer
