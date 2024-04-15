@@ -495,9 +495,9 @@ func XTermScanImageLogStreamConnection(
 		return
 	}
 
-	cachedEntry, cacheMissed := db.GetScanImage(containerImage)
+	//cachedEntry, cacheMissed := db.GetScanImage(containerImage)
+	//results := ""
 
-	results := ""
 	cmdPull := fmt.Sprintf("docker pull %s", containerImage)
 	cmdGrype := fmt.Sprintf("grype %s", containerImage)
 	cmdString := fmt.Sprintf("%s && %s", cmdPull, cmdGrype)
@@ -510,17 +510,15 @@ func XTermScanImageLogStreamConnection(
 		}
 	}
 
-	if cacheMissed == nil {
-		if conn != nil {
-			err := conn.WriteMessage(websocket.TextMessage, []byte(cachedEntry.Result))
-			if err != nil {
-				log.Errorf("WriteMessage: %s", err.Error())
-			}
-
-			cancel()
-		}
-		cmdString = fmt.Sprintf("echo '%s'", "From cache.")
-	}
+	//if cacheMissed == nil {
+	//	if conn != nil {
+	//		err := conn.WriteMessage(websocket.TextMessage, []byte(cachedEntry.Result))
+	//		if err != nil {
+	//			log.Errorf("WriteMessage: %s", err.Error())
+	//		}
+	//	}
+	//	cmdString = fmt.Sprintf("echo '%s'", "From cache.")
+	//}
 
 	// Start pty/cmd
 	cmd := exec.Command("sh", "-c", cmdString)
@@ -598,9 +596,9 @@ func XTermScanImageLogStreamConnection(
 			read, err := tty.Read(buf)
 			if err != nil {
 				log.Errorf("Unable to read from pty/cmd: %s", err.Error())
-				if cacheMissed != nil {
-					db.SaveScanImageResult(containerImage, results)
-				}
+				//if cacheMissed != nil {
+				//	db.SaveScanImageResult(containerImage, results)
+				//}
 				return
 			}
 			if conn != nil {
@@ -617,9 +615,9 @@ func XTermScanImageLogStreamConnection(
 				}
 
 				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
-				if cacheMissed != nil {
-					results += string(buf[:read])
-				}
+				//if cacheMissed != nil {
+				//	results += string(buf[:read])
+				//}
 				if err != nil {
 					log.Errorf("WriteMessage: %s", err.Error())
 				}
