@@ -555,7 +555,7 @@ func processLine(
 			db.SaveBuildResult(punqStructs.JobStateEnum(reportCmd.State), prefix, cmdOutput.String(), startTime, job, container)
 		} else {
 			log.Errorf("TODO - pull image for vulnerabilities ...")
-			db.SaveScanResult(punqStructs.JobStateEnum(reportCmd.State), cmdOutput.String(), startTime, *containerImageName, job)
+			// db.SaveScanResult(punqStructs.JobStateEnum(reportCmd.State), cmdOutput.String(), startTime, *containerImageName, job)
 		}
 
 		// send notification

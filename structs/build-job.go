@@ -296,24 +296,21 @@ type BuildJobInfoEntry struct {
 	FinishTime string            `json:"finishTime"`
 }
 
-type BuildJobInfoEntryKey struct {
-	Prefix     BuildPrefixEnum `json:"prefix"`
-	BuildId    uint64          `json:"buildId"`
-	Namespace  string          `json:"namespace"`
-	Controller string          `json:"controller"`
-	Container  string          `json:"container"`
+type BuildScanImageEntry struct {
+	Result    string `json:"result"`
+	CreatedAt string `json:"createdAt"`
 }
 
-func (b BuildJobInfoEntryKey) Key() string {
-	return fmt.Sprintf("%s___%s___%s___%s___%s", b.Prefix, utils.SequenceToKey(b.BuildId), b.Namespace, b.Controller, b.Container)
+func BuildJobInfoEntryKey(prefix BuildPrefixEnum, buildId uint64, namespace string, controller string, container string) string {
+	return fmt.Sprintf("%s___%s___%s___%s___%s", prefix, utils.SequenceToKey(buildId), namespace, controller, container)
 }
 
-func (b BuildJobInfoEntryKey) LastBuildJobInfosKeySuffix(namespace string, controller string, container string) string {
+func LastBuildJobInfosKeySuffix(namespace string, controller string, container string) string {
 	return fmt.Sprintf("___%s___%s___%s", namespace, controller, container)
 }
 
-func (b BuildJobInfoEntryKey) GetBuildJobInfosSuffix() string {
-	return fmt.Sprintf("%s___%s___", b.Prefix, utils.SequenceToKey(b.BuildId))
+func GetBuildJobInfosPrefix(prefix BuildPrefixEnum, buildId uint64) string {
+	return fmt.Sprintf("%s___%s___", prefix, utils.SequenceToKey(buildId))
 }
 
 func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoEntry {
@@ -390,6 +387,23 @@ func CreateBuildJobInfoEntryBytes(
 		Result:     cmdOutput,
 		StartTime:  startTime.Format(time.RFC3339),
 		FinishTime: finishTime.Format(time.RFC3339),
+	}
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	bytes, err := json.Marshal(entry)
+	if err != nil {
+		log.Errorf("createBuildJobInfoEntryBytes ERR: %s", err.Error())
+	}
+	return bytes
+
+}
+
+func CreateScanImageEntryBytes(
+	cmdOutput string,
+) []byte {
+	entry := BuildScanImageEntry{
+		Result:    cmdOutput,
+		CreatedAt: time.Now().Format(time.RFC3339),
 	}
 
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary

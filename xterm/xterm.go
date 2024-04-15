@@ -1,16 +1,19 @@
 package xterm
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/db"
+	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -43,6 +46,19 @@ type BuildLogConnectionRequest struct {
 	Container    string              `json:"container" validate:"required"`
 	BuildTask    string              `json:"buildTask" validate:"required"` // clone, build, test, deploy, .....
 	BuildId      uint64              `json:"buildId" validate:"required"`
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+}
+
+type ScanImageLogConnectionRequest struct {
+	Namespace  string `json:"namespace" validate:"required"`
+	Controller string `json:"controller" validate:"required"`
+	Container  string `json:"container" validate:"required"`
+	// ContainerImage string `json:"containerImage" validate:"required"`
+
+	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
+	ContainerRegistryUser string `json:"containerRegistryUser"`
+	ContainerRegistryPat  string `json:"containerRegistryPat"`
+
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 }
 
@@ -435,5 +451,228 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		if string(reader) == "PEER_IS_READY" {
 			continue
 		}
+	}
+}
+
+func XTermScanImageLogStreamConnection(
+	wsConnectionRequest WsConnectionRequest,
+	namespace string,
+	controller string,
+	container string,
+	// containerImage string,
+	containerRegistryUrl string,
+	containerRegistryUser *string,
+	containerRegistryPat *string,
+) {
+	if wsConnectionRequest.WebsocketScheme == "" {
+		log.Error("WebsocketScheme is empty")
+		return
+	}
+
+	if wsConnectionRequest.WebsocketHost == "" {
+		log.Error("WebsocketHost is empty")
+		return
+	}
+
+	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
+	conn, err := WsConnection("scan-image-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+
+	defer func() {
+		cancel()
+		if conn != nil {
+			conn.Close()
+		}
+	}()
+
+	if err != nil {
+		log.Errorf("Unable to connect to websocket: %s", err.Error())
+		return
+	}
+
+	containerImage, err := kubernetes.GetDeploymentImage(namespace, controller, container)
+	if err != nil || containerImage == "" {
+		return
+	}
+
+	cachedEntry, cacheMissed := db.GetScanImage(containerImage)
+
+	results := ""
+	cmdPull := fmt.Sprintf("docker pull %s", containerImage)
+	cmdGrype := fmt.Sprintf("grype %s", containerImage)
+	cmdString := fmt.Sprintf("%s && %s", cmdPull, cmdGrype)
+	if containerRegistryUser != nil && containerRegistryPat != nil {
+		if *containerRegistryUser != "" && *containerRegistryPat != "" {
+			cmdString = fmt.Sprintf(
+				`echo '%s' | docker login %s -u %s --password-stdin && %s && %s`,
+				*containerRegistryPat, containerRegistryUrl, *containerRegistryUser, cmdPull, cmdGrype)
+
+		}
+	}
+
+	if cacheMissed == nil {
+		if conn != nil {
+			err := conn.WriteMessage(websocket.TextMessage, []byte(cachedEntry.Result))
+			if err != nil {
+				log.Errorf("WriteMessage: %s", err.Error())
+			}
+
+			cancel()
+		}
+		cmdString = fmt.Sprintf("echo '%s'", "From cache.")
+	}
+
+	// Start pty/cmd
+	cmd := exec.Command("sh", "-c", cmdString)
+	cmd.Env = append(os.Environ(), "TERM=xterm-color")
+	tty, err := pty.Start(cmd)
+	if err != nil {
+		log.Errorf("Unable to start pty/cmd: %s", err.Error())
+		if conn != nil {
+			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+			if err != nil {
+				log.Errorf("WriteMessage: %s", err.Error())
+			}
+		}
+		return
+	}
+
+	defer func() {
+		if conn != nil {
+			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
+			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+				log.Error("write close:", err)
+			}
+		}
+		cmd.Process.Kill()
+		cmd.Process.Wait()
+		tty.Close()
+		cancel()
+	}()
+
+	go func() {
+		err := cmd.Wait()
+		if err != nil {
+			log.Errorf("cmd wait: %s", err.Error())
+			if exiterr, ok := err.(*exec.ExitError); ok {
+				if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+					log.Error(status.ExitStatus())
+					if status.ExitStatus() == 137 {
+						if conn != nil {
+							err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
+							if err != nil {
+								log.Errorf("WriteMessage: %s", err.Error())
+							}
+						}
+					} else if status.ExitStatus() == 1 {
+						cmd.Process.Kill()
+						cmd.Process.Wait()
+						tty.Close()
+						cancel()
+						log.Info("Terminal closed.")
+						db.DeleteScanImageResult(containerImage)
+						return
+					}
+				}
+			}
+		} else {
+			if conn != nil {
+				closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
+				err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+				if err != nil {
+					log.Errorf("WriteMessage: %s", err.Error())
+				}
+			}
+			cmd.Process.Kill()
+			cmd.Process.Wait()
+			tty.Close()
+			cancel()
+			log.Info("Terminal closed.")
+		}
+	}()
+
+	streamBeginning := false
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			read, err := tty.Read(buf)
+			if err != nil {
+				log.Errorf("Unable to read from pty/cmd: %s", err.Error())
+				if cacheMissed != nil {
+					db.SaveScanImageResult(containerImage, results)
+				}
+				return
+			}
+			if conn != nil {
+				if streamBeginning == false {
+					if len(string(buf[:read])) > 0 {
+						re := regexp.MustCompile(`Vulnerability`)
+						matches := re.FindAllString(string(buf[:read]), -1)
+
+						if len(matches) > 0 {
+							cancel()
+							streamBeginning = true
+						}
+					}
+				}
+
+				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
+				if cacheMissed != nil {
+					results += string(buf[:read])
+				}
+				if err != nil {
+					log.Errorf("WriteMessage: %s", err.Error())
+				}
+				continue
+			}
+			return
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				time.Sleep(1 * time.Second)
+				err := conn.WriteMessage(websocket.TextMessage, []byte("."))
+				if err != nil {
+					log.Errorf("WriteMessage: %s", err.Error())
+				}
+				continue
+			}
+		}
+	}()
+
+	for {
+		_, reader, err := conn.ReadMessage()
+		if err != nil {
+			log.Errorf("Unable to grab next reader: %s", err.Error())
+			return
+		}
+
+		if strings.HasPrefix(string(reader), "\x04") {
+			str := strings.TrimPrefix(string(reader), "\x04")
+
+			var resizeMessage CmdWindowSize
+			err := json.Unmarshal([]byte(str), &resizeMessage)
+			if err != nil {
+				log.Errorf("%s", err.Error())
+				continue
+			}
+
+			if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
+				log.Errorf("Unable to resize: %s", err.Error())
+				continue
+			}
+			continue
+		}
+
+		if string(reader) == "PEER_IS_READY" {
+			continue
+		}
+
+		// tty.Write(reader)
 	}
 }

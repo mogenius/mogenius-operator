@@ -262,14 +262,7 @@ func GetLastBuildJobInfosFromDb(data structs.LastBuildTaskListRequest) structs.B
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		cursorBuild := bucket.Cursor()
 
-		buildJobInfoEntryKey := structs.BuildJobInfoEntryKey{
-			Prefix:     structs.PrefixNone,
-			BuildId:    0,
-			Namespace:  data.Namespace,
-			Controller: data.Controller,
-			Container:  data.Container,
-		}
-		suffix := buildJobInfoEntryKey.LastBuildJobInfosKeySuffix(data.Namespace, data.Controller, data.Container)
+		suffix := structs.LastBuildJobInfosKeySuffix(data.Namespace, data.Controller, data.Container)
 		var lastBuildKey string
 		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
 			if strings.HasSuffix(string(k), suffix) {
@@ -320,39 +313,26 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfos {
 		//	return fmt.Errorf("Not build found for id '%d'.", buildId)
 		//}
 
-		buildJobInfoEntryKey := structs.BuildJobInfoEntryKey{
-			Prefix:     structs.PrefixBuild,
-			BuildId:    buildId,
-			Namespace:  "",
-			Controller: "",
-			Container:  "",
-		}
+		namespace := ""
+		controller := ""
+		container := ""
+
+		prefix := structs.GetBuildJobInfosPrefix(structs.PrefixBuild, buildId)
 		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
-			if strings.HasPrefix(string(k), buildJobInfoEntryKey.GetBuildJobInfosSuffix()) {
+			if strings.HasPrefix(string(k), prefix) {
 				buildTemp := structs.CreateBuildJobEntryFromData(bucket.Get(k))
-				buildJobInfoEntryKey.Namespace = buildTemp.Namespace
-				buildJobInfoEntryKey.Controller = buildTemp.Controller
-				buildJobInfoEntryKey.Container = buildTemp.Container
+				namespace = buildTemp.Namespace
+				controller = buildTemp.Controller
+				container = buildTemp.Container
 				break
 			}
 		}
 
-		buildJobInfoEntryKey.Prefix = structs.PrefixGitClone
-		clone := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
-		log.Info(buildJobInfoEntryKey.Key())
-		log.Info(string(clone))
-
-		buildJobInfoEntryKey.Prefix = structs.PrefixLs
-		ls := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
-
-		buildJobInfoEntryKey.Prefix = structs.PrefixLogin
-		login := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
-
-		buildJobInfoEntryKey.Prefix = structs.PrefixBuild
-		build := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
-
-		buildJobInfoEntryKey.Prefix = structs.PrefixPush
-		push := bucket.Get([]byte(buildJobInfoEntryKey.Key()))
+		clone := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixGitClone, buildId, namespace, controller, container)))
+		ls := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixLs, buildId, namespace, controller, container)))
+		login := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixLogin, buildId, namespace, controller, container)))
+		build := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixBuild, buildId, namespace, controller, container)))
+		push := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixPush, buildId, namespace, controller, container)))
 		result = structs.CreateBuildJobInfos(clone, ls, login, build, push)
 		return nil
 	})
@@ -534,7 +514,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 	return int(nextBuildId), err
 }
 
-func SaveScanResult(state punqStructs.JobStateEnum, cmdOutput string, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
+func SaveScanResult2(state punqStructs.JobStateEnum, cmdOutput string, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
 		log.Errorf("TODO - SCAN ...")
@@ -547,6 +527,48 @@ func SaveScanResult(state punqStructs.JobStateEnum, cmdOutput string, startTime 
 	return err
 }
 
+func GetScanImage(containerImageName string) (structs.BuildScanImageEntry, error) {
+	entry := structs.BuildScanImageEntry{
+		Result:    "",
+		CreatedAt: time.Now().Format(time.RFC3339),
+	}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
+		key := fmt.Sprintf("%s-%s", PREFIX_VUL_SCAN, containerImageName)
+		rawData := string(bucket.Get([]byte(key)))
+
+		if rawData != "" {
+			err := structs.UnmarshalBuildScanImageEntry(&entry, []byte(rawData))
+			if err == nil && !isMoreThan24HoursAgo(entry.CreatedAt) {
+				return nil
+			}
+		}
+		return fmt.Errorf("Not cached data found in bold db for %s. Starting scan ...", containerImageName)
+	})
+	return entry, err
+}
+
+func SaveScanImageResult(containerImageName string, cmdOutput string) error {
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
+		entry := structs.CreateScanImageEntryBytes(cmdOutput)
+		key := fmt.Sprintf("%s-%s", PREFIX_VUL_SCAN, containerImageName)
+		return bucket.Put([]byte(key), []byte(entry))
+	})
+	if err != nil {
+		log.Errorf("Error saving scan result for '%s'.", containerImageName)
+	}
+	return err
+}
+
+func DeleteScanImageResult(containerImageName string) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
+		key := fmt.Sprintf("%s-%s", PREFIX_VUL_SCAN, containerImageName)
+		return bucket.Delete([]byte(key))
+	})
+}
+
 func SaveBuildResult(
 	state punqStructs.JobStateEnum,
 	prefix structs.BuildPrefixEnum,
@@ -557,15 +579,8 @@ func SaveBuildResult(
 ) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		buildJobInfoEntryKey := structs.BuildJobInfoEntryKey{
-			Prefix:     prefix,
-			BuildId:    job.BuildId,
-			Namespace:  job.Namespace.Name,
-			Controller: job.Service.ControllerName,
-			Container:  container.Name,
-		}
 		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), prefix, job, container)
-		return bucket.Put([]byte(buildJobInfoEntryKey.Key()), entry)
+		return bucket.Put([]byte(structs.BuildJobInfoEntryKey(prefix, job.BuildId, job.Namespace.Name, job.Service.ControllerName, container.Name)), entry)
 	})
 	if err != nil {
 		log.Errorf("Error saving build result for '%d'.", job.BuildId)

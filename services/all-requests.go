@@ -649,6 +649,15 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		go buildLogStreamConnection(data)
 		return nil
+	case structs.PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST:
+		data := xterm.ScanImageLogConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		log.Info(datagram)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go scanImageLogStreamConnection(data)
+		return nil
 
 	case structs.PAT_LIST_CREATE_TEMPLATES:
 		return punq.ListCreateTemplates()
@@ -2219,7 +2228,6 @@ func logStreamConnection(podCmdConnectionRequest xterm.PodCmdConnectionRequest) 
 }
 
 func buildLogStreamConnection(buildLogConnectionRequest xterm.BuildLogConnectionRequest) {
-	log.Info(buildLogConnectionRequest)
 	xterm.XTermBuildLogStreamConnection(
 		buildLogConnectionRequest.WsConnection,
 		buildLogConnectionRequest.Namespace,
@@ -2227,5 +2235,18 @@ func buildLogStreamConnection(buildLogConnectionRequest xterm.BuildLogConnection
 		buildLogConnectionRequest.Container,
 		buildLogConnectionRequest.BuildTask,
 		buildLogConnectionRequest.BuildId,
+	)
+}
+
+func scanImageLogStreamConnection(buildLogConnectionRequest xterm.ScanImageLogConnectionRequest) {
+	xterm.XTermScanImageLogStreamConnection(
+		buildLogConnectionRequest.WsConnection,
+		buildLogConnectionRequest.Namespace,
+		buildLogConnectionRequest.Controller,
+		buildLogConnectionRequest.Container,
+		// buildLogConnectionRequest.ContainerImage,
+		buildLogConnectionRequest.ContainerRegistryUrl,
+		&buildLogConnectionRequest.ContainerRegistryUser,
+		&buildLogConnectionRequest.ContainerRegistryPat,
 	)
 }

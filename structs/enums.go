@@ -113,10 +113,11 @@ const (
 	PAT_SERVICE_TRIGGER_JOB     string = "service/trigger-job"
 	PAT_SERVICE_STATUS          string = "service/status"
 
-	PAT_SERVICE_LOG_STREAM                          string = "service/log-stream"
-	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST          string = "service/exec-sh-connection-request"
-	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST       string = "service/log-stream-connection-request"
-	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST string = "service/build-log-stream-connection-request"
+	PAT_SERVICE_LOG_STREAM                               string = "service/log-stream"
+	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST               string = "service/exec-sh-connection-request"
+	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST            string = "service/log-stream-connection-request"
+	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST      string = "service/build-log-stream-connection-request"
+	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST string = "service/scan-image-log-stream-connection-request"
 
 	PAT_LIST_CREATE_TEMPLATES string = "list/create-templates"
 
@@ -476,6 +477,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST,
 	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST,
+	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST,
 
 	PAT_LIST_CREATE_TEMPLATES,
 
