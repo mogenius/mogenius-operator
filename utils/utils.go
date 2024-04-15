@@ -149,3 +149,7 @@ func DebounceFunc(interval time.Duration, function func()) func() {
 		timer = time.AfterFunc(interval, function)
 	}
 }
+
+func SequenceToKey(id uint64) []byte {
+	return []byte(fmt.Sprintf("%020d", id))
+}

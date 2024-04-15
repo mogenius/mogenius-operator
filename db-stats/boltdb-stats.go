@@ -116,15 +116,11 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 
 		// add new Entry
 		id, _ := controllerBucket.NextSequence() // auto increment
-		return controllerBucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
+		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		log.Errorf("Error adding interface stats for '%s': %s", stats.Namespace, err.Error())
 	}
-}
-
-func sequenceToKey(id uint64) []byte {
-	return []byte(fmt.Sprintf("%020d", id))
 }
 
 func AddNodeStatsToDb(stats structs.NodeStats) {
@@ -147,7 +143,7 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 
 		// add new Entry
 		id, _ := nodeBucket.NextSequence() // auto increment
-		return nodeBucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
+		return nodeBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		log.Errorf("Error adding node stats for '%s': %s", stats.Name, err.Error())
@@ -188,7 +184,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 
 		// add new Entry
 		id, _ := controllerBucket.NextSequence() // auto increment
-		return controllerBucket.Put(sequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
+		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		log.Errorf("Error adding pod stats for '%s': %s", stats.Namespace, err.Error())
