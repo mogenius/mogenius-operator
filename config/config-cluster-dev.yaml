@@ -22,6 +22,7 @@ event_server:
 iac:
   repo_url:
   repo_pat:
+  repo_branch: main
   polling_interval_secs: 10 # min is 5 
   allow_push: true
   allow_pull: true

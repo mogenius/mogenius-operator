@@ -242,7 +242,7 @@ func cleanYaml(data string) string {
 }
 
 func syncChangesTimer() {
-	ticker := time.NewTicker(time.Duration(utils.CONFIG.Iac.PollingIntervalSecs) * time.Second)
+	ticker := time.NewTicker(time.Duration(utils.CONFIG.Iac.SyncFrequencyInSec) * time.Second)
 	quit := make(chan struct{}) // Create a channel to signal the ticker to stop
 
 	go func() {

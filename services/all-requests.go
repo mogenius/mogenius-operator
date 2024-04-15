@@ -74,13 +74,21 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_ENERGY_CONSUMPTION:
 		return EnergyConsumption()
 
-	case structs.PAT_CLUSTER_SYNC_REPO:
-		data := dtos.AddSyncRepoRequest{}
+	case structs.PAT_CLUSTER_SYNC_INFO:
+		result, err := kubernetes.GetSyncRepoData()
+		if err != nil {
+			return err
+		}
+		return result
+
+	case structs.PAT_CLUSTER_SYNC_UPDATE:
+		data := dtos.SyncRepoData{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		err := kubernetes.AddSynRepoData(&data)
+		data.AddSecretsToRedaction()
+		err := kubernetes.UpdateSynRepoData(&data)
 		if err == nil {
 			err = iacmanager.SetupRemote()
 			if err != nil {

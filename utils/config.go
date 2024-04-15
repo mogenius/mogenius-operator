@@ -20,10 +20,12 @@ type ClusterSecret struct {
 	ClusterName               string
 	SyncRepoUrl               string
 	SyncRepoPat               string
+	SyncRepoBranch            string
 	SyncAllowPull             bool
 	SyncAllowPush             bool
 	AllowManualClusterChanges bool
 	SyncFrequencyInSec        int
+	SyncWorkloads             []string
 }
 
 const STAGE_PRE_DEV = "pre-dev"
@@ -56,7 +58,8 @@ type Config struct {
 	Iac struct {
 		RepoUrl                   string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url." env-default:""`
 		RepoPat                   string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat." env-default:""`
-		PollingIntervalSecs       int      `yaml:"polling_interval_secs" env:"sync_polling_interval_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
+		RepoBranch                string   `yaml:"repo_pat_branch" env:"sync_repo_branch" env-description:"Sync repo branch." env-default:"main"`
+		SyncFrequencyInSec        int      `yaml:"sync_requency_secs" env:"sync_requency_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
 		AllowPush                 bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo." env-default:"true"`
 		AllowPull                 bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo." env-default:"true"`
 		AllowManualClusterChanges bool     `yaml:"allow_manual_cluster_changes" env:"sync_allow_manual_cluster_changes" env-description:"IAC manager will revert all changes made from inside the cluster." env-default:"true"`
@@ -209,14 +212,16 @@ func SetupClusterSecret(clusterSecret ClusterSecret) {
 		CONFIG.Kubernetes.ClusterName = clusterSecret.ClusterName
 		CONFIG.Iac.RepoUrl = clusterSecret.SyncRepoUrl
 		CONFIG.Iac.RepoPat = clusterSecret.SyncRepoPat
+		CONFIG.Iac.RepoBranch = clusterSecret.SyncRepoBranch
 		CONFIG.Iac.AllowPull = clusterSecret.SyncAllowPull
 		CONFIG.Iac.AllowPush = clusterSecret.SyncAllowPush
 		CONFIG.Iac.AllowManualClusterChanges = clusterSecret.AllowManualClusterChanges
+		CONFIG.Iac.SyncWorkloads = clusterSecret.SyncWorkloads
 
 		if clusterSecret.SyncFrequencyInSec <= 5 {
 			clusterSecret.SyncFrequencyInSec = 5
 		} else {
-			CONFIG.Iac.PollingIntervalSecs = clusterSecret.SyncFrequencyInSec
+			CONFIG.Iac.SyncFrequencyInSec = clusterSecret.SyncFrequencyInSec
 		}
 	}
 }
@@ -246,7 +251,8 @@ func PrintSettings() {
 	log.Infof("IAC")
 	log.Infof("RepoUrl:                   %s", CONFIG.Iac.RepoUrl)
 	log.Infof("RepoPat:                   %s", CONFIG.Iac.RepoPat)
-	log.Infof("PollingIntervalSecs:       %d", CONFIG.Iac.PollingIntervalSecs)
+	log.Infof("RepoBranch:                %s", CONFIG.Iac.RepoBranch)
+	log.Infof("PollingIntervalSecs:       %d", CONFIG.Iac.SyncFrequencyInSec)
 	log.Infof("AllowPull:                 %t", CONFIG.Iac.AllowPull)
 	log.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
 	log.Infof("AllowManualClusterChanges: %t", CONFIG.Iac.AllowManualClusterChanges)

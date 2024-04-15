@@ -288,8 +288,10 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 		case structs.PAT_CLUSTER_TCP_UDP_CONFIGURATION:
 			payload = nil
 
-		case structs.PAT_CLUSTER_SYNC_REPO:
-			payload = dtos.AddSyncRepoRequestExampleData()
+		case structs.PAT_CLUSTER_SYNC_INFO:
+			payload = nil
+		case structs.PAT_CLUSTER_SYNC_UPDATE:
+			payload = dtos.SyncRepoDataExampleData()
 
 		case structs.PAT_CLUSTER_WRITE_CONFIGMAP:
 			payload = services.ClusterWriteConfigMapExample()

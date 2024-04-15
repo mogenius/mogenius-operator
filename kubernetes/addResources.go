@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"mogenius-k8s-manager/dtos"
@@ -116,12 +115,22 @@ func applyNamespace(provider *punq.KubeProvider) {
 	log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
-func AddSynRepoData(syncRepoReq *dtos.AddSyncRepoRequest) error {
-	_, err := CreateOrUpdateClusterSecret(syncRepoReq)
+func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
+	secret, err := CreateOrUpdateClusterSecret(syncRepoReq)
+	if err == nil {
+		utils.CONFIG.Iac.RepoUrl = secret.SyncRepoUrl
+		utils.CONFIG.Iac.RepoPat = secret.SyncRepoPat
+		utils.CONFIG.Iac.RepoBranch = secret.SyncRepoBranch
+		utils.CONFIG.Iac.AllowPull = secret.SyncAllowPull
+		utils.CONFIG.Iac.AllowPush = secret.SyncAllowPush
+		utils.CONFIG.Iac.AllowManualClusterChanges = secret.AllowManualClusterChanges
+		utils.CONFIG.Iac.SyncFrequencyInSec = secret.SyncFrequencyInSec
+		utils.CONFIG.Iac.SyncWorkloads = secret.SyncWorkloads
+	}
 	return err
 }
 
-func CreateOrUpdateClusterSecret(syncRepoReq *dtos.AddSyncRepoRequest) (utils.ClusterSecret, error) {
+func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		log.Fatal("Error creating kubeprovider")
@@ -133,7 +142,27 @@ func CreateOrUpdateClusterSecret(syncRepoReq *dtos.AddSyncRepoRequest) (utils.Cl
 	return writeMogeniusSecret(secretClient, existingSecret, getErr, syncRepoReq)
 }
 
-func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error, syncRepoReq *dtos.AddSyncRepoRequest) (utils.ClusterSecret, error) {
+func GetSyncRepoData() (*dtos.SyncRepoData, error) {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Fatal("Error creating kubeprovider")
+	}
+
+	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
+
+	existingSecret, getErr := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+	if getErr != nil {
+		return nil, getErr
+	}
+
+	result := dtos.CreateSyncRepoDataFrom(existingSecret)
+	if result.Pat != "" {
+		result.Pat = "***"
+	}
+	return &result, nil
+}
+
+func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error, syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
 	// CREATE NEW SECRET
 	apikey := os.Getenv("api_key")
 	if apikey == "" {
@@ -161,52 +190,30 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		if string(existingSecret.Data["cluster-mfa-id"]) != "" {
 			clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
 		}
-		clusterSecret.SyncRepoUrl = string(existingSecret.Data["sync-repo-url"])
-		clusterSecret.SyncRepoPat = string(existingSecret.Data["sync-repo-pat"])
-		if string(existingSecret.Data["sync-allow-pull"]) != "" {
-			syncPull, err := strconv.ParseBool(string(existingSecret.Data["sync-allow-pull"]))
-			if err == nil {
-				clusterSecret.SyncAllowPull = syncPull
-			}
-		} else {
-			clusterSecret.SyncAllowPull = true
-		}
-		if string(existingSecret.Data["sync-allow-push"]) != "" {
-			syncPush, err := strconv.ParseBool(string(existingSecret.Data["sync-allow-push"]))
-			if err == nil {
-				clusterSecret.SyncAllowPush = syncPush
-			}
-		} else {
-			clusterSecret.SyncAllowPush = true
-		}
-		if string(existingSecret.Data["allow-manual-cluster-changes"]) != "" {
-			syncAllowManClustChange, err := strconv.ParseBool(string(existingSecret.Data["allow-manual-cluster-changes"]))
-			if err == nil {
-				clusterSecret.AllowManualClusterChanges = syncAllowManClustChange
-			}
-		} else {
-			clusterSecret.AllowManualClusterChanges = true
-		}
-		if string(existingSecret.Data["sync-frequency-in-sec"]) != "" {
-			freqSec, err := strconv.ParseInt(string(existingSecret.Data["sync-frequency-in-sec"]), 10, 64)
-			if err == nil {
-				clusterSecret.SyncFrequencyInSec = int(freqSec)
-			}
-		} else {
-			clusterSecret.SyncFrequencyInSec = 10
-		}
-
+		syncdata := dtos.CreateSyncRepoDataFrom(existingSecret)
+		clusterSecret.SyncRepoUrl = syncdata.Repo
+		clusterSecret.SyncRepoPat = syncdata.Pat
+		clusterSecret.SyncRepoBranch = syncdata.Branch
+		clusterSecret.SyncAllowPull = syncdata.AllowPull
+		clusterSecret.SyncAllowPush = syncdata.AllowPush
+		clusterSecret.AllowManualClusterChanges = syncdata.AllowManualClusterChanges
+		clusterSecret.SyncFrequencyInSec = syncdata.SyncFrequencyInSec
+		clusterSecret.SyncWorkloads = syncdata.SyncWorkloads
 	}
 	if clusterSecret.ClusterMfaId == "" {
 		clusterSecret.ClusterMfaId = punqUtils.NanoId()
 	}
 	if syncRepoReq != nil {
 		clusterSecret.SyncRepoUrl = syncRepoReq.Repo
-		clusterSecret.SyncRepoPat = syncRepoReq.Pat
+		if syncRepoReq.Pat != "***" {
+			clusterSecret.SyncRepoPat = syncRepoReq.Pat
+		}
+		clusterSecret.SyncRepoBranch = syncRepoReq.Branch
 		clusterSecret.SyncAllowPull = syncRepoReq.AllowPull
 		clusterSecret.SyncAllowPush = syncRepoReq.AllowPush
 		clusterSecret.AllowManualClusterChanges = syncRepoReq.AllowManualClusterChanges
 		clusterSecret.SyncFrequencyInSec = syncRepoReq.SyncFrequencyInSec
+		clusterSecret.SyncWorkloads = syncRepoReq.SyncWorkloads
 	}
 
 	secret := punqUtils.InitSecret()
@@ -219,10 +226,12 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
 	secret.StringData["sync-repo-url"] = clusterSecret.SyncRepoUrl
 	secret.StringData["sync-repo-pat"] = clusterSecret.SyncRepoPat
+	secret.StringData["sync-repo-branch"] = clusterSecret.SyncRepoBranch
 	secret.StringData["sync-allow-pull"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPull)
 	secret.StringData["sync-allow-push"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPush)
 	secret.StringData["allow-manual-cluster-changes"] = fmt.Sprintf("%t", clusterSecret.AllowManualClusterChanges)
 	secret.StringData["sync-frequency-in-sec"] = fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec)
+	secret.StringData["sync-workloads"] = strings.Join(clusterSecret.SyncWorkloads, ",")
 
 	if existingSecret == nil || getErr != nil {
 		log.Info("🔑 Creating new mogenius secret ...")
@@ -238,10 +247,12 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName ||
 			string(existingSecret.Data["sync-repo-url"]) != clusterSecret.SyncRepoUrl ||
 			string(existingSecret.Data["sync-repo-pat"]) != clusterSecret.SyncRepoPat ||
+			string(existingSecret.Data["sync-repo-branch"]) != clusterSecret.SyncRepoBranch ||
 			string(existingSecret.Data["sync-allow-pull"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPull) ||
 			string(existingSecret.Data["sync-allow-push"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPush) ||
 			string(existingSecret.Data["sync-frequency-in-sec"]) != fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec) ||
-			string(existingSecret.Data["allow-manual-cluster-changes"]) != fmt.Sprintf("%t", clusterSecret.AllowManualClusterChanges) {
+			string(existingSecret.Data["allow-manual-cluster-changes"]) != fmt.Sprintf("%t", clusterSecret.AllowManualClusterChanges) ||
+			string(existingSecret.Data["sync-workloads"]) != strings.Join(clusterSecret.SyncWorkloads, ",") {
 			log.Info("🔑 Updating existing mogenius secret ...")
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
