@@ -1552,6 +1552,28 @@ else
 	curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 	echo "grype is installed. 🚀"
 fi
+
+# install dive
+if command -v dive >/dev/null 2>&1; then
+    echo "dive is installed. Skipping installation."
+else
+	DIVE_VERSION=$(curl -sL "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+	curl -OL https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.tar.gz
+	tar -xf dive_${DIVE_VERSION}_linux_amd64.tar.gz dive
+	chmod +x dive
+	mv dive /usr/local/bin/dive
+	rm dive_${DIVE_VERSION}_linux_amd64.tar.gz
+	echo "dive is installed. 🚀"
+fi
+
+# install trivy
+if command -v trivy >/dev/null 2>&1; then
+    echo "trivy is installed. Skipping installation."
+else
+	TRIVY_VERSION=$(curl -sL "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin ${TRIVY_VERSION}
+	echo "trivy is installed. 🚀"
+fi
 `
 	defaultAppsConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false, nil)
 	if defaultAppsConfigmap != nil {

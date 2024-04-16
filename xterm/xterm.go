@@ -50,9 +50,11 @@ type BuildLogConnectionRequest struct {
 }
 
 type ScanImageLogConnectionRequest struct {
-	Namespace  string `json:"namespace" validate:"required"`
-	Controller string `json:"controller" validate:"required"`
-	Container  string `json:"container" validate:"required"`
+	Namespace     string `json:"namespace" validate:"required"`
+	Controller    string `json:"controller" validate:"required"`
+	Container     string `json:"container" validate:"required"`
+	CmdType       string `json:"cmdType" validate:"required"`
+	ScanImageType string `json:"scanImageType" validate:"required"`
 
 	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
 	ContainerRegistryUser string `json:"containerRegistryUser"`
@@ -458,6 +460,8 @@ func XTermScanImageLogStreamConnection(
 	namespace string,
 	controller string,
 	container string,
+	cmdType string,
+	scanImageType string,
 	containerRegistryUrl string,
 	containerRegistryUser *string,
 	containerRegistryPat *string,
@@ -494,13 +498,21 @@ func XTermScanImageLogStreamConnection(
 	}
 
 	cmdPull := fmt.Sprintf("docker pull %s", containerImage)
-	cmdGrype := fmt.Sprintf("grype %s", containerImage)
-	cmdString := fmt.Sprintf("%s && %s", cmdPull, cmdGrype)
+	cmdScanType := fmt.Sprintf("grype %s", containerImage)
+	switch scanImageType {
+	case "grype":
+		cmdScanType = fmt.Sprintf("grype %s", containerImage)
+	case "dive":
+		cmdScanType = fmt.Sprintf("dive %s", containerImage)
+	case "trivy":
+		cmdScanType = fmt.Sprintf("trivy image %s", containerImage)
+	}
+	cmdString := fmt.Sprintf("%s && %s", cmdPull, cmdScanType)
 	if containerRegistryUser != nil && containerRegistryPat != nil {
 		if *containerRegistryUser != "" && *containerRegistryPat != "" {
 			cmdString = fmt.Sprintf(
 				`echo '%s' | docker login %s -u %s --password-stdin && %s && %s`,
-				*containerRegistryPat, containerRegistryUrl, *containerRegistryUser, cmdPull, cmdGrype)
+				*containerRegistryPat, containerRegistryUrl, *containerRegistryUser, cmdPull, cmdScanType)
 
 		}
 	}
@@ -605,21 +617,23 @@ func XTermScanImageLogStreamConnection(
 		}
 	}()
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				time.Sleep(1 * time.Second)
-				err := conn.WriteMessage(websocket.TextMessage, []byte("."))
-				if err != nil {
-					log.Errorf("WriteMessage: %s", err.Error())
+	if scanImageType == "grype" {
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					time.Sleep(1 * time.Second)
+					err := conn.WriteMessage(websocket.TextMessage, []byte("."))
+					if err != nil {
+						log.Errorf("WriteMessage: %s", err.Error())
+					}
+					continue
 				}
-				continue
 			}
-		}
-	}()
+		}()
+	}
 
 	for {
 		_, reader, err := conn.ReadMessage()
@@ -647,6 +661,9 @@ func XTermScanImageLogStreamConnection(
 
 		if string(reader) == "PEER_IS_READY" {
 			continue
+		}
+		if cmdType == "exec-sh" {
+			tty.Write(reader)
 		}
 	}
 }
