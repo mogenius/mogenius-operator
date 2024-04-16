@@ -2236,7 +2236,6 @@ func scanImageLogStreamConnection(buildLogConnectionRequest xterm.ScanImageLogCo
 		buildLogConnectionRequest.Namespace,
 		buildLogConnectionRequest.Controller,
 		buildLogConnectionRequest.Container,
-		// buildLogConnectionRequest.ContainerImage,
 		buildLogConnectionRequest.ContainerRegistryUrl,
 		&buildLogConnectionRequest.ContainerRegistryUser,
 		&buildLogConnectionRequest.ContainerRegistryPat,

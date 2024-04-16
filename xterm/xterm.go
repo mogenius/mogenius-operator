@@ -53,7 +53,6 @@ type ScanImageLogConnectionRequest struct {
 	Namespace  string `json:"namespace" validate:"required"`
 	Controller string `json:"controller" validate:"required"`
 	Container  string `json:"container" validate:"required"`
-	// ContainerImage string `json:"containerImage" validate:"required"`
 
 	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
 	ContainerRegistryUser string `json:"containerRegistryUser"`
@@ -459,7 +458,6 @@ func XTermScanImageLogStreamConnection(
 	namespace string,
 	controller string,
 	container string,
-	// containerImage string,
 	containerRegistryUrl string,
 	containerRegistryUser *string,
 	containerRegistryPat *string,

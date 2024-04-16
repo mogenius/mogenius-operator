@@ -591,13 +591,13 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 	if job == nil {
 		return line
 	}
-	if job.Project.GitAccessToken != nil {
+	if job.Project.GitAccessToken != nil && *job.Project.GitAccessToken != "" {
 		line = strings.ReplaceAll(line, *job.Project.GitAccessToken, "****")
 	}
-	if job.Project.ContainerRegistryPat != nil {
+	if job.Project.ContainerRegistryPat != nil && *job.Project.ContainerRegistryPat != "" {
 		line = strings.ReplaceAll(line, *job.Project.ContainerRegistryPat, "****")
 	}
-	if job.Project.ContainerRegistryUser != nil {
+	if job.Project.ContainerRegistryUser != nil && *job.Project.ContainerRegistryUser != "" {
 		line = strings.ReplaceAll(line, *job.Project.ContainerRegistryUser, "****")
 	}
 	for _, container := range job.Service.Containers {
