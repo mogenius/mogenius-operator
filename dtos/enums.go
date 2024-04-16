@@ -78,3 +78,33 @@ const (
 	CONTAINER_GIT_REPOSITORY  K8sContainerTypeEnum = "GIT_REPOSITORY"
 	CONTAINER_CONTAINER_IMAGE K8sContainerTypeEnum = "CONTAINER_IMAGE"
 )
+
+const (
+	KindNamespaces      string = "namespaces"
+	KindDeployments     string = "deployments"
+	KindPods            string = "pods"
+	KindStatefulSets    string = "statefulsets"
+	KindServices        string = "services"
+	KindIngresses       string = "ingresses"
+	KindConfigMaps      string = "configmaps"
+	KindSecrets         string = "secrets"
+	KindJobs            string = "jobs"
+	KindCronJobs        string = "cronjobs"
+	KindDaemonSets      string = "daemonsets"
+	KindNetworkPolicies string = "networkpolicies"
+)
+
+var AvailableSyncWorkloadKinds = []string{
+	KindNamespaces,
+	KindPods,
+	KindDeployments,
+	KindStatefulSets,
+	KindServices,
+	KindIngresses,
+	KindConfigMaps,
+	KindSecrets,
+	KindJobs,
+	KindCronJobs,
+	KindDaemonSets,
+	KindNetworkPolicies,
+}

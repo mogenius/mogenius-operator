@@ -49,45 +49,34 @@ func ResourceWatcher() {
 	log.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
 		switch workload {
-		case "configmaps":
+		case dtos.KindConfigMaps:
 			go WatchConfigmaps()
-			log.Infof("Started watching Configmaps 🚀.")
-		case "deployments":
+		case dtos.KindDeployments:
 			go WatchDeployments()
-			log.Infof("Started watching Deployments 🚀.")
-		case "pods":
+		case dtos.KindPods:
 			go WatchPods()
-			log.Infof("Started watching Pods 🚀.")
-		case "ingresses":
+		case dtos.KindIngresses:
 			go WatchIngresses()
-			log.Infof("Started watching Ingresses 🚀.")
-		case "secrets":
+		case dtos.KindSecrets:
 			go WatchSecrets()
-			log.Infof("Started watching Secrets 🚀.")
-		case "services":
+		case dtos.KindServices:
 			go WatchServices()
-			log.Infof("Started watching Services 🚀.")
-		case "namespaces":
+		case dtos.KindNamespaces:
 			go WatchNamespaces()
-			log.Infof("Started watching Namespaces 🚀.")
-		case "networkpolicies":
+		case dtos.KindNetworkPolicies:
 			go WatchNetworkPolicies()
-			log.Infof("Started watching NetworkPolicies 🚀.")
-		case "jobs":
+		case dtos.KindJobs:
 			go WatchJobs()
-			log.Infof("Started watching Jobs 🚀.")
-		case "cronjobs":
+		case dtos.KindCronJobs:
 			go WatchCronJobs()
-			log.Infof("Started watching CronJobs 🚀.")
-		case "daemonsets":
+		case dtos.KindDaemonSets:
 			go WatchDaemonSets()
-			log.Infof("Started watching DaemonSets 🚀.")
-		case "statefulsets":
+		case dtos.KindStatefulSets:
 			go WatchStatefulSets()
-			log.Infof("Started watching StatefulSets 🚀.")
 		default:
 			log.Fatalf("🚫 Unknown resource type: %s", workload)
 		}
+		log.Infof("Started watching %s 🚀.", workload)
 	}
 }
 

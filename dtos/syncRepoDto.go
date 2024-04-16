@@ -8,8 +8,6 @@ import (
 	core "k8s.io/api/core/v1"
 )
 
-var DefaultSyncWorkloads = []string{"namespaces", "pods", "deployments", "statefulsets", "services", "ingresses", "configmaps", "secrets", "jobs", "cronjobs", "daemonsets", "networkpolicies"}
-
 type SyncRepoData struct {
 	Repo                      string   `json:"repo" validate:"required"`
 	Pat                       string   `json:"pat"`
@@ -19,10 +17,11 @@ type SyncRepoData struct {
 	AllowManualClusterChanges bool     `json:"allowManualClusterChanges"`
 	SyncFrequencyInSec        int      `json:"syncFrequencyInSec"`
 	SyncWorkloads             []string `json:"syncWorkloads"`
+	AvailableSyncWorkloads    []string `json:"availableSyncWorkloads"`
 }
 
 func (p *SyncRepoData) AddSecretsToRedaction() {
-	if p.Pat != "***" && p.Pat != "" {
+	if p.Pat != "***" {
 		utils.AddSecret(&p.Pat)
 	}
 }
@@ -36,7 +35,8 @@ func SyncRepoDataExampleData() SyncRepoData {
 		AllowPush:                 true,
 		AllowManualClusterChanges: true,
 		SyncFrequencyInSec:        5,
-		SyncWorkloads:             DefaultSyncWorkloads,
+		SyncWorkloads:             AvailableSyncWorkloadKinds,
+		AvailableSyncWorkloads:    AvailableSyncWorkloadKinds,
 	}
 }
 
@@ -52,8 +52,9 @@ func CreateSyncRepoDataFrom(secret *core.Secret) SyncRepoData {
 		result.Branch = "main"
 	}
 	if len(result.SyncWorkloads) == 1 && result.SyncWorkloads[0] == "" {
-		result.SyncWorkloads = DefaultSyncWorkloads
+		result.SyncWorkloads = AvailableSyncWorkloadKinds
 	}
+	result.AvailableSyncWorkloads = AvailableSyncWorkloadKinds
 
 	pull, err := strconv.ParseBool(string(secret.Data["sync-allow-pull"]))
 	if err != nil {

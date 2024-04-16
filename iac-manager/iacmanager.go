@@ -79,6 +79,14 @@ func SetupRemote() error {
 	return nil
 }
 
+func DeleteCurrentRepoData() {
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	err := os.RemoveAll(folder)
+	if err != nil {
+		log.Errorf("Error deleting current repository data: %s", err.Error())
+	}
+}
+
 func CheckRepoAccess() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
 		err := fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")

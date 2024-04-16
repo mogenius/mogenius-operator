@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"mogenius-k8s-manager/dtos"
+	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -116,6 +117,18 @@ func applyNamespace(provider *punq.KubeProvider) {
 }
 
 func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
+	previousData, err := GetSyncRepoData()
+	if err != nil {
+		return err
+	}
+	// check if essential data is changed
+	if previousData.Repo != syncRepoReq.Repo ||
+		previousData.Branch != syncRepoReq.Branch ||
+		previousData.AllowPull != syncRepoReq.AllowPull {
+		log.Warn("⚠️⚠️⚠️ SyncRepoData has changed in a way that requires the deletion of current repo ...")
+		iacmanager.DeleteCurrentRepoData()
+	}
+
 	secret, err := CreateOrUpdateClusterSecret(syncRepoReq)
 	if err == nil {
 		utils.CONFIG.Iac.RepoUrl = secret.SyncRepoUrl
