@@ -1,0 +1,26 @@
+apiVersion: mogenius.io/v1
+kind: Project
+metadata:
+  name: full-stack-project
+spec:
+  displayName: Full Stack Project
+  cluster:
+    name: hetzner-test-cluster
+    displayName: Hetzner Test Cluster
+    description: "blah blah blah"
+    owner: "Bob Smith"
+  project:
+    name: MyFancyProject
+    description: "This is a test project"
+    displayName: My Fancy Project
+    owner: "Alice McAllister"
+  services:
+    - name: mysqldb
+      type: repository
+    - name: webservice
+      type: container
+    - name: api-proxy
+      type: repository
+    - name: frontend
+      type: container
+  serviceCount: 4
