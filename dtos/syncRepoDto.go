@@ -9,7 +9,7 @@ import (
 )
 
 type SyncRepoData struct {
-	Repo                      string   `json:"repo" validate:"required"`
+	Repo                      string   `json:"repo"`
 	Pat                       string   `json:"pat"`
 	Branch                    string   `json:"branch"`
 	AllowPull                 bool     `json:"allowPull"`
