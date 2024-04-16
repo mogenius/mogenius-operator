@@ -1936,14 +1936,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		data.Project.AddSecretsToRedaction()
 		data.Service.AddSecretsToRedaction()
 		return builder.Add(data)
-	case structs.PAT_BUILD_SCAN:
-		data := structs.ScanImageRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		data.AddSecretsToRedaction()
-		return builder.Scan(data)
 	case structs.PAT_BUILD_CANCEL:
 		data := structs.BuildJob{}
 		structs.MarshalUnmarshal(&datagram, &data)

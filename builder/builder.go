@@ -111,7 +111,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, container *dtos.K8sConta
 	latestTagName := fmt.Sprintf("%s/%s:latest", *buildJob.Project.ContainerRegistryPath, imageName)
 
 	// overwrite images name for local builds
-	if buildJob.Project.ContainerRegistryUser == nil && buildJob.Project.ContainerRegistryPat == nil {
+	if (buildJob.Project.ContainerRegistryUser == nil && buildJob.Project.ContainerRegistryPat == nil) || (*buildJob.Project.ContainerRegistryUser == "" && *buildJob.Project.ContainerRegistryPat == "") {
 		tagName = fmt.Sprintf("%s/%s:%d", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName, buildJob.BuildId)
 		latestTagName = fmt.Sprintf("%s/%s:latest", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName)
 	}
@@ -140,7 +140,7 @@ func build(job structs.Job, buildJob *structs.BuildJob, container *dtos.K8sConta
 	}
 
 	// LOGIN
-	if buildJob.Project.ContainerRegistryUser != nil && buildJob.Project.ContainerRegistryPat != nil {
+	if buildJob.Project.ContainerRegistryUser != nil && buildJob.Project.ContainerRegistryPat != nil && *buildJob.Project.ContainerRegistryUser != "" && *buildJob.Project.ContainerRegistryPat != "" {
 		loginCmd := structs.CreateCommandFromBuildJob("Authenticate with container registry", buildJob)
 		err = executeCmd(loginCmd, structs.PrefixLogin, buildJob, container, nil, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", *buildJob.Project.ContainerRegistryUrl, *buildJob.Project.ContainerRegistryUser, *buildJob.Project.ContainerRegistryPat))
 		if err != nil {
@@ -184,80 +184,80 @@ func build(job structs.Job, buildJob *structs.BuildJob, container *dtos.K8sConta
 	}
 }
 
-func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
-	if req.ContainerImage == "" {
-		imagename, err := kubernetes.GetDeploymentImage(req.NamespaceName, req.ControllerName, req.ContainerName)
-		if err != nil || imagename == "" {
-			return structs.CreateBuildScanResult("", "Error: No image found in deployment.")
-		}
-		req.ContainerImage = imagename
-	}
-
-	result := structs.CreateBuildScanResult(fmt.Sprintf("Scan of '%s' started ...", req.ContainerImage), "")
-
-	// CHECK IF IMAGE HAS BEEN SCANNED BEFORE (CHECK BOLT DB)
-	cachedEntry, cacheMissed := db.GetScannedImageFromCache(req)
-	result.Result = &cachedEntry
-
-	if cacheMissed != nil {
-		log.Infof("Cache missed: %s", cacheMissed.Error())
-		go func() {
-			db.StartScanInCache(cachedEntry, req.ContainerImage)
-			job := structs.CreateJob(fmt.Sprintf("Vulnerability scan: '%s'", req.ContainerImage), req.ProjectId, &req.NamespaceId, &req.ServiceId)
-			job.Start()
-
-			pwd, _ := os.Getwd()
-			grypeTemplate := fmt.Sprintf("%s/grype-json-template", pwd)
-
-			ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
-
-			defer func() {
-				job.Finish()
-				cancel()
-			}()
-			// LOGIN
-			if req.ContainerRegistryUser != nil && req.ContainerRegistryPat != nil {
-				if *req.ContainerRegistryUser != "" && *req.ContainerRegistryPat != "" {
-					loginCmd := structs.CreateCommand("Authenticate with container registry ...", &job)
-					job.AddCmd(loginCmd)
-					err := executeCmd(loginCmd, structs.PrefixLogin, nil, nil, &req.ContainerImage, false, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", *req.ContainerRegistryPat, *req.ContainerRegistryUrl, *req.ContainerRegistryUser))
-					if err != nil {
-						log.Errorf("Error%s: %s", structs.PrefixLogin, err.Error())
-						result.Result.State = punqStructs.JobStateFailed
-						result.Error = &loginCmd.Message
-						return
-					}
-				}
-			}
-			buildJob := structs.BuildJobFrom(job.Id, req)
-
-			// PULL IMAGE
-			pullCmd := structs.CreateCommand("Pull image for vulnerabilities ...", &job)
-			job.AddCmd(pullCmd)
-			log.Errorf("TODO - pull image for vulnerabilities ...")
-			err := executeCmd(pullCmd, structs.PrefixPull, &buildJob, nil, &req.ContainerImage, false, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker pull %s", req.ContainerImage))
-			if err != nil {
-				log.Errorf("Error%s: %s", structs.PrefixPull, err.Error())
-				result.Result.State = punqStructs.JobStateFailed
-				result.Error = &pullCmd.Message
-				return
-			}
-
-			// SCAN
-			scanCmd := structs.CreateCommand("Scanning for vulnerabilities", &job)
-			job.AddCmd(scanCmd)
-			log.Errorf("TODO - pull image for vulnerabilities ...")
-			err = executeCmd(scanCmd, db.PREFIX_VUL_SCAN, &buildJob, nil, &req.ContainerImage, true, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("grype %s --add-cpes-if-none -q -o template -t %s", req.ContainerImage, grypeTemplate))
-			if err != nil {
-				log.Errorf("Error%s: %s", db.PREFIX_VUL_SCAN, err.Error())
-				result.Result.State = punqStructs.JobStateFailed
-				result.Error = &scanCmd.Message
-				return
-			}
-		}()
-	}
-	return result
-}
+//func Scan(req structs.ScanImageRequest) structs.BuildScanResult {
+//	if req.ContainerImage == "" {
+//		imagename, err := kubernetes.GetDeploymentImage(req.NamespaceName, req.ControllerName, req.ContainerName)
+//		if err != nil || imagename == "" {
+//			return structs.CreateBuildScanResult("", "Error: No image found in deployment.")
+//		}
+//		req.ContainerImage = imagename
+//	}
+//
+//	result := structs.CreateBuildScanResult(fmt.Sprintf("Scan of '%s' started ...", req.ContainerImage), "")
+//
+//	// CHECK IF IMAGE HAS BEEN SCANNED BEFORE (CHECK BOLT DB)
+//	cachedEntry, cacheMissed := db.GetScannedImageFromCache(req)
+//	result.Result = &cachedEntry
+//
+//	if cacheMissed != nil {
+//		log.Infof("Cache missed: %s", cacheMissed.Error())
+//		go func() {
+//			db.StartScanInCache(cachedEntry, req.ContainerImage)
+//			job := structs.CreateJob(fmt.Sprintf("Vulnerability scan: '%s'", req.ContainerImage), req.ProjectId, &req.NamespaceId, &req.ServiceId)
+//			job.Start()
+//
+//			pwd, _ := os.Getwd()
+//			grypeTemplate := fmt.Sprintf("%s/grype-json-template", pwd)
+//
+//			ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+//
+//			defer func() {
+//				job.Finish()
+//				cancel()
+//			}()
+//			// LOGIN
+//			if req.ContainerRegistryUser != nil && req.ContainerRegistryPat != nil {
+//				if *req.ContainerRegistryUser != "" && *req.ContainerRegistryPat != "" {
+//					loginCmd := structs.CreateCommand("Authenticate with container registry ...", &job)
+//					job.AddCmd(loginCmd)
+//					err := executeCmd(loginCmd, structs.PrefixLogin, nil, nil, &req.ContainerImage, false, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("echo \"%s\" | docker login %s -u %s --password-stdin", *req.ContainerRegistryPat, *req.ContainerRegistryUrl, *req.ContainerRegistryUser))
+//					if err != nil {
+//						log.Errorf("Error%s: %s", structs.PrefixLogin, err.Error())
+//						result.Result.State = punqStructs.JobStateFailed
+//						result.Error = &loginCmd.Message
+//						return
+//					}
+//				}
+//			}
+//			buildJob := structs.BuildJobFrom(job.Id, req)
+//
+//			// PULL IMAGE
+//			pullCmd := structs.CreateCommand("Pull image for vulnerabilities ...", &job)
+//			job.AddCmd(pullCmd)
+//			log.Errorf("TODO - pull image for vulnerabilities ...")
+//			err := executeCmd(pullCmd, structs.PrefixPull, &buildJob, nil, &req.ContainerImage, false, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("docker pull %s", req.ContainerImage))
+//			if err != nil {
+//				log.Errorf("Error%s: %s", structs.PrefixPull, err.Error())
+//				result.Result.State = punqStructs.JobStateFailed
+//				result.Error = &pullCmd.Message
+//				return
+//			}
+//
+//			// SCAN
+//			scanCmd := structs.CreateCommand("Scanning for vulnerabilities", &job)
+//			job.AddCmd(scanCmd)
+//			log.Errorf("TODO - pull image for vulnerabilities ...")
+//			err = executeCmd(scanCmd, db.PREFIX_VUL_SCAN, &buildJob, nil, &req.ContainerImage, true, false, &ctxTimeout, "/bin/sh", "-c", fmt.Sprintf("grype %s --add-cpes-if-none -q -o template -t %s", req.ContainerImage, grypeTemplate))
+//			if err != nil {
+//				log.Errorf("Error%s: %s", db.PREFIX_VUL_SCAN, err.Error())
+//				result.Result.State = punqStructs.JobStateFailed
+//				result.Error = &scanCmd.Message
+//				return
+//			}
+//		}()
+//	}
+//	return result
+//}
 
 func BuilderStatus() structs.BuilderStatus {
 	return db.GetBuilderStatus()

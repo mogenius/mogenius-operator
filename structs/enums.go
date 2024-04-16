@@ -343,13 +343,13 @@ const (
 	PAT_STORAGE_NAMESPACE_STATS string = "storage/namespace/stats"
 	PAT_STORAGE_STATUS          string = "storage/status"
 
-	PAT_BUILDER_STATUS                 string = "build/builder-status"
-	PAT_BUILD_INFOS                    string = "build/info"
-	PAT_BUILD_LAST_INFOS               string = "build/last-infos"
-	PAT_BUILD_LIST_ALL                 string = "build/list-all"
-	PAT_BUILD_LIST_BY_PROJECT          string = "build/list-by-project"
-	PAT_BUILD_ADD                      string = "build/add"
-	PAT_BUILD_SCAN                     string = "build/scan"
+	PAT_BUILDER_STATUS        string = "build/builder-status"
+	PAT_BUILD_INFOS           string = "build/info"
+	PAT_BUILD_LAST_INFOS      string = "build/last-infos"
+	PAT_BUILD_LIST_ALL        string = "build/list-all"
+	PAT_BUILD_LIST_BY_PROJECT string = "build/list-by-project"
+	PAT_BUILD_ADD             string = "build/add"
+	// PAT_BUILD_SCAN                     string = "build/scan"
 	PAT_BUILD_CANCEL                   string = "build/cancel"
 	PAT_BUILD_DELETE                   string = "build/delete"
 	PAT_BUILD_LAST_JOB_OF_SERVICES     string = "build/last-job-of-services"
@@ -709,7 +709,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_BUILD_LIST_ALL,
 	PAT_BUILD_LIST_BY_PROJECT,
 	PAT_BUILD_ADD,
-	PAT_BUILD_SCAN,
+	// PAT_BUILD_SCAN,
 	PAT_BUILD_CANCEL,
 	PAT_BUILD_DELETE,
 	PAT_BUILD_LAST_JOB_OF_SERVICES,
@@ -731,5 +731,5 @@ var SUPPRESSED_OUTPUT_PATTERN = []string{
 	PAT_STORAGE_STATUS,
 	PAT_STORAGE_NAMESPACE_STATS,
 	PAT_BUILD_LAST_JOB_OF_SERVICES,
-	PAT_BUILD_SCAN,
+	// PAT_BUILD_SCAN,
 }

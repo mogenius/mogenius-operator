@@ -12,7 +12,7 @@ var secrets = map[string]bool{}
 const REDACTED = "***[REDACTED]***"
 
 func AddSecret(secret *string) {
-	if secret == nil || *secret == "" {
+	if secret == nil || len(*secret) < 4 {
 		return
 	}
 	secrets[*secret] = true

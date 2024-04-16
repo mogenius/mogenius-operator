@@ -561,8 +561,8 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = structs.ListBuildByProjectIdRequestExample()
 		case structs.PAT_BUILD_ADD:
 			payload = structs.BuildJobExample()
-		case structs.PAT_BUILD_SCAN:
-			payload = structs.ScanImageRequestExample()
+		//case structs.PAT_BUILD_SCAN:
+		//	payload = structs.ScanImageRequestExample()
 		case structs.PAT_BUILD_CANCEL:
 			payload = structs.BuildJobExample()
 		case structs.PAT_BUILD_DELETE:

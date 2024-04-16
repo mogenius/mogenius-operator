@@ -514,61 +514,6 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 	return int(nextBuildId), err
 }
 
-func SaveScanResult2(state punqStructs.JobStateEnum, cmdOutput string, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
-	err := db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
-		log.Errorf("TODO - SCAN ...")
-		// entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)
-		return bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, containerImageName)), []byte("entry"))
-	})
-	if err != nil {
-		log.Errorf("Error saving scan result for '%s'.", containerImageName)
-	}
-	return err
-}
-
-func GetScanImage(containerImageName string) (structs.BuildScanImageEntry, error) {
-	entry := structs.BuildScanImageEntry{
-		Result:    "",
-		CreatedAt: time.Now().Format(time.RFC3339),
-	}
-	err := db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
-		key := fmt.Sprintf("%s-%s", PREFIX_VUL_SCAN, containerImageName)
-		rawData := string(bucket.Get([]byte(key)))
-
-		if rawData != "" {
-			err := structs.UnmarshalBuildScanImageEntry(&entry, []byte(rawData))
-			if err == nil && !isMoreThan24HoursAgo(entry.CreatedAt) {
-				return nil
-			}
-		}
-		return fmt.Errorf("Not cached data found in bold db for %s. Starting scan ...", containerImageName)
-	})
-	return entry, err
-}
-
-func SaveScanImageResult(containerImageName string, cmdOutput string) error {
-	err := db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
-		entry := structs.CreateScanImageEntryBytes(cmdOutput)
-		key := fmt.Sprintf("%s-%s", PREFIX_VUL_SCAN, containerImageName)
-		return bucket.Put([]byte(key), []byte(entry))
-	})
-	if err != nil {
-		log.Errorf("Error saving scan result for '%s'.", containerImageName)
-	}
-	return err
-}
-
-func DeleteScanImageResult(containerImageName string) error {
-	return db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
-		key := fmt.Sprintf("%s-%s", PREFIX_VUL_SCAN, containerImageName)
-		return bucket.Delete([]byte(key))
-	})
-}
-
 func SaveBuildResult(
 	state punqStructs.JobStateEnum,
 	prefix structs.BuildPrefixEnum,
@@ -580,7 +525,8 @@ func SaveBuildResult(
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), prefix, job, container)
-		return bucket.Put([]byte(structs.BuildJobInfoEntryKey(prefix, job.BuildId, job.Namespace.Name, job.Service.ControllerName, container.Name)), entry)
+		key := structs.BuildJobInfoEntryKey(prefix, job.BuildId, job.Namespace.Name, job.Service.ControllerName, container.Name)
+		return bucket.Put([]byte(key), entry)
 	})
 	if err != nil {
 		log.Errorf("Error saving build result for '%d'.", job.BuildId)
