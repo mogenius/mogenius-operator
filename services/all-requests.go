@@ -2189,7 +2189,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 
 	data, err := io.ReadAll(previousStream)
 	if err != nil {
-		log.Error("failed to read data: %v", err)
+		log.Errorf("failed to read data: %v", err)
 	}
 
 	lastState := punq.LastTerminatedStateToString(terminatedState)

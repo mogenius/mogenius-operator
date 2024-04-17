@@ -1232,7 +1232,7 @@ func InstallMetalLb() string {
 		for {
 			// this is important because the control plane needs some time to make the CRDs available
 			time.Sleep(1 * time.Second)
-			err := mokubernetes.ApplyYamlString(InstallAddressPool())
+			err := mokubernetes.CreateYamlString(InstallAddressPool())
 			if err != nil && !apierrors.IsAlreadyExists(err) {
 				log.Errorf("Error installing metallb address pool: %s", err.Error())
 			}

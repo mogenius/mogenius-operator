@@ -449,16 +449,16 @@ func SaveJobInDb(buildJob structs.BuildJob) {
 	}
 }
 
-func PrintAllEntriesFromDb(bucket string, prefix string) {
+func PrintAllEntriesFromDb(bucketName string, prefix string) {
 	err := db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(bucket))
+		bucket := tx.Bucket([]byte(bucketName))
 		c := bucket.Cursor()
 		prefix := []byte(prefix)
 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err != nil {
-				log.Infof("bucket=%s, key=%s, value=%s\n", bucket, k, job.BuildId)
+				log.Infof("bucket=%s, key=%s, value=%d\n", bucketName, string(k), job.BuildId)
 			}
 		}
 		return nil

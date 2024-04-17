@@ -38,6 +38,8 @@ var testClientCmd = &cobra.Command{
 			}
 		}
 
+		mokubernetes.InitOrUpdateCrds()
+
 		go api.InitApi()
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()

@@ -16,6 +16,7 @@ import (
 
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -281,6 +282,22 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	return clusterSecret, nil
 }
 
+func InitOrUpdateCrds() {
+	err := CreateOrUpdateYamlString(utils.InitMogeniusCrdProjectsYaml())
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		log.Fatalf("Error updating/creating mogenius Project-CRDs: %s", err.Error())
+	} else {
+		log.Info("Created/updated mogenius Project-CRDs. 🚀")
+	}
+
+	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdApplicationKitYaml())
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		log.Fatalf("Error updating/creating mogenius ApplicationKit-CRDs: %s", err.Error())
+	} else {
+		log.Info("Created/updated mogenius ApplicationKit-CRDs. 🚀")
+	}
+}
+
 func addDeployment(provider *punq.KubeProvider) {
 	deploymentClient := provider.ClientSet.AppsV1().Deployments(NAMESPACE)
 
@@ -345,7 +362,7 @@ func addDeployment(provider *punq.KubeProvider) {
 	log.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
 }
 
-func ApplyYamlString(yamlContent string) error {
+func CreateYamlString(yamlContent string) error {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		return err
@@ -379,6 +396,54 @@ func ApplyYamlString(yamlContent string) error {
 
 	if _, err := dynamicResource.Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func CreateOrUpdateYamlString(yamlContent string) error {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(&provider.ClientConfig)
+	if err != nil {
+		return err
+	}
+
+	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+
+	_, groupVersionKind, err := decUnstructured.Decode([]byte(yamlContent), nil, nil)
+	if err != nil {
+		return err
+	}
+
+	resource := &unstructured.Unstructured{}
+	_, _, err = decUnstructured.Decode([]byte(yamlContent), nil, resource)
+	if err != nil {
+		return err
+	}
+
+	groupVersionResource := schema.GroupVersionResource{
+		Group:    groupVersionKind.Group,
+		Version:  groupVersionKind.Version,
+		Resource: strings.ToLower(groupVersionKind.Kind) + "s",
+	}
+
+	dynamicResource := dynamicClient.Resource(groupVersionResource).Namespace(resource.GetNamespace())
+
+	if _, err := dynamicResource.Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			// get the current resourcerevision to update the existing object
+			currentObject, _ := dynamicResource.Get(context.TODO(), resource.GetName(), metav1.GetOptions{})
+			resource.SetResourceVersion(currentObject.GetResourceVersion())
+			if _, err := dynamicResource.Update(context.TODO(), resource, metav1.UpdateOptions{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	return nil

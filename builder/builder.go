@@ -495,6 +495,7 @@ func executeCmd(reportCmd *structs.Command, prefix structs.BuildPrefixEnum, job 
 	//	}
 	//}()
 
+	// IMPORTANT: This is blocking the process until the command is finished ON PURPOSE. We were losing logs otherwise.
 	scanner := bufio.NewScanner(stdErr)
 	for scanner.Scan() {
 		processLine(enableTimestamp, saveLog, prefix, 0, scanner.Text(), job, container, startTime, reportCmd, &cmdOutput)

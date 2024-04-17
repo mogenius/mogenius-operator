@@ -260,7 +260,7 @@ func ReadInput() {
 		case "q":
 			os.Exit(0)
 		default:
-			log.Errorf("Unrecognized character '%s'.", r)
+			log.Errorf("Unrecognized character '%c'.", r)
 			printShortcuts()
 		}
 	}
@@ -624,7 +624,7 @@ func selectCommands() string {
 	var number int
 	_, err := fmt.Scanf("%d", &number)
 	if err != nil {
-		log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(allCommands)-1)
+		log.Errorf("Unrecognized character '%d'. Please select 0-%d.", number, len(allCommands)-1)
 		return ""
 	}
 	fmt.Println(number)
@@ -632,7 +632,7 @@ func selectCommands() string {
 	if len(allCommands) >= number {
 		return allCommands[number]
 	} else {
-		log.Errorf("Unrecognized character '%s'. Please select 0-%d.", number, len(allCommands)-1)
+		log.Errorf("Unrecognized character '%d'. Please select 0-%d.", number, len(allCommands)-1)
 		return ""
 	}
 }

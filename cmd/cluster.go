@@ -70,6 +70,8 @@ var clusterCmd = &cobra.Command{
 			builder.ProcessQueue() // Process the queue maybe there are builds left to build
 		}()
 
+		mokubernetes.InitOrUpdateCrds()
+
 		go api.InitApi()
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()

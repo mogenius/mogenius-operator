@@ -51,6 +51,10 @@ cp /db/mogenius-1.db mogenius1.db
 /root/go/bin/boltbrowser mogenius-stats1.db
 ```
 
+# Testing
+```
+go test -v ./...
+```
 
 # Helm Install
 ```
