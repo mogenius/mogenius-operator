@@ -41,12 +41,12 @@ type PodCmdConnectionRequest struct {
 }
 
 type BuildLogConnectionRequest struct {
-	Namespace    string              `json:"namespace" validate:"required"`
-	Controller   string              `json:"controller" validate:"required"`
-	Container    string              `json:"container" validate:"required"`
-	BuildTask    string              `json:"buildTask" validate:"required"` // clone, build, test, deploy, .....
-	BuildId      uint64              `json:"buildId" validate:"required"`
-	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+	Namespace    string                  `json:"namespace" validate:"required"`
+	Controller   string                  `json:"controller" validate:"required"`
+	Container    string                  `json:"container" validate:"required"`
+	BuildTask    structs.BuildPrefixEnum `json:"buildTask" validate:"required"` // clone, build, test, deploy, .....
+	BuildId      uint64                  `json:"buildId" validate:"required"`
+	WsConnection WsConnectionRequest     `json:"wsConnectionRequest" validate:"required"`
 }
 
 type ScanImageLogConnectionRequest struct {
@@ -324,7 +324,7 @@ func XTermCommandStreamConnection(
 	}
 }
 
-func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string, container string, buildTask string, buildId uint64) {
+func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string, container string, buildTask structs.BuildPrefixEnum, buildId uint64) {
 	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 
 	if wsConnectionRequest.WebsocketScheme == "" {
@@ -371,9 +371,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	//	log.Errorf(err.Error())
 	//}
 
-	id := utils.SequenceToKey(buildId)
-	key := fmt.Sprintf("%s___%s___%s___%s___%s", buildTask, id, namespace, controller, container)
-	log.Info(key)
+	key := structs.BuildJobInfoEntryKey(buildId, buildTask, namespace, controller, container)
 
 	// init
 	data := db.GetItemByKey(key)

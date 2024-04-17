@@ -42,6 +42,10 @@ const (
 	MAX_ENTRY_LENGTH = 1024 * 1024 * 50 // 50 MB
 )
 
+func BuildJobKey(buildId uint64) string {
+	return fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
+}
+
 var db *bolt.DB
 
 func Init() {
@@ -140,7 +144,7 @@ func resetStartedJobsToPendingOnInit() {
 			}
 			if job.State == punqStructs.JobStateStarted {
 				job.State = punqStructs.JobStatePending
-				key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(job.BuildId))
+				key := BuildJobKey(job.BuildId)
 				err := bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
 				if err != nil {
 					log.Errorf("Init (update) ERR: %s", err.Error())
@@ -273,7 +277,7 @@ func GetLastBuildJobInfosFromDb(data structs.LastBuildTaskListRequest) structs.B
 
 		parts := strings.Split(lastBuildKey, "___")
 		if len(parts) >= 3 {
-			buildId := parts[1]
+			buildId := parts[0]
 			lastBuildId, err := strconv.ParseUint(buildId, 10, 64)
 			if err != nil {
 				log.Errorf("GetLastBuildJobInfosFromDb: %s", err.Error())
@@ -317,7 +321,7 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfos {
 		controller := ""
 		container := ""
 
-		prefix := structs.GetBuildJobInfosPrefix(structs.PrefixBuild, buildId)
+		prefix := structs.GetBuildJobInfosPrefix(buildId, structs.PrefixBuild)
 		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
 			if strings.HasPrefix(string(k), prefix) {
 				buildTemp := structs.CreateBuildJobEntryFromData(bucket.Get(k))
@@ -328,11 +332,11 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfos {
 			}
 		}
 
-		clone := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixGitClone, buildId, namespace, controller, container)))
-		ls := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixLs, buildId, namespace, controller, container)))
-		login := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixLogin, buildId, namespace, controller, container)))
-		build := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixBuild, buildId, namespace, controller, container)))
-		push := bucket.Get([]byte(structs.BuildJobInfoEntryKey(structs.PrefixPush, buildId, namespace, controller, container)))
+		clone := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixGitClone, namespace, controller, container)))
+		ls := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixLs, namespace, controller, container)))
+		login := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixLogin, namespace, controller, container)))
+		build := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixBuild, namespace, controller, container)))
+		push := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixPush, namespace, controller, container)))
 		result = structs.CreateBuildJobInfos(clone, ls, login, build, push)
 		return nil
 	})
@@ -390,7 +394,7 @@ func GetBuildJobListFromDb() []structs.BuildJob {
 func UpdateStateInDb(buildJob structs.BuildJob, newState punqStructs.JobStateEnum) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildJob.BuildId))
+		key := BuildJobKey(buildJob.BuildId)
 		jobData := bucket.Get([]byte(key))
 		job := structs.BuildJob{}
 		err := structs.UnmarshalJob(&job, jobData)
@@ -437,7 +441,7 @@ func PositionInQueueFromDb(buildId uint64) int {
 func SaveJobInDb(buildJob structs.BuildJob) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildJob.BuildId))
+		key := BuildJobKey(buildJob.BuildId)
 		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	if err != nil {
@@ -464,10 +468,10 @@ func PrintAllEntriesFromDb(bucket string, prefix string) {
 	}
 }
 
-func DeleteFromDb(bucket string, prefix string, buildNo uint64) error {
+func DeleteBuildJobFromDb(bucket string, buildId uint64) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucket))
-		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildNo))
+		key := BuildJobKey(buildId)
 		return bucket.Delete([]byte(key))
 	})
 }
@@ -508,7 +512,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 		}
 		nextBuildId, _ = bucket.NextSequence() // auto increment
 		buildJob.BuildId = nextBuildId
-		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(nextBuildId))
+		key := BuildJobKey(nextBuildId)
 		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	return int(nextBuildId), err
@@ -525,7 +529,7 @@ func SaveBuildResult(
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), prefix, job, container)
-		key := structs.BuildJobInfoEntryKey(prefix, job.BuildId, job.Namespace.Name, job.Service.ControllerName, container.Name)
+		key := structs.BuildJobInfoEntryKey(job.BuildId, prefix, job.Namespace.Name, job.Service.ControllerName, container.Name)
 		return bucket.Put([]byte(key), entry)
 	})
 	if err != nil {

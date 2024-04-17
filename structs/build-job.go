@@ -301,16 +301,16 @@ type BuildScanImageEntry struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-func BuildJobInfoEntryKey(prefix BuildPrefixEnum, buildId uint64, namespace string, controller string, container string) string {
-	return fmt.Sprintf("%s___%s___%s___%s___%s", prefix, utils.SequenceToKey(buildId), namespace, controller, container)
+func BuildJobInfoEntryKey(buildId uint64, prefix BuildPrefixEnum, namespace string, controller string, container string) string {
+	return fmt.Sprintf("%s___%s___%s___%s___%s", utils.SequenceToKey(buildId), prefix, namespace, controller, container)
 }
 
 func LastBuildJobInfosKeySuffix(namespace string, controller string, container string) string {
 	return fmt.Sprintf("___%s___%s___%s", namespace, controller, container)
 }
 
-func GetBuildJobInfosPrefix(prefix BuildPrefixEnum, buildId uint64) string {
-	return fmt.Sprintf("%s___%s___", prefix, utils.SequenceToKey(buildId))
+func GetBuildJobInfosPrefix(buildId uint64, prefix BuildPrefixEnum) string {
+	return fmt.Sprintf("%s___%s___", utils.SequenceToKey(buildId), prefix)
 }
 
 func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoEntry {
