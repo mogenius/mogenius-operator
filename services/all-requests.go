@@ -643,7 +643,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST:
 		data := xterm.BuildLogConnectionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		log.Info(datagram)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
@@ -652,7 +651,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST:
 		data := xterm.ScanImageLogConnectionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		log.Info(datagram)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
@@ -1912,7 +1910,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return builder.BuildJobInfos(data.BuildId)
 	case structs.PAT_BUILD_LAST_INFOS:
-		data := structs.LastBuildTaskListRequest{}
+		data := structs.BuildTaskRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
@@ -1953,26 +1951,26 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return builder.Delete(data.BuildId)
 	case structs.PAT_BUILD_LAST_JOB_OF_SERVICES:
-		data := structs.BuildServicesStatusRequest{}
+		data := structs.BuildTaskListOfServicesRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return builder.LastNJobsPerServices(data.MaxResults, data.ServiceIds)
+		return builder.LastBuildInfosOfServices(data)
 	case structs.PAT_BUILD_JOB_LIST_OF_SERVICE:
-		data := structs.BuildServiceRequest{}
+		data := structs.BuildTaskRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return builder.LastNJobsPerService(data.MaxResults, data.ServiceId)
-	case structs.PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
-		data := structs.BuildServiceRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return builder.LastBuildForService(data.ServiceId)
+		return builder.BuildInfosList(data)
+	//case structs.PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
+	//	data := structs.BuildServiceRequest{}
+	//	structs.MarshalUnmarshal(&datagram, &data)
+	//	if err := utils.ValidateJSON(data); err != nil {
+	//		return err
+	//	}
+	//	return builder.LastBuildForService(data.ServiceId)
 
 	case structs.PAT_STORAGE_CREATE_VOLUME:
 		data := NfsVolumeRequest{}

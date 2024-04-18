@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/version"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
@@ -152,4 +153,45 @@ func DebounceFunc(interval time.Duration, function func()) func() {
 
 func SequenceToKey(id uint64) []byte {
 	return []byte(fmt.Sprintf("%020d", id))
+}
+
+func GitCommitLink(gitRepository string, commitHash string) *string {
+	u, err := url.Parse(gitRepository)
+	if err != nil {
+		return nil
+	}
+
+	// remove the user from the URL
+	u.User = nil
+	// without authentication
+	cleanedURL := u.String()
+	baseRepoURL := strings.TrimSuffix(cleanedURL, ".git")
+
+	var commitURL string
+	switch {
+	case strings.Contains(u.Host, "github.com"):
+		commitURL = fmt.Sprintf("%s/commit/%s", baseRepoURL, commitHash)
+	case strings.Contains(u.Host, "dev.azure.com"):
+		commitURL = fmt.Sprintf("%s/_git/%s/commit/%s", baseRepoURL, u.Path, commitHash)
+	default:
+		commitURL = fmt.Sprintf("%s/-/commit/%s", baseRepoURL, commitHash)
+	}
+	return &commitURL
+}
+
+func ContainsUint64(slice []uint64, value uint64) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+func ContainsString(slice []string, value string) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
 }

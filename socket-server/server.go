@@ -570,9 +570,9 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 		case structs.PAT_BUILD_LAST_JOB_OF_SERVICES:
 			payload = structs.BuildServicesStatusRequestExample()
 		case structs.PAT_BUILD_JOB_LIST_OF_SERVICE:
-			payload = structs.BuildServiceRequestExample()
-		case structs.PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
-			payload = structs.BuildServiceRequestExample()
+			payload = structs.BuildInfosListExample()
+		//case structs.PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
+		//	payload = structs.BuildServiceRequestExample()
 
 		case structs.PAT_STORAGE_CREATE_VOLUME:
 			payload = services.NfsVolumeRequestExample()
