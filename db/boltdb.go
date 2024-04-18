@@ -305,27 +305,16 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
 		if err != nil {
 			return err
 		}
-		//for k, value := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
-		//	if strings.Contains(string(k), fmt.Sprintf("___%s___", id)) {
-		//		log.Info(value)
-		//		break
-		//	}
-		//}
-		//
-		//if namespace == "" || controller == "" || container == "" {
-		//	return fmt.Errorf("Not build found for id '%d'.", buildId)
-		//}
 
 		namespace := job.Namespace.Name
 		controller := job.Service.ControllerName
 		container := ""
 
-		prefix := structs.GetBuildJobInfosPrefix(buildId, structs.PrefixBuild, namespace, controller)
+		prefixBuild := structs.GetBuildJobInfosPrefix(buildId, structs.PrefixBuild, namespace, controller)
+		prefixClone := structs.GetBuildJobInfosPrefix(buildId, structs.PrefixGitClone, namespace, controller)
 		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
-			if strings.HasPrefix(string(k), prefix) {
+			if strings.HasPrefix(string(k), prefixBuild) || strings.HasPrefix(string(k), prefixClone) {
 				buildTemp := structs.CreateBuildJobEntryFromData(bucket.Get(k))
-				// namespace = buildTemp.Namespace
-				// controller = buildTemp.Controller
 				container = buildTemp.Container
 				break
 			}
@@ -346,10 +335,18 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
 		push := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixPush, namespace, controller, container)))
 		result = structs.CreateBuildJobInfo(clone, ls, login, build, push)
 
-		result.CommitHash = *containerObj.GitCommitHash
-		result.CommitLink = *utils.GitCommitLink(*containerObj.GitRepository, *containerObj.GitCommitHash)
-		result.CommitAuthor = *containerObj.GitCommitAuthor
-		result.CommitMessage = *containerObj.GitCommitMessage
+		if containerObj.GitCommitHash != nil {
+			result.CommitHash = *containerObj.GitCommitHash
+		}
+		if containerObj.GitRepository != nil && containerObj.GitCommitHash != nil {
+			result.CommitLink = *utils.GitCommitLink(*containerObj.GitRepository, *containerObj.GitCommitHash)
+		}
+		if containerObj.GitCommitAuthor != nil {
+			result.CommitAuthor = *containerObj.GitCommitAuthor
+		}
+		if containerObj.GitCommitMessage != nil {
+			result.CommitMessage = *containerObj.GitCommitMessage
+		}
 		return nil
 	})
 	if err != nil {
