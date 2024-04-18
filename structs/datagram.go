@@ -57,7 +57,7 @@ func CreateDatagram(pattern string) Datagram {
 	return datagram
 }
 
-func CreateDatagramBuildLogs(payload BuildJobInfos) Datagram {
+func CreateDatagramBuildLogs(payload BuildJobInfo) Datagram {
 	// func CreateDatagramBuildLogs(prefix string, namespace string, controllerName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
 	datagram := Datagram{
 		Id:      punqUtils.NanoId(),

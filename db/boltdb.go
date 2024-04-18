@@ -259,14 +259,14 @@ func GetBuilderStatus() structs.BuilderStatus {
 	return result
 }
 
-func GetLastBuildJobInfosFromDb(data structs.LastBuildTaskListRequest) structs.BuildJobInfos {
-	result := structs.BuildJobInfos{}
+func GetLastBuildJobInfosFromDb(data structs.BuildTaskRequest) structs.BuildJobInfo {
+	result := structs.BuildJobInfo{}
 	err := db.View(func(tx *bolt.Tx) error {
 
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		cursorBuild := bucket.Cursor()
 
-		suffix := structs.LastBuildJobInfosKeySuffix(data.Namespace, data.Controller, data.Container)
+		suffix := structs.BuildJobInfosKeySuffix(data.Namespace, data.Controller, data.Container)
 		var lastBuildKey string
 		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
 			if strings.HasSuffix(string(k), suffix) {
@@ -291,21 +291,20 @@ func GetLastBuildJobInfosFromDb(data structs.LastBuildTaskListRequest) structs.B
 		log.Errorf("GetBuildJobListFromDb: %s", err.Error())
 	}
 	return result
-
 }
-func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfos {
-	result := structs.BuildJobInfos{}
+func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
+	result := structs.BuildJobInfo{}
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		cursorBuild := bucket.Cursor()
 
-		//key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
-		//queueEntry := bucket.Get([]byte(key))
-		//job := structs.BuildJob{}
-		//err := structs.UnmarshalJob(&job, queueEntry)
-		//if err != nil {
-		//	return err
-		//}
+		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
+		queueEntry := bucket.Get([]byte(key))
+		job := structs.BuildJob{}
+		err := structs.UnmarshalJob(&job, queueEntry)
+		if err != nil {
+			return err
+		}
 		//for k, value := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
 		//	if strings.Contains(string(k), fmt.Sprintf("___%s___", id)) {
 		//		log.Info(value)
@@ -317,17 +316,25 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfos {
 		//	return fmt.Errorf("Not build found for id '%d'.", buildId)
 		//}
 
-		namespace := ""
-		controller := ""
+		namespace := job.Namespace.Name
+		controller := job.Service.ControllerName
 		container := ""
 
-		prefix := structs.GetBuildJobInfosPrefix(buildId, structs.PrefixBuild)
+		prefix := structs.GetBuildJobInfosPrefix(buildId, structs.PrefixBuild, namespace, controller)
 		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
 			if strings.HasPrefix(string(k), prefix) {
 				buildTemp := structs.CreateBuildJobEntryFromData(bucket.Get(k))
-				namespace = buildTemp.Namespace
-				controller = buildTemp.Controller
+				// namespace = buildTemp.Namespace
+				// controller = buildTemp.Controller
 				container = buildTemp.Container
+				break
+			}
+		}
+
+		containerObj := dtos.K8sContainerDto{}
+		for _, item := range job.Service.Containers {
+			if item.Name == container {
+				containerObj = item
 				break
 			}
 		}
@@ -337,7 +344,12 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfos {
 		login := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixLogin, namespace, controller, container)))
 		build := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixBuild, namespace, controller, container)))
 		push := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixPush, namespace, controller, container)))
-		result = structs.CreateBuildJobInfos(clone, ls, login, build, push)
+		result = structs.CreateBuildJobInfo(clone, ls, login, build, push)
+
+		result.CommitHash = *containerObj.GitCommitHash
+		result.CommitLink = *utils.GitCommitLink(*containerObj.GitRepository, *containerObj.GitCommitHash)
+		result.CommitAuthor = *containerObj.GitCommitAuthor
+		result.CommitMessage = *containerObj.GitCommitMessage
 		return nil
 	})
 	if err != nil {
@@ -345,6 +357,42 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfos {
 	}
 
 	return result
+}
+
+func GetBuildJobInfosListFromDb(namespace string, controller string, container string) []structs.BuildJobInfo {
+	results := []structs.BuildJobInfo{}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		cursorBuild := bucket.Cursor()
+
+		suffix := structs.BuildJobInfosKeySuffix(namespace, controller, container)
+		buildIdStrings := []string{}
+		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
+			if strings.HasSuffix(string(k), suffix) {
+				parts := strings.Split(string(k), "___")
+				if len(parts) >= 3 {
+					buildIdString := parts[0]
+					if utils.ContainsString(buildIdStrings, buildIdString) {
+						continue
+					}
+					buildIdStrings = append(buildIdStrings, buildIdString)
+					buildId, err := strconv.ParseUint(buildIdString, 10, 64)
+					if err == nil {
+						results = append(results, GetBuildJobInfosFromDb(buildId))
+					}
+				}
+				if len(results) > 20 {
+					break
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("GetBuildJobInfosListFromDb (db) ERR: %s", err.Error())
+	}
+
+	return results
 }
 
 func GetItemByKey(key string) []byte {
