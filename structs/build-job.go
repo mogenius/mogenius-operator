@@ -361,15 +361,6 @@ func CreateBuildJobInfo(clone []byte, ls []byte, login []byte, build []byte, pus
 	result.Tasks = append(result.Tasks, buildEntity)
 	result.Tasks = append(result.Tasks, pushEntity)
 
-	//result.StartTime = job.StartedAt
-	//result.FinishTime = job.EndTimestamp
-
-	//result.Clone = cloneEntity
-	//result.Ls = lsEntity
-	//result.Login = loginEntity
-	//result.Build = buildEntity
-	//result.Push = pushEntity
-
 	return result
 }
 
