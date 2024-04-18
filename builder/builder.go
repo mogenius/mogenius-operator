@@ -263,12 +263,15 @@ func BuilderStatus() structs.BuilderStatus {
 	return db.GetBuilderStatus()
 }
 
-func BuildJobInfos(buildId uint64) structs.BuildJobInfos {
+func BuildJobInfos(buildId uint64) structs.BuildJobInfo {
 	return db.GetBuildJobInfosFromDb(buildId)
 }
 
-func LastBuildInfos(data structs.LastBuildTaskListRequest) structs.BuildJobInfos {
+func LastBuildInfos(data structs.BuildTaskRequest) structs.BuildJobInfo {
 	return db.GetLastBuildJobInfosFromDb(data)
+}
+func BuildInfosList(data structs.BuildTaskRequest) []structs.BuildJobInfo {
+	return db.GetBuildJobInfosListFromDb(data.Namespace, data.Controller, data.Container)
 }
 
 func Add(buildJob structs.BuildJob) structs.BuildAddResult {
@@ -360,28 +363,27 @@ func ListByServiceIds(serviceIds []string) []structs.BuildJob {
 	return result
 }
 
-func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJob {
-	result := []structs.BuildJob{}
+//func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJob {
+//	result := []structs.BuildJob{}
+//
+//	list := ListByServiceId(serviceId)
+//	for i := len(list) - 1; i >= 0; i-- {
+//		if len(result) < maxResults {
+//			result = append(result, list[i])
+//		}
+//	}
+//	return result
+//}
 
-	list := ListByServiceId(serviceId)
-	for i := len(list) - 1; i >= 0; i-- {
-		if len(result) < maxResults {
-			result = append(result, list[i])
-		}
+func LastBuildInfosOfServices(data structs.BuildTaskListOfServicesRequest) []structs.BuildJobInfo {
+	results := []structs.BuildJobInfo{}
+
+	for _, request := range data.Requests {
+		result := db.GetLastBuildJobInfosFromDb(request)
+		results = append(results, result)
 	}
-	return result
-}
 
-func LastNJobsPerServices(maxResults int, serviceIds []string) []structs.BuildJob {
-	result := []structs.BuildJob{}
-
-	list := ListByServiceIds(serviceIds)
-	for i := len(list) - 1; i >= 0; i-- {
-		if len(result) < maxResults {
-			result = append(result, list[i])
-		}
-	}
-	return result
+	return results
 }
 
 func LastJobForService(serviceId string) structs.BuildJob {
@@ -404,8 +406,8 @@ func LastJobForNamespaceAndControllerName(namespace, controllerName string) stru
 	return result
 }
 
-func LastBuildForService(serviceId string) structs.BuildJobInfos {
-	result := structs.BuildJobInfos{}
+func LastBuildForService(serviceId string) structs.BuildJobInfo {
+	result := structs.BuildJobInfo{}
 
 	var lastJob *structs.BuildJob
 	list := ListByServiceId(serviceId)
@@ -420,8 +422,8 @@ func LastBuildForService(serviceId string) structs.BuildJobInfos {
 	return result
 }
 
-func LastBuildForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJobInfos {
-	result := structs.BuildJobInfos{}
+func LastBuildForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJobInfo {
+	result := structs.BuildJobInfo{}
 
 	var lastJob *structs.BuildJob
 	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)

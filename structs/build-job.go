@@ -171,7 +171,7 @@ type BuildJobStatusRequest struct {
 	BuildId uint64 `json:"buildId" validate:"required"`
 }
 
-type LastBuildTaskListRequest struct {
+type BuildTaskRequest struct {
 	Namespace  string `json:"namespace" validate:"required"`
 	Controller string `json:"controller" validate:"required"`
 	Container  string `json:"container" validate:"required"`
@@ -183,27 +183,34 @@ func BuildJobStatusRequestExample() BuildJobStatusRequest {
 	}
 }
 
-type BuildServicesStatusRequest struct {
-	ServiceIds []string `json:"serviceIds" validate:"required"`
-	MaxResults int      `json:"maxResults" validate:"required"`
+type BuildTaskListOfServicesRequest struct {
+	Requests []BuildTaskRequest `json:"requests" validate:"required"`
+	// MaxResults int                        `json:"maxResults" validate:"required"`
 }
 
-func BuildServicesStatusRequestExample() BuildServicesStatusRequest {
-	return BuildServicesStatusRequest{
-		ServiceIds: []string{"YYY", "ef7af4d2-8939-4c94-bbe1-a3e7018e8306", "ZZZ"},
-		MaxResults: 14,
+func BuildServicesStatusRequestExample() BuildTaskListOfServicesRequest {
+	return BuildTaskListOfServicesRequest{
+		Requests: []BuildTaskRequest{
+			{
+				Namespace:  "docker-desktop-prod-8ds57s",
+				Controller: "alpinetest",
+				Container:  "alpinetest-container",
+			},
+		},
+		// MaxResults: 14,
 	}
 }
 
-type BuildServiceRequest struct {
-	ServiceId  string `json:"serviceId" validate:"required"`
-	MaxResults int    `json:"maxResults,omitempty"`
-}
+//type BuildServiceRequest struct {
+//	ServiceId  string `json:"serviceId" validate:"required"`
+//	MaxResults int    `json:"maxResults,omitempty"`
+//}
 
-func BuildServiceRequestExample() BuildServiceRequest {
-	return BuildServiceRequest{
-		ServiceId:  "ef7af4d2-8939-4c94-bbe1-a3e7018e8306",
-		MaxResults: 12,
+func BuildInfosListExample() BuildTaskRequest {
+	return BuildTaskRequest{
+		Namespace:  "docker-desktop-prod-8ds57s",
+		Controller: "alpinetest",
+		Container:  "alpinetest-container",
 	}
 }
 
@@ -252,21 +259,28 @@ type BuildDeleteResult struct {
 	Error  string `json:"error"`
 }
 
-type BuildJobInfos struct {
+type BuildJobInfo struct {
 	BuildId    uint64 `json:"buildId"`
 	ProjectId  string `json:"projectId"`
 	Namespace  string `json:"namespace"`
 	Controller string `json:"controller"`
 	Container  string `json:"container"`
 
+	CommitHash    string `json:"commitHash"`
+	CommitLink    string `json:"commitLink"`
+	CommitAuthor  string `json:"commitAuthor"`
+	CommitMessage string `json:"commitMessage"`
+
 	StartTime  string `json:"startTime"`
 	FinishTime string `json:"finishTime"`
 
-	Clone BuildJobInfoEntry `json:"clone"`
-	Ls    BuildJobInfoEntry `json:"ls"`
-	Login BuildJobInfoEntry `json:"login"`
-	Build BuildJobInfoEntry `json:"build"`
-	Push  BuildJobInfoEntry `json:"push"`
+	Tasks []BuildJobInfoEntry `json:"tasks"`
+
+	//Clone BuildJobInfoEntry `json:"clone"`
+	//Ls    BuildJobInfoEntry `json:"ls"`
+	//Login BuildJobInfoEntry `json:"login"`
+	//Build BuildJobInfoEntry `json:"build"`
+	//Push  BuildJobInfoEntry `json:"push"`
 }
 
 type BuildPrefixEnum string
@@ -305,12 +319,12 @@ func BuildJobInfoEntryKey(buildId uint64, prefix BuildPrefixEnum, namespace stri
 	return fmt.Sprintf("%s___%s___%s___%s___%s", utils.SequenceToKey(buildId), prefix, namespace, controller, container)
 }
 
-func LastBuildJobInfosKeySuffix(namespace string, controller string, container string) string {
+func BuildJobInfosKeySuffix(namespace string, controller string, container string) string {
 	return fmt.Sprintf("___%s___%s___%s", namespace, controller, container)
 }
 
-func GetBuildJobInfosPrefix(buildId uint64, prefix BuildPrefixEnum) string {
-	return fmt.Sprintf("%s___%s___", utils.SequenceToKey(buildId), prefix)
+func GetBuildJobInfosPrefix(buildId uint64, prefix BuildPrefixEnum, namespace string, controller string) string {
+	return fmt.Sprintf("%s___%s___%s___%s", utils.SequenceToKey(buildId), prefix, namespace, controller)
 }
 
 func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoEntry {
@@ -322,8 +336,8 @@ func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoE
 	}
 }
 
-func CreateBuildJobInfos(clone []byte, ls []byte, login []byte, build []byte, push []byte) BuildJobInfos {
-	result := BuildJobInfos{}
+func CreateBuildJobInfo(clone []byte, ls []byte, login []byte, build []byte, push []byte) BuildJobInfo {
+	result := BuildJobInfo{}
 
 	cloneEntity := CreateBuildJobEntryFromData(clone)
 	lsEntity := CreateBuildJobEntryFromData(ls)
@@ -340,14 +354,21 @@ func CreateBuildJobInfos(clone []byte, ls []byte, login []byte, build []byte, pu
 	result.StartTime = cloneEntity.StartTime
 	result.FinishTime = pushEntity.FinishTime
 
+	result.Tasks = []BuildJobInfoEntry{}
+	result.Tasks = append(result.Tasks, cloneEntity)
+	result.Tasks = append(result.Tasks, lsEntity)
+	result.Tasks = append(result.Tasks, loginEntity)
+	result.Tasks = append(result.Tasks, buildEntity)
+	result.Tasks = append(result.Tasks, pushEntity)
+
 	//result.StartTime = job.StartedAt
 	//result.FinishTime = job.EndTimestamp
 
-	result.Clone = cloneEntity
-	result.Ls = lsEntity
-	result.Login = loginEntity
-	result.Build = buildEntity
-	result.Push = pushEntity
+	//result.Clone = cloneEntity
+	//result.Ls = lsEntity
+	//result.Login = loginEntity
+	//result.Build = buildEntity
+	//result.Push = pushEntity
 
 	return result
 }
