@@ -125,9 +125,27 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 	// check if essential data is changed
 	if previousData.Repo != syncRepoReq.Repo ||
 		previousData.Branch != syncRepoReq.Branch ||
-		previousData.AllowPull != syncRepoReq.AllowPull {
-		log.Warn("⚠️⚠️⚠️ SyncRepoData has changed in a way that requires the deletion of current repo ...")
-		iacmanager.DeleteCurrentRepoData()
+		previousData.AllowPull != syncRepoReq.AllowPull ||
+		previousData.AllowPush != syncRepoReq.AllowPush {
+		log.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
+		// Push/Pull
+		if syncRepoReq.AllowPull == true && syncRepoReq.AllowPush == true {
+			iacmanager.AddRemote()
+		}
+		// Push
+		if syncRepoReq.AllowPull == false && syncRepoReq.AllowPush == true {
+			iacmanager.AddRemote()
+		}
+		// Pull
+		if syncRepoReq.AllowPull == true && syncRepoReq.AllowPush == false {
+			iacmanager.DeleteCurrentRepoData()
+			iacmanager.GitInitRepo()
+			iacmanager.AddRemote()
+		}
+		// None
+		if syncRepoReq.AllowPull == false && syncRepoReq.AllowPush == false {
+			iacmanager.RemoveRemote()
+		}
 	}
 
 	secret, err := CreateOrUpdateClusterSecret(syncRepoReq)
@@ -137,7 +155,6 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		utils.CONFIG.Iac.RepoBranch = secret.SyncRepoBranch
 		utils.CONFIG.Iac.AllowPull = secret.SyncAllowPull
 		utils.CONFIG.Iac.AllowPush = secret.SyncAllowPush
-		utils.CONFIG.Iac.AllowManualClusterChanges = secret.AllowManualClusterChanges
 		utils.CONFIG.Iac.SyncFrequencyInSec = secret.SyncFrequencyInSec
 		utils.CONFIG.Iac.SyncWorkloads = secret.SyncWorkloads
 	}
@@ -210,7 +227,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		clusterSecret.SyncRepoBranch = syncdata.Branch
 		clusterSecret.SyncAllowPull = syncdata.AllowPull
 		clusterSecret.SyncAllowPush = syncdata.AllowPush
-		clusterSecret.AllowManualClusterChanges = syncdata.AllowManualClusterChanges
 		clusterSecret.SyncFrequencyInSec = syncdata.SyncFrequencyInSec
 		clusterSecret.SyncWorkloads = syncdata.SyncWorkloads
 	}
@@ -225,7 +241,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		clusterSecret.SyncRepoBranch = syncRepoReq.Branch
 		clusterSecret.SyncAllowPull = syncRepoReq.AllowPull
 		clusterSecret.SyncAllowPush = syncRepoReq.AllowPush
-		clusterSecret.AllowManualClusterChanges = syncRepoReq.AllowManualClusterChanges
 		clusterSecret.SyncFrequencyInSec = syncRepoReq.SyncFrequencyInSec
 		clusterSecret.SyncWorkloads = syncRepoReq.SyncWorkloads
 	}
@@ -243,7 +258,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	secret.StringData["sync-repo-branch"] = clusterSecret.SyncRepoBranch
 	secret.StringData["sync-allow-pull"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPull)
 	secret.StringData["sync-allow-push"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPush)
-	secret.StringData["allow-manual-cluster-changes"] = fmt.Sprintf("%t", clusterSecret.AllowManualClusterChanges)
 	secret.StringData["sync-frequency-in-sec"] = fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec)
 	secret.StringData["sync-workloads"] = strings.Join(clusterSecret.SyncWorkloads, ",")
 
@@ -265,7 +279,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			string(existingSecret.Data["sync-allow-pull"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPull) ||
 			string(existingSecret.Data["sync-allow-push"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPush) ||
 			string(existingSecret.Data["sync-frequency-in-sec"]) != fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec) ||
-			string(existingSecret.Data["allow-manual-cluster-changes"]) != fmt.Sprintf("%t", clusterSecret.AllowManualClusterChanges) ||
 			string(existingSecret.Data["sync-workloads"]) != strings.Join(clusterSecret.SyncWorkloads, ",") {
 			log.Info("🔑 Updating existing mogenius secret ...")
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())

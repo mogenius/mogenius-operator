@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/crds"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
@@ -69,6 +70,14 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	}
 	wg.Wait()
 	job.Finish()
+
+	crds.CreateApplicationKit(r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
+		Id:          r.Service.Id,
+		DisplayName: r.Service.DisplayName,
+		CreatedBy:   "MISSING_FIELD",
+		Controller:  r.Service.ControllerName,
+		AppId:       "MISSING_FIELD",
+	})
 	return job
 }
 

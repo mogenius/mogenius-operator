@@ -9,15 +9,14 @@ import (
 )
 
 type SyncRepoData struct {
-	Repo                      string   `json:"repo"`
-	Pat                       string   `json:"pat"`
-	Branch                    string   `json:"branch"`
-	AllowPull                 bool     `json:"allowPull"`
-	AllowPush                 bool     `json:"allowPush"`
-	AllowManualClusterChanges bool     `json:"allowManualClusterChanges"`
-	SyncFrequencyInSec        int      `json:"syncFrequencyInSec"`
-	SyncWorkloads             []string `json:"syncWorkloads"`
-	AvailableSyncWorkloads    []string `json:"availableSyncWorkloads"`
+	Repo                   string   `json:"repo"`
+	Pat                    string   `json:"pat"`
+	Branch                 string   `json:"branch"`
+	AllowPull              bool     `json:"allowPull"`
+	AllowPush              bool     `json:"allowPush"`
+	SyncFrequencyInSec     int      `json:"syncFrequencyInSec"`
+	SyncWorkloads          []string `json:"syncWorkloads"`
+	AvailableSyncWorkloads []string `json:"availableSyncWorkloads"`
 }
 
 func (p *SyncRepoData) AddSecretsToRedaction() {
@@ -28,15 +27,14 @@ func (p *SyncRepoData) AddSecretsToRedaction() {
 
 func SyncRepoDataExampleData() SyncRepoData {
 	return SyncRepoData{
-		Repo:                      "https://github.com/beneiltis/fuckumucku.git",
-		Pat:                       "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",
-		Branch:                    "main",
-		AllowPull:                 true,
-		AllowPush:                 true,
-		AllowManualClusterChanges: true,
-		SyncFrequencyInSec:        5,
-		SyncWorkloads:             AvailableSyncWorkloadKinds,
-		AvailableSyncWorkloads:    AvailableSyncWorkloadKinds,
+		Repo:                   "https://github.com/beneiltis/fuckumucku.git",
+		Pat:                    "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",
+		Branch:                 "main",
+		AllowPull:              true,
+		AllowPush:              true,
+		SyncFrequencyInSec:     5,
+		SyncWorkloads:          AvailableSyncWorkloadKinds,
+		AvailableSyncWorkloads: AvailableSyncWorkloadKinds,
 	}
 }
 
@@ -68,13 +66,6 @@ func CreateSyncRepoDataFrom(secret *core.Secret) SyncRepoData {
 		result.AllowPush = false
 	} else {
 		result.AllowPush = push
-	}
-
-	allowManualClusterChanges, err := strconv.ParseBool(string(secret.Data["allow-manual-cluster-changes"]))
-	if err != nil {
-		result.AllowManualClusterChanges = false
-	} else {
-		result.AllowManualClusterChanges = allowManualClusterChanges
 	}
 
 	freqSec, err := strconv.ParseInt(string(secret.Data["sync-frequency-in-sec"]), 10, 64)

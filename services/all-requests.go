@@ -89,15 +89,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		data.AddSecretsToRedaction()
 		err := kubernetes.UpdateSynRepoData(&data)
-		if err == nil {
-			err = iacmanager.SetupRemote()
-			if err != nil {
-				return err
-			}
-			err = iacmanager.CheckRepoAccess()
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
+		}
+		err = iacmanager.CheckRepoAccess()
+		if err != nil {
+			return err
 		}
 		return err
 

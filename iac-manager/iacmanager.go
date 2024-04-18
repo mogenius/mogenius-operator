@@ -35,6 +35,18 @@ var changedFiles []string
 var syncInProcess = false
 
 func Init() {
+	GitInitRepo()
+
+	// Set up the remote repository
+	if !gitHasRemotes() {
+		AddRemote()
+	}
+
+	// START SYNCING CHANGES
+	syncChangesTimer()
+}
+
+func GitInitRepo() {
 	// Create a git repository
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
@@ -48,17 +60,9 @@ func Init() {
 	if err != nil {
 		log.Errorf("Error creating git repository: %s", err.Error())
 	}
-
-	// Set up the remote repository
-	if !gitHasRemotes() {
-		SetupRemote()
-	}
-
-	// START SYNCING CHANGES
-	syncChangesTimer()
 }
 
-func SetupRemote() error {
+func AddRemote() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
 		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
 	}
@@ -76,6 +80,17 @@ func SetupRemote() error {
 		return err
 	}
 
+	return nil
+}
+
+func RemoveRemote() error {
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	remoteCmdStr := fmt.Sprintf("cd %s; git remote remove origin", folder)
+	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
+	if err != nil {
+		log.Errorf("Error setting up remote: %s", err.Error())
+		return err
+	}
 	return nil
 }
 
@@ -118,8 +133,8 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		}
 	}
 
-	// AllowManualClusterChanges is false - all changes will be reversed
-	if !utils.CONFIG.Iac.AllowManualClusterChanges {
+	// all changes will be reversed if PULL only is allowed
+	if utils.CONFIG.Iac.AllowPull == true && utils.CONFIG.Iac.AllowPush == false {
 		log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
 		filename := fileNameForRaw(kind, namespace, resourceName)
 		kubernetesApplyRevertFromPath(filename)
@@ -161,8 +176,8 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 		}
 	}
 
-	// AllowManualClusterChanges is false - all changes will be reversed
-	if !utils.CONFIG.Iac.AllowManualClusterChanges {
+	// all changes will be reversed if PULL only is allowed
+	if utils.CONFIG.Iac.AllowPull == true && utils.CONFIG.Iac.AllowPush == false {
 		filename := fileNameForRaw(kind, namespace, resourceName)
 		kubernetesApplyRevertFromPath(filename)
 		return nil
