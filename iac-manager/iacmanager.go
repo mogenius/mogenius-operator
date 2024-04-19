@@ -34,6 +34,13 @@ var changedFiles []string
 
 var syncInProcess = false
 
+func IsIgnoredNamespace(namespace string) bool {
+	if namespace == "kube-system" || namespace == "kube-node-lease" {
+		return true
+	}
+	return false
+}
+
 func Init() {
 	GitInitRepo()
 
@@ -145,7 +152,7 @@ func CheckRepoAccess() error {
 
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
 	// Exceptions
-	if namespace == "kube-system" {
+	if IsIgnoredNamespace(namespace) {
 		return
 	}
 
@@ -195,7 +202,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 
 func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) error {
 	// Exceptions
-	if namespace == "kube-system" {
+	if IsIgnoredNamespace(namespace) {
 		return nil
 	}
 
