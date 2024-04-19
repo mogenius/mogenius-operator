@@ -19,6 +19,207 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+type ServiceStatusRequest struct {
+	Namespace      string `json:"namespace" validate:"required"`
+	ControllerName string `json:"controllerName" validate:"required"`
+	Controller     string `json:"controller" validate:"required"`
+}
+
+func ServiceStatusRequestExample() ServiceStatusRequest {
+	return ServiceStatusRequest{
+		Namespace:      "YOUR-NAMESPACE",
+		ControllerName: "YOUR-SERVICE-NAME",
+		Controller:     Deployment.String(),
+	}
+}
+
+// BEGIN new status and messages
+
+type ServiceStatusKindType string
+
+const (
+	ServiceStatusKindTypeBuildJob    ServiceStatusKindType = "BuildJob"
+	ServiceStatusKindTypeDeployment  ServiceStatusKindType = "Deployment"
+	ServiceStatusKindTypeReplicaSet  ServiceStatusKindType = "ReplicaSet"
+	ServiceStatusKindTypeStatefulSet ServiceStatusKindType = "StatefulSet"
+	ServiceStatusKindTypeDaemonSet   ServiceStatusKindType = "DaemonSet"
+	ServiceStatusKindTypeCronJob     ServiceStatusKindType = "CronJob"
+	ServiceStatusKindTypeJob         ServiceStatusKindType = "Job"
+	ServiceStatusKindTypePod         ServiceStatusKindType = "Pod"
+	ServiceStatusKindTypeContainer   ServiceStatusKindType = "Container"
+	ServiceStatusKindTypeUnkown      ServiceStatusKindType = "Unkown"
+)
+
+func NewServiceStatusKindType(serviceStatusKindType string) ServiceStatusKindType {
+	switch serviceStatusKindType {
+	case string(ServiceStatusKindTypeBuildJob):
+		return ServiceStatusKindTypeBuildJob
+	case string(ServiceStatusKindTypeDeployment):
+		return ServiceStatusKindTypeDeployment
+	case string(ServiceStatusKindTypeReplicaSet):
+		return ServiceStatusKindTypeReplicaSet
+	case string(ServiceStatusKindTypeStatefulSet):
+		return ServiceStatusKindTypeStatefulSet
+	case string(ServiceStatusKindTypeDaemonSet):
+		return ServiceStatusKindTypeDaemonSet
+	case string(ServiceStatusKindTypeCronJob):
+		return ServiceStatusKindTypeCronJob
+	case string(ServiceStatusKindTypeJob):
+		return ServiceStatusKindTypeJob
+	case string(ServiceStatusKindTypePod):
+		return ServiceStatusKindTypePod
+	case string(ServiceStatusKindTypeContainer):
+		return ServiceStatusKindTypeContainer
+	default:
+		return ServiceStatusKindTypeUnkown
+	}
+}
+
+type ServiceStatusType string
+
+const (
+	ServiceStatusTypePending ServiceStatusType = "PENDING"
+	ServiceStatusTypeSuccess ServiceStatusType = "SUCCESS"
+	ServiceStatusTypeWarning ServiceStatusType = "WARNING"
+	ServiceStatusTypeError   ServiceStatusType = "ERROR"
+	ServiceStatusTypeUnkown  ServiceStatusType = "UNKOWN"
+)
+
+type ServiceStatusMessageType string
+
+const (
+	ServiceStatusMessageTypeInfo    VolumeStatusMessageType = "INFO"
+	ServiceStatusMessageTypeSuccess VolumeStatusMessageType = "SUCCESS"
+	ServiceStatusMessageTypeError   VolumeStatusMessageType = "ERROR"
+	ServiceStatusMessageTypeWarning VolumeStatusMessageType = "WARNING"
+)
+
+type ServiceStatusMessage struct {
+	Type    ServiceStatusMessageType `json:"type"`
+	Message string                   `json:"message"`
+}
+
+type ServiceStatusItem struct {
+	Kind      ServiceStatusKindType  `json:"kind"`
+	Name      string                 `json:"name"`
+	Namespace string                 `json:"namespace"`
+	OwnerName string                 `json:"ownerName,omitempty"`
+	OwnerKind ServiceStatusKindType  `json:"ownerKind,omitempty"`
+	Status    ServiceStatusType      `json:"status"`
+	Messages  []ServiceStatusMessage `json:"messages,omitempty"`
+}
+
+type ServiceStatusResponse struct {
+	Items         []ServiceStatusItem    `json:"items"`
+	SwitchedOn    bool                   `json:"switchedOn"`
+	HasPods       bool                   `json:"hasPods"`
+	HasContainers bool                   `json:"hasContainers"`
+	HasDeployment bool                   `json:"hasDeployment"`
+	HasCronJob    bool                   `json:"hasCronJob"`
+	HasJob        bool                   `json:"hasJob"`
+	HasBuild      bool                   `json:"hasBuild"`
+	Warnings      []ServiceStatusMessage `json:"warnings,omitempty"`
+}
+
+// Process the status items and return the response
+func ProcessServiceStatusResponse(r []ResourceItem) ServiceStatusResponse {
+	s := ServiceStatusResponse{}
+
+	for _, item := range r {
+		newItem := ProcessServiceStatusItem(item)
+		s.Items = append(s.Items, newItem)
+
+		switch item.Kind {
+		case "BuildJob":
+			s.HasBuild = true
+		case "Deployment":
+			s.HasDeployment = true
+		case "ReplicaSet":
+		case "StatefulSet":
+		case "DaemonSet":
+		case "Job":
+			s.HasJob = true
+		case "CronJob":
+			s.HasCronJob = true
+		case "Pod":
+			s.HasPods = true
+		case "Container":
+			s.HasContainers = true
+
+		}
+	}
+
+	return s
+}
+
+func ProcessServiceStatusItem(item ResourceItem) ServiceStatusItem {
+	newItem := ServiceStatusItem{
+		Kind:      NewServiceStatusKindType(item.Kind),
+		Name:      item.Name,
+		Namespace: item.Namespace,
+		OwnerName: item.OwnerName,
+		OwnerKind: NewServiceStatusKindType(item.OwnerKind),
+		Status:    ServiceStatusTypeSuccess,
+	}
+
+	return newItem
+}
+
+// END new status and messages
+
+type ResourceItem struct {
+	Kind         string         `json:"kind"`
+	Name         string         `json:"name"`
+	Namespace    string         `json:"namespace"`
+	OwnerName    string         `json:"ownerName,omitempty"`
+	OwnerKind    string         `json:"ownerKind,omitempty"`
+	StatusObject interface{}    `json:"statusObject,omitempty"`
+	Events       []corev1.Event `json:"events,omitempty"`
+}
+
+func (item ResourceItem) String() string {
+	return fmt.Sprintf("%s, %s, %s, %s, %s, %+v", item.Kind, item.Name, item.Namespace, item.OwnerKind, item.OwnerName, item.StatusObject)
+}
+
+type ResourceController int
+
+// Keep the order, only add elements at end
+const (
+	Unkown ResourceController = iota
+	Deployment
+	ReplicaSet
+	StatefulSet
+	DaemonSet
+	Job
+	CronJob
+)
+
+// Keep the order with above structure...
+//
+//	otherwise everything will be messed up
+func (ctrl ResourceController) String() string {
+	return [...]string{"Unkown", "Deployment", "ReplicaSet", "StatefulSet", "DaemonSet", "Job", "CronJob"}[ctrl]
+}
+
+func NewResourceController(resourceController string) ResourceController {
+	switch resourceController {
+	case Deployment.String():
+		return Deployment
+	case ReplicaSet.String():
+		return ReplicaSet
+	case StatefulSet.String():
+		return StatefulSet
+	case DaemonSet.String():
+		return DaemonSet
+	case Job.String():
+		return Job
+	case CronJob.String():
+		return CronJob
+	default:
+		return Unkown
+	}
+}
+
 // Run a goroutine to fetch k8s events then push them into the channel before timeout
 func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, eventsChan chan<- []corev1.Event) {
 	defer wg.Done()
@@ -373,72 +574,5 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 		}
 	default:
 		return "", "", Unkown.String(), []metav1.OwnerReference{}, nil, nil
-	}
-}
-
-type ServiceStatusRequest struct {
-	Namespace      string `json:"namespace" validate:"required"`
-	ControllerName string `json:"controllerName" validate:"required"`
-	Controller     string `json:"controller" validate:"required"`
-}
-
-func ServiceStatusRequestExample() ServiceStatusRequest {
-	return ServiceStatusRequest{
-		Namespace:      "YOUR-NAMESPACE",
-		ControllerName: "YOUR-SERVICE-NAME",
-		Controller:     Deployment.String(),
-	}
-}
-
-type ResourceItem struct {
-	Kind         string         `json:"kind"`
-	Name         string         `json:"name"`
-	Namespace    string         `json:"namespace"`
-	OwnerName    string         `json:"ownerName,omitempty"`
-	OwnerKind    string         `json:"ownerKind,omitempty"`
-	StatusObject interface{}    `json:"statusObject,omitempty"`
-	Events       []corev1.Event `json:"events,omitempty"`
-}
-
-func (item ResourceItem) String() string {
-	return fmt.Sprintf("%s, %s, %s, %s, %s, %+v", item.Kind, item.Name, item.Namespace, item.OwnerKind, item.OwnerName, item.StatusObject)
-}
-
-type ResourceController int
-
-// Keep the order, only add elements at end
-const (
-	Unkown ResourceController = iota
-	Deployment
-	ReplicaSet
-	StatefulSet
-	DaemonSet
-	Job
-	CronJob
-)
-
-// Keep the order with above structure...
-//
-//	otherwise everything will be messed up
-func (ctrl ResourceController) String() string {
-	return [...]string{"Unkown", "Deployment", "ReplicaSet", "StatefulSet", "DaemonSet", "Job", "CronJob"}[ctrl]
-}
-
-func NewResourceController(resourceController string) ResourceController {
-	switch resourceController {
-	case Deployment.String():
-		return Deployment
-	case ReplicaSet.String():
-		return ReplicaSet
-	case StatefulSet.String():
-		return StatefulSet
-	case DaemonSet.String():
-		return DaemonSet
-	case Job.String():
-		return Job
-	case CronJob.String():
-		return CronJob
-	default:
-		return Unkown
 	}
 }
