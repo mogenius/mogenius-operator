@@ -12,6 +12,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+func CreateOrUpdateApplicationKit(namespace string, name string, newObj CrdApplicationKit) error {
+	_, _, err := GetApplicationKit(namespace, name)
+	if err != nil {
+		err = CreateApplicationKit(namespace, name, newObj)
+		if err != nil {
+			log.Errorf("Error creating applicationkit: %s", err.Error())
+			return err
+		}
+	} else {
+		err = UpdateApplicationKit(namespace, name, &newObj)
+		if err != nil {
+			log.Errorf("Error updating applicationkit: %s", err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
 func CreateApplicationKit(namespace string, name string, newObj CrdApplicationKit) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
@@ -27,7 +45,9 @@ func CreateApplicationKit(namespace string, name string, newObj CrdApplicationKi
 		return err
 	}
 
-	return nil
+	err = AddAppIdToProject(namespace, newObj.AppId)
+
+	return err
 }
 
 func UpdateApplicationKit(namespace string, name string, updatedObj *CrdApplicationKit) error {
@@ -74,7 +94,9 @@ func DeleteApplicationKit(namespace string, name string) error {
 		return err
 	}
 
-	return nil
+	err = RemoveAppIdFromProject(namespace, name)
+
+	return err
 }
 
 func GetApplicationKit(namespace string, name string) (appkit CrdApplicationKit, appkitRaw *unstructured.Unstructured, err error) {

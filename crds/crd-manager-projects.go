@@ -77,34 +77,34 @@ func DeleteProject(name string) error {
 	return nil
 }
 
-func GetProject(name string) (project CrdProject, projectRaw *unstructured.Unstructured, err error) {
+func GetProject(name string) (project *CrdProject, projectRaw *unstructured.Unstructured, err error) {
 	result := CrdProject{}
 
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
 		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
-		return result, nil, err
+		return nil, nil, err
 	}
 
 	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
 	projectItem, err := provider.ClientSet.Resource(projectsGVR).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		log.Errorf("Error getting project: %s", err.Error())
-		return result, projectItem, err
+		return nil, projectItem, err
 	}
 
 	jsonData, err := json.Marshal(projectItem.Object["spec"])
 	if err != nil {
 		log.Errorf("Error marshalling project spec: %s", err.Error())
-		return result, projectItem, err
+		return nil, projectItem, err
 	}
 	err = json.Unmarshal(jsonData, &result)
 	if err != nil {
 		log.Errorf("Error unmarshalling project spec: %s", err.Error())
-		return result, projectItem, err
+		return nil, projectItem, err
 	}
 
-	return result, projectItem, err
+	return &result, projectItem, err
 }
 
 func ListProjects() (project []CrdProject, projectRaw *unstructured.UnstructuredList, err error) {
@@ -138,4 +138,51 @@ func ListProjects() (project []CrdProject, projectRaw *unstructured.Unstructured
 		result = append(result, entry)
 	}
 	return result, projects, err
+}
+
+func AddAppIdToProject(name string, appId string) error {
+	project, _, err := GetProject(name)
+	if err != nil {
+		log.Errorf("Error getting project: %s", err.Error())
+		return err
+	}
+	if project == nil {
+		log.Errorf("Project not found: %s", name)
+		return err
+	}
+
+	project.ApplicationKitRefs = append(project.ApplicationKitRefs, appId)
+	err = UpdateProject(name, project)
+	if err != nil {
+		log.Errorf("Error updating project: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func RemoveAppIdFromProject(name string, appId string) error {
+	project, _, err := GetProject(name)
+	if err != nil {
+		log.Errorf("Error getting project: %s", err.Error())
+		return err
+	}
+	if project == nil {
+		log.Errorf("Project not found: %s", name)
+		return err
+	}
+
+	for i, id := range project.ApplicationKitRefs {
+		if id == appId {
+			project.ApplicationKitRefs = append(project.ApplicationKitRefs[:i], project.ApplicationKitRefs[i+1:]...)
+			break
+		}
+	}
+	err = UpdateProject(name, project)
+	if err != nil {
+		log.Errorf("Error updating project: %s", err.Error())
+		return err
+	}
+
+	return nil
 }

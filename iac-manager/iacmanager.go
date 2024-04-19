@@ -144,6 +144,11 @@ func CheckRepoAccess() error {
 }
 
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
+	// Exceptions
+	if namespace == "kube-system" {
+		return
+	}
+
 	diff := createDiff(kind, namespace, resourceName, dataInf)
 	if utils.CONFIG.Iac.ShowDiffInLog {
 		if diff != "" {
@@ -189,6 +194,11 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 }
 
 func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) error {
+	// Exceptions
+	if namespace == "kube-system" {
+		return nil
+	}
+
 	if utils.CONFIG.Iac.ShowDiffInLog {
 		diff := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
 		if diff != "" {
