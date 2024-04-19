@@ -46,20 +46,35 @@ func Init() {
 	syncChangesTimer()
 }
 
-func GitInitRepo() {
+func ShouldWatchResources() bool {
+	return utils.CONFIG.Iac.AllowPull || utils.CONFIG.Iac.AllowPush
+}
+
+func GitInitRepo() error {
 	// Create a git repository
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
 		err := os.MkdirAll(folder, 0755)
 		if err != nil {
 			log.Errorf("Error creating folder for git repository (in %s): %s", folder, err.Error())
+			return err
 		}
 	}
 
 	err := utils.ExecuteShellCommandSilent("git init", fmt.Sprintf("cd %s; git init", folder))
 	if err != nil {
 		log.Errorf("Error creating git repository: %s", err.Error())
+		return err
 	}
+
+	branchCmdStr := fmt.Sprintf("cd %s; git branch -M %s", folder, utils.CONFIG.Iac.RepoBranch)
+	err = utils.ExecuteShellCommandSilent(branchCmdStr, branchCmdStr)
+	if err != nil {
+		log.Errorf("Error setting up branch: %s", err.Error())
+		return err
+	}
+
+	return err
 }
 
 func AddRemote() error {
@@ -70,14 +85,16 @@ func AddRemote() error {
 	remoteCmdStr := fmt.Sprintf("cd %s; git remote add origin %s", folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat))
 	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
 	if err != nil {
-		log.Errorf("Error setting up remote: %s", err.Error())
-		return err
+		// skip already exists error
+		if !strings.Contains(err.Error(), "remote origin already exists") {
+			log.Errorf("Error setting up remote: %s", err.Error())
+			return err
+		}
 	}
 	branchCmdStr := fmt.Sprintf("cd %s; git branch -M %s", folder, utils.CONFIG.Iac.RepoBranch)
 	err = utils.ExecuteShellCommandSilent(branchCmdStr, branchCmdStr)
 	if err != nil {
 		log.Errorf("Error setting up branch: %s", err.Error())
-		return err
 	}
 
 	return nil
@@ -94,12 +111,13 @@ func RemoveRemote() error {
 	return nil
 }
 
-func DeleteCurrentRepoData() {
+func DeleteCurrentRepoData() error {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	err := os.RemoveAll(folder)
 	if err != nil {
 		log.Errorf("Error deleting current repository data: %s", err.Error())
 	}
+	return err
 }
 
 func CheckRepoAccess() error {
@@ -126,18 +144,20 @@ func CheckRepoAccess() error {
 }
 
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
+	diff := createDiff(kind, namespace, resourceName, dataInf)
 	if utils.CONFIG.Iac.ShowDiffInLog {
-		diff := createDiff(kind, namespace, resourceName, dataInf)
 		if diff != "" {
 			log.Warnf("Diff: \n%s", diff)
 		}
 	}
 
 	// all changes will be reversed if PULL only is allowed
-	if utils.CONFIG.Iac.AllowPull == true && utils.CONFIG.Iac.AllowPush == false {
-		log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush && diff != "" {
 		filename := fileNameForRaw(kind, namespace, resourceName)
-		kubernetesApplyRevertFromPath(filename)
+		err := kubernetesApplyRevertFromPath(filename)
+		if err == nil {
+			log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+		}
 		return
 	}
 
@@ -530,13 +550,16 @@ func kubernetesApplyResource(file string) {
 	}
 }
 
-func kubernetesApplyRevertFromPath(path string) {
+func kubernetesApplyRevertFromPath(path string) error {
 	if strings.Contains(path, "/pods/") {
-		return
+		return nil
 	}
-	if strings.Contains(path, "mogenius-k8s-manager") {
-		return
+	if strings.Contains(path, fmt.Sprintf("/%s_", utils.CONFIG.Kubernetes.OwnNamespace)) {
+		return nil
 	}
+	// if strings.Contains(path, "mogenius-k8s-manager") {
+	// 	return
+	// }
 	applyCmd := fmt.Sprintf("kubectl apply -f %s", path)
 	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 	if err != nil {
@@ -544,6 +567,7 @@ func kubernetesApplyRevertFromPath(path string) {
 	} else {
 		log.Infof("🚓 Applied revert file: %s", path)
 	}
+	return err
 }
 
 // removeFieldAtPath recursively searches through the data structure.

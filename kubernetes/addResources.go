@@ -118,36 +118,13 @@ func applyNamespace(provider *punq.KubeProvider) {
 }
 
 func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
+	// Save previous data for comparison
 	previousData, err := GetSyncRepoData()
 	if err != nil {
 		return err
 	}
-	// check if essential data is changed
-	if previousData.Repo != syncRepoReq.Repo ||
-		previousData.Branch != syncRepoReq.Branch ||
-		previousData.AllowPull != syncRepoReq.AllowPull ||
-		previousData.AllowPush != syncRepoReq.AllowPush {
-		log.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
-		// Push/Pull
-		if syncRepoReq.AllowPull == true && syncRepoReq.AllowPush == true {
-			iacmanager.AddRemote()
-		}
-		// Push
-		if syncRepoReq.AllowPull == false && syncRepoReq.AllowPush == true {
-			iacmanager.AddRemote()
-		}
-		// Pull
-		if syncRepoReq.AllowPull == true && syncRepoReq.AllowPush == false {
-			iacmanager.DeleteCurrentRepoData()
-			iacmanager.GitInitRepo()
-			iacmanager.AddRemote()
-		}
-		// None
-		if syncRepoReq.AllowPull == false && syncRepoReq.AllowPush == false {
-			iacmanager.RemoveRemote()
-		}
-	}
 
+	// update data
 	secret, err := CreateOrUpdateClusterSecret(syncRepoReq)
 	if err == nil {
 		utils.CONFIG.Iac.RepoUrl = secret.SyncRepoUrl
@@ -157,6 +134,48 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		utils.CONFIG.Iac.AllowPush = secret.SyncAllowPush
 		utils.CONFIG.Iac.SyncFrequencyInSec = secret.SyncFrequencyInSec
 		utils.CONFIG.Iac.SyncWorkloads = secret.SyncWorkloads
+	}
+
+	// check if essential data is changed
+	if previousData.Repo != syncRepoReq.Repo ||
+		previousData.Branch != syncRepoReq.Branch ||
+		previousData.AllowPull != syncRepoReq.AllowPull ||
+		previousData.AllowPush != syncRepoReq.AllowPush {
+		log.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
+		// Push/Pull
+		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
+			err = iacmanager.DeleteCurrentRepoData()
+			if err != nil {
+				return err
+			}
+			InitAllWorkloads() // this makes sure all resources are in sync
+			err = iacmanager.AddRemote()
+		}
+		// Push
+		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
+			InitAllWorkloads() // this makes sure all resources are in sync
+			err = iacmanager.AddRemote()
+		}
+		// Pull
+		if syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
+			err = iacmanager.DeleteCurrentRepoData()
+			if err != nil {
+				return err
+			}
+			err = iacmanager.GitInitRepo()
+			if err != nil {
+				return err
+			}
+			err = iacmanager.AddRemote()
+		}
+		// None
+		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
+			err = iacmanager.DeleteCurrentRepoData()
+			if err != nil {
+				return err
+			}
+			err = iacmanager.GitInitRepo()
+		}
 	}
 	return err
 }
