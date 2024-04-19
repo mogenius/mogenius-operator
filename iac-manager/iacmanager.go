@@ -166,9 +166,11 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 	// all changes will be reversed if PULL only is allowed
 	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush && diff != "" {
 		filename := fileNameForRaw(kind, namespace, resourceName)
-		err := kubernetesApplyRevertFromPath(filename)
-		if err == nil {
-			log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+		if _, err := os.Stat(filename); os.IsExist(err) {
+			err = kubernetesApplyRevertFromPath(filename)
+			if err == nil {
+				log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+			}
 		}
 		return
 	}
@@ -214,9 +216,14 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	}
 
 	// all changes will be reversed if PULL only is allowed
-	if utils.CONFIG.Iac.AllowPull == true && utils.CONFIG.Iac.AllowPush == false {
+	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush {
 		filename := fileNameForRaw(kind, namespace, resourceName)
-		kubernetesApplyRevertFromPath(filename)
+		if _, err := os.Stat(filename); os.IsExist(err) {
+			err = kubernetesApplyRevertFromPath(filename)
+			if err == nil {
+				log.Warnf("Detected %s deletion. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+			}
+		}
 		return nil
 	}
 
