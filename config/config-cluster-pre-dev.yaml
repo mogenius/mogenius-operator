@@ -27,6 +27,7 @@ iac:
   allow_push: false
   allow_pull: false
   sync_workloads: ["namespaces", "pods", "deployments", "statefulsets", "services", "ingresses", "configmaps", "secrets", "jobs", "cronjobs", "daemonsets", "networkpolicies"]
+  ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
   show_diff_in_log: true
   log_changes: true
 

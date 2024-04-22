@@ -33,6 +33,7 @@ var commitMutex sync.Mutex
 var changedFiles []string
 
 var syncInProcess = false
+var configurationChangeInProcess = false
 
 func IsIgnoredNamespace(namespace string) bool {
 	if namespace == "kube-system" || namespace == "kube-node-lease" {
@@ -118,11 +119,15 @@ func RemoveRemote() error {
 	return nil
 }
 
-func DeleteCurrentRepoData() error {
+func DeleteCurrentRepoData(tries int) error {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	err := os.RemoveAll(folder)
 	if err != nil {
 		log.Errorf("Error deleting current repository data: %s", err.Error())
+		if tries > 0 {
+			time.Sleep(1 * time.Second)
+			return DeleteCurrentRepoData(tries - 1)
+		}
 	}
 	return err
 }
@@ -166,7 +171,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 	// all changes will be reversed if PULL only is allowed
 	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush && diff != "" {
 		filename := fileNameForRaw(kind, namespace, resourceName)
-		if _, err := os.Stat(filename); os.IsExist(err) {
+		if _, err := os.Stat(filename); err == nil {
 			err = kubernetesApplyRevertFromPath(filename)
 			if err == nil {
 				log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
@@ -295,7 +300,7 @@ func cleanYaml(data string) string {
 	removeFieldAtPath(dataMap, "selfLink", []string{"metadata"}, []string{})
 	removeFieldAtPath(dataMap, "generation", []string{"metadata"}, []string{})
 	removeFieldAtPath(dataMap, "managedFields", []string{"metadata"}, []string{})
-	removeFieldAtPath(dataMap, "kubectl.kubernetes.io/last-applied-configuration", []string{"annotations"}, []string{})
+	//removeFieldAtPath(dataMap, "kubectl.kubernetes.io/last-applied-configuration", []string{"annotations"}, []string{})
 
 	removeFieldAtPath(dataMap, "creationTimestamp", []string{}, []string{})
 	removeFieldAtPath(dataMap, "resourceVersion", []string{}, []string{})
@@ -330,13 +335,18 @@ func syncChanges() {
 		if !syncInProcess {
 			syncInProcess = true
 			updatedFiles, deletedFiles := pullChanges()
+			updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
 			for _, v := range updatedFiles {
 				kubernetesApplyResource(v)
 			}
+			deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
 			for _, v := range deletedFiles {
 				kubernetesDeleteResource(v)
 			}
-			pushChanges()
+			err := pushChanges()
+			if err != nil {
+				log.Errorf("Error pushing changes: %s", err.Error())
+			}
 			syncInProcess = false
 		}
 	}
@@ -443,6 +453,12 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 		if !strings.Contains(stderr.String(), "Your local changes to the following files would be overwritten by merge") {
 			log.Errorf("Error running git pull origin %s (%s): %s %s %s", utils.CONFIG.Iac.RepoBranch, utils.CONFIG.Iac.RepoUrl, err.Error(), out.String(), stderr.String())
 		}
+		if strings.Contains(stderr.String(), "fatal: refusing to merge unrelated histories") {
+			log.Warnf("Unrelated histories. Deleting current repository data and reinitializing.")
+			DeleteCurrentRepoData(5)
+			GitInitRepo()
+			AddRemote()
+		}
 		return updatedFiles, deletedFiles
 	}
 
@@ -452,7 +468,9 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 	//Get the list of updated or newly added files since the last pull
 	updatedFiles, err = getGitFiles(folder, "HEAD@{1}", "HEAD", "--name-only", "--diff-filter=AM")
 	if err != nil {
-		log.Errorf("Error getting added/updated files: %s", err.Error())
+		if !strings.Contains(err.Error(), "fatal: log for 'HEAD' only has 1 entries") {
+			log.Errorf("Error getting added/updated files: %s", err.Error())
+		}
 		return updatedFiles, deletedFiles
 	}
 
@@ -462,6 +480,8 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 		log.Errorf("Error getting deleted files: %s", err.Error())
 		return
 	}
+
+	// sortNamespaces first
 
 	log.Infof("Pulled changes from the remote repository (Modified: %d / Deleted: %d). 🔄🔄🔄", len(updatedFiles), len(deletedFiles))
 	if utils.CONFIG.Misc.Debug {
@@ -478,12 +498,12 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 	return updatedFiles, deletedFiles
 }
 
-func pushChanges() {
+func pushChanges() error {
 	if !utils.CONFIG.Iac.AllowPush {
-		return
+		return nil
 	}
 	if len(changedFiles) <= 0 {
-		return
+		return nil
 	}
 
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
@@ -506,9 +526,44 @@ func pushChanges() {
 		}
 	}
 	if err != nil {
-		log.Errorf("Error running git push: %s %s %s", err.Error(), out.String(), stderr.String())
+		return fmt.Errorf("Error running git push: %s %s %s", err.Error(), out.String(), stderr.String())
 	}
 	changedFiles = []string{}
+	return nil
+}
+
+// namespaces should be applied first
+func applyPriotityToChangesForUpdates(resources []string) []string {
+	result := []string{}
+	// sort by kind to apply the changes in the right order
+	for _, v := range resources {
+		if strings.Contains(v, "namespaces/") {
+			// instert at first position
+			result = append([]string{v}, result...)
+		} else {
+			// append at the end
+			result = append(result, v)
+		}
+
+	}
+	return result
+}
+
+// namespaces should be applied last
+func applyPriotityToChangesForDeletes(resources []string) []string {
+	result := []string{}
+	// sort by kind to apply the changes in the right order
+	for _, v := range resources {
+		if strings.Contains(v, "namespaces/") {
+			// append at the end
+			result = append(result, v)
+		} else {
+			// instert at first position
+			result = append([]string{v}, result...)
+		}
+
+	}
+	return result
 }
 
 func getGitFiles(workDir string, ref string, options ...string) ([]string, error) {
@@ -550,8 +605,13 @@ func kubernetesDeleteResource(file string) {
 		return
 	}
 	if name == "" {
-		log.Errorf("Name cannot be empty. File: %s", file)
-		return
+		// check if resource is cluster wide (so we dont habe a namespace)
+		if len(partsName) > 0 {
+			name = partsName[0]
+		} else {
+			log.Errorf("Name cannot be empty. File: %s", file)
+			return
+		}
 	}
 
 	delCmd := fmt.Sprintf("kubectl delete %s %s%s", kind, namespace, name)

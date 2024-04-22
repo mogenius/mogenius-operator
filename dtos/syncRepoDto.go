@@ -17,6 +17,7 @@ type SyncRepoData struct {
 	SyncFrequencyInSec     int      `json:"syncFrequencyInSec"`
 	SyncWorkloads          []string `json:"syncWorkloads"`
 	AvailableSyncWorkloads []string `json:"availableSyncWorkloads"`
+	IgnoredNamespaces      []string `json:"ignoredNamespaces"`
 }
 
 func (p *SyncRepoData) AddSecretsToRedaction() {
@@ -35,15 +36,17 @@ func SyncRepoDataExampleData() SyncRepoData {
 		SyncFrequencyInSec:     5,
 		SyncWorkloads:          AvailableSyncWorkloadKinds,
 		AvailableSyncWorkloads: AvailableSyncWorkloadKinds,
+		IgnoredNamespaces:      DefaultIgnoredNamespaces(),
 	}
 }
 
 func CreateSyncRepoDataFrom(secret *core.Secret) SyncRepoData {
 	result := SyncRepoData{
-		Repo:          string(secret.Data["sync-repo-url"]),
-		Pat:           string(secret.Data["sync-repo-pat"]),
-		Branch:        string(secret.Data["sync-repo-branch"]),
-		SyncWorkloads: strings.Split(string(secret.Data["sync-workloads"]), ","),
+		Repo:              string(secret.Data["sync-repo-url"]),
+		Pat:               string(secret.Data["sync-repo-pat"]),
+		Branch:            string(secret.Data["sync-repo-branch"]),
+		SyncWorkloads:     strings.Split(string(secret.Data["sync-workloads"]), ","),
+		IgnoredNamespaces: strings.Split(string(secret.Data["sync-ignored-namespaces"]), ","),
 	}
 
 	if result.Branch == "" {
@@ -52,7 +55,10 @@ func CreateSyncRepoDataFrom(secret *core.Secret) SyncRepoData {
 	if len(result.SyncWorkloads) == 1 && result.SyncWorkloads[0] == "" {
 		result.SyncWorkloads = AvailableSyncWorkloadKinds
 	}
-	result.AvailableSyncWorkloads = AvailableSyncWorkloadKinds
+
+	if len(result.IgnoredNamespaces) == 1 && result.IgnoredNamespaces[0] == "" {
+		result.IgnoredNamespaces = DefaultIgnoredNamespaces()
+	}
 
 	pull, err := strconv.ParseBool(string(secret.Data["sync-allow-pull"]))
 	if err != nil {

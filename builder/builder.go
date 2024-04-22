@@ -27,6 +27,8 @@ var currentBuildChannel chan punqStructs.JobStateEnum
 var currentBuildJob *structs.BuildJob
 var currentNumberOfRunningJobs int = 0
 
+var buildInProgress bool = false
+
 func ProcessQueue() {
 	if DISABLEQUEUE || currentNumberOfRunningJobs >= utils.CONFIG.Builder.MaxConcurrentBuilds {
 		time.Sleep(3 * time.Second)
@@ -88,13 +90,14 @@ func ProcessQueue() {
 			currentNumberOfRunningJobs--
 		}
 	}
+	buildInProgress = false
 }
 
 func build(job structs.Job, buildJob *structs.BuildJob, container *dtos.K8sContainerDto, done chan punqStructs.JobStateEnum, timeoutCtx *context.Context) {
 	job.Start()
 
 	pwd, _ := os.Getwd()
-	workingDir := fmt.Sprintf("%s/temp/%d", pwd, buildJob.BuildId)
+	workingDir := fmt.Sprintf("%s/temp/%s", pwd, punqUtils.NanoId())
 
 	defer func() {
 		// reset everything if done

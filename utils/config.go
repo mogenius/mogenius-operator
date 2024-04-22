@@ -25,6 +25,7 @@ type ClusterSecret struct {
 	SyncAllowPush      bool
 	SyncFrequencyInSec int
 	SyncWorkloads      []string
+	IgnoredNamespaces  []string
 }
 
 const STAGE_PRE_DEV = "pre-dev"
@@ -63,6 +64,7 @@ type Config struct {
 		AllowPull          bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo." env-default:"true"`
 		SyncWorkloads      []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync." env-default:""`
 		ShowDiffInLog      bool     `yaml:"show_diff_in_log" env:"sync_show_diff_in_log" env-description:"Show all changes of resources as diff in operator log." env-default:"true"`
+		IgnoredNamespaces  []string `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces." env-default:""`
 		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry." env-default:"true"`
 	} `yaml:"iac"`
 	Misc struct {
@@ -214,6 +216,7 @@ func SetupClusterSecret(clusterSecret ClusterSecret) {
 		CONFIG.Iac.AllowPull = clusterSecret.SyncAllowPull
 		CONFIG.Iac.AllowPush = clusterSecret.SyncAllowPush
 		CONFIG.Iac.SyncWorkloads = clusterSecret.SyncWorkloads
+		CONFIG.Iac.IgnoredNamespaces = clusterSecret.IgnoredNamespaces
 
 		if clusterSecret.SyncFrequencyInSec <= 5 {
 			clusterSecret.SyncFrequencyInSec = 5
@@ -253,6 +256,7 @@ func PrintSettings() {
 	log.Infof("AllowPull:                 %t", CONFIG.Iac.AllowPull)
 	log.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
 	log.Infof("SyncWorkloads:             %s", strings.Join(CONFIG.Iac.SyncWorkloads, ","))
+	log.Infof("IgnoredNamespaces:         %s", strings.Join(CONFIG.Iac.IgnoredNamespaces, ","))
 	log.Infof("LogChanges:                %t", CONFIG.Iac.LogChanges)
 	log.Infof("ShowDiffInLog:             %t\n\n", CONFIG.Iac.ShowDiffInLog)
 
