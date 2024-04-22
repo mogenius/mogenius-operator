@@ -573,10 +573,10 @@ func processLine(
 		}
 		db.SaveBuildResult(punqStructs.JobStateEnum(reportCmd.State), prefix, cmdOutput.String(), startTime, job, container)
 
-		//ch, exists := LogChannels[structs.BuildJobInfoEntryKey(job.BuildId, prefix, job.Namespace.Name, job.Service.ControllerName, container.Name)]
-		//if exists {
-		//	ch <- newLine
-		//}
+		ch, exists := LogChannels[structs.BuildJobInfoEntryKey(job.BuildId, prefix, job.Namespace.Name, job.Service.ControllerName, container.Name)]
+		if exists {
+			ch <- newLine
+		}
 
 		// send notification
 		// send start-signal when first line is received
