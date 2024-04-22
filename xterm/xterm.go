@@ -355,6 +355,12 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	defer func() {
 		cancel()
+		ch := builder.LogChannels[key]
+		_, exists := builder.LogChannels[key]
+		if exists {
+			close(ch)
+			delete(builder.LogChannels, key)
+		}
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
@@ -365,7 +371,6 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	ch, exists := builder.LogChannels[key]
 	if !exists {
-		log.Info("Channel does not exist.")
 		builder.LogChannels[key] = make(chan string)
 		ch, _ = builder.LogChannels[key]
 	}
@@ -374,8 +379,6 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		for message := range ch {
 			select {
 			case <-ctx.Done():
-				close(builder.LogChannels[key])
-				builder.LogChannels[key] = nil
 				return
 			default:
 				if conn != nil {
