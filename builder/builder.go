@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	punqStructs "github.com/mogenius/punq/structs"
@@ -27,7 +28,7 @@ var currentBuildChannel chan punqStructs.JobStateEnum
 var currentBuildJob *structs.BuildJob
 var currentNumberOfRunningJobs int = 0
 
-var buildInProgress bool = false
+var LogChannels = make(map[string]chan string)
 
 func ProcessQueue() {
 	if DISABLEQUEUE || currentNumberOfRunningJobs >= utils.CONFIG.Builder.MaxConcurrentBuilds {
@@ -90,7 +91,6 @@ func ProcessQueue() {
 			currentNumberOfRunningJobs--
 		}
 	}
-	buildInProgress = false
 }
 
 func build(job structs.Job, buildJob *structs.BuildJob, container *dtos.K8sContainerDto, done chan punqStructs.JobStateEnum, timeoutCtx *context.Context) {
@@ -482,6 +482,9 @@ func executeCmd(reportCmd *structs.Command, prefix structs.BuildPrefixEnum, job 
 		}
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	// Collecting the output
 	go func() {
 		scanner := bufio.NewScanner(stdout)
@@ -490,28 +493,35 @@ func executeCmd(reportCmd *structs.Command, prefix structs.BuildPrefixEnum, job 
 			processLine(enableTimestamp, saveLog, prefix, lineCounter, scanner.Text(), job, container, startTime, reportCmd, &cmdOutput)
 			lineCounter++
 		}
+		wg.Done()
 	}()
-	//go func() {
-	//	scanner := bufio.NewScanner(stdErr)
-	//	lineCounter := 0
-	//	for scanner.Scan() {
-	//		processLine(enableTimestamp, saveLog, prefix, lineCounter, scanner.Text(), job, container, startTime, reportCmd, &cmdOutput)
-	//		lineCounter++
-	//	}
-	//}()
+	go func() {
+		scanner := bufio.NewScanner(stdErr)
+		lineCounter := 0
+		for scanner.Scan() {
+			processLine(enableTimestamp, saveLog, prefix, lineCounter, scanner.Text(), job, container, startTime, reportCmd, &cmdOutput)
+			lineCounter++
+		}
+		wg.Done()
+	}()
 
 	// IMPORTANT: This is blocking the process until the command is finished ON PURPOSE. We were losing logs otherwise.
-	scanner := bufio.NewScanner(stdErr)
-	for scanner.Scan() {
-		processLine(enableTimestamp, saveLog, prefix, 0, scanner.Text(), job, container, startTime, reportCmd, &cmdOutput)
-	}
+	// scanner := bufio.NewScanner(stdErr)
+	//for scanner.Scan() {
+	//	processLine(enableTimestamp, saveLog, prefix, 0, scanner.Text(), job, container, startTime, punqStructs.JobStateEnum(reportCmd.State), &cmdOutput)
+	//}
 
+	wg.Wait()
 	// Waiting for the command to finish
 	waitErr := cmd.Wait()
 
 	if waitErr != nil {
 		log.Errorf("Failed wait for command (%s): %v", cmd.String(), waitErr)
 		log.Errorf("Error: %s", cmdOutput.String())
+		log.Info(reportCmd == nil)
+		if prefix == structs.PrefixPush {
+			saveLog = true
+		}
 		if reportCmd != nil {
 			reportCmd.Fail(fmt.Sprintf("%s: %s", waitErr.Error(), cmdOutput.String()))
 			processLine(enableTimestamp, saveLog, prefix, -1, "", job, container, startTime, reportCmd, &cmdOutput)
@@ -562,6 +572,11 @@ func processLine(
 			return
 		}
 		db.SaveBuildResult(punqStructs.JobStateEnum(reportCmd.State), prefix, cmdOutput.String(), startTime, job, container)
+
+		//ch, exists := LogChannels[structs.BuildJobInfoEntryKey(job.BuildId, prefix, job.Namespace.Name, job.Service.ControllerName, container.Name)]
+		//if exists {
+		//	ch <- newLine
+		//}
 
 		// send notification
 		// send start-signal when first line is received
