@@ -27,19 +27,15 @@ const (
 	GIT_VAULT_FOLDER = "git-vault"
 )
 
-var ProcessedObjects = 0
 var commitMutex sync.Mutex
 
 var changedFiles []string
 
 var syncInProcess = false
-var configurationChangeInProcess = false
+var SetupInProcess = false
 
 func IsIgnoredNamespace(namespace string) bool {
-	if namespace == "kube-system" || namespace == "kube-node-lease" {
-		return true
-	}
-	return false
+	return utils.ContainsString(utils.CONFIG.Iac.IgnoredNamespaces, namespace)
 }
 
 func Init() {
@@ -156,6 +152,10 @@ func CheckRepoAccess() error {
 }
 
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
+	if SetupInProcess {
+		return
+	}
+
 	// Exceptions
 	if IsIgnoredNamespace(namespace) {
 		return
@@ -200,7 +200,6 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		log.Errorf("Error writing resource %s:%s/%s file: %s", kind, namespace, resourceName, err.Error())
 		return
 	}
-	ProcessedObjects++
 	if utils.CONFIG.Iac.LogChanges {
 		log.Infof("Detected %s change. Updated %s/%s. 🧹", kind, namespace, resourceName)
 	}
@@ -208,6 +207,10 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 }
 
 func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) error {
+	if SetupInProcess {
+		return nil
+	}
+
 	// Exceptions
 	if IsIgnoredNamespace(namespace) {
 		return nil

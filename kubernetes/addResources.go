@@ -143,6 +143,10 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		previousData.AllowPull != syncRepoReq.AllowPull ||
 		previousData.AllowPush != syncRepoReq.AllowPush {
 		log.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
+		iacmanager.SetupInProcess = true
+		defer func() {
+			iacmanager.SetupInProcess = false
+		}()
 		// Push/Pull
 		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
 			err = iacmanager.DeleteCurrentRepoData(5)
@@ -249,7 +253,11 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		clusterSecret.SyncAllowPush = syncdata.AllowPush
 		clusterSecret.SyncFrequencyInSec = syncdata.SyncFrequencyInSec
 		clusterSecret.SyncWorkloads = syncdata.SyncWorkloads
-		clusterSecret.IgnoredNamespaces = syncdata.IgnoredNamespaces
+		if len(syncdata.IgnoredNamespaces) > 1 {
+			clusterSecret.IgnoredNamespaces = syncdata.IgnoredNamespaces
+		} else {
+			clusterSecret.IgnoredNamespaces = dtos.DefaultIgnoredNamespaces()
+		}
 	}
 	if clusterSecret.ClusterMfaId == "" {
 		clusterSecret.ClusterMfaId = punqUtils.NanoId()
