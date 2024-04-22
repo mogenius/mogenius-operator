@@ -24,7 +24,8 @@ import (
 // 6. pull/push changes periodically
 
 const (
-	GIT_VAULT_FOLDER = "git-vault"
+	GIT_VAULT_FOLDER    = "git-vault"
+	DELETE_DATA_RETRIES = 5
 )
 
 var commitMutex sync.Mutex
@@ -115,16 +116,26 @@ func RemoveRemote() error {
 	return nil
 }
 
-func DeleteCurrentRepoData(tries int) error {
+func ResetCurrentRepoData(tries int) error {
+	changedFiles = []string{}
+
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	err := os.RemoveAll(folder)
 	if err != nil {
 		log.Errorf("Error deleting current repository data: %s", err.Error())
 		if tries > 0 {
 			time.Sleep(1 * time.Second)
-			return DeleteCurrentRepoData(tries - 1)
+			return ResetCurrentRepoData(tries - 1)
 		}
 	}
+
+	err = GitInitRepo()
+	if err != nil {
+		return err
+	}
+
+	err = AddRemote()
+
 	return err
 }
 
@@ -172,7 +183,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush && diff != "" {
 		filename := fileNameForRaw(kind, namespace, resourceName)
 		if _, err := os.Stat(filename); err == nil {
-			err = kubernetesApplyRevertFromPath(filename)
+			err = kubernetesRevertFromPath(filename)
 			if err == nil {
 				log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
 			}
@@ -227,7 +238,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush {
 		filename := fileNameForRaw(kind, namespace, resourceName)
 		if _, err := os.Stat(filename); os.IsExist(err) {
-			err = kubernetesApplyRevertFromPath(filename)
+			err = kubernetesRevertFromPath(filename)
 			if err == nil {
 				log.Warnf("Detected %s deletion. Reverting %s/%s. 🧹", kind, namespace, resourceName)
 			}
@@ -303,7 +314,7 @@ func cleanYaml(data string) string {
 	removeFieldAtPath(dataMap, "selfLink", []string{"metadata"}, []string{})
 	removeFieldAtPath(dataMap, "generation", []string{"metadata"}, []string{})
 	removeFieldAtPath(dataMap, "managedFields", []string{"metadata"}, []string{})
-	//removeFieldAtPath(dataMap, "kubectl.kubernetes.io/last-applied-configuration", []string{"annotations"}, []string{})
+	removeFieldAtPath(dataMap, "kubectl.kubernetes.io/last-applied-configuration", []string{"annotations"}, []string{})
 
 	removeFieldAtPath(dataMap, "creationTimestamp", []string{}, []string{})
 	removeFieldAtPath(dataMap, "resourceVersion", []string{}, []string{})
@@ -334,13 +345,13 @@ func syncChangesTimer() {
 }
 
 func syncChanges() {
-	if gitHasRemotes() {
+	if gitHasRemotes() && !SetupInProcess {
 		if !syncInProcess {
 			syncInProcess = true
 			updatedFiles, deletedFiles := pullChanges()
 			updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
 			for _, v := range updatedFiles {
-				kubernetesApplyResource(v)
+				kubernetesReplaceResource(v)
 			}
 			deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
 			for _, v := range deletedFiles {
@@ -441,7 +452,6 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 
 	// Pull changes from the remote repository
 	cmd := exec.Command("git", "pull", "origin", utils.CONFIG.Iac.RepoBranch)
-	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", fmt.Sprintf("GIT_PASSWORD=%s", utils.CONFIG.Iac.RepoPat)) // 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
 	cmd.Dir = folder
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -458,9 +468,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 		}
 		if strings.Contains(stderr.String(), "fatal: refusing to merge unrelated histories") {
 			log.Warnf("Unrelated histories. Deleting current repository data and reinitializing.")
-			DeleteCurrentRepoData(5)
-			GitInitRepo()
-			AddRemote()
+			ResetCurrentRepoData(DELETE_DATA_RETRIES)
 		}
 		return updatedFiles, deletedFiles
 	}
@@ -483,8 +491,6 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 		log.Errorf("Error getting deleted files: %s", err.Error())
 		return
 	}
-
-	// sortNamespaces first
 
 	log.Infof("Pulled changes from the remote repository (Modified: %d / Deleted: %d). 🔄🔄🔄", len(updatedFiles), len(deletedFiles))
 	if utils.CONFIG.Misc.Debug {
@@ -513,7 +519,6 @@ func pushChanges() error {
 
 	// Push changes to the remote repository
 	cmd := exec.Command("git", "push", "origin", utils.CONFIG.Iac.RepoBranch)
-	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", "GIT_PASSWORD=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")
 	cmd.Dir = folder
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -626,9 +631,9 @@ func kubernetesDeleteResource(file string) {
 	}
 }
 
-func kubernetesApplyResource(file string) {
+func kubernetesReplaceResource(file string) {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	applyCmd := fmt.Sprintf("kubectl apply -f %s/%s", folder, file)
+	applyCmd := fmt.Sprintf("kubectl replace -f %s/%s", folder, file)
 	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 	if err != nil {
 		log.Errorf("Error applying file %s: %s", file, err.Error())
@@ -637,7 +642,7 @@ func kubernetesApplyResource(file string) {
 	}
 }
 
-func kubernetesApplyRevertFromPath(path string) error {
+func kubernetesRevertFromPath(path string) error {
 	if strings.Contains(path, "/pods/") {
 		return nil
 	}
@@ -647,7 +652,7 @@ func kubernetesApplyRevertFromPath(path string) error {
 	// if strings.Contains(path, "mogenius-k8s-manager") {
 	// 	return
 	// }
-	applyCmd := fmt.Sprintf("kubectl apply -f %s", path)
+	applyCmd := fmt.Sprintf("kubectl replace -f %s", path)
 	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 	if err != nil {
 		log.Errorf("Error applying revert file %s: %s", path, err.Error())

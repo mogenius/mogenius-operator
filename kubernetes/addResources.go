@@ -149,37 +149,30 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		}()
 		// Push/Pull
 		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
-			err = iacmanager.DeleteCurrentRepoData(5)
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
 			if err != nil {
 				return err
 			}
-			InitAllWorkloads() // this makes sure all resources are in sync
-			err = iacmanager.AddRemote()
+			InitAllWorkloads()
 		}
 		// Push
 		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
-			InitAllWorkloads() // this makes sure all resources are in sync
+			InitAllWorkloads()
 			err = iacmanager.AddRemote()
 		}
 		// Pull
 		if syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
-			err = iacmanager.DeleteCurrentRepoData(5)
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
 			if err != nil {
 				return err
 			}
-			err = iacmanager.GitInitRepo()
-			if err != nil {
-				return err
-			}
-			err = iacmanager.AddRemote()
 		}
 		// None
 		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
-			err = iacmanager.DeleteCurrentRepoData(5)
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
 			if err != nil {
 				return err
 			}
-			err = iacmanager.GitInitRepo()
 		}
 	}
 	return err
