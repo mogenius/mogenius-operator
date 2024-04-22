@@ -129,6 +129,42 @@ func Close() {
 	}
 }
 
+func DeleteAllBuildData(namespace string, controller string, container string) {
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		c := bucket.Cursor()
+		suffix := structs.BuildJobInfosKeySuffix(namespace, controller, container)
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			if strings.HasSuffix(string(k), suffix) {
+				// delete all build data
+				err := bucket.Delete(k)
+				if err != nil {
+					log.Errorf("DeleteAllBuildData delete build data: %s", err.Error())
+				}
+
+				parts := strings.Split(string(k), "___")
+				if len(parts) >= 3 {
+					buildIdStr := parts[0]
+					buildId, err := strconv.ParseUint(buildIdStr, 10, 64)
+					if err != nil {
+						log.Errorf("DeleteAllBuildData parse buildId: %s", err.Error())
+					}
+					// Delete queue entry
+					queueKey := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
+					err = bucket.Delete([]byte(queueKey))
+					if err != nil {
+						log.Errorf("DeleteAllBuildData delete queue entry: %s", err.Error())
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("DeleteAllBuildData: %s", err.Error())
+	}
+}
+
 // if a job was started and the server was restarted/crashed, we need to reset the state to pending to resume the builld
 func resetStartedJobsToPendingOnInit() {
 	err := db.Update(func(tx *bolt.Tx) error {

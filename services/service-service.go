@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"mogenius-k8s-manager/crds"
+	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
@@ -133,6 +134,9 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 
 func DeleteService(r ServiceDeleteRequest) interface{} {
 	var wg sync.WaitGroup
+	for _, container := range r.Service.Containers {
+		db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
+	}
 	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
