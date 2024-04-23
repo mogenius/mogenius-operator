@@ -40,6 +40,22 @@ func IsIgnoredNamespace(namespace string) bool {
 	return utils.ContainsString(utils.CONFIG.Iac.IgnoredNamespaces, namespace)
 }
 
+func IsIgnoredNamespaceInFile(file string) (result bool, namespace *string) {
+	for _, namespace := range utils.CONFIG.Iac.IgnoredNamespaces {
+		if strings.Contains(file, fmt.Sprintf("%s_", namespace)) {
+			return true, &namespace
+		}
+		if strings.Contains(file, fmt.Sprintf("namespaces/%s", namespace)) {
+			return true, &namespace
+		}
+	}
+	if strings.Contains(file, fmt.Sprintf("%s_", utils.CONFIG.Kubernetes.OwnNamespace)) ||
+		strings.Contains(file, fmt.Sprintf("namespaces/%s", utils.CONFIG.Kubernetes.OwnNamespace)) {
+		return true, &utils.CONFIG.Kubernetes.OwnNamespace
+	}
+	return false, nil
+}
+
 func Init() {
 	GitInitRepo()
 
@@ -172,6 +188,9 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 	if IsIgnoredNamespace(namespace) {
 		return
 	}
+	if shouldSkipResource(fileNameForRaw(kind, namespace, resourceName)) {
+		return
+	}
 
 	diff := createDiff(kind, namespace, resourceName, dataInf)
 	if utils.CONFIG.Iac.ShowDiffInLog {
@@ -225,6 +244,9 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 
 	// Exceptions
 	if IsIgnoredNamespace(namespace) {
+		return nil
+	}
+	if shouldSkipResource(fileNameForRaw(kind, namespace, resourceName)) {
 		return nil
 	}
 
@@ -639,6 +661,9 @@ func getGitFiles(workDir string, ref string, options ...string) ([]string, error
 }
 
 func kubernetesDeleteResource(file string) {
+	if shouldSkipResource(file) {
+		return
+	}
 	parts := strings.Split(file, "/")
 	filename := strings.Replace(parts[len(parts)-1], ".yaml", "", -1)
 	partsName := strings.Split(filename, "_")
@@ -674,16 +699,16 @@ func kubernetesDeleteResource(file string) {
 }
 
 func kubernetesReplaceResource(file string) {
-	if shouldSkipResource(file) {
+	fileName := fmt.Sprintf("%s/%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, file)
+	if shouldSkipResource(fileName) {
 		return
 	}
 
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	replaceCmd := fmt.Sprintf("kubectl replace -f %s/%s", folder, file)
+	replaceCmd := fmt.Sprintf("kubectl replace -f %s", fileName)
 	err := utils.ExecuteShellCommandRealySilent(replaceCmd, replaceCmd)
 	if err != nil {
 		if strings.Contains(err.Error(), "Error from server (NotFound):") {
-			createCmd := fmt.Sprintf("kubectl create -f %s/%s", folder, file)
+			createCmd := fmt.Sprintf("kubectl create -f %s", fileName)
 			err = utils.ExecuteShellCommandRealySilent(createCmd, createCmd)
 			if err != nil {
 				log.Errorf("Error creating kubernetes resource file %s: %s", file, err.Error())
@@ -713,11 +738,7 @@ func kubernetesRevertFromPath(path string) error {
 
 func shouldSkipResource(path string) bool {
 	if strings.Contains(path, "/pods/") {
-		log.Infof("😑 Skipping (because pods wont by synced): %s", path)
-		return true
-	}
-	if strings.Contains(path, fmt.Sprintf("/%s_", utils.CONFIG.Kubernetes.OwnNamespace)) {
-		log.Infof("😑 Skipping (because %s resources wont be synced): %s", utils.CONFIG.Kubernetes.OwnNamespace, path)
+		log.Infof("😑 Skipping (because pods won't by synced): %s", path)
 		return true
 	}
 	if utils.CONFIG.Misc.Stage != "local" {
@@ -725,6 +746,11 @@ func shouldSkipResource(path string) bool {
 			log.Infof("😑 Skipping (because contains keyword mogenius-k8s-manager): %s", path)
 			return true
 		}
+	}
+	hasIgnoredNs, nsName := IsIgnoredNamespaceInFile(path)
+	if hasIgnoredNs {
+		log.Infof("😑 Skipping (because contains ignored namespace '%s'): %s", *nsName, path)
+		return true
 	}
 	return false
 }
