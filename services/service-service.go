@@ -133,11 +133,12 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 // }
 
 func DeleteService(r ServiceDeleteRequest) interface{} {
-	var wg sync.WaitGroup
 	for _, container := range r.Service.Containers {
 		log.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
 		db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
 	}
+
+	var wg sync.WaitGroup
 	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
 	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
