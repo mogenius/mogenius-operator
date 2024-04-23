@@ -195,12 +195,84 @@ func NewServiceStatusItem(item ResourceItem) ServiceStatusItem {
 			if status := item.JobStatus(); status != nil {
 				newItem.Status = *status
 			}
-
+		case string(ServiceStatusKindTypeDeployment):
+			if status := item.DeploymentStatus(); status != nil {
+				newItem.Status = *status
+			}
+		case string(ServiceStatusKindTypePod):
+			status, messages := item.PodStatus()
+			if status != nil {
+				newItem.Status = *status
+			}
+			if messages != nil {
+				newItem.Messages = append(newItem.Messages, messages...)
+			}
 		}
-
 	}
 
 	return newItem
+}
+
+func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) {
+	if r.StatusObject != nil {
+		if podStatus, ok := r.StatusObject.(*corev1.PodStatus); ok {
+			// readiness probe
+			ready := true
+			for _, containerStatus := range podStatus.ContainerStatuses {
+				ready = ready && containerStatus.Ready
+			}
+			// startup probe
+			started := true
+			for _, containerStatus := range podStatus.ContainerStatuses {
+				if containerStatus.Started == nil {
+					started = false
+				} else {
+					started = started && *containerStatus.Started
+				}
+			}
+
+			// create container messages if not running
+			var messages []ServiceStatusMessage
+			for _, containerStatus := range podStatus.ContainerStatuses {
+				if containerStatus.State.Terminated == nil {
+					messages = append(messages, ServiceStatusMessage{
+						Type:    ServiceStatusMessageTypeWarning,
+						Message: fmt.Sprintf("Container '%s' terminated with exit code (%d). %s: %s.", containerStatus.Name, containerStatus.State.Terminated.ExitCode, containerStatus.State.Terminated.Reason, containerStatus.State.Terminated.Message),
+					})
+				}
+				if containerStatus.State.Waiting == nil {
+					messages = append(messages, ServiceStatusMessage{
+						Type:    ServiceStatusMessageTypeWarning,
+						Message: fmt.Sprintf("Container '%s' waiting. %s: %s.", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message),
+					})
+				}
+			}
+
+			switch podStatus.Phase {
+			case corev1.PodRunning:
+				if started && ready {
+					status := ServiceStatusTypeSuccess
+					return &status, messages
+				}
+				status := ServiceStatusTypeWarning
+				return &status, messages
+			case corev1.PodSucceeded:
+				status := ServiceStatusTypeSuccess
+				return &status, messages
+			case corev1.PodPending:
+				status := ServiceStatusTypePending
+				return &status, messages
+			case corev1.PodFailed:
+				status := ServiceStatusTypeError
+				return &status, messages
+			default:
+				status := ServiceStatusTypeUnkown
+				return &status, messages
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 func (r *ResourceItem) BuildJobStatus() *ServiceStatusType {
