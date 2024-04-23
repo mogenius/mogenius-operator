@@ -371,6 +371,9 @@ func ApplyRepoStateToCluster() {
 			}
 		}
 	}
+
+	allFiles = applyPriotityToChangesForUpdates(allFiles)
+
 	for _, file := range allFiles {
 		kubernetesReplaceResource(file)
 	}

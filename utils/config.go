@@ -28,12 +28,17 @@ type ClusterSecret struct {
 	IgnoredNamespaces  []string
 }
 
+const CONFIGVERSION = 1
+
 const STAGE_PRE_DEV = "pre-dev"
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
 
 type Config struct {
+	Config struct {
+		Version int `yaml:"version" env-description:"Version of the configuration yaml."`
+	} `yaml:"config"`
 	Kubernetes struct {
 		ApiKey                     string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
 		ClusterName                string `yaml:"cluster_name" env:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
@@ -161,6 +166,10 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		PrintSettings()
 	}
 
+	if CONFIGVERSION > CONFIG.Config.Version {
+		log.Fatalf("Config version is outdated. Please delete your config file %s and restart the application. (Your Config version: %d, Needed: %d)", ConfigPath, CONFIG.Config.Version, CONFIGVERSION)
+	}
+
 	// SET LOGGING
 	log.SetReportCaller(CONFIG.Misc.DebugLogCaller)
 	logLevel, err := log.ParseLevel(CONFIG.Misc.LogLevel)
@@ -227,6 +236,9 @@ func SetupClusterSecret(clusterSecret ClusterSecret) {
 }
 
 func PrintSettings() {
+	log.Infof("Config\n")
+	log.Infof("Version:                   %d\n\n", CONFIG.Config.Version)
+
 	log.Infof("KUBERNETES")
 	log.Infof("OwnNamespace:              %s", CONFIG.Kubernetes.OwnNamespace)
 	log.Infof("ClusterName:               %s", CONFIG.Kubernetes.ClusterName)

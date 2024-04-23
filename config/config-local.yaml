@@ -1,3 +1,6 @@
+config:
+  version: 1
+  
 kubernetes:
   api_key: 94E23575-A689-4F88-8D67-215A274F4E6E
   cluster_name: BenesTestCluster
