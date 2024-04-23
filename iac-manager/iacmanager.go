@@ -460,6 +460,9 @@ func gitHasRemotes() bool {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
+		if strings.Contains(stderr.String(), "No such file or directory") {
+			return false
+		}
 		log.Errorf("Error checking git remotes: %s %s %s", err.Error(), out.String(), stderr.String())
 		return false
 	}
