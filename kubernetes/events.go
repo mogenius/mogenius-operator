@@ -47,10 +47,14 @@ func EventWatcher() {
 }
 
 func ResourceWatcher() {
-	if !iacmanager.ShouldWatchResources() {
-		log.Warn("Nor Pull nor Push enabled. Skip watching resources.")
-		return
-	}
+	// if !iacmanager.ShouldWatchResources() {
+	// 	log.Warn("Nor Pull nor Push enabled. Skip watching resources.")
+	// 	return
+	// }
+	// if resourceWatcherRunning {
+	// 	log.Warn("Resource watcher already running.")
+	// 	return
+	// }
 
 	log.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {

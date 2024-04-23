@@ -205,7 +205,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		if _, err := os.Stat(filename); err == nil {
 			err = kubernetesRevertFromPath(filename)
 			if err == nil {
-				log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+				log.Warnf("🧹 Detected %s change. Reverting %s/%s.", kind, namespace, resourceName)
 			}
 		}
 		return
@@ -232,7 +232,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		return
 	}
 	if utils.CONFIG.Iac.LogChanges {
-		log.Infof("Detected %s change. Updated %s/%s. 🧹", kind, namespace, resourceName)
+		log.Infof("🧹 Detected %s change. Updated %s/%s.", kind, namespace, resourceName)
 	}
 	commitChanges("", fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName), []string{filename})
 }
@@ -263,7 +263,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 		if _, err := os.Stat(filename); os.IsExist(err) {
 			err = kubernetesRevertFromPath(filename)
 			if err == nil {
-				log.Warnf("Detected %s deletion. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+				log.Warnf("🧹 Detected %s deletion. Reverting %s/%s.", kind, namespace, resourceName)
 			}
 		}
 		return nil
@@ -521,7 +521,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if out.String() == "Already up to date.\n" {
-		log.Infof("Pulled changes from the remote repository (Modified: %d / Deleted: %d). 🔄🔄🔄", len(updatedFiles), len(deletedFiles))
+		log.Infof("🔄 Pulled changes from the remote repository (Modified: %d / Deleted: %d).", len(updatedFiles), len(deletedFiles))
 		return updatedFiles, deletedFiles, nil
 	}
 	if err != nil {
@@ -556,7 +556,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 		}
 	}
 
-	log.Infof("Pulled changes from the remote repository (Modified: %d / Deleted: %d). 🔄🔄🔄", len(updatedFiles), len(deletedFiles))
+	log.Infof("🔄 Pulled changes from the remote repository (Modified: %d / Deleted: %d).", len(updatedFiles), len(deletedFiles))
 	if utils.CONFIG.Misc.Debug {
 		log.Infof("Added/Updated Files (%d):", len(updatedFiles))
 		for _, file := range updatedFiles {
@@ -590,7 +590,7 @@ func pushChanges() error {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if stderr.String() != "Everything up-to-date\n" {
-		log.Infof("Pushed %d changes to remote repository. 🔄🔄🔄", len(changedFiles))
+		log.Infof("🔄 Pushed %d changes to remote repository.", len(changedFiles))
 		if utils.CONFIG.Misc.Debug {
 			for _, file := range changedFiles {
 				log.Info(file)
