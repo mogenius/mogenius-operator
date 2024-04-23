@@ -220,6 +220,7 @@ func NewServiceStatusItem(item ResourceItem) ServiceStatusItem {
 func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
 	if r.StatusObject != nil {
 		if containerStatus, ok := r.StatusObject.(*corev1.ContainerStatus); ok {
+
 			if containerStatus.State.Terminated != nil {
 				status := ServiceStatusTypeError
 				return &status
@@ -283,6 +284,13 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 						Message: fmt.Sprintf("Container '%s' waiting. %s: %s.", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message),
 					})
 				}
+			}
+
+			if podStatus.Reason != "" && podStatus.Message != "" {
+				messages = append(messages, ServiceStatusMessage{
+					Type:    ServiceStatusMessageTypeInfo,
+					Message: fmt.Sprintf("Pod '%s' information. %s: %s.", r.Name, podStatus.Reason, podStatus.Message),
+				})
 			}
 
 			switch podStatus.Phase {
