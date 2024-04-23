@@ -322,6 +322,11 @@ func initDocker(service dtos.K8sServiceDto) []*structs.Command {
 }
 
 func updateInfrastructureYaml(service dtos.K8sServiceDto) []*structs.Command {
+	// dont do this in local environment
+	if utils.CONFIG.Misc.Stage == "local" {
+		return []*structs.Command{}
+	}
+
 	for _, container := range service.Containers {
 		if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 			if container.GitRepository == nil {
