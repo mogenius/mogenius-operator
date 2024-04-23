@@ -354,6 +354,7 @@ const (
 	PAT_BUILD_DELETE                   string = "build/delete"
 	PAT_BUILD_LAST_JOB_OF_SERVICES     string = "build/last-job-of-services"
 	PAT_BUILD_JOB_LIST_OF_SERVICE      string = "build/job-list-of-service"
+	PAT_BUILD_DELETE_ALL_OF_SERVICE    string = "build/delete-of-service"
 	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE string = "build/last-job-info-of-service"
 
 	PAT_LOG_LIST_ALL string = "log/list-all"
@@ -714,6 +715,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_BUILD_DELETE,
 	PAT_BUILD_LAST_JOB_OF_SERVICES,
 	PAT_BUILD_JOB_LIST_OF_SERVICE,
+	PAT_BUILD_DELETE_ALL_OF_SERVICE,
 	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE,
 
 	PAT_EXEC_SHELL,
