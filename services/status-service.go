@@ -110,7 +110,7 @@ type ServiceStatusItem struct {
 	Namespace string                 `json:"namespace"`
 	OwnerName string                 `json:"ownerName,omitempty"`
 	OwnerKind ServiceStatusKindType  `json:"ownerKind,omitempty"`
-	Status    ServiceStatusType      `json:"status"`
+	Status    ServiceStatusType      `json:"status,omitempty"`
 	Messages  []ServiceStatusMessage `json:"messages,omitempty"`
 }
 
@@ -149,6 +149,13 @@ func ProcessServiceStatusResponse(r []ResourceItem) ServiceStatusResponse {
 		case string(ServiceStatusKindTypeContainer):
 			s.HasContainers = true
 		}
+
+		// move warning messages into the response
+		for _, message := range newItem.Messages {
+			if message.Type == ServiceStatusMessageTypeWarning {
+				s.Warnings = append(s.Warnings, message)
+			}
+		}
 	}
 
 	return s
@@ -160,7 +167,10 @@ func NewServiceStatusItem(item ResourceItem) ServiceStatusItem {
 		Name:      item.Name,
 		Namespace: item.Namespace,
 		OwnerName: item.OwnerName,
-		OwnerKind: NewServiceStatusKindType(item.OwnerKind),
+	}
+
+	if NewServiceStatusKindType(item.OwnerKind) != ServiceStatusKindTypeUnkown {
+		newItem.OwnerKind = NewServiceStatusKindType(item.OwnerKind)
 	}
 
 	// Convert events to messages
