@@ -570,7 +570,9 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	// }
 	// log.Debugf("JSON: %s", jsonData)
 
-	return resourceItems
+	// return resourceItems
+
+	return ProcessServiceStatusResponse(resourceItems)
 }
 
 func kubernetesItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset, resourceItems []ResourceItem) ([]ResourceItem, error) {
