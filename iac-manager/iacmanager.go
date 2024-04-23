@@ -632,11 +632,23 @@ func kubernetesDeleteResource(file string) {
 }
 
 func kubernetesReplaceResource(file string) {
+	if strings.Contains(file, "pods/") {
+		return
+	}
+
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	applyCmd := fmt.Sprintf("kubectl replace -f %s/%s", folder, file)
-	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
+	replaceCmd := fmt.Sprintf("kubectl replace -f %s/%s", folder, file)
+	err := utils.ExecuteShellCommandRealySilent(replaceCmd, replaceCmd)
 	if err != nil {
-		log.Errorf("Error applying file %s: %s", file, err.Error())
+		if strings.Contains(err.Error(), "Error from server (NotFound):") {
+			createCmd := fmt.Sprintf("kubectl create -f %s/%s", folder, file)
+			err = utils.ExecuteShellCommandRealySilent(createCmd, createCmd)
+			if err != nil {
+				log.Errorf("Error creating kubernetes resource file %s: %s", file, err.Error())
+			}
+		} else {
+			log.Errorf("Error replacing kubernetes resource file %s: %s", file, err.Error())
+		}
 	} else {
 		log.Infof("✅ Applied file: %s", file)
 	}
