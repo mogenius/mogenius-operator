@@ -207,10 +207,47 @@ func NewServiceStatusItem(item ResourceItem) ServiceStatusItem {
 			if messages != nil {
 				newItem.Messages = append(newItem.Messages, messages...)
 			}
+		case string(ServiceStatusKindTypeContainer):
+			if status := item.ContainerStatus(); status != nil {
+				newItem.Status = *status
+			}
 		}
 	}
 
 	return newItem
+}
+
+func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
+	if r.StatusObject != nil {
+		if containerStatus, ok := r.StatusObject.(*corev1.ContainerStatus); ok {
+			if containerStatus.State.Terminated != nil {
+				status := ServiceStatusTypeError
+				return &status
+			}
+
+			if containerStatus.State.Waiting != nil {
+				status := ServiceStatusTypePending
+				return &status
+			}
+
+			// readiness probe OR running without readiness probe, default is true
+			ready := containerStatus.Ready
+			// startup probe OR running without startup probe, nil considered as false
+			started := false
+			if containerStatus.Started != nil {
+				started = *containerStatus.Started
+			}
+
+			if started && ready {
+				status := ServiceStatusTypeSuccess
+				return &status
+			}
+
+			status := ServiceStatusTypeWarning
+			return &status
+		}
+	}
+	return nil
 }
 
 func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) {
@@ -234,13 +271,13 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 			// create container messages if not running
 			var messages []ServiceStatusMessage
 			for _, containerStatus := range podStatus.ContainerStatuses {
-				if containerStatus.State.Terminated == nil {
+				if containerStatus.State.Terminated != nil {
 					messages = append(messages, ServiceStatusMessage{
 						Type:    ServiceStatusMessageTypeWarning,
 						Message: fmt.Sprintf("Container '%s' terminated with exit code (%d). %s: %s.", containerStatus.Name, containerStatus.State.Terminated.ExitCode, containerStatus.State.Terminated.Reason, containerStatus.State.Terminated.Message),
 					})
 				}
-				if containerStatus.State.Waiting == nil {
+				if containerStatus.State.Waiting != nil {
 					messages = append(messages, ServiceStatusMessage{
 						Type:    ServiceStatusMessageTypeWarning,
 						Message: fmt.Sprintf("Container '%s' waiting. %s: %s.", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message),
