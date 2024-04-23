@@ -153,10 +153,12 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 			if err != nil {
 				return err
 			}
+			iacmanager.SetupInProcess = false
 			InitAllWorkloads()
 		}
 		// Push
 		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
+			iacmanager.SetupInProcess = false
 			InitAllWorkloads()
 			err = iacmanager.AddRemote()
 		}
@@ -166,6 +168,8 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 			if err != nil {
 				return err
 			}
+			iacmanager.SetupInProcess = false
+			InitAllWorkloads()
 		}
 		// None
 		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
