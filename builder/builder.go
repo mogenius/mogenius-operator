@@ -276,6 +276,9 @@ func LastBuildInfos(data structs.BuildTaskRequest) structs.BuildJobInfo {
 func BuildInfosList(data structs.BuildTaskRequest) []structs.BuildJobInfo {
 	return db.GetBuildJobInfosListFromDb(data.Namespace, data.Controller, data.Container)
 }
+func DeleteAllBuildData(data structs.BuildTaskRequest) {
+	db.DeleteAllBuildData(data.Namespace, data.Controller, data.Container)
+}
 
 func Add(buildJob structs.BuildJob) structs.BuildAddResult {
 	nextBuildId, err := db.AddToDb(buildJob)
