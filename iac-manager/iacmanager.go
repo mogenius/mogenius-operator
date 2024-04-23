@@ -34,6 +34,7 @@ var changedFiles []string
 
 var syncInProcess = false
 var SetupInProcess = false
+var initialRepoApplied = false
 
 func IsIgnoredNamespace(namespace string) bool {
 	return utils.ContainsString(utils.CONFIG.Iac.IgnoredNamespaces, namespace)
@@ -344,11 +345,47 @@ func syncChangesTimer() {
 	}()
 }
 
+func ApplyRepoStateToCluster() {
+	initialRepoApplied = true
+
+	if !utils.CONFIG.Iac.AllowPull {
+		return
+	}
+
+	allFiles := []string{}
+
+	rootFolder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	folders, err := os.ReadDir(rootFolder)
+	if err != nil {
+		log.Errorf("Error reading directory: %s", err.Error())
+		return
+	}
+	for _, folder := range folders {
+		if folder.IsDir() && !strings.HasPrefix(folder.Name(), ".") {
+			nextFolder := fmt.Sprintf("%s/%s", rootFolder, folder.Name())
+			files, err := os.ReadDir(nextFolder)
+			if err == nil {
+				for _, f := range files {
+					allFiles = append(allFiles, fmt.Sprintf("%s/%s", folder.Name(), f.Name()))
+				}
+			}
+		}
+	}
+	for _, file := range allFiles {
+		kubernetesReplaceResource(file)
+	}
+}
+
 func syncChanges() {
 	if gitHasRemotes() && !SetupInProcess {
 		if !syncInProcess {
 			syncInProcess = true
-			updatedFiles, deletedFiles := pullChanges()
+			updatedFiles, deletedFiles, err := pullChanges()
+			if err != nil {
+				log.Errorf("Error pulling changes: %s", err.Error())
+			} else if !initialRepoApplied {
+				ApplyRepoStateToCluster()
+			}
 			updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
 			for _, v := range updatedFiles {
 				kubernetesReplaceResource(v)
@@ -357,7 +394,7 @@ func syncChanges() {
 			for _, v := range deletedFiles {
 				kubernetesDeleteResource(v)
 			}
-			err := pushChanges()
+			err = pushChanges()
 			if err != nil {
 				log.Errorf("Error pushing changes: %s", err.Error())
 			}
@@ -444,7 +481,7 @@ func commitChanges(author string, message string, filePaths []string) error {
 	return nil
 }
 
-func pullChanges() (updatedFiles []string, deletedFiles []string) {
+func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 	if !utils.CONFIG.Iac.AllowPull {
 		return
 	}
@@ -460,7 +497,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 	err := cmd.Run()
 	if out.String() == "Already up to date.\n" {
 		log.Infof("Pulled changes from the remote repository (Modified: %d / Deleted: %d). 🔄🔄🔄", len(updatedFiles), len(deletedFiles))
-		return updatedFiles, deletedFiles
+		return updatedFiles, deletedFiles, nil
 	}
 	if err != nil {
 		if !strings.Contains(stderr.String(), "Your local changes to the following files would be overwritten by merge") {
@@ -470,7 +507,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 			log.Warnf("Unrelated histories. Deleting current repository data and reinitializing.")
 			ResetCurrentRepoData(DELETE_DATA_RETRIES)
 		}
-		return updatedFiles, deletedFiles
+		return updatedFiles, deletedFiles, err
 	}
 
 	// Wait for the changes to be pulled
@@ -482,7 +519,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 		if !strings.Contains(err.Error(), "fatal: log for 'HEAD' only has 1 entries") {
 			log.Errorf("Error getting added/updated files: %s", err.Error())
 		}
-		return updatedFiles, deletedFiles
+		return updatedFiles, deletedFiles, err
 	}
 
 	// Get the list of deleted files since the last pull
@@ -504,7 +541,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 			log.Info(file)
 		}
 	}
-	return updatedFiles, deletedFiles
+	return updatedFiles, deletedFiles, nil
 }
 
 func pushChanges() error {

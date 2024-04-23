@@ -170,6 +170,7 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 			}
 			iacmanager.SetupInProcess = false
 			InitAllWorkloads()
+			iacmanager.ApplyRepoStateToCluster()
 		}
 		// None
 		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
