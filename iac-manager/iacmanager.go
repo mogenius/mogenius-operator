@@ -521,15 +521,17 @@ func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 	if err != nil {
 		if !strings.Contains(err.Error(), "fatal: log for 'HEAD' only has 1 entries") {
 			log.Errorf("Error getting added/updated files: %s", err.Error())
+			return updatedFiles, deletedFiles, err
 		}
-		return updatedFiles, deletedFiles, err
 	}
 
 	// Get the list of deleted files since the last pull
 	deletedFiles, err = getGitFiles(folder, "HEAD@{1}", "HEAD", "--name-only", "--diff-filter=D")
 	if err != nil {
-		log.Errorf("Error getting deleted files: %s", err.Error())
-		return
+		if !strings.Contains(err.Error(), "fatal: log for 'HEAD' only has 1 entries") {
+			log.Errorf("Error getting deleted files: %s", err.Error())
+			return
+		}
 	}
 
 	log.Infof("Pulled changes from the remote repository (Modified: %d / Deleted: %d). 🔄🔄🔄", len(updatedFiles), len(deletedFiles))
@@ -672,7 +674,7 @@ func kubernetesDeleteResource(file string) {
 }
 
 func kubernetesReplaceResource(file string) {
-	if strings.Contains(file, "pods/") {
+	if shouldSkipResource(file) {
 		return
 	}
 
@@ -695,15 +697,10 @@ func kubernetesReplaceResource(file string) {
 }
 
 func kubernetesRevertFromPath(path string) error {
-	if strings.Contains(path, "/pods/") {
+	if shouldSkipResource(path) {
 		return nil
 	}
-	if strings.Contains(path, fmt.Sprintf("/%s_", utils.CONFIG.Kubernetes.OwnNamespace)) {
-		return nil
-	}
-	// if strings.Contains(path, "mogenius-k8s-manager") {
-	// 	return
-	// }
+
 	applyCmd := fmt.Sprintf("kubectl replace -f %s", path)
 	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 	if err != nil {
@@ -712,6 +709,24 @@ func kubernetesRevertFromPath(path string) error {
 		log.Infof("🚓 Applied revert file: %s", path)
 	}
 	return err
+}
+
+func shouldSkipResource(path string) bool {
+	if strings.Contains(path, "/pods/") {
+		log.Infof("😑 Skipping (because pods wont by synced): %s", path)
+		return true
+	}
+	if strings.Contains(path, fmt.Sprintf("/%s_", utils.CONFIG.Kubernetes.OwnNamespace)) {
+		log.Infof("😑 Skipping (because %s resources wont be synced): %s", utils.CONFIG.Kubernetes.OwnNamespace, path)
+		return true
+	}
+	if utils.CONFIG.Misc.Stage != "local" {
+		if strings.Contains(path, "/mogenius-k8s-manager") {
+			log.Infof("😑 Skipping (because contains keyword mogenius-k8s-manager): %s", path)
+			return true
+		}
+	}
+	return false
 }
 
 // removeFieldAtPath recursively searches through the data structure.
