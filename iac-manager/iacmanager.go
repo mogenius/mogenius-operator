@@ -24,51 +24,55 @@ import (
 // 6. pull/push changes periodically
 
 const (
-	GIT_VAULT_FOLDER = "git-vault"
+	GIT_VAULT_FOLDER    = "git-vault"
+	DELETE_DATA_RETRIES = 5
 )
 
-var ProcessedObjects = 0
 var commitMutex sync.Mutex
 
 var changedFiles []string
 
 var syncInProcess = false
+var SetupInProcess = false
+var initialRepoApplied = false
+
+func IsIgnoredNamespace(namespace string) bool {
+	return utils.ContainsString(utils.CONFIG.Iac.IgnoredNamespaces, namespace)
+}
 
 func Init() {
-	// Create a git repository
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	if _, err := os.Stat(folder); os.IsNotExist(err) {
-		err := os.MkdirAll(folder, 0755)
-		if err != nil {
-			log.Errorf("Error creating folder for git repository (in %s): %s", folder, err.Error())
-		}
-	}
-
-	err := utils.ExecuteShellCommandSilent("git init", fmt.Sprintf("cd %s; git init", folder))
-	if err != nil {
-		log.Errorf("Error creating git repository: %s", err.Error())
-	}
+	GitInitRepo()
 
 	// Set up the remote repository
 	if !gitHasRemotes() {
-		SetupRemote()
+		AddRemote()
 	}
 
 	// START SYNCING CHANGES
 	syncChangesTimer()
 }
 
-func SetupRemote() error {
-	if utils.CONFIG.Iac.RepoUrl == "" {
-		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
-	}
+func ShouldWatchResources() bool {
+	return utils.CONFIG.Iac.AllowPull || utils.CONFIG.Iac.AllowPush
+}
+
+func GitInitRepo() error {
+	// Create a git repository
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	remoteCmdStr := fmt.Sprintf("cd %s; git remote add origin %s", folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat))
-	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
+	if _, err := os.Stat(folder); os.IsNotExist(err) {
+		err := os.MkdirAll(folder, 0755)
+		if err != nil {
+			log.Errorf("Error creating folder for git repository (in %s): %s", folder, err.Error())
+			return err
+		}
+	}
+
+	err := utils.ExecuteShellCommandSilent("git init", fmt.Sprintf("cd %s; git init", folder))
 	if err != nil {
-		log.Errorf("Error setting up remote: %s", err.Error())
+		log.Errorf("Error creating git repository: %s", err.Error())
 		return err
 	}
+
 	branchCmdStr := fmt.Sprintf("cd %s; git branch -M %s", folder, utils.CONFIG.Iac.RepoBranch)
 	err = utils.ExecuteShellCommandSilent(branchCmdStr, branchCmdStr)
 	if err != nil {
@@ -76,15 +80,64 @@ func SetupRemote() error {
 		return err
 	}
 
+	return err
+}
+
+func AddRemote() error {
+	if utils.CONFIG.Iac.RepoUrl == "" {
+		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
+	}
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	remoteCmdStr := fmt.Sprintf("cd %s; git remote add origin %s", folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat))
+	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
+	if err != nil {
+		// skip already exists error
+		if !strings.Contains(err.Error(), "remote origin already exists") {
+			log.Errorf("Error setting up remote: %s", err.Error())
+			return err
+		}
+	}
+	branchCmdStr := fmt.Sprintf("cd %s; git branch -M %s", folder, utils.CONFIG.Iac.RepoBranch)
+	err = utils.ExecuteShellCommandSilent(branchCmdStr, branchCmdStr)
+	if err != nil {
+		log.Errorf("Error setting up branch: %s", err.Error())
+	}
+
 	return nil
 }
 
-func DeleteCurrentRepoData() {
+func RemoveRemote() error {
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	remoteCmdStr := fmt.Sprintf("cd %s; git remote remove origin", folder)
+	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
+	if err != nil {
+		log.Errorf("Error setting up remote: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
+func ResetCurrentRepoData(tries int) error {
+	changedFiles = []string{}
+
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	err := os.RemoveAll(folder)
 	if err != nil {
 		log.Errorf("Error deleting current repository data: %s", err.Error())
+		if tries > 0 {
+			time.Sleep(1 * time.Second)
+			return ResetCurrentRepoData(tries - 1)
+		}
 	}
+
+	err = GitInitRepo()
+	if err != nil {
+		return err
+	}
+
+	err = AddRemote()
+
+	return err
 }
 
 func CheckRepoAccess() error {
@@ -111,18 +164,31 @@ func CheckRepoAccess() error {
 }
 
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
+	if SetupInProcess {
+		return
+	}
+
+	// Exceptions
+	if IsIgnoredNamespace(namespace) {
+		return
+	}
+
+	diff := createDiff(kind, namespace, resourceName, dataInf)
 	if utils.CONFIG.Iac.ShowDiffInLog {
-		diff := createDiff(kind, namespace, resourceName, dataInf)
 		if diff != "" {
 			log.Warnf("Diff: \n%s", diff)
 		}
 	}
 
-	// AllowManualClusterChanges is false - all changes will be reversed
-	if !utils.CONFIG.Iac.AllowManualClusterChanges {
-		log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+	// all changes will be reversed if PULL only is allowed
+	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush && diff != "" {
 		filename := fileNameForRaw(kind, namespace, resourceName)
-		kubernetesApplyRevertFromPath(filename)
+		if _, err := os.Stat(filename); err == nil {
+			err = kubernetesRevertFromPath(filename)
+			if err == nil {
+				log.Warnf("Detected %s change. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+			}
+		}
 		return
 	}
 
@@ -146,7 +212,6 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		log.Errorf("Error writing resource %s:%s/%s file: %s", kind, namespace, resourceName, err.Error())
 		return
 	}
-	ProcessedObjects++
 	if utils.CONFIG.Iac.LogChanges {
 		log.Infof("Detected %s change. Updated %s/%s. 🧹", kind, namespace, resourceName)
 	}
@@ -154,6 +219,15 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 }
 
 func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) error {
+	if SetupInProcess {
+		return nil
+	}
+
+	// Exceptions
+	if IsIgnoredNamespace(namespace) {
+		return nil
+	}
+
 	if utils.CONFIG.Iac.ShowDiffInLog {
 		diff := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
 		if diff != "" {
@@ -161,10 +235,15 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 		}
 	}
 
-	// AllowManualClusterChanges is false - all changes will be reversed
-	if !utils.CONFIG.Iac.AllowManualClusterChanges {
+	// all changes will be reversed if PULL only is allowed
+	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush {
 		filename := fileNameForRaw(kind, namespace, resourceName)
-		kubernetesApplyRevertFromPath(filename)
+		if _, err := os.Stat(filename); os.IsExist(err) {
+			err = kubernetesRevertFromPath(filename)
+			if err == nil {
+				log.Warnf("Detected %s deletion. Reverting %s/%s. 🧹", kind, namespace, resourceName)
+			}
+		}
 		return nil
 	}
 
@@ -266,18 +345,59 @@ func syncChangesTimer() {
 	}()
 }
 
+func ApplyRepoStateToCluster() {
+	initialRepoApplied = true
+
+	if !utils.CONFIG.Iac.AllowPull {
+		return
+	}
+
+	allFiles := []string{}
+
+	rootFolder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	folders, err := os.ReadDir(rootFolder)
+	if err != nil {
+		log.Errorf("Error reading directory: %s", err.Error())
+		return
+	}
+	for _, folder := range folders {
+		if folder.IsDir() && !strings.HasPrefix(folder.Name(), ".") {
+			nextFolder := fmt.Sprintf("%s/%s", rootFolder, folder.Name())
+			files, err := os.ReadDir(nextFolder)
+			if err == nil {
+				for _, f := range files {
+					allFiles = append(allFiles, fmt.Sprintf("%s/%s", folder.Name(), f.Name()))
+				}
+			}
+		}
+	}
+	for _, file := range allFiles {
+		kubernetesReplaceResource(file)
+	}
+}
+
 func syncChanges() {
-	if gitHasRemotes() {
+	if gitHasRemotes() && !SetupInProcess {
 		if !syncInProcess {
 			syncInProcess = true
-			updatedFiles, deletedFiles := pullChanges()
-			for _, v := range updatedFiles {
-				kubernetesApplyResource(v)
+			updatedFiles, deletedFiles, err := pullChanges()
+			if err != nil {
+				log.Errorf("Error pulling changes: %s", err.Error())
+			} else if !initialRepoApplied {
+				ApplyRepoStateToCluster()
 			}
+			updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
+			for _, v := range updatedFiles {
+				kubernetesReplaceResource(v)
+			}
+			deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
 			for _, v := range deletedFiles {
 				kubernetesDeleteResource(v)
 			}
-			pushChanges()
+			err = pushChanges()
+			if err != nil {
+				log.Errorf("Error pushing changes: %s", err.Error())
+			}
 			syncInProcess = false
 		}
 	}
@@ -361,7 +481,7 @@ func commitChanges(author string, message string, filePaths []string) error {
 	return nil
 }
 
-func pullChanges() (updatedFiles []string, deletedFiles []string) {
+func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 	if !utils.CONFIG.Iac.AllowPull {
 		return
 	}
@@ -369,7 +489,6 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 
 	// Pull changes from the remote repository
 	cmd := exec.Command("git", "pull", "origin", utils.CONFIG.Iac.RepoBranch)
-	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", fmt.Sprintf("GIT_PASSWORD=%s", utils.CONFIG.Iac.RepoPat)) // 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
 	cmd.Dir = folder
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -378,13 +497,17 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 	err := cmd.Run()
 	if out.String() == "Already up to date.\n" {
 		log.Infof("Pulled changes from the remote repository (Modified: %d / Deleted: %d). 🔄🔄🔄", len(updatedFiles), len(deletedFiles))
-		return updatedFiles, deletedFiles
+		return updatedFiles, deletedFiles, nil
 	}
 	if err != nil {
 		if !strings.Contains(stderr.String(), "Your local changes to the following files would be overwritten by merge") {
 			log.Errorf("Error running git pull origin %s (%s): %s %s %s", utils.CONFIG.Iac.RepoBranch, utils.CONFIG.Iac.RepoUrl, err.Error(), out.String(), stderr.String())
 		}
-		return updatedFiles, deletedFiles
+		if strings.Contains(stderr.String(), "fatal: refusing to merge unrelated histories") {
+			log.Warnf("Unrelated histories. Deleting current repository data and reinitializing.")
+			ResetCurrentRepoData(DELETE_DATA_RETRIES)
+		}
+		return updatedFiles, deletedFiles, err
 	}
 
 	// Wait for the changes to be pulled
@@ -393,8 +516,10 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 	//Get the list of updated or newly added files since the last pull
 	updatedFiles, err = getGitFiles(folder, "HEAD@{1}", "HEAD", "--name-only", "--diff-filter=AM")
 	if err != nil {
-		log.Errorf("Error getting added/updated files: %s", err.Error())
-		return updatedFiles, deletedFiles
+		if !strings.Contains(err.Error(), "fatal: log for 'HEAD' only has 1 entries") {
+			log.Errorf("Error getting added/updated files: %s", err.Error())
+		}
+		return updatedFiles, deletedFiles, err
 	}
 
 	// Get the list of deleted files since the last pull
@@ -416,22 +541,21 @@ func pullChanges() (updatedFiles []string, deletedFiles []string) {
 			log.Info(file)
 		}
 	}
-	return updatedFiles, deletedFiles
+	return updatedFiles, deletedFiles, nil
 }
 
-func pushChanges() {
+func pushChanges() error {
 	if !utils.CONFIG.Iac.AllowPush {
-		return
+		return nil
 	}
 	if len(changedFiles) <= 0 {
-		return
+		return nil
 	}
 
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 
 	// Push changes to the remote repository
 	cmd := exec.Command("git", "push", "origin", utils.CONFIG.Iac.RepoBranch)
-	//cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo", "GIT_PASSWORD=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")
 	cmd.Dir = folder
 	var out bytes.Buffer
 	var stderr bytes.Buffer
@@ -447,9 +571,44 @@ func pushChanges() {
 		}
 	}
 	if err != nil {
-		log.Errorf("Error running git push: %s %s %s", err.Error(), out.String(), stderr.String())
+		return fmt.Errorf("Error running git push: %s %s %s", err.Error(), out.String(), stderr.String())
 	}
 	changedFiles = []string{}
+	return nil
+}
+
+// namespaces should be applied first
+func applyPriotityToChangesForUpdates(resources []string) []string {
+	result := []string{}
+	// sort by kind to apply the changes in the right order
+	for _, v := range resources {
+		if strings.Contains(v, "namespaces/") {
+			// instert at first position
+			result = append([]string{v}, result...)
+		} else {
+			// append at the end
+			result = append(result, v)
+		}
+
+	}
+	return result
+}
+
+// namespaces should be applied last
+func applyPriotityToChangesForDeletes(resources []string) []string {
+	result := []string{}
+	// sort by kind to apply the changes in the right order
+	for _, v := range resources {
+		if strings.Contains(v, "namespaces/") {
+			// append at the end
+			result = append(result, v)
+		} else {
+			// instert at first position
+			result = append([]string{v}, result...)
+		}
+
+	}
+	return result
 }
 
 func getGitFiles(workDir string, ref string, options ...string) ([]string, error) {
@@ -491,8 +650,13 @@ func kubernetesDeleteResource(file string) {
 		return
 	}
 	if name == "" {
-		log.Errorf("Name cannot be empty. File: %s", file)
-		return
+		// check if resource is cluster wide (so we dont habe a namespace)
+		if len(partsName) > 0 {
+			name = partsName[0]
+		} else {
+			log.Errorf("Name cannot be empty. File: %s", file)
+			return
+		}
 	}
 
 	delCmd := fmt.Sprintf("kubectl delete %s %s%s", kind, namespace, name)
@@ -504,31 +668,47 @@ func kubernetesDeleteResource(file string) {
 	}
 }
 
-func kubernetesApplyResource(file string) {
+func kubernetesReplaceResource(file string) {
+	if strings.Contains(file, "pods/") {
+		return
+	}
+
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	applyCmd := fmt.Sprintf("kubectl apply -f %s/%s", folder, file)
-	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
+	replaceCmd := fmt.Sprintf("kubectl replace -f %s/%s", folder, file)
+	err := utils.ExecuteShellCommandRealySilent(replaceCmd, replaceCmd)
 	if err != nil {
-		log.Errorf("Error applying file %s: %s", file, err.Error())
+		if strings.Contains(err.Error(), "Error from server (NotFound):") {
+			createCmd := fmt.Sprintf("kubectl create -f %s/%s", folder, file)
+			err = utils.ExecuteShellCommandRealySilent(createCmd, createCmd)
+			if err != nil {
+				log.Errorf("Error creating kubernetes resource file %s: %s", file, err.Error())
+			}
+		} else {
+			log.Errorf("Error replacing kubernetes resource file %s: %s", file, err.Error())
+		}
 	} else {
 		log.Infof("✅ Applied file: %s", file)
 	}
 }
 
-func kubernetesApplyRevertFromPath(path string) {
+func kubernetesRevertFromPath(path string) error {
 	if strings.Contains(path, "/pods/") {
-		return
+		return nil
 	}
-	if strings.Contains(path, "mogenius-k8s-manager") {
-		return
+	if strings.Contains(path, fmt.Sprintf("/%s_", utils.CONFIG.Kubernetes.OwnNamespace)) {
+		return nil
 	}
-	applyCmd := fmt.Sprintf("kubectl apply -f %s", path)
+	// if strings.Contains(path, "mogenius-k8s-manager") {
+	// 	return
+	// }
+	applyCmd := fmt.Sprintf("kubectl replace -f %s", path)
 	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 	if err != nil {
 		log.Errorf("Error applying revert file %s: %s", path, err.Error())
 	} else {
 		log.Infof("🚓 Applied revert file: %s", path)
 	}
+	return err
 }
 
 // removeFieldAtPath recursively searches through the data structure.

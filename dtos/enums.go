@@ -108,3 +108,11 @@ var AvailableSyncWorkloadKinds = []string{
 	KindDaemonSets,
 	KindNetworkPolicies,
 }
+
+func DefaultIgnoredNamespaces() []string {
+	return []string{
+		"kube-system",
+		"kube-public",
+		"kube-node-lease",
+	}
+}

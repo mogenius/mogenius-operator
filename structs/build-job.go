@@ -340,10 +340,34 @@ func CreateBuildJobInfo(clone []byte, ls []byte, login []byte, build []byte, pus
 	result := BuildJobInfo{}
 
 	cloneEntity := CreateBuildJobEntryFromData(clone)
+	if cloneEntity.Prefix == "" {
+		cloneEntity.Prefix = PrefixGitClone
+		cloneEntity.State = punq.JobStatePending
+	}
+
 	lsEntity := CreateBuildJobEntryFromData(ls)
+	if lsEntity.Prefix == "" {
+		lsEntity.Prefix = PrefixLs
+		lsEntity.State = punq.JobStatePending
+	}
+
 	loginEntity := CreateBuildJobEntryFromData(login)
+	if loginEntity.Prefix == "" {
+		loginEntity.Prefix = PrefixLogin
+		loginEntity.State = punq.JobStatePending
+	}
+
 	buildEntity := CreateBuildJobEntryFromData(build)
+	if buildEntity.Prefix == "" {
+		buildEntity.Prefix = PrefixBuild
+		buildEntity.State = punq.JobStatePending
+	}
+
 	pushEntity := CreateBuildJobEntryFromData(push)
+	if pushEntity.Prefix == "" {
+		pushEntity.Prefix = PrefixPush
+		pushEntity.State = punq.JobStatePending
+	}
 
 	result.BuildId = cloneEntity.BuildId
 	result.ProjectId = cloneEntity.ProjectId

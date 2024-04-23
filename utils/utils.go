@@ -94,7 +94,7 @@ func GetFunctionName() string {
 
 func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	result, err := utils.RunOnLocalShell(shellCmd).Output()
-	log.Warnf("ExecuteShellCommandSilent:\n%s\n", result)
+	log.Infof("ExecuteShellCommandSilent: %s:\n%s", shellCmd, result)
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
 		errorMsg := string(exitErr.Stderr)

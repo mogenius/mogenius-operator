@@ -24,11 +24,11 @@ iac:
   repo_pat:
   repo_branch: main
   polling_interval_secs: 10 # min is 5 
-  allow_push: true
-  allow_pull: true
-  allow_manual_cluster_changes: true
+  allow_push: false
+  allow_pull: false
   sync_workloads: ["namespaces", "pods", "deployments", "statefulsets", "services", "ingresses", "configmaps", "secrets", "jobs", "cronjobs", "daemonsets", "networkpolicies"]
-  show_diff_in_log: true
+  ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
+  show_diff_in_log: false
   log_changes: true
 
 misc:

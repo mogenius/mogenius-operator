@@ -2,6 +2,8 @@ package services
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/crds"
+	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
@@ -69,6 +71,14 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	}
 	wg.Wait()
 	job.Finish()
+
+	crds.CreateApplicationKit(r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
+		Id:          r.Service.Id,
+		DisplayName: r.Service.DisplayName,
+		CreatedBy:   "MISSING_FIELD",
+		Controller:  r.Service.ControllerName,
+		AppId:       "MISSING_FIELD",
+	})
 	return job
 }
 
@@ -123,6 +133,11 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 // }
 
 func DeleteService(r ServiceDeleteRequest) interface{} {
+	for _, container := range r.Service.Containers {
+		log.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
+		db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
+	}
+
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
 	job.Start()
@@ -308,6 +323,11 @@ func initDocker(service dtos.K8sServiceDto) []*structs.Command {
 }
 
 func updateInfrastructureYaml(service dtos.K8sServiceDto) []*structs.Command {
+	// dont do this in local environment
+	if utils.CONFIG.Misc.Stage == "local" {
+		return []*structs.Command{}
+	}
+
 	for _, container := range service.Containers {
 		if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 			if container.GitRepository == nil {

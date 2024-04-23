@@ -89,15 +89,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		data.AddSecretsToRedaction()
 		err := kubernetes.UpdateSynRepoData(&data)
-		if err == nil {
-			err = iacmanager.SetupRemote()
-			if err != nil {
-				return err
-			}
-			err = iacmanager.CheckRepoAccess()
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
+		}
+		err = iacmanager.CheckRepoAccess()
+		if err != nil {
+			return err
 		}
 		return err
 
@@ -1964,6 +1961,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return builder.BuildInfosList(data)
+	case structs.PAT_BUILD_DELETE_ALL_OF_SERVICE:
+		data := structs.BuildTaskRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		builder.DeleteAllBuildData(data)
+		return nil
 	//case structs.PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
 	//	data := structs.BuildServiceRequest{}
 	//	structs.MarshalUnmarshal(&datagram, &data)

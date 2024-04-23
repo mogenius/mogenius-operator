@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
@@ -325,8 +326,6 @@ func XTermCommandStreamConnection(
 }
 
 func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string, container string, buildTask structs.BuildPrefixEnum, buildId uint64) {
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
-
 	if wsConnectionRequest.WebsocketScheme == "" {
 		log.Error("WebsocketScheme is empty")
 		return
@@ -339,50 +338,29 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	conn, err := WsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest)
-
-	defer func() {
-		if conn != nil {
-			conn.Close()
-			// cancel()
-		}
-	}()
-
 	if err != nil {
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
 	}
-	//log.Infof("Connected to %s", websocketUrl.String())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 
-	// Check if pod exists
-	//podExists := punq.PodExists(namespace, pod, nil)
-	//if !podExists.PodExists {
-	//	if conn != nil {
-	//		err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
-	//		if err != nil {
-	//			log.Errorf("WriteMessage: %s", err.Error())
-	//		}
-	//	}
-	//	log.Errorf("Pod %s does not exist, closing connection.", pod)
-	//	return
-	//}
-
-	//buildIdNum, err := strconv.ParseUint(buildId, 10, 64)
-	//if err != nil {
-	//	log.Errorf(err.Error())
-	//}
+	defer func() {
+		cancel()
+		if conn != nil {
+			conn.Close()
+		}
+	}()
 
 	key := structs.BuildJobInfoEntryKey(buildId, buildTask, namespace, controller, container)
 
-	// init
-	data := db.GetItemByKey(key)
-	build := structs.CreateBuildJobEntryFromData(data)
-	//conn.WriteMessage(websocket.TextMessage, []byte(strings.Replace(build.Result, "\n", "\n\r", -1)))
-	conn.WriteMessage(websocket.TextMessage, []byte(build.Result))
-	if err != nil {
-		log.Errorf("WriteMessage: %s", err.Error())
-	}
-
 	defer func() {
+		cancel()
+		ch := builder.LogChannels[key]
+		_, exists := builder.LogChannels[key]
+		if exists {
+			close(ch)
+			delete(builder.LogChannels, key)
+		}
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
@@ -391,36 +369,35 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		}
 	}()
 
+	ch, exists := builder.LogChannels[key]
+	if !exists {
+		builder.LogChannels[key] = make(chan string)
+		ch, _ = builder.LogChannels[key]
+	}
+
 	go func() {
-		for {
-			//ch, exists := builder.Channels[key]
-			//
-			//if !exists {
-			//	log.Info("Channel does not exist.")
-			//	select {
-			//	case <-ctx.Done():
-			//		return
-			//	default:
-			//		time.Sleep(1 * time.Second)
-			//		continue
-			//	}
-			//}
-			//
-			//for message := range ch {
-			//	if conn != nil {
-			//		err := conn.WriteMessage(websocket.TextMessage, []byte(strings.Replace(message, "\n", "\n\r", -1)))
-			//
-			//		// err := conn.WriteMessage(websocket.BinaryMessage, []byte(message))
-			//		if err != nil {
-			//			log.Errorf("WriteMessage: %s", err.Error())
-			//		}
-			//		continue
-			//	}
-			//}
-			log.Info("Channel closed.")
-			return
+		for message := range ch {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				if conn != nil {
+					err := conn.WriteMessage(websocket.TextMessage, []byte(message))
+					if err != nil {
+						log.Errorf("WriteMessage: %s", err.Error())
+					}
+				}
+				continue
+			}
 		}
 	}()
+
+	// init
+	go func(ch chan string) {
+		data := db.GetItemByKey(key)
+		build := structs.CreateBuildJobEntryFromData(data)
+		ch <- build.Result
+	}(ch)
 
 	for {
 		_, reader, err := conn.ReadMessage()
@@ -428,24 +405,6 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 			log.Errorf("Unable to grab next reader: %s", err.Error())
 			return
 		}
-
-		// resize
-		//if strings.HasPrefix(string(reader), "\x04") {
-		//	str := strings.TrimPrefix(string(reader), "\x04")
-		//
-		//	var resizeMessage CmdWindowSize
-		//	err := json.Unmarshal([]byte(str), &resizeMessage)
-		//	if err != nil {
-		//		log.Errorf("%s", err.Error())
-		//		continue
-		//	}
-		//
-		//	if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
-		//		log.Errorf("Unable to resize: %s", err.Error())
-		//		continue
-		//	}
-		//	continue
-		//}
 
 		if string(reader) == "PEER_IS_READY" {
 			continue

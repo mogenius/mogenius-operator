@@ -36,7 +36,7 @@ func TestProject(t *testing.T) {
 	project.ApplicationKitRefs = []string{"Updated " + name}
 
 	// UPDATE
-	err = UpdateProject(newProjectName, &project)
+	err = UpdateProject(newProjectName, project)
 	if err != nil {
 		log.Fatalf("Error updating project: %s", err.Error())
 	} else {

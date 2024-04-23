@@ -118,18 +118,13 @@ func applyNamespace(provider *punq.KubeProvider) {
 }
 
 func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
+	// Save previous data for comparison
 	previousData, err := GetSyncRepoData()
 	if err != nil {
 		return err
 	}
-	// check if essential data is changed
-	if previousData.Repo != syncRepoReq.Repo ||
-		previousData.Branch != syncRepoReq.Branch ||
-		previousData.AllowPull != syncRepoReq.AllowPull {
-		log.Warn("⚠️⚠️⚠️ SyncRepoData has changed in a way that requires the deletion of current repo ...")
-		iacmanager.DeleteCurrentRepoData()
-	}
 
+	// update data
 	secret, err := CreateOrUpdateClusterSecret(syncRepoReq)
 	if err == nil {
 		utils.CONFIG.Iac.RepoUrl = secret.SyncRepoUrl
@@ -137,9 +132,53 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		utils.CONFIG.Iac.RepoBranch = secret.SyncRepoBranch
 		utils.CONFIG.Iac.AllowPull = secret.SyncAllowPull
 		utils.CONFIG.Iac.AllowPush = secret.SyncAllowPush
-		utils.CONFIG.Iac.AllowManualClusterChanges = secret.AllowManualClusterChanges
 		utils.CONFIG.Iac.SyncFrequencyInSec = secret.SyncFrequencyInSec
 		utils.CONFIG.Iac.SyncWorkloads = secret.SyncWorkloads
+		utils.CONFIG.Iac.IgnoredNamespaces = secret.IgnoredNamespaces
+	}
+
+	// check if essential data is changed
+	if previousData.Repo != syncRepoReq.Repo ||
+		previousData.Branch != syncRepoReq.Branch ||
+		previousData.AllowPull != syncRepoReq.AllowPull ||
+		previousData.AllowPush != syncRepoReq.AllowPush {
+		log.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
+		iacmanager.SetupInProcess = true
+		defer func() {
+			iacmanager.SetupInProcess = false
+		}()
+		// Push/Pull
+		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			if err != nil {
+				return err
+			}
+			iacmanager.SetupInProcess = false
+			InitAllWorkloads()
+		}
+		// Push
+		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
+			iacmanager.SetupInProcess = false
+			InitAllWorkloads()
+			err = iacmanager.AddRemote()
+		}
+		// Pull
+		if syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			if err != nil {
+				return err
+			}
+			iacmanager.SetupInProcess = false
+			InitAllWorkloads()
+			iacmanager.ApplyRepoStateToCluster()
+		}
+		// None
+		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return err
 }
@@ -210,9 +249,13 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		clusterSecret.SyncRepoBranch = syncdata.Branch
 		clusterSecret.SyncAllowPull = syncdata.AllowPull
 		clusterSecret.SyncAllowPush = syncdata.AllowPush
-		clusterSecret.AllowManualClusterChanges = syncdata.AllowManualClusterChanges
 		clusterSecret.SyncFrequencyInSec = syncdata.SyncFrequencyInSec
 		clusterSecret.SyncWorkloads = syncdata.SyncWorkloads
+		if len(syncdata.IgnoredNamespaces) > 1 {
+			clusterSecret.IgnoredNamespaces = syncdata.IgnoredNamespaces
+		} else {
+			clusterSecret.IgnoredNamespaces = dtos.DefaultIgnoredNamespaces()
+		}
 	}
 	if clusterSecret.ClusterMfaId == "" {
 		clusterSecret.ClusterMfaId = punqUtils.NanoId()
@@ -225,9 +268,11 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		clusterSecret.SyncRepoBranch = syncRepoReq.Branch
 		clusterSecret.SyncAllowPull = syncRepoReq.AllowPull
 		clusterSecret.SyncAllowPush = syncRepoReq.AllowPush
-		clusterSecret.AllowManualClusterChanges = syncRepoReq.AllowManualClusterChanges
 		clusterSecret.SyncFrequencyInSec = syncRepoReq.SyncFrequencyInSec
 		clusterSecret.SyncWorkloads = syncRepoReq.SyncWorkloads
+		if len(syncRepoReq.IgnoredNamespaces) > 1 {
+			clusterSecret.IgnoredNamespaces = syncRepoReq.IgnoredNamespaces
+		}
 	}
 
 	secret := punqUtils.InitSecret()
@@ -243,9 +288,9 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	secret.StringData["sync-repo-branch"] = clusterSecret.SyncRepoBranch
 	secret.StringData["sync-allow-pull"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPull)
 	secret.StringData["sync-allow-push"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPush)
-	secret.StringData["allow-manual-cluster-changes"] = fmt.Sprintf("%t", clusterSecret.AllowManualClusterChanges)
 	secret.StringData["sync-frequency-in-sec"] = fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec)
 	secret.StringData["sync-workloads"] = strings.Join(clusterSecret.SyncWorkloads, ",")
+	secret.StringData["sync-ignored-namespaces"] = strings.Join(clusterSecret.IgnoredNamespaces, ",")
 
 	if existingSecret == nil || getErr != nil {
 		log.Info("🔑 Creating new mogenius secret ...")
@@ -265,8 +310,8 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			string(existingSecret.Data["sync-allow-pull"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPull) ||
 			string(existingSecret.Data["sync-allow-push"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPush) ||
 			string(existingSecret.Data["sync-frequency-in-sec"]) != fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec) ||
-			string(existingSecret.Data["allow-manual-cluster-changes"]) != fmt.Sprintf("%t", clusterSecret.AllowManualClusterChanges) ||
-			string(existingSecret.Data["sync-workloads"]) != strings.Join(clusterSecret.SyncWorkloads, ",") {
+			string(existingSecret.Data["sync-workloads"]) != strings.Join(clusterSecret.SyncWorkloads, ",") ||
+			string(existingSecret.Data["sync-ignored-namespaces"]) != strings.Join(clusterSecret.IgnoredNamespaces, ",") {
 			log.Info("🔑 Updating existing mogenius secret ...")
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
