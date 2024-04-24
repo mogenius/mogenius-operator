@@ -130,7 +130,7 @@ func ProcessServiceStatusResponse(r []ResourceItem) ServiceStatusResponse {
 	s := ServiceStatusResponse{}
 
 	for _, item := range r {
-		newItem := NewServiceStatusItem(item)
+		newItem := NewServiceStatusItem(item, &s)
 		s.Items = append(s.Items, newItem)
 
 		switch item.Kind {
@@ -160,7 +160,7 @@ func ProcessServiceStatusResponse(r []ResourceItem) ServiceStatusResponse {
 	return s
 }
 
-func NewServiceStatusItem(item ResourceItem) ServiceStatusItem {
+func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceStatusItem {
 	newItem := ServiceStatusItem{
 		Kind:      NewServiceStatusKindType(item.Kind),
 		Name:      item.Name,
@@ -197,16 +197,22 @@ func NewServiceStatusItem(item ResourceItem) ServiceStatusItem {
 				newItem.Status = *status
 			}
 		case string(ServiceStatusKindTypeCronJob):
-			if status := item.CronJobStatus(); status != nil {
+			if status, switchedOn := item.CronJobStatus(); status != nil {
 				newItem.Status = *status
+				if s != nil {
+					s.SwitchedOn = switchedOn
+				}
 			}
 		case string(ServiceStatusKindTypeJob):
 			if status := item.JobStatus(); status != nil {
 				newItem.Status = *status
 			}
 		case string(ServiceStatusKindTypeDeployment):
-			if status := item.DeploymentStatus(); status != nil {
+			if status, switchedOn := item.DeploymentStatus(); status != nil {
 				newItem.Status = *status
+				if s != nil {
+					s.SwitchedOn = switchedOn
+				}
 			}
 		case string(ServiceStatusKindTypePod):
 			status, messages := item.PodStatus()
@@ -228,7 +234,7 @@ func NewServiceStatusItem(item ResourceItem) ServiceStatusItem {
 
 func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
 	if r.StatusObject != nil {
-		if containerStatus, ok := r.StatusObject.(*corev1.ContainerStatus); ok {
+		if containerStatus, ok := r.StatusObject.(corev1.ContainerStatus); ok {
 
 			if containerStatus.State.Terminated != nil {
 				status := ServiceStatusTypeError
@@ -262,7 +268,7 @@ func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
 
 func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) {
 	if r.StatusObject != nil {
-		if podStatus, ok := r.StatusObject.(*corev1.PodStatus); ok {
+		if podStatus, ok := r.StatusObject.(corev1.PodStatus); ok {
 			// readiness probe
 			ready := true
 			for _, containerStatus := range podStatus.ContainerStatuses {
@@ -352,32 +358,34 @@ func (r *ResourceItem) BuildJobStatus() *ServiceStatusType {
 	return nil
 }
 
-func (r *ResourceItem) CronJobStatus() *ServiceStatusType {
+func (r *ResourceItem) CronJobStatus() (*ServiceStatusType, bool) {
 	if r.StatusObject != nil {
 		if cronJob, ok := r.StatusObject.(CronJobStatus); ok {
+			switchedOn := !cronJob.Suspend
+
 			if cronJob.Image != "" && !strings.Contains(cronJob.Image, ImagePlaceholder) && !cronJob.Suspend {
 				status := ServiceStatusTypeSuccess
-				return &status
+				return &status, switchedOn
 			}
 			if strings.Contains(cronJob.Image, ImagePlaceholder) && !cronJob.Suspend {
 				status := ServiceStatusTypeError
-				return &status
+				return &status, switchedOn
 			}
 			if strings.Contains(cronJob.Image, ImagePlaceholder) && cronJob.Suspend {
 				status := ServiceStatusTypeUnkown
-				return &status
+				return &status, switchedOn
 			}
 
 			status := ServiceStatusTypeSuccess
-			return &status
+			return &status, switchedOn
 		}
 	}
-	return nil
+	return nil, false
 }
 
 func (r *ResourceItem) JobStatus() *ServiceStatusType {
 	if r.StatusObject != nil {
-		if jobStatus, ok := r.StatusObject.(*batchv1.JobStatus); ok {
+		if jobStatus, ok := r.StatusObject.(batchv1.JobStatus); ok {
 			if jobStatus.Active > 0 {
 				status := ServiceStatusTypePending
 				return &status
@@ -393,22 +401,24 @@ func (r *ResourceItem) JobStatus() *ServiceStatusType {
 	return nil
 }
 
-func (r *ResourceItem) DeploymentStatus() *ServiceStatusType {
+func (r *ResourceItem) DeploymentStatus() (*ServiceStatusType, bool) {
 	if r.StatusObject != nil {
 		if deploymentStatus, ok := r.StatusObject.(DeploymentStatus); ok {
-			if originalDeploymentStatus, ok := deploymentStatus.StatusObject.(*appsv1.DeploymentStatus); ok {
+			if originalDeploymentStatus, ok := deploymentStatus.StatusObject.(appsv1.DeploymentStatus); ok {
+
+				switchedOn := deploymentStatus.Replicas > 0
 
 				// isHappy; if replicas == availableReplicas
 				isHappy := deploymentStatus.Replicas == originalDeploymentStatus.AvailableReplicas
 				if !isHappy {
 					status := ServiceStatusTypeSuccess
-					return &status
+					return &status, switchedOn
 				}
 
 				// placeholder image
 				if strings.Contains(deploymentStatus.Image, ImagePlaceholder) {
 					status := ServiceStatusTypePending
-					return &status
+					return &status, switchedOn
 				}
 
 				conditions := originalDeploymentStatus.Conditions
@@ -418,7 +428,7 @@ func (r *ResourceItem) DeploymentStatus() *ServiceStatusType {
 					if condition.Type == appsv1.DeploymentAvailable {
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypeSuccess
-							return &status
+							return &status, switchedOn
 						}
 					}
 				}
@@ -428,7 +438,7 @@ func (r *ResourceItem) DeploymentStatus() *ServiceStatusType {
 					if condition.Type == appsv1.DeploymentReplicaFailure {
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypeError
-							return &status
+							return &status, switchedOn
 						}
 					}
 				}
@@ -438,22 +448,22 @@ func (r *ResourceItem) DeploymentStatus() *ServiceStatusType {
 					if condition.Type == appsv1.DeploymentProgressing {
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypePending
-							return &status
+							return &status, switchedOn
 						}
 					}
 				}
 
 				if originalDeploymentStatus.UnavailableReplicas > 0 {
 					status := ServiceStatusTypeWarning
-					return &status
+					return &status, switchedOn
 				}
 
 				status := ServiceStatusTypeUnkown
-				return &status
+				return &status, switchedOn
 			}
 		}
 	}
-	return nil
+	return nil, false
 }
 
 type CronJobStatus struct {
