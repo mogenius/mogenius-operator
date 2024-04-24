@@ -1,7 +1,9 @@
 package kubernetes
 
 import (
+	"encoding/json"
 	"fmt"
+	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/utils"
@@ -24,6 +26,8 @@ import (
 
 const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
+
+var EventChannels = make(map[string]chan string)
 
 func EventWatcher() {
 	provider, err := punq.NewKubeProvider(nil)
@@ -171,6 +175,38 @@ func processEvent(event *v1Core.Event) (string, error) {
 		reason := event.Reason
 		count := event.Count
 		structs.EventServerSendData(datagram, kind, reason, message, count)
+
+		// deployment events
+		ignoreKind := []string{"CertificateRequest", "Certificate"}
+		ignoreNamespaces := []string{"kube-system", "kube-public", "default", "mogenius"}
+		if event.InvolvedObject.Kind == "Pod" &&
+			!utils.ContainsString(ignoreNamespaces, event.InvolvedObject.Namespace) &&
+			!utils.ContainsString(ignoreKind, event.InvolvedObject.Kind) {
+
+			//personJSON, err := json.Marshal(event)
+			//if err == nil {
+			//	fmt.Println("event as JSON:", string(personJSON))
+			//}
+			parts := strings.Split(event.InvolvedObject.Name, "-")
+			if len(parts) > 1 {
+				err := db.AddPodEvent(event.InvolvedObject.Namespace, parts[0], event, 50)
+				if err != nil {
+					log.Errorf("Error adding event to db: %s", err.Error())
+				}
+
+				key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, parts[0])
+				ch, exists := EventChannels[key]
+				if exists {
+					var events []*v1Core.Event
+					events = append(events, event)
+					updatedData, err := json.Marshal(events)
+					if err == nil {
+						ch <- string(updatedData)
+					}
+				}
+			}
+		}
+
 		return event.ObjectMeta.ResourceVersion, nil
 	} else {
 		return "", fmt.Errorf("malformed event received")

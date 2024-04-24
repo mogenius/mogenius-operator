@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	v1 "k8s.io/api/core/v1"
 	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/kubernetes"
@@ -48,6 +49,12 @@ type BuildLogConnectionRequest struct {
 	BuildTask    structs.BuildPrefixEnum `json:"buildTask" validate:"required"` // clone, build, test, deploy, .....
 	BuildId      uint64                  `json:"buildId" validate:"required"`
 	WsConnection WsConnectionRequest     `json:"wsConnectionRequest" validate:"required"`
+}
+
+type PodEventConnectionRequest struct {
+	Namespace    string              `json:"namespace" validate:"required"`
+	Controller   string              `json:"controller" validate:"required"`
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 }
 
 type ScanImageLogConnectionRequest struct {
@@ -204,9 +211,9 @@ func XTermCommandStreamConnection(
 	podExists := punq.PodExists(namespace, pod, nil)
 	if !podExists.PodExists {
 		if conn != nil {
-			err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
-			if err != nil {
-				log.Errorf("WriteMessage: %s", err.Error())
+			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
+			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+				log.Error("write close:", err)
 			}
 		}
 		log.Errorf("Pod %s does not exist, closing connection.", pod)
@@ -397,6 +404,102 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		data := db.GetItemByKey(key)
 		build := structs.CreateBuildJobEntryFromData(data)
 		ch <- build.Result
+	}(ch)
+
+	for {
+		_, reader, err := conn.ReadMessage()
+		if err != nil {
+			log.Errorf("Unable to grab next reader: %s", err.Error())
+			return
+		}
+
+		if string(reader) == "PEER_IS_READY" {
+			continue
+		}
+	}
+}
+
+func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string) {
+	if wsConnectionRequest.WebsocketScheme == "" {
+		log.Error("WebsocketScheme is empty")
+		return
+	}
+
+	if wsConnectionRequest.WebsocketHost == "" {
+		log.Error("WebsocketHost is empty")
+		return
+	}
+
+	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
+	conn, err := WsConnection("deployment-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest)
+	if err != nil {
+		log.Errorf("Unable to connect to websocket: %s", err.Error())
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+
+	defer func() {
+		cancel()
+		if conn != nil {
+			conn.Close()
+		}
+	}()
+
+	key := fmt.Sprintf("%s-%s", namespace, controller)
+
+	defer func() {
+		cancel()
+		ch := kubernetes.EventChannels[key]
+		_, exists := kubernetes.EventChannels[key]
+		if exists {
+			close(ch)
+			delete(kubernetes.EventChannels, key)
+		}
+		if conn != nil {
+			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
+			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+				log.Error("write close:", err)
+			}
+		}
+	}()
+
+	ch, exists := kubernetes.EventChannels[key]
+	if !exists {
+		kubernetes.EventChannels[key] = make(chan string)
+		ch, _ = kubernetes.EventChannels[key]
+	}
+
+	go func() {
+		for message := range ch {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				if conn != nil {
+					var events []v1.Event
+
+					if err := json.Unmarshal([]byte(message), &events); err != nil {
+						log.Errorf("Unable to unmarshal event: %s", err.Error())
+						continue
+					}
+					for _, event := range events {
+						err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s\n\r", event.FirstTimestamp, event.Message)))
+						if err != nil {
+							log.Errorf("WriteMessage: %s", err.Error())
+						}
+					}
+
+				}
+				continue
+			}
+		}
+	}()
+
+	// init
+	go func(ch chan string) {
+		data := db.GetEventByKey(key)
+		// build := structs.CreateBuildJobEntryFromData(data)
+		ch <- string(data)
 	}(ch)
 
 	for {

@@ -2,7 +2,9 @@ package db
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	v1Core "k8s.io/api/core/v1"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -26,6 +28,7 @@ const (
 	SCAN_BUCKET_NAME      = "mogenius-scans"
 	LOG_BUCKET_NAME       = "mogenius-logs"
 	MIGRATION_BUCKET_NAME = "mogenius-migrations"
+	POD_EVENT_BUCKET_NAME = "mogenius-pod-event"
 
 	// PREFIX_GIT_CLONE = "clone"
 	// PREFIX_LS        = "ls"
@@ -104,6 +107,19 @@ func Init() {
 		log.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
 	}
 
+	// ### POD EVENT BUCKET ###
+	db = database
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(POD_EVENT_BUCKET_NAME))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("Error creating bucket ('%s'): %s", POD_EVENT_BUCKET_NAME, err)
+	}
+
 	// ### MIGRATION BUCKET ###
 	db = database
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -154,6 +170,13 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 					err = bucket.Delete([]byte(queueKey))
 					if err != nil {
 						log.Errorf("DeleteAllBuildData delete queue entry: %s", err.Error())
+					}
+
+					// Delete queue entry
+					eventKey := fmt.Sprintf("%s-%s", namespace, controller)
+					err = DeleteEventByKey(eventKey)
+					if err != nil {
+						log.Errorf("DeleteAllBuildData delete event entry: %s", err.Error())
 					}
 				}
 			}
@@ -693,4 +716,62 @@ func AppendToKey(bucket string, key string, value string) error {
 		return fmt.Errorf("Not key found for name '%s'.", key)
 	})
 	return err
+}
+
+func AddPodEvent(namespace string, controller string, event *v1Core.Event, maxSize int) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(POD_EVENT_BUCKET_NAME))
+
+		key := fmt.Sprintf("%s-%s", namespace, controller)
+		existing := bucket.Get([]byte(key))
+		var events []*v1Core.Event
+
+		if existing != nil {
+			if err := json.Unmarshal(existing, &events); err != nil {
+				return err
+			}
+		}
+
+		for _, e := range events {
+			if e.UID == event.UID || e.UID == event.ObjectMeta.UID {
+				return nil
+			}
+		}
+
+		if len(events) >= maxSize {
+			events = events[1:]
+		}
+
+		events = append(events, event)
+
+		updatedData, err := json.Marshal(events)
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(key), updatedData)
+	})
+}
+
+func GetEventByKey(key string) []byte {
+	rawData := []byte{}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(POD_EVENT_BUCKET_NAME))
+		rawData = bucket.Get([]byte(key))
+		return nil
+	})
+	if err != nil {
+		log.Errorf("GetEventByKey (db) ERR: %s", err.Error())
+	}
+	return rawData
+}
+
+func DeleteEventByKey(key string) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(POD_EVENT_BUCKET_NAME))
+		err := bucket.Delete([]byte(key))
+		if err != nil {
+			log.Errorf("DeleteEventByKey: %s", err.Error())
+		}
+		return nil
+	})
 }
