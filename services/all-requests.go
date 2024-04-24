@@ -636,7 +636,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		go logStreamConnection(data)
 		return nil
-
 	case structs.PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST:
 		data := xterm.BuildLogConnectionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -644,6 +643,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		go buildLogStreamConnection(data)
+		return nil
+	case structs.PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST:
+		data := xterm.PodEventConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go podEventStreamConnection(data)
 		return nil
 	case structs.PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST:
 		data := xterm.ScanImageLogConnectionRequest{}
@@ -2230,6 +2237,14 @@ func buildLogStreamConnection(buildLogConnectionRequest xterm.BuildLogConnection
 		buildLogConnectionRequest.Container,
 		buildLogConnectionRequest.BuildTask,
 		buildLogConnectionRequest.BuildId,
+	)
+}
+
+func podEventStreamConnection(buildLogConnectionRequest xterm.PodEventConnectionRequest) {
+	xterm.XTermPodEventStreamConnection(
+		buildLogConnectionRequest.WsConnection,
+		buildLogConnectionRequest.Namespace,
+		buildLogConnectionRequest.Controller,
 	)
 }
 
