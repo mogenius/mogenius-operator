@@ -8,6 +8,12 @@ import (
 	core "k8s.io/api/core/v1"
 )
 
+type Commit struct {
+	Author    string   `json:"author"`
+	Message   string   `json:"message"`
+	FilePaths []string `json:"filePaths"`
+}
+
 type SyncRepoData struct {
 	Repo                   string   `json:"repo"`
 	Pat                    string   `json:"pat"`

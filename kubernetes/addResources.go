@@ -139,6 +139,7 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 
 	// check if essential data is changed
 	if previousData.Repo != syncRepoReq.Repo ||
+		syncRepoReq.Pat != "***" ||
 		previousData.Branch != syncRepoReq.Branch ||
 		previousData.AllowPull != syncRepoReq.AllowPull ||
 		previousData.AllowPush != syncRepoReq.AllowPush {
@@ -155,6 +156,8 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 			}
 			iacmanager.SetupInProcess = false
 			InitAllWorkloads()
+			iacmanager.SyncChanges()
+			iacmanager.ApplyRepoStateToCluster()
 		}
 		// Push
 		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
@@ -173,6 +176,7 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 			}
 			iacmanager.SetupInProcess = false
 			InitAllWorkloads()
+			iacmanager.SyncChanges()
 			iacmanager.ApplyRepoStateToCluster()
 		}
 		// None

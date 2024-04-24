@@ -12,8 +12,6 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"sync"
-	"time"
 
 	punqStructs "github.com/mogenius/punq/structs"
 	"github.com/mogenius/punq/utils"
@@ -133,22 +131,6 @@ func GetVersionData(url string) (*punqStructs.HelmData, error) {
 		return nil, err
 	}
 	return &helmData, nil
-}
-
-func DebounceFunc(interval time.Duration, function func()) func() {
-	var timer *time.Timer
-	var mu sync.Mutex
-
-	return func() {
-		mu.Lock()
-		defer mu.Unlock()
-
-		if timer != nil {
-			timer.Stop()
-		}
-
-		timer = time.AfterFunc(interval, function)
-	}
 }
 
 func SequenceToKey(id uint64) []byte {

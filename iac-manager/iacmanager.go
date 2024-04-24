@@ -358,7 +358,7 @@ func syncChangesTimer() {
 		for {
 			select {
 			case <-ticker.C:
-				syncChanges()
+				SyncChanges()
 			case <-quit:
 				ticker.Stop()
 				return
@@ -401,7 +401,7 @@ func ApplyRepoStateToCluster() {
 	}
 }
 
-func syncChanges() {
+func SyncChanges() {
 	if gitHasRemotes() && !SetupInProcess {
 		if !syncInProcess {
 			syncInProcess = true
