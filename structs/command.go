@@ -12,63 +12,27 @@ import (
 )
 
 type Command struct {
-	Id                      string       `json:"id"`
-	JobId                   string       `json:"jobId"`
-	ProjectId               string       `json:"projectId"`
-	Namespace               string       `json:"namespace"`
-	Service                 string       `json:"service"`
-	Title                   string       `json:"title"`
-	Message                 string       `json:"message,omitempty"`
-	StartedAt               string       `json:"startedAt"`
-	State                   JobStateEnum `json:"state"`
-	DurationMs              int64        `json:"durationMs"`
-	MustSucceed             bool         `json:"mustSucceed"`
-	ReportToNotificationSvc bool         `json:"reportToNotificationService"`
-	IgnoreError             bool         `json:"ignoreError"`
-	BuildId                 int          `json:"buildId,omitempty"`
-	Started                 time.Time
+	Id         string       `json:"id"`
+	Title      string       `json:"title"`
+	Message    string       `json:"message,omitempty"`
+	StartedAt  string       `json:"startedAt"`
+	State      JobStateEnum `json:"state"`
+	DurationMs int64        `json:"durationMs"`
+	Started    time.Time    `json:"started"`
 }
 
 func CreateCommand(title string, job *Job) *Command {
 	cmd := &Command{
-		Id:                      punqUtils.NanoId(),
-		JobId:                   job.Id,
-		ProjectId:               job.ProjectId,
-		Namespace:               job.Namespace,
-		Service:                 job.Service,
-		Title:                   title,
-		Message:                 "",
-		StartedAt:               time.Now().Format(time.RFC3339),
-		State:                   JobStatePending,
-		DurationMs:              0,
-		MustSucceed:             false,
-		ReportToNotificationSvc: true,
-		IgnoreError:             false,
-		Started:                 time.Now(),
+		Id:         punqUtils.NanoId(),
+		Title:      title,
+		Message:    "",
+		StartedAt:  time.Now().Format(time.RFC3339),
+		State:      JobStatePending,
+		DurationMs: 0,
+		Started:    time.Now(),
 	}
-	job.AddCmd(*cmd)
+	job.AddCmd(cmd)
 	return cmd
-}
-
-func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
-	cmd := Command{
-		Id:                      punqUtils.NanoId(),
-		JobId:                   job.JobId,
-		ProjectId:               job.Project.Id,
-		Namespace:               job.Namespace.Name,
-		Service:                 job.Service.ControllerName,
-		Title:                   title,
-		Message:                 "",
-		BuildId:                 int(job.BuildId),
-		StartedAt:               time.Now().Format(time.RFC3339),
-		State:                   JobStatePending,
-		DurationMs:              0,
-		MustSucceed:             false,
-		ReportToNotificationSvc: true,
-		IgnoreError:             false,
-		Started:                 time.Now(),
-	}
-	return &cmd
 }
 
 // XXX NOT USED ANYMORE?
@@ -128,7 +92,7 @@ func (cmd *Command) Start(job *Job, msg string) {
 	cmd.State = JobStateStarted
 	cmd.Message = msg
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
-	ReportStateToServer(job)
+	ReportCmdStateToServer(job, cmd)
 }
 
 func (cmd *Command) Fail(job *Job, error string) {
@@ -138,12 +102,12 @@ func (cmd *Command) Fail(job *Job, error string) {
 	if utils.CONFIG.Misc.Debug {
 		log.Errorf("Command '%s' failed: %s", cmd.Title, error)
 	}
-	ReportStateToServer(job)
+	ReportCmdStateToServer(job, cmd)
 }
 
 func (cmd *Command) Success(job *Job, msg string) {
 	cmd.State = JobStateSucceeded
 	cmd.Message = msg
 	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
-	ReportStateToServer(job)
+	ReportCmdStateToServer(job, cmd)
 }

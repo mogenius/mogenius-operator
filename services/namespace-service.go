@@ -12,12 +12,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CreateNamespace(r NamespaceCreateRequest) structs.Job {
+func CreateNamespace(r NamespaceCreateRequest) *structs.Job {
 	var wg sync.WaitGroup
 
 	job := structs.CreateJob("Create cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
 	job.Start()
-	CreateNamespaceCmds(&job, r, &wg)
+	CreateNamespaceCmds(job, r, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
@@ -32,25 +32,25 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 	}
 }
 
-func DeleteNamespace(r NamespaceDeleteRequest) structs.Job {
+func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
 	var wg sync.WaitGroup
 
 	job := structs.CreateJob("Delete cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
 	job.Start()
-	mokubernetes.DeleteNamespace(&job, r.Namespace, &wg)
+	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
 }
 
-func ShutdownNamespace(r NamespaceShutdownRequest) structs.Job {
+func ShutdownNamespace(r NamespaceShutdownRequest) *structs.Job {
 	var wg sync.WaitGroup
 
 	job := structs.CreateJob("Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
-	mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg)
-	mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.StopDeployment(job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 	wg.Wait()
 	job.Finish()
 	return job

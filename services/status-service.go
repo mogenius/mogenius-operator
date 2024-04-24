@@ -12,7 +12,6 @@ import (
 	"fmt"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	punqstructs "github.com/mogenius/punq/structs"
 	log "github.com/sirupsen/logrus"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -335,13 +334,13 @@ func (r *ResourceItem) BuildJobStatus() *ServiceStatusType {
 	if r.StatusObject != nil {
 		if buildJob, ok := r.StatusObject.(structs.BuildJob); ok {
 			switch buildJob.State {
-			case punqstructs.JobStateStarted, punqstructs.JobStatePending:
+			case structs.JobStateStarted, structs.JobStatePending:
 				status := ServiceStatusTypePending
 				return &status
-			case punqstructs.JobStateSucceeded:
+			case structs.JobStateSucceeded:
 				status := ServiceStatusTypeSuccess
 				return &status
-			case punqstructs.JobStateFailed, punqstructs.JobStateCanceled, punqstructs.JobStateTimeout:
+			case structs.JobStateFailed, structs.JobStateCanceled, structs.JobStateTimeout:
 				status := ServiceStatusTypeError
 				return &status
 			default:

@@ -17,7 +17,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/kylelemons/godebug v1.1.0
 	github.com/mattn/go-tty v0.0.5
-	github.com/mogenius/punq v1.5.0-develop.65
+	github.com/mogenius/punq v1.5.0-develop.66
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0

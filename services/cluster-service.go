@@ -19,7 +19,6 @@ import (
 
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
-	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
 
@@ -59,34 +58,34 @@ const (
 	MogeniusHelmIndex                 = "https://helm.mogenius.com/public"
 )
 
-func UpgradeK8sManager(r K8sManagerUpgradeRequest) structs.Job {
+func UpgradeK8sManager(r K8sManagerUpgradeRequest) *structs.Job {
 	var wg sync.WaitGroup
 
 	job := structs.CreateJob("Upgrade mogenius platform", "UPGRADE", "", "")
 	job.Start()
-	mokubernetes.UpgradeMyself(&job, r.Command, &wg)
+	mokubernetes.UpgradeMyself(job, r.Command, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
 }
 
-func InstallHelmChart(r ClusterHelmRequest) structs.Job {
+func InstallHelmChart(r ClusterHelmRequest) *structs.Job {
 	// var wg sync.WaitGroup
 
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
 	// TODO: make it working again. was disabled due to refactoring
-	// job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	// job.AddCmd(mokubernetes.CreateHelmChartCmd(job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	job.Finish()
 	return job
 }
 
-func DeleteHelmChart(r ClusterHelmUninstallRequest) structs.Job {
+func DeleteHelmChart(r ClusterHelmUninstallRequest) *structs.Job {
 	var wg sync.WaitGroup
 
 	job := structs.CreateJob("Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
-	mokubernetes.DeleteHelmChart(&job, r.HelmReleaseName, &wg)
+	mokubernetes.DeleteHelmChart(job, r.HelmReleaseName, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
@@ -97,12 +96,12 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceName, "", "")
 	job.Start()
 	// FOR K8SMANAGER
-	mokubernetes.CreateMogeniusNfsServiceSync(&job, r.NamespaceName, r.VolumeName)
-	mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
-	mokubernetes.CreateMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg)
+	mokubernetes.CreateMogeniusNfsServiceSync(job, r.NamespaceName, r.VolumeName)
+	mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
+	mokubernetes.CreateMogeniusNfsDeployment(job, r.NamespaceName, r.VolumeName, &wg)
 	// FOR SERVICES THAT WANT TO MOUNT
-	mokubernetes.CreateMogeniusNfsPersistentVolumeForService(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
-	mokubernetes.CreateMogeniusNfsPersistentVolumeClaimForService(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
+	mokubernetes.CreateMogeniusNfsPersistentVolumeForService(job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
+	mokubernetes.CreateMogeniusNfsPersistentVolumeClaimForService(job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
 	wg.Wait()
 	job.Finish()
 
@@ -117,12 +116,12 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceName, "", "")
 	job.Start()
 	// FOR K8SMANAGER
-	mokubernetes.DeleteMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg)
-	mokubernetes.DeleteMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg)
-	mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, &wg)
+	mokubernetes.DeleteMogeniusNfsDeployment(job, r.NamespaceName, r.VolumeName, &wg)
+	mokubernetes.DeleteMogeniusNfsService(job, r.NamespaceName, r.VolumeName, &wg)
+	mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(job, r.NamespaceName, r.VolumeName, &wg)
 	// FOR SERVICES THAT WANT TO MOUNT
-	mokubernetes.DeleteMogeniusNfsPersistentVolumeForService(&job, r.VolumeName, r.NamespaceName, &wg)
-	mokubernetes.DeleteMogeniusNfsPersistentVolumeClaimForService(&job, r.NamespaceName, r.VolumeName, &wg)
+	mokubernetes.DeleteMogeniusNfsPersistentVolumeForService(job, r.VolumeName, r.NamespaceName, &wg)
+	mokubernetes.DeleteMogeniusNfsPersistentVolumeClaimForService(job, r.NamespaceName, r.VolumeName, &wg)
 	wg.Wait()
 	job.Finish()
 
@@ -260,7 +259,7 @@ func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest) NfsVolumeBackupResponse {
 
 	result = ZipDirAndUploadToS3(mountPath, fmt.Sprintf("backup_%s_%s.zip", r.VolumeName, time.Now().Format(time.RFC3339)), result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
 	if result.Error != "" {
-		job.State = punqStructs.JobStateFailed
+		job.State = structs.JobStateFailed
 	}
 
 	wg.Wait()
@@ -280,7 +279,7 @@ func RestoreMogeniusNfsVolume(r NfsVolumeRestoreRequest) NfsVolumeRestoreRespons
 
 	result = UnzipAndReplaceFromS3(r.NamespaceName, r.VolumeName, r.BackupKey, result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
 	if result.Error != "" {
-		job.State = punqStructs.JobStateFailed
+		job.State = structs.JobStateFailed
 	}
 
 	wg.Wait()

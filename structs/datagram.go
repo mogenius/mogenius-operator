@@ -2,7 +2,6 @@ package structs
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/utils"
 	"time"
 
@@ -24,16 +23,12 @@ func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
 	return datagram
 }
 
-func CreateDatagramFromNotification(data *dtos.K8sNotificationDto) Datagram {
-	created, err := time.Parse(time.RFC3339, data.StartedAt)
-	if err != nil {
-		created = time.Now()
-	}
+func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	datagram := Datagram{
 		Id:        punqUtils.NanoId(),
 		Pattern:   "K8sNotificationDto",
 		Payload:   data,
-		CreatedAt: created,
+		CreatedAt: data.Started,
 	}
 	return datagram
 }

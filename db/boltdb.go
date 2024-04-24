@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	v1Core "k8s.io/api/core/v1"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strconv"
 	"strings"
 	"time"
+
+	v1Core "k8s.io/api/core/v1"
 
 	jsoniter "github.com/json-iterator/go"
 	punqStructs "github.com/mogenius/punq/structs"
@@ -201,8 +202,8 @@ func resetStartedJobsToPendingOnInit() {
 				log.Errorf("Init (unmarshall) ERR: %s", err.Error())
 				continue
 			}
-			if job.State == punqStructs.JobStateStarted {
-				job.State = punqStructs.JobStatePending
+			if job.State == structs.JobStateStarted {
+				job.State = structs.JobStatePending
 				key := BuildJobKey(job.BuildId)
 				err := bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
 				if err != nil {
@@ -226,7 +227,7 @@ func GetJobsToBuildFromDb() []structs.BuildJob {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err == nil {
-				if job.State == punqStructs.JobStatePending {
+				if job.State == structs.JobStatePending {
 					result = append(result, job)
 				}
 			} else {
@@ -286,16 +287,16 @@ func GetBuilderStatus() structs.BuilderStatus {
 			if err == nil {
 				result.TotalBuilds++
 				result.TotalBuildTimeMs += job.DurationMs
-				if job.State == punqStructs.JobStatePending {
+				if job.State == structs.JobStatePending {
 					result.QueuedBuilds++
 				}
-				if job.State == punqStructs.JobStateFailed {
+				if job.State == structs.JobStateFailed {
 					result.FailedBuilds++
 				}
-				if job.State == punqStructs.JobStateCanceled {
+				if job.State == structs.JobStateCanceled {
 					result.CanceledBuilds++
 				}
-				if job.State == punqStructs.JobStateSucceeded {
+				if job.State == structs.JobStateSucceeded {
 					result.FinishedBuilds++
 				}
 			}
@@ -495,7 +496,7 @@ func GetBuildJobListFromDb() []structs.BuildJob {
 	return result
 }
 
-func UpdateStateInDb(buildJob structs.BuildJob, newState punqStructs.JobStateEnum) {
+func UpdateStateInDb(buildJob structs.BuildJob, newState structs.JobStateEnum) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		key := BuildJobKey(buildJob.BuildId)
@@ -528,7 +529,7 @@ func PositionInQueueFromDb(buildId uint64) int {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err == nil {
-				if job.State == punqStructs.JobStatePending && job.BuildId != buildId {
+				if job.State == structs.JobStatePending && job.BuildId != buildId {
 					positionInQueue++
 				}
 			}
@@ -586,7 +587,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 		buildJob.JobId = punqUtils.NanoId()
 	}
 	if buildJob.State == "" {
-		buildJob.State = punqStructs.JobStatePending
+		buildJob.State = structs.JobStatePending
 	}
 
 	var nextBuildId uint64 = 0
@@ -604,7 +605,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 				continue
 			}
 			//
-			if (job.State == punqStructs.JobStatePending || job.State == punqStructs.JobStateStarted) && job.Service.ControllerName == buildJob.Service.ControllerName {
+			if (job.State == structs.JobStatePending || job.State == structs.JobStateStarted) && job.Service.ControllerName == buildJob.Service.ControllerName {
 				for _, container := range job.Service.Containers {
 					for _, jobContainer := range buildJob.Service.Containers {
 						if *jobContainer.GitCommitHash == *container.GitCommitHash {
@@ -623,7 +624,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 }
 
 func SaveBuildResult(
-	state punqStructs.JobStateEnum,
+	state structs.JobStateEnum,
 	prefix structs.BuildPrefixEnum,
 	cmdOutput string,
 	startTime time.Time,
