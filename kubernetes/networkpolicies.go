@@ -23,16 +23,16 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
+func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Create NetworkPolicy namespace", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Creating NetworkPolicy '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
@@ -47,48 +47,46 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 
 		_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", namespace.Name))
+			cmd.Success(job, fmt.Sprintf("Created NetworkPolicy '%s'.", namespace.Name))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Delete NetworkPolicy.", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Delete NetworkPolicy '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 
 		err = netPolClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", namespace.Name))
+			cmd.Success(job, fmt.Sprintf("Delete NetworkPolicy '%s'.", namespace.Name))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Create NetworkPolicy Service", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", service.ControllerName))
+		cmd.Start(job, fmt.Sprintf("Creating NetworkPolicy '%s'.", service.ControllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
@@ -118,39 +116,37 @@ func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sName
 		_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
 			if apierrors.IsAlreadyExists(err) {
-				cmd.Success(fmt.Sprintf("NetworkPolicy already exists '%s'.", service.ControllerName))
+				cmd.Success(job, fmt.Sprintf("NetworkPolicy already exists '%s'.", service.ControllerName))
 			} else {
-				cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
 			}
 		} else {
-			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", service.ControllerName))
+			cmd.Success(job, fmt.Sprintf("Created NetworkPolicy '%s'.", service.ControllerName))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Delete NetworkPolicy Service.", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.ControllerName))
+		cmd.Start(job, fmt.Sprintf("Delete NetworkPolicy '%s'.", service.ControllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 
 		err = netPolClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.ControllerName))
+			cmd.Success(job, fmt.Sprintf("Delete NetworkPolicy '%s'.", service.ControllerName))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
 func WatchNetworkPolicies() {

@@ -26,16 +26,16 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name), job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Creating Deployment '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
@@ -51,25 +51,24 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 
 		_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created deployment '%s'.", namespace.Name))
+			cmd.Success(job, fmt.Sprintf("Created deployment '%s'.", namespace.Name))
 		}
 
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand(fmt.Sprintf("Deleting Deployment '%s'.", service.ControllerName), job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting Deployment '%s'.", service.ControllerName))
+		cmd.Start(job, fmt.Sprintf("Deleting Deployment '%s'.", service.ControllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
@@ -80,25 +79,24 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 
 		err = deploymentClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted Deployment '%s'.", service.ControllerName))
+			cmd.Success(job, fmt.Sprintf("Deleted Deployment '%s'.", service.ControllerName))
 		}
 
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", namespace.Name), job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Updating Deployment '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Updating Deployment '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
@@ -115,31 +113,30 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			if apierrors.IsNotFound(err) {
 				_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 				} else {
-					cmd.Success(fmt.Sprintf("Created deployment '%s'.", namespace.Name))
+					cmd.Success(job, fmt.Sprintf("Created deployment '%s'.", namespace.Name))
 				}
 			} else {
-				cmd.Fail(fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
 			}
 		} else {
-			cmd.Success(fmt.Sprintf("Updating deployment '%s'.", namespace.Name))
+			cmd.Success(job, fmt.Sprintf("Updating deployment '%s'.", namespace.Name))
 		}
 
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Starting Deployment", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Starting Deployment '%s'.", service.ControllerName))
+		cmd.Start(job, fmt.Sprintf("Starting Deployment '%s'.", service.ControllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
@@ -154,24 +151,23 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Started Deployment '%s'.", service.ControllerName))
+			cmd.Success(job, fmt.Sprintf("Started Deployment '%s'.", service.ControllerName))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Stopping Deployment", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Stopping Deployment '%s'.", service.ControllerName))
+		cmd.Start(job, fmt.Sprintf("Stopping Deployment '%s'.", service.ControllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
@@ -187,24 +183,23 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 
 		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Stopped Deployment '%s'.", service.ControllerName))
+			cmd.Success(job, fmt.Sprintf("Stopped Deployment '%s'.", service.ControllerName))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Restart Deployment", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Restarting Deployment '%s'.", service.ControllerName))
+		cmd.Start(job, fmt.Sprintf("Restarting Deployment '%s'.", service.ControllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
@@ -227,12 +222,11 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 
 		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Restart Deployment '%s'.", service.ControllerName))
+			cmd.Success(job, fmt.Sprintf("Restart Deployment '%s'.", service.ControllerName))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
 func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
@@ -332,22 +326,22 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	return objectMeta, &SpecDeployment{spec, previousSpec}, &newDeployment, nil
 }
 
-func SetDeploymentImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) *structs.Command {
+func SetDeploymentImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Set Image in Deployment '%s'.", controllerName))
+		cmd.Start(job, fmt.Sprintf("Set Image in Deployment '%s'.", controllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
 		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("SetImage ERROR: %s", err.Error()))
 			return
 		}
 
@@ -361,12 +355,11 @@ func SetDeploymentImage(job *structs.Job, namespaceName string, controllerName s
 
 		_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("SetImage ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("SetImage ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Set new image in Deployment '%s'.", controllerName))
+			cmd.Success(job, fmt.Sprintf("Set new image in Deployment '%s'.", controllerName))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
 func UpdateDeploymentImage(namespaceName string, controllerName string, containerName string, imageName string) error {

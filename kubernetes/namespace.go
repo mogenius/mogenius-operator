@@ -22,14 +22,13 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto) *structs.Command {
+func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto) {
 	cmd := structs.CreateCommand("Create Kubernetes namespace", job)
-	cmd.Start(fmt.Sprintf("Creating namespace '%s'.", namespace.Name))
+	cmd.Start(job, fmt.Sprintf("Creating namespace '%s'.", namespace.Name))
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
-		return cmd
+		cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 	}
 	namespaceClient := provider.ClientSet.CoreV1().Namespaces()
 	newNamespace := applyconfcore.Namespace(namespace.Name)
@@ -45,35 +44,33 @@ func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dto
 
 	_, err = namespaceClient.Apply(context.TODO(), newNamespace, applyOptions)
 	if err != nil {
-		cmd.Fail(fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()))
+		cmd.Fail(job, fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()))
 	} else {
-		cmd.Success(fmt.Sprintf("Created namespace '%s'.", *newNamespace.Name))
+		cmd.Success(job, fmt.Sprintf("Created namespace '%s'.", *newNamespace.Name))
 	}
-	return cmd
 }
 
-func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Delete Kubernetes namespace", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting namespace '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Deleting namespace '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		namespaceClient := provider.ClientSet.CoreV1().Namespaces()
 
 		err = namespaceClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted namespace '%s'.", namespace.Name))
+			cmd.Success(job, fmt.Sprintf("Deleted namespace '%s'.", namespace.Name))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
 func WatchNamespaces() {

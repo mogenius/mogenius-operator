@@ -23,16 +23,16 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Create Kubernetes ConfigMap", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating ConfigMap '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Creating ConfigMap '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if provider == nil || err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
@@ -46,24 +46,23 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		_, err = configMapClient.Create(context.TODO(), &configMap, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created ConfigMap '%s'.", service.ControllerName))
+			cmd.Success(job, fmt.Sprintf("Created ConfigMap '%s'.", service.ControllerName))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Delete Kubernetes configMap", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting configMap '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Deleting configMap '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
@@ -74,24 +73,23 @@ func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		err = configMapClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted configMap '%s'.", service.ControllerName))
+			cmd.Success(job, fmt.Sprintf("Deleted configMap '%s'.", service.ControllerName))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Updating configMap '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if provider == nil || err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
@@ -108,26 +106,25 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		_, err = configMapClient.Update(context.TODO(), &configMap, updateOptions)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Update configMap '%s'.", service.ControllerName))
+			cmd.Success(job, fmt.Sprintf("Update configMap '%s'.", service.ControllerName))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string, key string, value string, wg *sync.WaitGroup) *structs.Command {
+func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string, key string, value string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Updating configMap '%s'.", configMapName))
+		cmd.Start(job, fmt.Sprintf("Updating configMap '%s'.", configMapName))
 
 		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
 		if configMap != nil {
 			provider, err := punq.NewKubeProvider(nil)
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 				return
 			}
 			configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
@@ -135,36 +132,35 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 
 			_, err = configMapClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
 				return
 			} else {
-				cmd.Success(fmt.Sprintf("Update configMap '%s'.", configMap))
+				cmd.Success(job, fmt.Sprintf("Update configMap '%s'.", configMap))
 				return
 			}
 		}
-		cmd.Fail(fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
-	}(cmd, wg)
-	return cmd
+		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
+	}(wg)
 }
 
-func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName string, key string, wg *sync.WaitGroup) *structs.Command {
+func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName string, key string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start("Update Kubernetes configMap.")
+		cmd.Start(job, "Update Kubernetes configMap.")
 
 		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
 		if configMap != nil {
 			if configMap.Data == nil {
-				cmd.Success("ConfigMap contains no data. No key was removed.")
+				cmd.Success(job, "ConfigMap contains no data. No key was removed.")
 				return
 			} else {
 				delete(configMap.Data, key)
 
 				provider, err := punq.NewKubeProvider(nil)
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 					return
 				}
 				updateOptions := metav1.UpdateOptions{
@@ -173,16 +169,15 @@ func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName st
 				configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
 				_, err = configMapClient.Update(context.TODO(), configMap, updateOptions)
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
 					return
 				}
-				cmd.Success(fmt.Sprintf("Key %s successfully removed.", key))
+				cmd.Success(job, fmt.Sprintf("Key %s successfully removed.", key))
 				return
 			}
 		}
-		cmd.Fail(fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
-	}(cmd, wg)
-	return cmd
+		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
+	}(wg)
 }
 
 func WriteConfigMap(namespace string, name string, data string, labels map[string]string) error {

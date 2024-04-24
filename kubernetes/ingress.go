@@ -29,26 +29,26 @@ const (
 	INGRESS_PREFIX = "ingress"
 )
 
-func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Updating ingress setup.", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start("Updating ingress setup.")
+		cmd.Start(job, "Updating ingress setup.")
 
 		ingressControllerType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		if ingressControllerType == punq.UNKNOWN || ingressControllerType == punq.NONE {
-			cmd.Fail("ERROR: Unknown or NONE ingress controller installed. Supported are NGINX and TRAEFIK.")
+			cmd.Fail(job, "ERROR: Unknown or NONE ingress controller installed. Supported are NGINX and TRAEFIK.")
 			return
 		}
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		ingressClient := provider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
@@ -121,38 +121,37 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 				if existingIngress != nil && ingErr == nil {
 					err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 					if err != nil {
-						cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
+						cmd.Fail(job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 						return
 					} else {
-						cmd.Success(fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName))
+						cmd.Success(job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName))
 					}
 				} else {
-					cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
+					cmd.Success(job, fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
 				}
 			} else {
 				_, err := ingressClient.Apply(context.TODO(), config, applyOptions)
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(fmt.Sprintf("Updated Ingress '%s'.", ingressName))
+					cmd.Success(job, fmt.Sprintf("Updated Ingress '%s'.", ingressName))
 				}
 			}
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Deleting ingress setup.", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start("Deleting ingress setup.")
+		cmd.Start(job, "Deleting ingress setup.")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		ingressClient := provider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
@@ -163,17 +162,16 @@ func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			if existingIngress != nil && err == nil {
 				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(fmt.Sprintf("Deleted Ingress '%s'.", ingressName))
+					cmd.Success(job, fmt.Sprintf("Deleted Ingress '%s'.", ingressName))
 				}
 			} else {
-				cmd.Success(fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
+				cmd.Success(job, fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
 			}
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
 func loadDefaultAnnotations() map[string]string {

@@ -25,16 +25,16 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand(fmt.Sprintf("Creating service '%s'.", service.ControllerName), job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating service '%s'.", service.ControllerName))
+		cmd.Start(job, fmt.Sprintf("Creating service '%s'.", service.ControllerName))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
@@ -47,25 +47,24 @@ func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 
 		_, err = serviceClient.Create(context.TODO(), &newService, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateService ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("CreateService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created service '%s'.", namespace.Name))
+			cmd.Success(job, fmt.Sprintf("Created service '%s'.", namespace.Name))
 		}
 
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Delete Service", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Deleting service '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Deleting service '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
@@ -75,24 +74,23 @@ func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 
 		err = serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Deleted service '%s'.", namespace.Name))
+			cmd.Success(job, fmt.Sprintf("Deleted service '%s'.", namespace.Name))
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
+func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Update Service", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Update service '%s'.", namespace.Name))
+		cmd.Start(job, fmt.Sprintf("Update service '%s'.", namespace.Name))
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
@@ -113,23 +111,22 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			if getSrvErr == nil {
 				err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("UpdateService (Delete) ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("UpdateService (Delete) ERROR: %s", err.Error()))
 				} else {
-					cmd.Success(fmt.Sprintf("Updated service '%s'.", namespace.Name))
+					cmd.Success(job, fmt.Sprintf("Updated service '%s'.", namespace.Name))
 				}
 			} else {
-				cmd.Success(fmt.Sprintf("Updated service '%s'.", namespace.Name))
+				cmd.Success(job, fmt.Sprintf("Updated service '%s'.", namespace.Name))
 			}
 		} else {
 			_, err = serviceClient.Update(context.TODO(), &updateService, updateOptions)
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("UpdateService ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("UpdateService ERROR: %s", err.Error()))
 			} else {
-				cmd.Success(fmt.Sprintf("Updated service '%s'.", namespace.Name))
+				cmd.Success(job, fmt.Sprintf("Updated service '%s'.", namespace.Name))
 			}
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
 func UpdateServiceWith(service *v1.Service) error {
@@ -231,12 +228,12 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 	}
 }
 
-func RemovePortFromService(job *structs.Job, namespace string, controllerName string, port int32, wg *sync.WaitGroup) *structs.Command {
+func RemovePortFromService(job *structs.Job, namespace string, controllerName string, port int32, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Remove Port from Service", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Remove Port '%d'.", port))
+		cmd.Start(job, fmt.Sprintf("Remove Port '%d'.", port))
 
 		service := punq.ServiceFor(namespace, controllerName, nil)
 		if service != nil {
@@ -252,7 +249,7 @@ func RemovePortFromService(job *structs.Job, namespace string, controllerName st
 			if wasModified {
 				provider, err := punq.NewKubeProvider(nil)
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 					return
 				}
 				updateOptions := metav1.UpdateOptions{
@@ -261,33 +258,32 @@ func RemovePortFromService(job *structs.Job, namespace string, controllerName st
 				serviceClient := provider.ClientSet.CoreV1().Services(namespace)
 				_, err = serviceClient.Update(context.TODO(), service, updateOptions)
 				if err != nil {
-					cmd.Fail(fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
 					return
 				}
-				cmd.Success(fmt.Sprintf("Port %d successfully removed.", port))
+				cmd.Success(job, fmt.Sprintf("Port %d successfully removed.", port))
 				return
 			} else {
-				cmd.Success(fmt.Sprintf("Port %d was not contained in list.", port))
+				cmd.Success(job, fmt.Sprintf("Port %d was not contained in list.", port))
 				return
 			}
 		}
-		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, controllerName))
-	}(cmd, wg)
-	return cmd
+		cmd.Fail(job, fmt.Sprintf("Service '%s/%s' not found.", namespace, controllerName))
+	}(wg)
 }
 
-func AddPortToService(job *structs.Job, namespace string, controllerName string, port int32, protocol string, wg *sync.WaitGroup) *structs.Command {
+func AddPortToService(job *structs.Job, namespace string, controllerName string, port int32, protocol string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("Add Port to Service", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Add Port '%d'.", port))
+		cmd.Start(job, fmt.Sprintf("Add Port '%d'.", port))
 
 		service := punq.ServiceFor(namespace, controllerName, nil)
 		if service != nil {
 			provider, err := punq.NewKubeProvider(nil)
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 				return
 			}
 			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{
@@ -300,15 +296,14 @@ func AddPortToService(job *structs.Job, namespace string, controllerName string,
 			serviceClient := provider.ClientSet.CoreV1().Services(namespace)
 			_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
 			if err != nil {
-				cmd.Fail(fmt.Sprintf("AddPortToService ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("AddPortToService ERROR: %s", err.Error()))
 				return
 			}
-			cmd.Success(fmt.Sprintf("Port %d added successfully removed.", port))
+			cmd.Success(job, fmt.Sprintf("Port %d added successfully removed.", port))
 			return
 		}
-		cmd.Fail(fmt.Sprintf("Service '%s/%s' not found.", namespace, controllerName))
-	}(cmd, wg)
-	return cmd
+		cmd.Fail(job, fmt.Sprintf("Service '%s/%s' not found.", namespace, controllerName))
+	}(wg)
 }
 
 func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) v1.Service {

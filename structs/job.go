@@ -19,11 +19,11 @@ type DefaultResponse struct {
 type Job struct {
 	Id                      string            `json:"id"`
 	ProjectId               string            `json:"projectId"`
-	NamespaceId             *string           `json:"namespaceId,omitempty"`
-	ServiceId               *string           `json:"serviceId,omitempty"`
+	Namespace               string            `json:"namespace,omitempty"`
+	Service                 string            `json:"service,omitempty"`
 	Title                   string            `json:"title"`
 	Message                 string            `json:"message"`
-	Commands                []*Command        `json:"Commands"`
+	Commands                []Command         `json:"Commands"`
 	DurationMs              int64             `json:"durationMs"`
 	State                   punq.JobStateEnum `json:"state"`
 	ReportToNotificationSvc bool              `json:"reportToNotificationService"`
@@ -32,40 +32,39 @@ type Job struct {
 
 func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
 	return &dtos.K8sNotificationDto{
-		Id:          job.Id,
-		JobId:       job.Id,
-		ProjectId:   job.ProjectId,
-		NamespaceId: job.NamespaceId,
-		ServiceId:   job.ServiceId,
-		Title:       job.Title,
-		Message:     job.Message,
-		State:       job.State,
-		DurationMs:  job.DurationMs,
+		Id:         job.Id,
+		JobId:      job.Id,
+		ProjectId:  job.ProjectId,
+		Namespace:  job.Namespace,
+		Service:    job.Service,
+		Title:      job.Title,
+		Message:    job.Message,
+		State:      job.State,
+		DurationMs: job.DurationMs,
 	}
 }
 
-func CreateJob(title string, projectId string, namespaceId *string, serviceId *string) Job {
+func CreateJob(title string, projectId string, namespace string, service string) Job {
 	job := Job{
 		Id:                      punqUtils.NanoId(),
 		ProjectId:               projectId,
-		NamespaceId:             namespaceId,
-		ServiceId:               serviceId,
+		Namespace:               namespace,
+		Service:                 service,
 		Title:                   title,
 		Message:                 "",
-		Commands:                []*Command{},
+		Commands:                []Command{},
 		State:                   punq.JobStatePending,
 		DurationMs:              0,
 		ReportToNotificationSvc: true,
 		Started:                 time.Now(),
 	}
-	ReportStateToServer(&job, nil)
 	return job
 }
 
 func (j *Job) Start() {
 	j.State = punq.JobStateStarted
 	j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
-	ReportStateToServer(j, nil)
+	ReportStateToServer(j)
 }
 
 func (j *Job) DefaultReponse() DefaultResponse {
@@ -76,7 +75,7 @@ func (j *Job) DefaultReponse() DefaultResponse {
 			dr.Error = fmt.Sprintf("%s\n", j.Message)
 		}
 		for _, cmd := range j.Commands {
-			if cmd.State == punq.JobStateFailed {
+			if cmd.State == JobStateFailed {
 				dr.Error += fmt.Sprintf("%s\n", cmd.Message)
 			}
 		}
@@ -95,7 +94,7 @@ func (j *Job) Finish() {
 	var allSuccess = true
 	var failedCmd = ""
 	for _, cmd := range j.Commands {
-		if cmd.State != punq.JobStateSucceeded {
+		if cmd.State != JobStateSucceeded {
 			allSuccess = false
 			failedCmd = cmd.Message
 		}
@@ -112,59 +111,24 @@ func (j *Job) Finish() {
 		j.Message = fmt.Sprintf("%s FAILED.", failedCmd)
 		j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
 	}
-	ReportStateToServer(j, nil)
+	ReportStateToServer(j)
 }
 
-func (j *Job) AddCmd(cmd *Command) {
-	if cmd == nil {
-		return
-	}
+func (j *Job) AddCmd(cmd Command) {
 	j.Commands = append(j.Commands, cmd)
 }
 
-func (j *Job) AddCmds(cmds []*Command) {
+func (j *Job) AddCmds(cmds []Command) {
 	for _, cmd := range cmds {
 		j.AddCmd(cmd)
 	}
 }
 
-func ReportStateToServer(job *Job, cmd *Command) {
-	skipEvent := false
-	var data *dtos.K8sNotificationDto = nil
-	typeName := ""
-
-	if cmd != nil {
-		typeName = "CMD"
-		if cmd.ReportToNotificationSvc {
-			if cmd.NamespaceId != nil {
-				data = K8sNotificationDtoFromCommand(cmd)
-			} else {
-				skipEvent = true
-			}
-		}
-	} else if job != nil {
-		typeName = "JOB"
-		if job.ReportToNotificationSvc {
-			if job.NamespaceId != nil {
-				data = K8sNotificationDtoFromJob(job)
-			} else {
-				skipEvent = true
-			}
-		}
-	} else {
-		skipEvent = true
-		log.Error("Job AND Command cannot be nil")
-	}
-
-	if data != nil {
-		stateLog(typeName, data)
-		result := CreateDatagramFromNotification(data)
-		EventServerSendData(result, "", "", "", 1)
-	} else {
-		if !skipEvent {
-			log.Error("Serialization failed.")
-		}
-	}
+func ReportStateToServer(job *Job) {
+	var data *dtos.K8sNotificationDto = K8sNotificationDtoFromJob(job)
+	stateLog("JOB", data)
+	result := CreateDatagramFromNotification(data)
+	EventServerSendData(result, "", "", "", 1)
 }
 
 func stateLog(typeName string, data *dtos.K8sNotificationDto) {

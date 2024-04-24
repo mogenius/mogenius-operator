@@ -15,31 +15,29 @@ import (
 func CreateNamespace(r NamespaceCreateRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Create cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, nil)
+	job := structs.CreateJob("Create cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
 	job.Start()
-	job.AddCmds(CreateNamespaceCmds(&job, r, &wg))
+	CreateNamespaceCmds(&job, r, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
 }
 
-func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) []*structs.Command {
-	cmds := []*structs.Command{}
-	cmds = append(cmds, mokubernetes.CreateNamespace(job, r.Project, r.Namespace))
-	cmds = append(cmds, mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, wg))
+func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) {
+	mokubernetes.CreateNamespace(job, r.Project, r.Namespace)
+	mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, wg)
 
 	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		cmds = append(cmds, mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg))
+		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg)
 	}
-	return cmds
 }
 
 func DeleteNamespace(r NamespaceDeleteRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Delete cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, nil)
+	job := structs.CreateJob("Delete cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
 	job.Start()
-	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Namespace, &wg))
+	mokubernetes.DeleteNamespace(&job, r.Namespace, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
@@ -48,11 +46,11 @@ func DeleteNamespace(r NamespaceDeleteRequest) structs.Job {
 func ShutdownNamespace(r NamespaceShutdownRequest) structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, nil)
+	job := structs.CreateJob("Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
-	job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
+	mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg)
 	wg.Wait()
 	job.Finish()
 	return job

@@ -32,7 +32,7 @@ import (
 
 func UpdateService(r ServiceUpdateRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
+	job := structs.CreateJob("Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
 	// check if namespace exists and CREATE IT IF NOT
@@ -45,25 +45,25 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 			Project:   r.Project,
 			Namespace: r.Namespace,
 		}
-		job.AddCmds(CreateNamespaceCmds(&job, nsReq, &wg))
+		CreateNamespaceCmds(&job, nsReq, &wg)
 	}
 
 	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
+		mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg)
 	}
 	if r.Service.GetImageRepoSecretDecryptValue() != nil {
-		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
+		mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg)
 	}
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateOrCreateSecrete(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.CreateOrUpdateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
+	mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateSecrete(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateNetworkPolicyService(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg)
 	}
 
 	if r.Service.HasContainerWithGitRepo() {
@@ -101,26 +101,26 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 // 	}
 
 // 	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-// 		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
+// 		mokubernetes.CreateOrUpdateContainerSecret(&job, r.Project, r.Namespace, &wg))
 // 	}
 // 	if r.Service.GetImageRepoSecretDecryptValue() != nil {
-// 		job.AddCmd(mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
+// 		mokubernetes.CreateOrUpdateContainerSecretForService(&job, r.Project, r.Namespace, r.Service, &wg))
 // 	}
 
-// 	job.AddCmd(mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
+// 	mokubernetes.CreateSecret(&job, r.Namespace, r.Service, &wg))
 
 // 	switch r.Service.Controller {
 // 	case dtos.DEPLOYMENT:
-// 		job.AddCmd(mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
+// 		mokubernetes.CreateDeployment(&job, r.Namespace, r.Service, &wg))
 // 	case dtos.CRON_JOB:
-// 		job.AddCmd(mokubernetes.CreateCronJob(&job, r.Namespace, r.Service, &wg))
+// 		mokubernetes.CreateCronJob(&job, r.Namespace, r.Service, &wg))
 // 	}
 
 // 	if r.Service.HasPorts() {
-// 		job.AddCmd(mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
-// 		job.AddCmd(mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
+// 		mokubernetes.CreateService(&job, r.Namespace, r.Service, &wg))
+// 		mokubernetes.CreateNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
 // 	}
-// 	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
+// 	mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
 // 	if r.Service.HasSeedRepo() {
 // 		initDocker(r.Service)
 // 	}
@@ -139,20 +139,20 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	}
 
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
+	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
-	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.DeleteSecret(&job, r.Namespace, r.Service, &wg))
+	mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteSecret(&job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		job.AddCmd(mokubernetes.DeleteDeployment(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.DeleteDeployment(&job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		job.AddCmd(mokubernetes.DeleteCronJob(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.DeleteCronJob(&job, r.Namespace, r.Service, &wg)
 	}
 
-	job.AddCmd(mokubernetes.DeleteNetworkPolicyService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.DeleteIngress(&job, r.Namespace, r.Service, &wg))
+	mokubernetes.DeleteNetworkPolicyService(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteIngress(&job, r.Namespace, r.Service, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
@@ -165,9 +165,9 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 
 // 	switch r.ServiceType {
 // 	case dtos.K8S_DEPLOYMENT:
-// 		job.AddCmd(mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ControllerName, r.ImageName, &wg))
+// 		mokubernetes.SetDeploymentImage(&job, r.NamespaceName, r.ControllerName, r.ImageName, &wg))
 // 	case dtos.K8S_CRON_JOB_CONTAINER_IMAGE, dtos.K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE:
-// 		job.AddCmd(mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ControllerName, r.ImageName, r.co&wg))
+// 		mokubernetes.SetCronJobImage(&job, r.NamespaceName, r.ControllerName, r.ImageName, r.co&wg))
 // 	}
 
 // 	wg.Wait()
@@ -210,9 +210,9 @@ func ServicePodStatus(r ServicePodsRequest) interface{} {
 func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Trigger Job Service "+r.NamespaceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId)
+	job := structs.CreateJob("Trigger Job Service "+r.NamespaceDisplayName, r.ProjectId, r.NamespaceName, r.ControllerName)
 	job.Start()
-	job.AddCmd(mokubernetes.TriggerJobFromCronjob(&job, r.NamespaceName, r.ControllerName, &wg))
+	mokubernetes.TriggerJobFromCronjob(&job, r.NamespaceName, r.ControllerName, &wg)
 
 	wg.Wait()
 	job.Finish()
@@ -221,18 +221,18 @@ func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
 
 func Restart(r ServiceRestartRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
+	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		job.AddCmd(mokubernetes.RestartDeployment(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.RestartDeployment(&job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		job.AddCmd(mokubernetes.RestartCronJob(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.RestartCronJob(&job, r.Namespace, r.Service, &wg)
 	}
 
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
+	mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
@@ -240,18 +240,18 @@ func Restart(r ServiceRestartRequest) interface{} {
 
 func StopService(r ServiceStopRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Stop Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
+	job := structs.CreateJob("Stop Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		job.AddCmd(mokubernetes.StopCronJob(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.StopCronJob(&job, r.Namespace, r.Service, &wg)
 	}
 
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
+	mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
@@ -260,26 +260,26 @@ func StopService(r ServiceStopRequest) interface{} {
 func StartService(r ServiceStartRequest) interface{} {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Start Service "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, &r.Service.Id)
+	job := structs.CreateJob("Start Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		job.AddCmd(mokubernetes.StartDeployment(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.StartDeployment(&job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		job.AddCmd(mokubernetes.StartCronJob(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.StartCronJob(&job, r.Namespace, r.Service, &wg)
 	}
 
-	job.AddCmd(mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg))
+	mokubernetes.UpdateService(&job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		job.AddCmd(mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.UpdateDeployment(&job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		job.AddCmd(mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg))
+		mokubernetes.UpdateCronJob(&job, r.Namespace, r.Service, &wg)
 	}
 
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg))
+	mokubernetes.UpdateIngress(&job, r.Namespace, r.Service, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
