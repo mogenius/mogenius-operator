@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/fatih/color"
@@ -22,9 +23,9 @@ type Job struct {
 	Title          string       `json:"title"`
 	Message        string       `json:"message"`
 	Commands       []*Command   `json:"Commands"`
-	DurationMs     int64        `json:"durationMs"`
 	State          JobStateEnum `json:"state"`
 	Started        time.Time    `json:"started"`
+	Finished       time.Time    `json:"finished"`
 	BuildId        uint64       `json:"buildId,omitempty"`
 }
 
@@ -38,7 +39,6 @@ func CreateJob(title string, projectId string, namespace string, controllerName 
 		Message:        "",
 		Commands:       []*Command{},
 		State:          JobStatePending,
-		DurationMs:     0,
 		Started:        time.Now(),
 	}
 	ReportJobStateToServer(job)
@@ -47,7 +47,6 @@ func CreateJob(title string, projectId string, namespace string, controllerName 
 
 func (j *Job) Start() {
 	j.State = JobStateStarted
-	j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
 	ReportJobStateToServer(j)
 }
 
@@ -89,12 +88,12 @@ func (j *Job) Finish() {
 	}
 	if allSuccess {
 		j.State = JobStateSucceeded
-		j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
 	} else {
 		j.State = JobStateFailed
 		j.Message = fmt.Sprintf("%s FAILED.", failedCmd)
-		j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
 	}
+	j.Finished = time.Now()
+
 	ReportJobStateToServer(j)
 }
 
@@ -131,9 +130,13 @@ func stateLogJob(data *Job) {
 	LONG := color.New(color.FgRed).SprintFunc()
 
 	// COLOR MILLISECONDS IF >500
-	duration := fmt.Sprint(data.DurationMs)
-	if data.DurationMs > 500 {
-		duration = LONG(duration)
+	durationMs := data.Finished.Sub(data.Started).Milliseconds()
+	if data.Finished.IsZero() || data.Started.IsZero() {
+		durationMs = 0
+	}
+	duration := ""
+	if durationMs > 500 {
+		duration = LONG(strconv.FormatInt(durationMs, 10))
 	}
 
 	switch data.State {
@@ -161,9 +164,13 @@ func stateLogCmd(data *Command) {
 	LONG := color.New(color.FgRed).SprintFunc()
 
 	// COLOR MILLISECONDS IF >500
-	duration := fmt.Sprint(data.DurationMs)
-	if data.DurationMs > 500 {
-		duration = LONG(duration)
+	durationMs := data.Finished.Sub(data.Started).Milliseconds()
+	if data.Finished.IsZero() || data.Started.IsZero() {
+		durationMs = 0
+	}
+	duration := ""
+	if durationMs > 500 {
+		duration = LONG(strconv.FormatInt(durationMs, 10))
 	}
 
 	switch data.State {

@@ -12,24 +12,21 @@ import (
 )
 
 type Command struct {
-	Id         string       `json:"id"`
-	Title      string       `json:"title"`
-	Message    string       `json:"message,omitempty"`
-	StartedAt  string       `json:"startedAt"`
-	State      JobStateEnum `json:"state"`
-	DurationMs int64        `json:"durationMs"`
-	Started    time.Time    `json:"started"`
+	Id       string       `json:"id"`
+	Title    string       `json:"title"`
+	Message  string       `json:"message,omitempty"`
+	State    JobStateEnum `json:"state"`
+	Started  time.Time    `json:"started"`
+	Finished time.Time    `json:"finished"`
 }
 
 func CreateCommand(title string, job *Job) *Command {
 	cmd := &Command{
-		Id:         punqUtils.NanoId(),
-		Title:      title,
-		Message:    "",
-		StartedAt:  time.Now().Format(time.RFC3339),
-		State:      JobStatePending,
-		DurationMs: 0,
-		Started:    time.Now(),
+		Id:      punqUtils.NanoId(),
+		Title:   title,
+		Message: "",
+		State:   JobStatePending,
+		Started: time.Now(),
 	}
 	job.AddCmd(cmd)
 	return cmd
@@ -91,14 +88,13 @@ func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func
 func (cmd *Command) Start(job *Job, msg string) {
 	cmd.State = JobStateStarted
 	cmd.Message = msg
-	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
 	ReportCmdStateToServer(job, cmd)
 }
 
 func (cmd *Command) Fail(job *Job, error string) {
 	cmd.State = JobStateFailed
 	cmd.Message = error
-	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
+	cmd.Finished = time.Now()
 	if utils.CONFIG.Misc.Debug {
 		log.Errorf("Command '%s' failed: %s", cmd.Title, error)
 	}
@@ -108,6 +104,6 @@ func (cmd *Command) Fail(job *Job, error string) {
 func (cmd *Command) Success(job *Job, msg string) {
 	cmd.State = JobStateSucceeded
 	cmd.Message = msg
-	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
+	cmd.Finished = time.Now()
 	ReportCmdStateToServer(job, cmd)
 }
