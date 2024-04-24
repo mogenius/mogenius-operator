@@ -2,7 +2,9 @@ package services
 
 import (
 	"mogenius-k8s-manager/builder"
+	"mogenius-k8s-manager/structs"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"fmt"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	punqstructs "github.com/mogenius/punq/structs"
 	log "github.com/sirupsen/logrus"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -18,6 +21,509 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+type ServiceStatusRequest struct {
+	Namespace      string `json:"namespace" validate:"required"`
+	ControllerName string `json:"controllerName" validate:"required"`
+	Controller     string `json:"controller" validate:"required"`
+}
+
+func ServiceStatusRequestExample() ServiceStatusRequest {
+	return ServiceStatusRequest{
+		Namespace:      "YOUR-NAMESPACE",
+		ControllerName: "YOUR-SERVICE-NAME",
+		Controller:     Deployment.String(),
+	}
+}
+
+// BEGIN new status and messages
+
+const ImagePlaceholder = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
+
+type ServiceStatusKindType string
+
+const (
+	ServiceStatusKindTypeBuildJob    ServiceStatusKindType = "BuildJob"
+	ServiceStatusKindTypeDeployment  ServiceStatusKindType = "Deployment"
+	ServiceStatusKindTypeReplicaSet  ServiceStatusKindType = "ReplicaSet"
+	ServiceStatusKindTypeStatefulSet ServiceStatusKindType = "StatefulSet"
+	ServiceStatusKindTypeDaemonSet   ServiceStatusKindType = "DaemonSet"
+	ServiceStatusKindTypeCronJob     ServiceStatusKindType = "CronJob"
+	ServiceStatusKindTypeJob         ServiceStatusKindType = "Job"
+	ServiceStatusKindTypePod         ServiceStatusKindType = "Pod"
+	ServiceStatusKindTypeContainer   ServiceStatusKindType = "Container"
+	ServiceStatusKindTypeUnkown      ServiceStatusKindType = "Unkown"
+)
+
+func NewServiceStatusKindType(serviceStatusKindType string) ServiceStatusKindType {
+	switch serviceStatusKindType {
+	case string(ServiceStatusKindTypeBuildJob):
+		return ServiceStatusKindTypeBuildJob
+	case string(ServiceStatusKindTypeDeployment):
+		return ServiceStatusKindTypeDeployment
+	case string(ServiceStatusKindTypeReplicaSet):
+		return ServiceStatusKindTypeReplicaSet
+	case string(ServiceStatusKindTypeStatefulSet):
+		return ServiceStatusKindTypeStatefulSet
+	case string(ServiceStatusKindTypeDaemonSet):
+		return ServiceStatusKindTypeDaemonSet
+	case string(ServiceStatusKindTypeCronJob):
+		return ServiceStatusKindTypeCronJob
+	case string(ServiceStatusKindTypeJob):
+		return ServiceStatusKindTypeJob
+	case string(ServiceStatusKindTypePod):
+		return ServiceStatusKindTypePod
+	case string(ServiceStatusKindTypeContainer):
+		return ServiceStatusKindTypeContainer
+	default:
+		return ServiceStatusKindTypeUnkown
+	}
+}
+
+type ServiceStatusType string
+
+const (
+	ServiceStatusTypePending ServiceStatusType = "PENDING"
+	ServiceStatusTypeSuccess ServiceStatusType = "SUCCESS"
+	ServiceStatusTypeWarning ServiceStatusType = "WARNING"
+	ServiceStatusTypeError   ServiceStatusType = "ERROR"
+	ServiceStatusTypeUnkown  ServiceStatusType = "UNKOWN"
+)
+
+type ServiceStatusMessageType string
+
+const (
+	ServiceStatusMessageTypeInfo    ServiceStatusMessageType = "INFO"
+	ServiceStatusMessageTypeSuccess ServiceStatusMessageType = "SUCCESS"
+	ServiceStatusMessageTypeError   ServiceStatusMessageType = "ERROR"
+	ServiceStatusMessageTypeWarning ServiceStatusMessageType = "WARNING"
+)
+
+type ServiceStatusMessage struct {
+	Type    ServiceStatusMessageType `json:"type"`
+	Message string                   `json:"message"`
+}
+
+type ServiceStatusItem struct {
+	Kind      ServiceStatusKindType  `json:"kind"`
+	Name      string                 `json:"name"`
+	Namespace string                 `json:"namespace"`
+	OwnerName string                 `json:"ownerName,omitempty"`
+	OwnerKind ServiceStatusKindType  `json:"ownerKind,omitempty"`
+	Status    ServiceStatusType      `json:"status,omitempty"`
+	Messages  []ServiceStatusMessage `json:"messages,omitempty"`
+}
+
+type ServiceStatusResponse struct {
+	Items         []ServiceStatusItem    `json:"items"`
+	SwitchedOn    bool                   `json:"switchedOn"`
+	HasPods       bool                   `json:"hasPods"`
+	HasContainers bool                   `json:"hasContainers"`
+	HasDeployment bool                   `json:"hasDeployment"`
+	HasCronJob    bool                   `json:"hasCronJob"`
+	HasJob        bool                   `json:"hasJob"`
+	HasBuild      bool                   `json:"hasBuild"`
+	Warnings      []ServiceStatusMessage `json:"warnings,omitempty"`
+}
+
+// Process the status items and return the response
+func ProcessServiceStatusResponse(r []ResourceItem) ServiceStatusResponse {
+	s := ServiceStatusResponse{}
+
+	for _, item := range r {
+		newItem := NewServiceStatusItem(item)
+		s.Items = append(s.Items, newItem)
+
+		switch item.Kind {
+		case string(ServiceStatusKindTypeBuildJob):
+			s.HasBuild = true
+		case string(ServiceStatusKindTypeDeployment):
+			s.HasDeployment = true
+		case string(ServiceStatusKindTypeReplicaSet), string(ServiceStatusKindTypeStatefulSet), string(ServiceStatusKindTypeDaemonSet):
+		case string(ServiceStatusKindTypeJob):
+			s.HasJob = true
+		case string(ServiceStatusKindTypeCronJob):
+			s.HasCronJob = true
+		case string(ServiceStatusKindTypePod):
+			s.HasPods = true
+		case string(ServiceStatusKindTypeContainer):
+			s.HasContainers = true
+		}
+
+		// move warning messages into the response
+		for _, message := range newItem.Messages {
+			if message.Type == ServiceStatusMessageTypeWarning {
+				s.Warnings = append(s.Warnings, message)
+			}
+		}
+	}
+
+	return s
+}
+
+func NewServiceStatusItem(item ResourceItem) ServiceStatusItem {
+	newItem := ServiceStatusItem{
+		Kind:      NewServiceStatusKindType(item.Kind),
+		Name:      item.Name,
+		Namespace: item.Namespace,
+		OwnerName: item.OwnerName,
+	}
+
+	if NewServiceStatusKindType(item.OwnerKind) != ServiceStatusKindTypeUnkown {
+		newItem.OwnerKind = NewServiceStatusKindType(item.OwnerKind)
+	}
+
+	// Convert events to messages
+	if item.Events != nil {
+		for _, event := range item.Events {
+			var messageType ServiceStatusMessageType
+			if event.Type == "Warning" {
+				messageType = ServiceStatusMessageTypeWarning
+			} else {
+				messageType = ServiceStatusMessageTypeInfo
+			}
+
+			newItem.Messages = append(newItem.Messages, ServiceStatusMessage{
+				Type:    messageType,
+				Message: event.Message,
+			})
+		}
+	}
+
+	// Set status
+	if item.StatusObject != nil {
+		switch item.Kind {
+		case string(ServiceStatusKindTypeBuildJob):
+			if status := item.BuildJobStatus(); status != nil {
+				newItem.Status = *status
+			}
+		case string(ServiceStatusKindTypeCronJob):
+			if status := item.CronJobStatus(); status != nil {
+				newItem.Status = *status
+			}
+		case string(ServiceStatusKindTypeJob):
+			if status := item.JobStatus(); status != nil {
+				newItem.Status = *status
+			}
+		case string(ServiceStatusKindTypeDeployment):
+			if status := item.DeploymentStatus(); status != nil {
+				newItem.Status = *status
+			}
+		case string(ServiceStatusKindTypePod):
+			status, messages := item.PodStatus()
+			if status != nil {
+				newItem.Status = *status
+			}
+			if messages != nil {
+				newItem.Messages = append(newItem.Messages, messages...)
+			}
+		case string(ServiceStatusKindTypeContainer):
+			if status := item.ContainerStatus(); status != nil {
+				newItem.Status = *status
+			}
+		}
+	}
+
+	return newItem
+}
+
+func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
+	if r.StatusObject != nil {
+		if containerStatus, ok := r.StatusObject.(*corev1.ContainerStatus); ok {
+
+			if containerStatus.State.Terminated != nil {
+				status := ServiceStatusTypeError
+				return &status
+			}
+
+			if containerStatus.State.Waiting != nil {
+				status := ServiceStatusTypePending
+				return &status
+			}
+
+			// readiness probe OR running without readiness probe, default is true
+			ready := containerStatus.Ready
+			// startup probe OR running without startup probe, nil considered as false
+			started := false
+			if containerStatus.Started != nil {
+				started = *containerStatus.Started
+			}
+
+			if started && ready {
+				status := ServiceStatusTypeSuccess
+				return &status
+			}
+
+			status := ServiceStatusTypeWarning
+			return &status
+		}
+	}
+	return nil
+}
+
+func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) {
+	if r.StatusObject != nil {
+		if podStatus, ok := r.StatusObject.(*corev1.PodStatus); ok {
+			// readiness probe
+			ready := true
+			for _, containerStatus := range podStatus.ContainerStatuses {
+				ready = ready && containerStatus.Ready
+			}
+			// startup probe
+			started := true
+			for _, containerStatus := range podStatus.ContainerStatuses {
+				if containerStatus.Started == nil {
+					started = false
+				} else {
+					started = started && *containerStatus.Started
+				}
+			}
+
+			// create container messages if not running
+			var messages []ServiceStatusMessage
+			for _, containerStatus := range podStatus.ContainerStatuses {
+				if containerStatus.State.Terminated != nil {
+					messages = append(messages, ServiceStatusMessage{
+						Type:    ServiceStatusMessageTypeWarning,
+						Message: fmt.Sprintf("Container '%s' terminated with exit code (%d). %s: %s.", containerStatus.Name, containerStatus.State.Terminated.ExitCode, containerStatus.State.Terminated.Reason, containerStatus.State.Terminated.Message),
+					})
+				}
+				if containerStatus.State.Waiting != nil {
+					messages = append(messages, ServiceStatusMessage{
+						Type:    ServiceStatusMessageTypeWarning,
+						Message: fmt.Sprintf("Container '%s' waiting. %s: %s.", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message),
+					})
+				}
+			}
+
+			if podStatus.Reason != "" && podStatus.Message != "" {
+				messages = append(messages, ServiceStatusMessage{
+					Type:    ServiceStatusMessageTypeInfo,
+					Message: fmt.Sprintf("Pod '%s' information. %s: %s.", r.Name, podStatus.Reason, podStatus.Message),
+				})
+			}
+
+			switch podStatus.Phase {
+			case corev1.PodRunning:
+				if started && ready {
+					status := ServiceStatusTypeSuccess
+					return &status, messages
+				}
+				status := ServiceStatusTypeWarning
+				return &status, messages
+			case corev1.PodSucceeded:
+				status := ServiceStatusTypeSuccess
+				return &status, messages
+			case corev1.PodPending:
+				status := ServiceStatusTypePending
+				return &status, messages
+			case corev1.PodFailed:
+				status := ServiceStatusTypeError
+				return &status, messages
+			default:
+				status := ServiceStatusTypeUnkown
+				return &status, messages
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func (r *ResourceItem) BuildJobStatus() *ServiceStatusType {
+	// When StatusObject is not nil, then type casting to structs.BuildJob
+	if r.StatusObject != nil {
+		if buildJob, ok := r.StatusObject.(structs.BuildJob); ok {
+			switch buildJob.State {
+			case punqstructs.JobStateStarted, punqstructs.JobStatePending:
+				status := ServiceStatusTypePending
+				return &status
+			case punqstructs.JobStateSucceeded:
+				status := ServiceStatusTypeSuccess
+				return &status
+			case punqstructs.JobStateFailed, punqstructs.JobStateCanceled, punqstructs.JobStateTimeout:
+				status := ServiceStatusTypeError
+				return &status
+			default:
+				status := ServiceStatusTypeUnkown
+				return &status
+			}
+		}
+	}
+	return nil
+}
+
+func (r *ResourceItem) CronJobStatus() *ServiceStatusType {
+	if r.StatusObject != nil {
+		if cronJob, ok := r.StatusObject.(CronJobStatus); ok {
+			if cronJob.Image != "" && !strings.Contains(cronJob.Image, ImagePlaceholder) && !cronJob.Suspend {
+				status := ServiceStatusTypeSuccess
+				return &status
+			}
+			if strings.Contains(cronJob.Image, ImagePlaceholder) && !cronJob.Suspend {
+				status := ServiceStatusTypeError
+				return &status
+			}
+			if strings.Contains(cronJob.Image, ImagePlaceholder) && cronJob.Suspend {
+				status := ServiceStatusTypeUnkown
+				return &status
+			}
+
+			status := ServiceStatusTypeSuccess
+			return &status
+		}
+	}
+	return nil
+}
+
+func (r *ResourceItem) JobStatus() *ServiceStatusType {
+	if r.StatusObject != nil {
+		if jobStatus, ok := r.StatusObject.(*batchv1.JobStatus); ok {
+			if jobStatus.Active > 0 {
+				status := ServiceStatusTypePending
+				return &status
+			}
+			if jobStatus.Failed > 0 {
+				status := ServiceStatusTypeError
+				return &status
+			}
+			status := ServiceStatusTypeUnkown
+			return &status
+		}
+	}
+	return nil
+}
+
+func (r *ResourceItem) DeploymentStatus() *ServiceStatusType {
+	if r.StatusObject != nil {
+		if deploymentStatus, ok := r.StatusObject.(DeploymentStatus); ok {
+			if originalDeploymentStatus, ok := deploymentStatus.StatusObject.(*appsv1.DeploymentStatus); ok {
+
+				// isHappy; if replicas == availableReplicas
+				isHappy := deploymentStatus.Replicas == originalDeploymentStatus.AvailableReplicas
+				if !isHappy {
+					status := ServiceStatusTypeSuccess
+					return &status
+				}
+
+				// placeholder image
+				if strings.Contains(deploymentStatus.Image, ImagePlaceholder) {
+					status := ServiceStatusTypePending
+					return &status
+				}
+
+				conditions := originalDeploymentStatus.Conditions
+
+				// find condition type Available
+				for _, condition := range conditions {
+					if condition.Type == appsv1.DeploymentAvailable {
+						if condition.Status == corev1.ConditionTrue {
+							status := ServiceStatusTypeSuccess
+							return &status
+						}
+					}
+				}
+
+				// find condition type ReplicaFailure
+				for _, condition := range conditions {
+					if condition.Type == appsv1.DeploymentReplicaFailure {
+						if condition.Status == corev1.ConditionTrue {
+							status := ServiceStatusTypeError
+							return &status
+						}
+					}
+				}
+
+				// find condition type Progressing
+				for _, condition := range conditions {
+					if condition.Type == appsv1.DeploymentProgressing {
+						if condition.Status == corev1.ConditionTrue {
+							status := ServiceStatusTypePending
+							return &status
+						}
+					}
+				}
+
+				if originalDeploymentStatus.UnavailableReplicas > 0 {
+					status := ServiceStatusTypeWarning
+					return &status
+				}
+
+				status := ServiceStatusTypeUnkown
+				return &status
+			}
+		}
+	}
+	return nil
+}
+
+type CronJobStatus struct {
+	Suspend      bool        `json:"suspend,omitempty"`
+	Image        string      `json:"image,omitempty"`
+	StatusObject interface{} `json:"status,omitempty"`
+}
+
+type DeploymentStatus struct {
+	Replicas     int32       `json:"replicas,omitempty"`
+	Paused       bool        `json:"paused,omitempty"`
+	Image        string      `json:"image,omitempty"`
+	StatusObject interface{} `json:"status,omitempty"`
+}
+
+// END new status and messages
+
+type ResourceItem struct {
+	Kind         string         `json:"kind"`
+	Name         string         `json:"name"`
+	Namespace    string         `json:"namespace"`
+	OwnerName    string         `json:"ownerName,omitempty"`
+	OwnerKind    string         `json:"ownerKind,omitempty"`
+	StatusObject interface{}    `json:"statusObject,omitempty"`
+	Events       []corev1.Event `json:"events,omitempty"`
+}
+
+func (item ResourceItem) String() string {
+	return fmt.Sprintf("%s, %s, %s, %s, %s, %+v", item.Kind, item.Name, item.Namespace, item.OwnerKind, item.OwnerName, item.StatusObject)
+}
+
+type ResourceController int
+
+// Keep the order, only add elements at end
+const (
+	Unkown ResourceController = iota
+	Deployment
+	ReplicaSet
+	StatefulSet
+	DaemonSet
+	Job
+	CronJob
+)
+
+// Keep the order with above structure...
+//
+//	otherwise everything will be messed up
+func (ctrl ResourceController) String() string {
+	return [...]string{"Unkown", "Deployment", "ReplicaSet", "StatefulSet", "DaemonSet", "Job", "CronJob"}[ctrl]
+}
+
+func NewResourceController(resourceController string) ResourceController {
+	switch resourceController {
+	case Deployment.String():
+		return Deployment
+	case ReplicaSet.String():
+		return ReplicaSet
+	case StatefulSet.String():
+		return StatefulSet
+	case DaemonSet.String():
+		return DaemonSet
+	case Job.String():
+		return Job
+	case CronJob.String():
+		return CronJob
+	default:
+		return Unkown
+	}
+}
 
 // Run a goroutine to fetch k8s events then push them into the channel before timeout
 func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, eventsChan chan<- []corev1.Event) {
@@ -119,7 +625,9 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	// }
 	// log.Debugf("JSON: %s", jsonData)
 
-	return resourceItems
+	// return resourceItems
+
+	return ProcessServiceStatusResponse(resourceItems)
 }
 
 func kubernetesItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset, resourceItems []ResourceItem) ([]ResourceItem, error) {
@@ -321,20 +829,13 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 func status(resource interface{}) (string, string, string, []metav1.OwnerReference, *metav1.LabelSelector, interface{}) {
 	switch r := resource.(type) {
 	case *appsv1.Deployment:
-		{
-			status := struct {
-				Replicas     int32       `json:"replicas,omitempty"`
-				Paused       bool        `json:"paused,omitempty"`
-				Image        string      `json:"image,omitempty"`
-				StatusObject interface{} `json:"status,omitempty"`
-			}{
-				Replicas:     *r.Spec.Replicas,
-				Paused:       r.Spec.Paused,
-				Image:        r.Spec.Template.Spec.Containers[0].Image,
-				StatusObject: r.Status,
-			}
-			return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, status
+		status := DeploymentStatus{
+			Replicas:     *r.Spec.Replicas,
+			Paused:       r.Spec.Paused,
+			Image:        r.Spec.Template.Spec.Containers[0].Image,
+			StatusObject: r.Status,
 		}
+		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Deployment.String(), r.OwnerReferences, r.Spec.Selector, status
 	case *appsv1.ReplicaSet:
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, ReplicaSet.String(), r.OwnerReferences, r.Spec.Selector, r.Status
 	case *appsv1.StatefulSet:
@@ -351,94 +852,21 @@ func status(resource interface{}) (string, string, string, []metav1.OwnerReferen
 
 		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, Job.String(), r.OwnerReferences, &labelSelector, r.Status
 	case *batchv1.CronJob:
-		{
-			status := struct {
-				Suspend      bool        `json:"suspend,omitempty"`
-				Image        string      `json:"image,omitempty"`
-				StatusObject interface{} `json:"status,omitempty"`
-			}{
-				Suspend:      *r.Spec.Suspend,
-				Image:        r.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image,
-				StatusObject: r.Status,
-			}
-
-			var labelSelector = metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"ns":  r.ObjectMeta.Labels["ns"],
-					"app": r.ObjectMeta.Labels["app"],
-				},
-			}
-
-			return r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, &labelSelector, status
+		status := CronJobStatus{
+			Suspend:      *r.Spec.Suspend,
+			Image:        r.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image,
+			StatusObject: r.Status,
 		}
+
+		var labelSelector = metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"ns":  r.ObjectMeta.Labels["ns"],
+				"app": r.ObjectMeta.Labels["app"],
+			},
+		}
+
+		return r.ObjectMeta.Name, r.ObjectMeta.Namespace, CronJob.String(), r.OwnerReferences, &labelSelector, status
 	default:
 		return "", "", Unkown.String(), []metav1.OwnerReference{}, nil, nil
-	}
-}
-
-type ServiceStatusRequest struct {
-	Namespace      string `json:"namespace" validate:"required"`
-	ControllerName string `json:"controllerName" validate:"required"`
-	Controller     string `json:"controller" validate:"required"`
-}
-
-func ServiceStatusRequestExample() ServiceStatusRequest {
-	return ServiceStatusRequest{
-		Namespace:      "YOUR-NAMESPACE",
-		ControllerName: "YOUR-SERVICE-NAME",
-		Controller:     Deployment.String(),
-	}
-}
-
-type ResourceItem struct {
-	Kind         string         `json:"kind"`
-	Name         string         `json:"name"`
-	Namespace    string         `json:"namespace"`
-	OwnerName    string         `json:"ownerName,omitempty"`
-	OwnerKind    string         `json:"ownerKind,omitempty"`
-	StatusObject interface{}    `json:"statusObject,omitempty"`
-	Events       []corev1.Event `json:"events,omitempty"`
-}
-
-func (item ResourceItem) String() string {
-	return fmt.Sprintf("%s, %s, %s, %s, %s, %+v", item.Kind, item.Name, item.Namespace, item.OwnerKind, item.OwnerName, item.StatusObject)
-}
-
-type ResourceController int
-
-// Keep the order, only add elements at end
-const (
-	Unkown ResourceController = iota
-	Deployment
-	ReplicaSet
-	StatefulSet
-	DaemonSet
-	Job
-	CronJob
-)
-
-// Keep the order with above structure...
-//
-//	otherwise everything will be messed up
-func (ctrl ResourceController) String() string {
-	return [...]string{"Unkown", "Deployment", "ReplicaSet", "StatefulSet", "DaemonSet", "Job", "CronJob"}[ctrl]
-}
-
-func NewResourceController(resourceController string) ResourceController {
-	switch resourceController {
-	case Deployment.String():
-		return Deployment
-	case ReplicaSet.String():
-		return ReplicaSet
-	case StatefulSet.String():
-		return StatefulSet
-	case DaemonSet.String():
-		return DaemonSet
-	case Job.String():
-		return Job
-	case CronJob.String():
-		return CronJob
-	default:
-		return Unkown
 	}
 }

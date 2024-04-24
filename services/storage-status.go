@@ -208,7 +208,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 				}
 
 				// check if the pod is runnung
-				if  pod.Status.Phase == v1.PodRunning {
+				if pod.Status.Phase == v1.PodRunning {
 					if len(pod.Status.ContainerStatuses) > 0 {
 						containerStatus := pod.Status.ContainerStatuses[0]
 						// check if the container is ready and started and in state running
@@ -230,7 +230,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 							// check if container is waiting and restarted add warning message
 							if containerStatus.State.Waiting != nil && containerStatus.RestartCount > 0 {
 								message := fmt.Sprintf("Container is waiting. Restarted %v. %s, %s", containerStatus.RestartCount, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
-								
+
 								v.Status = VolumeStatusTypeError
 								v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeError, Message: message})
 							}
@@ -255,7 +255,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 			v.UsedByPods = append(v.UsedByPods, pod.ObjectMeta.Name)
 		}
 
-		// pv, pvc and nfs-pod are bounded and running 
+		// pv, pvc and nfs-pod are bounded and running
 		if bounded && boundedPodRunning {
 			v.Status = VolumeStatusTypeBound
 			v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeSuccess, Message: "Volume is bound"})
@@ -267,7 +267,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 	if len(v.Messages) > 0 && (v.Status == VolumeStatusTypeError || v.Status == VolumeStatusTypeWarning) {
 		return
 	}
-	
+
 	if err != nil {
 		v.Status = VolumeStatusTypeError
 		v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeError, Message: err.Error()})
