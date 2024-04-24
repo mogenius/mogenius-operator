@@ -188,23 +188,27 @@ func processEvent(event *v1Core.Event) (string, error) {
 			//	fmt.Println("event as JSON:", string(personJSON))
 			//}
 			parts := strings.Split(event.InvolvedObject.Name, "-")
-			if len(parts) > 1 {
-				err := db.AddPodEvent(event.InvolvedObject.Namespace, parts[0], event, 50)
-				if err != nil {
-					log.Errorf("Error adding event to db: %s", err.Error())
-				}
 
-				key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, parts[0])
-				ch, exists := EventChannels[key]
-				if exists {
-					var events []*v1Core.Event
-					events = append(events, event)
-					updatedData, err := json.Marshal(events)
-					if err == nil {
-						ch <- string(updatedData)
-					}
+			if len(parts) >= 2 {
+				parts = parts[:len(parts)-2]
+			}
+			controllerName := strings.Join(parts, "-")
+			err := db.AddPodEvent(event.InvolvedObject.Namespace, controllerName, event, 50)
+			if err != nil {
+				log.Errorf("Error adding event to db: %s", err.Error())
+			}
+
+			key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, controllerName)
+			ch, exists := EventChannels[key]
+			if exists {
+				var events []*v1Core.Event
+				events = append(events, event)
+				updatedData, err := json.Marshal(events)
+				if err == nil {
+					ch <- string(updatedData)
 				}
 			}
+
 		}
 
 		return event.ObjectMeta.ResourceVersion, nil
