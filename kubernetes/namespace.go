@@ -38,9 +38,7 @@ func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dto
 		FieldManager: DEPLOYMENTNAME,
 	}
 
-	newNamespace.WithLabels(map[string]string{
-		"name": namespace.Name,
-	})
+	newNamespace.WithLabels(MoUpdateLabels(&map[string]string{"name": namespace.Name}, &project.Id, &namespace, nil))
 
 	_, err = namespaceClient.Apply(context.TODO(), newNamespace, applyOptions)
 	if err != nil {

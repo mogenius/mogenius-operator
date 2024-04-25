@@ -85,13 +85,13 @@ func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		}
 
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		newController, err := CreateControllerConfiguration(namespace, service, true, cronJobClient, createCronJobHandler)
+		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, true, cronJobClient, createCronJobHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
 		}
 
 		newCronJob := newController.(*v1job.CronJob)
-		newCronJob.Labels = MoUpdateLabels(&newCronJob.Labels, job.ProjectId, &namespace, &service)
+		newCronJob.Labels = MoUpdateLabels(&newCronJob.Labels, nil, nil, &service)
 
 		_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions())
 		if err != nil {
@@ -144,7 +144,7 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
+		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
 		}
@@ -179,7 +179,7 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		}
 
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
+		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
 		}
@@ -208,7 +208,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
+		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
 		}
@@ -237,7 +237,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 			return
 		}
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		newController, err := CreateControllerConfiguration(namespace, service, false, cronJobClient, createCronJobHandler)
+		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
 		}

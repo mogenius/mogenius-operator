@@ -7,7 +7,6 @@ import (
 	"io"
 	"mogenius-k8s-manager/utils"
 	"net/http"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -351,7 +350,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	}
 	result.Data = output
 
-	os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 0777)
+	//os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 0777)
 
 	log.Infof("\nSKIP   : %s\n", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
 	log.Infof("\nALL    : %s\n", allResources.Display())

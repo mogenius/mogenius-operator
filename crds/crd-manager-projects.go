@@ -3,7 +3,10 @@ package crds
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/structs"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,6 +14,51 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+func CreateProjectCmd(job *structs.Job, name string, newObj CrdProject, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(fmt.Sprintf("Create CRDs for '%s'.", name), job)
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(job, fmt.Sprintf("Creating CRDs for '%s'.", name))
+		err := CreateProject(name, newObj)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("CreateProjectCmd ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(job, fmt.Sprintf("Created CRDs for '%s'.", name))
+		}
+	}(wg)
+}
+
+func UpdateProjectCmd(job *structs.Job, name string, newObj CrdProject, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(fmt.Sprintf("Update CRDs for '%s'.", name), job)
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(job, fmt.Sprintf("Updating CRDs for '%s'.", name))
+		err := UpdateProject(name, &newObj)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("UpdateProjectCmd ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(job, fmt.Sprintf("Updated CRDs for '%s'.", name))
+		}
+	}(wg)
+}
+
+func DeleteProjectKitCmd(job *structs.Job, name string, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(fmt.Sprintf("Delete CRDs for '%s'.", name), job)
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(job, fmt.Sprintf("Deleting CRDs for '%s'.", name))
+		err := DeleteProject(name)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("DeleteProjectKitCmd ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", name))
+		}
+	}(wg)
+}
 
 func CreateProject(name string, newObj CrdProject) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)

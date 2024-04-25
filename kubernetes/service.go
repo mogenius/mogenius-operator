@@ -40,7 +40,7 @@ func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
 		newService := generateService(nil, namespace, service)
 
-		newService.Labels = MoUpdateLabels(&newService.Labels, job.ProjectId, &namespace, &service)
+		newService.Labels = MoUpdateLabels(&newService.Labels, nil, nil, &service)
 
 		// bind/unbind ports globally
 		UpdateTcpUdpPorts(namespace, service, true)

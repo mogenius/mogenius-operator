@@ -71,23 +71,6 @@ func (b BuildJob) IsEmpty() bool {
 		b.BuildId == 0
 }
 
-func BuildJobFrom(jobId string, scanRequest ScanImageRequest) BuildJob {
-	return BuildJob{
-		JobId: jobId,
-		Project: dtos.K8sProjectDto{
-			Id: scanRequest.ProjectId,
-		},
-		Namespace: dtos.K8sNamespaceDto{
-			Id:   scanRequest.NamespaceId,
-			Name: scanRequest.NamespaceName,
-		},
-		Service: dtos.K8sServiceDto{
-			Id:             scanRequest.ServiceId,
-			ControllerName: scanRequest.ControllerName,
-		},
-	}
-}
-
 // type BuildJobListEntry struct {
 // 	// only "clusterId" was removed because we dont need it anymore
 // 	JobId                 string `json:"jobId"`

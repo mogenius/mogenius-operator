@@ -62,7 +62,7 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 
 		k8sjob := utils.InitUpgradeJob()
 		k8sjob.Namespace = NAMESPACE
-		k8sjob.Name = fmt.Sprintf("%s-%s", &k8sjob.Name, punqUtils.NanoIdSmallLowerCase())
+		k8sjob.Name = fmt.Sprintf("%s-%s", k8sjob.Name, punqUtils.NanoIdSmallLowerCase())
 
 		// CONFIGMAP
 		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})

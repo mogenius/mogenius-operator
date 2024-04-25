@@ -43,7 +43,7 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 		netpol.Spec.PodSelector.MatchLabels["ns"] = namespace.Name
 		netpol.Spec.Ingress[0].From[0].PodSelector.MatchLabels["ns"] = namespace.Name
 
-		netpol.Labels = MoUpdateLabels(&netpol.Labels, job.ProjectId, &namespace, nil)
+		netpol.Labels = MoUpdateLabels(&netpol.Labels, nil, nil, nil)
 
 		_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
@@ -111,7 +111,7 @@ func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sName
 		}
 		netpol.Spec.PodSelector.MatchLabels["app"] = service.ControllerName
 
-		netpol.Labels = MoUpdateLabels(&netpol.Labels, job.ProjectId, &namespace, &service)
+		netpol.Labels = MoUpdateLabels(&netpol.Labels, nil, nil, &service)
 
 		_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {

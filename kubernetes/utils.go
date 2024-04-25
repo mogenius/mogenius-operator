@@ -35,6 +35,15 @@ var (
 	RBACRESOURCES          = []string{"pods", "services", "endpoints", "secrets"}
 )
 
+const (
+	MO_LABEL_CREATED_BY            = "mo-created-by"
+	MO_LABEL_APP_NAME              = "mo-app"
+	MO_LABEL_NAMESPACE             = "mo-ns"
+	MO_LABEL_PROJECT_ID            = "mo-project-id"
+	MO_LABEL_NAMESPACE_DISPLAYNAME = "mo-namespace-display-name"
+	MO_LABEL_APP_DISPLAYNAME       = "mo-app-display-name"
+)
+
 type K8sWorkloadResult struct {
 	Result interface{} `json:"result"`
 	Error  interface{} `json:"error"`
@@ -180,7 +189,7 @@ func MoUpdateOptions() metav1.UpdateOptions {
 	}
 }
 
-func MoUpdateLabels(labels *map[string]string, projectId string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto) map[string]string {
+func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto) map[string]string {
 	resultingLabels := map[string]string{}
 
 	// transfer existing values
@@ -191,17 +200,17 @@ func MoUpdateLabels(labels *map[string]string, projectId string, namespace *dtos
 	}
 
 	// populate with mo labels
-	resultingLabels["createdBy"] = DEPLOYMENTNAME
+	resultingLabels[MO_LABEL_CREATED_BY] = DEPLOYMENTNAME
 	if service != nil {
-		resultingLabels["mo-service-id"] = service.Id
-		resultingLabels["mo-service-name"] = service.ControllerName
+		resultingLabels[MO_LABEL_APP_NAME] = service.ControllerName
+		resultingLabels[MO_LABEL_APP_DISPLAYNAME] = service.DisplayName
 	}
 	if namespace != nil {
-		resultingLabels["mo-namespace-id"] = namespace.Id
-		resultingLabels["mo-namespace-name"] = namespace.Name
+		resultingLabels[MO_LABEL_NAMESPACE_DISPLAYNAME] = namespace.DisplayName
 	}
-
-	resultingLabels["mo-project-id"] = projectId
+	if projectId != nil {
+		resultingLabels[MO_LABEL_PROJECT_ID] = *projectId
+	}
 
 	return resultingLabels
 }

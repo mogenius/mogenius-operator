@@ -42,7 +42,7 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		delete(configMap.Data, "XXX") // delete example data
 
 		// TODO: WRITE STUFF INTO CONFIGMAP
-		configMap.Labels = MoUpdateLabels(&configMap.Labels, job.ProjectId, &namespace, &service)
+		configMap.Labels = MoUpdateLabels(&configMap.Labels, nil, nil, &service)
 
 		_, err = configMapClient.Create(context.TODO(), &configMap, MoCreateOptions())
 		if err != nil {

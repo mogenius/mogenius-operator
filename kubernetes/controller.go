@@ -62,7 +62,7 @@ func (spec *SpecCronJob) PreviousGetTemplate() *v1core.PodTemplateSpec {
 
 type customControllerConfigHandler func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error)
 
-func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}, handler customControllerConfigHandler) (interface{}, error) {
+func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}, handler customControllerConfigHandler) (interface{}, error) {
 	objectMeta, hasSpec, controller, err := handler(namespace, service, freshlyCreated, client)
 	if err != nil {
 		return nil, err
@@ -81,8 +81,10 @@ func CreateControllerConfiguration(namespace dtos.K8sNamespaceDto, service dtos.
 
 	// specSelector.MatchLabels["app"] = service.Name
 	// specSelector.MatchLabels["ns"] = namespace.Name
-	// specTemplate.ObjectMeta.Labels["app"] = service.Name
-	// specTemplate.ObjectMeta.Labels["ns"] = namespace.Name
+	specTemplate.ObjectMeta.Labels["mo-app"] = service.ControllerName
+	specTemplate.ObjectMeta.Labels["mo-ns"] = namespace.Name
+	specTemplate.ObjectMeta.Labels["mo-project-id"] = projectId
+	specTemplate.ObjectMeta.Labels["mo-display-name"] = service.DisplayName
 
 	for index, container := range service.Containers {
 		// PORTS

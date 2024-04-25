@@ -69,16 +69,18 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	if r.Service.HasContainerWithGitRepo() {
 		updateInfrastructureYaml(r.Service)
 	}
-	wg.Wait()
-	job.Finish()
 
-	crds.CreateApplicationKit(r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
+	crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
 		Id:          r.Service.Id,
 		DisplayName: r.Service.DisplayName,
 		CreatedBy:   "MISSING_FIELD",
 		Controller:  r.Service.ControllerName,
 		AppId:       "MISSING_FIELD",
-	})
+	}, &wg)
+
+	wg.Wait()
+	job.Finish()
+
 	return job
 }
 
@@ -153,8 +155,12 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 
 	mokubernetes.DeleteNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.DeleteIngress(job, r.Namespace, r.Service, &wg)
+
+	crds.DeleteApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, &wg)
+
 	wg.Wait()
 	job.Finish()
+
 	return job
 }
 

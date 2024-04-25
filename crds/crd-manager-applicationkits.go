@@ -3,7 +3,10 @@ package crds
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/structs"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,6 +14,36 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+func CreateOrUpdateApplicationKitCmd(job *structs.Job, namespace string, name string, newObj CrdApplicationKit, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(fmt.Sprintf("Create/Update CRDs for '%s'.", name), job)
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(job, fmt.Sprintf("Creating/Updating CRDs for '%s'.", name))
+		err := CreateOrUpdateApplicationKit(namespace, name, newObj)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("CreateOrUpdateApplicationKitCmd ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(job, fmt.Sprintf("Created/Updated CRDs for '%s'.", name))
+		}
+	}(wg)
+}
+
+func DeleteApplicationKitCmd(job *structs.Job, namespace string, name string, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(fmt.Sprintf("Delete CRDs for '%s'.", name), job)
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(job, fmt.Sprintf("Deleting CRDs for '%s'.", name))
+		err := DeleteApplicationKit(namespace, name)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("DeleteApplicationKitCmd ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", name))
+		}
+	}(wg)
+}
 
 func CreateOrUpdateApplicationKit(namespace string, name string, newObj CrdApplicationKit) error {
 	_, _, err := GetApplicationKit(namespace, name)

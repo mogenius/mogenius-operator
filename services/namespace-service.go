@@ -1,6 +1,7 @@
 package services
 
 import (
+	"mogenius-k8s-manager/crds"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
@@ -30,6 +31,15 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
 		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg)
 	}
+	crds.CreateProjectCmd(job, r.Namespace.Name, crds.CrdProject{
+		Id:                 r.Namespace.Id,
+		DisplayName:        r.Namespace.DisplayName,
+		CreatedBy:          "MISSING_FIELD",
+		ProductId:          "MISSING_FIELD",
+		ClusterId:          r.Project.ClusterId,
+		GitConnectionId:    "MISSING_FIELD",
+		ApplicationKitRefs: []string{},
+	}, wg)
 }
 
 func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
@@ -38,6 +48,9 @@ func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
 	job := structs.CreateJob("Delete cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
 	job.Start()
 	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
+
+	crds.DeleteProjectKitCmd(job, r.Namespace.Name, &wg)
+
 	wg.Wait()
 	job.Finish()
 	return job

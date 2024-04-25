@@ -51,7 +51,7 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 			}
 		}
 
-		secret.Labels = MoUpdateLabels(&secret.Labels, job.ProjectId, &namespace, &service)
+		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, &service)
 
 		_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
@@ -122,7 +122,7 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 		secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
 		secret.StringData = secretStringData
 
-		secret.Labels = MoUpdateLabels(&secret.Labels, job.ProjectId, &namespace, nil)
+		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
 
 		// Check if exists
 		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
@@ -174,7 +174,7 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 		secretStringData[".dockerconfigjson"] = *service.GetImageRepoSecretDecryptValue()
 		secret.StringData = secretStringData
 
-		secret.Labels = MoUpdateLabels(&secret.Labels, job.ProjectId, &namespace, nil)
+		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
 
 		// Check if exists
 		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
