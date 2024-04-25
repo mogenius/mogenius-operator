@@ -21,7 +21,7 @@ type Job struct {
 	ControllerName string       `json:"controllerName"`
 	Title          string       `json:"title"`
 	Message        string       `json:"message"`
-	Commands       []*Command   `json:"Commands"`
+	Commands       []*Command   `json:"commands"`
 	State          JobStateEnum `json:"state"`
 	Started        time.Time    `json:"started"`
 	Finished       time.Time    `json:"finished"`

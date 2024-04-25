@@ -135,11 +135,6 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 // }
 
 func DeleteService(r ServiceDeleteRequest) interface{} {
-	for _, container := range r.Service.Containers {
-		log.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
-		db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
-	}
-
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
@@ -160,6 +155,14 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 
 	wg.Wait()
 	job.Finish()
+
+	go func() {
+		time.Sleep(10 * time.Second)
+		for _, container := range r.Service.Containers {
+			log.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
+			db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
+		}
+	}()
 
 	return job
 }

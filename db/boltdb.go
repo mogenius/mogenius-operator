@@ -172,13 +172,6 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 					if err != nil {
 						log.Errorf("DeleteAllBuildData delete queue entry: %s", err.Error())
 					}
-
-					// Delete queue entry
-					eventKey := fmt.Sprintf("%s-%s", namespace, controller)
-					err = DeleteEventByKey(eventKey)
-					if err != nil {
-						log.Errorf("DeleteAllBuildData delete event entry: %s", err.Error())
-					}
 				}
 			}
 		}
@@ -186,6 +179,12 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 	})
 	if err != nil {
 		log.Errorf("DeleteAllBuildData: %s", err.Error())
+	}
+	// Delete event entry
+	eventKey := fmt.Sprintf("%s-%s", namespace, controller)
+	err = DeleteEventByKey(eventKey)
+	if err != nil {
+		log.Errorf("DeleteAllBuildData delete event entry: %s", err.Error())
 	}
 }
 
