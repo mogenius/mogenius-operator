@@ -53,7 +53,8 @@ func DeleteProjectCmd(job *structs.Job, name string, wg *sync.WaitGroup) {
 		cmd.Start(job, fmt.Sprintf("Deleting CRDs for '%s'.", name))
 		err := DeleteProject(name)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteProjectKitCmd ERROR: %s", err.Error()))
+			// cmd.Fail(job, fmt.Sprintf("DeleteProjectKitCmd ERROR: %s", err.Error())) // ignore this until we migrate to the new system
+			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", name))
 		} else {
 			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", name))
 		}

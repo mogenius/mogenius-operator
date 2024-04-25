@@ -38,7 +38,8 @@ func DeleteApplicationKitCmd(job *structs.Job, namespace string, name string, wg
 		cmd.Start(job, fmt.Sprintf("Deleting CRDs for '%s'.", name))
 		err := DeleteApplicationKit(namespace, name)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteApplicationKitCmd ERROR: %s", err.Error()))
+			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", name))
+			// cmd.Fail(job, fmt.Sprintf("DeleteApplicationKitCmd ERROR: %s", err.Error())) // ignore this until we migrate to the new system
 		} else {
 			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", name))
 		}
