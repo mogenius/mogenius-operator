@@ -45,7 +45,7 @@ func UpdateProjectCmd(job *structs.Job, name string, newObj CrdProject, wg *sync
 	}(wg)
 }
 
-func DeleteProjectKitCmd(job *structs.Job, name string, wg *sync.WaitGroup) {
+func DeleteProjectCmd(job *structs.Job, name string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand(fmt.Sprintf("Delete CRDs for '%s'.", name), job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {

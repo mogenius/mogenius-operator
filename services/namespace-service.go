@@ -49,7 +49,7 @@ func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
 	job.Start()
 	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
 
-	crds.DeleteProjectKitCmd(job, r.Namespace.Name, &wg)
+	crds.DeleteProjectCmd(job, r.Namespace.Name, &wg)
 
 	wg.Wait()
 	job.Finish()
@@ -115,6 +115,30 @@ func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.Nam
 	result.Secrets = punq.AllSecrets(r.NamespaceName, nil)
 	result.Configmaps = punq.AllConfigmaps(r.NamespaceName, nil)
 	return result
+}
+
+type ProjectCreateRequest struct {
+	ProjectName string          `json:"projectName" validate:"required"`
+	Project     crds.CrdProject `json:"project" validate:"required"`
+}
+
+func ProjectCreateRequestExample() ProjectCreateRequest {
+	return ProjectCreateRequest{
+		ProjectName: "testproject",
+		Project:     crds.CrdProjectExampleData(),
+	}
+}
+
+type ProjectDeleteRequest struct {
+	ProjectName string `json:"projectName" validate:"required"`
+	ProjectId   string `json:"projectId" validate:"required"`
+}
+
+func ProjectDeleteRequestExample() ProjectDeleteRequest {
+	return ProjectDeleteRequest{
+		ProjectName: "testproject",
+		ProjectId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+	}
 }
 
 type NamespaceCreateRequest struct {

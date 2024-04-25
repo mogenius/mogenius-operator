@@ -409,6 +409,28 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		// AllPersistentVolumes
 		return kubernetes.ListPersistentVolumeClaimsWithFieldSelector(data.Namespace, data.LabelSelector, data.Prefix)
 
+	case structs.PAT_PROJECT_CREATE:
+		data := ProjectCreateRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return CreateProject(data)
+	case structs.PAT_PROJECT_UPDATE:
+		data := ProjectCreateRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return UpdateProject(data)
+	case structs.PAT_PROJECT_DELETE:
+		data := ProjectDeleteRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return DeleteProject(data)
+
 	case structs.PAT_NAMESPACE_CREATE:
 		data := NamespaceCreateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

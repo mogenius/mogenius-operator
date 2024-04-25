@@ -16,13 +16,32 @@ const (
 )
 
 type CrdProject struct {
-	Id                 string   `json:"id"`
-	DisplayName        string   `json:"displayName"`
-	CreatedBy          string   `json:"createdBy"`
-	ProductId          string   `json:"productId"`
-	ClusterId          string   `json:"clusterId"`
-	GitConnectionId    string   `json:"gitConnectionId"`
-	ApplicationKitRefs []string `json:"applicationKitRefs"`
+	Id                 string        `json:"id"`
+	DisplayName        string        `json:"displayName"`
+	CreatedBy          string        `json:"createdBy"`
+	ProductId          string        `json:"productId"`
+	ClusterId          string        `json:"clusterId"`
+	GitConnectionId    string        `json:"gitConnectionId"`
+	ApplicationKitRefs []string      `json:"applicationKitRefs"`
+	Limits             ProjectLimits `json:"limits"`
+}
+
+type ProjectLimits struct {
+	MemoryLimitInMb     int     `json:"memoryLimitInMb"`
+	MemoryLimitInCores  float64 `json:"memoryLimitInCores"`
+	EphmeralStorageInMb int     `json:"ephmeralStorageInMb"`
+}
+
+func CrdProjectExampleData() CrdProject {
+	return CrdProject{
+		Id:                 "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		DisplayName:        "displayName",
+		CreatedBy:          "createdBy",
+		ProductId:          "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		ClusterId:          "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		GitConnectionId:    "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		ApplicationKitRefs: []string{},
+	}
 }
 
 func (p *CrdProject) ToUnstructuredProject(name string) *unstructured.Unstructured {
