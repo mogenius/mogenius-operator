@@ -2,7 +2,6 @@ package structs
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/fatih/color"
@@ -131,12 +130,12 @@ func stateLogJob(data *Job) {
 
 	// COLOR MILLISECONDS IF >500
 	durationMs := data.Finished.Sub(data.Started).Milliseconds()
-	if data.Finished.IsZero() || data.Started.IsZero() {
+	if durationMs < 0 {
 		durationMs = 0
 	}
-	duration := ""
+	duration := fmt.Sprintf("%d", durationMs)
 	if durationMs > 500 {
-		duration = LONG(strconv.FormatInt(durationMs, 10))
+		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
 	switch data.State {
@@ -165,12 +164,12 @@ func stateLogCmd(data *Command) {
 
 	// COLOR MILLISECONDS IF >500
 	durationMs := data.Finished.Sub(data.Started).Milliseconds()
-	if data.Finished.IsZero() || data.Started.IsZero() {
+	if durationMs < 0 {
 		durationMs = 0
 	}
-	duration := ""
+	duration := fmt.Sprintf("%d", durationMs)
 	if durationMs > 500 {
-		duration = LONG(strconv.FormatInt(durationMs, 10))
+		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
 	switch data.State {
