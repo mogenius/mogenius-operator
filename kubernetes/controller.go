@@ -104,12 +104,18 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 		if container.KubernetesLimits.IsLimitSetup() {
 			limits := v1core.ResourceList{}
 			requests := v1core.ResourceList{}
-			limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", container.KubernetesLimits.LimitCpuCores*1000))
-			limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", container.KubernetesLimits.LimitMemoryMB))
-			limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", container.KubernetesLimits.EphemeralStorageMB))
-			requests["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", container.KubernetesLimits.LimitCpuCores*200))                 // 20% of limit
-			requests["memory"] = resource.MustParse(fmt.Sprintf("%dMi", int(float64(container.KubernetesLimits.LimitMemoryMB)*0.2))) // 20% of limit
-			requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", container.KubernetesLimits.EphemeralStorageMB))
+			if container.KubernetesLimits.LimitCpuCores > 0 {
+				limits["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", container.KubernetesLimits.LimitCpuCores*1000))
+				requests["cpu"] = resource.MustParse(fmt.Sprintf("%.2fm", container.KubernetesLimits.LimitCpuCores*200)) // 20% of limit
+			}
+			if container.KubernetesLimits.LimitMemoryMB > 0 {
+				limits["memory"] = resource.MustParse(fmt.Sprintf("%dMi", container.KubernetesLimits.LimitMemoryMB))
+				requests["memory"] = resource.MustParse(fmt.Sprintf("%dMi", int(float64(container.KubernetesLimits.LimitMemoryMB)*0.2))) // 20% of limit
+			}
+			if container.KubernetesLimits.EphemeralStorageMB > 0 {
+				limits["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", container.KubernetesLimits.EphemeralStorageMB))
+				requests["ephemeral-storage"] = resource.MustParse(fmt.Sprintf("%dMi", container.KubernetesLimits.EphemeralStorageMB))
+			}
 			specTemplate.Spec.Containers[index].Resources.Limits = limits
 			specTemplate.Spec.Containers[index].Resources.Requests = requests
 		} else {
