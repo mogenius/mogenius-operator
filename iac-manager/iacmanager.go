@@ -289,6 +289,7 @@ func createDiff(kind string, namespace string, resourceName string, dataInf inte
 	if yamlData1 == nil {
 		yamlData1 = []byte{}
 	}
+	yamlData1 = []byte(cleanYaml(string(yamlData1)))
 
 	yamlRawData2, err := yaml.Marshal(dataInf)
 	yamlData2 := cleanYaml(string(yamlRawData2))
@@ -302,6 +303,7 @@ func createDiff(kind string, namespace string, resourceName string, dataInf inte
 	err = yaml.Unmarshal(yamlData1, &obj1)
 	if err != nil {
 		log.Errorf("Error unmarshalling yaml1 for diff: %s", err.Error())
+		return ""
 	}
 	if obj1 == nil {
 		obj1 = make(map[string]interface{})
@@ -310,6 +312,7 @@ func createDiff(kind string, namespace string, resourceName string, dataInf inte
 	err = yaml.Unmarshal([]byte(yamlData2), &obj2)
 	if err != nil {
 		log.Errorf("Error unmarshalling yaml2 for diff: %s", err.Error())
+		return ""
 	}
 
 	diffRaw := pretty.Compare(obj1, obj2)
@@ -337,6 +340,7 @@ func cleanYaml(data string) string {
 	removeFieldAtPath(dataMap, "selfLink", []string{"metadata"}, []string{})
 	removeFieldAtPath(dataMap, "generation", []string{"metadata"}, []string{})
 	removeFieldAtPath(dataMap, "managedFields", []string{"metadata"}, []string{})
+	removeFieldAtPath(dataMap, "deployment.kubernetes.io/revision", []string{"annotations"}, []string{})
 	removeFieldAtPath(dataMap, "kubectl.kubernetes.io/last-applied-configuration", []string{"annotations"}, []string{})
 
 	removeFieldAtPath(dataMap, "creationTimestamp", []string{}, []string{})
