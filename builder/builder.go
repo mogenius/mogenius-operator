@@ -3,7 +3,9 @@ package builder
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
@@ -177,12 +179,42 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		return
 	}
 
+	// TODO BENE CreateAndStart
+	// create
+	if buildJob.CreateAndStart == true {
+		//r := services.ServiceUpdateRequest{
+		//	Project:   buildJob.Project,
+		//	Namespace: buildJob.Namespace,
+		//	Service:   buildJob.Service,
+		//}
+		// services.UpdateService(r)
+		type Param struct {
+			Pattern        string `json:"pattern"`
+			ProjectId      string `json:"projectId"`
+			Namespace      string `json:"namespace"`
+			ControllerName string `json:"controllerName"`
+		}
+
+		param := Param{
+			Pattern:        "service/create",
+			ProjectId:      buildJob.Project.Id,
+			Namespace:      buildJob.Namespace.Name,
+			ControllerName: buildJob.Service.ControllerName,
+		}
+
+		jsonStr, err := json.Marshal(param)
+		if err == nil {
+			structs.JobQueueConnection.WriteMessage(websocket.TextMessage, jsonStr)
+		}
+	}
+
 	// UPDATE IMAGE
 	setImageCmd := structs.CreateCommand("Deploying image", job)
 	err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
 	if err != nil {
 		log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
-		done <- structs.JobStateFailed
+		// TODO BENE nur wenn deployment existiert
+		// done <- structs.JobStateFailed
 		return
 	}
 }

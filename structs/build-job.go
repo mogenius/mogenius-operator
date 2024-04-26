@@ -59,6 +59,8 @@ type BuildJob struct {
 	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
+
+	CreateAndStart bool `json:"createAndStart"`
 }
 
 func (b BuildJob) IsEmpty() bool {
