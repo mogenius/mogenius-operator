@@ -84,7 +84,6 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 	specTemplate.ObjectMeta.Labels["mo-app"] = service.ControllerName
 	specTemplate.ObjectMeta.Labels["mo-ns"] = namespace.Name
 	specTemplate.ObjectMeta.Labels["mo-project-id"] = projectId
-	specTemplate.ObjectMeta.Labels["mo-display-name"] = service.DisplayName
 
 	for index, container := range service.Containers {
 		// PORTS
