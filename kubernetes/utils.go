@@ -203,10 +203,6 @@ func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dto
 	resultingLabels[MO_LABEL_CREATED_BY] = DEPLOYMENTNAME
 	if service != nil {
 		resultingLabels[MO_LABEL_APP_NAME] = service.ControllerName
-		resultingLabels[MO_LABEL_APP_DISPLAYNAME] = service.DisplayName
-	}
-	if namespace != nil {
-		resultingLabels[MO_LABEL_NAMESPACE_DISPLAYNAME] = namespace.DisplayName
 	}
 	if projectId != nil {
 		resultingLabels[MO_LABEL_PROJECT_ID] = *projectId
