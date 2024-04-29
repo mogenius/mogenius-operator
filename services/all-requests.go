@@ -1,8 +1,6 @@
 package services
 
 import (
-	// "bufio"
-
 	"context"
 	"fmt"
 	"io"
@@ -18,8 +16,6 @@ import (
 	"strings"
 	"time"
 
-	// "fmt"
-	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/structs"
 	"net/url"
 
@@ -1927,30 +1923,30 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return getResult
 
 	case structs.PAT_BUILDER_STATUS:
-		return builder.BuilderStatus()
+		return BuilderStatus()
 	case structs.PAT_BUILD_INFOS:
 		data := structs.BuildJobStatusRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return builder.BuildJobInfos(data.BuildId)
+		return BuildJobInfos(data.BuildId)
 	case structs.PAT_BUILD_LAST_INFOS:
 		data := structs.BuildTaskRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return builder.LastBuildInfos(data)
+		return LastBuildInfos(data)
 	case structs.PAT_BUILD_LIST_ALL:
-		return builder.ListAll()
+		return ListAll()
 	case structs.PAT_BUILD_LIST_BY_PROJECT:
 		data := structs.ListBuildByProjectIdRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return builder.ListByProjectId(data.ProjectId)
+		return ListByProjectId(data.ProjectId)
 	case structs.PAT_BUILD_ADD:
 		data := structs.BuildJob{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -1959,7 +1955,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		data.Project.AddSecretsToRedaction()
 		data.Service.AddSecretsToRedaction()
-		return builder.Add(data)
+		return Add(data)
 	case structs.PAT_BUILD_CANCEL:
 		data := structs.BuildJob{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -1968,35 +1964,35 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		data.Project.AddSecretsToRedaction()
 		data.Service.AddSecretsToRedaction()
-		return builder.Cancel(data.BuildId)
+		return Cancel(data.BuildId)
 	case structs.PAT_BUILD_DELETE:
 		data := structs.BuildJobStatusRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return builder.Delete(data.BuildId)
+		return DeleteBuild(data.BuildId)
 	case structs.PAT_BUILD_LAST_JOB_OF_SERVICES:
 		data := structs.BuildTaskListOfServicesRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return builder.LastBuildInfosOfServices(data)
+		return LastBuildInfosOfServices(data)
 	case structs.PAT_BUILD_JOB_LIST_OF_SERVICE:
 		data := structs.BuildTaskRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return builder.BuildInfosList(data)
+		return BuildInfosList(data)
 	case structs.PAT_BUILD_DELETE_ALL_OF_SERVICE:
 		data := structs.BuildTaskRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		builder.DeleteAllBuildData(data)
+		DeleteAllBuildData(data)
 		return nil
 	//case structs.PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
 	//	data := structs.BuildServiceRequest{}
@@ -2004,7 +2000,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	//	if err := utils.ValidateJSON(data); err != nil {
 	//		return err
 	//	}
-	//	return builder.LastBuildForService(data.ServiceId)
+	//	return LastBuildForService(data.ServiceId)
 
 	case structs.PAT_STORAGE_CREATE_VOLUME:
 		data := NfsVolumeRequest{}

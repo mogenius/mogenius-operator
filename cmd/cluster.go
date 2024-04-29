@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
 	api "mogenius-k8s-manager/http"
@@ -57,7 +56,7 @@ var clusterCmd = &cobra.Command{
 		}
 
 		go func() {
-			builder.DISABLEQUEUE = true
+			services.DISABLEQUEUE = true
 			basicApps, userApps := services.InstallDefaultApplications()
 			if basicApps != "" || userApps != "" {
 				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
@@ -66,8 +65,8 @@ var clusterCmd = &cobra.Command{
 					log.Fatalf("Error installing default applications: %s", err.Error())
 				}
 			}
-			builder.DISABLEQUEUE = false
-			builder.ProcessQueue() // Process the queue maybe there are builds left to build
+			services.DISABLEQUEUE = false
+			services.ProcessQueue() // Process the queue maybe there are builds left to build
 		}()
 
 		mokubernetes.InitOrUpdateCrds()
