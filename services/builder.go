@@ -1,4 +1,4 @@
-package builder
+package services
 
 import (
 	"bufio"
@@ -9,12 +9,14 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"mogenius-k8s-manager/xterm"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
+	punqk8s "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -26,8 +28,6 @@ var currentBuildContext *context.Context
 var currentBuildChannel chan structs.JobStateEnum
 var currentBuildJob *structs.BuildJob
 var currentNumberOfRunningJobs int = 0
-
-var LogChannels = make(map[string]chan string)
 
 func ProcessQueue() {
 	if DISABLEQUEUE || currentNumberOfRunningJobs >= utils.CONFIG.Builder.MaxConcurrentBuilds {
@@ -177,13 +177,26 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		return
 	}
 
+	// create
+	if buildJob.CreateAndStart == true {
+		r := ServiceUpdateRequest{
+			Project:   buildJob.Project,
+			Namespace: buildJob.Namespace,
+			Service:   buildJob.Service,
+		}
+		UpdateService(r)
+	}
+
 	// UPDATE IMAGE
-	setImageCmd := structs.CreateCommand("Deploying image", job)
-	err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
-	if err != nil {
-		log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
-		done <- structs.JobStateFailed
-		return
+	_, err = punqk8s.GetK8sDeployment(job.Namespace, job.ControllerName, nil)
+	if err == nil {
+		setImageCmd := structs.CreateCommand("Deploying image", job)
+		err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
+		if err != nil {
+			log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
+			done <- structs.JobStateFailed
+			return
+		}
 	}
 }
 
@@ -232,7 +245,7 @@ func Cancel(buildNo uint64) structs.BuildCancelResult {
 	return structs.BuildCancelResult{Error: "Error: No active build jobs found."}
 }
 
-func Delete(buildId uint64) structs.BuildDeleteResult {
+func DeleteBuild(buildId uint64) structs.BuildDeleteResult {
 	err := db.DeleteBuildJobFromDb(db.BUILD_BUCKET_NAME, buildId)
 	if err != nil {
 		errStr := fmt.Sprintf("Error deleting build '%d' in bucket. REASON: %s", buildId, err.Error())
@@ -501,7 +514,7 @@ func processLine(
 		}
 		db.SaveBuildResult(structs.JobStateEnum(reportCmd.State), prefix, cmdOutput.String(), startTime, job, container)
 
-		ch, exists := LogChannels[structs.BuildJobInfoEntryKey(job.BuildId, prefix, job.Namespace.Name, job.Service.ControllerName, container.Name)]
+		ch, exists := xterm.LogChannels[structs.BuildJobInfoEntryKey(job.BuildId, prefix, job.Namespace.Name, job.Service.ControllerName, container.Name)]
 		if exists {
 			ch <- newLine
 		}

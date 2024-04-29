@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	v1 "k8s.io/api/core/v1"
-	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
@@ -19,6 +17,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
 
 	punq "github.com/mogenius/punq/kubernetes"
 
@@ -75,6 +75,8 @@ type CmdWindowSize struct {
 	Rows uint16 `json:"rows"`
 	Cols uint16 `json:"cols"`
 }
+
+var LogChannels = make(map[string]chan string)
 
 func WsConnection(cmdType string, namespace string, controller string, pod string, container string, u url.URL, wsConnectionRequest WsConnectionRequest) (*websocket.Conn, error) {
 	maxRetries := 6
@@ -362,13 +364,13 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	defer func() {
 		cancel()
-		ch := builder.LogChannels[key]
-		_, exists := builder.LogChannels[key]
+		ch := LogChannels[key]
+		_, exists := LogChannels[key]
 		if exists {
 			if ch != nil {
 				close(ch)
 			}
-			delete(builder.LogChannels, key)
+			delete(LogChannels, key)
 		}
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
@@ -378,10 +380,10 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		}
 	}()
 
-	ch, exists := builder.LogChannels[key]
+	ch, exists := LogChannels[key]
 	if !exists {
-		builder.LogChannels[key] = make(chan string)
-		ch, _ = builder.LogChannels[key]
+		LogChannels[key] = make(chan string)
+		ch, _ = LogChannels[key]
 	}
 
 	go func() {

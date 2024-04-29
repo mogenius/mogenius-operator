@@ -1,7 +1,6 @@
 package services
 
 import (
-	"mogenius-k8s-manager/builder"
 	"mogenius-k8s-manager/structs"
 	"sort"
 	"strings"
@@ -718,7 +717,7 @@ func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kube
 }
 
 func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
-	lastJob := builder.LastJobForNamespaceAndControllerName(namespace, name)
+	lastJob := LastJobForNamespaceAndControllerName(namespace, name)
 	if lastJob.IsEmpty() {
 		return resourceItems, nil
 	}
