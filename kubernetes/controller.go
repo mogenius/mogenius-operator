@@ -2,9 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/structs"
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -149,19 +147,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 			if previousSpecTemplate != nil {
 				specTemplate.Spec.Containers[index].Image = (*previousSpecTemplate).Spec.Containers[index].Image
 			} else {
-				d := structs.BuildTaskRequest{
-					Namespace:  namespace.Name,
-					Controller: service.ControllerName,
-					Container:  container.Name,
-				}
-				lastBuild := db.GetLastBuildJobInfosFromDb(d)
-				if lastBuild.BuildId != 0 {
-					imageName := fmt.Sprintf("%s-%s", namespace.Name, service.ControllerName)
-					// TODO Bene ContainerRegistryPath
-					specTemplate.Spec.Containers[index].Image = fmt.Sprintf("mocr.local.mogenius.io/%s:%d", imageName, lastBuild.BuildId)
-				} else {
-					specTemplate.Spec.Containers[index].Image = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
-				}
+				specTemplate.Spec.Containers[index].Image = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
 			}
 		}
 
