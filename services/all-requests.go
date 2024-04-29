@@ -678,6 +678,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		go scanImageLogStreamConnection(data)
 		return nil
+	case structs.PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST:
+		data := xterm.ClusterToolConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go XTermClusterToolStreamConnection(data)
+		return nil
 
 	case structs.PAT_LIST_CREATE_TEMPLATES:
 		return punq.ListCreateTemplates()
@@ -2277,5 +2285,12 @@ func scanImageLogStreamConnection(buildLogConnectionRequest xterm.ScanImageLogCo
 		buildLogConnectionRequest.ContainerRegistryUrl,
 		&buildLogConnectionRequest.ContainerRegistryUser,
 		&buildLogConnectionRequest.ContainerRegistryPat,
+	)
+}
+func XTermClusterToolStreamConnection(buildLogConnectionRequest xterm.ClusterToolConnectionRequest) {
+	xterm.XTermClusterToolStreamConnection(
+		buildLogConnectionRequest.WsConnection,
+		buildLogConnectionRequest.CmdType,
+		buildLogConnectionRequest.Tool,
 	)
 }

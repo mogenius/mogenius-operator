@@ -134,6 +134,7 @@ const (
 	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST      string = "service/build-log-stream-connection-request"
 	PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST      string = "service/pod-event-stream-connection-request"
 	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST string = "service/scan-image-log-stream-connection-request"
+	PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST   string = "service/cluster-tool-stream-connection-request"
 
 	PAT_LIST_CREATE_TEMPLATES string = "list/create-templates"
 
@@ -500,6 +501,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST,
+	PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST,
 
 	PAT_LIST_CREATE_TEMPLATES,
 

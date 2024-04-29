@@ -71,6 +71,13 @@ type ScanImageLogConnectionRequest struct {
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 }
 
+type ClusterToolConnectionRequest struct {
+	CmdType string `json:"cmdType" validate:"required"`
+	Tool    string `json:"tool" validate:"required"`
+
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+}
+
 type CmdWindowSize struct {
 	Rows uint16 `json:"rows"`
 	Cols uint16 `json:"cols"`
@@ -704,6 +711,194 @@ func XTermScanImageLogStreamConnection(
 			}
 		}()
 	}
+
+	for {
+		_, reader, err := conn.ReadMessage()
+		if err != nil {
+			log.Errorf("Unable to grab next reader: %s", err.Error())
+			return
+		}
+
+		if strings.HasPrefix(string(reader), "\x04") {
+			str := strings.TrimPrefix(string(reader), "\x04")
+
+			var resizeMessage CmdWindowSize
+			err := json.Unmarshal([]byte(str), &resizeMessage)
+			if err != nil {
+				log.Errorf("%s", err.Error())
+				continue
+			}
+
+			if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
+				log.Errorf("Unable to resize: %s", err.Error())
+				continue
+			}
+			continue
+		}
+
+		if string(reader) == "PEER_IS_READY" {
+			continue
+		}
+		if cmdType == "exec-sh" {
+			tty.Write(reader)
+		}
+	}
+}
+
+func XTermClusterToolStreamConnection(
+	wsConnectionRequest WsConnectionRequest,
+	cmdType string,
+	tool string,
+) {
+	if wsConnectionRequest.WebsocketScheme == "" {
+		log.Error("WebsocketScheme is empty")
+		return
+	}
+
+	if wsConnectionRequest.WebsocketHost == "" {
+		log.Error("WebsocketHost is empty")
+		return
+	}
+
+	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
+	conn, err := WsConnection("cluster-tool", "", "", "", "", websocketUrl, wsConnectionRequest)
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+
+	defer func() {
+		// cancel()
+		if conn != nil {
+			conn.Close()
+		}
+	}()
+
+	if err != nil {
+		log.Errorf("Unable to connect to websocket: %s", err.Error())
+		return
+	}
+
+	cmdString := ""
+	switch tool {
+	case "k9s":
+		cmdString = "k9s"
+	}
+
+	// Start pty/cmd
+	cmd := exec.Command("sh", "-c", cmdString)
+	cmd.Env = append(os.Environ(), "TERM=xterm-color")
+	tty, err := pty.Start(cmd)
+	if err != nil {
+		log.Errorf("Unable to start pty/cmd: %s", err.Error())
+		if conn != nil {
+			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+			if err != nil {
+				log.Errorf("WriteMessage: %s", err.Error())
+			}
+		}
+		return
+	}
+
+	defer func() {
+		if conn != nil {
+			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
+			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+				log.Error("write close:", err)
+			}
+		}
+		cmd.Process.Kill()
+		cmd.Process.Wait()
+		tty.Close()
+		// cancel()
+	}()
+
+	go func() {
+		err := cmd.Wait()
+		if err != nil {
+			log.Errorf("cmd wait: %s", err.Error())
+			if exiterr, ok := err.(*exec.ExitError); ok {
+				if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+					log.Error(status.ExitStatus())
+					if status.ExitStatus() == 137 {
+						if conn != nil {
+							err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
+							if err != nil {
+								log.Errorf("WriteMessage: %s", err.Error())
+							}
+						}
+					} else if status.ExitStatus() == 1 {
+						cmd.Process.Kill()
+						cmd.Process.Wait()
+						tty.Close()
+						// cancel()
+						log.Info("Terminal closed.")
+						return
+					}
+				}
+			}
+		} else {
+			if conn != nil {
+				closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
+				err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+				if err != nil {
+					log.Errorf("WriteMessage: %s", err.Error())
+				}
+			}
+			cmd.Process.Kill()
+			cmd.Process.Wait()
+			tty.Close()
+			// cancel()
+			log.Info("Terminal closed.")
+		}
+	}()
+
+	// streamBeginning := false
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			read, err := tty.Read(buf)
+			if err != nil {
+				log.Errorf("Unable to read from pty/cmd: %s", err.Error())
+				return
+			}
+			if conn != nil {
+				//if streamBeginning == false {
+				//	if len(string(buf[:read])) > 0 {
+				//		re := regexp.MustCompile(`Vulnerability`)
+				//		matches := re.FindAllString(string(buf[:read]), -1)
+				//
+				//		if len(matches) > 0 {
+				//			// cancel()
+				//			streamBeginning = true
+				//		}
+				//	}
+				//}
+
+				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
+				if err != nil {
+					log.Errorf("WriteMessage: %s", err.Error())
+				}
+				continue
+			}
+			return
+		}
+	}()
+
+	//if scanImageType == "grype" {
+	//	go func() {
+	//		for {
+	//			select {
+	//			case <-ctx.Done():
+	//				return
+	//			default:
+	//				time.Sleep(1 * time.Second)
+	//				err := conn.WriteMessage(websocket.TextMessage, []byte("."))
+	//				if err != nil {
+	//					log.Errorf("WriteMessage: %s", err.Error())
+	//				}
+	//				continue
+	//			}
+	//		}
+	//	}()
+	//}
 
 	for {
 		_, reader, err := conn.ReadMessage()
