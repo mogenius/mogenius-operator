@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	punqk8s "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -185,18 +184,17 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 			Service:   buildJob.Service,
 		}
 		UpdateService(r)
+		// TODO remove after citt
+		time.Sleep(10 * time.Second)
 	}
 
 	// UPDATE IMAGE
-	_, err = punqk8s.GetK8sDeployment(job.Namespace, job.ControllerName, nil)
-	if err == nil {
-		setImageCmd := structs.CreateCommand("Deploying image", job)
-		err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
-		if err != nil {
-			log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
-			done <- structs.JobStateFailed
-			return
-		}
+	setImageCmd := structs.CreateCommand("Deploying image", job)
+	err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
+	if err != nil {
+		log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
+		done <- structs.JobStateFailed
+		return
 	}
 }
 
