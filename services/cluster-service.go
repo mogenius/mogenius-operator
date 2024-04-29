@@ -1580,10 +1580,10 @@ if command -v trivy >/dev/null 2>&1; then
 else
 	K9S_VERSION=$(curl -sL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
 	curl -OL https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_amd64.tar.gz
-	tar -xf k9s_Linux_amd64.tar.gz dive
+	tar -xf k9s_Linux_amd64.tar.gz k9s
 	chmod +x k9s
 	mv k9s /usr/local/bin/k9s
-	rm k9s_${K9S_VERSION}_Linux_amd64.tar.gz
+	rm k9s_Linux_amd64.tar.gz
 	echo "k9s is installed. 🚀"
 fi
 `
