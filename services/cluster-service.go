@@ -1573,6 +1573,19 @@ else
 	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin ${TRIVY_VERSION}
 	echo "trivy is installed. 🚀"
 fi
+
+# install k9s
+if command -v trivy >/dev/null 2>&1; then
+    echo "k9s is installed. Skipping installation."
+else
+	K9S_VERSION=$(curl -sL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+	curl -OL https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_amd64.tar.gz
+	tar -xf k9s_Linux_amd64.tar.gz dive
+	chmod +x k9s
+	mv k9s /usr/local/bin/k9s
+	rm k9s_${K9S_VERSION}_Linux_amd64.tar.gz
+	echo "k9s is installed. 🚀"
+fi
 `
 	defaultAppsConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false, nil)
 	if defaultAppsConfigmap != nil {
