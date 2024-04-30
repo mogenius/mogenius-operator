@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
@@ -85,7 +86,16 @@ type CmdWindowSize struct {
 
 var LogChannels = make(map[string]chan string)
 
-func WsConnection(cmdType string, namespace string, controller string, pod string, container string, u url.URL, wsConnectionRequest WsConnectionRequest) (*websocket.Conn, error) {
+func isPodReady(pod *v1.Pod) bool {
+	for _, cond := range pod.Status.Conditions {
+		if cond.Type == v1.PodReady && cond.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+func WsConnection(cmdType string, namespace string, controller string, podName string, container string, u url.URL, wsConnectionRequest WsConnectionRequest) (*websocket.Conn, error) {
 	maxRetries := 6
 	currentRetries := 0
 	for {
@@ -95,7 +105,7 @@ func WsConnection(cmdType string, namespace string, controller string, pod strin
 		headers.Add("x-cmd", cmdType)
 		headers.Add("x-namespace", namespace)
 		headers.Add("x-controller", controller)
-		headers.Add("x-pod-name", pod)
+		headers.Add("x-pod-name", podName)
 		headers.Add("x-container", container)
 		headers.Add("x-type", "k8s")
 
@@ -186,7 +196,7 @@ func XTermCommandStreamConnection(
 	wsConnectionRequest WsConnectionRequest,
 	namespace string,
 	controller string,
-	pod string,
+	podName string,
 	container string,
 	cmd *exec.Cmd,
 	injectPreContent io.Reader,
@@ -202,7 +212,7 @@ func XTermCommandStreamConnection(
 	}
 
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
-	conn, err := WsConnection(cmdType, namespace, controller, pod, container, websocketUrl, wsConnectionRequest)
+	conn, err := WsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest)
 
 	defer func() {
 		if conn != nil {
@@ -217,7 +227,7 @@ func XTermCommandStreamConnection(
 	//log.Infof("Connected to %s", websocketUrl.String())
 
 	// Check if pod exists
-	podExists := punq.PodExists(namespace, pod, nil)
+	podExists := punq.PodExists(namespace, podName, nil)
 	if !podExists.PodExists {
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
@@ -225,12 +235,52 @@ func XTermCommandStreamConnection(
 				log.Error("write close:", err)
 			}
 		}
-		log.Errorf("Pod %s does not exist, closing connection.", pod)
+		log.Errorf("Pod %s does not exist, closing connection.", podName)
 		return
 	}
 
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		log.Warningf("Warningf: %s", err.Error())
+		return
+	}
+
+	count := 0
+	for {
+		if count >= 10 {
+			log.Errorf("Pod %s is not ready, closing connection.", podName)
+			if conn != nil {
+				closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
+				if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+					log.Error("write close:", err)
+				}
+			}
+			return
+		}
+		pod, err := provider.ClientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+		if err != nil {
+			log.Errorf("Unable to get pod: %s", err.Error())
+			if conn != nil {
+				closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
+				if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+					log.Error("write close:", err)
+				}
+			}
+			return
+		}
+
+		if isPodReady(pod) {
+			log.Errorf("Pod %s is ready.", pod.Name)
+			break
+		} else {
+			log.Info("Pod is not ready, waiting...")
+			time.Sleep(2 * time.Second)
+			count++
+		}
+	}
+
 	// Start pty/cmd
-	cmd.Env = append(os.Environ(), "TERM=xterm-color")
+	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
 		log.Errorf("Unable to start pty/cmd: %s", err.Error())
@@ -596,7 +646,7 @@ func XTermScanImageLogStreamConnection(
 
 	// Start pty/cmd
 	cmd := exec.Command("sh", "-c", cmdString)
-	cmd.Env = append(os.Environ(), "TERM=xterm-color")
+	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
 		log.Errorf("Unable to start pty/cmd: %s", err.Error())
@@ -784,7 +834,7 @@ func XTermClusterToolStreamConnection(
 
 	// Start pty/cmd
 	cmd := exec.Command("sh", "-c", cmdString)
-	cmd.Env = append(os.Environ(), "TERM=xterm-color")
+	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
 		log.Errorf("Unable to start pty/cmd: %s", err.Error())
