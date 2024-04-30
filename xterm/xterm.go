@@ -271,9 +271,25 @@ func XTermCommandStreamConnection(
 
 		if isPodReady(pod) {
 			log.Errorf("Pod %s is ready.", pod.Name)
+			// clear screen
+			err := conn.WriteMessage(websocket.BinaryMessage, []byte("\u001b[2J\u001b[H"))
+			if err != nil {
+				log.Errorf("WriteMessage: %s", err.Error())
+			}
 			break
 		} else {
-			log.Info("Pod is not ready, waiting...")
+			if count == 0 {
+				log.Info("Pod is not ready, waiting...")
+				err := conn.WriteMessage(websocket.TextMessage, []byte("Pod is not ready, waiting."))
+				if err != nil {
+					log.Errorf("WriteMessage: %s", err.Error())
+				}
+			} else {
+				err := conn.WriteMessage(websocket.TextMessage, []byte("."))
+				if err != nil {
+					log.Errorf("WriteMessage: %s", err.Error())
+				}
+			}
 			time.Sleep(2 * time.Second)
 			count++
 		}
