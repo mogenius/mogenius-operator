@@ -248,6 +248,10 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 		// remove our helper nfs-pod from usedPods array
 		if indexToRemove > -1 {
 			s.UsedByPods = append(s.UsedByPods[:indexToRemove], s.UsedByPods[indexToRemove+1:]...)
+		} else {
+			// add warning message if nfs-pod not found
+			v.Status = VolumeStatusTypeWarning
+			v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeWarning, Message: "NFS pod not found"})
 		}
 
 		// add usedByPods to response
