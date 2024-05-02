@@ -5,25 +5,22 @@ metadata:
 spec:
   group: mogenius.io
   versions:
-    - additionalPrinterColumns:
-      - name: Display Name
-        jsonPath: .spec.displayName
-        type: string
-      - name: Created By
-        jsonPath: .spec.createdBy
-        type: string
-      - name: Product ID
-        jsonPath: .spec.productId
-        type: string
-      - name: Cluster ID
-        jsonPath: .spec.clusterId
-        type: string
-      - jsonPath: .metadata.creationTimestamp
-        name: Age
-        type: date
-      name: v1
+    - name: v1
       served: true
       storage: true
+      additionalPrinterColumns:
+        - name: Display Name
+          jsonPath: .spec.displayName
+          type: string
+        - name: Product ID
+          jsonPath: .spec.productId
+          type: string
+        - name: Created By
+          jsonPath: .spec.createdBy
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
       schema:
         openAPIV3Schema:
           type: object
@@ -33,6 +30,8 @@ spec:
               properties:
                 id:
                   type: string
+                projectName:
+                  type: string
                 displayName:
                   type: string
                 createdBy:
@@ -41,18 +40,27 @@ spec:
                   type: string
                 clusterId:
                   type: string
-                gitConnectionId:
-                  type: string
-                applicationKitRefs:
+                environmentRefs:
                   type: array
                   items:
                     type: string
+                limits:
+                  type: object
+                  properties:
+                    limitMemoryMB:
+                      type: integer
+                    limitCpuCores:
+                      type: integer
+                    ephemeralStorageMB:
+                      type: integer
+                    maxVolumeSizeGb:
+                      type: integer
   scope: Cluster
   names:
     plural: projects
     singular: project
     kind: Project
     shortNames:
-    - proj
-    - pro
-    - pj
+      - proj
+      - pro
+      - pj

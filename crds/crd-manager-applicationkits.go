@@ -78,9 +78,6 @@ func CreateApplicationKit(namespace string, name string, newObj CrdApplicationKi
 		log.Errorf("Error creating applicationkit: %s", err.Error())
 		return err
 	}
-
-	err = AddAppIdToProject(namespace, newObj.AppId)
-
 	return err
 }
 
@@ -127,9 +124,6 @@ func DeleteApplicationKit(namespace string, name string) error {
 		log.Errorf("Error deleting applicationkit: %s", err.Error())
 		return err
 	}
-
-	err = RemoveAppIdFromProject(namespace, name)
-
 	return err
 }
 

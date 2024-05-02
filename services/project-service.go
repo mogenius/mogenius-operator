@@ -9,21 +9,19 @@ import (
 
 func CreateProject(r ProjectCreateRequest) *structs.Job {
 	var wg sync.WaitGroup
-
-	job := structs.CreateJob(fmt.Sprintf("Create project %s", r.ProjectName), r.Project.Id, "", "")
+	job := structs.CreateJob(fmt.Sprintf("Create project %s", r.Project.ProjectName), r.Project.Id, "", "")
 	job.Start()
-	crds.CreateProjectCmd(job, r.ProjectName, r.Project, &wg)
+	crds.CreateProjectCmd(job, r.Project.ProjectName, r.Project, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
 }
 
-func UpdateProject(r ProjectCreateRequest) *structs.Job {
+func UpdateProject(r ProjectUpdateRequest) *structs.Job {
 	var wg sync.WaitGroup
-
-	job := structs.CreateJob(fmt.Sprintf("Update project %s", r.ProjectName), r.Project.Id, "", "")
+	job := structs.CreateJob(fmt.Sprintf("Update project %s", r.ProjectName), r.Id, "", "")
 	job.Start()
-	crds.UpdateProjectCmd(job, r.ProjectName, r.Project, &wg)
+	crds.UpdateProjectCmd(job, r.Id, r.ProjectName, r.DisplayName, r.ProductId, r.Limits, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
@@ -31,7 +29,6 @@ func UpdateProject(r ProjectCreateRequest) *structs.Job {
 
 func DeleteProject(r ProjectDeleteRequest) *structs.Job {
 	var wg sync.WaitGroup
-
 	job := structs.CreateJob(fmt.Sprintf("Delete project %s", r.ProjectName), r.ProjectId, "", "")
 	job.Start()
 	crds.DeleteProjectCmd(job, r.ProjectName, &wg)

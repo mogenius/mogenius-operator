@@ -30,17 +30,17 @@ func CreateProjectCmd(job *structs.Job, name string, newObj CrdProject, wg *sync
 	}(wg)
 }
 
-func UpdateProjectCmd(job *structs.Job, name string, newObj CrdProject, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Update CRDs for '%s'.", name), job)
+func UpdateProjectCmd(job *structs.Job, id string, projectName string, displayName string, productId string, limits ProjectLimits, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(fmt.Sprintf("Update CRDs for '%s'.", projectName), job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Updating CRDs for '%s'.", name))
-		err := UpdateProject(name, &newObj)
+		cmd.Start(job, fmt.Sprintf("Updating CRDs for '%s'.", projectName))
+		err := UpdateProject(projectName, id, projectName, displayName, productId, limits)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("UpdateProjectCmd ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Updated CRDs for '%s'.", name))
+			cmd.Success(job, fmt.Sprintf("Updated CRDs for '%s'.", projectName))
 		}
 	}(wg)
 }
@@ -79,20 +79,25 @@ func CreateProject(name string, newObj CrdProject) error {
 	return nil
 }
 
-func UpdateProject(name string, updatedObj *CrdProject) error {
+func UpdateProject(name string, id string, projectName string, displayName string, productId string, limits ProjectLimits) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
 		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return err
 	}
 
-	_, projectUnstructured, err := GetProject(name)
+	existingProject, projectUnstructured, err := GetProject(name)
 	if err != nil {
 		log.Errorf("Error updating project: %s", err.Error())
 		return err
 	}
+	existingProject.Id = id
+	existingProject.DisplayName = displayName
+	existingProject.ProjectName = projectName
+	existingProject.ProductId = productId
+	existingProject.Limits = limits
 
-	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(updatedObj)
+	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(existingProject)
 	if err != nil {
 		log.Errorf("Error converting project to unstructured: %s", err.Error())
 		return err
@@ -189,19 +194,29 @@ func ListProjects() (project []CrdProject, projectRaw *unstructured.Unstructured
 	return result, projects, err
 }
 
-func AddAppIdToProject(name string, appId string) error {
-	project, _, err := GetProject(name)
-	if err != nil {
-		log.Errorf("Error getting project: %s", err.Error())
-		return err
-	}
-	if project == nil {
-		log.Errorf("Project not found: %s", name)
+func AddEnvironmentToProject(name string, environmentName string) error {
+	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return err
 	}
 
-	project.ApplicationKitRefs = append(project.ApplicationKitRefs, appId)
-	err = UpdateProject(name, project)
+	existingProject, projectUnstructured, err := GetProject(name)
+	if err != nil {
+		log.Errorf("Error updating project: %s", err.Error())
+		return err
+	}
+	existingProject.EnvironmentRefs = append(existingProject.EnvironmentRefs, environmentName)
+
+	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(existingProject)
+	if err != nil {
+		log.Errorf("Error converting project to unstructured: %s", err.Error())
+		return err
+	}
+	projectUnstructured.Object["spec"] = unstrRaw
+
+	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
+	_, err = provider.ClientSet.Resource(projectsGVR).Update(context.Background(), projectUnstructured, metav1.UpdateOptions{})
 	if err != nil {
 		log.Errorf("Error updating project: %s", err.Error())
 		return err
@@ -210,24 +225,34 @@ func AddAppIdToProject(name string, appId string) error {
 	return nil
 }
 
-func RemoveAppIdFromProject(name string, appId string) error {
-	project, _, err := GetProject(name)
-	if err != nil {
-		log.Errorf("Error getting project: %s", err.Error())
-		return err
-	}
-	if project == nil {
-		log.Errorf("Project not found: %s", name)
+func RemoveEnvironmentFromProject(name string, environmentName string) error {
+	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return err
 	}
 
-	for i, id := range project.ApplicationKitRefs {
-		if id == appId {
-			project.ApplicationKitRefs = append(project.ApplicationKitRefs[:i], project.ApplicationKitRefs[i+1:]...)
+	existingProject, projectUnstructured, err := GetProject(name)
+	if err != nil {
+		log.Errorf("Error updating project: %s", err.Error())
+		return err
+	}
+	for i, id := range existingProject.EnvironmentRefs {
+		if id == environmentName {
+			existingProject.EnvironmentRefs = append(existingProject.EnvironmentRefs[:i], existingProject.EnvironmentRefs[i+1:]...)
 			break
 		}
 	}
-	err = UpdateProject(name, project)
+
+	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(existingProject)
+	if err != nil {
+		log.Errorf("Error converting project to unstructured: %s", err.Error())
+		return err
+	}
+	projectUnstructured.Object["spec"] = unstrRaw
+
+	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
+	_, err = provider.ClientSet.Resource(projectsGVR).Update(context.Background(), projectUnstructured, metav1.UpdateOptions{})
 	if err != nil {
 		log.Errorf("Error updating project: %s", err.Error())
 		return err

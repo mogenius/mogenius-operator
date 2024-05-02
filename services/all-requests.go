@@ -413,7 +413,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return CreateProject(data)
 	case structs.PAT_PROJECT_UPDATE:
-		data := ProjectCreateRequest{}
+		data := ProjectUpdateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err

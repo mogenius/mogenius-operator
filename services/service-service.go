@@ -77,62 +77,13 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		Controller:  r.Service.ControllerName,
 		AppId:       "MISSING_FIELD",
 	}, &wg)
+	crds.AddAppKitToEnvironment(r.Namespace.Name, r.Service.ControllerName)
 
 	wg.Wait()
 	job.Finish()
 
 	return job
 }
-
-// func CreateService(r ServiceCreateRequest) interface{} {
-// 	var wg sync.WaitGroup
-// 	job := structs.CreateJob("Create Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, &r.Service.Id)
-// 	job.Start()
-
-// 	// check if namespace exists and CREATE IT IF NOT
-// 	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name, nil)
-// 	if nsErr != nil {
-// 		log.Warning(nsErr.Error())
-// 	}
-// 	if !nsExists {
-// 		nsReq := NamespaceCreateRequest{
-// 			Project:   r.Project,
-// 			Namespace: r.Namespace,
-// 		}
-// 		job.AddCmds(CreateNamespaceCmds(job, nsReq, &wg))
-// 	}
-
-// 	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-// 		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg))
-// 	}
-// 	if r.Service.GetImageRepoSecretDecryptValue() != nil {
-// 		mokubernetes.CreateOrUpdateContainerSecretForService(job, r.Project, r.Namespace, r.Service, &wg))
-// 	}
-
-// 	mokubernetes.CreateSecret(job, r.Namespace, r.Service, &wg))
-
-// 	switch r.Service.Controller {
-// 	case dtos.DEPLOYMENT:
-// 		mokubernetes.CreateDeployment(job, r.Namespace, r.Service, &wg))
-// 	case dtos.CRON_JOB:
-// 		mokubernetes.CreateCronJob(job, r.Namespace, r.Service, &wg))
-// 	}
-
-// 	if r.Service.HasPorts() {
-// 		mokubernetes.CreateService(job, r.Namespace, r.Service, &wg))
-// 		mokubernetes.CreateNetworkPolicyService(job, r.Namespace, r.Service, &wg))
-// 	}
-// 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg))
-// 	if r.Service.HasSeedRepo() {
-// 		initDocker(r.Service)
-// 	}
-// 	if r.Service.HasContainerWithGitRepo() {
-// 		updateInfrastructureYaml(r.Service)
-// 	}
-// 	wg.Wait()
-// 	job.Finish()
-// 	return job
-// }
 
 func DeleteService(r ServiceDeleteRequest) interface{} {
 	var wg sync.WaitGroup
@@ -152,6 +103,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	mokubernetes.DeleteIngress(job, r.Namespace, r.Service, &wg)
 
 	crds.DeleteApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, &wg)
+	crds.RemoveAppKitFromEnvironment(r.Namespace.Name, r.Service.ControllerName)
 
 	wg.Wait()
 	job.Finish()

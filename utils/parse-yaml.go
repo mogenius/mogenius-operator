@@ -162,6 +162,15 @@ func InitMogeniusCrdProjectsYaml() string {
 	return string(yaml)
 }
 
+func InitMogeniusCrdEnvironmentsYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/crds-environments.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return string(yaml)
+}
+
 func InitMogeniusCrdApplicationKitYaml() string {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/crds-applicationkit.yaml")
 	if err != nil {

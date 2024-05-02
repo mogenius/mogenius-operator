@@ -31,15 +31,12 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
 		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg)
 	}
-	crds.CreateProjectCmd(job, r.Namespace.Name, crds.CrdProject{
-		Id:                 r.Namespace.Id,
-		DisplayName:        r.Namespace.DisplayName,
-		CreatedBy:          "MISSING_FIELD",
-		ProductId:          "MISSING_FIELD",
-		ClusterId:          r.Project.ClusterId,
-		GitConnectionId:    "MISSING_FIELD",
-		ApplicationKitRefs: []string{},
-	}, wg)
+	crds.CreateEnvironmentCmd(job, r.Namespace.Name, crds.CrdEnvironment{
+		Id:          r.Namespace.Id,
+		DisplayName: r.Namespace.DisplayName,
+		CreatedBy:   "MISSING_FIELD",
+		Name:        r.Namespace.Name}, wg)
+	crds.AddEnvironmentToProject(r.Project.Name, r.Namespace.Name)
 }
 
 func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
@@ -49,7 +46,8 @@ func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
 	job.Start()
 	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
 
-	crds.DeleteProjectCmd(job, r.Namespace.Name, &wg)
+	crds.DeleteEnvironmentCmd(job, r.Namespace.Name, &wg)
+	crds.RemoveEnvironmentFromProject(r.Project.Name, r.Namespace.Name)
 
 	wg.Wait()
 	job.Finish()
@@ -118,14 +116,34 @@ func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.Nam
 }
 
 type ProjectCreateRequest struct {
-	ProjectName string          `json:"projectName" validate:"required"`
-	Project     crds.CrdProject `json:"project" validate:"required"`
+	Project crds.CrdProject `json:"project" validate:"required"`
 }
 
 func ProjectCreateRequestExample() ProjectCreateRequest {
 	return ProjectCreateRequest{
-		ProjectName: "testproject",
-		Project:     crds.CrdProjectExampleData(),
+		Project: crds.CrdProjectExampleData(),
+	}
+}
+
+type ProjectUpdateRequest struct {
+	Id          string             `json:"id" validate:"required"`
+	ProjectName string             `json:"projectName"`
+	DisplayName string             `json:"displayName"`
+	ProductId   string             `json:"productId"`
+	Limits      crds.ProjectLimits `json:"limits"`
+}
+
+func ProjectUpdateRequestExample() ProjectUpdateRequest {
+	return ProjectUpdateRequest{
+		Id:          "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		ProjectName: "mogenius",
+		DisplayName: "displayName",
+		Limits: crds.ProjectLimits{
+			LimitMemoryMB:      1024,
+			LimitCpuCores:      1.0,
+			EphemeralStorageMB: 1024,
+			MaxVolumeSizeGb:    10,
+		},
 	}
 }
 
@@ -136,7 +154,7 @@ type ProjectDeleteRequest struct {
 
 func ProjectDeleteRequestExample() ProjectDeleteRequest {
 	return ProjectDeleteRequest{
-		ProjectName: "testproject",
+		ProjectName: "mogenius",
 		ProjectId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 	}
 }

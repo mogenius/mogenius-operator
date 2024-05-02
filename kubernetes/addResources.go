@@ -342,6 +342,13 @@ func InitOrUpdateCrds() {
 		log.Info("Created/updated mogenius Project-CRDs. 🚀")
 	}
 
+	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdEnvironmentsYaml())
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		log.Fatalf("Error updating/creating mogenius Environment-CRDs: %s", err.Error())
+	} else {
+		log.Info("Created/updated mogenius Environment-CRDs. 🚀")
+	}
+
 	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdApplicationKitYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		log.Fatalf("Error updating/creating mogenius ApplicationKit-CRDs: %s", err.Error())

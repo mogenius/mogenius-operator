@@ -13,7 +13,10 @@ func TestProject(t *testing.T) {
 	newProjectName := name + punqUtils.NanoIdSmallLowerCase()
 
 	// CREATE
-	err := CreateProject(newProjectName, CrdProject{Id: name, DisplayName: "Test Project", CreatedBy: name, ProductId: name, ClusterId: name, GitConnectionId: name, ApplicationKitRefs: []string{name}})
+	err := CreateProject(newProjectName, CrdProject{Id: name, DisplayName: "Test Project", ProjectName: name, CreatedBy: name, ProductId: name, ClusterId: name,
+		EnvironmentRefs: []string{name},
+		Limits:          ProjectLimits{LimitMemoryMB: 1024, LimitCpuCores: 1.0, EphemeralStorageMB: 1024, MaxVolumeSizeGb: 10}},
+	)
 	if err != nil {
 		log.Fatalf("Error creating project: %s", err.Error())
 	} else {
@@ -32,11 +35,10 @@ func TestProject(t *testing.T) {
 	project.CreatedBy = "Updated " + name
 	project.ProductId = "Updated " + name
 	project.ClusterId = "Updated " + name
-	project.GitConnectionId = "Updated " + name
-	project.ApplicationKitRefs = []string{"Updated " + name}
+	project.EnvironmentRefs = []string{"Updated " + name}
 
 	// UPDATE
-	err = UpdateProject(newProjectName, project)
+	err = UpdateProject(newProjectName, project.Id, project.ProjectName, project.DisplayName, project.ProductId, project.Limits)
 	if err != nil {
 		log.Fatalf("Error updating project: %s", err.Error())
 	} else {
