@@ -55,6 +55,17 @@ var (
 	// ErrSignatureValidationFailed - Unable to validate the image signature on the PullImage RPC call.
 	ErrSignatureValidationFailed = errors.New("SignatureValidationFailed")
 
+	// ErrCreateContainerConfig - failed to create container config
+	ErrCreateContainerConfig = errors.New("CreateContainerConfigError")
+	// ErrPreCreateHook - failed to execute PreCreateHook
+	ErrPreCreateHook = errors.New("PreCreateHookError")
+	// ErrCreateContainer - failed to create container
+	ErrCreateContainer = errors.New("CreateContainerError")
+	// ErrPreStartHook - failed to execute PreStartHook
+	ErrPreStartHook = errors.New("PreStartHookError")
+	// ErrPostStartHook - failed to execute PostStartHook
+	ErrPostStartHook = errors.New("PostStartHookError")
+
 	//
 	PodInitializing   = "PodInitializing"
 	ContainerCreating = "ContainerCreating"
@@ -289,6 +300,9 @@ func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
 					status := ServiceStatusTypeError
 					return &status
 				case ErrRegistryUnavailable.Error(), ErrSignatureValidationFailed.Error():
+					status := ServiceStatusTypeError
+					return &status
+				case ErrCreateContainerConfig.Error(), ErrPreCreateHook.Error(), ErrCreateContainer.Error(), ErrPreStartHook.Error(), ErrPostStartHook.Error():
 					status := ServiceStatusTypeError
 					return &status
 				case PodInitializing, ContainerCreating:
