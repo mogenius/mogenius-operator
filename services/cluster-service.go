@@ -1575,7 +1575,7 @@ else
 fi
 
 # install k9s
-if command -v trivy >/dev/null 2>&1; then
+if command -v k9s >/dev/null 2>&1; then
     echo "k9s is installed. Skipping installation."
 else
 	K9S_VERSION=$(curl -sL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
