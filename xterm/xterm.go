@@ -454,10 +454,14 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	}()
 
 	ch, exists := LogChannels[key]
-	if !exists {
-		LogChannels[key] = make(chan string)
-		ch, _ = LogChannels[key]
+	if exists {
+		if ch != nil {
+			close(ch)
+		}
+		delete(LogChannels, key)
 	}
+	LogChannels[key] = make(chan string)
+	ch, _ = LogChannels[key]
 
 	go func() {
 		for message := range ch {
@@ -545,10 +549,14 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	}()
 
 	ch, exists := kubernetes.EventChannels[key]
-	if !exists {
-		kubernetes.EventChannels[key] = make(chan string)
-		ch, _ = kubernetes.EventChannels[key]
+	if exists {
+		if ch != nil {
+			close(ch)
+		}
+		delete(kubernetes.EventChannels, key)
 	}
+	kubernetes.EventChannels[key] = make(chan string)
+	ch, _ = kubernetes.EventChannels[key]
 
 	go func() {
 		for message := range ch {
@@ -579,7 +587,6 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// init
 	go func(ch chan string) {
 		data := db.GetEventByKey(key)
-		// build := structs.CreateBuildJobEntryFromData(data)
 		if ch != nil {
 			ch <- string(data)
 		}
