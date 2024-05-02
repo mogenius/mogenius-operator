@@ -22,7 +22,6 @@ import (
 )
 
 // Due to issues importing the library, the following constants are copied from the library
-// "k8s.io/kubernetes/pkg/kubelet/images"
 var (
 	// ErrImagePullBackOff - Container image pull failed, kubelet is backing off image pull
 	ErrImagePullBackOff = errors.New("ImagePullBackOff")
@@ -34,6 +33,27 @@ var (
 	ErrImageNeverPull = errors.New("ErrImageNeverPull")
 	// ErrInvalidImageName - Unable to parse the image name.
 	ErrInvalidImageName = errors.New("InvalidImageName")
+
+	//
+	ErrCrashLoopBackOff = errors.New("CrashLoopBackOff")
+	// ErrContainerNotFound returned when a container in the given pod with the
+	// given container name was not found, amongst those managed by the kubelet.
+	ErrContainerNotFound = errors.New("no matching container")
+	// ErrRunContainer returned when runtime failed to start any of pod's container.
+	ErrRunContainer = errors.New("RunContainerError")
+	// ErrKillContainer returned when runtime failed to kill any of pod's containers.
+	ErrKillContainer = errors.New("KillContainerError")
+	// ErrCreatePodSandbox returned when runtime failed to create a sandbox for pod.
+	ErrCreatePodSandbox = errors.New("CreatePodSandboxError")
+	// ErrConfigPodSandbox returned when runetime failed to get pod sandbox config from pod.
+	ErrConfigPodSandbox = errors.New("ConfigPodSandboxError")
+	// ErrKillPodSandbox returned when runtime failed to stop pod's sandbox.
+	ErrKillPodSandbox = errors.New("KillPodSandboxError")
+
+	// ErrRegistryUnavailable - Get http error on the PullImage RPC call.
+	ErrRegistryUnavailable = errors.New("RegistryUnavailable")
+	// ErrSignatureValidationFailed - Unable to validate the image signature on the PullImage RPC call.
+	ErrSignatureValidationFailed = errors.New("SignatureValidationFailed")
 
 	//
 	PodInitializing   = "PodInitializing"
@@ -263,6 +283,12 @@ func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
 			if containerStatus.State.Waiting != nil {
 				switch reason := containerStatus.State.Waiting.Reason; reason {
 				case ErrImagePull.Error(), ErrImagePullBackOff.Error(), ErrImageInspect.Error(), ErrImageNeverPull.Error(), ErrInvalidImageName.Error():
+					status := ServiceStatusTypeError
+					return &status
+				case ErrCrashLoopBackOff.Error(), ErrContainerNotFound.Error(), ErrRunContainer.Error(), ErrKillContainer.Error(), ErrCreatePodSandbox.Error(), ErrConfigPodSandbox.Error(), ErrKillPodSandbox.Error():
+					status := ServiceStatusTypeError
+					return &status
+				case ErrRegistryUnavailable.Error(), ErrSignatureValidationFailed.Error():
 					status := ServiceStatusTypeError
 					return &status
 				case PodInitializing, ContainerCreating:
