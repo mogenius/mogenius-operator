@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"mogenius-k8s-manager/structs"
 	"sort"
 	"strings"
@@ -18,6 +19,25 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+)
+
+// Due to issues importing the library, the following constants are copied from the library
+// "k8s.io/kubernetes/pkg/kubelet/images"
+var (
+	// ErrImagePullBackOff - Container image pull failed, kubelet is backing off image pull
+	ErrImagePullBackOff = errors.New("ImagePullBackOff")
+	// ErrImageInspect - Unable to inspect image
+	ErrImageInspect = errors.New("ImageInspectError")
+	// ErrImagePull - General image pull error
+	ErrImagePull = errors.New("ErrImagePull")
+	// ErrImageNeverPull - Required Image is absent on host and PullPolicy is NeverPullImage
+	ErrImageNeverPull = errors.New("ErrImageNeverPull")
+	// ErrInvalidImageName - Unable to parse the image name.
+	ErrInvalidImageName = errors.New("InvalidImageName")
+
+	//
+	PodInitializing   = "PodInitializing"
+	ContainerCreating = "ContainerCreating"
 )
 
 type ServiceStatusRequest struct {
@@ -241,6 +261,17 @@ func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
 			}
 
 			if containerStatus.State.Waiting != nil {
+				switch reason := containerStatus.State.Waiting.Reason; reason {
+				case ErrImagePull.Error(), ErrImagePullBackOff.Error(), ErrImageInspect.Error(), ErrImageNeverPull.Error(), ErrInvalidImageName.Error():
+					status := ServiceStatusTypeError
+					return &status
+				case PodInitializing, ContainerCreating:
+					status := ServiceStatusTypePending
+					return &status
+				default:
+					log.Warningf("Unhandled status - Container '%s' waiting. %s: %s.", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
+				}
+
 				status := ServiceStatusTypePending
 				return &status
 			}
@@ -319,6 +350,22 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 				status := ServiceStatusTypeSuccess
 				return &status, messages
 			case corev1.PodPending:
+				// if !started || !ready {
+				// 	status := ServiceStatusTypeWarning
+				// 	return &status, messages
+				// }
+
+				// container waiting status only considerd when pod is in pending state
+				// for _, containerStatus := range podStatus.ContainerStatuses {
+				// 	if containerStatus.State.Waiting != nil {
+				// 		switch reason := containerStatus.State.Waiting.Reason; reason {
+				// 		case ErrImagePull.Error(), ErrImagePullBackOff.Error(), ErrImageInspect.Error(), ErrImageNeverPull.Error(), ErrInvalidImageName.Error():
+				// 			status := ServiceStatusTypeWarning
+				// 			return &status, messages
+				// 		}
+				// 	}
+				// }
+
 				status := ServiceStatusTypePending
 				return &status, messages
 			case corev1.PodFailed:
