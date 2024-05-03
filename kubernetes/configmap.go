@@ -28,7 +28,7 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating ConfigMap '%s'.", namespace.Name))
+		cmd.Start(job, "Creating ConfigMap")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if provider == nil || err != nil {
@@ -58,7 +58,7 @@ func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Deleting configMap '%s'.", namespace.Name))
+		cmd.Start(job, "Deleting configMap")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -85,7 +85,7 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Updating configMap '%s'.", namespace.Name))
+		cmd.Start(job, "Updating configMap")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if provider == nil || err != nil {
@@ -118,7 +118,7 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Updating configMap '%s'.", configMapName))
+		cmd.Start(job, "Updating configMap")
 
 		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
 		if configMap != nil {

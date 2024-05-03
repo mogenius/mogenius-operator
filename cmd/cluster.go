@@ -25,14 +25,14 @@ import (
 // clusterCmd represents the cluster command
 var clusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "Run the application inside a container.",
+	Short: "Run the application inside a container",
 	Long: `
 	This cmd starts the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
 		if err != nil {
-			log.Fatalf("Error retrieving cluster secret. Aborting: %s.", err.Error())
+			log.Fatalf("Error retrieving cluster secret. Aborting: %s", err.Error())
 		}
 
 		utils.SetupClusterSecret(clusterSecret)

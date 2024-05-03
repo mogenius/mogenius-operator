@@ -39,7 +39,7 @@ func main() {
 		log.Warning("Shutting down bbolt server...")
 		db.Close()
 		dbstats.Close()
-		log.Warning("DB shutdown complete.")
+		log.Warning("DB shutdown complete")
 		os.Exit(0)
 	}()
 

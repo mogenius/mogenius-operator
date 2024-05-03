@@ -54,7 +54,7 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating PersistentVolumeClaim '%s'.", volumeName))
+		cmd.Start(job, "Creating PersistentVolumeClaim")
 
 		storageClass := StorageClassForClusterProvider(utils.ClusterProviderCached)
 		if storageClass == "" {
@@ -160,7 +160,7 @@ func DeleteMogeniusNfsPersistentVolumeForService(job *structs.Job, volumeName st
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		k8sVolumeName := fmt.Sprintf("%s-%s", namespaceName, volumeName)
-		cmd.Start(job, fmt.Sprintf("Deleting DeleteMogeniusNfsPersistentVolumeForService '%s'.", k8sVolumeName))
+		cmd.Start(job, "Deleting DeleteMogeniusNfsPersistentVolumeForService")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -207,7 +207,7 @@ func CreateMogeniusNfsPersistentVolumeClaimForService(job *structs.Job, namespac
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating PersistentVolumeClaim '%s'.", volumeName))
+		cmd.Start(job, "Creating PersistentVolumeClaim '%s'.")
 
 		pvc := utils.InitMogeniusNfsPersistentVolumeClaimForService()
 		pvc.Name = volumeName

@@ -195,7 +195,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Restarting Deployment '%s'.", service.ControllerName))
+		cmd.Start(job, "Restarting Deployment")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {

@@ -59,7 +59,7 @@ func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Delete NetworkPolicy '%s'.", namespace.Name))
+		cmd.Start(job, "Delete NetworkPolicy")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {

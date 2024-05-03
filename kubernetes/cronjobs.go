@@ -31,7 +31,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Trigger Job from CronJob '%s'.", namespace))
+		cmd.Start(job, "Trigger Job from CronJob")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -71,7 +71,7 @@ func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating CronJob '%s'.", namespace.Name))
+		cmd.Start(job, "Creating CronJob")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -108,7 +108,7 @@ func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Deleting CronJob '%s'.", service.ControllerName))
+		cmd.Start(job, "Deleting CronJob")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -136,7 +136,7 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Updating CronJob '%s'.", namespace.Name))
+		cmd.Start(job, "Updating CronJob")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {

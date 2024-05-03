@@ -56,7 +56,7 @@ func Init() {
 	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		log.Errorf("Error opening bbolt database from '%s'.", dbPath)
+		log.Errorf("Error opening bbolt database from '%s'", dbPath)
 		log.Fatal(err.Error())
 	}
 	// ### BUILD BUCKET ###

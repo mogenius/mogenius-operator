@@ -10,12 +10,12 @@ import (
 
 var systemCmd = &cobra.Command{
 	Use:   "system",
-	Short: "All general system commands.",
+	Short: "All general system commands",
 }
 
 var checkCmd = &cobra.Command{
 	Use:   "check",
-	Short: "Check the system for all required components and offer healing.",
+	Short: "Check the system for all required components and offer healing",
 	Run: func(cmd *cobra.Command, args []string) {
 		services.SystemCheck()
 	},
@@ -23,8 +23,8 @@ var checkCmd = &cobra.Command{
 
 var infoCmd = &cobra.Command{
 	Use:   "info",
-	Short: "Print information and exit.",
-	Long:  `Print information and exit.`,
+	Short: "Print information and exit",
+	Long:  `Print information and exit`,
 	Run: func(cmd *cobra.Command, args []string) {
 		utils.PrintSettings()
 	},

@@ -9,8 +9,8 @@ import (
 
 var testCmd = &cobra.Command{
 	Use:   "test",
-	Short: "test.",
-	Long:  `test.`,
+	Short: "test",
+	Long:  `test`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// nothing
 	},

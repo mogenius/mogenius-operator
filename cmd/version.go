@@ -13,8 +13,8 @@ import (
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print version information and exit.",
-	Long:  `Print version information and exit.`,
+	Short: "Print version information and exit",
+	Long:  `Print version information and exit`,
 	Run: func(cmd *cobra.Command, args []string) {
 		yellow := color.New(color.FgYellow).SprintFunc()
 		log.Infof("CLI: \t\t%s\n", yellow(version.Ver))

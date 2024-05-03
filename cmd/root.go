@@ -21,7 +21,7 @@ var customConfig string
 
 var rootCmd = &cobra.Command{
 	Use:   "mogenius-k8s-manager",
-	Short: "Control your kubernetes cluster the easy way.",
+	Short: "Control your kubernetes cluster the easy way",
 	Long: `
 Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {

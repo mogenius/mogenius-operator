@@ -19,8 +19,8 @@ import (
 
 var testClientCmd = &cobra.Command{
 	Use:   "testclient",
-	Short: "Print testServerCmd information and exit.",
-	Long:  `Print testServerCmd information and exit.`,
+	Short: "Print testServerCmd information and exit",
+	Long:  `Print testServerCmd information and exit`,
 	Run: func(cmd *cobra.Command, args []string) {
 		db.Init()
 		dbstats.Init()
