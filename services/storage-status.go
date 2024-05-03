@@ -130,7 +130,7 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 			return nfsStatusResponse
 		}
 	} else {
-		nfsStatusResponse.ProcessNfsStatusResponse(nil, errors.New("Invalid StorageAPIObject"))
+		nfsStatusResponse.ProcessNfsStatusResponse(nil, errors.New("invalid StorageAPIObject"))
 		return nfsStatusResponse
 	}
 
@@ -146,23 +146,6 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 	}
 
 	if s != nil {
-		// Begin storage size logic
-		if s.PersistentVolumeClaim != nil {
-			mountPath := utils.MountPath(s.Namespace, v.VolumeName, "/")
-
-			if utils.ClusterProviderCached == punqDtos.DOCKER_DESKTOP || utils.ClusterProviderCached == punqDtos.K3S {
-				var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
-				v.FreeBytes = uint64(s.PersistentVolumeClaim.Spec.Resources.Requests.Storage().Value()) - usedBytes
-				v.UsedBytes = usedBytes
-				v.TotalBytes = uint64(s.PersistentVolumeClaim.Spec.Resources.Requests.Storage().Value())
-			} else {
-				free, used, total, _ := diskUsage(mountPath)
-				v.FreeBytes = free
-				v.UsedBytes = used
-				v.TotalBytes = total
-			}
-		}
-
 		// Begin status logic
 
 		// check pv and pvc
@@ -261,6 +244,22 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 
 		// pv, pvc and nfs-pod are bounded and running
 		if bounded && boundedPodRunning {
+			if s.PersistentVolumeClaim != nil {
+				mountPath := utils.MountPath(s.Namespace, v.VolumeName, "/")
+
+				if utils.ClusterProviderCached == punqDtos.DOCKER_DESKTOP || utils.ClusterProviderCached == punqDtos.K3S {
+					var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
+					v.FreeBytes = uint64(s.PersistentVolumeClaim.Spec.Resources.Requests.Storage().Value()) - usedBytes
+					v.UsedBytes = usedBytes
+					v.TotalBytes = uint64(s.PersistentVolumeClaim.Spec.Resources.Requests.Storage().Value())
+				} else {
+					free, used, total, _ := diskUsage(mountPath)
+					v.FreeBytes = free
+					v.UsedBytes = used
+					v.TotalBytes = total
+				}
+			}
+
 			v.Status = VolumeStatusTypeBound
 			v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeSuccess, Message: "Volume is bound"})
 			return
@@ -477,13 +476,17 @@ EventLoop:
 		case <-ctx.Done():
 			log.Debug("Warning timeout waiting for events")
 			break EventLoop
-		}
 
-		if processedPvs && processedPvcs && processedPods {
-			break EventLoop
-		}
+		default:
+			if processedPvs && processedPvcs && processedPods {
+				log.Debug("EventLoop default break.")
+				break EventLoop
+			}
 
-		time.Sleep(15 * time.Millisecond)
+			log.Debug("EventLoop default 15millis sleep.")
+
+			time.Sleep(15 * time.Millisecond)
+		}
 	}
 
 	if chanError != nil {
