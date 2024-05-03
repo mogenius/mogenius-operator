@@ -44,14 +44,14 @@ func generateTreeFromData(namespace string, serviceName string, data []DataPoint
 
 	// NS Node
 	ns := opts.TreeData{
-		Name:       fmt.Sprintf("%s", namespace),
+		Name:       namespace,
 		Symbol:     "image://https://github.com/kubernetes/community/blob/master/icons/png/resources/labeled/ns-128.png?raw=true",
 		SymbolSize: 120,
 		ItemStyle:  &opts.ItemStyle{ShadowColor: "#000", ShadowOffsetX: 1, ShadowOffsetY: 1, ShadowBlur: 10},
 	}
 	// POD Node
 	main := opts.TreeData{
-		Name:       fmt.Sprintf("%s", serviceName),
+		Name:       serviceName,
 		Symbol:     "image://https://github.com/kubernetes/community/blob/master/icons/png/resources/labeled/pod-128.png?raw=true",
 		SymbolSize: 120,
 		Value:      int(sumValue),

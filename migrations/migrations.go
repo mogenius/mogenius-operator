@@ -62,6 +62,9 @@ func _PvcMigration1() (string, error) {
 	}
 
 	log.Infof("Migration '%s' applied successfuly.", migrationName)
-	db.AddMigrationToDb(migrationName)
+	err := db.AddMigrationToDb(migrationName)
+	if err != nil {
+		return migrationName, fmt.Errorf("Migration '%s' applied successfuly, but could not be added to migrations table: %s", migrationName, err.Error())
+	}
 	return migrationName, nil
 }

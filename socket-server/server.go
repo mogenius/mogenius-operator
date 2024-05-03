@@ -650,7 +650,7 @@ func sendFile() {
 		return
 	}
 	info, err := file.Stat()
-	var totalSize int64 = 0
+	var totalSize int64
 	if err == nil {
 		totalSize = info.Size()
 	} else {

@@ -37,7 +37,7 @@ func EventWatcher() {
 	}
 
 	// Retry watching events with exponential backoff in case of failures
-	retry.OnError(wait.Backoff{
+	err = retry.OnError(wait.Backoff{
 		Steps:    5,
 		Duration: 1 * time.Second,
 		Factor:   2.0,
@@ -45,6 +45,9 @@ func EventWatcher() {
 	}, apierrors.IsServiceUnavailable, func() error {
 		return watchEvents(provider)
 	})
+	if err != nil {
+		log.Fatalf("Error watching events: %s", err.Error())
+	}
 
 	// Wait forever
 	select {}
@@ -166,7 +169,7 @@ func InitAllWorkloads() {
 	}
 }
 
-func processEvent(event *v1Core.Event) (string, error) {
+func processEvent(event *v1Core.Event) {
 	if event != nil {
 		eventDto := dtos.CreateEvent(string(event.Type), event)
 		datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
@@ -210,10 +213,8 @@ func processEvent(event *v1Core.Event) (string, error) {
 			}
 
 		}
-
-		return event.ObjectMeta.ResourceVersion, nil
 	} else {
-		return "", fmt.Errorf("malformed event received")
+		log.Errorf("malformed event received")
 	}
 }
 

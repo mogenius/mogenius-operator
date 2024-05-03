@@ -141,6 +141,11 @@ mv k9s /usr/local/bin/.
 rm LICENSE README.md k9s_Linux_amd64.tar.gz get_helm.sh
 ```
 
+# Lint
+```
+golangci-lint run '--fast=false' --sort-results '--max-same-issues=0' '--timeout=1h'
+```
+
 # Slim setup (IMPORTANT: DOES NOT MAKE THE IMAGE SMALLER IN OUR PARTICULAR CASE)
 ```
 slim build --http-probe=false --exec "curl mogenius.com; git; docker info; helm" \

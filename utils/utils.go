@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/version"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -62,17 +61,17 @@ func HttpHeader(additionalName string) http.Header {
 }
 
 // parseIPs parses a slice of IP address strings into a slice of net.IP.
-func parseIPs(ips []string) ([]net.IP, error) {
-	var parsed []net.IP
-	for _, ip := range ips {
-		parsedIP := net.ParseIP(ip)
-		if parsedIP == nil {
-			return nil, fmt.Errorf("invalid IP address: %s", ip)
-		}
-		parsed = append(parsed, parsedIP.To4())
-	}
-	return parsed, nil
-}
+// func parseIPs(ips []string) ([]net.IP, error) {
+// 	var parsed []net.IP
+// 	for _, ip := range ips {
+// 		parsedIP := net.ParseIP(ip)
+// 		if parsedIP == nil {
+// 			return nil, fmt.Errorf("invalid IP address: %s", ip)
+// 		}
+// 		parsed = append(parsed, parsedIP.To4())
+// 	}
+// 	return parsed, nil
+// }
 
 func Prepend[T any](s []T, values ...T) []T {
 	return append(values, s...)

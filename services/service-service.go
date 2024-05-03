@@ -254,34 +254,34 @@ func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 	}
 }
 
-func initDocker(service dtos.K8sServiceDto) []*structs.Command {
-	tempDir := "/temp"
-	gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
+// func initDocker(service dtos.K8sServiceDto) []*structs.Command {
+// 	tempDir := "/temp"
+// 	gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
 
-	for _, container := range service.Containers {
-		if container.GitRepository == nil {
-			log.Errorf("%s: GitRepository cannot be nil", container.Name)
-			continue
-		}
-		if container.GitBranch == nil {
-			log.Errorf("%s: GitBranch cannot be nil", container.Name)
-			continue
-		}
-		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
-		punqStructs.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
-		if container.AppSetupCommands != nil {
-			punqStructs.ExecuteShellCommandSilent("Run Setup Commands", fmt.Sprintf("cd %s; %s", gitDir, *container.AppSetupCommands))
-		}
-		if container.AppGitRepositoryCloneUrl != nil {
-			punqStructs.ExecuteShellCommandSilent("Clone files from template", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", *container.AppGitRepositoryCloneUrl, gitDir, gitDir, gitDir, gitDir, gitDir))
-		}
-		punqStructs.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add initial files."`, gitDir))
-		punqStructs.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
-		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
-		punqStructs.ExecuteShellCommandSilent("Wait", "sleep 5")
-	}
-	return []*structs.Command{}
-}
+// 	for _, container := range service.Containers {
+// 		if container.GitRepository == nil {
+// 			log.Errorf("%s: GitRepository cannot be nil", container.Name)
+// 			continue
+// 		}
+// 		if container.GitBranch == nil {
+// 			log.Errorf("%s: GitBranch cannot be nil", container.Name)
+// 			continue
+// 		}
+// 		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
+// 		punqStructs.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
+// 		if container.AppSetupCommands != nil {
+// 			punqStructs.ExecuteShellCommandSilent("Run Setup Commands", fmt.Sprintf("cd %s; %s", gitDir, *container.AppSetupCommands))
+// 		}
+// 		if container.AppGitRepositoryCloneUrl != nil {
+// 			punqStructs.ExecuteShellCommandSilent("Clone files from template", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", *container.AppGitRepositoryCloneUrl, gitDir, gitDir, gitDir, gitDir, gitDir))
+// 		}
+// 		punqStructs.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add initial files."`, gitDir))
+// 		punqStructs.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
+// 		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+// 		punqStructs.ExecuteShellCommandSilent("Wait", "sleep 5")
+// 	}
+// 	return []*structs.Command{}
+// }
 
 func updateInfrastructureYaml(service dtos.K8sServiceDto) []*structs.Command {
 	// dont do this in local environment

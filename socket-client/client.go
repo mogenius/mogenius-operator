@@ -52,8 +52,6 @@ func StartK8sManager() {
 					}
 				}
 				structs.EventQueueConnection.Close()
-			} else {
-				// DISCONNECTED
 			}
 		}
 	}()
@@ -64,8 +62,6 @@ func StartK8sManager() {
 			done := make(chan struct{})
 			parseMessage(done, structs.JobQueueConnection)
 			structs.JobQueueConnection.Close()
-		} else {
-			// DISCONNECTED
 		}
 	}
 }

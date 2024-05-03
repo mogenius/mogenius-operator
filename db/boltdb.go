@@ -261,7 +261,7 @@ func GetScannedImageFromCache(req structs.ScanImageRequest) (structs.BuildJobInf
 
 func StartScanInCache(data structs.BuildJobInfoEntry, imageName string) {
 	// FIRST CREATE A DB ENTRY TO AVOID MULTIPLE SCANS
-	db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
 
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -269,9 +269,11 @@ func StartScanInCache(data structs.BuildJobInfoEntry, imageName string) {
 		if err != nil {
 			log.Errorf("Error %s: %s", PREFIX_VUL_SCAN, err.Error())
 		}
-		bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, imageName)), bytes)
-		return nil
+		return bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, imageName)), bytes)
 	})
+	if err != nil {
+		log.Errorf("Error saving scan data for '%s'.", imageName)
+	}
 }
 
 func GetBuilderStatus() structs.BuilderStatus {
@@ -642,7 +644,7 @@ func SaveBuildResult(
 	return err
 }
 
-func AddLogToDb(title string, message string, category structs.Category, logType structs.LogType) error {
+func AddLogToDb(title string, message string, category structs.Category, logType structs.LogType) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(LOG_BUCKET_NAME))
 		id, _ := bucket.NextSequence() // auto increment
@@ -650,9 +652,8 @@ func AddLogToDb(title string, message string, category structs.Category, logType
 		return bucket.Put([]byte(fmt.Sprintf("%s_%s_%s", entry.CreatedAt, entry.Category, entry.Type)), structs.LogBytes(entry))
 	})
 	if err != nil {
-		log.Errorf("Error adding log for '%s'.", title)
+		log.Errorf("Error adding log for '%s': %s", title, err.Error())
 	}
-	return err
 }
 
 func ListLogFromDb() []structs.Log {

@@ -37,7 +37,10 @@ func Deploy() {
 	}
 
 	applyNamespace(provider)
-	addRbac(provider)
+	err = addRbac(provider)
+	if err != nil {
+		log.Fatalf("Error Creating RBAC. Aborting: %s.", err.Error())
+	}
 	addDeployment(provider)
 	_, err = CreateOrUpdateClusterSecret(nil)
 	if err != nil {

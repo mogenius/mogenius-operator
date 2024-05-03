@@ -178,7 +178,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	}
 
 	// create
-	if buildJob.CreateAndStart == true {
+	if buildJob.CreateAndStart {
 		r := ServiceUpdateRequest{
 			Project:   buildJob.Project,
 			Namespace: buildJob.Namespace,
@@ -579,9 +579,9 @@ func updateState(buildJob structs.BuildJob, newState structs.JobStateEnum) {
 	db.UpdateStateInDb(buildJob, newState)
 }
 
-func positionInQueue(buildId uint64) int {
-	return db.PositionInQueueFromDb(buildId)
-}
+// func positionInQueue(buildId uint64) int {
+// 	return db.PositionInQueueFromDb(buildId)
+// }
 
 func saveJob(buildJob structs.BuildJob) {
 	db.SaveJobInDb(buildJob)

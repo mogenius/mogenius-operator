@@ -449,7 +449,7 @@ func WatchDeployments() {
 	}
 
 	// Retry watching resources with exponential backoff in case of failures
-	retry.OnError(wait.Backoff{
+	err = retry.OnError(wait.Backoff{
 		Steps:    5,
 		Duration: 1 * time.Second,
 		Factor:   2.0,
@@ -457,6 +457,9 @@ func WatchDeployments() {
 	}, apierrors.IsServiceUnavailable, func() error {
 		return watchDeployments(provider, "deployments")
 	})
+	if err != nil {
+		log.Fatalf("Error watching deployments: %s", err.Error())
+	}
 
 	// Wait forever
 	select {}
@@ -490,7 +493,10 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 		fields.Nothing(),
 	)
 	resourceInformer := cache.NewSharedInformer(listWatch, &v1.Deployment{}, 0)
-	resourceInformer.AddEventHandler(handler)
+	_, err := resourceInformer.AddEventHandler(handler)
+	if err != nil {
+		return err
+	}
 
 	stopCh := make(chan struct{})
 	go resourceInformer.Run(stopCh)

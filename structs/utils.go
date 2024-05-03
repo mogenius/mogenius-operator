@@ -116,7 +116,11 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 		log.Errorf("Connection to stream endpoint (%s) failed: %s\n", sendToServer, err.Error())
 	} else {
 		// API send ack when it is ready to receive messages.
-		connection.SetReadDeadline(time.Now().Add(2 * time.Second))
+		err = connection.SetReadDeadline(time.Now().Add(2 * time.Second))
+		if err != nil {
+			log.Errorf("Error setting read deadline: %s.", err)
+			return
+		}
 		_, ack, err := connection.ReadMessage()
 		if err != nil {
 			log.Errorf("Error reading ack message: %s.", err)
@@ -202,9 +206,7 @@ func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 				log.Error("write close:", err)
 				return err
 			}
-			select {
-			case <-time.After(time.Second):
-			}
+			time.Sleep(1 * time.Second)
 			return nil
 		}
 	}

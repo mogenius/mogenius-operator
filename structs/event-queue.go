@@ -2,7 +2,6 @@ package structs
 
 import (
 	"context"
-	"fmt"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
@@ -109,7 +108,7 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 	processEventQueueNow()
 }
 
-func processEventQueueNow() error {
+func processEventQueueNow() {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 
@@ -126,17 +125,14 @@ func processEventQueueNow() error {
 				}
 				eventDataQueue = RemoveEventIndex(eventDataQueue, i)
 			} else {
-				log.Error(err)
-				return err
+				log.Error("Error sending data to EventServer: ", err.Error())
 			}
 		}
 	} else {
 		if utils.CONFIG.Misc.Debug {
-			// log.Error("EventQueueConnection is nil.")
+			log.Error("EventQueueConnection is nil.")
 		}
-		return fmt.Errorf("EventQueueConnection is nil")
 	}
-	return nil
 }
 
 func RemoveEventIndex(s []EventData, index int) []EventData {

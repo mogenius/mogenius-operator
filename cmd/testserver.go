@@ -6,7 +6,7 @@ package cmd
 import (
 	"bufio"
 	"context"
-	"io/ioutil"
+	"io"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	socketserver "mogenius-k8s-manager/socket-server"
 	"mogenius-k8s-manager/utils"
@@ -69,7 +69,7 @@ var testServerCmd = &cobra.Command{
 				"message": "OK",
 			})
 
-			data, err := ioutil.ReadAll(c.Request.Body)
+			data, err := io.ReadAll(c.Request.Body)
 			if err != nil {
 				log.Errorf("build-notification-test: %s", err.Error())
 			}

@@ -237,17 +237,17 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 	commitChanges("", fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName), []string{filename})
 }
 
-func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) error {
+func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) {
 	if SetupInProcess {
-		return nil
+		return
 	}
 
 	// Exceptions
 	if IsIgnoredNamespace(namespace) {
-		return nil
+		return
 	}
 	if shouldSkipResource(fileNameForRaw(kind, namespace, resourceName)) {
-		return nil
+		return
 	}
 
 	if utils.CONFIG.Iac.ShowDiffInLog {
@@ -266,21 +266,23 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 				log.Warnf("🧹 Detected %s deletion. Reverting %s/%s.", kind, namespace, resourceName)
 			}
 		}
-		return nil
+		return
 	}
 
 	if !utils.CONFIG.Iac.AllowPush {
-		return nil
+		return
 	}
 
 	filename := fileNameForRaw(kind, namespace, resourceName)
 	err := os.Remove(filename)
+	if err != nil {
+		log.Errorf("Error deleting resource %s:%s/%s file: %s", kind, namespace, resourceName, err.Error())
+		return
+	}
 	if utils.CONFIG.Iac.LogChanges {
 		log.Infof("Detected %s deletion. Removed %s/%s. ♻️", kind, namespace, resourceName)
 	}
 	commitChanges("", fmt.Sprintf("Deleted [%s] %s/%s", kind, namespace, resourceName), []string{filename})
-
-	return err
 }
 
 func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) string {
@@ -476,12 +478,12 @@ func gitHasRemotes() bool {
 	return false
 }
 
-func commitChanges(author string, message string, filePaths []string) error {
+func commitChanges(author string, message string, filePaths []string) {
 	commitMutex.Lock()
 	defer commitMutex.Unlock()
 
 	if !utils.CONFIG.Iac.AllowPush {
-		return nil
+		return
 	}
 
 	if author == "" {
@@ -496,7 +498,7 @@ func commitChanges(author string, message string, filePaths []string) error {
 		changedFiles = append(changedFiles, v)
 		if err != nil {
 			log.Errorf("Error adding files to git repository: %s", err.Error())
-			return err
+			return
 		}
 	}
 
@@ -507,10 +509,9 @@ func commitChanges(author string, message string, filePaths []string) error {
 			!strings.Contains(err.Error(), "nothing added to commit") &&
 			!strings.Contains(err.Error(), "no changes added to commit") {
 			log.Errorf("Error committing files to git repository: %s", err.Error())
-			return err
+			return
 		}
 	}
-	return nil
 }
 
 func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
