@@ -42,7 +42,7 @@ func ClusterForceReconnect() bool {
 }
 
 func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Upgrade mogenius platform ...", job)
+	cmd := structs.CreateCommand("upgrade operator", "Upgrade mogenius platform ...", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()

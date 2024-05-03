@@ -13,6 +13,7 @@ import (
 
 type Command struct {
 	Id       string       `json:"id"`
+	Command  string       `json:"command"`
 	Title    string       `json:"title"`
 	Message  string       `json:"message,omitempty"`
 	State    JobStateEnum `json:"state"`
@@ -20,9 +21,10 @@ type Command struct {
 	Finished time.Time    `json:"finished"`
 }
 
-func CreateCommand(title string, job *Job) *Command {
+func CreateCommand(command string, title string, job *Job) *Command {
 	cmd := &Command{
 		Id:      punqUtils.NanoId(),
+		Command: command,
 		Title:   title,
 		Message: "",
 		State:   JobStatePending,
@@ -33,9 +35,9 @@ func CreateCommand(title string, job *Job) *Command {
 }
 
 // XXX NOT USED ANYMORE?
-func CreateShellCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) {
+func CreateShellCommand(command string, title string, job *Job, shellCmd string, wg *sync.WaitGroup) {
 	wg.Add(1)
-	cmd := CreateCommand(title, job)
+	cmd := CreateCommand(command, title, job)
 	go func() {
 		defer wg.Done()
 		cmd.Start(job, title)

@@ -16,47 +16,47 @@ import (
 )
 
 func CreateProjectCmd(job *structs.Job, name string, newObj CrdProject, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Create CRDs for '%s'.", name), job)
+	cmd := structs.CreateCommand("create", "Create CRDs for Project", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating CRDs for '%s'.", name))
+		cmd.Start(job, "Creating CRDs for Project")
 		err := CreateProject(name, newObj)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateProjectCmd ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Created CRDs for '%s'.", name))
+			cmd.Success(job, "Created CRDs for Project")
 		}
 	}(wg)
 }
 
 func UpdateProjectCmd(job *structs.Job, id string, projectName string, displayName string, productId string, limits ProjectLimits, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Update CRDs for '%s'.", projectName), job)
+	cmd := structs.CreateCommand("update", "Update CRDs for Project", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Updating CRDs for '%s'.", projectName))
+		cmd.Start(job, "Updating CRDs for Project")
 		err := UpdateProject(projectName, id, projectName, displayName, productId, limits)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("UpdateProjectCmd ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Updated CRDs for '%s'.", projectName))
+			cmd.Success(job, "Updated CRDs for Project")
 		}
 	}(wg)
 }
 
 func DeleteProjectCmd(job *structs.Job, name string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Delete CRDs for '%s'.", name), job)
+	cmd := structs.CreateCommand("delete", "Delete CRDs for Project", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Deleting CRDs for '%s'.", name))
+		cmd.Start(job, "Deleting CRDs for Project")
 		err := DeleteProject(name)
 		if err != nil {
 			// cmd.Fail(job, fmt.Sprintf("DeleteProjectKitCmd ERROR: %s", err.Error())) // ignore this until we migrate to the new system
-			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", name))
+			cmd.Success(job, "Deleted CRDs for Project")
 		} else {
-			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", name))
+			cmd.Success(job, "Deleted CRDs for Project")
 		}
 	}(wg)
 }

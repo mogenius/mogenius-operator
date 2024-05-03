@@ -23,7 +23,7 @@ import (
 )
 
 func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto) {
-	cmd := structs.CreateCommand("Create Kubernetes namespace", job)
+	cmd := structs.CreateCommand("create", "Create Kubernetes namespace", job)
 	cmd.Start(job, fmt.Sprintf("Creating namespace '%s'.", namespace.Name))
 
 	provider, err := punq.NewKubeProvider(nil)
@@ -44,12 +44,12 @@ func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dto
 	if err != nil {
 		cmd.Fail(job, fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()))
 	} else {
-		cmd.Success(job, fmt.Sprintf("Created namespace '%s'.", *newNamespace.Name))
+		cmd.Success(job, "Created namespace")
 	}
 }
 
 func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Delete Kubernetes namespace", job)
+	cmd := structs.CreateCommand("create", "Delete Kubernetes namespace", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -66,7 +66,7 @@ func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Deleted namespace '%s'.", namespace.Name))
+			cmd.Success(job, "Deleted namespace")
 		}
 	}(wg)
 }

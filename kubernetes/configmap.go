@@ -24,7 +24,7 @@ import (
 )
 
 func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Create Kubernetes ConfigMap", job)
+	cmd := structs.CreateCommand("create", "Create Kubernetes ConfigMap", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -48,13 +48,13 @@ func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Created ConfigMap '%s'.", service.ControllerName))
+			cmd.Success(job, "Created ConfigMap")
 		}
 	}(wg)
 }
 
 func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Delete Kubernetes configMap", job)
+	cmd := structs.CreateCommand("delete", "Delete Kubernetes configMap", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -75,13 +75,13 @@ func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Deleted configMap '%s'.", service.ControllerName))
+			cmd.Success(job, "Deleted configMap")
 		}
 	}(wg)
 }
 
 func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
+	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -108,13 +108,13 @@ func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Update configMap '%s'.", service.ControllerName))
+			cmd.Success(job, "Update configMap")
 		}
 	}(wg)
 }
 
 func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string, key string, value string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
+	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -135,7 +135,7 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 				cmd.Fail(job, fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
 				return
 			} else {
-				cmd.Success(job, fmt.Sprintf("Update configMap '%s'.", configMap))
+				cmd.Success(job, "Update configMap")
 				return
 			}
 		}
@@ -144,7 +144,7 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 }
 
 func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName string, key string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Update Kubernetes configMap", job)
+	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()

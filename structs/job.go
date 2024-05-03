@@ -17,7 +17,7 @@ type DefaultResponse struct {
 type Job struct {
 	Id             string       `json:"id"`
 	ProjectId      string       `json:"projectId"`
-	Namespace      string       `json:"namespace"`
+	NamespaceName  string       `json:"namespaceName"`
 	ControllerName string       `json:"controllerName"`
 	Title          string       `json:"title"`
 	Message        string       `json:"message"`
@@ -26,13 +26,14 @@ type Job struct {
 	Started        time.Time    `json:"started"`
 	Finished       time.Time    `json:"finished"`
 	BuildId        uint64       `json:"buildId,omitempty"`
+	ContainerName  string       `json:"containerName,omitempty"`
 }
 
 func CreateJob(title string, projectId string, namespace string, controllerName string) *Job {
 	job := &Job{
 		Id:             punqUtils.NanoId(),
 		ProjectId:      projectId,
-		Namespace:      namespace,
+		NamespaceName:  namespace,
 		ControllerName: controllerName,
 		Title:          title,
 		Message:        "",

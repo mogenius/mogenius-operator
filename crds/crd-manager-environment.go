@@ -17,47 +17,47 @@ import (
 )
 
 func CreateEnvironmentCmd(job *structs.Job, namespace string, newObj CrdEnvironment, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Create CRDs for '%s'.", namespace), job)
+	cmd := structs.CreateCommand("create", "Create CRDs for ApplicationKit", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating CRDs for '%s'.", namespace))
+		cmd.Start(job, "Creating CRDs for ApplicationKit")
 		err := CreateEnvironment(namespace, namespace, newObj)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateEnvironmentCmd ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Created CRDs for '%s'.", namespace))
+			cmd.Success(job, "Created CRDs for ApplicationKit")
 		}
 	}(wg)
 }
 
 func UpdateEnvironmentCmd(job *structs.Job, namespace string, newObj CrdEnvironment, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Update CRDs for '%s'.", namespace), job)
+	cmd := structs.CreateCommand("update", "Update CRDs for Environment", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Updating CRDs for '%s'.", namespace))
+		cmd.Start(job, "Updating CRDs for Environment")
 		err := UpdateEnvironment(namespace, namespace, &newObj)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("UpdateEnvironmentCmd ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Updated CRDs for '%s'.", namespace))
+			cmd.Success(job, "Updated CRDs for Environment")
 		}
 	}(wg)
 }
 
 func DeleteEnvironmentCmd(job *structs.Job, namespace string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Delete CRDs for '%s'.", namespace), job)
+	cmd := structs.CreateCommand("delete", "Delete CRDs for Environment", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Deleting CRDs for '%s'.", namespace))
+		cmd.Start(job, "Deleting CRDs for Environment")
 		err := DeleteEnvironment(namespace, namespace)
 		if err != nil {
 			// cmd.Fail(job, fmt.Sprintf("DeleteEnvironmentKitCmd ERROR: %s", err.Error())) // ignore this until we migrate to the new system
-			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", namespace))
+			cmd.Success(job, "Deleted CRDs for Environment")
 		} else {
-			cmd.Success(job, fmt.Sprintf("Deleted CRDs for '%s'.", namespace))
+			cmd.Success(job, "Deleted CRDs for Environment")
 		}
 	}(wg)
 }

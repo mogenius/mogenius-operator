@@ -27,11 +27,11 @@ import (
 )
 
 func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Creating Deployment '%s'.", namespace.Name), job)
+	cmd := structs.CreateCommand("create", "Creating Deployment", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating Deployment '%s'.", namespace.Name))
+		cmd.Start(job, "Creating Deployment")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -53,18 +53,18 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Created deployment '%s'.", namespace.Name))
+			cmd.Success(job, "Created deployment")
 		}
 
 	}(wg)
 }
 
 func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Deleting Deployment '%s'.", service.ControllerName), job)
+	cmd := structs.CreateCommand("delete", "Delete Deployment", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Deleting Deployment '%s'.", service.ControllerName))
+		cmd.Start(job, "Deleting Deployment")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -81,18 +81,18 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Deleted Deployment '%s'.", service.ControllerName))
+			cmd.Success(job, "Deleted Deployment")
 		}
 
 	}(wg)
 }
 
 func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Updating Deployment '%s'.", namespace.Name), job)
+	cmd := structs.CreateCommand("update", "Update Deployment", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Updating Deployment '%s'.", namespace.Name))
+		cmd.Start(job, "Updating Deployment")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -115,24 +115,24 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 				} else {
-					cmd.Success(job, fmt.Sprintf("Created deployment '%s'.", namespace.Name))
+					cmd.Success(job, "Created deployment")
 				}
 			} else {
 				cmd.Fail(job, fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
 			}
 		} else {
-			cmd.Success(job, fmt.Sprintf("Updating deployment '%s'.", namespace.Name))
+			cmd.Success(job, "Updating deployment")
 		}
 
 	}(wg)
 }
 
 func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Starting Deployment", job)
+	cmd := structs.CreateCommand("start", "Start Deployment", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Starting Deployment '%s'.", service.ControllerName))
+		cmd.Start(job, "Starting Deployment")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -153,17 +153,17 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Started Deployment '%s'.", service.ControllerName))
+			cmd.Success(job, "Started Deployment")
 		}
 	}(wg)
 }
 
 func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Stopping Deployment", job)
+	cmd := structs.CreateCommand("stop", "Stopping Deployment", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Stopping Deployment '%s'.", service.ControllerName))
+		cmd.Start(job, "Stopping Deployment")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -185,13 +185,13 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Stopped Deployment '%s'.", service.ControllerName))
+			cmd.Success(job, "Stopped Deployment")
 		}
 	}(wg)
 }
 
 func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Restart Deployment", job)
+	cmd := structs.CreateCommand("restart", "Restart Deployment", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -224,7 +224,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Restart Deployment '%s'.", service.ControllerName))
+			cmd.Success(job, "Restart Deployment")
 		}
 	}(wg)
 }
@@ -327,11 +327,11 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 }
 
 func SetDeploymentImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(fmt.Sprintf("Set Image '%s'", imageName), job)
+	cmd := structs.CreateCommand("setImage", "Set Deployment Image", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Set Image in Deployment '%s'.", controllerName))
+		cmd.Start(job, "Set Image in Deployment")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -357,7 +357,7 @@ func SetDeploymentImage(job *structs.Job, namespaceName string, controllerName s
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("SetImage ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Set new image in Deployment '%s'.", controllerName))
+			cmd.Success(job, "Set new image in Deployment")
 		}
 	}(wg)
 }

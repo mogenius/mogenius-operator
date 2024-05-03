@@ -30,11 +30,11 @@ const (
 )
 
 func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Updating ingress setup.", job)
+	cmd := structs.CreateCommand("update", "Updating ingress setup", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Updating ingress setup.")
+		cmd.Start(job, "Updating ingress setup")
 
 		ingressControllerType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
@@ -42,7 +42,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			return
 		}
 		if ingressControllerType == punq.UNKNOWN || ingressControllerType == punq.NONE {
-			cmd.Fail(job, "ERROR: Unknown or NONE ingress controller installed. Supported are NGINX and TRAEFIK.")
+			cmd.Fail(job, "ERROR: Unknown or NONE ingress controller installed. Supported are NGINX and TRAEFIK")
 			return
 		}
 
@@ -124,10 +124,10 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 						cmd.Fail(job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 						return
 					} else {
-						cmd.Success(job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore).", ingressName))
+						cmd.Success(job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 					}
 				} else {
-					cmd.Success(job, fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
+					cmd.Success(job, fmt.Sprintf("Ingress '%s' already deleted", ingressName))
 				}
 			} else {
 				_, err := ingressClient.Apply(context.TODO(), config, applyOptions)
@@ -135,7 +135,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 					cmd.Fail(job, fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(job, fmt.Sprintf("Updated Ingress '%s'.", ingressName))
+					cmd.Success(job, "Updated Ingress")
 				}
 			}
 		}
@@ -143,11 +143,11 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 }
 
 func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Deleting ingress setup.", job)
+	cmd := structs.CreateCommand("delete", "Deleting ingress setup", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting ingress setup.")
+		cmd.Start(job, "Deleting ingress setup")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -165,10 +165,10 @@ func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 					cmd.Fail(job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(job, fmt.Sprintf("Deleted Ingress '%s'.", ingressName))
+					cmd.Success(job, "Deleted Ingress")
 				}
 			} else {
-				cmd.Success(job, fmt.Sprintf("Ingress '%s' already deleted.", ingressName))
+				cmd.Success(job, "Ingress already deleted")
 			}
 		}
 	}(wg)
@@ -262,16 +262,16 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 				for _, indexToRemove := range indexesToRemove {
 					service.Spec.Ports = punqUtils.Remove(service.Spec.Ports, indexToRemove)
 				}
-				log.Infof("%d indexes successfully remove.", len(indexesToRemove))
+				log.Infof("%d indexes successfully remove", len(indexesToRemove))
 
 				// TODO wieder einkommentieren wenn ordentlich getest in DEV. sieht gut aus.
 				//UpdateServiceWith(service)
 			}
 			return
 		}
-		log.Error("IngressController has no ports defined.")
+		log.Error("IngressController has no ports defined")
 	}
-	log.Error("Could not load service mogenius/mogenius-ingress-nginx-controller.")
+	log.Error("Could not load service mogenius/mogenius-ingress-nginx-controller")
 }
 
 func CreateMogeniusContainerRegistryIngress() {
@@ -288,12 +288,12 @@ func CreateMogeniusContainerRegistryIngress() {
 	if apierrors.IsNotFound(err) {
 		_, err = client.Create(context.TODO(), &ing, metav1.CreateOptions{})
 		if err == nil {
-			log.Infof("Created ingress '%s' in namespace '%s'.", ing.Name, ing.Namespace)
+			log.Infof("Created ingress '%s' in namespace '%s'", ing.Name, ing.Namespace)
 		} else {
 			log.Errorf("CreateMogeniusContainerRegistryIngress ERROR: %s", err.Error())
 		}
 	} else {
-		log.Infof("Ingress '%s' in namespace '%s' already exists.", ing.Name, ing.Namespace)
+		log.Infof("Ingress '%s' in namespace '%s' already exists", ing.Name, ing.Namespace)
 	}
 }
 
@@ -315,12 +315,12 @@ func CreateMogeniusContainerRegistryTlsSecret() {
 	if apierrors.IsNotFound(err) {
 		_, err = client.Create(context.TODO(), &secret, metav1.CreateOptions{})
 		if err == nil {
-			log.Infof("Created secret '%s' in namespace '%s'.", secret.Name, secret.Namespace)
+			log.Infof("Created secret '%s' in namespace '%s'", secret.Name, secret.Namespace)
 		} else {
 			log.Errorf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error())
 		}
 	} else {
-		log.Infof("Secret '%s' in namespace '%s' already exists.", secret.Name, secret.Namespace)
+		log.Infof("Secret '%s' in namespace '%s' already exists", secret.Name, secret.Namespace)
 	}
 }
 

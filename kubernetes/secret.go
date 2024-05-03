@@ -24,11 +24,11 @@ import (
 )
 
 func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Create Kubernetes secret", job)
+	cmd := structs.CreateCommand("create", "Create Kubernetes secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating secret '%s'.", namespace.Name))
+		cmd.Start(job, "Creating secret")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -57,17 +57,17 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Created secret '%s'.", service.ControllerName))
+			cmd.Success(job, "Created secret")
 		}
 	}(wg)
 }
 
 func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Delete Kubernetes secret", job)
+	cmd := structs.CreateCommand("delete", "Delete Kubernetes secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Deleting secret '%s'.", namespace.Name))
+		cmd.Start(job, "Deleting secret")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -84,17 +84,17 @@ func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Deleted secret '%s'.", service.ControllerName))
+			cmd.Success(job, "Deleted secret")
 		}
 	}(wg)
 }
 
 func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Create Container secret", job)
+	cmd := structs.CreateCommand("create", "Create Container secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating Container secret '%s'.", namespace.Name))
+		cmd.Start(job, "Creating Container secret")
 
 		secretName := "container-secret-" + namespace.Name
 
@@ -128,7 +128,7 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
-			cmd.Success(job, fmt.Sprintf("Created Container secret '%s'.", namespace.Name))
+			cmd.Success(job, "Created Container secret")
 		} else {
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
@@ -136,7 +136,7 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 					cmd.Fail(job, fmt.Sprintf("CreateContainerSecret (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
-					cmd.Success(job, fmt.Sprintf("Created Container secret '%s'.", namespace.Name))
+					cmd.Success(job, "Created Container secret")
 				}
 			} else {
 				cmd.Fail(job, fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
@@ -151,11 +151,11 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 		return
 	}
 
-	cmd := structs.CreateCommand("Create Container secret for service", job)
+	cmd := structs.CreateCommand("create", "Create Container secret for service", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Creating Container secret '%s' for service.", namespace.Name))
+		cmd.Start(job, "Creating Container secret")
 
 		secretName := "container-secret-service-" + service.ControllerName
 
@@ -180,7 +180,7 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
-			cmd.Success(job, fmt.Sprintf("Created Container secret '%s' for service.", namespace.Name))
+			cmd.Success(job, "Created Container secret")
 		} else {
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
@@ -188,7 +188,7 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 					cmd.Fail(job, fmt.Sprintf("CreateContainerSecret (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
-					cmd.Success(job, fmt.Sprintf("Created Container secret '%s' for service.", namespace.Name))
+					cmd.Success(job, "Created Container secret for service")
 				}
 			} else {
 				cmd.Fail(job, fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
@@ -198,11 +198,11 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 }
 
 func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Delete Container secret", job)
+	cmd := structs.CreateCommand("delete", "Delete Container secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Deleting Container secret '%s'.", namespace.Name))
+		cmd.Start(job, "Deleting Container secret")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -219,17 +219,17 @@ func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg 
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, fmt.Sprintf("Deleted Container secret '%s'.", namespace.Name))
+			cmd.Success(job, "Deleted Container secret")
 		}
 	}(wg)
 }
 
 func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("Update Kubernetes secret", job)
+	cmd := structs.CreateCommand("update", "Update Kubernetes secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, fmt.Sprintf("Updating secret '%s'.", namespace.Name))
+		cmd.Start(job, "Updating secret")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -259,13 +259,13 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
 				} else {
-					cmd.Success(job, fmt.Sprintf("Created secret '%s'.", service.ControllerName))
+					cmd.Success(job, "Created secret")
 				}
 			} else {
 				cmd.Fail(job, fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()))
 			}
 		} else {
-			cmd.Success(job, fmt.Sprintf("Update secret '%s'.", service.ControllerName))
+			cmd.Success(job, "Update secret")
 		}
 	}(wg)
 }

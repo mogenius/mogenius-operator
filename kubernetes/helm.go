@@ -19,7 +19,7 @@ func CreateHelmChartCmd(helmReleaseName string, helmRepoName string, helmRepoUrl
 }
 
 func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGroup) {
-	structs.CreateShellCommand("Uninstall chart.", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
+	structs.CreateShellCommand("helm uninstall", "Uninstall chart", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
 }
 
 func HelmStatus(namespace string, chartname string) punq.SystemCheckStatus {

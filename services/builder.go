@@ -54,8 +54,9 @@ func ProcessQueue() {
 			defer cancel()
 
 			currentNumberOfRunningJobs++
-			job := structs.CreateJob(fmt.Sprintf("[%d/%d] Building '%s' (commit: %s)", currentNumberOfRunningJobs, utils.CONFIG.Builder.MaxConcurrentBuilds, buildJob.Service.ControllerName, *container.GitCommitHash), buildJob.Project.Id, buildJob.Namespace.Name, buildJob.Service.ControllerName)
+			job := structs.CreateJob(fmt.Sprintf("Building '%s'", buildJob.Service.ControllerName), buildJob.Project.Id, buildJob.Namespace.Name, buildJob.Service.ControllerName)
 			job.BuildId = buildJob.BuildId
+			job.ContainerName = container.Name
 
 			go build(job, &buildJob, &container, currentBuildChannel, &ctx)
 
@@ -124,7 +125,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	}
 
 	// CLONE
-	cloneCmd := structs.CreateCommand("Clone repository", job)
+	cloneCmd := structs.CreateCommand(string(structs.PrefixGitClone), "Clone repository", job)
 	err := executeCmd(job, cloneCmd, structs.PrefixGitClone, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("git clone --progress -b %s --single-branch %s %s", *container.GitBranch, *container.GitRepository, workingDir))
 	if err != nil {
 		log.Errorf("Error%s: %s", structs.PrefixGitClone, err.Error())
@@ -133,7 +134,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	}
 
 	// LS
-	lsCmd := structs.CreateCommand("List contents", job)
+	lsCmd := structs.CreateCommand(string(structs.PrefixLs), "List contents", job)
 	err = executeCmd(job, lsCmd, structs.PrefixLs, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("ls -lisa %s", workingDir))
 	if err != nil {
 		log.Errorf("Error%s: %s", structs.PrefixLs, err.Error())
@@ -143,7 +144,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// LOGIN
 	if buildJob.Project.ContainerRegistryUser != nil && buildJob.Project.ContainerRegistryPat != nil && *buildJob.Project.ContainerRegistryUser != "" && *buildJob.Project.ContainerRegistryPat != "" {
-		loginCmd := structs.CreateCommand("Authenticate with container registry", job)
+		loginCmd := structs.CreateCommand(string(structs.PrefixLogin), "Authenticate with container registry", job)
 		err = executeCmd(job, loginCmd, structs.PrefixLogin, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", *buildJob.Project.ContainerRegistryUrl, *buildJob.Project.ContainerRegistryUser, *buildJob.Project.ContainerRegistryPat))
 		if err != nil {
 			log.Errorf("Error%s: %s", structs.PrefixLogin, err.Error())
@@ -153,7 +154,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	}
 
 	// BUILD
-	buildCmd := structs.CreateCommand("Building container", job)
+	buildCmd := structs.CreateCommand(string(structs.PrefixBuild), "Building container", job)
 	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build --network host -f %s %s -t %s -t %s %s", workingDir, *container.DockerfileName, container.GetInjectDockerEnvVars(), tagName, latestTagName, *container.DockerContext))
 	if err != nil {
 		log.Errorf("Error%s: %s", structs.PrefixBuild, err.Error())
@@ -162,7 +163,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	}
 
 	// PUSH
-	pushCmd := structs.CreateCommand("Pushing container", job)
+	pushCmd := structs.CreateCommand(string(structs.PrefixPush), "Pushing container", job)
 	err = executeCmd(job, pushCmd, structs.PrefixPush, buildJob, container, false, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
 	if err != nil {
 		log.Errorf("Error%s: %s", structs.PrefixPush, err.Error())
@@ -189,7 +190,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	}
 
 	// UPDATE IMAGE
-	setImageCmd := structs.CreateCommand("Deploying image", job)
+	setImageCmd := structs.CreateCommand("setImage", "Deploying image", job)
 	err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
 	if err != nil {
 		log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
