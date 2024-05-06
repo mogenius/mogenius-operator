@@ -196,7 +196,7 @@ func processEvent(event *v1Core.Event) {
 				parts = parts[:len(parts)-2]
 			}
 			controllerName := strings.Join(parts, "-")
-			err := db.AddPodEvent(event.InvolvedObject.Namespace, controllerName, event, 50)
+			err := db.AddPodEvent(event.InvolvedObject.Namespace, controllerName, event, 150)
 			if err != nil {
 				log.Errorf("Error adding event to db: %s", err.Error())
 			}
