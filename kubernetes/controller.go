@@ -2,7 +2,10 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -147,7 +150,14 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 			if previousSpecTemplate != nil {
 				specTemplate.Spec.Containers[index].Image = (*previousSpecTemplate).Spec.Containers[index].Image
 			} else {
-				specTemplate.Spec.Containers[index].Image = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
+				specTemplate.Spec.Containers[index].Image = utils.IMAGE_PLACEHOLDER
+			}
+
+			if specTemplate.Spec.Containers[index].Image == utils.IMAGE_PLACEHOLDER {
+				imgName := imageNameForContainer(namespace, service, container)
+				if imgName != "" {
+					specTemplate.Spec.Containers[index].Image = imgName
+				}
 			}
 		}
 
@@ -234,4 +244,12 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 	}
 
 	return controller, nil
+}
+
+func imageNameForContainer(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, container dtos.K8sContainerDto) string {
+	if container.Type == dtos.CONTAINER_GIT_REPOSITORY {
+		lastBuild := db.GetLastBuildJobInfosFromDb(structs.BuildTaskRequest{Namespace: namespace.Name, Controller: service.ControllerName, Container: container.Name})
+		return lastBuild.Image
+	}
+	return ""
 }

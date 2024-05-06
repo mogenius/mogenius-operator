@@ -55,6 +55,7 @@ type BuildJob struct {
 	StartedAt      string       `json:"startedAt"`
 	DurationMs     int          `json:"durationMs"`
 	BuildId        uint64       `json:"buildId"`
+	Image          string       `json:"image"`
 
 	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
@@ -249,6 +250,7 @@ type BuildJobInfo struct {
 	Namespace  string `json:"namespace"`
 	Controller string `json:"controller"`
 	Container  string `json:"container"`
+	Image      string `json:"image"`
 
 	CommitHash    string `json:"commitHash"`
 	CommitLink    string `json:"commitLink"`
@@ -320,7 +322,7 @@ func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoE
 	}
 }
 
-func CreateBuildJobInfo(clone []byte, ls []byte, login []byte, build []byte, push []byte) BuildJobInfo {
+func CreateBuildJobInfo(image string, clone []byte, ls []byte, login []byte, build []byte, push []byte) BuildJobInfo {
 	result := BuildJobInfo{}
 
 	cloneEntity := CreateBuildJobEntryFromData(clone)
@@ -358,6 +360,7 @@ func CreateBuildJobInfo(clone []byte, ls []byte, login []byte, build []byte, pus
 	result.Namespace = cloneEntity.Namespace
 	result.Controller = cloneEntity.Controller
 	result.Container = cloneEntity.Container
+	result.Image = image
 
 	result.StartTime = cloneEntity.StartTime
 	result.FinishTime = pushEntity.FinishTime

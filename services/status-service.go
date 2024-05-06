@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"sort"
 	"strings"
 	"sync"
@@ -86,9 +87,6 @@ func ServiceStatusRequestExample() ServiceStatusRequest {
 }
 
 // BEGIN new status and messages
-
-const ImagePlaceholder = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
-
 type ServiceStatusKindType string
 
 const (
@@ -449,15 +447,15 @@ func (r *ResourceItem) CronJobStatus() (*ServiceStatusType, bool) {
 		if cronJob, ok := r.StatusObject.(CronJobStatus); ok {
 			switchedOn := !cronJob.Suspend
 
-			if cronJob.Image != "" && !strings.Contains(cronJob.Image, ImagePlaceholder) && !cronJob.Suspend {
+			if cronJob.Image != "" && !strings.Contains(cronJob.Image, utils.IMAGE_PLACEHOLDER) && !cronJob.Suspend {
 				status := ServiceStatusTypeSuccess
 				return &status, switchedOn
 			}
-			if strings.Contains(cronJob.Image, ImagePlaceholder) && !cronJob.Suspend {
+			if strings.Contains(cronJob.Image, utils.IMAGE_PLACEHOLDER) && !cronJob.Suspend {
 				status := ServiceStatusTypeError
 				return &status, switchedOn
 			}
-			if strings.Contains(cronJob.Image, ImagePlaceholder) && cronJob.Suspend {
+			if strings.Contains(cronJob.Image, utils.IMAGE_PLACEHOLDER) && cronJob.Suspend {
 				status := ServiceStatusTypeUnkown
 				return &status, switchedOn
 			}
@@ -502,7 +500,7 @@ func (r *ResourceItem) DeploymentStatus() (*ServiceStatusType, bool) {
 				}
 
 				// placeholder image
-				if strings.Contains(deploymentStatus.Image, ImagePlaceholder) {
+				if strings.Contains(deploymentStatus.Image, utils.IMAGE_PLACEHOLDER) {
 					status := ServiceStatusTypePending
 					return &status, switchedOn
 				}

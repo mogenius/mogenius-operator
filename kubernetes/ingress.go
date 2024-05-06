@@ -30,7 +30,7 @@ const (
 )
 
 func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Update ingress", job)
+	cmd := structs.CreateCommand("update", "Update Ingress", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()

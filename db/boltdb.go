@@ -394,7 +394,7 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
 		login := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixLogin, namespace, controller, container)))
 		build := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixBuild, namespace, controller, container)))
 		push := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixPush, namespace, controller, container)))
-		result = structs.CreateBuildJobInfo(clone, ls, login, build, push)
+		result = structs.CreateBuildJobInfo(job.Image, clone, ls, login, build, push)
 
 		if containerObj.GitCommitHash != nil {
 			result.CommitHash = *containerObj.GitCommitHash
@@ -618,10 +618,25 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 		}
 		nextBuildId, _ = bucket.NextSequence() // auto increment
 		buildJob.BuildId = nextBuildId
+		_, imageTag, _ := ImageNamesFromBuildJob(buildJob)
+		buildJob.Image = imageTag
 		key := BuildJobKey(nextBuildId)
 		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	return int(nextBuildId), err
+}
+
+func ImageNamesFromBuildJob(buildJob structs.BuildJob) (imageName string, imageTag string, imageTagLatest string) {
+	imageName = fmt.Sprintf("%s-%s", buildJob.Namespace.Name, buildJob.Service.ControllerName)
+	// overwrite images name for local builds
+	if (buildJob.Project.ContainerRegistryUser == nil && buildJob.Project.ContainerRegistryPat == nil) || (*buildJob.Project.ContainerRegistryUser == "" && *buildJob.Project.ContainerRegistryPat == "") {
+		imageTag = fmt.Sprintf("%s/%s:%d", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName, buildJob.BuildId)
+		imageTagLatest = fmt.Sprintf("%s/%s:latest", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName)
+	} else {
+		imageTag = fmt.Sprintf("%s/%s:%d", *buildJob.Project.ContainerRegistryPath, imageName, buildJob.BuildId)
+		imageTagLatest = fmt.Sprintf("%s/%s:latest", *buildJob.Project.ContainerRegistryPath, imageName)
+	}
+	return imageName, imageTag, imageTagLatest
 }
 
 func SaveBuildResult(

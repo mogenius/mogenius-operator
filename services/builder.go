@@ -109,15 +109,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	updateState(*buildJob, structs.JobStateStarted)
 
-	imageName := fmt.Sprintf("%s-%s", buildJob.Namespace.Name, buildJob.Service.ControllerName)
-	tagName := fmt.Sprintf("%s/%s:%d", *buildJob.Project.ContainerRegistryPath, imageName, buildJob.BuildId)
-	latestTagName := fmt.Sprintf("%s/%s:latest", *buildJob.Project.ContainerRegistryPath, imageName)
-
-	// overwrite images name for local builds
-	if (buildJob.Project.ContainerRegistryUser == nil && buildJob.Project.ContainerRegistryPat == nil) || (*buildJob.Project.ContainerRegistryUser == "" && *buildJob.Project.ContainerRegistryPat == "") {
-		tagName = fmt.Sprintf("%s/%s:%d", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName, buildJob.BuildId)
-		latestTagName = fmt.Sprintf("%s/%s:latest", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName)
-	}
+	_, tagName, latestTagName := db.ImageNamesFromBuildJob(*buildJob)
 
 	// CLEANUP
 	if !utils.CONFIG.Misc.Debug {
@@ -185,8 +177,6 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 			Service:   buildJob.Service,
 		}
 		UpdateService(r)
-		// TODO remove after citt
-		time.Sleep(10 * time.Second)
 	}
 
 	// UPDATE IMAGE
@@ -217,7 +207,7 @@ func DeleteAllBuildData(data structs.BuildTaskRequest) {
 	db.DeleteAllBuildData(data.Namespace, data.Controller, data.Container)
 }
 
-func Add(buildJob structs.BuildJob) structs.BuildAddResult {
+func AddBuildJob(buildJob structs.BuildJob) structs.BuildAddResult {
 	nextBuildId, err := db.AddToDb(buildJob)
 	if err != nil {
 		log.Errorf("Error adding job for '%s/%s'. REASON: %s", buildJob.Namespace.Name, buildJob.Service.ControllerName, err.Error())

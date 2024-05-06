@@ -1963,7 +1963,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		data.Project.AddSecretsToRedaction()
 		data.Service.AddSecretsToRedaction()
-		return Add(data)
+		return AddBuildJob(data)
 	case structs.PAT_BUILD_CANCEL:
 		data := structs.BuildJob{}
 		structs.MarshalUnmarshal(&datagram, &data)
