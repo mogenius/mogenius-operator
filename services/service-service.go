@@ -221,7 +221,7 @@ func StopService(r ServiceStopRequest) interface{} {
 func StartService(r ServiceStartRequest) interface{} {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Start Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
+	job := structs.CreateJob("Start Service "+r.Service.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
 	switch r.Service.Controller {

@@ -48,13 +48,14 @@ var testServerCmd = &cobra.Command{
 		router := gin.Default()
 		router.POST("path/to/send/data", func(c *gin.Context) {
 			ctx := context.Background()
-			cancelCtx, _ := context.WithCancel(ctx)
+			cancelCtx, cancFunc := context.WithCancel(ctx)
 
 			reader := bufio.NewScanner(c.Request.Body)
 			for {
 				select {
 				case <-cancelCtx.Done():
 					log.Debug("done")
+					cancFunc()
 					return
 				default:
 					for reader.Scan() {
@@ -80,7 +81,12 @@ var testServerCmd = &cobra.Command{
 		log.Infof("Started WS server %s 🚀", utils.CONFIG.ApiServer.Ws_Server)
 
 		go socketserver.ReadInput()
-		router.Run()
+
+		err = router.Run()
+
+		if err != nil {
+			log.Fatalf("Error starting WS server: %s", err.Error())
+		}
 	},
 }
 

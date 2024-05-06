@@ -30,11 +30,11 @@ const (
 )
 
 func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Updating ingress setup", job)
+	cmd := structs.CreateCommand("update", "Update ingress", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Updating ingress setup")
+		cmd.Start(job, "Updating ingress")
 
 		ingressControllerType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
@@ -143,11 +143,11 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 }
 
 func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Deleting ingress setup", job)
+	cmd := structs.CreateCommand("delete", "Deleting ingress", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting ingress setup")
+		cmd.Start(job, "Deleting ingress")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {

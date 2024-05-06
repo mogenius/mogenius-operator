@@ -33,7 +33,7 @@ var YamlTemplatesFolder embed.FS
 
 func main() {
 	go func() {
-		quit := make(chan os.Signal)
+		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		<-quit
 		log.Warning("Shutting down bbolt server...")
