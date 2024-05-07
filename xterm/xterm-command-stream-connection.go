@@ -43,7 +43,7 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.Kub
 			}
 
 			if isPodReady(pod) {
-				log.Errorf("Pod %s is ready.", pod.Name)
+				log.Infof("Pod %s is ready.", pod.Name)
 				// clear screen
 				clearScreen(conn)
 				return
@@ -135,7 +135,7 @@ func XTermCommandStreamConnection(
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 	// websocket connection
-	conn, err := generateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
@@ -209,8 +209,8 @@ func XTermCommandStreamConnection(
 	go cmdWait(cmd, conn, tty)
 
 	// cmd output to websocket
-	go cmdOutputToWebsocket(ctx, conn, tty, injectPreContent)
+	go cmdOutputToWebsocket(ctx, cancel, conn, tty, injectPreContent)
 
 	// websocket to cmd input
-	websocketToCmdInput(ctx, conn, tty)
+	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)
 }

@@ -43,7 +43,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 	// websocket connection
-	conn, err := generateWsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, err := generateWsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
@@ -87,20 +87,6 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		}
 	}(ch)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			_, reader, err := conn.ReadMessage()
-			if err != nil {
-				log.Errorf("Unable to grab next reader: %s", err.Error())
-				return
-			}
-
-			if string(reader) == "PEER_IS_READY" {
-				continue
-			}
-		}
-	}
+	// websocket to input
+	websocketToCmdInput(*readMessages, ctx, nil, nil)
 }

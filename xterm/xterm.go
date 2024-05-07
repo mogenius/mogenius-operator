@@ -76,6 +76,12 @@ type CmdWindowSize struct {
 	Cols uint16 `json:"cols"`
 }
 
+type XtermReadMessages struct {
+	MessageType int
+	Data        []byte
+	Err         error
+}
+
 var LogChannels = make(map[string]chan string)
 
 func isPodReady(pod *v1.Pod) bool {
@@ -105,9 +111,11 @@ func generateWsConnection(
 	wsConnectionRequest WsConnectionRequest,
 	ctx context.Context,
 	cancel context.CancelFunc,
-) (*websocket.Conn, error) {
+) (readMessages *chan XtermReadMessages, conn *websocket.Conn, err error) {
 	maxRetries := 6
 	currentRetries := 0
+	xtermMessages := make(chan XtermReadMessages)
+
 	for {
 		// add header
 		headers := utils.HttpHeader("")
@@ -125,7 +133,7 @@ func generateWsConnection(
 			log.Errorf("Failed to connect, retrying in 5 seconds: %s", err.Error())
 			if currentRetries >= maxRetries {
 				log.Errorf("Max retries reached, exiting.")
-				return nil, err
+				return nil, nil, err
 			}
 			time.Sleep(5 * time.Second)
 			currentRetries++
@@ -142,7 +150,7 @@ func generateWsConnection(
 			time.Sleep(5 * time.Second)
 			if currentRetries >= maxRetries {
 				log.Errorf("Max retries reached, exiting.")
-				return conn, err
+				return &xtermMessages, conn, err
 			}
 			currentRetries++
 			continue
@@ -151,25 +159,33 @@ func generateWsConnection(
 		conn.SetReadDeadline(time.Time{})
 		// log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
 
-		//
-		go oncloseWs(conn, ctx, cancel)
-		return conn, nil
+		// oncloseWs will close the connection and the context
+		go oncloseWs(conn, ctx, cancel, xtermMessages)
+		return &xtermMessages, conn, nil
 	}
 }
 
-func oncloseWs(conn *websocket.Conn, ctx context.Context, cancel context.CancelFunc) {
-	defer cancel()
+func oncloseWs(conn *websocket.Conn, ctx context.Context, cancel context.CancelFunc, readMessages chan XtermReadMessages) {
+	defer func() {
+		cancel()
+		if conn != nil {
+			conn.Close()
+		}
+		if readMessages != nil {
+			close(readMessages)
+		}
+		log.Info("[oncloseWs] Context done. Closing connection.")
+	}()
 
 	for {
 		select {
 		case <-ctx.Done():
-			if conn != nil {
-				conn.Close()
-			}
-			log.Info("[oncloseWs] Context done. Closing connection.")
 			return
 		default:
-			_, _, err := conn.ReadMessage()
+			messageType, p, err := conn.ReadMessage()
+			if readMessages != nil {
+				readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: nil}
+			}
 			if err != nil {
 				if closeErr, ok := err.(*websocket.CloseError); ok {
 					log.Printf("[oncloseWs] WebSocket closed with status code %d and message: %s\n", closeErr.Code, closeErr.Text)
@@ -225,10 +241,15 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 	}
 }
 
-func cmdOutputToWebsocket(ctx context.Context, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader) {
+func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader) {
 	if injectPreContent != nil {
 		injectContent(injectPreContent, conn)
 	}
+
+	defer func() {
+		cancel()
+		log.Info("[cmdOutputToWebsocket] Closing connection.")
+	}()
 
 	for {
 		select {
@@ -253,40 +274,48 @@ func cmdOutputToWebsocket(ctx context.Context, conn *websocket.Conn, tty *os.Fil
 	}
 }
 
-func websocketToCmdInput(ctx context.Context, conn *websocket.Conn, tty *os.File) {
-	for {
+func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Context, tty *os.File, cmdType *string) {
+	defer func() {
+		log.Info("[websocketToCmdInput] Closing connection.")
+	}()
+	for msg := range readMessages {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			_, reader, err := conn.ReadMessage()
-			if err != nil {
-				log.Errorf("Unable to read from websocket: %s", err.Error())
+			if msg.Err != nil {
+				log.Errorf("Unable to read from websocket: %s", msg.Err.Error())
 				return
 			}
 
-			if strings.HasPrefix(string(reader), "\x04") {
-				str := strings.TrimPrefix(string(reader), "\x04")
-
-				var resizeMessage CmdWindowSize
-				err := json.Unmarshal([]byte(str), &resizeMessage)
-				if err != nil {
-					log.Errorf("%s", err.Error())
-					continue
-				}
-
-				if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
-					log.Errorf("Unable to resize: %s", err.Error())
-					continue
-				}
+			if string(msg.Data) == "PEER_IS_READY" {
 				continue
 			}
 
-			if string(reader) == "PEER_IS_READY" {
-				continue
-			}
+			if tty != nil {
+				if strings.HasPrefix(string(msg.Data), "\x04") {
+					str := strings.TrimPrefix(string(msg.Data), "\x04")
 
-			tty.Write(reader)
+					var resizeMessage CmdWindowSize
+					err := json.Unmarshal([]byte(str), &resizeMessage)
+					if err != nil {
+						log.Errorf("%s", err.Error())
+						continue
+					}
+
+					if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
+						log.Errorf("Unable to resize: %s", err.Error())
+						continue
+					}
+					continue
+				}
+
+				if cmdType != nil {
+					if *cmdType == "exec-sh" {
+						tty.Write(msg.Data)
+					}
+				}
+			}
 		}
 	}
 }

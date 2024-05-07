@@ -28,7 +28,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 	// websocket connection
-	conn, err := generateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, err := generateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
@@ -79,8 +79,8 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	go cmdWait(cmd, conn, tty)
 
 	// cmd output to websocket
-	go cmdOutputToWebsocket(ctx, conn, tty, nil)
+	go cmdOutputToWebsocket(ctx, cancel, conn, tty, nil)
 
 	// websocket to cmd input
-	websocketToCmdInput(ctx, conn, tty)
+	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)
 }

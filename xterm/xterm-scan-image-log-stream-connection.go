@@ -2,7 +2,6 @@ package xterm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
@@ -13,12 +12,16 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strings"
 	"time"
 )
 
-func cmdScanImageLogOutputToWebsocket(ctx context.Context, scanImageType string, conn *websocket.Conn, tty *os.File) {
+func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, scanImageType string, conn *websocket.Conn, tty *os.File) {
 	toolLoadingCtx, toolLoadingCancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+
+	defer func() {
+		toolLoadingCancel()
+		cancel()
+	}()
 
 	for {
 		select {
@@ -50,7 +53,7 @@ func cmdScanImageLogOutputToWebsocket(ctx context.Context, scanImageType string,
 			for {
 				read, err := tty.Read(buf)
 				if err != nil {
-					log.Errorf("Unable to read from pty/cmd: %s", err.Error())
+					log.Errorf("1 Unable to read from pty/cmd: %s", err.Error())
 					return
 				}
 				if conn != nil {
@@ -104,7 +107,7 @@ func XTermScanImageLogStreamConnection(
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 	// websocket connection
-	conn, err := generateWsConnection(cmdType, namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
@@ -171,42 +174,8 @@ func XTermScanImageLogStreamConnection(
 
 	go cmdWait(cmd, conn, tty)
 
-	go cmdScanImageLogOutputToWebsocket(ctx, scanImageType, conn, tty)
+	go cmdScanImageLogOutputToWebsocket(ctx, cancel, scanImageType, conn, tty)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			_, reader, err := conn.ReadMessage()
-			if err != nil {
-				log.Errorf("Unable to grab next reader: %s", err.Error())
-				return
-			}
-
-			if strings.HasPrefix(string(reader), "\x04") {
-				str := strings.TrimPrefix(string(reader), "\x04")
-
-				var resizeMessage CmdWindowSize
-				err := json.Unmarshal([]byte(str), &resizeMessage)
-				if err != nil {
-					log.Errorf("%s", err.Error())
-					continue
-				}
-
-				if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
-					log.Errorf("Unable to resize: %s", err.Error())
-					continue
-				}
-				continue
-			}
-
-			if string(reader) == "PEER_IS_READY" {
-				continue
-			}
-			if cmdType == "exec-sh" {
-				tty.Write(reader)
-			}
-		}
-	}
+	// websocket to cmd input
+	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)
 }

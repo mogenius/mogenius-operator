@@ -56,7 +56,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
 	// websocket connection
-	conn, err := generateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, err := generateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
@@ -92,26 +92,14 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
+		log.Error(key)
+		log.Error(ch)
 		data := db.GetEventByKey(key)
 		if ch != nil {
 			ch <- string(data)
 		}
 	}(ch)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			_, reader, err := conn.ReadMessage()
-			if err != nil {
-				log.Errorf("Unable to grab next reader: %s", err.Error())
-				return
-			}
-
-			if string(reader) == "PEER_IS_READY" {
-				continue
-			}
-		}
-	}
+	// websocket to input
+	websocketToCmdInput(*readMessages, ctx, nil, nil)
 }
