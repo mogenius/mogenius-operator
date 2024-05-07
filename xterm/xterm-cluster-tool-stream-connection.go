@@ -2,12 +2,13 @@ package xterm
 
 import (
 	"context"
-	"github.com/creack/pty"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/creack/pty"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -42,7 +43,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	cmdString := ""
 	switch tool {
 	case "k9s":
-		cmdString = "k9s"
+		cmdString = "k9s --kubeconfig kubeconfig.yaml"
 	default:
 		log.Errorf("Tool not found: %s", tool)
 		return
