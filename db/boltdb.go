@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	DB_SCHEMA_VERSION = "1"
+	DB_SCHEMA_VERSION = "2"
 )
 
 const (

@@ -1557,7 +1557,7 @@ else
 fi
 
 # install grype
-if command -v grype >/dev/null 2>&1; then
+if type grype >/dev/null 2>&1; then
     echo "grype is installed. Skipping installation."
 else
 	curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
@@ -1565,7 +1565,7 @@ else
 fi
 
 # install dive
-if command -v dive >/dev/null 2>&1; then
+if type dive >/dev/null 2>&1; then
     echo "dive is installed. Skipping installation."
 else
 	DIVE_VERSION=$(curl -sL "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
@@ -1578,16 +1578,15 @@ else
 fi
 
 # install trivy
-if command -v trivy >/dev/null 2>&1; then
+if type trivy >/dev/null 2>&1; then
     echo "trivy is installed. Skipping installation."
 else
-	TRIVY_VERSION=$(curl -sL "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin ${TRIVY_VERSION}
+	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin latest
 	echo "trivy is installed. 🚀"
 fi
 
 # install k9s
-if command -v k9s >/dev/null 2>&1; then
+if type k9s >/dev/null 2>&1; then
     echo "k9s is installed. Skipping installation."
 else
 	K9S_VERSION=$(curl -sL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
