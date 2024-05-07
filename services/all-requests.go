@@ -405,6 +405,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		// AllPersistentVolumes
 		return kubernetes.ListPersistentVolumeClaimsWithFieldSelector(data.Namespace, data.LabelSelector, data.Prefix)
 
+	case structs.PAT_CLUSTER_UPDATE_LOCAL_TLS_SECRET:
+		data := ClusterUpdateLocalTlsSecret{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return kubernetes.CreateMogeniusContainerRegistryTlsSecret(data.LocalTlsCrt, data.LocalTlsKey)
+
 	case structs.PAT_PROJECT_CREATE:
 		data := ProjectCreateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

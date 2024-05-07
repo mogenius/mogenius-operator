@@ -548,6 +548,18 @@ func ClusterListWorkloadsExample() ClusterListWorkloads {
 	}
 }
 
+type ClusterUpdateLocalTlsSecret struct {
+	LocalTlsCrt string `json:"localTlsCrt" validate:"required"`
+	LocalTlsKey string `json:"localTlsKey" validate:"required"`
+}
+
+func ClusterUpdateLocalTlsSecretExample() ClusterUpdateLocalTlsSecret {
+	return ClusterUpdateLocalTlsSecret{
+		LocalTlsCrt: "my-funky-crt",
+		LocalTlsKey: "my-funky-key",
+	}
+}
+
 type ClusterGetConfigMap struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Name      string `json:"name" validate:"required"`

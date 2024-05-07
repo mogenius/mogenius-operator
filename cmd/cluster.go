@@ -85,7 +85,6 @@ var clusterCmd = &cobra.Command{
 			punq.ExecuteShellCommandSilent("Git setup (5/5)", `git config --global pull.rebase false`)
 		}
 
-		mokubernetes.CreateMogeniusContainerRegistryTlsSecret()
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 
 		socketclient.StartK8sManager()

@@ -137,7 +137,7 @@ func InitMogeniusContainerRegistryIngress() netv1.Ingress {
 	return ingress
 }
 
-func InitMogeniusContainerRegistrySecret() corev1.Secret {
+func InitMogeniusContainerRegistrySecret(crt string, key string) corev1.Secret {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-container-registry-tls-secret.yaml")
 	if err != nil {
 		panic(err.Error())
@@ -150,6 +150,12 @@ func InitMogeniusContainerRegistrySecret() corev1.Secret {
 	if err != nil {
 		panic(err)
 	}
+
+	secret.StringData = make(map[string]string)
+	secret.StringData["tls.crt"] = crt
+	secret.StringData["tls.key"] = key
+	secret.Namespace = CONFIG.Kubernetes.OwnNamespace
+
 	return secret
 }
 

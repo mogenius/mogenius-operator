@@ -26,7 +26,7 @@ type K8sContainerDto struct {
 	AppGitRepositoryCloneUrl             *string               `json:"appGitRepositoryCloneUrl"`
 	AppSetupCommands                     *string               `json:"appSetupCommands"`
 	KubernetesLimits                     K8sServiceSettingsDto `json:"KubernetesLimits"`
-	CNames                               []string              `json:"cNames"`
+	CNames                               []K8sCnameDto         `json:"cNames"`
 	EnvVars                              []K8sEnvVarDto        `json:"envVars"`
 	Ports                                []K8sPortsDto         `json:"ports"`
 	SettingsYaml                         *string               `json:"settingsYaml,omitempty"`
@@ -59,7 +59,7 @@ func K8sContainerDtoExampleData() K8sContainerDto {
 		DockerContext:                        utils.Pointer("."),
 		AppGitRepositoryCloneUrl:             utils.Pointer("YYY_git_clone_url"),
 		KubernetesLimits:                     K8sServiceSettingsDtoExampleData(),
-		CNames:                               []string{"cname1.com", "cname2.com"},
+		CNames:                               []K8sCnameDto{K8sCnameDtoExampleData()},
 		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData(), K8sEnvVarVolumeMountDtoExampleData()},
 		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData(), K8sPortsDtoExternalExampleData()},
 		SettingsYaml:                         utils.Pointer("settingsYaml"),

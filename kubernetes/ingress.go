@@ -98,8 +98,10 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 
 				// 2. ALL CNAMES
 				for _, cname := range container.CNames {
-					spec.Rules = append(spec.Rules, *createIngressRule(cname, service.ControllerName, int32(port.InternalPort)))
-					tlsHosts = append(tlsHosts, cname)
+					spec.Rules = append(spec.Rules, *createIngressRule(cname.Name, service.ControllerName, int32(port.InternalPort)))
+					if cname.AddToTlsHosts {
+						tlsHosts = append(tlsHosts, cname.Name)
+					}
 				}
 			}
 			spec.TLS = append(spec.TLS, networkingv1.IngressTLSApplyConfiguration{
@@ -297,11 +299,8 @@ func CreateMogeniusContainerRegistryIngress() {
 	}
 }
 
-func CreateMogeniusContainerRegistryTlsSecret() {
-	// 1. Request a certificate from mogenius.com
-	// 2. Create a secret with the certificate
-
-	secret := utils.InitMogeniusContainerRegistrySecret()
+func CreateMogeniusContainerRegistryTlsSecret(crt string, key string) error {
+	secret := utils.InitMogeniusContainerRegistrySecret(crt, key)
 	secret.Namespace = utils.CONFIG.Kubernetes.OwnNamespace
 
 	provider, err := punq.NewKubeProvider(nil)
@@ -318,10 +317,18 @@ func CreateMogeniusContainerRegistryTlsSecret() {
 			log.Infof("Created secret '%s' in namespace '%s'", secret.Name, secret.Namespace)
 		} else {
 			log.Errorf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error())
+			return err
 		}
 	} else {
-		log.Infof("Secret '%s' in namespace '%s' already exists", secret.Name, secret.Namespace)
+		_, err = client.Update(context.TODO(), &secret, metav1.UpdateOptions{})
+		if err == nil {
+			log.Infof("Secret '%s' in namespace '%s' updated", secret.Name, secret.Namespace)
+		} else {
+			log.Errorf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error())
+			return err
+		}
 	}
+	return nil
 }
 
 func WatchIngresses() {
