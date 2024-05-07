@@ -12,3 +12,5 @@ CHANGELOG.md
 .idea/
 .envrc
 kube-config
+kubeconfig.tmpl
+kubeconfig.yaml

@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -501,7 +502,8 @@ func processLine(
 			log.Infof("Notice: job is nil")
 			return
 		}
-		db.SaveBuildResult(structs.JobStateEnum(reportCmd.State), prefix, cmdOutput.String(), startTime, job, container)
+		nextLine := applyErrorSuggestions(cmdOutput.String())
+		db.SaveBuildResult(structs.JobStateEnum(reportCmd.State), prefix, nextLine, startTime, job, container)
 
 		ch, exists := xterm.LogChannels[structs.BuildJobInfoEntryKey(job.BuildId, prefix, job.Namespace.Name, job.Service.ControllerName, container.Name)]
 		if exists {
@@ -515,6 +517,17 @@ func processLine(
 			structs.EventServerSendData(structs.CreateDatagramBuildLogs(data), "", "", "", 0)
 		}
 	}
+}
+
+func applyErrorSuggestions(line string) string {
+	if strings.Contains(line, "Get \"https://mocr.local.mogenius.io/v2/\": tls: failed to verify certificate: x509: certificate is valid for") {
+		line = line + infoStr() + color.GreenString("✅  Please run 'mocli-dev cluster local-dev-setup' to prepare everything for local registries.\r\n✅  Make sure you have installed the Local Container Registry in the cluster settings.\r\n✅  Please restart your k8s-manager pod to retrieve the new certificate.")
+	}
+	return line
+}
+
+func infoStr() string {
+	return "\r\n    🤓\r\n  🤓  🤓\r\n🤓  🤓  🤓\r\n\r\n"
 }
 
 func cleanPasswords(job *structs.BuildJob, line string) string {
