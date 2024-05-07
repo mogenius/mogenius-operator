@@ -1597,6 +1597,31 @@ else
 	rm k9s_Linux_amd64.tar.gz
 	echo "k9s is installed. 🚀"
 fi
+
+# create kubeconfig
+cat <<EOF > kubeconfig.tmpl
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: @@CACRT@@
+    server: https://@@IP@@:6443
+  name: local
+contexts:
+- context:
+    cluster: local
+    user: mogenius
+    namespace: mogenius
+  name: mogenius
+current-context: mogenius
+kind: Config
+preferences: {}
+users:
+- name: mogenius
+  user:
+    token: @@TOKEN@@
+EOF
+cat kubeconfig.tmpl | sed -e s/@@CACRT@@/$(echo -n "$(cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt)" | base64 | tr -d '\n')/| sed -e s/@@TOKEN@@/$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)/ | sed -e s/@@IP@@/$(kubectl get nodes -o json | jq '.items[0].status.addresses[0].address' | sed -e s/\"//g)/ > kubeconfig.yaml
+echo "KUBECONFIG created. 🚀"
 `
 	defaultAppsConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false, nil)
 	if defaultAppsConfigmap != nil {
