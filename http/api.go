@@ -87,17 +87,18 @@ func postTraffic(c *gin.Context) {
 	var out bytes.Buffer
 	body, _ := io.ReadAll(c.Request.Body)
 
+	err := json.Indent(&out, []byte(body), "", "  ")
+	if err != nil {
+		log.Error(err)
+	}
 	if utils.CONFIG.Misc.LogIncomingStats {
-		err := json.Indent(&out, []byte(body), "", "  ")
-		if err != nil {
-			log.Error(err)
-		}
 		log.Info(out.String())
 	}
 
 	stat := &structs.InterfaceStats{}
-	err := structs.UnmarshalInterfaceStats(stat, out.Bytes())
+	err = structs.UnmarshalInterfaceStats(stat, out.Bytes())
 	if err != nil {
+		log.Errorf("Error unmarshalling interface stats: %s", err.Error())
 		c.IndentedJSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
 		})
@@ -111,17 +112,18 @@ func postPodStats(c *gin.Context) {
 	var out bytes.Buffer
 	body, _ := io.ReadAll(c.Request.Body)
 
+	err := json.Indent(&out, []byte(body), "", "  ")
+	if err != nil {
+		log.Error(err)
+	}
 	if utils.CONFIG.Misc.LogIncomingStats {
-		err := json.Indent(&out, []byte(body), "", "  ")
-		if err != nil {
-			log.Error(err)
-		}
 		log.Info(out.String())
 	}
 
 	stat := &structs.PodStats{}
-	err := structs.UnmarshalPodStats(stat, out.Bytes())
+	err = structs.UnmarshalPodStats(stat, out.Bytes())
 	if err != nil {
+		log.Errorf("Error unmarshalling pod stats: %s", err.Error())
 		c.IndentedJSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
 		})
@@ -135,17 +137,18 @@ func postNodeStats(c *gin.Context) {
 	var out bytes.Buffer
 	body, _ := io.ReadAll(c.Request.Body)
 
+	err := json.Indent(&out, []byte(body), "", "  ")
+	if err != nil {
+		log.Error(err)
+	}
 	if utils.CONFIG.Misc.LogIncomingStats {
-		err := json.Indent(&out, []byte(body), "", "  ")
-		if err != nil {
-			log.Error(err)
-		}
 		log.Info(out.String())
 	}
 
 	stat := &structs.NodeStats{}
-	err := structs.UnmarshalNodeStats(stat, out.Bytes())
+	err = structs.UnmarshalNodeStats(stat, out.Bytes())
 	if err != nil {
+		log.Errorf("Error unmarshalling node stats: %s", err.Error())
 		c.IndentedJSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
 		})

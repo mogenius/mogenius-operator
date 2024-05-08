@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	DB_SCHEMA_VERSION = "1"
+	DB_SCHEMA_VERSION = "2"
 )
 
 const (
@@ -386,26 +386,33 @@ func GetLastTrafficStatsEntriesForNamespace(namespace string) []structs.Interfac
 			return fmt.Errorf("Bucket '%s' not found.", namespace)
 		}
 
-		c := namespaceBucket.Cursor()
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			entry := structs.InterfaceStats{}
-			err := structs.UnmarshalInterfaceStats(&entry, v)
-			if err != nil {
-				return err
+		serviceCursor := namespaceBucket.Cursor()
+		for serviceName, _ := serviceCursor.First(); serviceName != nil; serviceName, _ = serviceCursor.Next() {
+			serviceBucket := namespaceBucket.Bucket([]byte(serviceName))
+			if serviceBucket == nil {
+				return fmt.Errorf("Bucket '%s' not found.", serviceName)
 			}
-			var newEntry bool = true
-			for i := 0; i < len(result); i++ {
-				if entry.PodName == result[i].PodName {
-					newEntry = false
-
-					if isFirstTimestampNewer(entry.CreatedAt, result[i].CreatedAt) {
-						result[i] = entry
-					}
-					break
+			entryCursor := serviceBucket.Cursor()
+			for k, v := entryCursor.First(); k != nil; k, v = entryCursor.Next() {
+				entry := structs.InterfaceStats{}
+				err := structs.UnmarshalInterfaceStats(&entry, v)
+				if err != nil {
+					return err
 				}
-			}
-			if newEntry {
-				result = append(result, entry)
+				var newEntry bool = true
+				for i := 0; i < len(result); i++ {
+					if entry.PodName == result[i].PodName {
+						newEntry = false
+
+						if isFirstTimestampNewer(entry.CreatedAt, result[i].CreatedAt) {
+							result[i] = entry
+						}
+						break
+					}
+				}
+				if newEntry {
+					result = append(result, entry)
+				}
 			}
 		}
 		return nil
