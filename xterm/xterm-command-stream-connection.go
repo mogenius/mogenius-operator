@@ -3,18 +3,19 @@ package xterm
 import (
 	"context"
 	"encoding/base64"
-	"github.com/creack/pty"
-	"github.com/gorilla/websocket"
-	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 	"io"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
 	"os/exec"
 	"sync"
 	"time"
+
+	"github.com/creack/pty"
+	"github.com/gorilla/websocket"
+	punq "github.com/mogenius/punq/kubernetes"
+	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.KubeProvider, namespace string, podName string, conn *websocket.Conn) {
@@ -36,7 +37,7 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.Kub
 					clearScreen(conn)
 					closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
 					if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-						log.Error("write close:", err)
+						// log.Error("write close:", err)
 					}
 				}
 				return
@@ -142,7 +143,7 @@ func XTermCommandStreamConnection(
 	}
 
 	defer func() {
-		log.Info("[XTermCommandStreamConnection] Closing connection.")
+		// log.Info("[XTermCommandStreamConnection] Closing connection.")
 		cancel()
 	}()
 
@@ -152,7 +153,7 @@ func XTermCommandStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				log.Error("write close:", err)
+				// log.Error("write close:", err)
 			}
 		}
 		log.Errorf("Pod %s does not exist, closing connection.", podName)
@@ -197,7 +198,7 @@ func XTermCommandStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				log.Error("write close:", err)
+				// log.Error("write close:", err)
 			}
 		}
 		cmd.Process.Kill()

@@ -411,7 +411,7 @@ func GetLastTrafficStatsEntriesForNamespace(namespace string) []structs.Interfac
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
+		log.Errorf("GetLastTrafficStatsEntriesForNamespace: %s", err.Error())
 	}
 	return result
 }

@@ -60,7 +60,7 @@ builder:
   max_build_time: 3600      # 1 hour
   max_scan_time: 200        # seconds
   max_data_points: 1000     # history data points
-  max_concurrent_builds: 3  # max concurrent builds
+  max_concurrent_builds: 1  # max concurrent builds
 
 git:
   user_email: git@mogenius.com

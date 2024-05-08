@@ -128,10 +128,6 @@ func processEventQueueNow() {
 				log.Error("Error sending data to EventServer: ", err.Error())
 			}
 		}
-	} else {
-		if utils.CONFIG.Misc.Debug {
-			log.Error("EventQueueConnection is nil.")
-		}
 	}
 }
 

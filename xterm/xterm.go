@@ -3,7 +3,6 @@ package xterm
 import (
 	"context"
 	"encoding/json"
-	"github.com/creack/pty"
 	"io"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/creack/pty"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -174,7 +175,7 @@ func oncloseWs(conn *websocket.Conn, ctx context.Context, cancel context.CancelF
 		if readMessages != nil {
 			close(readMessages)
 		}
-		log.Info("[oncloseWs] Context done. Closing connection.")
+		// log.Info("[oncloseWs] Context done. Closing connection.")
 	}()
 
 	for {
@@ -187,10 +188,10 @@ func oncloseWs(conn *websocket.Conn, ctx context.Context, cancel context.CancelF
 				readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: nil}
 			}
 			if err != nil {
-				if closeErr, ok := err.(*websocket.CloseError); ok {
-					log.Printf("[oncloseWs] WebSocket closed with status code %d and message: %s\n", closeErr.Code, closeErr.Text)
+				if _, ok := err.(*websocket.CloseError); ok {
+					// log.Printf("[oncloseWs] WebSocket closed with status code %d and message: %s\n", closeErr.Code, closeErr.Text)
 				} else {
-					log.Printf("[oncloseWs] Error reading message: %v\n. Connection closed.", err)
+					// log.Printf("[oncloseWs] Error reading message: %v\n. Connection closed.", err)
 				}
 				return
 			}
@@ -214,7 +215,7 @@ func wsPing(conn *websocket.Conn) error {
 func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 	err := cmd.Wait()
 	if err != nil {
-		log.Errorf("cmd wait: %s", err.Error())
+		// log.Errorf("cmd wait: %s", err.Error())
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 				if status.ExitStatus() == 137 {
@@ -248,7 +249,7 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 
 	defer func() {
 		cancel()
-		log.Info("[cmdOutputToWebsocket] Closing connection.")
+		// log.Info("[cmdOutputToWebsocket] Closing connection.")
 	}()
 
 	for {
@@ -259,7 +260,7 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 			buf := make([]byte, 1024)
 			read, err := tty.Read(buf)
 			if err != nil {
-				log.Errorf("Unable to read from pty/cmd: %s", err.Error())
+				// log.Errorf("Unable to read from pty/cmd: %s", err.Error())
 				return
 			}
 			if conn != nil {
@@ -276,7 +277,7 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 
 func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Context, tty *os.File, cmdType *string) {
 	defer func() {
-		log.Info("[websocketToCmdInput] Closing connection.")
+		// log.Info("[websocketToCmdInput] Closing connection.")
 	}()
 	for msg := range readMessages {
 		select {
@@ -284,7 +285,7 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 			return
 		default:
 			if msg.Err != nil {
-				log.Errorf("Unable to read from websocket: %s", msg.Err.Error())
+				// log.Errorf("Unable to read from websocket: %s", msg.Err.Error())
 				return
 			}
 
@@ -299,7 +300,7 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 					var resizeMessage CmdWindowSize
 					err := json.Unmarshal([]byte(str), &resizeMessage)
 					if err != nil {
-						log.Errorf("%s", err.Error())
+						log.Errorf("Marshalling error %s", err.Error())
 						continue
 					}
 

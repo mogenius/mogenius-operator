@@ -2,13 +2,14 @@ package xterm
 
 import (
 	"context"
-	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"time"
+
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 func readChannelBuildLog(ch chan string, conn *websocket.Conn, ctx context.Context) {
@@ -53,7 +54,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	key := structs.BuildJobInfoEntryKey(buildId, buildTask, namespace, controller, container)
 
 	defer func() {
-		log.Info("[XTermBuildLogStreamConnection] Closing connection.")
+		// log.Info("[XTermBuildLogStreamConnection] Closing connection.")
 		cancel()
 
 		ch := LogChannels[key]

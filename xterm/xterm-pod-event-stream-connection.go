@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"time"
+
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 )
 
 func readChannelPodEvent(ch chan string, conn *websocket.Conn, ctx context.Context) {
@@ -65,7 +66,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	key := fmt.Sprintf("%s-%s", namespace, controller)
 
 	defer func() {
-		log.Info("[XTermPodEventStreamConnection] Closing connection.")
+		// log.Info("[XTermPodEventStreamConnection] Closing connection.")
 		cancel()
 
 		ch := kubernetes.EventChannels[key]
@@ -92,8 +93,6 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		log.Error(key)
-		log.Error(ch)
 		data := db.GetEventByKey(key)
 		if ch != nil {
 			ch <- string(data)

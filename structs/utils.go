@@ -203,7 +203,7 @@ func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			sendMutex.Unlock()
 			if err != nil {
-				log.Error("write close:", err)
+				// log.Error("write close:", err)
 				return err
 			}
 			time.Sleep(1 * time.Second)

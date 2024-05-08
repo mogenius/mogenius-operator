@@ -36,7 +36,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	}
 
 	defer func() {
-		log.Info("[XTermClusterToolStreamConnection] Closing connection.")
+		// log.Info("[XTermClusterToolStreamConnection] Closing connection.")
 		cancel()
 	}()
 
@@ -69,7 +69,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				log.Error("write close:", err)
+				// log.Error("write close:", err)
 			}
 		}
 		cmd.Process.Kill()

@@ -98,9 +98,9 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 
 				// 2. ALL CNAMES
 				for _, cname := range container.CNames {
-					spec.Rules = append(spec.Rules, *createIngressRule(cname.Name, service.ControllerName, int32(port.InternalPort)))
+					spec.Rules = append(spec.Rules, *createIngressRule(cname.CName, service.ControllerName, int32(port.InternalPort)))
 					if cname.AddToTlsHosts {
-						tlsHosts = append(tlsHosts, cname.Name)
+						tlsHosts = append(tlsHosts, cname.CName)
 					}
 				}
 			}

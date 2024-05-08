@@ -3,9 +3,6 @@ package xterm
 import (
 	"context"
 	"fmt"
-	"github.com/creack/pty"
-	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"net/url"
@@ -13,6 +10,10 @@ import (
 	"os/exec"
 	"regexp"
 	"time"
+
+	"github.com/creack/pty"
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, scanImageType string, conn *websocket.Conn, tty *os.File) {
@@ -53,7 +54,7 @@ func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.Cancel
 			for {
 				read, err := tty.Read(buf)
 				if err != nil {
-					log.Errorf("1 Unable to read from pty/cmd: %s", err.Error())
+					// log.Errorf("1 Unable to read from pty/cmd: %s", err.Error())
 					return
 				}
 				if conn != nil {
@@ -114,7 +115,7 @@ func XTermScanImageLogStreamConnection(
 	}
 
 	defer func() {
-		log.Info("[XTermScanImageLogStreamConnection] Closing connection.")
+		// log.Info("[XTermScanImageLogStreamConnection] Closing connection.")
 		cancel()
 	}()
 
@@ -164,7 +165,7 @@ func XTermScanImageLogStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				log.Error("write close:", err)
+				// log.Error("write close:", err)
 			}
 		}
 		cmd.Process.Kill()
