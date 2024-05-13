@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
-	networkingv1 "k8s.io/client-go/applyconfigurations/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 )
@@ -53,39 +52,43 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		}
 		ingressClient := provider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
 
-		applyOptions := metav1.ApplyOptions{
-			Force:        true,
-			FieldManager: DEPLOYMENTNAME,
-		}
-
 		for _, container := range service.Containers {
 			ingressName := INGRESS_PREFIX + "-" + service.ControllerName + "-" + container.Name
 
-			config := networkingv1.Ingress(ingressName, namespace.Name)
+			var ingressToUpdate *v1.Ingress
 
 			// check if ingress already exists
 			existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
-			if existingIngress != nil && err == nil {
-				extractedConfig, err := networkingv1.ExtractIngress(existingIngress, "")
-				if err == nil {
-					config = extractedConfig
-				}
+			if err != nil && !apierrors.IsNotFound(err) {
+				cmd.Fail(job, fmt.Sprintf("Get Ingress ERROR: %s", err.Error()))
+				return
+			}
+			if apierrors.IsNotFound(err) {
+				existingIngress = nil
+				ingressToUpdate = &v1.Ingress{}
+				ingressToUpdate.Name = ingressName
+				ingressToUpdate.Namespace = namespace.Name
+				ingressToUpdate.Annotations = map[string]string{}
+				ingressToUpdate.Labels = map[string]string{}
+			} else {
+				ingressToUpdate = existingIngress.DeepCopy()
 			}
 
-			config.WithAnnotations(loadDefaultAnnotations())
+			ingressToUpdate.Labels = MoUpdateLabels(&ingressToUpdate.Labels, &job.ProjectId, &namespace, &service)
+			ingressToUpdate.Annotations = loadDefaultAnnotations() // TODO MERGE MAPS INSTEAD OF OVERWRITE
 
 			if IsLocalClusterSetup() {
-				delete(config.Annotations, "cert-manager.io/cluster-issuer")
+				delete(ingressToUpdate.Annotations, "cert-manager.io/cluster-issuer")
 			}
-
-			spec := networkingv1.IngressSpec()
 
 			if ingressControllerType == punq.NGINX {
-				spec.IngressClassName = punqUtils.Pointer("nginx")
+				ingressToUpdate.Spec.IngressClassName = punqUtils.Pointer("nginx")
 			} else if ingressControllerType == punq.TRAEFIK {
-				spec.IngressClassName = punqUtils.Pointer("traefik")
+				ingressToUpdate.Spec.IngressClassName = punqUtils.Pointer("traefik")
 			}
 			tlsHosts := []string{}
+
+			ingressToUpdate.Spec.Rules = []v1.IngressRule{} // reset rules to regenerate them
 
 			for _, port := range container.Ports {
 				// SKIP UNEXPOSED PORTS
@@ -98,29 +101,30 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 
 				// 2. ALL CNAMES
 				for _, cname := range container.CNames {
-					spec.Rules = append(spec.Rules, *createIngressRule(cname.CName, service.ControllerName, int32(port.InternalPort)))
+					ingressToUpdate.Spec.Rules = append(ingressToUpdate.Spec.Rules, *createIngressRule(cname.CName, service.ControllerName, int32(port.InternalPort)))
 					if cname.AddToTlsHosts {
 						tlsHosts = append(tlsHosts, cname.CName)
 					}
 				}
 			}
-			spec.TLS = append(spec.TLS, networkingv1.IngressTLSApplyConfiguration{
-				Hosts:      tlsHosts,
-				SecretName: &namespace.Name,
-			})
+			ingressToUpdate.Spec.TLS = []v1.IngressTLS{
+				{
+					Hosts:      tlsHosts,
+					SecretName: service.ControllerName + "-tls",
+				},
+			}
 
 			// if redirectTo != nil {
 			// 	config.Annotations["nginx.ingress.kubernetes.io/permanent-redirect"] = *redirectTo
 			// }
 
-			config.WithSpec(spec)
-
 			// BEFORE UPDATING INGRESS WE SETUP THE CERTIFICATES FOR ALL HOSTNAMES
 			UpdateNamespaceCertificate(namespace.Name, tlsHosts)
 
-			if len(spec.Rules) <= 0 {
-				existingIngress, ingErr := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
-				if existingIngress != nil && ingErr == nil {
+			// update
+			if existingIngress != nil {
+				// delete if no rules
+				if len(existingIngress.Spec.Rules) <= 0 {
 					err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 					if err != nil {
 						cmd.Fail(job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
@@ -129,17 +133,25 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 						cmd.Success(job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 					}
 				} else {
-					cmd.Success(job, fmt.Sprintf("Ingress '%s' already deleted", ingressName))
+					_, err := ingressClient.Update(context.TODO(), ingressToUpdate, metav1.UpdateOptions{})
+					if err != nil {
+						cmd.Fail(job, fmt.Sprintf("Update Ingress ERROR: %s", err.Error()))
+						return
+					} else {
+						cmd.Success(job, fmt.Sprintf("Ingress '%s' updated", ingressName))
+					}
 				}
 			} else {
-				_, err := ingressClient.Apply(context.TODO(), config, applyOptions)
+				// create
+				_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: DEPLOYMENTNAME})
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("UpdateIngress ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Create Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(job, "Updated Ingress")
+					cmd.Success(job, fmt.Sprintf("Ingress '%s' created", ingressName))
 				}
 			}
+
 		}
 	}(wg)
 }
@@ -207,22 +219,22 @@ func loadDefaultAnnotations() map[string]string {
 	return result
 }
 
-func createIngressRule(hostname string, controllerName string, port int32) *networkingv1.IngressRuleApplyConfiguration {
-	rule := networkingv1.IngressRule()
-	rule.Host = &hostname
+func createIngressRule(hostname string, controllerName string, port int32) *v1.IngressRule {
+	rule := v1.IngressRule{}
+	rule.Host = hostname
 	path := "/"
 	pathType := v1.PathTypePrefix
 
-	rule.HTTP = &networkingv1.HTTPIngressRuleValueApplyConfiguration{
-		Paths: []networkingv1.HTTPIngressPathApplyConfiguration{
+	rule.HTTP = &v1.HTTPIngressRuleValue{
+		Paths: []v1.HTTPIngressPath{
 			{
 				PathType: &pathType,
-				Path:     &path,
-				Backend: &networkingv1.IngressBackendApplyConfiguration{
-					Service: &networkingv1.IngressServiceBackendApplyConfiguration{
-						Name: &controllerName,
-						Port: &networkingv1.ServiceBackendPortApplyConfiguration{
-							Number: &port,
+				Path:     path,
+				Backend: v1.IngressBackend{
+					Service: &v1.IngressServiceBackend{
+						Name: controllerName,
+						Port: v1.ServiceBackendPort{
+							Number: port,
 						},
 					},
 				},
@@ -230,7 +242,7 @@ func createIngressRule(hostname string, controllerName string, port int32) *netw
 		},
 	}
 
-	return rule
+	return &rule
 }
 
 func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) {
