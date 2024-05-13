@@ -204,6 +204,9 @@ func GetLastTrafficStatsEntryForController(controller kubernetes.K8sController) 
 		}
 
 		controllerBucket := namespaceBucket.Bucket([]byte(controller.Name))
+		if controllerBucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", controller.Name)
+		}
 
 		c := controllerBucket.Cursor()
 		k, v := c.Last()
@@ -234,6 +237,9 @@ func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[
 		}
 
 		controllerBucket := namespaceBucket.Bucket([]byte(controller.Name))
+		if controllerBucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", controller.Name)
+		}
 
 		return controllerBucket.ForEach(func(k, v []byte) error {
 			entry := structs.InterfaceStats{}
@@ -264,6 +270,9 @@ func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *str
 		}
 
 		controllerBucket := namespaceBucket.Bucket([]byte(controller.Name))
+		if controllerBucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", controller.Name)
+		}
 
 		c := controllerBucket.Cursor()
 		k, v := c.Last()
@@ -294,6 +303,9 @@ func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]str
 		}
 
 		controllerBucket := namespaceBucket.Bucket([]byte(controller.Name))
+		if controllerBucket == nil {
+			return fmt.Errorf("Bucket '%s' not found.", controller.Name)
+		}
 
 		return controllerBucket.ForEach(func(k, v []byte) error {
 			entry := structs.PodStats{}
