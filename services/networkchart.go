@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/kubernetes"
@@ -296,6 +297,11 @@ func RenderPodNetworkTreePageHtml(namespace string, podName string) string {
 	if stats == nil {
 		return fmt.Sprintf("could not find stats for pod %s in namespace %s", podName, namespace)
 	}
+
+	// TODO: FINALIZE
+	ips := stats.UniqueIps()
+	mapping := kubernetes.GatherNamesForIps(ips)
+	log.Println(mapping)
 
 	tree := generateTree(*stats, *ctrl)
 	page := components.NewPage()

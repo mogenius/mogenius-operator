@@ -184,6 +184,21 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return dbstats.GetLastPodStatsEntryForController(*ctrl)
 
+	case structs.PAT_STATS_PODSTAT_FOR_CONTROLLER_ALL:
+		data := kubernetes.K8sController{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return dbstats.GetPodStatsEntriesForController(data)
+	case structs.PAT_STATS_PODSTAT_FOR_CONTROLLER_LAST:
+		data := kubernetes.K8sController{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return dbstats.GetLastPodStatsEntryForController(data)
+
 	case structs.PAT_STATS_TRAFFIC_FOR_CONTROLLER_ALL:
 		data := kubernetes.K8sController{}
 		structs.MarshalUnmarshal(&datagram, &data)

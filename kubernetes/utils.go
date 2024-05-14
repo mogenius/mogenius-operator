@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
+	"net"
 	"path/filepath"
 	"strings"
 	"time"
@@ -356,4 +357,36 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 	}
 
 	return nfsStorageClassStr
+}
+
+func GatherNamesForIps(ips []string) map[string]string {
+	result := map[string]string{}
+	pods := punq.AllPods("", nil)
+	services := punq.AllServices("", nil)
+
+outerLoop:
+	for _, ip := range ips {
+		for _, pod := range pods {
+			if pod.Status.PodIP == ip {
+				result[ip] = fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
+				continue outerLoop
+			}
+		}
+		for _, service := range services {
+			if service.Spec.ClusterIP == ip {
+				result[ip] = fmt.Sprintf("%s/%s", service.Namespace, service.Name)
+				continue outerLoop
+			}
+		}
+		parsedIP := net.ParseIP(ip)
+		if parsedIP != nil {
+			if !parsedIP.IsPrivate() {
+				result[ip] = "@External"
+				continue outerLoop
+			}
+		}
+
+		result[ip] = ""
+	}
+	return result
 }

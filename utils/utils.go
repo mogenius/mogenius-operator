@@ -195,3 +195,12 @@ func IsFirstTimestampNewer(ts1, ts2 string) bool {
 	// Check if the first timestamp is strictly newer than the second
 	return t1.After(t2)
 }
+
+func AppendIfNotExist(slice []string, str string) []string {
+	for _, item := range slice {
+		if item == str {
+			return slice
+		}
+	}
+	return append(slice, str)
+}
