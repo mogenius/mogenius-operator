@@ -273,7 +273,7 @@ func RenderPodNetworkTreePageJson(namespace string, podName string) map[string]i
 	if ctrl == nil {
 		return map[string]interface{}{"error": fmt.Sprintf("could not find controller for pod %s in namespace %s", podName, namespace)}
 	}
-	stats := dbstats.GetLastTrafficStatsEntryForController(*ctrl)
+	stats := dbstats.GetTrafficStatsEntrySumForController(*ctrl)
 	if stats == nil {
 		return map[string]interface{}{"error": fmt.Sprintf("could not find stats for pod %s in namespace %s", podName, namespace)}
 	}
@@ -292,7 +292,7 @@ func RenderPodNetworkTreePageHtml(namespace string, podName string) string {
 	if ctrl == nil {
 		return fmt.Sprintf("could not find controller for pod %s in namespace %s", podName, namespace)
 	}
-	stats := dbstats.GetLastTrafficStatsEntryForController(*ctrl)
+	stats := dbstats.GetTrafficStatsEntrySumForController(*ctrl)
 	if stats == nil {
 		return fmt.Sprintf("could not find stats for pod %s in namespace %s", podName, namespace)
 	}

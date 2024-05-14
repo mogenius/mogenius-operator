@@ -1,6 +1,8 @@
 package structs
 
 import (
+	"mogenius-k8s-manager/utils"
+
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -16,8 +18,8 @@ type InterfaceStats struct {
 	LocalReceivedBytes uint64            `json:"localReceivedBytes"`
 	TransmitStartBytes uint64            `json:"transmitStartBytes"`
 	ReceivedStartBytes uint64            `json:"receivedStartBytes"`
-	StartTime          string            `json:"startTime"`
-	CreatedAt          string            `json:"createdAt"`
+	StartTime          string            `json:"startTime"` // start time of the Interface/Pod
+	CreatedAt          string            `json:"createdAt"` // when the entry was written into boltDB
 	SocketConnections  map[string]uint64 `json:"socketConnections"`
 }
 
@@ -25,6 +27,28 @@ type InterfaceConnection struct {
 	Ip1       string `json:"ip1"`
 	Ip2       string `json:"ip2"`
 	PacketSum uint64 `json:"packetSum"`
+}
+
+func (data *InterfaceStats) Sum(dataToAdd *InterfaceStats) {
+	data.PacketsSum += dataToAdd.PacketsSum
+	data.TransmitBytes += dataToAdd.TransmitBytes
+	data.ReceivedBytes += dataToAdd.ReceivedBytes
+	data.UnknownBytes += dataToAdd.UnknownBytes
+	data.LocalTransmitBytes += dataToAdd.LocalTransmitBytes
+	data.LocalReceivedBytes += dataToAdd.LocalReceivedBytes
+	data.TransmitStartBytes += dataToAdd.TransmitStartBytes
+	data.ReceivedStartBytes += dataToAdd.ReceivedStartBytes
+
+	// Merge socket connections
+	for key, newValue := range dataToAdd.SocketConnections {
+		//value, _ := data.SocketConnections[key]
+		data.SocketConnections[key] = newValue
+	}
+
+	// overwrite start time to determine the earliest start time
+	if utils.IsFirstTimestampNewer(dataToAdd.StartTime, data.StartTime) {
+		data.StartTime = dataToAdd.StartTime
+	}
 }
 
 func UnmarshalInterfaceStats(dst *InterfaceStats, data []byte) error {

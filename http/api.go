@@ -31,7 +31,7 @@ func InitApi() {
 	router.POST("/nodestats", postNodeStats)
 
 	if utils.CONFIG.Misc.Debug {
-		router.GET("/debug/last-traffic", debugGetLastTraffic)
+		router.GET("/debug/sum-traffic", debugGetTrafficSum)
 		router.GET("/debug/traffic", debugGetTraffic)
 		router.GET("/debug/last-ns", debugGetLastNs)
 		router.GET("/debug/ns", debugGetNs)
@@ -158,10 +158,10 @@ func postNodeStats(c *gin.Context) {
 	dbstats.AddNodeStatsToDb(*stat)
 }
 
-func debugGetLastTraffic(c *gin.Context) {
+func debugGetTrafficSum(c *gin.Context) {
 	ns := c.Query("ns")
 
-	stats := dbstats.GetLastTrafficStatsEntriesForNamespace(ns)
+	stats := dbstats.GetTrafficStatsEntriesSumForNamespace(ns)
 	c.IndentedJSON(http.StatusOK, stats)
 }
 

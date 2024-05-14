@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	punqStructs "github.com/mogenius/punq/structs"
 	"github.com/mogenius/punq/utils"
@@ -177,4 +178,20 @@ func ContainsString(slice []string, value string) bool {
 		}
 	}
 	return false
+}
+
+func IsFirstTimestampNewer(ts1, ts2 string) bool {
+	// Parse the timestamps using RFC 3339 format
+	t1, err := time.Parse(time.RFC3339, ts1)
+	if err != nil {
+		log.Error(fmt.Errorf("error parsing ts1: %w", err))
+	}
+
+	t2, err := time.Parse(time.RFC3339, ts2)
+	if err != nil {
+		log.Error(fmt.Errorf("error parsing ts2: %w", err))
+	}
+
+	// Check if the first timestamp is strictly newer than the second
+	return t1.After(t2)
 }

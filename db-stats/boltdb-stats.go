@@ -191,7 +191,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 	}
 }
 
-func GetLastTrafficStatsEntryForController(controller kubernetes.K8sController) *structs.InterfaceStats {
+func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController) *structs.InterfaceStats {
 	result := &structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
 		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
@@ -199,17 +199,22 @@ func GetLastTrafficStatsEntryForController(controller kubernetes.K8sController) 
 			return err
 		}
 		c := bucket.Cursor()
-		k, v := c.Last()
-		if k != nil {
-			err := structs.UnmarshalInterfaceStats(result, v)
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			entry := structs.InterfaceStats{}
+			err := structs.UnmarshalInterfaceStats(&entry, bucket.Get(k))
 			if err != nil {
 				return err
+			}
+			if result.PodName == "" {
+				result = &entry
+			} else {
+				result.Sum(&entry)
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetLastTrafficStatsEntryForController: %s", err.Error())
+		log.Errorf("GetTrafficStatsEntrySumForController: %s", err.Error())
 	}
 	return result
 }
@@ -342,7 +347,7 @@ func GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
 	return result
 }
 
-func GetLastTrafficStatsEntriesForNamespace(namespace string) []structs.InterfaceStats {
+func GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats {
 	result := []structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
 		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{namespace})
@@ -350,39 +355,18 @@ func GetLastTrafficStatsEntriesForNamespace(namespace string) []structs.Interfac
 			return err
 		}
 
-		serviceCursor := bucket.Cursor()
-		for serviceName, _ := serviceCursor.First(); serviceName != nil; serviceName, _ = serviceCursor.Next() {
-			serviceBucket := bucket.Bucket([]byte(serviceName))
-			if serviceBucket == nil {
-				return fmt.Errorf("Bucket '%s' not found.", serviceName)
-			}
-			entryCursor := serviceBucket.Cursor()
-			for k, v := entryCursor.First(); k != nil; k, v = entryCursor.Next() {
-				entry := structs.InterfaceStats{}
-				err := structs.UnmarshalInterfaceStats(&entry, v)
-				if err != nil {
-					return err
-				}
-				var newEntry bool = true
-				for i := 0; i < len(result); i++ {
-					if entry.PodName == result[i].PodName {
-						newEntry = false
-
-						if isFirstTimestampNewer(entry.CreatedAt, result[i].CreatedAt) {
-							result[i] = entry
-						}
-						break
-					}
-				}
-				if newEntry {
-					result = append(result, entry)
-				}
+		controllerCursor := bucket.Cursor()
+		for controllerName, _ := controllerCursor.First(); controllerName != nil; controllerName, _ = controllerCursor.Next() {
+			controller := kubernetes.NewK8sController("", string(controllerName), namespace)
+			entry := GetTrafficStatsEntrySumForController(controller)
+			if entry != nil {
+				result = append(result, *entry)
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetLastTrafficStatsEntriesForNamespace: %s", err.Error())
+		log.Errorf("GetTrafficStatsEntriesSumForNamespace: %s", err.Error())
 	}
 	return result
 }
@@ -484,22 +468,6 @@ func cleanupStats() {
 	if err != nil {
 		log.Errorf("cleanupStats: %s", err.Error())
 	}
-}
-
-func isFirstTimestampNewer(ts1, ts2 string) bool {
-	// Parse the timestamps using RFC 3339 format
-	t1, err := time.Parse(time.RFC3339, ts1)
-	if err != nil {
-		log.Error(fmt.Errorf("error parsing ts1: %w", err))
-	}
-
-	t2, err := time.Parse(time.RFC3339, ts2)
-	if err != nil {
-		log.Error(fmt.Errorf("error parsing ts2: %w", err))
-	}
-
-	// Check if the first timestamp is strictly newer than the second
-	return t1.After(t2)
 }
 
 func GetSubBuckets(bucket *bolt.Bucket, bucketNames []string) (*bolt.Bucket, error) {

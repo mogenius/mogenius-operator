@@ -191,13 +191,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return dbstats.GetTrafficStatsEntriesForController(data)
-	case structs.PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST:
+	case structs.PAT_STATS_TRAFFIC_FOR_CONTROLLER_SUM, structs.PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST:
 		data := kubernetes.K8sController{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return dbstats.GetLastTrafficStatsEntryForController(data)
+		return dbstats.GetTrafficStatsEntrySumForController(data)
 
 	case structs.PAT_STATS_TRAFFIC_FOR_POD_ALL:
 		data := StatsDataRequest{}
@@ -210,7 +210,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
 		}
 		return dbstats.GetTrafficStatsEntriesForController(*ctrl)
-	case structs.PAT_STATS_TRAFFIC_FOR_POD_LAST:
+	case structs.PAT_STATS_TRAFFIC_FOR_POD_SUM, structs.PAT_STATS_TRAFFIC_FOR_POD_LAST:
 		data := StatsDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -220,7 +220,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if ctrl == nil {
 			return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
 		}
-		return dbstats.GetLastTrafficStatsEntryForController(*ctrl)
+		return dbstats.GetTrafficStatsEntrySumForController(*ctrl)
 
 	case structs.PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL:
 		data := NsStatsDataRequest{}
@@ -243,13 +243,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return dbstats.GetTrafficStatsEntriesForNamespace(data.Namespace)
-	case structs.PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST:
+	case structs.PAT_STATS_TRAFFIC_FOR_NAMESPACE_SUM, structs.PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST:
 		data := NsStatsDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return dbstats.GetLastTrafficStatsEntriesForNamespace(data.Namespace)
+		return dbstats.GetTrafficStatsEntriesSumForNamespace(data.Namespace)
 
 	case structs.PAT_STATS_CHART_FOR_POD:
 		data := ChartPodDataRequest{}
@@ -1187,6 +1187,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
+		}
+		if datagram.Err != "" {
+			fmt.Println("Error in request: ", datagram.Err)
+			return datagram.Err
 		}
 		return K8sUpdateDeployment(data)
 	case structs.PAT_UPDATE_SERVICE:
