@@ -373,7 +373,6 @@ func CreateBuildJobInfo(image string, clone []byte, ls []byte, login []byte, bui
 	loginEntity := CreateBuildJobEntryFromData(login)
 	if !loginEntity.IsEmpty() {
 		loginEntity.Prefix = PrefixLogin
-		loginEntity.State = JobStatePending
 	}
 
 	buildEntity := CreateBuildJobEntryFromData(build)
