@@ -286,7 +286,6 @@ func (b BuildJobInfo) IsEmpty() bool {
 		b.FinishTime == "" &&
 		//
 		len(b.Tasks) == 0
-
 }
 
 type BuildPrefixEnum string
@@ -314,6 +313,20 @@ type BuildJobInfoEntry struct {
 	Result     string       `json:"result"`
 	StartTime  string       `json:"startTime"`
 	FinishTime string       `json:"finishTime"`
+}
+
+func (b BuildJobInfoEntry) IsEmpty() bool {
+	return b.Prefix == "" &&
+		b.BuildId == 0 &&
+		b.ProjectId == "" &&
+		b.Namespace == "" &&
+		b.Controller == "" &&
+		b.Container == "" &&
+		//
+		b.State == "" &&
+		b.Result == "" &&
+		b.StartTime == "" &&
+		b.FinishTime == ""
 }
 
 type BuildScanImageEntry struct {
@@ -358,9 +371,8 @@ func CreateBuildJobInfo(image string, clone []byte, ls []byte, login []byte, bui
 	}
 
 	loginEntity := CreateBuildJobEntryFromData(login)
-	if loginEntity.Prefix == "" {
+	if !loginEntity.IsEmpty() {
 		loginEntity.Prefix = PrefixLogin
-		loginEntity.State = JobStatePending
 	}
 
 	buildEntity := CreateBuildJobEntryFromData(build)
@@ -388,9 +400,12 @@ func CreateBuildJobInfo(image string, clone []byte, ls []byte, login []byte, bui
 	result.Tasks = []BuildJobInfoEntry{}
 	result.Tasks = append(result.Tasks, cloneEntity)
 	result.Tasks = append(result.Tasks, lsEntity)
-	result.Tasks = append(result.Tasks, loginEntity)
 	result.Tasks = append(result.Tasks, buildEntity)
 	result.Tasks = append(result.Tasks, pushEntity)
+
+	if !loginEntity.IsEmpty() {
+		result.Tasks = append(result.Tasks, loginEntity)
+	}
 
 	return result
 }
