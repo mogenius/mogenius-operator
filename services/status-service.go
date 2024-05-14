@@ -87,6 +87,7 @@ func ServiceStatusRequestExample() ServiceStatusRequest {
 }
 
 // BEGIN new status and messages
+
 type ServiceStatusKindType string
 
 const (
@@ -421,24 +422,42 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 
 func (r *ResourceItem) BuildJobStatus() *ServiceStatusType {
 	// When StatusObject is not nil, then type casting to structs.BuildJob
+	var success *bool
+	// var messages []ServiceStatusMessage
+
 	if r.StatusObject != nil {
-		if buildJob, ok := r.StatusObject.(structs.BuildJob); ok {
-			switch buildJob.State {
-			case structs.JobStateStarted, structs.JobStatePending:
-				status := ServiceStatusTypePending
-				return &status
-			case structs.JobStateSucceeded:
-				status := ServiceStatusTypeSuccess
-				return &status
-			case structs.JobStateFailed, structs.JobStateCanceled, structs.JobStateTimeout:
-				status := ServiceStatusTypeError
-				return &status
-			default:
-				status := ServiceStatusTypeUnkown
-				return &status
+		if buildJobInfo, ok := r.StatusObject.(structs.BuildJobInfo); ok {
+			for _, task := range buildJobInfo.Tasks {
+				switch task.State {
+				case structs.JobStateStarted, structs.JobStatePending:
+					status := ServiceStatusTypePending
+					return &status
+				case structs.JobStateSucceeded:
+					if success == nil {
+						success = new(bool)
+						*success = true
+					}
+				case structs.JobStateFailed, structs.JobStateCanceled, structs.JobStateTimeout:
+					// messages = append(messages, ServiceStatusMessage{
+					// 	Type:    ServiceStatusMessageTypeError,
+					// 	Message: fmt.Sprintf("BuildId '%d', step '%s' failed with state '%s'. Result:\n\n%s", buildJobInfo.BuildId, task.Prefix, task.State, task.Result),
+					// })
+
+					status := ServiceStatusTypeError
+					return &status
+				default:
+					status := ServiceStatusTypeUnkown
+					return &status
+				}
 			}
 		}
 	}
+
+	if success != nil {
+		status := ServiceStatusTypeSuccess
+		return &status
+	}
+
 	return nil
 }
 
@@ -802,7 +821,7 @@ func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kube
 }
 
 func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
-	lastJob := LastJobForNamespaceAndControllerName(namespace, name)
+	lastJob := LastBuildForNamespaceAndControllerName(namespace, name)
 	if lastJob.IsEmpty() {
 		return resourceItems, nil
 	}

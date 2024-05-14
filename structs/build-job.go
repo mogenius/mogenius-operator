@@ -269,6 +269,26 @@ type BuildJobInfo struct {
 	//Push  BuildJobInfoEntry `json:"push"`
 }
 
+func (b BuildJobInfo) IsEmpty() bool {
+	return b.BuildId == 0 &&
+		b.ProjectId == "" &&
+		b.Namespace == "" &&
+		b.Controller == "" &&
+		b.Container == "" &&
+		b.Image == "" &&
+		//
+		b.CommitHash == "" &&
+		b.CommitLink == "" &&
+		b.CommitAuthor == "" &&
+		b.CommitMessage == "" &&
+		//
+		b.StartTime == "" &&
+		b.FinishTime == "" &&
+		//
+		len(b.Tasks) == 0
+
+}
+
 type BuildPrefixEnum string
 
 const (
