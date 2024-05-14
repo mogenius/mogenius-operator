@@ -197,7 +197,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return dbstats.GetTrafficStatsEntrySumForController(data)
+		return dbstats.GetTrafficStatsEntrySumForController(data, false)
 
 	case structs.PAT_STATS_TRAFFIC_FOR_POD_ALL:
 		data := StatsDataRequest{}
@@ -220,7 +220,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if ctrl == nil {
 			return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
 		}
-		return dbstats.GetTrafficStatsEntrySumForController(*ctrl)
+		return dbstats.GetTrafficStatsEntrySumForController(*ctrl, false)
 
 	case structs.PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL:
 		data := NsStatsDataRequest{}

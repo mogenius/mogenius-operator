@@ -60,6 +60,18 @@ func UnmarshalInterfaceStats(dst *InterfaceStats, data []byte) error {
 	return nil
 }
 
+func UnmarshalInterfaceStatsWithoutSocketConnections(dst *InterfaceStats, data []byte) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(data, dst)
+	if err != nil {
+		return err
+	}
+
+	dst.SocketConnections = make(map[string]uint64)
+
+	return nil
+}
+
 func (data *InterfaceStats) ToBytes() []byte {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(data)

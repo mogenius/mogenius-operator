@@ -191,7 +191,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 	}
 }
 
-func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController) *structs.InterfaceStats {
+func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *structs.InterfaceStats {
 	result := &structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
 		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
@@ -201,7 +201,11 @@ func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController) *
 		c := bucket.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
 			entry := structs.InterfaceStats{}
-			err := structs.UnmarshalInterfaceStats(&entry, bucket.Get(k))
+			if includeSocketConnections {
+				err = structs.UnmarshalInterfaceStats(&entry, bucket.Get(k))
+			} else {
+				err = structs.UnmarshalInterfaceStatsWithoutSocketConnections(&entry, bucket.Get(k))
+			}
 			if err != nil {
 				return err
 			}
@@ -358,7 +362,7 @@ func GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.Interface
 		controllerCursor := bucket.Cursor()
 		for controllerName, _ := controllerCursor.First(); controllerName != nil; controllerName, _ = controllerCursor.Next() {
 			controller := kubernetes.NewK8sController("", string(controllerName), namespace)
-			entry := GetTrafficStatsEntrySumForController(controller)
+			entry := GetTrafficStatsEntrySumForController(controller, false)
 			if entry != nil {
 				result = append(result, *entry)
 			}
