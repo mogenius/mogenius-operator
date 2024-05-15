@@ -77,7 +77,10 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		Controller:  r.Service.ControllerName,
 		AppId:       "MISSING_FIELD",
 	}, &wg)
-	crds.AddAppKitToEnvironment(r.Namespace.Name, r.Service.ControllerName)
+	err := crds.AddAppKitToEnvironment(r.Namespace.Name, r.Service.ControllerName)
+	if err != nil {
+		log.Errorf("Error adding appkit to environment: %s", err.Error())
+	}
 
 	wg.Wait()
 	job.Finish()

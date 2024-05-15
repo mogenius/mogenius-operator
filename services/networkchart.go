@@ -227,10 +227,11 @@ func generateTree(data structs.InterfaceStats, controller kubernetes.K8sControll
 		"%s/%s", controller.Kind, controller.Name, data.Namespace, data.PodName)
 	subtitle := fmt.Sprintf(""+
 		"Packets Captured: %d\n"+
+		"Hosts:            %d\n"+
 		"Total Rx:         %s\n"+
 		"Total Tx:         %s\n"+
 		"Uptime:           %s",
-		data.PacketsSum, utils.BytesToHumanReadable(int64(data.ReceivedBytes)+int64(data.LocalReceivedBytes)+int64(data.ReceivedStartBytes)),
+		data.PacketsSum, len(data.SocketConnections), utils.BytesToHumanReadable(int64(data.ReceivedBytes)+int64(data.LocalReceivedBytes)+int64(data.ReceivedStartBytes)),
 		utils.BytesToHumanReadable(int64(data.TransmitBytes)+int64(data.LocalTransmitBytes)+int64(data.TransmitStartBytes)),
 		utils.JsonStringToHumanDuration(data.StartTime),
 	)

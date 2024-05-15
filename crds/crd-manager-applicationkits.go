@@ -24,6 +24,11 @@ func CreateOrUpdateApplicationKitCmd(job *structs.Job, namespace string, name st
 		err := CreateOrUpdateApplicationKit(namespace, name, newObj)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateOrUpdateApplicationKitCmd ERROR: %s", err.Error()))
+		}
+
+		err = AddAppKitToEnvironment(namespace, newObj.Controller)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("AddAppKitToEnvironment ERROR: %s", err.Error()))
 		} else {
 			cmd.Success(job, "Created/Updated CRDs ApplicationKit")
 		}
