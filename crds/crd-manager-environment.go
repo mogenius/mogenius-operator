@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func CreateEnvironmentCmd(job *structs.Job, namespace string, newObj CrdEnvironment, wg *sync.WaitGroup) {
+func CreateEnvironmentCmd(job *structs.Job, projectName string, namespace string, newObj CrdEnvironment, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("create", "Create CRDs for ApplicationKit", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
@@ -25,6 +25,11 @@ func CreateEnvironmentCmd(job *structs.Job, namespace string, newObj CrdEnvironm
 		err := CreateEnvironment(namespace, namespace, newObj)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateEnvironmentCmd ERROR: %s", err.Error()))
+		}
+
+		err = AddEnvironmentToProject(projectName, namespace)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("AddEnvironmentToProject ERROR: %s", err.Error()))
 		} else {
 			cmd.Success(job, "Created CRDs for ApplicationKit")
 		}
@@ -46,7 +51,7 @@ func UpdateEnvironmentCmd(job *structs.Job, namespace string, newObj CrdEnvironm
 	}(wg)
 }
 
-func DeleteEnvironmentCmd(job *structs.Job, namespace string, wg *sync.WaitGroup) {
+func DeleteEnvironmentCmd(job *structs.Job, projectName string, namespace string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", "Delete CRDs for Environment", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
@@ -54,8 +59,11 @@ func DeleteEnvironmentCmd(job *structs.Job, namespace string, wg *sync.WaitGroup
 		cmd.Start(job, "Deleting CRDs for Environment")
 		err := DeleteEnvironment(namespace, namespace)
 		if err != nil {
-			// cmd.Fail(job, fmt.Sprintf("DeleteEnvironmentKitCmd ERROR: %s", err.Error())) // ignore this until we migrate to the new system
 			cmd.Success(job, "Deleted CRDs for Environment")
+		}
+		err = RemoveEnvironmentFromProject(projectName, namespace)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("RemoveEnvironmentFromProject ERROR: %s", err.Error()))
 		} else {
 			cmd.Success(job, "Deleted CRDs for Environment")
 		}

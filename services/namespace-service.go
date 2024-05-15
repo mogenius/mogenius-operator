@@ -31,12 +31,11 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
 		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg)
 	}
-	crds.CreateEnvironmentCmd(job, r.Namespace.Name, crds.CrdEnvironment{
+	crds.CreateEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, crds.CrdEnvironment{
 		Id:          r.Namespace.Id,
 		DisplayName: r.Namespace.DisplayName,
 		CreatedBy:   "MISSING_FIELD",
 		Name:        r.Namespace.Name}, wg)
-	crds.AddEnvironmentToProject(r.Project.Name, r.Namespace.Name)
 }
 
 func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
@@ -46,8 +45,7 @@ func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
 	job.Start()
 	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
 
-	crds.DeleteEnvironmentCmd(job, r.Namespace.Name, &wg)
-	crds.RemoveEnvironmentFromProject(r.Project.Name, r.Namespace.Name)
+	crds.DeleteEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, &wg)
 
 	wg.Wait()
 	job.Finish()
