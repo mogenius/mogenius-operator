@@ -67,7 +67,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	}
 
 	if r.Service.HasContainerWithGitRepo() {
-		updateInfrastructureYaml(r.Service)
+		updateInfrastructureYaml(job, r.Service, &wg)
 	}
 
 	crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
@@ -281,42 +281,49 @@ func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 // 	return []*structs.Command{}
 // }
 
-func updateInfrastructureYaml(service dtos.K8sServiceDto) []*structs.Command {
-	// dont do this in local environment
-	if utils.CONFIG.Misc.Stage == "local" {
-		return []*structs.Command{}
-	}
+func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand("update", "Update infrastructure YAML", job)
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(job, "Update infrastructure YAML")
 
-	for _, container := range service.Containers {
-		if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
-			if container.GitRepository == nil {
-				log.Errorf("%s: GitRepository cannot be nil", service.ControllerName)
-				continue
-			}
-			if container.GitBranch == nil {
-				log.Errorf("%s: GitBranch cannot be nil", service.ControllerName)
-				continue
-			}
-			if container.SettingsYaml == nil {
-				log.Errorf("%s: SettingsYaml cannot be nil", service.ControllerName)
-				continue
-			}
-
-			tempDir := "/temp"
-			gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
-
-			punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
-			punqStructs.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
-
-			punqStructs.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
-
-			punqStructs.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, *container.GitBranch))
-			punqStructs.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
-			punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+		// dont do this in local environment
+		if utils.CONFIG.Misc.Stage == "local" {
+			cmd.Success(job, "Skipping infrastructure YAML update")
+			return
 		}
-	}
 
-	return []*structs.Command{}
+		for _, container := range service.Containers {
+			if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
+				if container.GitRepository == nil {
+					log.Errorf("%s: GitRepository cannot be nil", service.ControllerName)
+					continue
+				}
+				if container.GitBranch == nil {
+					log.Errorf("%s: GitBranch cannot be nil", service.ControllerName)
+					continue
+				}
+				if container.SettingsYaml == nil {
+					log.Errorf("%s: SettingsYaml cannot be nil", service.ControllerName)
+					continue
+				}
+
+				tempDir := "/temp"
+				gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
+
+				punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
+				punqStructs.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
+
+				punqStructs.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
+
+				punqStructs.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, *container.GitBranch))
+				punqStructs.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
+				punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+			}
+		}
+		cmd.Success(job, "Created/Updated CRDs ApplicationKit")
+	}(wg)
 }
 
 type ServiceDeleteRequest struct {
