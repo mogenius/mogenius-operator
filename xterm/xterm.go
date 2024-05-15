@@ -3,6 +3,7 @@ package xterm
 import (
 	"context"
 	"encoding/json"
+	"github.com/creack/pty"
 	"io"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -12,8 +13,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/creack/pty"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -288,27 +287,30 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 				// log.Errorf("Unable to read from websocket: %s", msg.Err.Error())
 				return
 			}
+			msgStr := string(msg.Data)
 
-			if string(msg.Data) == "PEER_IS_READY" {
+			if msgStr == "PEER_IS_READY" {
 				continue
 			}
 
 			if tty != nil {
-				if strings.HasPrefix(string(msg.Data), "\x04") {
-					str := strings.TrimPrefix(string(msg.Data), "\x04")
+				if strings.HasPrefix(msgStr, "\x04") {
+					str := strings.TrimPrefix(msgStr, "\x04")
 
-					var resizeMessage CmdWindowSize
-					err := json.Unmarshal([]byte(str), &resizeMessage)
-					if err != nil {
-						log.Errorf("Marshalling error %s", err.Error())
-						continue
-					}
+					colsExists := strings.Contains(str, "\"cols\":")
+					rowsExists := strings.Contains(str, "\"rows\":")
 
-					if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
-						log.Errorf("Unable to resize: %s", err.Error())
-						continue
+					if colsExists && rowsExists {
+						var resizeMessage CmdWindowSize
+						err := json.Unmarshal([]byte(str), &resizeMessage)
+						if err == nil {
+							if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
+								log.Errorf("Unable to resize: %s", err.Error())
+								continue
+							}
+							continue
+						}
 					}
-					continue
 				}
 
 				if cmdType != nil {
