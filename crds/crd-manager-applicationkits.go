@@ -16,7 +16,7 @@ import (
 )
 
 func CreateOrUpdateApplicationKitCmd(job *structs.Job, namespace string, name string, newObj CrdApplicationKit, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Create/Update CRDs for ApplicationKit", job)
+	cmd := structs.CreateCommand("create", "Update CRDs ApplicationKit", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -30,7 +30,7 @@ func CreateOrUpdateApplicationKitCmd(job *structs.Job, namespace string, name st
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("AddAppKitToEnvironment ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Created/Updated CRDs ApplicationKit")
+			cmd.Success(job, "Updated CRDs ApplicationKit")
 		}
 	}(wg)
 }

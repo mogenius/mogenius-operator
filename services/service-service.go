@@ -26,7 +26,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
@@ -312,17 +311,41 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 				tempDir := "/temp"
 				gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
 
-				punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
-				punqStructs.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
+				err := utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
+				if err != nil {
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					return
+				}
+				err = utils.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
+				if err != nil {
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					return
+				}
 
-				punqStructs.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
+				err = utils.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
+				if err != nil {
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					return
+				}
 
-				punqStructs.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, *container.GitBranch))
-				punqStructs.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
-				punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+				err = utils.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, *container.GitBranch))
+				if err != nil {
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					return
+				}
+				err = utils.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
+				if err != nil {
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					return
+				}
+				err = utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+				if err != nil {
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					return
+				}
 			}
 		}
-		cmd.Success(job, "Created/Updated CRDs ApplicationKit")
+		cmd.Success(job, "Update infrastructure YAML")
 	}(wg)
 }
 
