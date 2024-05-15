@@ -142,16 +142,20 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 					}
 				}
 			} else {
-				// create
-				_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: DEPLOYMENTNAME})
-				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Create Ingress ERROR: %s", err.Error()))
-					return
+				if len(ingressToUpdate.Spec.Rules) <= 0 {
+					ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+					cmd.Success(job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 				} else {
-					cmd.Success(job, fmt.Sprintf("Ingress '%s' created", ingressName))
+					// create
+					_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: DEPLOYMENTNAME})
+					if err != nil {
+						cmd.Fail(job, fmt.Sprintf("Create Ingress ERROR: %s", err.Error()))
+						return
+					} else {
+						cmd.Success(job, fmt.Sprintf("Ingress '%s' created", ingressName))
+					}
 				}
 			}
-
 		}
 	}(wg)
 }

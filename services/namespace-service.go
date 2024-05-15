@@ -19,8 +19,12 @@ func CreateNamespace(r NamespaceCreateRequest) *structs.Job {
 	job := structs.CreateJob("Create cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
 	job.Start()
 	CreateNamespaceCmds(job, r, &wg)
-	wg.Wait()
-	job.Finish()
+
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 
@@ -47,8 +51,11 @@ func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
 
 	crds.DeleteEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, &wg)
 
-	wg.Wait()
-	job.Finish()
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 
@@ -60,8 +67,12 @@ func ShutdownNamespace(r NamespaceShutdownRequest) *structs.Job {
 	mokubernetes.StopDeployment(job, r.Namespace, r.Service, &wg)
 	mokubernetes.DeleteService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
-	wg.Wait()
-	job.Finish()
+
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 

@@ -77,8 +77,10 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		AppId:       "MISSING_FIELD",
 	}, &wg)
 
-	wg.Wait()
-	job.Finish()
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
 
 	return job
 }
@@ -102,10 +104,10 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 
 	crds.DeleteApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, &wg)
 
-	wg.Wait()
-	job.Finish()
-
 	go func() {
+		wg.Wait()
+		job.Finish()
+
 		time.Sleep(10 * time.Second)
 		for _, container := range r.Service.Containers {
 			log.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
@@ -172,8 +174,11 @@ func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
 	job.Start()
 	mokubernetes.TriggerJobFromCronjob(job, r.NamespaceName, r.ControllerName, &wg)
 
-	wg.Wait()
-	job.Finish()
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 
@@ -191,8 +196,12 @@ func Restart(r ServiceRestartRequest) interface{} {
 
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
-	wg.Wait()
-	job.Finish()
+
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 
@@ -210,8 +219,12 @@ func StopService(r ServiceStopRequest) interface{} {
 
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
-	wg.Wait()
-	job.Finish()
+
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 
@@ -238,8 +251,12 @@ func StartService(r ServiceStartRequest) interface{} {
 	}
 
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
-	wg.Wait()
-	job.Finish()
+
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 
