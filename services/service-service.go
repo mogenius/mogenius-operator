@@ -479,6 +479,16 @@ func K8sDescribeRequestExample() K8sDescribeRequest {
 	}
 }
 
+type K8sUpdateNamespaceRequest struct {
+	Data *core.Namespace `json:"data" validate:"required"`
+}
+
+func K8sUpdateNamespaceRequestExample() K8sUpdateNamespaceRequest {
+	return K8sUpdateNamespaceRequest{
+		Data: nil,
+	}
+}
+
 type K8sUpdateDeploymentRequest struct {
 	Data *v1.Deployment `json:"data" validate:"required"`
 }

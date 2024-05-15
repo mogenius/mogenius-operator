@@ -254,6 +254,7 @@ const (
 	PAT_DESCRIBE_VOLUMESNAPSHOTS             string = "describe/volumesnapshots"
 	PAT_DESCRIBE_RESOURCEQUOTAS              string = "describe/resourcequotas"
 
+	PAT_UPDATE_NAMESPACE                   string = "update/namespace"
 	PAT_UPDATE_DEPLOYMENT                  string = "update/deployment"
 	PAT_UPDATE_SERVICE                     string = "update/service"
 	PAT_UPDATE_POD                         string = "update/pod"
@@ -628,6 +629,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_DESCRIBE_VOLUMESNAPSHOTS,
 	PAT_DESCRIBE_RESOURCEQUOTAS,
 
+	PAT_UPDATE_NAMESPACE,
 	PAT_UPDATE_DEPLOYMENT,
 	PAT_UPDATE_SERVICE,
 	PAT_UPDATE_POD,

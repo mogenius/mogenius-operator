@@ -1197,6 +1197,17 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return punq.DescribeK8sResourceQuota(data.NamespaceName, data.ResourceName, nil)
 
+	case structs.PAT_UPDATE_NAMESPACE:
+		data := K8sUpdateNamespaceRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		if datagram.Err != "" {
+			fmt.Println("Error in request: ", datagram.Err)
+			return datagram.Err
+		}
+		return K8sUpdateNamespace(data)
 	case structs.PAT_UPDATE_DEPLOYMENT:
 		data := K8sUpdateDeploymentRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
