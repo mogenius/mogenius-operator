@@ -26,10 +26,9 @@ type InterfaceStats struct {
 	SocketConnections  map[string]uint64 `json:"socketConnections"`
 }
 
-type InterfaceConnection struct {
-	Ip1       string `json:"ip1"`
-	Ip2       string `json:"ip2"`
-	PacketSum uint64 `json:"packetSum"`
+type SocketConnections struct {
+	LastUpdate  string            `json:"lastUpdate"`
+	Connections map[string]uint64 `json:"connections"`
 }
 
 func (data *InterfaceStats) Sum(dataToAdd *InterfaceStats) {
@@ -54,37 +53,16 @@ func (data *InterfaceStats) Sum(dataToAdd *InterfaceStats) {
 	}
 }
 
-func (data *InterfaceStats) UniqueIps() []string {
-	result := []string{}
-
-	for key, _ := range data.SocketConnections {
-		// split TCP-10.96.0.10:53-10.1.11.193:48013
-		pattern := `^(TCP|UDP)-([\d.]+):(\d+)-([\d.]+):(\d+)$`
-		re := regexp.MustCompile(pattern)
-		match := re.FindStringSubmatch(key)
-		if match == nil {
-			fmt.Println("No match found")
-			continue
-		}
-
-		// protocol := match[1]
-		srcIP := match[2]
-		// srcPort, _ := strconv.Atoi(match[3])
-		dstIP := match[4]
-		// dstPort, _ := strconv.Atoi(match[5])
-
-		if strings.HasPrefix(srcIP, "0.") || strings.HasPrefix(dstIP, "0.") {
-			continue
-		}
-
-		result = utils.AppendIfNotExist(result, srcIP)
-		result = utils.AppendIfNotExist(result, dstIP)
+func UnmarshalInterfaceStats(dst *InterfaceStats, data []byte) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(data, dst)
+	if err != nil {
+		return err
 	}
-
-	return result
+	return nil
 }
 
-func UnmarshalInterfaceStats(dst *InterfaceStats, data []byte) error {
+func UnmarshalSocketConnections(dst *SocketConnections, data []byte) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(data, dst)
 	if err != nil {
@@ -112,4 +90,34 @@ func (data *InterfaceStats) ToBytes() []byte {
 		return nil
 	}
 	return bytes
+}
+
+func (data *SocketConnections) UniqueIps() []string {
+	result := []string{}
+
+	for key, _ := range data.Connections {
+		// split TCP-10.96.0.10:53-10.1.11.193:48013
+		pattern := `^(TCP|UDP)-([\d.]+):(\d+)-([\d.]+):(\d+)$`
+		re := regexp.MustCompile(pattern)
+		match := re.FindStringSubmatch(key)
+		if match == nil {
+			fmt.Println("No match found")
+			continue
+		}
+
+		// protocol := match[1]
+		srcIP := match[2]
+		// srcPort, _ := strconv.Atoi(match[3])
+		dstIP := match[4]
+		// dstPort, _ := strconv.Atoi(match[5])
+
+		if strings.HasPrefix(srcIP, "0.") || strings.HasPrefix(dstIP, "0.") {
+			continue
+		}
+
+		result = utils.AppendIfNotExist(result, srcIP)
+		result = utils.AppendIfNotExist(result, dstIP)
+	}
+
+	return result
 }

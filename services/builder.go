@@ -521,7 +521,7 @@ func processLine(
 
 func applyErrorSuggestions(line string) string {
 	if strings.Contains(line, "Get \"https://mocr.local.mogenius.io/v2/\": tls: failed to verify certificate: x509: certificate is valid for") {
-		line = line + infoStr() + color.GreenString("✅  Please run 'mocli-dev cluster local-dev-setup' to prepare everything for local registries.\r\n✅  Make sure you have installed the Local Container Registry in the cluster settings.\r\n✅  Please restart your k8s-manager pod to retrieve the new certificate.")
+		line = line + infoStr() + color.GreenString("✅  Please run 'mocli cluster local-dev-setup' to prepare everything for local registries.\r\n✅  Make sure you have installed the Local Container Registry in the cluster settings.\r\n✅  Please restart your k8s-manager pod to retrieve the new certificate.")
 	}
 	return line
 }

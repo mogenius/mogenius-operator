@@ -366,15 +366,22 @@ func GatherNamesForIps(ips []string) map[string]string {
 
 outerLoop:
 	for _, ip := range ips {
+		owner := ""
 		for _, pod := range pods {
 			if pod.Status.PodIP == ip {
-				result[ip] = fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
+				if len(pod.OwnerReferences) > 0 {
+					owner = fmt.Sprintf("/%s/%s", pod.OwnerReferences[0].Kind, pod.OwnerReferences[0].Name)
+				}
+				result[ip] = fmt.Sprintf("%s/%s%s", pod.Namespace, pod.Name, owner)
 				continue outerLoop
 			}
 		}
 		for _, service := range services {
 			if service.Spec.ClusterIP == ip {
-				result[ip] = fmt.Sprintf("%s/%s", service.Namespace, service.Name)
+				if len(service.OwnerReferences) > 0 {
+					owner = fmt.Sprintf("/%s/%s", service.OwnerReferences[0].Kind, service.OwnerReferences[0].Name)
+				}
+				result[ip] = fmt.Sprintf("%s/%s%s", service.Namespace, service.Name, owner)
 				continue outerLoop
 			}
 		}

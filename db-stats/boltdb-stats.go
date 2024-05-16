@@ -14,13 +14,14 @@ import (
 )
 
 const (
-	DB_SCHEMA_VERSION = "2"
+	DB_SCHEMA_VERSION = "3"
 )
 
 const (
 	TRAFFIC_BUCKET_NAME    = "traffic-stats"
 	POD_STATS_BUCKET_NAME  = "pod-stats"
 	NODE_STATS_BUCKET_NAME = "node-stats"
+	SOCKET_STATS_BUCKET    = "socket-stats"
 )
 
 var dbStats *bolt.DB
@@ -71,9 +72,22 @@ func Init() {
 		log.Errorf("Error creating bucket ('%s'): %s", NODE_STATS_BUCKET_NAME, err)
 	}
 
+	// ### SOCKET STATS BUCKET ###
+	err = dbStats.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(SOCKET_STATS_BUCKET))
+		if err == nil {
+			log.Infof("Bucket '%s' created 🚀.", SOCKET_STATS_BUCKET)
+		}
+		return err
+	})
+	if err != nil {
+		log.Errorf("Error creating bucket ('%s'): %s", SOCKET_STATS_BUCKET, err)
+	}
+
 	log.Infof("bbold started 🚀 (Path: '%s')", dbPath)
 
 	go func() {
+		cleanupStats()
 		for range cleanupTimer.C {
 			cleanupStats()
 		}
@@ -114,6 +128,14 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 			controllerBucket.Delete(k)
 		}
 
+		// save socketConnections to separate bucket and remove from stats
+		socketBucket := tx.Bucket([]byte(SOCKET_STATS_BUCKET))
+		err = socketBucket.Put([]byte(stats.PodName), []byte(punqStructs.PrettyPrintString(cleanSocketConnections(stats.SocketConnections))))
+		if err != nil {
+			log.Errorf("Error adding socket connections for '%s': %s", stats.PodName, err.Error())
+		}
+		stats.SocketConnections = nil
+
 		// add new Entry
 		id, _ := controllerBucket.NextSequence() // auto increment
 		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
@@ -121,6 +143,39 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 	if err != nil {
 		log.Errorf("Error adding interface stats for '%s': %s", stats.Namespace, err.Error())
 	}
+}
+
+// Only save socket connections if more than 5 connections have been made
+func cleanSocketConnections(cons map[string]uint64) structs.SocketConnections {
+	result := structs.SocketConnections{}
+	result.Connections = make(map[string]uint64)
+	for k, v := range cons {
+		if v > 5 {
+			result.Connections[k] = v
+		}
+	}
+	result.LastUpdate = time.Now().Format(time.RFC3339)
+	return result
+
+}
+
+func GetSocketConnectionsForPod(podName string) structs.SocketConnections {
+	result := structs.SocketConnections{}
+	err := dbStats.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(SOCKET_STATS_BUCKET))
+		data := bucket.Get([]byte(podName))
+		if data != nil {
+			err := structs.UnmarshalSocketConnections(&result, data)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("GetSocketConnectionsForPod: %s", err.Error())
+	}
+	return result
 }
 
 func AddNodeStatsToDb(stats structs.NodeStats) {
@@ -467,6 +522,22 @@ func cleanupStats() {
 				}
 			}
 		}
+		// SOCKETS
+		bucketSockets := tx.Bucket([]byte(SOCKET_STATS_BUCKET))
+		bucketSockets.ForEach(func(k, v []byte) error {
+			entry := structs.SocketConnections{}
+			err := structs.UnmarshalSocketConnections(&entry, v)
+			if err != nil {
+				return fmt.Errorf("cleanupStatsSocketConnections: %s", err.Error())
+			}
+			if isMoreThan14DaysOld(entry.LastUpdate) {
+				err := bucketSockets.Delete(k)
+				if err != nil {
+					return fmt.Errorf("cleanupStatsSocketConnections: %s", err.Error())
+				}
+			}
+			return nil
+		})
 		return nil
 	})
 	if err != nil {

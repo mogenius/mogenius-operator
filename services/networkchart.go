@@ -221,7 +221,7 @@ func processDataPoints(data map[string]uint64) []DataPoint {
 	return result
 }
 
-func generateTree(data structs.InterfaceStats, controller kubernetes.K8sController) *charts.Tree {
+func generateTree(data structs.InterfaceStats, conData structs.SocketConnections, controller kubernetes.K8sController) *charts.Tree {
 	title := fmt.Sprintf(""+
 		"%s/%s\n"+
 		"%s/%s", controller.Kind, controller.Name, data.Namespace, data.PodName)
@@ -231,7 +231,7 @@ func generateTree(data structs.InterfaceStats, controller kubernetes.K8sControll
 		"Total Rx:         %s\n"+
 		"Total Tx:         %s\n"+
 		"Uptime:           %s",
-		data.PacketsSum, len(data.SocketConnections), utils.BytesToHumanReadable(int64(data.ReceivedBytes)+int64(data.LocalReceivedBytes)+int64(data.ReceivedStartBytes)),
+		data.PacketsSum, len(conData.Connections), utils.BytesToHumanReadable(int64(data.ReceivedBytes)+int64(data.LocalReceivedBytes)+int64(data.ReceivedStartBytes)),
 		utils.BytesToHumanReadable(int64(data.TransmitBytes)+int64(data.LocalTransmitBytes)+int64(data.TransmitStartBytes)),
 		utils.JsonStringToHumanDuration(data.StartTime),
 	)
@@ -247,7 +247,7 @@ func generateTree(data structs.InterfaceStats, controller kubernetes.K8sControll
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
-	dataPoints := processDataPoints(data.SocketConnections)
+	dataPoints := processDataPoints(conData.Connections)
 
 	myTree := generateTreeFromData(data.Namespace, controller.Name, dataPoints)
 
@@ -279,8 +279,9 @@ func RenderPodNetworkTreePageJson(namespace string, podName string) map[string]i
 	if stats == nil {
 		return map[string]interface{}{"error": fmt.Sprintf("could not find stats for pod %s in namespace %s", podName, namespace)}
 	}
+	connections := dbstats.GetSocketConnectionsForPod(podName)
 
-	tree := generateTree(*stats, *ctrl)
+	tree := generateTree(*stats, connections, *ctrl)
 	page := components.NewPage()
 	page.AddCharts(
 		tree,
@@ -298,13 +299,14 @@ func RenderPodNetworkTreePageHtml(namespace string, podName string) string {
 	if stats == nil {
 		return fmt.Sprintf("could not find stats for pod %s in namespace %s", podName, namespace)
 	}
+	connections := dbstats.GetSocketConnectionsForPod(podName)
 
 	// TODO: FINALIZE
-	ips := stats.UniqueIps()
+	ips := connections.UniqueIps()
 	mapping := kubernetes.GatherNamesForIps(ips)
-	log.Println(mapping)
+	log.Printf("ip mappings: %s", mapping)
 
-	tree := generateTree(*stats, *ctrl)
+	tree := generateTree(*stats, connections, *ctrl)
 	page := components.NewPage()
 	page.AddCharts(
 		tree,
