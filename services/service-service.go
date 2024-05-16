@@ -344,7 +344,7 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
 					return
 				}
-
+				
 				err = utils.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml." ; git reset --soft HEAD~1`, gitDir, *container.GitBranch))
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
