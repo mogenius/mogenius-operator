@@ -449,7 +449,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return DeleteProject(data)
-
+	case structs.PAT_PROJECT_LIST:
+		return ListProject()
+	case structs.PAT_PROJECT_COUNT:
+		return CountProject()
 	case structs.PAT_NAMESPACE_CREATE:
 		data := NamespaceCreateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

@@ -194,6 +194,23 @@ func ListProjects() (project []CrdProject, projectRaw *unstructured.Unstructured
 	return result, projects, err
 }
 
+func CountProject() (count int, err error) {
+	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		return 0, err
+	}
+
+	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
+	projects, err := provider.ClientSet.Resource(projectsGVR).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		log.Errorf("Error getting project: %s", err.Error())
+		return 0, err
+	}
+
+	return len(projects.Items), err
+}
+
 func AddEnvironmentToProject(name string, environmentName string) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {

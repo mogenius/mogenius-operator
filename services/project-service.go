@@ -36,3 +36,19 @@ func DeleteProject(r ProjectDeleteRequest) *structs.Job {
 	job.Finish()
 	return job
 }
+
+func ListProject() []crds.CrdProject {
+	project, _, err := crds.ListProjects()
+	if err != nil {
+		return []crds.CrdProject{}
+	}
+	return project
+}
+
+func CountProject() int {
+	count, err := crds.CountProject()
+	if err != nil {
+		return 0
+	}
+	return count
+}
