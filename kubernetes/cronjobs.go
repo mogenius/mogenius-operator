@@ -151,13 +151,18 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 
 		newCronJob := newController.(*v1job.CronJob)
 
-		updateOptions := metav1.UpdateOptions{
-			FieldManager: DEPLOYMENTNAME,
-		}
-
-		_, err = cronJobClient.Update(context.TODO(), newCronJob, updateOptions)
+		_, err = cronJobClient.Update(context.TODO(), newCronJob, MoUpdateOptions())
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("UpdatingCronJob ERROR: %s", err.Error()))
+			if apierrors.IsNotFound(err) {
+				_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions())
+				if err != nil {
+					cmd.Fail(job, fmt.Sprintf("CreateCronJob ERROR: %s", err.Error()))
+				} else {
+					cmd.Success(job, "Created CronJob")
+				}
+			} else {
+				cmd.Fail(job, fmt.Sprintf("Updating CronJob ERROR: %s", err.Error()))
+			}
 		} else {
 			cmd.Success(job, "Updating CronJob")
 		}
