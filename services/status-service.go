@@ -489,14 +489,22 @@ func (r *ResourceItem) CronJobStatus() (*ServiceStatusType, bool) {
 func (r *ResourceItem) JobStatus() *ServiceStatusType {
 	if r.StatusObject != nil {
 		if jobStatus, ok := r.StatusObject.(batchv1.JobStatus); ok {
-			if jobStatus.Active > 0 {
-				status := ServiceStatusTypePending
-				return &status
-			}
 			if jobStatus.Failed > 0 {
 				status := ServiceStatusTypeError
 				return &status
 			}
+
+			active := jobStatus.Active
+			ready := *jobStatus.Ready
+			if active != ready {
+				status := ServiceStatusTypePending
+				return &status
+			}
+			if active == ready || jobStatus.Succeeded > 0 {
+				status := ServiceStatusTypeSuccess
+				return &status
+			}
+
 			status := ServiceStatusTypeUnkown
 			return &status
 		}
