@@ -111,6 +111,7 @@ func (data *SocketConnections) UniqueIps() []string {
 		dstIP := match[4]
 		// dstPort, _ := strconv.Atoi(match[5])
 
+		// filter strange IPs
 		if strings.HasPrefix(srcIP, "0.") || strings.HasPrefix(dstIP, "0.") {
 			continue
 		}
