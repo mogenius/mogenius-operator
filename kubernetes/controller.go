@@ -158,8 +158,9 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 				if imgName != "" {
 					specTemplate.Spec.Containers[index].Image = imgName
 				} else {
-					log.Errorf("No image found for '%s/%s'!!!", namespace.Name, container.Name)
-					return nil, fmt.Errorf("No image found for '%s/%s'. Maybe the build failed or is still running.", namespace.Name, container.Name)
+					imgErr := fmt.Errorf("No image found for '%s/%s'. Maybe the build failed or is still running.", namespace.Name, container.Name)
+					log.Errorf(imgErr.Error())
+					return nil, imgErr
 				}
 			}
 		}
@@ -252,7 +253,9 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 func imageNameForContainer(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, container dtos.K8sContainerDto) string {
 	if container.Type == dtos.CONTAINER_GIT_REPOSITORY {
 		lastBuild := db.GetLastBuildJobInfosFromDb(structs.BuildTaskRequest{Namespace: namespace.Name, Controller: service.ControllerName, Container: container.Name})
-		return lastBuild.Image
+		if lastBuild.FinishTime != "" {
+			return lastBuild.Image
+		}
 	}
 	return ""
 }

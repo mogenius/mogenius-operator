@@ -42,6 +42,8 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, true, deploymentClient, createDeploymentHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
+			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
+			return
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
@@ -103,6 +105,8 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
+			cmd.Fail(job, fmt.Sprintf("UpdateDeployment ERROR: %s", err.Error()))
+			return
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
@@ -144,6 +148,8 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
+			cmd.Fail(job, fmt.Sprintf("StartDeployment ERROR: %s", err.Error()))
+			return
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
@@ -174,6 +180,8 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
+			cmd.Fail(job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
+			return
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
@@ -207,6 +215,8 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
+			cmd.Fail(job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
+			return
 		}
 
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
