@@ -1038,7 +1038,7 @@ func UpgradeTrafficCollector() string {
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
 		HelmChartName:   "mogenius/" + utils.HelmReleaseNameTrafficCollector,
-		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s -n %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage, utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        structs.HelmUpgrade,
 	}
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
@@ -1074,7 +1074,7 @@ func UpgradePodStatsCollector() string {
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
 		HelmChartName:   "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
-		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s -n %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage, utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        structs.HelmUpgrade,
 	}
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
