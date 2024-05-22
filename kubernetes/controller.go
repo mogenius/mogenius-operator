@@ -241,7 +241,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 	}
 
 	// IMAGE PULL SECRET
-	if ContainerSecretDoesExistForStage(namespace) && service.GetImageRepoSecretDecryptValue() != nil {
+	if ContainerSecretDoesExistForStage(namespace) {
 		containerSecretName := "container-secret-" + namespace.Name
 		specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
 		specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{Name: containerSecretName})

@@ -184,7 +184,7 @@ func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
 
 func Restart(r ServiceRestartRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
+	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
 	switch r.Service.Controller {
@@ -231,7 +231,7 @@ func StopService(r ServiceStopRequest) interface{} {
 func StartService(r ServiceStartRequest) interface{} {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Start Service "+r.Service.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
+	job := structs.CreateJob("Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
 	switch r.Service.Controller {
@@ -344,7 +344,7 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
 					return
 				}
-				
+
 				err = utils.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml." ; git reset --soft HEAD~1`, gitDir, *container.GitBranch))
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
@@ -850,14 +850,14 @@ func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
 }
 
 type ServiceRestartRequest struct {
-	ProjectId string               `json:"projectId" validate:"required"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func ServiceRestartRequestExample() ServiceRestartRequest {
 	return ServiceRestartRequest{
-		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Project:   dtos.K8sProjectDtoExampleData(),
 		Namespace: dtos.K8sNamespaceDtoExampleData(),
 		Service:   dtos.K8sServiceDtoExampleData(),
 	}
@@ -878,14 +878,14 @@ func ServiceStopRequestExample() ServiceStopRequest {
 }
 
 type ServiceStartRequest struct {
-	ProjectId string               `json:"projectId" validate:"required"`
+	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
 func ServiceStartRequestExample() ServiceStartRequest {
 	return ServiceStartRequest{
-		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		Project:   dtos.K8sProjectDtoExampleData(),
 		Namespace: dtos.K8sNamespaceDtoExampleData(),
 		Service:   dtos.K8sServiceDtoExampleData(),
 	}
