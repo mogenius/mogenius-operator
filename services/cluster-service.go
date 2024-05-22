@@ -726,13 +726,14 @@ type NfsStatusRequest struct {
 }
 
 type NfsStatusResponse struct {
-	VolumeName string                `json:"volumeName"`
-	TotalBytes uint64                `json:"totalBytes"`
-	FreeBytes  uint64                `json:"freeBytes"`
-	UsedBytes  uint64                `json:"usedBytes"`
-	Status     VolumeStatusType      `json:"status"`
-	Messages   []VolumeStatusMessage `json:"messages,omitempty"`
-	UsedByPods []string              `json:"usedByPods,omitempty"`
+	VolumeName    string                `json:"volumeName"`
+	NamespaceName string                `json:"namespaceName"`
+	TotalBytes    uint64                `json:"totalBytes"`
+	FreeBytes     uint64                `json:"freeBytes"`
+	UsedBytes     uint64                `json:"usedBytes"`
+	Status        VolumeStatusType      `json:"status"`
+	Messages      []VolumeStatusMessage `json:"messages,omitempty"`
+	UsedByPods    []string              `json:"usedByPods,omitempty"`
 }
 
 var keplerHostAndPort string = ""

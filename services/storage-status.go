@@ -109,6 +109,10 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 		UsedBytes:  0,
 	}
 
+	if r.Namespace != "" {
+		nfsStatusResponse.NamespaceName = r.Namespace
+	}
+
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		log.Warningf("Warning: %s", err.Error())
@@ -151,6 +155,9 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 		// check pv and pvc
 		bounded := false
 		if s.PersistentVolumeClaim != nil && s.PersistentVolume != nil {
+
+			v.NamespaceName = s.PersistentVolumeClaim.Namespace
+
 			// pv phase 'failed or pvc phase 'lost'
 			notOk := false
 			notOk = notOk || s.PersistentVolume.Status.Phase == v1.VolumeFailed
