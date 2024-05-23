@@ -702,6 +702,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
+		data.AddSecretsToRedaction()
 		go scanImageLogStreamConnection(data)
 		return nil
 	case structs.PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST:

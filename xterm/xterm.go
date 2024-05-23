@@ -3,7 +3,6 @@ package xterm
 import (
 	"context"
 	"encoding/json"
-	"github.com/creack/pty"
 	"io"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/creack/pty"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -62,6 +63,11 @@ type ScanImageLogConnectionRequest struct {
 	ContainerRegistryPat  string `json:"containerRegistryPat"`
 
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+}
+
+func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
+	utils.AddSecret(&p.ContainerRegistryUser)
+	utils.AddSecret(&p.ContainerRegistryPat)
 }
 
 type ClusterToolConnectionRequest struct {

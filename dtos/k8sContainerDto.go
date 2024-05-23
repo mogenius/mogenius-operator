@@ -2,6 +2,7 @@ package dtos
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mogenius/punq/utils"
 )
@@ -32,13 +33,32 @@ type K8sContainerDto struct {
 	SettingsYaml                         *string               `json:"settingsYaml,omitempty"`
 }
 
-func (k *K8sContainerDto) GetInjectDockerEnvVars() string {
+func (k *K8sContainerDto) GetInjectDockerEnvVars(buildId uint64, gitTag string) string {
+	gitTag = strings.ReplaceAll(gitTag, "\n", "")
 	result := ""
 	for _, v := range k.EnvVars {
 		if v.Type == EnvVarPlainText || v.Type == EnvVarKeyVault {
-			result += fmt.Sprintf("--build-arg %s=%s ", v.Name, v.Value)
+			result += fmt.Sprintf("--build-arg %s=\"%s\" ", v.Name, v.Value)
 		}
 	}
+	result += fmt.Sprintf("--build-arg MO_BUILD_ID=\"%d\" ", buildId)
+	result += fmt.Sprintf("--build-arg MO_GIT_TAG=\"%s\" ", gitTag)
+	result += fmt.Sprintf("--build-arg MO_GIT_COMMIT_HASH=\"%s\" ", *k.GitCommitHash)
+	result += fmt.Sprintf("--build-arg MO_GIT_COMMIT_AUTHOR=\"%s\" ", *k.GitCommitAuthor)
+	result += fmt.Sprintf("--build-arg MO_GIT_COMMIT_MESSAGE=\"%s\" ", *k.GitCommitMessage)
+	result += fmt.Sprintf("--build-arg MO_GIT_BRANCH=\"%s\" ", *k.GitBranch)
+	return result
+}
+
+func (k *K8sContainerDto) AvailableDockerBuildArgs(buildId uint64, gitTag string) string {
+	gitTag = strings.ReplaceAll(gitTag, "\n", "")
+	result := ""
+	result += fmt.Sprintf("MO_BUILD_ID=%d\n", buildId)
+	result += fmt.Sprintf("MO_GIT_TAG=%s\n", gitTag)
+	result += fmt.Sprintf("MO_GIT_COMMIT_HASH=%s\n", *k.GitCommitHash)
+	result += fmt.Sprintf("MO_GIT_COMMIT_AUTHOR=%s\n", *k.GitCommitAuthor)
+	result += fmt.Sprintf("MO_GIT_COMMIT_MESSAGE=%s\n", *k.GitCommitMessage)
+	result += fmt.Sprintf("MO_GIT_BRANCH=%s\n", *k.GitBranch)
 	return result
 }
 
