@@ -1572,16 +1572,16 @@ if type dive >/dev/null 2>&1; then
 else
 	DIVE_VERSION=$(curl -sL "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
 	if [ "${GOARCH}" = "amd64" ]; then
-		curl -OL https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.tar.gz
+		curl -o dive.tar.gz -L https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.tar.gz
 	elif [ "${GOARCH}" = "arm64" ]; then
-		curl -OL https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_arm64.tar.gz
+		curl -o dive.tar.gz -L https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_arm64.tar.gz
 	else
 		echo "Unsupported architecture";
 	fi
-	tar -xf dive_${DIVE_VERSION}_linux_amd64.tar.gz dive
+	tar -xf dive.tar.gz dive
 	chmod +x dive
 	mv dive /usr/local/bin/dive
-	rm dive_${DIVE_VERSION}_linux_amd64.tar.gz
+	rm dive.tar.gz
 	echo "dive is installed. 🚀"
 fi
 
@@ -1599,18 +1599,18 @@ if type k9s >/dev/null 2>&1; then
 else
 	K9S_VERSION=$(curl -sL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
 	if [ "${GOARCH}" = "amd64" ]; then
-		curl -OL https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_amd64.tar.gz
+		curl -o k9s.tar.gz -L https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_amd64.tar.gz
 	elif [ "${GOARCH}" = "arm64" ]; then
-		curl -OL https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_arm64.tar.gz
+		curl -o k9s.tar.gz -L https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_arm64.tar.gz
 	elif [ "${GOARCH}" = "arm" ]; then
-		curl -OL https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_armv7.tar.gz
+		curl -o k9s.tar.gz -L https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_armv7.tar.gz
 	else
 		echo "Unsupported architecture";
 	fi
-	tar -xf k9s_Linux_amd64.tar.gz k9s
+	tar -xf k9s.tar.gz k9s
 	chmod +x k9s
 	mv k9s /usr/local/bin/k9s
-	rm k9s_Linux_amd64.tar.gz
+	rm k9s.tar.gz
 	echo "k9s is installed. 🚀"
 fi
 
