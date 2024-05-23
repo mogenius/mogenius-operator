@@ -118,8 +118,9 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			// 	config.Annotations["nginx.ingress.kubernetes.io/permanent-redirect"] = *redirectTo
 			// }
 
+			// was not needed anymore. can be remove in a while
 			// BEFORE UPDATING INGRESS WE SETUP THE CERTIFICATES FOR ALL HOSTNAMES
-			UpdateNamespaceCertificate(namespace.Name, tlsHosts)
+			// UpdateNamespaceCertificate(namespace.Name, tlsHosts)
 
 			// update
 			if existingIngress != nil {
