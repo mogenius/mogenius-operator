@@ -122,7 +122,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		}
 
 		// DELETE FIRST IF TO MANY DATA POINTS
-		if controllerBucket.Stats().KeyN > utils.CONFIG.Builder.MaxDataPoints {
+		if controllerBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()
 			controllerBucket.Delete(k)
@@ -190,7 +190,7 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 		}
 
 		// DELETE FIRST IF TO MANY DATA POINTS
-		if nodeBucket.Stats().KeyN > utils.CONFIG.Builder.MaxDataPoints {
+		if nodeBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
 			c := nodeBucket.Cursor()
 			k, _ := c.First()
 			nodeBucket.Delete(k)
@@ -231,7 +231,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		}
 
 		// DELETE FIRST IF TO MANY DATA POINTS
-		if controllerBucket.Stats().KeyN > utils.CONFIG.Builder.MaxDataPoints {
+		if controllerBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()
 			controllerBucket.Delete(k)
@@ -264,10 +264,17 @@ func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, i
 			if err != nil {
 				return err
 			}
+			// initialize result
 			if result.PodName == "" {
 				result = &entry
-			} else {
+			}
+			if result.PodName != entry.PodName {
+				// everytime the podName changes, sum up the values
 				result.Sum(&entry)
+				result.PodName = entry.PodName
+			} else {
+				// if the podName is the same, replace the values because it will be newer
+				result.Replace(&entry)
 			}
 		}
 		return nil
@@ -275,6 +282,7 @@ func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, i
 	if err != nil {
 		log.Errorf("GetTrafficStatsEntrySumForController: %s", err.Error())
 	}
+	result.PrintInfo()
 	return result
 }
 

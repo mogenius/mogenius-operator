@@ -385,16 +385,8 @@ func executeCmd(job *structs.Job, reportCmd *structs.Command, prefix structs.Bui
 		reportCmd.Start(job, reportCmd.Message)
 	}
 
-	// Prioritize the command to 10 (which is lower the default 0)
-	// this means the command will get execution time after the paret process
-	// arg = append([]string{"nice -n 10"}, arg...)
-
-	// TIMESTAMP EVERY LINE
-	// if utils.CONFIG.Misc.Stage != utils.STAGE_LOCAL {
-	// 	// PREFIX LINE BUFFER (otherwise the timestamp will be set only in the first line)
-	// 	arg[len(arg)-1] = fmt.Sprintf("%s %s", "stdbuf -oL", arg[len(arg)-1])
-	// }
-	// arg[len(arg)-1] = fmt.Sprintf("%s %s", arg[len(arg)-1], `| while IFS= read -r line; do printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$line"; done`)
+	// give the system a little time to breathe (this is for the job start event to be sent)
+	time.Sleep(100 * time.Millisecond)
 
 	cmd := exec.CommandContext(*timeoutCtx, name, arg...)
 

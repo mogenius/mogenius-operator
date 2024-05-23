@@ -28,7 +28,7 @@ type ClusterSecret struct {
 	IgnoredNamespaces  []string
 }
 
-const CONFIGVERSION = 1
+const CONFIGVERSION = 2
 
 const STAGE_PRE_DEV = "pre-dev"
 const STAGE_DEV = "dev"
@@ -91,7 +91,6 @@ type Config struct {
 	Builder struct {
 		BuildTimeout        int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
 		ScanTimeout         int `yaml:"max_scan_time" env:"max_build_time" env-description:"Seconds until the vulnerability scan will be canceled." env-default:"200"`
-		MaxDataPoints       int `yaml:"max_data_points" env:"max_data_points" env-description:"After x data points to collection will be overwritten LIFO principle." env-default:"1000"`
 		MaxConcurrentBuilds int `yaml:"max_concurrent_builds" env:"max_concurrent_builds" env-description:"Number of concurrent builds." env-default:"1"`
 	} `yaml:"builder"`
 	Git struct {
@@ -100,6 +99,9 @@ type Config struct {
 		GitDefaultBranch  string `yaml:"git_default_branch" env:"git_default_branch" env-description:"Default branch name which is used when creating a repository." env-default:"main"`
 		GitAddIgnoredFile string `yaml:"git_add_ignored_file" env:"git_add_ignored_file" env-description:"Gits behaviour when adding ignored files." env-default:"false"`
 	} `yaml:"git"`
+	Stats struct {
+		MaxDataPoints int `yaml:"max_data_points" env:"max_data_points" env-description:"After x data points in bucket will be overwritten LIFO principle." env-default:"1000"`
+	} `yaml:"stats"`
 }
 
 var DefaultConfigLocalFile string
@@ -290,7 +292,6 @@ func PrintSettings() {
 	log.Infof("BUILDER")
 	log.Infof("BuildTimeout:              %d", CONFIG.Builder.BuildTimeout)
 	log.Infof("ScanTimeout:               %d", CONFIG.Builder.ScanTimeout)
-	log.Infof("MaxDataPoints:             %d", CONFIG.Builder.MaxDataPoints)
 	log.Infof("MaxConcurrentBuilds:       %d\n\n", CONFIG.Builder.MaxConcurrentBuilds)
 
 	log.Infof("GIT")
@@ -298,6 +299,9 @@ func PrintSettings() {
 	log.Infof("GitUserName:               %s", CONFIG.Git.GitUserName)
 	log.Infof("GitDefaultBranch:          %s", CONFIG.Git.GitDefaultBranch)
 	log.Infof("GitAddIgnoredFile:         %s\n\n", CONFIG.Git.GitAddIgnoredFile)
+
+	log.Infof("STATS")
+	log.Infof("MaxDataPoints:             %d\n\n", CONFIG.Stats.MaxDataPoints)
 
 	log.Infof("Config:                    %s\n\n", ConfigPath)
 }

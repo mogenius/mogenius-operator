@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
+	punq "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type InterfaceStats struct {
@@ -40,17 +42,21 @@ func (data *InterfaceStats) Sum(dataToAdd *InterfaceStats) {
 	data.LocalReceivedBytes += dataToAdd.LocalReceivedBytes
 	data.TransmitStartBytes += dataToAdd.TransmitStartBytes
 	data.ReceivedStartBytes += dataToAdd.ReceivedStartBytes
+}
 
-	// Merge socket connections
-	for key, newValue := range dataToAdd.SocketConnections {
-		//value, _ := data.SocketConnections[key]
-		data.SocketConnections[key] = newValue
-	}
+func (data *InterfaceStats) Replace(dataToAdd *InterfaceStats) {
+	data.PacketsSum = dataToAdd.PacketsSum
+	data.TransmitBytes = dataToAdd.TransmitBytes
+	data.ReceivedBytes = dataToAdd.ReceivedBytes
+	data.UnknownBytes = dataToAdd.UnknownBytes
+	data.LocalTransmitBytes = dataToAdd.LocalTransmitBytes
+	data.LocalReceivedBytes = dataToAdd.LocalReceivedBytes
+	data.TransmitStartBytes = dataToAdd.TransmitStartBytes
+	data.ReceivedStartBytes = dataToAdd.ReceivedStartBytes
+}
 
-	// overwrite start time to determine the earliest start time
-	if utils.IsFirstTimestampNewer(dataToAdd.StartTime, data.StartTime) {
-		data.StartTime = dataToAdd.StartTime
-	}
+func (data *InterfaceStats) PrintInfo() {
+	log.Infof("%s -> Packets: %d, Send: %s | Received %s\n", data.PodName, data.PacketsSum, punq.BytesToHumanReadable(int64(data.TransmitBytes+data.TransmitStartBytes+data.LocalTransmitBytes)), punq.BytesToHumanReadable(int64(data.ReceivedBytes+data.ReceivedStartBytes+data.LocalReceivedBytes)))
 }
 
 func UnmarshalInterfaceStats(dst *InterfaceStats, data []byte) error {
