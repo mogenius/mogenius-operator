@@ -188,6 +188,10 @@ func Restart(r ServiceRestartRequest) interface{} {
 	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
+	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
+		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
+	}
+
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
 		mokubernetes.RestartDeployment(job, r.Namespace, r.Service, &wg)
@@ -234,6 +238,13 @@ func StartService(r ServiceStartRequest) interface{} {
 
 	job := structs.CreateJob("Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
+
+	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
+		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
+	}
+	if r.Service.GetImageRepoSecretDecryptValue() != nil {
+		mokubernetes.CreateOrUpdateContainerSecretForService(job, r.Project, r.Namespace, r.Service, &wg)
+	}
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
