@@ -56,11 +56,11 @@ func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 }
 
 func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Delete Application", job)
+	cmd := structs.CreateCommand("delete", "Delete Service", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting Application")
+		cmd.Start(job, "Deleting Service")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -73,10 +73,10 @@ func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		UpdateTcpUdpPorts(namespace, service, false)
 
 		err = serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteApplication ERROR: %s", err.Error()))
+		if err != nil && !apierrors.IsNotFound(err) {
+			cmd.Fail(job, fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Deleted Application")
+			cmd.Success(job, "Deleted Service")
 		}
 	}(wg)
 }
