@@ -4,27 +4,35 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/structs"
 	"sync"
+	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/retry"
 )
 
-func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create NetworkPolicy namespace", job)
+func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand("create", "Create NetworkPolicy namespace", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", namespace.Name))
+		cmd.Start(job, "Creating NetworkPolicy")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
@@ -35,106 +43,186 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 		netpol.Spec.PodSelector.MatchLabels["ns"] = namespace.Name
 		netpol.Spec.Ingress[0].From[0].PodSelector.MatchLabels["ns"] = namespace.Name
 
-		netpol.Labels = MoUpdateLabels(&netpol.Labels, job.ProjectId, &namespace, nil)
+		netpol.Labels = MoUpdateLabels(&netpol.Labels, nil, nil, nil)
 
 		_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", namespace.Name))
+			cmd.Success(job, "Created NetworkPolicy")
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete NetworkPolicy.", job)
+func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand("delete", "Delete NetworkPolicy.", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", namespace.Name))
+		cmd.Start(job, "Delete NetworkPolicy")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 
 		err = netPolClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", namespace.Name))
+			cmd.Success(job, "Delete NetworkPolicy")
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func CreateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Create NetworkPolicy Service", job)
+func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand("create", "Create NetworkPolicy Service", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Creating NetworkPolicy '%s'.", service.Name))
+		cmd.Start(job, "Creating NetworkPolicy")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 		netpol := punqUtils.InitNetPolService()
-		netpol.ObjectMeta.Name = service.Name
+		netpol.ObjectMeta.Name = service.ControllerName
 		netpol.ObjectMeta.Namespace = namespace.Name
 		netpol.Spec.Ingress[0].Ports = []v1.NetworkPolicyPort{} //reset before using
 
-		for _, aPort := range service.Ports {
-			if aPort.Expose {
-				port := intstr.FromInt(aPort.InternalPort)
-				proto := v1Core.ProtocolTCP // default
-				if aPort.PortType == dtos.PortTypeUDP {
-					proto = v1Core.ProtocolUDP
+		for _, container := range service.Containers {
+			for _, aPort := range container.Ports {
+				if aPort.Expose {
+					port := intstr.FromInt(aPort.InternalPort)
+					proto := v1Core.ProtocolTCP // default
+					if aPort.PortType == dtos.PortTypeUDP {
+						proto = v1Core.ProtocolUDP
+					}
+					netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
+						Port: &port, Protocol: &proto,
+					})
 				}
-				netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
-					Port: &port, Protocol: &proto,
-				})
 			}
 		}
-		netpol.Spec.PodSelector.MatchLabels["app"] = service.Name
+		netpol.Spec.PodSelector.MatchLabels["app"] = service.ControllerName
 
-		netpol.Labels = MoUpdateLabels(&netpol.Labels, job.ProjectId, &namespace, &service)
+		netpol.Labels = MoUpdateLabels(&netpol.Labels, nil, nil, &service)
 
 		_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
+			if apierrors.IsAlreadyExists(err) {
+				cmd.Success(job, fmt.Sprintf("NetworkPolicy already exists '%s'.", service.ControllerName))
+			} else {
+				cmd.Fail(job, fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
+			}
 		} else {
-			cmd.Success(fmt.Sprintf("Created NetworkPolicy '%s'.", service.Name))
+			cmd.Success(job, "Created NetworkPolicy")
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
 }
 
-func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) *structs.Command {
-	cmd := structs.CreateCommand("Delete NetworkPolicy Service.", job)
+func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand("delete", "Delete NetworkPolicy Service.", job)
 	wg.Add(1)
-	go func(cmd *structs.Command, wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.Name))
+		cmd.Start(job, "Delete NetworkPolicy")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 
-		err = netPolClient.Delete(context.TODO(), service.Name, metav1.DeleteOptions{})
+		err = netPolClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 		if err != nil {
-			cmd.Fail(fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(fmt.Sprintf("Delete NetworkPolicy '%s'.", service.Name))
+			cmd.Success(job, "Delete NetworkPolicy")
 		}
-	}(cmd, wg)
-	return cmd
+	}(wg)
+}
+
+func WatchNetworkPolicies() {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		return
+	}
+
+	// Retry watching resources with exponential backoff in case of failures
+	err = retry.OnError(wait.Backoff{
+		Steps:    5,
+		Duration: 1 * time.Second,
+		Factor:   2.0,
+		Jitter:   0.1,
+	}, apierrors.IsServiceUnavailable, func() error {
+		return watchNetworkPolicies(provider, "networkpolicies")
+	})
+	if err != nil {
+		log.Fatalf("Error watching networkpolicies: %s", err.Error())
+	}
+
+	// Wait forever
+	select {}
+}
+
+func watchNetworkPolicies(provider *punq.KubeProvider, kindName string) error {
+	handler := cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			castedObj := obj.(*v1.NetworkPolicy)
+			castedObj.Kind = "NetworkPolicy"
+			castedObj.APIVersion = "networking.k8s.io/v1"
+			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			castedObj := newObj.(*v1.NetworkPolicy)
+			castedObj.Kind = "NetworkPolicy"
+			castedObj.APIVersion = "networking.k8s.io/v1"
+			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+		},
+		DeleteFunc: func(obj interface{}) {
+			castedObj := obj.(*v1.NetworkPolicy)
+			castedObj.Kind = "NetworkPolicy"
+			castedObj.APIVersion = "networking.k8s.io/v1"
+			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+		},
+	}
+	listWatch := cache.NewListWatchFromClient(
+		provider.ClientSet.NetworkingV1().RESTClient(),
+		kindName,
+		v1Core.NamespaceAll,
+		fields.Nothing(),
+	)
+	resourceInformer := cache.NewSharedInformer(listWatch, &v1.NetworkPolicy{}, 0)
+	_, err := resourceInformer.AddEventHandler(handler)
+	if err != nil {
+		return err
+	}
+
+	stopCh := make(chan struct{})
+	go resourceInformer.Run(stopCh)
+
+	// Wait for the informer to sync and start processing events
+	if !cache.WaitForCacheSync(stopCh, resourceInformer.HasSynced) {
+		return fmt.Errorf("failed to sync cache")
+	}
+
+	// This loop will keep the function alive as long as the stopCh is not closed
+	for {
+		select {
+		case <-stopCh:
+			// stopCh closed, return from the function
+			return nil
+		case <-time.After(30 * time.Second):
+			// This is to avoid a tight loop in case stopCh is never closed.
+			// You can adjust the time as per your needs.
+		}
+	}
 }

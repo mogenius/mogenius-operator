@@ -3,13 +3,13 @@ package dtos
 import (
 	"fmt"
 	"io/fs"
-	"mogenius-k8s-manager/logger"
 	"os"
 	"path/filepath"
 	"syscall"
 	"time"
 
 	punq "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type PersistentFileDto struct {
@@ -43,16 +43,18 @@ func PersistentFileDtoExampleData() PersistentFileDto {
 	}
 }
 
-func PersistentFileDtoFrom(rootDir string, path string, d fs.DirEntry) PersistentFileDto {
+func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
+	info, err := os.Stat(path)
+	if err != nil {
+		log.Warningf("FileStat Err: %s", err.Error())
+		return PersistentFileDto{}
+	}
+
 	fileType := "file"
-	if d.IsDir() {
+	if info.IsDir() {
 		fileType = "directory"
 	}
 
-	info, err := os.Stat(path)
-	if err != nil {
-		logger.Log.Warningf("FileStat Err: %s", err.Error())
-	}
 	var uid int = 0
 	var gid int = 0
 	var size int64 = 0
@@ -78,7 +80,7 @@ func PersistentFileDtoFrom(rootDir string, path string, d fs.DirEntry) Persisten
 	relPath, _ := filepath.Rel(rootDir, path)
 
 	return PersistentFileDto{
-		Name:         d.Name(),
+		Name:         info.Name(),
 		Type:         fileType,
 		RelativePath: relPath,
 		Extension:    filepath.Ext(path),

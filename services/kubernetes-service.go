@@ -4,6 +4,10 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 )
 
+func K8sUpdateNamespace(r K8sUpdateNamespaceRequest) interface{} {
+	return punq.UpdateK8sNamespace(*r.Data, nil)
+}
+
 func K8sUpdateDeployment(r K8sUpdateDeploymentRequest) interface{} {
 	return punq.UpdateK8sDeployment(*r.Data, nil)
 }

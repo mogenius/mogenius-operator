@@ -4,19 +4,22 @@ import (
 	"embed"
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/version"
-	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	punqStructs "github.com/mogenius/punq/structs"
 	"github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
+
+const IMAGE_PLACEHOLDER = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
 
 const APP_NAME = "k8s"
 const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-k8s-manager-default-apps"
@@ -43,7 +46,7 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 		pwd, err := os.Getwd()
 		pwd += "/temp"
 		if err != nil {
-			logger.Log.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
+			log.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
 		} else {
 			return pwd
 		}
@@ -61,17 +64,17 @@ func HttpHeader(additionalName string) http.Header {
 }
 
 // parseIPs parses a slice of IP address strings into a slice of net.IP.
-func parseIPs(ips []string) ([]net.IP, error) {
-	var parsed []net.IP
-	for _, ip := range ips {
-		parsedIP := net.ParseIP(ip)
-		if parsedIP == nil {
-			return nil, fmt.Errorf("invalid IP address: %s", ip)
-		}
-		parsed = append(parsed, parsedIP.To4())
-	}
-	return parsed, nil
-}
+// func parseIPs(ips []string) ([]net.IP, error) {
+// 	var parsed []net.IP
+// 	for _, ip := range ips {
+// 		parsedIP := net.ParseIP(ip)
+// 		if parsedIP == nil {
+// 			return nil, fmt.Errorf("invalid IP address: %s", ip)
+// 		}
+// 		parsed = append(parsed, parsedIP.To4())
+// 	}
+// 	return parsed, nil
+// }
 
 func Prepend[T any](s []T, values ...T) []T {
 	return append(values, s...)
@@ -91,11 +94,24 @@ func GetFunctionName() string {
 
 func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	result, err := utils.RunOnLocalShell(shellCmd).Output()
-	fmt.Printf("ExecuteShellCommandSilent:\n%s\n", result)
+	log.Infof("ExecuteShellCommandSilent: %s:\n%s", shellCmd, result)
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
 		errorMsg := string(exitErr.Stderr)
 		return fmt.Errorf("%d: %s", exitCode, errorMsg)
+	} else if err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func ExecuteShellCommandRealySilent(title string, shellCmd string) error {
+	result, err := utils.RunOnLocalShell(shellCmd).Output()
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		exitCode := exitErr.ExitCode()
+		errorMsg := string(exitErr.Stderr)
+		return fmt.Errorf("%d: %s %s", exitCode, errorMsg, string(result))
 	} else if err != nil {
 		return err
 	} else {
@@ -117,4 +133,74 @@ func GetVersionData(url string) (*punqStructs.HelmData, error) {
 		return nil, err
 	}
 	return &helmData, nil
+}
+
+func SequenceToKey(id uint64) []byte {
+	return []byte(fmt.Sprintf("%020d", id))
+}
+
+func GitCommitLink(gitRepository string, commitHash string) *string {
+	u, err := url.Parse(gitRepository)
+	if err != nil {
+		return nil
+	}
+
+	// remove the user from the URL
+	u.User = nil
+	// without authentication
+	cleanedURL := u.String()
+	baseRepoURL := strings.TrimSuffix(cleanedURL, ".git")
+
+	var commitURL string
+	switch {
+	case strings.Contains(u.Host, "github.com"):
+		commitURL = fmt.Sprintf("%s/commit/%s", baseRepoURL, commitHash)
+	case strings.Contains(u.Host, "dev.azure.com"):
+		commitURL = fmt.Sprintf("%s/_git/%s/commit/%s", baseRepoURL, u.Path, commitHash)
+	default:
+		commitURL = fmt.Sprintf("%s/-/commit/%s", baseRepoURL, commitHash)
+	}
+	return &commitURL
+}
+
+func ContainsUint64(slice []uint64, value uint64) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+func ContainsString(slice []string, value string) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
+func IsFirstTimestampNewer(ts1, ts2 string) bool {
+	// Parse the timestamps using RFC 3339 format
+	t1, err := time.Parse(time.RFC3339, ts1)
+	if err != nil {
+		log.Error(fmt.Errorf("error parsing ts1: %w", err))
+	}
+
+	t2, err := time.Parse(time.RFC3339, ts2)
+	if err != nil {
+		log.Error(fmt.Errorf("error parsing ts2: %w", err))
+	}
+
+	// Check if the first timestamp is strictly newer than the second
+	return t1.After(t2)
+}
+
+func AppendIfNotExist(slice []string, str string) []string {
+	for _, item := range slice {
+		if item == str {
+			return slice
+		}
+	}
+	return append(slice, str)
 }

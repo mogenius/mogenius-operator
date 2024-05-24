@@ -1,174 +1,175 @@
 package kubernetes
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
-	"log"
+	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
+	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/utils"
+	"strings"
+
 	"mogenius-k8s-manager/structs"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	v1Core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/util/retry"
 
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/cache"
 )
 
 const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
 
-// TODO: REMOVE if NewEventWatcher works
-// TODO: REMOVE if NewEventWatcher works
-// TODO: REMOVE if NewEventWatcher works
-func WatchEvents() {
-	var lastResourceVersion = ""
-	for {
-		provider, err := punq.NewKubeProvider(nil)
-		if provider == nil || err != nil {
-			logger.Log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
-			return
-		}
+var EventChannels = make(map[string]chan string)
 
-		// Create a watcher for all Kubernetes events
-		watcher, err := provider.ClientSet.CoreV1().Events("").Watch(context.TODO(), v1.ListOptions{Watch: true, ResourceVersion: lastResourceVersion})
-
-		if err != nil || watcher == nil {
-			if apierrors.IsGone(err) {
-				lastResourceVersion = ""
-			}
-			log.Printf("Error creating watcher: %v", err)
-			continue
-		} else {
-			logger.Log.Notice("Watcher connected successfully. Start watching events...")
-		}
-
-		// Start watching events
-		for event := range watcher.ResultChan() {
-			//fmt.Println(event)
-			if event.Object != nil {
-				eventDto := dtos.CreateEvent(string(event.Type), event.Object)
-				datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
-
-				eventObj, isEvent := event.Object.(*v1Core.Event)
-				if isEvent {
-					lastResourceVersion = eventObj.ObjectMeta.ResourceVersion
-					message := eventObj.Message
-					kind := eventObj.InvolvedObject.Kind
-					reason := eventObj.Reason
-					count := eventObj.Count
-					// if currentVersion > lastVersion {
-					structs.EventServerSendData(datagram, kind, reason, message, count)
-				} else if event.Type == "ERROR" {
-					var errObj *v1.Status = event.Object.(*v1.Status)
-					logger.Log.Errorf("WATCHER (%d): '%s'", errObj.Code, errObj.Message)
-					logger.Log.Error("WATCHER: Reset lastResourceVersion to empty.")
-					lastResourceVersion = ""
-					time.Sleep(RETRYTIMEOUT * time.Second) // Wait for 5 seconds before retrying
-					break
-				}
-			} else {
-				logger.Log.Errorf("WATCHER: Malformed event received Restarting watcher.")
-				break
-			}
-		}
-
-		// If the watcher channel is closed, wait for 5 seconds before retrying
-		logger.Log.Errorf("Watcher channel closed. Waiting before retrying with '%s' ...", lastResourceVersion)
-		watcher.Stop()
-		time.Sleep(RETRYTIMEOUT * time.Second)
-	}
-}
-
-func NewEventWatcher() {
+func EventWatcher() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		logger.Log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
 	// Retry watching events with exponential backoff in case of failures
-	retry.OnError(wait.Backoff{
+	err = retry.OnError(wait.Backoff{
 		Steps:    5,
 		Duration: 1 * time.Second,
 		Factor:   2.0,
 		Jitter:   0.1,
-	}, errors.IsServiceUnavailable, func() error {
+	}, apierrors.IsServiceUnavailable, func() error {
 		return watchEvents(provider)
 	})
+	if err != nil {
+		log.Fatalf("Error watching events: %s", err.Error())
+	}
 
 	// Wait forever
 	select {}
-
-	// // Function to start watching events
-	// watchEvents := func() error {
-	// 	// Define the listwatch for all events
-	// 	listWatch := cache.NewListWatchFromClient(
-	// 		provider.ClientSet.CoreV1().RESTClient(),
-	// 		"events",
-	// 		v1Core.NamespaceAll,
-	// 		fields.Nothing(),
-	// 	)
-
-	// 	informer := cache.NewSharedInformer(listWatch, &corev1.Event{}, 0)
-	// 	_, err = informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-	// 		AddFunc: func(obj interface{}) {
-	// 			event := obj.(*corev1.Event)
-	// 			processEvent(event)
-	// 		},
-	// 		UpdateFunc: func(oldObj, newObj interface{}) {
-	// 			event := newObj.(*corev1.Event)
-	// 			processEvent(event)
-	// 		},
-	// 		DeleteFunc: func(obj interface{}) {
-	// 			event := obj.(*corev1.Event)
-	// 			processEvent(event)
-	// 		},
-	// 	})
-	// 	if err != nil {
-	// 		logger.Log.Errorf("Error adding event handler: %s", err.Error())
-	// 		return err
-	// 	}
-
-	// 	stopCh := make(chan struct{})
-	// 	go informer.Run(stopCh)
-
-	// 	// Handle reconnection in case of lost connection
-	// 	go func() error {
-	// 		for {
-	// 			if !cache.WaitForCacheSync(stopCh, informer.HasSynced) {
-	// 				err := fmt.Errorf("Timed out waiting for caches to sync")
-	// 				runtime.HandleError(err)
-	// 				return err
-	// 			}
-	// 			<-stopCh
-	// 			time.Sleep(5 * time.Second) // Wait before reconnecting
-	// 			stopCh = make(chan struct{})
-	// 		}
-	// 	}()
-	// }
-
-	// // Retry watching events with exponential backoff in case of failures
-	// retry.OnError(wait.Backoff{
-	// 	Steps:    5,
-	// 	Duration: 1 * time.Second,
-	// 	Factor:   2.0,
-	// 	Jitter:   0.1,
-	// }, errors.IsServiceUnavailable, watchEvents)
-
-	// // Wait forever
-	// select {}
 }
 
-func processEvent(event *corev1.Event) (string, error) {
+func ResourceWatcher() {
+	// if !iacmanager.ShouldWatchResources() {
+	// 	log.Warn("Nor Pull nor Push enabled. Skip watching resources.")
+	// 	return
+	// }
+	// if resourceWatcherRunning {
+	// 	log.Warn("Resource watcher already running.")
+	// 	return
+	// }
+
+	log.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
+	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
+		switch workload {
+		case dtos.KindConfigMaps:
+			go WatchConfigmaps()
+		case dtos.KindDeployments:
+			go WatchDeployments()
+		case dtos.KindPods:
+			go WatchPods()
+		case dtos.KindIngresses:
+			go WatchIngresses()
+		case dtos.KindSecrets:
+			go WatchSecrets()
+		case dtos.KindServices:
+			go WatchServices()
+		case dtos.KindNamespaces:
+			go WatchNamespaces()
+		case dtos.KindNetworkPolicies:
+			go WatchNetworkPolicies()
+		case dtos.KindJobs:
+			go WatchJobs()
+		case dtos.KindCronJobs:
+			go WatchCronJobs()
+		case dtos.KindDaemonSets:
+			go WatchDaemonSets()
+		case dtos.KindStatefulSets:
+			go WatchStatefulSets()
+		default:
+			log.Fatalf("🚫 Unknown resource type: %s", workload)
+		}
+		log.Infof("Started watching %s 🚀.", workload)
+	}
+}
+
+func InitAllWorkloads() {
+	if !iacmanager.ShouldWatchResources() {
+		return
+	}
+	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
+		switch workload {
+		case dtos.KindConfigMaps:
+			ressources := punq.AllConfigmaps("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindConfigMaps, res.Namespace, res.Name, res)
+			}
+		case dtos.KindDeployments:
+			ressources := punq.AllDeployments("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
+			}
+		case dtos.KindPods:
+			ressources := punq.AllPods("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
+			}
+		case dtos.KindIngresses:
+			ressources := punq.AllIngresses("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindIngresses, res.Namespace, res.Name, res)
+			}
+		case dtos.KindSecrets:
+			ressources := punq.AllSecrets("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindSecrets, res.Namespace, res.Name, res)
+			}
+		case dtos.KindServices:
+			ressources := punq.AllServices("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindServices, res.Namespace, res.Name, res)
+			}
+		case dtos.KindNamespaces:
+			ressources := punq.ListAllNamespace(nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindNamespaces, res.Namespace, res.Name, res)
+			}
+		case dtos.KindNetworkPolicies:
+			ressources := punq.AllNetworkPolicies("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindNetworkPolicies, res.Namespace, res.Name, res)
+			}
+		case dtos.KindJobs:
+			ressources := punq.AllJobs("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
+			}
+		case dtos.KindCronJobs:
+			ressources := punq.AllCronjobs("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
+			}
+		case dtos.KindDaemonSets:
+			ressources := punq.AllDaemonsets("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindDaemonSets, res.Namespace, res.Name, res)
+			}
+		case dtos.KindStatefulSets:
+			ressources := punq.AllStatefulSets("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindStatefulSets, res.Namespace, res.Name, res)
+			}
+		default:
+			log.Fatalf("🚫 Unknown resource type: %s", workload)
+		}
+	}
+}
+
+func processEvent(event *v1Core.Event) {
 	if event != nil {
 		eventDto := dtos.CreateEvent(string(event.Type), event)
 		datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
@@ -177,41 +178,75 @@ func processEvent(event *corev1.Event) (string, error) {
 		reason := event.Reason
 		count := event.Count
 		structs.EventServerSendData(datagram, kind, reason, message, count)
-		return event.ObjectMeta.ResourceVersion, nil
+
+		// deployment events
+		ignoreKind := []string{"CertificateRequest", "Certificate"}
+		ignoreNamespaces := []string{"kube-system", "kube-public", "default", "mogenius"}
+		if event.InvolvedObject.Kind == "Pod" &&
+			!utils.ContainsString(ignoreNamespaces, event.InvolvedObject.Namespace) &&
+			!utils.ContainsString(ignoreKind, event.InvolvedObject.Kind) {
+
+			//personJSON, err := json.Marshal(event)
+			//if err == nil {
+			//	fmt.Println("event as JSON:", string(personJSON))
+			//}
+			parts := strings.Split(event.InvolvedObject.Name, "-")
+
+			if len(parts) >= 2 {
+				parts = parts[:len(parts)-2]
+			}
+			controllerName := strings.Join(parts, "-")
+			err := db.AddPodEvent(event.InvolvedObject.Namespace, controllerName, event, 150)
+			if err != nil {
+				log.Errorf("Error adding event to db: %s", err.Error())
+			}
+
+			key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, controllerName)
+			ch, exists := EventChannels[key]
+			if exists {
+				var events []*v1Core.Event
+				events = append(events, event)
+				updatedData, err := json.Marshal(events)
+				if err == nil {
+					ch <- string(updatedData)
+				}
+			}
+
+		}
 	} else {
-		return "", fmt.Errorf("malformed event received")
+		log.Errorf("malformed event received")
 	}
 }
 
 func watchEvents(provider *punq.KubeProvider) error {
-	lw := cache.NewListWatchFromClient(
-		provider.ClientSet.CoreV1().RESTClient(),
-		"events",
-		corev1.NamespaceAll,
-		fields.Nothing(),
-	)
-
-	informer := cache.NewSharedInformer(lw, &corev1.Event{}, 0)
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			event := obj.(*corev1.Event)
+			event := obj.(*v1Core.Event)
 			processEvent(event)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			event := newObj.(*corev1.Event)
+			event := newObj.(*v1Core.Event)
 			processEvent(event)
 		},
 		DeleteFunc: func(obj interface{}) {
-			event := obj.(*corev1.Event)
+			event := obj.(*v1Core.Event)
 			processEvent(event)
 		},
-	})
+	}
+	listWatch := cache.NewListWatchFromClient(
+		provider.ClientSet.CoreV1().RESTClient(),
+		"events",
+		v1Core.NamespaceAll,
+		fields.Nothing(),
+	)
+	eventInformer := cache.NewSharedInformer(listWatch, &v1Core.Event{}, 0)
+	eventInformer.AddEventHandler(handler)
 
 	stopCh := make(chan struct{})
-	go informer.Run(stopCh)
+	go eventInformer.Run(stopCh)
 
 	// Wait for the informer to sync and start processing events
-	if !cache.WaitForCacheSync(stopCh, informer.HasSynced) {
+	if !cache.WaitForCacheSync(stopCh, eventInformer.HasSynced) {
 		return fmt.Errorf("failed to sync cache")
 	}
 

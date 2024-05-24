@@ -2,8 +2,6 @@ package structs
 
 import (
 	"context"
-	"fmt"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
@@ -12,6 +10,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type EventData struct {
@@ -65,7 +65,7 @@ func ConnectToEventQueue() {
 
 		select {
 		case <-interrupt:
-			logger.Log.Fatal("CTRL + C pressed. Terminating.")
+			log.Fatal("CTRL + C pressed. Terminating.")
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
@@ -77,10 +77,10 @@ func connectEvent(ctx context.Context) {
 
 	connection, _, err := websocket.DefaultDialer.Dial(EventConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
-		logger.Log.Errorf("Connection to EventServer failed (%s): %s\n", EventConnectionUrl.String(), err.Error())
+		log.Errorf("Connection to EventServer failed (%s): %s\n", EventConnectionUrl.String(), err.Error())
 		EventConnectionStatus <- false
 	} else {
-		logger.Log.Infof("Connected to EventServer: %s  (%s)\n", EventConnectionUrl.String(), connection.LocalAddr().String())
+		log.Infof("Connected to EventServer: %s  (%s)\n", EventConnectionUrl.String(), connection.LocalAddr().String())
 		EventQueueConnection = connection
 		EventConnectionStatus <- true
 		Ping(EventQueueConnection, &eventSendMutex)
@@ -108,7 +108,7 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 	processEventQueueNow()
 }
 
-func processEventQueueNow() error {
+func processEventQueueNow() {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 
@@ -125,17 +125,10 @@ func processEventQueueNow() error {
 				}
 				eventDataQueue = RemoveEventIndex(eventDataQueue, i)
 			} else {
-				logger.Log.Error(err)
-				return err
+				log.Error("Error sending data to EventServer: ", err.Error())
 			}
 		}
-	} else {
-		if utils.CONFIG.Misc.Debug {
-			// logger.Log.Error("EventQueueConnection is nil.")
-		}
-		return fmt.Errorf("EventQueueConnection is nil")
 	}
-	return nil
 }
 
 func RemoveEventIndex(s []EventData, index int) []EventData {

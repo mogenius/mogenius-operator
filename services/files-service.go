@@ -9,7 +9,6 @@ import (
 	"math"
 	"mime/multipart"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func List(r FilesListRequest) []dtos.PersistentFileDto {
@@ -28,9 +28,19 @@ func List(r FilesListRequest) []dtos.PersistentFileDto {
 	}
 	result, err = listFiles(pathToFile, 0)
 	if err != nil {
-		logger.Log.Errorf("Files List Error: %s", err.Error())
+		log.Errorf("Files List Error: %s", err.Error())
 	}
 	return result
+}
+
+func Info(r dtos.PersistentFileRequestDto) dtos.PersistentFileDto {
+	result := dtos.PersistentFileDto{}
+	pathToFile, err := verify(&r)
+	if err != nil {
+		log.Errorf("file info verify error: %s", err.Error())
+		return result
+	}
+	return dtos.PersistentFileDtoFrom(pathToFile, pathToFile)
 }
 
 func Download(r FilesDownloadRequest) interface{} {
@@ -101,7 +111,7 @@ func Download(r FilesDownloadRequest) interface{} {
 		})
 
 		if err != nil {
-			logger.Log.Errorf("directory zip walk files error: %s", err.Error())
+			log.Errorf("directory zip walk files error: %s", err.Error())
 			result.Error = err.Error()
 			return result
 		}
@@ -109,21 +119,21 @@ func Download(r FilesDownloadRequest) interface{} {
 		// Close the zip archive
 		err = zipWriter.Close()
 		if err != nil {
-			logger.Log.Errorf("zip error: %s", err.Error())
+			log.Errorf("zip error: %s", err.Error())
 			result.Error = err.Error()
 			return result
 		}
 	} else {
 		// SEND FILE TO HTTP
 		if err != nil {
-			fmt.Printf("Error creating form file: %s", err)
+			log.Errorf("Error creating form file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
 
 		_, err = io.Copy(w, file)
 		if err != nil {
-			fmt.Printf("Error copying file: %s", err)
+			log.Errorf("Error copying file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
@@ -134,9 +144,19 @@ func Download(r FilesDownloadRequest) interface{} {
 	multiPartWriter.Close()
 
 	// Upload the file
-	response, err := http.Post(r.PostTo, multiPartWriter.FormDataContentType(), buf)
+	req, err := http.NewRequest("POST", r.PostTo, buf)
 	if err != nil {
-		fmt.Printf("Error sending request: %s", err)
+		log.Errorf("Error sending request: %s", err)
+		result.Error = err.Error()
+		return result
+	}
+	req.Header = utils.HttpHeader("")
+	req.Header.Set("Content-Type", multiPartWriter.FormDataContentType())
+
+	client := &http.Client{}
+	response, err := client.Do(req)
+	if err != nil {
+		log.Errorf("Error sending request: %s", err)
 		result.Error = err.Error()
 		return result
 	}
@@ -153,17 +173,17 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	// 1: VERIFY
 	targetDestination, err := verify(&fileReq.File)
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 	}
-	fmt.Printf("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
+	log.Infof("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 	}
 	for _, file := range files {
-		fmt.Println("uncompress: " + file)
+		log.Info("uncompress: " + file)
 	}
 	return nil
 }
@@ -263,6 +283,10 @@ type ClusterIssuerInstallRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
+func (p *ClusterIssuerInstallRequest) AddSecretsToRedaction() {
+	utils.AddSecret(&p.Email)
+}
+
 func ClusterIssuerInstallRequestExample() ClusterIssuerInstallRequest {
 	return ClusterIssuerInstallRequest{
 		Email: "bene@mogenius.com",
@@ -275,7 +299,7 @@ type NsStatsDataRequest struct {
 
 func NsStatsDataRequestExampleData() NsStatsDataRequest {
 	return NsStatsDataRequest{
-		Namespace: "mogenius",
+		Namespace: "fuckumucku2-prod-3z7yz9",
 	}
 }
 
@@ -404,11 +428,10 @@ func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
 			return err
 		}
 		relPath, _ := filepath.Rel(rootDir, path)
-		//fmt.Printf("%d %s\n", strings.Count(relPath, string(os.PathSeparator)), path)
 		if strings.Count(relPath, string(os.PathSeparator)) > maxDepth {
 			return fs.SkipDir
 		}
-		result = append(result, dtos.PersistentFileDtoFrom(rootDir, path, d))
+		result = append(result, dtos.PersistentFileDtoFrom(rootDir, path))
 		return nil
 	})
 	return result, err
@@ -440,7 +463,7 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 
 	_, mountPathExists := os.Stat(mountPath)
 	if os.IsNotExist(mountPathExists) {
-		return "", fmt.Errorf("The volume '%s' does not exist.", data.VolumeName)
+		return "", fmt.Errorf("the volume '%s' does not exist", data.VolumeName)
 	}
 
 	if strings.HasSuffix(mountPath, "/") {

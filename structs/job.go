@@ -2,13 +2,11 @@ package structs
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"time"
 
 	"github.com/fatih/color"
-	punq "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type DefaultResponse struct {
@@ -17,66 +15,50 @@ type DefaultResponse struct {
 }
 
 type Job struct {
-	Id                      string            `json:"id"`
-	ProjectId               string            `json:"projectId"`
-	NamespaceId             *string           `json:"namespaceId,omitempty"`
-	ServiceId               *string           `json:"serviceId,omitempty"`
-	Title                   string            `json:"title"`
-	Message                 string            `json:"message"`
-	Commands                []*Command        `json:"Commands"`
-	DurationMs              int64             `json:"durationMs"`
-	State                   punq.JobStateEnum `json:"state"`
-	ReportToNotificationSvc bool              `json:"reportToNotificationService"`
-	Started                 time.Time
+	Id             string       `json:"id"`
+	ProjectId      string       `json:"projectId"`
+	NamespaceName  string       `json:"namespaceName"`
+	ControllerName string       `json:"controllerName"`
+	Title          string       `json:"title"`
+	Message        string       `json:"message"`
+	Commands       []*Command   `json:"commands"`
+	State          JobStateEnum `json:"state"`
+	Started        time.Time    `json:"started"`
+	Finished       time.Time    `json:"finished"`
+	BuildId        uint64       `json:"buildId,omitempty"`
+	ContainerName  string       `json:"containerName,omitempty"`
 }
 
-func K8sNotificationDtoFromJob(job *Job) *dtos.K8sNotificationDto {
-	return &dtos.K8sNotificationDto{
-		Id:          job.Id,
-		JobId:       job.Id,
-		ProjectId:   job.ProjectId,
-		NamespaceId: job.NamespaceId,
-		ServiceId:   job.ServiceId,
-		Title:       job.Title,
-		Message:     job.Message,
-		State:       job.State,
-		DurationMs:  job.DurationMs,
+func CreateJob(title string, projectId string, namespace string, controllerName string) *Job {
+	job := &Job{
+		Id:             punqUtils.NanoId(),
+		ProjectId:      projectId,
+		NamespaceName:  namespace,
+		ControllerName: controllerName,
+		Title:          title,
+		Message:        "",
+		Commands:       []*Command{},
+		State:          JobStatePending,
+		Started:        time.Now(),
 	}
-}
-
-func CreateJob(title string, projectId string, namespaceId *string, serviceId *string) Job {
-	job := Job{
-		Id:                      punqUtils.NanoId(),
-		ProjectId:               projectId,
-		NamespaceId:             namespaceId,
-		ServiceId:               serviceId,
-		Title:                   title,
-		Message:                 "",
-		Commands:                []*Command{},
-		State:                   punq.JobStatePending,
-		DurationMs:              0,
-		ReportToNotificationSvc: true,
-		Started:                 time.Now(),
-	}
-	ReportStateToServer(&job, nil)
+	ReportJobStateToServer(job)
 	return job
 }
 
 func (j *Job) Start() {
-	j.State = punq.JobStateStarted
-	j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
-	ReportStateToServer(j, nil)
+	j.State = JobStateStarted
+	ReportJobStateToServer(j)
 }
 
 func (j *Job) DefaultReponse() DefaultResponse {
 	dr := DefaultResponse{}
-	if j.State == punq.JobStateFailed {
+	if j.State == JobStateFailed {
 		dr.Success = false
 		if j.Message != "" {
 			dr.Error = fmt.Sprintf("%s\n", j.Message)
 		}
 		for _, cmd := range j.Commands {
-			if cmd.State == punq.JobStateFailed {
+			if cmd.State == JobStateFailed {
 				dr.Error += fmt.Sprintf("%s\n", cmd.Message)
 			}
 		}
@@ -87,7 +69,7 @@ func (j *Job) DefaultReponse() DefaultResponse {
 }
 
 func (j *Job) Fail(msg string) {
-	j.State = punq.JobStateFailed
+	j.State = JobStateFailed
 	j.Message = msg
 }
 
@@ -95,28 +77,29 @@ func (j *Job) Finish() {
 	var allSuccess = true
 	var failedCmd = ""
 	for _, cmd := range j.Commands {
-		if cmd.State != punq.JobStateSucceeded {
+		if cmd.State != JobStateSucceeded {
 			allSuccess = false
 			failedCmd = cmd.Message
 		}
 	}
-	if j.State == punq.JobStateFailed {
+	if j.State == JobStateFailed {
 		allSuccess = false
 		failedCmd = j.Title
 	}
 	if allSuccess {
-		j.State = punq.JobStateSucceeded
-		j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
+		j.State = JobStateSucceeded
 	} else {
-		j.State = punq.JobStateFailed
+		j.State = JobStateFailed
 		j.Message = fmt.Sprintf("%s FAILED.", failedCmd)
-		j.DurationMs = time.Now().UnixMilli() - j.Started.UnixMilli()
 	}
-	ReportStateToServer(j, nil)
+	j.Finished = time.Now()
+
+	ReportJobStateToServer(j)
 }
 
 func (j *Job) AddCmd(cmd *Command) {
 	j.Commands = append(j.Commands, cmd)
+	ReportCmdStateToServer(j, cmd)
 }
 
 func (j *Job) AddCmds(cmds []*Command) {
@@ -125,46 +108,20 @@ func (j *Job) AddCmds(cmds []*Command) {
 	}
 }
 
-func ReportStateToServer(job *Job, cmd *Command) {
-	skipEvent := false
-	var data *dtos.K8sNotificationDto = nil
-	typeName := ""
-
-	if cmd != nil {
-		typeName = "CMD"
-		if cmd.ReportToNotificationSvc {
-			if cmd.NamespaceId != nil {
-				data = K8sNotificationDtoFromCommand(cmd)
-			} else {
-				skipEvent = true
-			}
-		}
-	} else if job != nil {
-		typeName = "JOB"
-		if job.ReportToNotificationSvc {
-			if job.NamespaceId != nil {
-				data = K8sNotificationDtoFromJob(job)
-			} else {
-				skipEvent = true
-			}
-		}
-	} else {
-		skipEvent = true
-		logger.Log.Error("Job AND Command cannot be nil")
-	}
-
-	if data != nil {
-		stateLog(typeName, data)
-		result := CreateDatagramFromNotification(data)
-		EventServerSendData(result, "", "", "", 1)
-	} else {
-		if !skipEvent {
-			logger.Log.Error("Serialization failed.")
-		}
-	}
+func ReportJobStateToServer(job *Job) {
+	stateLogJob(job)
+	result := CreateDatagramNotificationFromJob(job)
+	EventServerSendData(result, "", "", "", 1)
 }
 
-func stateLog(typeName string, data *dtos.K8sNotificationDto) {
+func ReportCmdStateToServer(job *Job, cmd *Command) {
+	stateLogCmd(cmd)
+	result := CreateDatagramNotificationFromJob(job)
+	EventServerSendData(result, "", "", "", 1)
+}
+
+func stateLogJob(data *Job) {
+	typeName := "JOB"
 	PEND := color.New(color.FgWhite, color.BgBlue).SprintFunc()
 	STAR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
 	ERRO := color.New(color.FgWhite, color.BgRed).SprintFunc()
@@ -173,27 +130,65 @@ func stateLog(typeName string, data *dtos.K8sNotificationDto) {
 	LONG := color.New(color.FgRed).SprintFunc()
 
 	// COLOR MILLISECONDS IF >500
-	duration := fmt.Sprint(data.DurationMs)
-	if data.DurationMs > 500 {
-		duration = LONG(duration)
+	durationMs := data.Finished.Sub(data.Started).Milliseconds()
+	if durationMs < 0 {
+		durationMs = 0
+	}
+	duration := fmt.Sprintf("%d", durationMs)
+	if durationMs > 500 {
+		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
 	switch data.State {
-	case punq.JobStatePending:
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
-	case punq.JobStateStarted:
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
-	case punq.JobStateFailed, punq.JobStateTimeout, punq.JobStateCanceled:
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
-		fmt.Printf("      %s %s %s\n", "", ERRO(punqUtils.FillWith("--> ", 15, " ")), data.Message)
-	case punq.JobStateSucceeded:
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+	case JobStatePending:
+		log.Infof("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+	case JobStateStarted:
+		log.Infof("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+	case JobStateFailed, JobStateTimeout, JobStateCanceled:
+		log.Infof("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		log.Infof("      %s %s %s\n", "", ERRO(punqUtils.FillWith("--> ", 15, " ")), data.Message)
+	case JobStateSucceeded:
+		log.Infof("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	default:
-		fmt.Printf("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		log.Infof("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+	}
+}
+
+func stateLogCmd(data *Command) {
+	typeName := "CMD"
+	PEND := color.New(color.FgWhite, color.BgBlue).SprintFunc()
+	STAR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
+	ERRO := color.New(color.FgWhite, color.BgRed).SprintFunc()
+	SUCC := color.New(color.FgWhite, color.BgGreen).SprintFunc()
+	DEFA := color.New(color.FgWhite, color.BgCyan).SprintFunc()
+	LONG := color.New(color.FgRed).SprintFunc()
+
+	// COLOR MILLISECONDS IF >500
+	durationMs := data.Finished.Sub(data.Started).Milliseconds()
+	if durationMs < 0 {
+		durationMs = 0
+	}
+	duration := fmt.Sprintf("%d", durationMs)
+	if durationMs > 500 {
+		duration = LONG(fmt.Sprintf("%d", durationMs))
+	}
+
+	switch data.State {
+	case JobStatePending:
+		log.Infof("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+	case JobStateStarted:
+		log.Infof("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+	case JobStateFailed, JobStateTimeout, JobStateCanceled:
+		log.Infof("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		log.Infof("      %s %s %s\n", "", ERRO(punqUtils.FillWith("--> ", 15, " ")), data.Message)
+	case JobStateSucceeded:
+		log.Infof("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+	default:
+		log.Infof("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	}
 }
 
 func StateDebugLog(debugStr string) {
 	DEBUG := color.New(color.FgWhite, color.BgHiMagenta).SprintFunc()
-	fmt.Printf("%-6s %-26s %s\n", "DEBUG", DEBUG(punqUtils.FillWith("DEBUG", 15, " ")), debugStr)
+	log.Infof("%-6s %-26s %s\n", "DEBUG", DEBUG(punqUtils.FillWith("DEBUG", 15, " ")), debugStr)
 }

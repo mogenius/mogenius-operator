@@ -4,13 +4,13 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"os"
 
 	cc "github.com/ivanpirog/coloredcobra"
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +21,7 @@ var customConfig string
 
 var rootCmd = &cobra.Command{
 	Use:   "mogenius-k8s-manager",
-	Short: "Control your kubernetes cluster the easy way.",
+	Short: "Control your kubernetes cluster the easy way",
 	Long: `
 Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -34,10 +34,10 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 		if utils.ClusterProviderCached == punqDtos.UNKNOWN {
 			foundProvider, err := punq.GuessClusterProvider(nil)
 			if err != nil {
-				logger.Log.Errorf("GuessClusterProvider ERR: %s", err.Error())
+				log.Errorf("GuessClusterProvider ERR: %s", err.Error())
 			}
 			utils.ClusterProviderCached = foundProvider
-			logger.Log.Noticef("🎲 🎲 🎲 ClusterProvider: %s", string(foundProvider))
+			log.Infof("🎲 🎲 🎲 ClusterProvider: %s", string(foundProvider))
 		}
 	},
 }

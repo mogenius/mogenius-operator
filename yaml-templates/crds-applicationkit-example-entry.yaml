@@ -1,0 +1,10 @@
+apiVersion: mogenius.io/v1
+kind: ApplicationKit
+metadata:
+  name: myapp
+spec:
+  id: "123"
+  displayName: Appppppp
+  createdBy: Alice
+  controller: Bob
+  appId: "123"

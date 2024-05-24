@@ -4,10 +4,13 @@ __debug*
 video.mp4
 .DS_Store
 mo-data
+mo-data
 backup.yaml
-mogenius.db
-mogenius-stats.db
+mogenius*.db
+mogenius-stats*.db
 CHANGELOG.md
 .idea/
 .envrc
 kube-config
+kubeconfig.tmpl
+kubeconfig.yaml

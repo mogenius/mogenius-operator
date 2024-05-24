@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/db"
-	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/http"
@@ -21,8 +19,8 @@ import (
 
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
-	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -60,34 +58,34 @@ const (
 	MogeniusHelmIndex                 = "https://helm.mogenius.com/public"
 )
 
-func UpgradeK8sManager(r K8sManagerUpgradeRequest) structs.Job {
+func UpgradeK8sManager(r K8sManagerUpgradeRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Upgrade mogenius platform", "UPGRADE", nil, nil)
+	job := structs.CreateJob("Upgrade mogenius platform", "UPGRADE", "", "")
 	job.Start()
-	job.AddCmd(mokubernetes.UpgradeMyself(&job, r.Command, &wg))
+	mokubernetes.UpgradeMyself(job, r.Command, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
 }
 
-func InstallHelmChart(r ClusterHelmRequest) structs.Job {
+func InstallHelmChart(r ClusterHelmRequest) *structs.Job {
 	// var wg sync.WaitGroup
 
-	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
 	// TODO: make it working again. was disabled due to refactoring
-	// job.AddCmd(mokubernetes.CreateHelmChartCmd(&job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
+	// job.AddCmd(mokubernetes.CreateHelmChartCmd(job, r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, &wg))
 	job.Finish()
 	return job
 }
 
-func DeleteHelmChart(r ClusterHelmUninstallRequest) structs.Job {
+func DeleteHelmChart(r ClusterHelmUninstallRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, nil, nil)
+	job := structs.CreateJob("Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
-	job.AddCmd(mokubernetes.DeleteHelmChart(&job, r.HelmReleaseName, &wg))
+	mokubernetes.DeleteHelmChart(job, r.HelmReleaseName, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
@@ -95,15 +93,15 @@ func DeleteHelmChart(r ClusterHelmUninstallRequest) structs.Job {
 
 func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceId, &r.NamespaceId, nil)
+	job := structs.CreateJob("Create mogenius nfs-volume.", r.NamespaceName, "", "")
 	job.Start()
 	// FOR K8SMANAGER
-	job.AddCmd(mokubernetes.CreateMogeniusNfsServiceSync(&job, r.NamespaceName, r.VolumeName))
-	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
-	job.AddCmd(mokubernetes.CreateMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
+	mokubernetes.CreateMogeniusNfsServiceSync(job, r.NamespaceName, r.VolumeName)
+	mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
+	mokubernetes.CreateMogeniusNfsDeployment(job, r.NamespaceName, r.VolumeName, &wg)
 	// FOR SERVICES THAT WANT TO MOUNT
-	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeForService(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
-	job.AddCmd(mokubernetes.CreateMogeniusNfsPersistentVolumeClaimForService(&job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg))
+	mokubernetes.CreateMogeniusNfsPersistentVolumeForService(job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
+	mokubernetes.CreateMogeniusNfsPersistentVolumeClaimForService(job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
 	wg.Wait()
 	job.Finish()
 
@@ -115,15 +113,15 @@ func CreateMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 
 func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceId, &r.NamespaceId, nil)
+	job := structs.CreateJob("Delete mogenius nfs-volume.", r.NamespaceName, "", "")
 	job.Start()
 	// FOR K8SMANAGER
-	job.AddCmd(mokubernetes.DeleteMogeniusNfsDeployment(&job, r.NamespaceName, r.VolumeName, &wg))
-	job.AddCmd(mokubernetes.DeleteMogeniusNfsService(&job, r.NamespaceName, r.VolumeName, &wg))
-	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(&job, r.NamespaceName, r.VolumeName, &wg))
+	mokubernetes.DeleteMogeniusNfsDeployment(job, r.NamespaceName, r.VolumeName, &wg)
+	mokubernetes.DeleteMogeniusNfsService(job, r.NamespaceName, r.VolumeName, &wg)
+	mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(job, r.NamespaceName, r.VolumeName, &wg)
 	// FOR SERVICES THAT WANT TO MOUNT
-	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeForService(&job, r.VolumeName, r.NamespaceName, &wg))
-	job.AddCmd(mokubernetes.DeleteMogeniusNfsPersistentVolumeClaimForService(&job, r.NamespaceName, r.VolumeName, &wg))
+	mokubernetes.DeleteMogeniusNfsPersistentVolumeForService(job, r.VolumeName, r.NamespaceName, &wg)
+	mokubernetes.DeleteMogeniusNfsPersistentVolumeClaimForService(job, r.NamespaceName, r.VolumeName, &wg)
 	wg.Wait()
 	job.Finish()
 
@@ -133,32 +131,34 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 }
 
 func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
+	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "/")
+	free, used, total, _ := diskUsage(mountPath)
 	result := NfsVolumeStatsResponse{
 		VolumeName: r.VolumeName,
-		FreeBytes:  0,
-		UsedBytes:  0,
-		TotalBytes: 0,
+		FreeBytes:  free,
+		UsedBytes:  used,
+		TotalBytes: total,
 	}
 
-	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "/")
+	log.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(result.UsedBytes)), punqUtils.BytesToHumanReadable(int64(result.TotalBytes)), punqUtils.BytesToHumanReadable(int64(result.FreeBytes)))
+	return result
+}
+
+func diskUsage(mountPath string) (uint64, uint64, uint64, error) {
 	usage, err := disk.Usage(mountPath)
 	if err != nil {
-		logger.Log.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
-		return result
+		log.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
+		return 0, 0, 0, err
 	} else {
-		result.FreeBytes = usage.Free
-		result.UsedBytes = usage.Used
-		result.TotalBytes = usage.Total
+		return usage.Free, usage.Used, usage.Total, nil
 	}
-	logger.Log.Infof("💾: '%s' -> %s / %s (%s)", mountPath, punqUtils.BytesToHumanReadable(int64(result.UsedBytes)), punqUtils.BytesToHumanReadable(int64(result.TotalBytes)), fmt.Sprintf("%.1f%%", usage.UsedPercent))
-	return result
 }
 
 func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsResponse {
 	result := []NfsVolumeStatsResponse{}
 
 	if r.NamespaceName == "null" || r.NamespaceName == "" {
-		logger.Log.Errorf("StatsMogeniusNfsNamespace Err: namespaceName cannot be null or empty.")
+		log.Errorf("StatsMogeniusNfsNamespace Err: namespaceName cannot be null or empty.")
 		return result
 	}
 
@@ -166,6 +166,10 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 	pvcs := punq.AllPersistentVolumeClaims(r.NamespaceName, nil)
 
 	for _, pvc := range pvcs {
+		// skip pvcs which are not mogenius-nfs
+		if !strings.HasPrefix(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix)) {
+			continue
+		}
 		// remove podname "nfs-server-pod-"
 		pvc.Name = strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
 
@@ -177,19 +181,68 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 		}
 
 		mountPath := utils.MountPath(r.NamespaceName, pvc.Name, "/")
-		usage, err := disk.Usage(mountPath)
-		if err != nil {
-			logger.Log.Errorf("StatsMogeniusNfsNamespace Err: %s %s", mountPath, err.Error())
-			continue
+
+		if utils.ClusterProviderCached == punqDtos.DOCKER_DESKTOP || utils.ClusterProviderCached == punqDtos.K3S {
+			var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
+			entry.FreeBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value()) - usedBytes
+			entry.UsedBytes = usedBytes
+			entry.TotalBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value())
 		} else {
-			entry.FreeBytes = usage.Free
-			entry.UsedBytes = usage.Used
-			entry.TotalBytes = usage.Total
+			free, used, total, err := diskUsage(mountPath)
+			if err != nil {
+				continue
+			} else {
+				entry.FreeBytes = free
+				entry.UsedBytes = used
+				entry.TotalBytes = total
+			}
 		}
-		logger.Log.Infof("💾: '%s' -> %s / %s (%s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), fmt.Sprintf("%.1f%%", usage.UsedPercent))
+
+		log.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), punqUtils.BytesToHumanReadable(int64(entry.FreeBytes)))
 		result = append(result, entry)
 	}
 	return result
+}
+
+func sumAllBytesOfFolder(root string) uint64 {
+	var total uint64
+	var wg sync.WaitGroup
+	var sumWg sync.WaitGroup
+	fileSizes := make(chan uint64)
+
+	sumWg.Add(1)
+	// Start a goroutine to sum file sizes.
+	go func() {
+		defer sumWg.Done() // Signal completion of summing
+		for size := range fileSizes {
+			total += size
+		}
+	}()
+
+	// Walk the file tree concurrently.
+	filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				info, err := d.Info()
+				if err != nil {
+					return // handle error
+				}
+				fileSizes <- uint64(info.Size())
+			}()
+		}
+		return nil
+	})
+
+	wg.Wait()
+	close(fileSizes) // Close channel to finish summing
+	sumWg.Wait()     // Wait for summing to complete
+
+	return total
 }
 
 func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest) NfsVolumeBackupResponse {
@@ -199,14 +252,14 @@ func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest) NfsVolumeBackupResponse {
 	}
 
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Create nfs-volume backup.", r.NamespaceId, nil, nil)
+	job := structs.CreateJob("Create nfs-volume backup.", r.NamespaceId, "", "")
 	job.Start()
 
 	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "")
 
 	result = ZipDirAndUploadToS3(mountPath, fmt.Sprintf("backup_%s_%s.zip", r.VolumeName, time.Now().Format(time.RFC3339)), result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
 	if result.Error != "" {
-		job.State = punqStructs.JobStateFailed
+		job.State = structs.JobStateFailed
 	}
 
 	wg.Wait()
@@ -221,12 +274,12 @@ func RestoreMogeniusNfsVolume(r NfsVolumeRestoreRequest) NfsVolumeRestoreRespons
 	}
 
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restore nfs-volume backup.", r.NamespaceId, nil, nil)
+	job := structs.CreateJob("Restore nfs-volume backup.", r.NamespaceId, "", "")
 	job.Start()
 
 	result = UnzipAndReplaceFromS3(r.NamespaceName, r.VolumeName, r.BackupKey, result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
 	if result.Error != "" {
-		job.State = punqStructs.JobStateFailed
+		job.State = structs.JobStateFailed
 	}
 
 	wg.Wait()
@@ -249,7 +302,7 @@ func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey st
 		Key:    aws.String(BackupKey),
 	})
 	if err != nil {
-		logger.Log.Errorf("s3 Download error: %s", err.Error())
+		log.Errorf("s3 Download error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -265,13 +318,13 @@ func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey st
 	mountPath = fmt.Sprintf("%s/restore", mountPath)
 	err = os.MkdirAll(mountPath, 0755)
 	if err != nil {
-		logger.Log.Fatal(err)
+		log.Fatal(err)
 	}
 
 	for _, f := range r.File {
 		rc, err := f.Open()
 		if err != nil {
-			logger.Log.Error(err)
+			log.Error(err)
 		}
 		defer rc.Close()
 
@@ -279,24 +332,24 @@ func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey st
 		destFilepath := fmt.Sprintf("%s/%s", mountPath, f.Name)
 		destFile, err := os.Create(destFilepath)
 		if err != nil {
-			logger.Log.Error(err)
+			log.Error(err)
 		}
 		defer destFile.Close()
 
 		// Copy the contents of the source file to the destination file
 		_, err = io.Copy(destFile, rc)
 		if err != nil {
-			logger.Log.Error(err)
+			log.Error(err)
 		}
 
 		// Print the name of the unzipped file
 		if utils.CONFIG.Misc.Debug {
-			logger.Log.Infof("Unzipped file: %s\n", destFilepath)
+			log.Infof("Unzipped file: %s\n", destFilepath)
 		}
 	}
 
 	msg := fmt.Sprintf("Successfully restored volume (%s) from S3!\n", punqUtils.BytesToHumanReadable(downloadedBytes))
-	logger.Log.Info(msg)
+	log.Info(msg)
 	result.Message = msg
 
 	return result
@@ -345,7 +398,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("s3 walk files error: %s", err.Error())
+		log.Errorf("s3 walk files error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -353,7 +406,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 	// Close the zip archive
 	err = zipWriter.Close()
 	if err != nil {
-		logger.Log.Errorf("s3 zip error: %s", err.Error())
+		log.Errorf("s3 zip error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -366,7 +419,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 		Body:   bytes.NewReader(buf.Bytes()),
 	})
 	if err != nil {
-		logger.Log.Errorf("s3 Send error: %s", err.Error())
+		log.Errorf("s3 Send error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -378,7 +431,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 	})
 	url, err := req.Presign(15 * time.Minute)
 	if err != nil {
-		logger.Log.Errorf("s3 presign error: %s", err.Error())
+		log.Errorf("s3 presign error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -387,7 +440,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 		Key:    aws.String(targetFileName),
 	})
 	if err != nil {
-		logger.Log.Errorf("s3 headobject error: %s", err.Error())
+		log.Errorf("s3 headobject error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -397,7 +450,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 		result.Bytes = *headObj.ContentLength
 	}
 
-	logger.Log.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", punqUtils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
+	log.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", punqUtils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
 
 	return result
 }
@@ -495,6 +548,18 @@ func ClusterListWorkloadsExample() ClusterListWorkloads {
 	}
 }
 
+type ClusterUpdateLocalTlsSecret struct {
+	LocalTlsCrt string `json:"localTlsCrt" validate:"required"`
+	LocalTlsKey string `json:"localTlsKey" validate:"required"`
+}
+
+func ClusterUpdateLocalTlsSecretExample() ClusterUpdateLocalTlsSecret {
+	return ClusterUpdateLocalTlsSecret{
+		LocalTlsCrt: "my-funky-crt",
+		LocalTlsKey: "my-funky-key",
+	}
+}
+
 type ClusterGetConfigMap struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Name      string `json:"name" validate:"required"`
@@ -542,7 +607,6 @@ func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
 }
 
 type NfsVolumeRequest struct {
-	NamespaceId   string `json:"namespaceId" validate:"required"`
 	NamespaceName string `json:"namespaceName" validate:"required"`
 	VolumeName    string `json:"volumeName" validate:"required"`
 	SizeInGb      int    `json:"sizeInGb" validate:"required"`
@@ -550,7 +614,6 @@ type NfsVolumeRequest struct {
 
 func NfsVolumeRequestExample() NfsVolumeRequest {
 	return NfsVolumeRequest{
-		NamespaceId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		NamespaceName: "name",
 		VolumeName:    "my-fancy-volume-name",
 		SizeInGb:      10,
@@ -596,6 +659,12 @@ type NfsVolumeBackupRequest struct {
 	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
 }
 
+func (s *NfsVolumeBackupRequest) AddSecretsToRedaction() {
+	utils.AddSecret(&s.AwsAccessKeyId)
+	utils.AddSecret(&s.AwsSecretAccessKey)
+	utils.AddSecret(&s.AwsSessionToken)
+}
+
 func NfsVolumeBackupRequestExample() NfsVolumeBackupRequest {
 	return NfsVolumeBackupRequest{
 		NamespaceId:        "B0919ACB-92DD-416C-AF67-E59AD4B25265",
@@ -616,6 +685,12 @@ type NfsVolumeRestoreRequest struct {
 	AwsAccessKeyId     string `json:"awsAccessKeyId"`     // TEMP Credentials. Not security relevant
 	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // TEMP Credentials. Not security relevant
 	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
+}
+
+func (s *NfsVolumeRestoreRequest) AddSecretsToRedaction() {
+	utils.AddSecret(&s.AwsAccessKeyId)
+	utils.AddSecret(&s.AwsSecretAccessKey)
+	utils.AddSecret(&s.AwsSessionToken)
 }
 
 func NfsVolumeRestoreRequestExample() NfsVolumeRestoreRequest {
@@ -643,6 +718,24 @@ type NfsVolumeRestoreResponse struct {
 	Error      string `json:"error,omitempty"`
 }
 
+// @TODO: add request/respionse example for nfs status
+type NfsStatusRequest struct {
+	Name             string `json:"name" validate:"required"`
+	Namespace        string `json:"namespace"`
+	StorageAPIObject string `json:"type" validate:"required"`
+}
+
+type NfsStatusResponse struct {
+	VolumeName    string                `json:"volumeName"`
+	NamespaceName string                `json:"namespaceName"`
+	TotalBytes    uint64                `json:"totalBytes"`
+	FreeBytes     uint64                `json:"freeBytes"`
+	UsedBytes     uint64                `json:"usedBytes"`
+	Status        VolumeStatusType      `json:"status"`
+	Messages      []VolumeStatusMessage `json:"messages,omitempty"`
+	UsedByPods    []string              `json:"usedByPods,omitempty"`
+}
+
 var keplerHostAndPort string = ""
 
 var energyConsumptionCollectionInProgress bool = false
@@ -653,20 +746,20 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 	}
 
 	if keplerHostAndPort == "" {
-		keplerservice := kubernetes.ServiceWithLabels("app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler", nil)
+		keplerservice := mokubernetes.ServiceWithLabels("app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler", nil)
 		if keplerservice != nil {
 			keplerHostAndPort = fmt.Sprintf("%s:%d", keplerservice.Name, keplerservice.Spec.Ports[0].Port)
 		} else {
-			logger.Log.Errorf("EnergyConsumption Err: kepler service not found.")
+			log.Errorf("EnergyConsumption Err: kepler service not found.")
 			return structs.CurrentEnergyConsumptionResponse
 		}
 		// if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
-		// 	logger.Log.Warning("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
+		// 	log.Warning("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
 		// 	keplerHostAndPort = "127.0.0.1:9102"
 		// }
 	}
 	if structs.KeplerDaemonsetRunningSince == 0 {
-		keplerPod := kubernetes.KeplerPod()
+		keplerPod := mokubernetes.KeplerPod()
 		if keplerPod != nil && keplerPod.Status.StartTime != nil {
 			structs.KeplerDaemonsetRunningSince = keplerPod.Status.StartTime.Time.Unix()
 		}
@@ -679,13 +772,13 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 			// download the data
 			response, err := http.Get(fmt.Sprintf("http://%s/metrics", keplerHostAndPort))
 			if err != nil {
-				logger.Log.Errorf("EnergyConsumption Err: %s", err.Error())
+				log.Errorf("EnergyConsumption Err: %s", err.Error())
 				return
 			}
 			defer response.Body.Close()
 			data, err := io.ReadAll(response.Body)
 			if err != nil {
-				logger.Log.Errorf("EnergyConsumptionRead Err: %s", err.Error())
+				log.Errorf("EnergyConsumptionRead Err: %s", err.Error())
 				return
 			}
 
@@ -704,7 +797,7 @@ func SystemCheck() punq.SystemCheckResponse {
 
 	trafficCollectorNewestVersion, podstatsCollectorNewestVersion, err := getCurrentTrafficCollectorAndPodStatsVersion()
 	if err != nil {
-		logger.Log.Errorf("getCurrentTrafficCollectorVersion Err: %s", err.Error())
+		log.Errorf("getCurrentTrafficCollectorVersion Err: %s", err.Error())
 	}
 
 	dockerResult, dockerOutput, dockerErr := IsDockerInstalled()
@@ -719,10 +812,10 @@ func SystemCheck() punq.SystemCheckResponse {
 	certMgrDescription := "Install the cert-manager to automatically issue Let's Encrypt certificates to your services."
 	currentCertManagerVersion := getMostCurrentHelmChartVersion(CertManagerHelmIndex, utils.HelmReleaseNameCertManager)
 	certMgrEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameCertManager, certManagerInstalledErr == nil, certManagerMsg, certMgrDescription, false, true, certManagerVersion, currentCertManagerVersion)
-	certMgrEntry.InstallPattern = PAT_INSTALL_CERT_MANAGER
-	certMgrEntry.UninstallPattern = PAT_UNINSTALL_CERT_MANAGER
-	certMgrEntry.UpgradePattern = PAT_UPGRADE_CERT_MANAGER
-	certMgrEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
+	certMgrEntry.InstallPattern = structs.PAT_INSTALL_CERT_MANAGER
+	certMgrEntry.UninstallPattern = structs.PAT_UNINSTALL_CERT_MANAGER
+	certMgrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CERT_MANAGER
+	certMgrEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
 	entries = append(entries, certMgrEntry)
 
 	_, clusterIssuerInstalledErr := punq.GetClusterIssuer(NameClusterIssuerResource, nil)
@@ -732,9 +825,9 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	clusterIssuerDescription := "Responsible for signing certificates."
 	clusterIssuerEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, clusterIssuerDescription, false, true, "", "")
-	clusterIssuerEntry.InstallPattern = PAT_INSTALL_CLUSTER_ISSUER
-	clusterIssuerEntry.UninstallPattern = PAT_UNINSTALL_CLUSTER_ISSUER
-	clusterIssuerEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
+	clusterIssuerEntry.InstallPattern = structs.PAT_INSTALL_CLUSTER_ISSUER
+	clusterIssuerEntry.UninstallPattern = structs.PAT_UNINSTALL_CLUSTER_ISSUER
+	clusterIssuerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
 	entries = append(entries, clusterIssuerEntry)
 
 	trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
@@ -747,10 +840,10 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	trafficDescpription := fmt.Sprintf("Collects and exposes detailed traffic data for your mogenius services for better monitoring. (Installed: %s | Available: %s)", trafficCollectorVersion, trafficCollectorNewestVersion)
 	trafficEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, trafficDescpription, false, true, trafficCollectorVersion, trafficCollectorNewestVersion)
-	trafficEntry.InstallPattern = PAT_INSTALL_TRAFFIC_COLLECTOR
-	trafficEntry.UninstallPattern = PAT_UNINSTALL_TRAFFIC_COLLECTOR
-	trafficEntry.UpgradePattern = PAT_UPGRADE_TRAFFIC_COLLECTOR
-	trafficEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
+	trafficEntry.InstallPattern = structs.PAT_INSTALL_TRAFFIC_COLLECTOR
+	trafficEntry.UninstallPattern = structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR
+	trafficEntry.UpgradePattern = structs.PAT_UPGRADE_TRAFFIC_COLLECTOR
+	trafficEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
 	entries = append(entries, trafficEntry)
 
 	podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
@@ -763,10 +856,10 @@ func SystemCheck() punq.SystemCheckResponse {
 	}
 	podStatsDescription := fmt.Sprintf("Collects and exposes status events of pods for services in mogenius. (Installed: %s | Available: %s)", podStatsCollectorVersion, podstatsCollectorNewestVersion)
 	podEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, podStatsDescription, true, true, podStatsCollectorVersion, podstatsCollectorNewestVersion)
-	podEntry.InstallPattern = PAT_INSTALL_POD_STATS_COLLECTOR
-	podEntry.UninstallPattern = PAT_UNINSTALL_POD_STATS_COLLECTOR
-	podEntry.UpgradePattern = PAT_UPGRADE_PODSTATS_COLLECTOR
-	podEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
+	podEntry.InstallPattern = structs.PAT_INSTALL_POD_STATS_COLLECTOR
+	podEntry.UninstallPattern = structs.PAT_UNINSTALL_POD_STATS_COLLECTOR
+	podEntry.UpgradePattern = structs.PAT_UPGRADE_PODSTATS_COLLECTOR
+	podEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
 	entries = append(entries, podEntry)
 
 	distributionRegistryName := "distribution-registry-docker-registry"
@@ -778,10 +871,10 @@ func SystemCheck() punq.SystemCheckResponse {
 	distriDescription := "A Docker-based container registry inside Kubernetes."
 	currentDistriRegistryVersion := getMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
 	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, distriDescription, false, true, distriRegistryVersion, currentDistriRegistryVersion)
-	distriEntry.InstallPattern = PAT_INSTALL_CONTAINER_REGISTRY
-	distriEntry.UninstallPattern = PAT_UNINSTALL_CONTAINER_REGISTRY
-	distriEntry.UpgradePattern = PAT_UPGRADE_CONTAINER_REGISTRY
-	distriEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
+	distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
+	distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
+	distriEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CONTAINER_REGISTRY
+	distriEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
 	entries = append(entries, distriEntry)
 
 	metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, "metallb-controller")
@@ -792,25 +885,26 @@ func SystemCheck() punq.SystemCheckResponse {
 	metallbDescription := "A load balancer for local clusters (e.g. Docker Desktop, k3s, minikube, etc.)."
 	currentMetallbVersion := getMostCurrentHelmChartVersion(MetalLBHelmIndex, utils.HelmReleaseNameMetalLb)
 	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, metallbDescription, false, true, metallbVersion, currentMetallbVersion)
-	metallbEntry.InstallPattern = PAT_INSTALL_METALLB
-	metallbEntry.UninstallPattern = PAT_UNINSTALL_METALLB
-	metallbEntry.UpgradePattern = PAT_UPGRADE_METALLB
-	metallbEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
+	metallbEntry.InstallPattern = structs.PAT_INSTALL_METALLB
+	metallbEntry.UninstallPattern = structs.PAT_UNINSTALL_METALLB
+	metallbEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METALLB
+	metallbEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
 	entries = append(entries, metallbEntry)
 
-	keplerVersion, keplerInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
-	keplerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameKepler, keplerVersion)
-	if keplerInstalledErr != nil {
-		keplerMsg = fmt.Sprintf("%s is not installed.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler)
-	}
-	keplerDescription := "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption."
-	currentKeplerVersion := getMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
-	keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false, keplerVersion, currentKeplerVersion)
-	keplerEntry.InstallPattern = PAT_INSTALL_KEPLER
-	keplerEntry.UninstallPattern = PAT_UNINSTALL_KEPLER
-	keplerEntry.UpgradePattern = PAT_UPGRADE_KEPLER
-	keplerEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
-	entries = append(entries, keplerEntry)
+	// TODO: FIXEN UND WIEDER EINBAUEN: MOG-1051
+	// keplerVersion, keplerInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
+	// keplerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameKepler, keplerVersion)
+	// if keplerInstalledErr != nil {
+	// 	keplerMsg = fmt.Sprintf("%s is not installed.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler)
+	// }
+	// keplerDescription := "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption."
+	// currentKeplerVersion := getMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
+	// keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false, keplerVersion, currentKeplerVersion)
+	// keplerEntry.InstallPattern = structs.PAT_INSTALL_KEPLER
+	// keplerEntry.UninstallPattern = structs.PAT_UNINSTALL_KEPLER
+	// keplerEntry.UpgradePattern = "" // structs.PAT_UPGRADE_KEPLER
+	// keplerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
+	// entries = append(entries, keplerEntry)
 
 	clusterIps := punq.GetClusterExternalIps(nil)
 	localDevEnvMsg := "Local development environment setup complete (192.168.66.1 found)."
@@ -821,7 +915,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	localDevSetupEntry := punq.CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, "", false, false, "", "")
 	entries = append(entries, localDevSetupEntry)
 
-	nfsStorageClass := kubernetes.StorageClassForClusterProvider(utils.ClusterProviderCached)
+	nfsStorageClass := mokubernetes.StorageClassForClusterProvider(utils.ClusterProviderCached)
 	nfsStorageClassMsg := fmt.Sprintf("NFS StorageClass '%s' found.", nfsStorageClass)
 	nfsStorageClassEntry := punq.CreateSystemCheckEntry(NameNfsStorageClass, nfsStorageClass != "", nfsStorageClassMsg, "", true, false, "", "")
 	entries = append(entries, nfsStorageClassEntry)
@@ -830,18 +924,22 @@ func SystemCheck() punq.SystemCheckResponse {
 	for i := 0; i < len(entries); i++ {
 		entry := entries[i]
 		if entry.CheckName == NameIngressController {
-			entries[i].InstallPattern = PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
-			entries[i].UninstallPattern = PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
-			entries[i].UpgradePattern = PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
+			entries[i].InstallPattern = structs.PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
+			entries[i].UninstallPattern = structs.PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
+			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
-			entries[i].Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
+			if entries[i].Status != punq.INSTALLED {
+				entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
+			}
 		}
 		if entry.CheckName == NameMetricsServer {
-			entries[i].InstallPattern = PAT_INSTALL_METRICS_SERVER
-			entries[i].UninstallPattern = PAT_UNINSTALL_METRICS_SERVER
-			entries[i].UpgradePattern = PAT_UPGRADE_METRICS_SERVER
+			entries[i].InstallPattern = structs.PAT_INSTALL_METRICS_SERVER
+			entries[i].UninstallPattern = structs.PAT_UNINSTALL_METRICS_SERVER
+			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_METRICS_SERVER
 			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
-			entries[i].Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
+			if entries[i].Status != punq.INSTALLED {
+				entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
+			}
 		}
 	}
 	// update entries specificly for certain cluster vendors
@@ -853,7 +951,7 @@ func SystemCheck() punq.SystemCheckResponse {
 func UpdateSystemCheckStatusForClusterVendor(entries []punq.SystemCheckEntry) []punq.SystemCheckEntry {
 	provider, err := punq.GuessClusterProvider(nil)
 	if err != nil {
-		logger.Log.Errorf("UpdateSystemCheckStatusForClusterVendor Err: %s", err.Error())
+		log.Errorf("UpdateSystemCheckStatusForClusterVendor Err: %s", err.Error())
 		return entries
 	}
 
@@ -863,11 +961,11 @@ func UpdateSystemCheckStatusForClusterVendor(entries []punq.SystemCheckEntry) []
 		entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
 		entries = deleteSystemCheckEntryByName(entries, NameLocalDevSetup)
 	case punqDtos.UNKNOWN:
-		logger.Log.Errorf("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
+		log.Warnf("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
 	}
 
 	// if public IP is available we skip metallLB
-	nodes := kubernetes.ListNodes()
+	nodes := mokubernetes.ListNodes()
 	for _, node := range nodes {
 		for _, addr := range node.Status.Addresses {
 			ip, err := netip.ParseAddr(addr.Address)
@@ -941,7 +1039,7 @@ func UpgradeTrafficCollector() string {
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
 		HelmChartName:   "mogenius/" + utils.HelmReleaseNameTrafficCollector,
-		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s -n %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage, utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        structs.HelmUpgrade,
 	}
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
@@ -977,7 +1075,7 @@ func UpgradePodStatsCollector() string {
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
 		HelmChartName:   "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
-		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+		HelmFlags:       fmt.Sprintf("--set global.namespace=%s --set global.stage=%s -n %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage, utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        structs.HelmUpgrade,
 	}
 	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
@@ -1147,12 +1245,12 @@ func InstallMetalLb() string {
 		for {
 			// this is important because the control plane needs some time to make the CRDs available
 			time.Sleep(1 * time.Second)
-			err := mokubernetes.ApplyYamlString(InstallAddressPool())
+			err := mokubernetes.CreateYamlString(InstallAddressPool())
 			if err != nil && !apierrors.IsAlreadyExists(err) {
-				logger.Log.Errorf("Error installing metallb address pool: %s", err.Error())
+				log.Errorf("Error installing metallb address pool: %s", err.Error())
 			}
 			if err != nil && apierrors.IsInternalError(err) {
-				logger.Log.Noticef("Control plane not ready. Waiting for metallb address pool installation ...")
+				log.Infof("Control plane not ready. Waiting for metallb address pool installation ...")
 			}
 			if err == nil {
 				return
@@ -1227,7 +1325,7 @@ func InstallClusterIssuer(email string, currentRetries int) string {
 	} else {
 		ingType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
-			logger.Log.Errorf("InstallClusterIssuer: Error determining ingress controller type: %s", err.Error())
+			log.Errorf("InstallClusterIssuer: Error determining ingress controller type: %s", err.Error())
 		}
 		if ingType == punq.TRAEFIK || ingType == punq.NGINX {
 			r := ClusterHelmRequest{
@@ -1248,7 +1346,7 @@ func InstallClusterIssuer(email string, currentRetries int) string {
 			})
 			return fmt.Sprintf("Successfully triggert '%s' of '%s' (%s, %s).", r.HelmTask, r.HelmReleaseName, email, strings.ToLower(ingType.String()))
 		}
-		logger.Log.Noticef("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), currentRetries, maxRetries)
+		log.Infof("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), currentRetries, maxRetries)
 		currentRetries++
 		return InstallClusterIssuer(email, currentRetries)
 	}
@@ -1423,9 +1521,9 @@ func InstallDefaultApplications() (string, string) {
 if command -v kubectl >/dev/null 2>&1; then
     echo "kubectl is installed. Skipping installation."
 else
-	curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${GOARCH}/kubectl"
-	chmod +x kubectl
-	mv kubectl /usr/local/bin/kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${GOARCH}/kubectl"
+chmod +x kubectl
+mv kubectl /usr/local/bin/kubectl
 	echo "kubectl is installed. 🚀"
 fi
 
@@ -1452,7 +1550,6 @@ else
 		curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm.tar.gz;
 	else
 		echo "Unsupported architecture";
-		exit 1;
 	fi
 	tar -xf popeye.tar.gz popeye
 	chmod +x popeye
@@ -1462,12 +1559,85 @@ else
 fi
 
 # install grype
-if command -v grype >/dev/null 2>&1; then
+if type grype >/dev/null 2>&1; then
     echo "grype is installed. Skipping installation."
 else
 	curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 	echo "grype is installed. 🚀"
 fi
+
+# install dive
+if type dive >/dev/null 2>&1; then
+    echo "dive is installed. Skipping installation."
+else
+	DIVE_VERSION=$(curl -sL "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+	if [ "${GOARCH}" = "amd64" ]; then
+		curl -o dive.tar.gz -L https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.tar.gz
+	elif [ "${GOARCH}" = "arm64" ]; then
+		curl -o dive.tar.gz -L https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_arm64.tar.gz
+	else
+		echo "Unsupported architecture";
+	fi
+	tar -xf dive.tar.gz dive
+	chmod +x dive
+	mv dive /usr/local/bin/dive
+	rm dive.tar.gz
+	echo "dive is installed. 🚀"
+fi
+
+# install trivy
+if type trivy >/dev/null 2>&1; then
+    echo "trivy is installed. Skipping installation."
+else
+	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin latest
+	echo "trivy is installed. 🚀"
+fi
+
+# install k9s
+if type k9s >/dev/null 2>&1; then
+    echo "k9s is installed. Skipping installation."
+else
+	K9S_VERSION=$(curl -sL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+	if [ "${GOARCH}" = "amd64" ]; then
+		curl -o k9s.tar.gz -L https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_amd64.tar.gz
+	elif [ "${GOARCH}" = "arm64" ]; then
+		curl -o k9s.tar.gz -L https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_arm64.tar.gz
+	elif [ "${GOARCH}" = "arm" ]; then
+		curl -o k9s.tar.gz -L https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_armv7.tar.gz
+	else
+		echo "Unsupported architecture";
+	fi
+	tar -xf k9s.tar.gz k9s
+	chmod +x k9s
+	mv k9s /usr/local/bin/k9s
+	rm k9s.tar.gz
+	echo "k9s is installed. 🚀"
+fi
+
+# create kubeconfig
+cat <<EOF > kubeconfig.tmpl
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: @@CACRT@@
+    server: https://@@IP@@:6443
+  name: local
+contexts:
+- context:
+    cluster: local
+    user: mogenius
+    namespace: mogenius
+  name: mogenius
+current-context: mogenius
+kind: Config
+preferences: {}
+users:
+- name: mogenius
+  user:
+    token: @@TOKEN@@
+EOF
+cat kubeconfig.tmpl | sed -e s/@@CACRT@@/$(echo -n "$(cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt)" | base64 | tr -d '\n')/| sed -e s/@@TOKEN@@/$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)/ | sed -e s/@@IP@@/$(kubectl get nodes -o json | jq '.items[0].status.addresses[0].address' | sed -e s/\"//g)/ > kubeconfig.yaml
+echo "KUBECONFIG created. 🚀"
 `
 	defaultAppsConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false, nil)
 	if defaultAppsConfigmap != nil {
@@ -1513,7 +1683,7 @@ func getMostCurrentHelmChartVersion(url string, chartname string) string {
 	url = addIndexYAMLtoURL(url)
 	data, err := utils.GetVersionData(url)
 	if err != nil {
-		logger.Log.Errorf("Error getting helm chart version (%s/%s): %s", url, chartname, err)
+		log.Errorf("Error getting helm chart version (%s/%s): %s", url, chartname, err)
 		return ""
 	}
 	chartsArray := data.Entries[chartname]

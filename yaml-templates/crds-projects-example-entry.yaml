@@ -1,0 +1,13 @@
+apiVersion: mogenius.io/v1
+kind: Project
+metadata:
+  name: full-stack-project
+spec:
+  id: 123123
+  displayName: Full Stack Project
+  createdBy: Alice
+  productId: 123
+  clusterId: 1234
+  gitConnectionId: 12345
+  applicationKitRefs:
+    - myapp

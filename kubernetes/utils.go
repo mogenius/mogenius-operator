@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
+	"net"
 	"path/filepath"
 	"strings"
 	"time"
@@ -15,6 +15,7 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +34,15 @@ var (
 	CLUSTERROLENAME        = "mogenius-k8s-manager-cluster-role-app"
 	CLUSTERROLEBINDINGNAME = "mogenius-k8s-manager-cluster-role-binding-app"
 	RBACRESOURCES          = []string{"pods", "services", "endpoints", "secrets"}
+)
+
+const (
+	MO_LABEL_CREATED_BY            = "mo-created-by"
+	MO_LABEL_APP_NAME              = "mo-app"
+	MO_LABEL_NAMESPACE             = "mo-ns"
+	MO_LABEL_PROJECT_ID            = "mo-project-id"
+	MO_LABEL_NAMESPACE_DISPLAYNAME = "mo-namespace-display-name"
+	MO_LABEL_APP_DISPLAYNAME       = "mo-app-display-name"
 )
 
 type K8sWorkloadResult struct {
@@ -98,11 +108,8 @@ func CurrentContextName() string {
 
 func Hostname() string {
 	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return ""
-	}
 	if provider == nil || err != nil {
-		logger.Log.Fatal("error creating kubeprovider")
+		log.Fatal("error creating kubeprovider")
 	}
 
 	return provider.ClientConfig.Host
@@ -110,17 +117,14 @@ func Hostname() string {
 
 func ListNodes() []core.Node {
 	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return []core.Node{}
-	}
 	if provider == nil || err != nil {
-		logger.Log.Fatal("error creating kubeprovider")
+		log.Fatal("error creating kubeprovider")
 		return []core.Node{}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		logger.Log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
+		log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
 		return []core.Node{}
 	}
 	return nodeMetricsList.Items
@@ -186,7 +190,7 @@ func MoUpdateOptions() metav1.UpdateOptions {
 	}
 }
 
-func MoUpdateLabels(labels *map[string]string, projectId string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto) map[string]string {
+func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto) map[string]string {
 	resultingLabels := map[string]string{}
 
 	// transfer existing values
@@ -197,17 +201,13 @@ func MoUpdateLabels(labels *map[string]string, projectId string, namespace *dtos
 	}
 
 	// populate with mo labels
-	resultingLabels["createdBy"] = DEPLOYMENTNAME
+	resultingLabels[MO_LABEL_CREATED_BY] = DEPLOYMENTNAME
 	if service != nil {
-		resultingLabels["mo-service-id"] = service.Id
-		resultingLabels["mo-service-name"] = service.Name
+		resultingLabels[MO_LABEL_APP_NAME] = service.ControllerName
 	}
-	if namespace != nil {
-		resultingLabels["mo-namespace-id"] = namespace.Id
-		resultingLabels["mo-namespace-name"] = namespace.Name
+	if projectId != nil {
+		resultingLabels[MO_LABEL_PROJECT_ID] = *projectId
 	}
-
-	resultingLabels["mo-project-id"] = projectId
 
 	return resultingLabels
 }
@@ -253,7 +253,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 				punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
 			}
 		} else {
-			logger.Log.Warningf("No ClusterIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
+			log.Warningf("No ClusterIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
 		}
 	}()
 }
@@ -293,7 +293,7 @@ func IsLocalClusterSetup() bool {
 func GetCustomDeploymentTemplate() *v1.Deployment {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		logger.Log.Error(fmt.Sprintf("GetCustomDeploymentTemplate: %s", err.Error()))
+		log.Error(fmt.Sprintf("GetCustomDeploymentTemplate: %s", err.Error()))
 		return nil
 	}
 	client := provider.ClientSet.CoreV1().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
@@ -306,7 +306,7 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 		s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 		_, _, err = s.Decode(yamlBytes, nil, &deployment)
 		if err != nil {
-			logger.Log.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
+			log.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
 			return nil
 		}
 		return &deployment
@@ -319,10 +319,14 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		logger.Log.Errorf("StorageClassForClusterProvider ERR: %s", err.Error())
+		log.Errorf("StorageClassForClusterProvider ERR: %s", err.Error())
 		return nfsStorageClassStr
 	}
 	storageClasses, err := provider.ClientSet.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		log.Errorf("StorageClassForClusterProvider List ERR: %s", err.Error())
+		return nfsStorageClassStr
+	}
 	for _, storageClass := range storageClasses.Items {
 		if storageClass.Annotations["storageclass.kubernetes.io/is-default-class"] == "true" {
 			nfsStorageClassStr = storageClass.Name
@@ -349,8 +353,47 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 	}
 
 	if nfsStorageClassStr == "" {
-		logger.Log.Errorf("No default storage class found for cluster provider '%s'.", clusterProvider)
+		log.Errorf("No default storage class found for cluster provider '%s'.", clusterProvider)
 	}
 
 	return nfsStorageClassStr
+}
+
+func GatherNamesForIps(ips []string) map[string]string {
+	result := map[string]string{}
+	pods := punq.AllPods("", nil)
+	services := punq.AllServices("", nil)
+
+outerLoop:
+	for _, ip := range ips {
+		owner := ""
+		for _, pod := range pods {
+			if pod.Status.PodIP == ip {
+				if len(pod.OwnerReferences) > 0 {
+					owner = fmt.Sprintf("/%s/%s", pod.OwnerReferences[0].Kind, pod.OwnerReferences[0].Name)
+				}
+				result[ip] = fmt.Sprintf("%s/%s%s", pod.Namespace, pod.Name, owner)
+				continue outerLoop
+			}
+		}
+		for _, service := range services {
+			if service.Spec.ClusterIP == ip {
+				if len(service.OwnerReferences) > 0 {
+					owner = fmt.Sprintf("/%s/%s", service.OwnerReferences[0].Kind, service.OwnerReferences[0].Name)
+				}
+				result[ip] = fmt.Sprintf("%s/%s%s", service.Namespace, service.Name, owner)
+				continue outerLoop
+			}
+		}
+		parsedIP := net.ParseIP(ip)
+		if parsedIP != nil {
+			if !parsedIP.IsPrivate() {
+				result[ip] = "@External"
+				continue outerLoop
+			}
+		}
+
+		result[ip] = ""
+	}
+	return result
 }

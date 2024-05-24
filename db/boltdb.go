@@ -2,16 +2,26 @@ package db
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
-	"sync"
+	"strconv"
+	"strings"
 	"time"
+
+	v1Core "k8s.io/api/core/v1"
 
 	jsoniter "github.com/json-iterator/go"
 	punqStructs "github.com/mogenius/punq/structs"
+	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
+)
+
+const (
+	DB_SCHEMA_VERSION = "3"
 )
 
 const (
@@ -19,14 +29,15 @@ const (
 	SCAN_BUCKET_NAME      = "mogenius-scans"
 	LOG_BUCKET_NAME       = "mogenius-logs"
 	MIGRATION_BUCKET_NAME = "mogenius-migrations"
+	POD_EVENT_BUCKET_NAME = "mogenius-pod-event"
 
-	PREFIX_GIT_CLONE = "clone-"
-	PREFIX_LS        = "ls-"
-	PREFIX_LOGIN     = "login-"
-	PREFIX_BUILD     = "build-"
-	PREFIX_PULL      = "push-"
-	PREFIX_PUSH      = "push-"
-	PREFIX_QUEUE     = "queue-"
+	// PREFIX_GIT_CLONE = "clone"
+	// PREFIX_LS        = "ls"
+	// PREFIX_LOGIN     = "login"
+	//PREFIX_BUILD     = "build"
+	//PREFIX_PULL      = "pull"
+	//PREFIX_PUSH  = "push"
+	PREFIX_QUEUE = "queue"
 
 	PREFIX_VUL_SCAN = "scan"
 
@@ -35,18 +46,18 @@ const (
 	MAX_ENTRY_LENGTH = 1024 * 1024 * 50 // 50 MB
 )
 
-var (
-	// Der Mutex, der von AddToDb-Funktionen verwendet wird, um gleichzeitigen Zugriff zu verhindern
-	dbAddMutex sync.Mutex
-)
+func BuildJobKey(buildId uint64) string {
+	return fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
+}
 
 var db *bolt.DB
 
 func Init() {
-	database, err := bolt.Open(utils.CONFIG.Kubernetes.BboltDbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
+	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
+	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		logger.Log.Errorf("Error opening bbolt database from '%s'.", utils.CONFIG.Kubernetes.BboltDbPath)
-		logger.Log.Fatal(err.Error())
+		log.Errorf("Error opening bbolt database from '%s'", dbPath)
+		log.Fatal(err.Error())
 	}
 	// ### BUILD BUCKET ###
 	db = database
@@ -58,7 +69,7 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("Error creating bucket ('%s'): %s", BUILD_BUCKET_NAME, err)
+		log.Errorf("Error creating bucket ('%s'): %s", BUILD_BUCKET_NAME, err)
 	}
 	// ### SCAN BUCKET ### create a new scan bucket on every startup
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -81,7 +92,7 @@ func Init() {
 			return nil
 		})
 		if err != nil {
-			logger.Log.Errorf("Error recreating bucket ('%s'): %s", SCAN_BUCKET_NAME, err)
+			log.Errorf("Error recreating bucket ('%s'): %s", SCAN_BUCKET_NAME, err)
 		}
 	}
 	// ### LOG BUCKET ###
@@ -94,7 +105,20 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
+		log.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
+	}
+
+	// ### POD EVENT BUCKET ###
+	db = database
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(POD_EVENT_BUCKET_NAME))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("Error creating bucket ('%s'): %s", POD_EVENT_BUCKET_NAME, err)
 	}
 
 	// ### MIGRATION BUCKET ###
@@ -107,15 +131,89 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
+		log.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
 	}
 
-	logger.Log.Noticef("bbold started 🚀 (Path: '%s')", utils.CONFIG.Kubernetes.BboltDbPath)
+	// RESET STARTED JOBS TO PENDING
+	resetStartedJobsToPendingOnInit()
+
+	log.Infof("bbold started 🚀 (Path: '%s')", dbPath)
 }
 
 func Close() {
 	if db != nil {
 		db.Close()
+	}
+}
+
+func DeleteAllBuildData(namespace string, controller string, container string) {
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		c := bucket.Cursor()
+		suffix := structs.BuildJobInfosKeySuffix(namespace, controller, container)
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			if strings.HasSuffix(string(k), suffix) {
+				// delete all build data
+				err := bucket.Delete(k)
+				if err != nil {
+					log.Errorf("DeleteAllBuildData delete build data: %s", err.Error())
+				}
+
+				parts := strings.Split(string(k), "___")
+				if len(parts) >= 3 {
+					buildIdStr := parts[0]
+					buildId, err := strconv.ParseUint(buildIdStr, 10, 64)
+					if err != nil {
+						log.Errorf("DeleteAllBuildData parse buildId: %s", err.Error())
+					}
+					// Delete queue entry
+					queueKey := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
+					err = bucket.Delete([]byte(queueKey))
+					if err != nil {
+						log.Errorf("DeleteAllBuildData delete queue entry: %s", err.Error())
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("DeleteAllBuildData: %s", err.Error())
+	}
+	// Delete event entry
+	eventKey := fmt.Sprintf("%s-%s", namespace, controller)
+	err = DeleteEventByKey(eventKey)
+	if err != nil {
+		log.Errorf("DeleteAllBuildData delete event entry: %s", err.Error())
+	}
+}
+
+// if a job was started and the server was restarted/crashed, we need to reset the state to pending to resume the builld
+func resetStartedJobsToPendingOnInit() {
+	err := db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		c := bucket.Cursor()
+		prefix := []byte(PREFIX_QUEUE)
+		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
+			job := structs.BuildJob{}
+			err := structs.UnmarshalJob(&job, jobData)
+			if err != nil {
+				log.Errorf("Init (unmarshall) ERR: %s", err.Error())
+				continue
+			}
+			if job.State == structs.JobStateStarted {
+				job.State = structs.JobStatePending
+				key := BuildJobKey(job.BuildId)
+				err := bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
+				if err != nil {
+					log.Errorf("Init (update) ERR: %s", err.Error())
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("Init (db) ERR: %s", err.Error())
 	}
 }
 
@@ -128,17 +226,17 @@ func GetJobsToBuildFromDb() []structs.BuildJob {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err == nil {
-				if job.State == punqStructs.JobStatePending {
+				if job.State == structs.JobStatePending {
 					result = append(result, job)
 				}
 			} else {
-				logger.Log.Errorf("ProcessQueue (unmarshall) ERR: %s", err.Error())
+				log.Errorf("ProcessQueue (unmarshall) ERR: %s", err.Error())
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetJobsToBuildFromDb (db) ERR: %s", err.Error())
+		log.Errorf("GetJobsToBuildFromDb (db) ERR: %s", err.Error())
 	}
 	return result
 }
@@ -163,17 +261,19 @@ func GetScannedImageFromCache(req structs.ScanImageRequest) (structs.BuildJobInf
 
 func StartScanInCache(data structs.BuildJobInfoEntry, imageName string) {
 	// FIRST CREATE A DB ENTRY TO AVOID MULTIPLE SCANS
-	db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
 
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		bytes, err := json.Marshal(data)
 		if err != nil {
-			logger.Log.Errorf("Error %s: %s", PREFIX_VUL_SCAN, err.Error())
+			log.Errorf("Error %s: %s", PREFIX_VUL_SCAN, err.Error())
 		}
-		bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, imageName)), bytes)
-		return nil
+		return bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, imageName)), bytes)
 	})
+	if err != nil {
+		log.Errorf("Error saving scan data for '%s'.", imageName)
+	}
 }
 
 func GetBuilderStatus() structs.BuilderStatus {
@@ -188,16 +288,16 @@ func GetBuilderStatus() structs.BuilderStatus {
 			if err == nil {
 				result.TotalBuilds++
 				result.TotalBuildTimeMs += job.DurationMs
-				if job.State == punqStructs.JobStatePending {
+				if job.State == structs.JobStatePending {
 					result.QueuedBuilds++
 				}
-				if job.State == punqStructs.JobStateFailed {
+				if job.State == structs.JobStateFailed {
 					result.FailedBuilds++
 				}
-				if job.State == punqStructs.JobStateCanceled {
+				if job.State == structs.JobStateCanceled {
 					result.CanceledBuilds++
 				}
-				if job.State == punqStructs.JobStateSucceeded {
+				if job.State == structs.JobStateSucceeded {
 					result.FinishedBuilds++
 				}
 			}
@@ -215,46 +315,165 @@ func GetBuilderStatus() structs.BuilderStatus {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
+		log.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
 	}
 	return result
 }
 
-func GetBuildJobInfosFromDb(buildId int) structs.BuildJobInfos {
-	result := structs.BuildJobInfos{}
+func GetLastBuildJobInfosFromDb(data structs.BuildTaskRequest) structs.BuildJobInfo {
+	result := structs.BuildJobInfo{}
+	err := db.View(func(tx *bolt.Tx) error {
+
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		cursorBuild := bucket.Cursor()
+
+		suffix := structs.BuildJobInfosKeySuffix(data.Namespace, data.Controller, data.Container)
+		var lastBuildKey string
+		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
+			if strings.HasSuffix(string(k), suffix) {
+				lastBuildKey = string(k)
+				break
+			}
+		}
+
+		parts := strings.Split(lastBuildKey, "___")
+		if len(parts) >= 3 {
+			buildId := parts[0]
+			lastBuildId, err := strconv.ParseUint(buildId, 10, 64)
+			if err != nil {
+				log.Errorf("GetLastBuildJobInfosFromDb: %s", err.Error())
+				return err
+			}
+			result = GetBuildJobInfosFromDb(lastBuildId)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("GetBuildJobListFromDb: %s", err.Error())
+	}
+	return result
+}
+func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
+	result := structs.BuildJobInfo{}
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		cursorBuild := bucket.Cursor()
 
-		queueEntry := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildId)))
+		key := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
+		queueEntry := bucket.Get([]byte(key))
 		job := structs.BuildJob{}
 		err := structs.UnmarshalJob(&job, queueEntry)
 		if err != nil {
 			return err
 		}
 
-		clone := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_GIT_CLONE, buildId)))
-		ls := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LS, buildId)))
-		login := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_LOGIN, buildId)))
-		build := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_BUILD, buildId)))
-		push := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_PUSH, buildId)))
-		result = structs.CreateBuildJobInfos(job, clone, ls, login, build, push)
+		namespace := job.Namespace.Name
+		controller := job.Service.ControllerName
+		container := ""
+
+		prefixBuild := structs.GetBuildJobInfosPrefix(buildId, structs.PrefixBuild, namespace, controller)
+		prefixClone := structs.GetBuildJobInfosPrefix(buildId, structs.PrefixGitClone, namespace, controller)
+		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
+			if strings.HasPrefix(string(k), prefixBuild) || strings.HasPrefix(string(k), prefixClone) {
+				buildTemp := structs.CreateBuildJobEntryFromData(bucket.Get(k))
+				container = buildTemp.Container
+				break
+			}
+		}
+
+		containerObj := dtos.K8sContainerDto{}
+		for _, item := range job.Service.Containers {
+			if item.Name == container {
+				containerObj = item
+				break
+			}
+		}
+
+		clone := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixGitClone, namespace, controller, container)))
+		ls := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixLs, namespace, controller, container)))
+		login := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixLogin, namespace, controller, container)))
+		build := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixBuild, namespace, controller, container)))
+		push := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixPush, namespace, controller, container)))
+		result = structs.CreateBuildJobInfo(job.Image, clone, ls, login, build, push)
+
+		if containerObj.GitCommitHash != nil {
+			result.CommitHash = *containerObj.GitCommitHash
+		}
+		if containerObj.GitRepository != nil && containerObj.GitCommitHash != nil {
+			result.CommitLink = *utils.GitCommitLink(*containerObj.GitRepository, *containerObj.GitCommitHash)
+		}
+		if containerObj.GitCommitAuthor != nil {
+			result.CommitAuthor = *containerObj.GitCommitAuthor
+		}
+		if containerObj.GitCommitMessage != nil {
+			result.CommitMessage = *containerObj.GitCommitMessage
+		}
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetBuildJobFromDb (db) ERR: %s", err.Error())
+		log.Errorf("GetBuildJobFromDb (db) ERR: %s", err.Error())
 	}
 
 	return result
 }
 
-func GetBuildJobListFromDb() []structs.BuildJobListEntry {
-	result := []structs.BuildJobListEntry{}
+func GetBuildJobInfosListFromDb(namespace string, controller string, container string) []structs.BuildJobInfo {
+	results := []structs.BuildJobInfo{}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		cursorBuild := bucket.Cursor()
+
+		suffix := structs.BuildJobInfosKeySuffix(namespace, controller, container)
+		buildIdStrings := []string{}
+		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
+			if strings.HasSuffix(string(k), suffix) {
+				parts := strings.Split(string(k), "___")
+				if len(parts) >= 3 {
+					buildIdString := parts[0]
+					if utils.ContainsString(buildIdStrings, buildIdString) {
+						continue
+					}
+					buildIdStrings = append(buildIdStrings, buildIdString)
+					buildId, err := strconv.ParseUint(buildIdString, 10, 64)
+					if err == nil {
+						results = append(results, GetBuildJobInfosFromDb(buildId))
+					}
+				}
+				if len(results) > 20 {
+					break
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("GetBuildJobInfosListFromDb (db) ERR: %s", err.Error())
+	}
+
+	return results
+}
+
+func GetItemByKey(key string) []byte {
+	rawData := []byte{}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		rawData = bucket.Get([]byte(key))
+		return nil
+	})
+	if err != nil {
+		log.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
+	}
+	return rawData
+}
+
+func GetBuildJobListFromDb() []structs.BuildJob {
+	result := []structs.BuildJob{}
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		c := bucket.Cursor()
 		prefix := []byte(PREFIX_QUEUE)
 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
-			job := structs.BuildJobListEntry{}
+			job := structs.BuildJob{}
 			err := structs.UnmarshalJobListEntry(&job, jobData)
 			if err != nil {
 				return err
@@ -273,31 +492,32 @@ func GetBuildJobListFromDb() []structs.BuildJobListEntry {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("GetBuildJobListFromDb: %s", err.Error())
+		log.Errorf("GetBuildJobListFromDb: %s", err.Error())
 	}
 	return result
 }
 
-func UpdateStateInDb(buildJob structs.BuildJob, newState punqStructs.JobStateEnum) {
+func UpdateStateInDb(buildJob structs.BuildJob, newState structs.JobStateEnum) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		jobData := bucket.Get([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)))
+		key := BuildJobKey(buildJob.BuildId)
+		jobData := bucket.Get([]byte(key))
 		job := structs.BuildJob{}
 		err := structs.UnmarshalJob(&job, jobData)
 		if err == nil {
 			job.State = newState
-			return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(job)))
+			return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
 		}
 		return err
 	})
 	if err != nil {
 		errStr := fmt.Sprintf("Error updating state for build '%d'. REASON: %s", buildJob.BuildId, err.Error())
-		logger.Log.Error(errStr)
+		log.Error(errStr)
 	}
-	logger.Log.Infof(fmt.Sprintf("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState))
+	log.Infof(fmt.Sprintf("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState))
 }
 
-func PositionInQueueFromDb(buildId int) int {
+func PositionInQueueFromDb(buildId uint64) int {
 	positionInQueue := 0
 
 	err := db.View(func(tx *bolt.Tx) error {
@@ -310,7 +530,7 @@ func PositionInQueueFromDb(buildId int) int {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err == nil {
-				if job.State == punqStructs.JobStatePending && job.BuildId != buildId {
+				if job.State == structs.JobStatePending && job.BuildId != buildId {
 					positionInQueue++
 				}
 			}
@@ -327,94 +547,122 @@ func PositionInQueueFromDb(buildId int) int {
 func SaveJobInDb(buildJob structs.BuildJob) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildJob.BuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
+		key := BuildJobKey(buildJob.BuildId)
+		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error saving job '%d'.", buildJob.BuildId)
+		log.Errorf("Error saving job '%d'.", buildJob.BuildId)
 	}
 }
 
-func PrintAllEntriesFromDb(bucket string, prefix string) {
+func PrintAllEntriesFromDb(bucketName string, prefix string) {
 	err := db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(bucket))
+		bucket := tx.Bucket([]byte(bucketName))
 		c := bucket.Cursor()
 		prefix := []byte(prefix)
 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err != nil {
-				logger.Log.Noticef("bucket=%s, key=%s, value=%s\n", bucket, k, job.BuildId)
+				log.Infof("bucket=%s, key=%s, value=%d\n", bucketName, string(k), job.BuildId)
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("printAllEntries: %s", err.Error())
+		log.Errorf("printAllEntries: %s", err.Error())
 	}
 }
 
-func DeleteFromDb(bucket string, prefix string, buildNo int) error {
+func DeleteBuildJobFromDb(bucket string, buildId uint64) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucket))
-		return bucket.Delete([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, buildNo)))
+		key := BuildJobKey(buildId)
+		return bucket.Delete([]byte(key))
 	})
 }
 
 func AddToDb(buildJob structs.BuildJob) (int, error) {
-	dbAddMutex.Lock()
-	defer dbAddMutex.Unlock()
+	// setup usefull defaults
+	if buildJob.JobId == "" {
+		buildJob.JobId = punqUtils.NanoId()
+	}
+	if buildJob.State == "" {
+		buildJob.State = structs.JobStatePending
+	}
 
 	var nextBuildId uint64 = 0
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		nextBuildId, _ = bucket.NextSequence() // auto increment
 
 		// FIRST: CHECK FOR DUPLICATES
 		c := bucket.Cursor()
 		prefix := []byte(PREFIX_QUEUE)
 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
 			job := structs.BuildJob{}
-			structs.UnmarshalJob(&job, jobData)
-			// if err == nil {
-			// TODO: XXX - Check for duplicates wieder einbauen. aktuell führrt das dazu das monorepos kein setimage ausführen können
-			// if (job.State == punqStructs.JobStatePending || job.State == punqStructs.JobStateStarted) && job.ServiceName == buildJob.ServiceName {
-			// 	if job.GitCommitHash == buildJob.GitCommitHash {
-			// 		return fmt.Errorf("Duplicate Commit-Hash (%s) found skipping build.", job.GitCommitHash)
-			// 	}
-			// }
-			// }
+			err := structs.UnmarshalJob(&job, jobData)
+			if err != nil {
+				log.Errorf("AddToDb (unmarshall) ERR: %s", err.Error())
+				continue
+			}
+			//
+			if (job.State == structs.JobStatePending || job.State == structs.JobStateStarted) && job.Service.ControllerName == buildJob.Service.ControllerName {
+				for _, container := range job.Service.Containers {
+					for _, jobContainer := range buildJob.Service.Containers {
+						if *jobContainer.GitCommitHash == *container.GitCommitHash {
+							return fmt.Errorf("Duplicate Commit-Hash (%s) found skipping build.", *container.GitCommitHash)
+						}
+					}
+				}
+			}
 		}
-		buildJob.BuildId = int(nextBuildId)
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", PREFIX_QUEUE, nextBuildId)), []byte(punqStructs.PrettyPrintString(buildJob)))
+		nextBuildId, _ = bucket.NextSequence() // auto increment
+		buildJob.BuildId = nextBuildId
+		_, imageTag, _ := ImageNamesFromBuildJob(buildJob)
+		buildJob.Image = imageTag
+		key := BuildJobKey(nextBuildId)
+		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	return int(nextBuildId), err
 }
 
-func SaveScanResult(state punqStructs.JobStateEnum, cmdOutput string, startTime time.Time, containerImageName string, job *structs.BuildJob) error {
-	err := db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
-		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)
-		return bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, containerImageName)), entry)
-	})
-	if err != nil {
-		logger.Log.Errorf("Error saving scan result for '%s'.", containerImageName)
+func ImageNamesFromBuildJob(buildJob structs.BuildJob) (imageName string, imageTag string, imageTagLatest string) {
+	imageName = fmt.Sprintf("%s-%s", buildJob.Namespace.Name, buildJob.Service.ControllerName)
+	// overwrite images name for local builds
+	if (buildJob.Project.ContainerRegistryUser == nil && buildJob.Project.ContainerRegistryPat == nil) && (*buildJob.Project.ContainerRegistryUser == "" && *buildJob.Project.ContainerRegistryPat == "") {
+		imageTag = fmt.Sprintf("%s/%s:%d", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName, buildJob.BuildId)
+		imageTagLatest = fmt.Sprintf("%s/%s:latest", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName)
+	} else {
+		if *buildJob.Project.ContainerRegistryPath == "docker.io" {
+			imageName = fmt.Sprintf("%s/%s", *buildJob.Project.ContainerRegistryUser, imageName)
+		}
+		imageTag = fmt.Sprintf("%s/%s:%d", *buildJob.Project.ContainerRegistryPath, imageName, buildJob.BuildId)
+		imageTagLatest = fmt.Sprintf("%s/%s:latest", *buildJob.Project.ContainerRegistryPath, imageName)
 	}
-	return err
+	return imageName, imageTag, imageTagLatest
 }
 
-func SaveBuildResult(state punqStructs.JobStateEnum, prefix string, cmdOutput string, startTime time.Time, job *structs.BuildJob) error {
+func SaveBuildResult(
+	state structs.JobStateEnum,
+	prefix structs.BuildPrefixEnum,
+	cmdOutput string,
+	startTime time.Time,
+	job *structs.BuildJob,
+	container *dtos.K8sContainerDto,
+) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
-		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), job)
-		return bucket.Put([]byte(fmt.Sprintf("%s%d", prefix, job.BuildId)), entry)
+		entry := structs.CreateBuildJobInfoEntryBytes(state, cmdOutput, startTime, time.Now(), prefix, job, container)
+		key := structs.BuildJobInfoEntryKey(job.BuildId, prefix, job.Namespace.Name, job.Service.ControllerName, container.Name)
+		return bucket.Put([]byte(key), entry)
 	})
 	if err != nil {
-		logger.Log.Errorf("Error saving build result for '%d'.", job.BuildId)
+		log.Errorf("Error saving build result for '%d'.", job.BuildId)
 	}
 	return err
 }
 
-func AddLogToDb(title string, message string, category structs.Category, logType structs.LogType) error {
+func AddLogToDb(title string, message string, category structs.Category, logType structs.LogType) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(LOG_BUCKET_NAME))
 		id, _ := bucket.NextSequence() // auto increment
@@ -422,9 +670,8 @@ func AddLogToDb(title string, message string, category structs.Category, logType
 		return bucket.Put([]byte(fmt.Sprintf("%s_%s_%s", entry.CreatedAt, entry.Category, entry.Type)), structs.LogBytes(entry))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error adding log for '%s'.", title)
+		log.Errorf("Error adding log for '%s': %s", title, err.Error())
 	}
-	return err
 }
 
 func ListLogFromDb() []structs.Log {
@@ -444,7 +691,7 @@ func ListLogFromDb() []structs.Log {
 		return nil
 	})
 	if err != nil {
-		logger.Log.Errorf("ListLog: %s", err.Error())
+		log.Errorf("ListLog: %s", err.Error())
 	}
 	return result
 }
@@ -457,7 +704,7 @@ func AddMigrationToDb(name string) error {
 		return bucket.Put([]byte(entry.Name), structs.MigrationBytes(entry))
 	})
 	if err != nil {
-		logger.Log.Errorf("Error adding migration '%s'.", name)
+		log.Errorf("Error adding migration '%s'.", name)
 	}
 	return err
 }
@@ -488,4 +735,62 @@ func AppendToKey(bucket string, key string, value string) error {
 		return fmt.Errorf("Not key found for name '%s'.", key)
 	})
 	return err
+}
+
+func AddPodEvent(namespace string, controller string, event *v1Core.Event, maxSize int) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(POD_EVENT_BUCKET_NAME))
+
+		key := fmt.Sprintf("%s-%s", namespace, controller)
+		existing := bucket.Get([]byte(key))
+		var events []*v1Core.Event
+
+		if existing != nil {
+			if err := json.Unmarshal(existing, &events); err != nil {
+				return err
+			}
+		}
+
+		for _, e := range events {
+			if e.UID == event.UID || e.UID == event.ObjectMeta.UID {
+				return nil
+			}
+		}
+
+		if len(events) >= maxSize {
+			events = events[1:]
+		}
+
+		events = append(events, event)
+
+		updatedData, err := json.Marshal(events)
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(key), updatedData)
+	})
+}
+
+func GetEventByKey(key string) []byte {
+	rawData := []byte{}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(POD_EVENT_BUCKET_NAME))
+		rawData = bucket.Get([]byte(key))
+		return nil
+	})
+	if err != nil {
+		log.Errorf("GetEventByKey (db) ERR: %s", err.Error())
+	}
+	return rawData
+}
+
+func DeleteEventByKey(key string) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(POD_EVENT_BUCKET_NAME))
+		err := bucket.Delete([]byte(key))
+		if err != nil {
+			log.Errorf("DeleteEventByKey: %s", err.Error())
+		}
+		return nil
+	})
 }

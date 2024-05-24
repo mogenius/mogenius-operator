@@ -1,60 +1,78 @@
 package services
 
 import (
+	"mogenius-k8s-manager/crds"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/structs"
 	"os"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
-func CreateNamespace(r NamespaceCreateRequest) structs.Job {
+func CreateNamespace(r NamespaceCreateRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Create cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, nil)
+	job := structs.CreateJob("Create namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
 	job.Start()
-	job.AddCmds(CreateNamespaceCmds(&job, r, &wg))
-	wg.Wait()
-	job.Finish()
+	CreateNamespaceCmds(job, r, &wg)
+
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 
-func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) []*structs.Command {
-	cmds := []*structs.Command{}
-	cmds = append(cmds, mokubernetes.CreateNamespace(job, r.Project, r.Namespace))
-	cmds = append(cmds, mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, wg))
+func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) {
+	mokubernetes.CreateNamespace(job, r.Project, r.Namespace)
+	mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, wg)
 
-	if r.Project.ContainerRegistryUser != "" && r.Project.ContainerRegistryPat != "" {
-		cmds = append(cmds, mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg))
+	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
+		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg)
 	}
-	return cmds
+	crds.CreateEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, crds.CrdEnvironment{
+		Id:          r.Namespace.Id,
+		DisplayName: r.Namespace.DisplayName,
+		CreatedBy:   "MISSING_FIELD",
+		Name:        r.Namespace.Name}, wg)
 }
 
-func DeleteNamespace(r NamespaceDeleteRequest) structs.Job {
+func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Delete cloudspace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, &r.Namespace.Id, nil)
+	job := structs.CreateJob("Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
 	job.Start()
-	job.AddCmd(mokubernetes.DeleteNamespace(&job, r.Namespace, &wg))
-	wg.Wait()
-	job.Finish()
+	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
+
+	crds.DeleteEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, &wg)
+
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 
-func ShutdownNamespace(r NamespaceShutdownRequest) structs.Job {
+func ShutdownNamespace(r NamespaceShutdownRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, &r.Namespace.Id, nil)
+	job := structs.CreateJob("Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
-	job.AddCmd(mokubernetes.StopDeployment(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.DeleteService(&job, r.Namespace, r.Service, &wg))
-	job.AddCmd(mokubernetes.UpdateIngress(&job, r.Namespace, nil, nil, &wg))
-	wg.Wait()
-	job.Finish()
+	mokubernetes.StopDeployment(job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
+
+	go func() {
+		wg.Wait()
+		job.Finish()
+	}()
+
 	return job
 }
 
@@ -79,9 +97,9 @@ func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClu
 }
 
 func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
-	logger.Log.Infof("CleanupIngressPorts: %d ports received from DB.", len(r.Ports))
+	log.Infof("CleanupIngressPorts: %d ports received from DB.", len(r.Ports))
 	if len(r.Ports) <= 0 {
-		logger.Log.Error("Received empty ports list. Something seems wrong. Skipping process.")
+		log.Error("Received empty ports list. Something seems wrong. Skipping process.")
 		return nil
 	}
 	mokubernetes.CleanupIngressControllerServicePorts(r.Ports)
@@ -104,6 +122,50 @@ func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.Nam
 	result.Secrets = punq.AllSecrets(r.NamespaceName, nil)
 	result.Configmaps = punq.AllConfigmaps(r.NamespaceName, nil)
 	return result
+}
+
+type ProjectCreateRequest struct {
+	Project crds.CrdProject `json:"project" validate:"required"`
+}
+
+func ProjectCreateRequestExample() ProjectCreateRequest {
+	return ProjectCreateRequest{
+		Project: crds.CrdProjectExampleData(),
+	}
+}
+
+type ProjectUpdateRequest struct {
+	Id          string             `json:"id" validate:"required"`
+	ProjectName string             `json:"projectName"`
+	DisplayName string             `json:"displayName"`
+	ProductId   string             `json:"productId"`
+	Limits      crds.ProjectLimits `json:"limits"`
+}
+
+func ProjectUpdateRequestExample() ProjectUpdateRequest {
+	return ProjectUpdateRequest{
+		Id:          "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		ProjectName: "mogenius",
+		DisplayName: "displayName",
+		Limits: crds.ProjectLimits{
+			LimitMemoryMB:      1024,
+			LimitCpuCores:      1.0,
+			EphemeralStorageMB: 1024,
+			MaxVolumeSizeGb:    10,
+		},
+	}
+}
+
+type ProjectDeleteRequest struct {
+	ProjectName string `json:"projectName" validate:"required"`
+	ProjectId   string `json:"projectId" validate:"required"`
+}
+
+func ProjectDeleteRequestExample() ProjectDeleteRequest {
+	return ProjectDeleteRequest{
+		ProjectName: "mogenius",
+		ProjectId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+	}
 }
 
 type NamespaceCreateRequest struct {

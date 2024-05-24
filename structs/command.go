@@ -2,124 +2,84 @@ package structs
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/logger"
 	"mogenius-k8s-manager/utils"
 	"os/exec"
 	"sync"
 	"time"
 
-	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
-type Command punqStructs.Command
-
-func K8sNotificationDtoFromCommand(cmd *Command) *dtos.K8sNotificationDto {
-	return &dtos.K8sNotificationDto{
-		Id:          cmd.Id,
-		JobId:       cmd.JobId,
-		ProjectId:   cmd.ProjectId,
-		NamespaceId: cmd.NamespaceId,
-		ServiceId:   cmd.ServiceId,
-		Title:       cmd.Title,
-		Message:     cmd.Message,
-		StartedAt:   cmd.StartedAt,
-		State:       cmd.State,
-		DurationMs:  cmd.DurationMs,
-		BuildId:     cmd.BuildId,
-	}
+type Command struct {
+	Id       string       `json:"id"`
+	Command  string       `json:"command"`
+	Title    string       `json:"title"`
+	Message  string       `json:"message,omitempty"`
+	State    JobStateEnum `json:"state"`
+	Started  time.Time    `json:"started"`
+	Finished time.Time    `json:"finished"`
 }
 
-func CreateCommand(title string, job *Job) *Command {
-	cmd := Command{
-		Id:                      punqUtils.NanoId(),
-		JobId:                   job.Id,
-		ProjectId:               job.ProjectId,
-		NamespaceId:             job.NamespaceId,
-		ServiceId:               job.ServiceId,
-		Title:                   title,
-		Message:                 "",
-		StartedAt:               time.Now().Format(time.RFC3339),
-		State:                   punqStructs.JobStatePending,
-		DurationMs:              0,
-		MustSucceed:             false,
-		ReportToNotificationSvc: true,
-		IgnoreError:             false,
-		Started:                 time.Now(),
+func CreateCommand(command string, title string, job *Job) *Command {
+	cmd := &Command{
+		Id:      punqUtils.NanoId(),
+		Command: command,
+		Title:   title,
+		Message: "",
+		State:   JobStatePending,
+		Started: time.Now(),
 	}
-	ReportStateToServer(nil, &cmd)
-	return &cmd
-}
-
-func CreateCommandFromBuildJob(title string, job *BuildJob) *Command {
-	cmd := Command{
-		Id:                      punqUtils.NanoId(),
-		JobId:                   job.JobId,
-		ProjectId:               job.ProjectId,
-		NamespaceId:             &job.NamespaceId,
-		ServiceId:               &job.ServiceId,
-		Title:                   title,
-		Message:                 "",
-		BuildId:                 int(job.BuildId),
-		StartedAt:               time.Now().Format(time.RFC3339),
-		State:                   punqStructs.JobStatePending,
-		DurationMs:              0,
-		MustSucceed:             false,
-		ReportToNotificationSvc: true,
-		IgnoreError:             false,
-		Started:                 time.Now(),
-	}
-	ReportStateToServer(nil, &cmd)
-	return &cmd
+	job.AddCmd(cmd)
+	return cmd
 }
 
 // XXX NOT USED ANYMORE?
-func CreateShellCommand(title string, job *Job, shellCmd string, wg *sync.WaitGroup) *Command {
+func CreateShellCommand(command string, title string, job *Job, shellCmd string, wg *sync.WaitGroup) {
 	wg.Add(1)
-	cmd := CreateCommand(title, job)
-	go func(cmd *Command) {
+	cmd := CreateCommand(command, title, job)
+	go func() {
 		defer wg.Done()
-		cmd.Start(title)
+		cmd.Start(job, title)
 
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		fmt.Println(string(shellCmd))
-		fmt.Println(string(output))
+		log.Info(string(shellCmd))
+		log.Info(string(output))
+
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
-			logger.Log.Error(shellCmd)
-			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
-			cmd.Fail(fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
+			log.Error(shellCmd)
+			log.Errorf("%d: %s", exitCode, errorMsg)
+			cmd.Fail(job, fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
 		} else if err != nil {
-			logger.Log.Error("exec.Command: %s", err.Error())
+			log.Errorf("exec.Command: %s", err.Error())
 		} else {
-			cmd.Success(title)
+			cmd.Success(job, title)
 		}
-	}(cmd)
-	return cmd
+	}()
 }
 
 func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		fmt.Println(string(shellCmd))
-		fmt.Println(string(output))
+		log.Info(string(shellCmd))
+		log.Info(string(output))
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
-			logger.Log.Error(shellCmd)
-			logger.Log.Errorf("%d: %s", exitCode, errorMsg)
+			log.Error(shellCmd)
+			log.Errorf("%d: %s", exitCode, errorMsg)
 			if failFunc != nil {
 				failFunc(string(output), exitErr)
 			}
 		} else if err != nil {
-			logger.Log.Error("exec.Command: %s", err.Error())
+			log.Errorf("exec.Command: %s", err.Error())
 			if failFunc != nil {
 				failFunc(string(output), err)
 			}
 		} else {
-			logger.Log.Noticef("SUCCESS: %s", shellCmd)
+			log.Infof("SUCCESS: %s", shellCmd)
 			if successFunc != nil {
 				successFunc()
 			}
@@ -127,26 +87,25 @@ func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func
 	}()
 }
 
-func (cmd *Command) Start(msg string) {
-	cmd.State = punqStructs.JobStateStarted
+func (cmd *Command) Start(job *Job, msg string) {
+	cmd.State = JobStateStarted
 	cmd.Message = msg
-	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
-	ReportStateToServer(nil, cmd)
+	ReportCmdStateToServer(job, cmd)
 }
 
-func (cmd *Command) Fail(error string) {
-	cmd.State = punqStructs.JobStateFailed
+func (cmd *Command) Fail(job *Job, error string) {
+	cmd.State = JobStateFailed
 	cmd.Message = error
-	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
+	cmd.Finished = time.Now()
 	if utils.CONFIG.Misc.Debug {
-		logger.Log.Errorf("Command '%s' failed: %s", cmd.Title, error)
+		log.Errorf("Command '%s' failed: %s", cmd.Title, error)
 	}
-	ReportStateToServer(nil, cmd)
+	ReportCmdStateToServer(job, cmd)
 }
 
-func (cmd *Command) Success(msg string) {
-	cmd.State = punqStructs.JobStateSucceeded
+func (cmd *Command) Success(job *Job, msg string) {
+	cmd.State = JobStateSucceeded
 	cmd.Message = msg
-	cmd.DurationMs = time.Now().UnixMilli() - cmd.Started.UnixMilli()
-	ReportStateToServer(nil, cmd)
+	cmd.Finished = time.Now()
+	ReportCmdStateToServer(job, cmd)
 }

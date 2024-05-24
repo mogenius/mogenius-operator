@@ -1,14 +1,20 @@
 {
-    "branches": [
-        "main",
-        {
-            "name": "develop",
-            "prerelease": true
-        }
+  "branches": [
+    "main",
+    {
+      "name": "develop",
+      "prerelease": true
+    }
+  ],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    [
+      "@semantic-release/github",
+      {
+        "successComment": false,
+        "failTitle": false
+      }
     ],
-    "plugins": [
-        "@semantic-release/commit-analyzer",
-        "@semantic-release/release-notes-generator",
-        "@semantic-release/github"
-    ]
+    "@semantic-release/release-notes-generator"
+  ]
 }

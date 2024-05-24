@@ -2,17 +2,21 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
-	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/dtos"
+	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,19 +32,19 @@ import (
 
 func Deploy() {
 	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return
-	}
 	if provider == nil || err != nil {
-		panic("Error creating kubeprovider")
+		log.Fatal("Error creating kubeprovider")
 	}
 
 	applyNamespace(provider)
-	addRbac(provider)
-	addDeployment(provider)
-	_, err = CreateClusterSecretIfNotExist()
+	err = addRbac(provider)
 	if err != nil {
-		logger.Log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
+		log.Fatalf("Error Creating RBAC. Aborting: %s.", err.Error())
+	}
+	addDeployment(provider)
+	_, err = CreateOrUpdateClusterSecret(nil)
+	if err != nil {
+		log.Fatalf("Error Creating cluster secret. Aborting: %s.", err.Error())
 	}
 }
 
@@ -81,7 +85,7 @@ func addRbac(provider *punq.KubeProvider) error {
 	}
 
 	// CREATE RBAC
-	logger.Log.Info("Creating mogenius-k8s-manager RBAC ...")
+	log.Info("Creating mogenius-k8s-manager RBAC ...")
 	_, err := provider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Create(context.TODO(), serviceAccount, MoCreateOptions())
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
@@ -94,7 +98,7 @@ func addRbac(provider *punq.KubeProvider) error {
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
-	logger.Log.Info("Created mogenius-k8s-manager RBAC.")
+	log.Info("Created mogenius-k8s-manager RBAC.")
 	return nil
 }
 
@@ -108,32 +112,125 @@ func applyNamespace(provider *punq.KubeProvider) {
 		FieldManager: DEPLOYMENTNAME,
 	}
 
-	logger.Log.Info("Creating mogenius-k8s-manager namespace ...")
+	log.Info("Creating mogenius-k8s-manager namespace ...")
 	result, err := serviceClient.Apply(context.TODO(), namespace, applyOptions)
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 	}
-	logger.Log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
+	log.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
-func CreateClusterSecretIfNotExist() (utils.ClusterSecret, error) {
+func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
+	// Save previous data for comparison
+	previousData, err := GetSyncRepoData()
+	if err != nil {
+		return err
+	}
+
+	// update data
+	secret, err := CreateOrUpdateClusterSecret(syncRepoReq)
+	if err == nil {
+		utils.CONFIG.Iac.RepoUrl = secret.SyncRepoUrl
+		utils.CONFIG.Iac.RepoPat = secret.SyncRepoPat
+		utils.CONFIG.Iac.RepoBranch = secret.SyncRepoBranch
+		utils.CONFIG.Iac.AllowPull = secret.SyncAllowPull
+		utils.CONFIG.Iac.AllowPush = secret.SyncAllowPush
+		utils.CONFIG.Iac.SyncFrequencyInSec = secret.SyncFrequencyInSec
+		utils.CONFIG.Iac.SyncWorkloads = secret.SyncWorkloads
+		utils.CONFIG.Iac.IgnoredNamespaces = secret.IgnoredNamespaces
+	}
+
+	// check if essential data is changed
+	if previousData.Repo != syncRepoReq.Repo ||
+		syncRepoReq.Pat != "***" ||
+		previousData.Branch != syncRepoReq.Branch ||
+		previousData.AllowPull != syncRepoReq.AllowPull ||
+		previousData.AllowPush != syncRepoReq.AllowPush {
+		log.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
+		iacmanager.SetupInProcess = true
+		defer func() {
+			iacmanager.SetupInProcess = false
+		}()
+		// Push/Pull
+		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			if err != nil {
+				return err
+			}
+			iacmanager.SetupInProcess = false
+			InitAllWorkloads()
+			iacmanager.SyncChanges()
+			iacmanager.ApplyRepoStateToCluster()
+		}
+		// Push
+		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			if err != nil {
+				return err
+			}
+			iacmanager.SetupInProcess = false
+			InitAllWorkloads()
+		}
+		// Pull
+		if syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			if err != nil {
+				return err
+			}
+			iacmanager.SetupInProcess = false
+			InitAllWorkloads()
+			iacmanager.SyncChanges()
+			iacmanager.ApplyRepoStateToCluster()
+		}
+		// None
+		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
+			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
+
+func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		logger.Log.Fatal("Error creating kubeprovider")
+		log.Fatal("Error creating kubeprovider")
 	}
 
 	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
 
 	existingSecret, getErr := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
-	return writeMogeniusSecret(secretClient, existingSecret, getErr)
+	return writeMogeniusSecret(secretClient, existingSecret, getErr, syncRepoReq)
 }
 
-func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error) (utils.ClusterSecret, error) {
+func GetSyncRepoData() (*dtos.SyncRepoData, error) {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Fatal("Error creating kubeprovider")
+	}
+
+	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
+
+	existingSecret, getErr := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+	if getErr != nil {
+		return nil, getErr
+	}
+
+	result := dtos.CreateSyncRepoDataFrom(existingSecret)
+	if result.Pat != "" {
+		result.Pat = "***"
+	}
+	return &result, nil
+}
+
+func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error, syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
 	// CREATE NEW SECRET
 	apikey := os.Getenv("api_key")
 	if apikey == "" {
 		if utils.CONFIG.Kubernetes.RunInCluster {
-			logger.Log.Fatal("Environment Variable 'api_key' is missing.")
+			log.Fatal("Environment Variable 'api_key' is missing.")
 		} else {
 			apikey = utils.CONFIG.Kubernetes.ApiKey
 		}
@@ -141,61 +238,126 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	clusterName := os.Getenv("cluster_name")
 	if clusterName == "" {
 		if utils.CONFIG.Kubernetes.RunInCluster {
-			logger.Log.Fatal("Environment Variable 'cluster_name' is missing.")
+			log.Fatal("Environment Variable 'cluster_name' is missing.")
 		} else {
 			clusterName = utils.CONFIG.Kubernetes.ClusterName
 		}
 	}
 
+	// Construct cluster secret object
 	clusterSecret := utils.ClusterSecret{
-		ApiKey:       apikey,
-		ClusterMfaId: punqUtils.NanoId(),
-		ClusterName:  clusterName,
+		ApiKey:      apikey,
+		ClusterName: clusterName,
 	}
-
-	// This prevents lokal k8s-manager installations from overwriting cluster secrets
-	if !utils.CONFIG.Kubernetes.RunInCluster {
-		return clusterSecret, nil
+	if existingSecret != nil {
+		if string(existingSecret.Data["cluster-mfa-id"]) != "" {
+			clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
+		}
+		syncdata := dtos.CreateSyncRepoDataFrom(existingSecret)
+		clusterSecret.SyncRepoUrl = syncdata.Repo
+		clusterSecret.SyncRepoPat = syncdata.Pat
+		clusterSecret.SyncRepoBranch = syncdata.Branch
+		clusterSecret.SyncAllowPull = syncdata.AllowPull
+		clusterSecret.SyncAllowPush = syncdata.AllowPush
+		clusterSecret.SyncFrequencyInSec = syncdata.SyncFrequencyInSec
+		clusterSecret.SyncWorkloads = syncdata.SyncWorkloads
+		if len(syncdata.IgnoredNamespaces) > 1 {
+			clusterSecret.IgnoredNamespaces = syncdata.IgnoredNamespaces
+		} else {
+			clusterSecret.IgnoredNamespaces = dtos.DefaultIgnoredNamespaces()
+		}
+	}
+	if clusterSecret.ClusterMfaId == "" {
+		clusterSecret.ClusterMfaId = punqUtils.NanoId()
+	}
+	if syncRepoReq != nil {
+		clusterSecret.SyncRepoUrl = syncRepoReq.Repo
+		if syncRepoReq.Pat != "***" {
+			clusterSecret.SyncRepoPat = syncRepoReq.Pat
+		}
+		clusterSecret.SyncRepoBranch = syncRepoReq.Branch
+		clusterSecret.SyncAllowPull = syncRepoReq.AllowPull
+		clusterSecret.SyncAllowPush = syncRepoReq.AllowPush
+		clusterSecret.SyncFrequencyInSec = syncRepoReq.SyncFrequencyInSec
+		clusterSecret.SyncWorkloads = syncRepoReq.SyncWorkloads
+		if len(syncRepoReq.IgnoredNamespaces) > 1 {
+			clusterSecret.IgnoredNamespaces = syncRepoReq.IgnoredNamespaces
+		}
 	}
 
 	secret := punqUtils.InitSecret()
 	secret.ObjectMeta.Name = NAMESPACE
 	secret.ObjectMeta.Namespace = NAMESPACE
 	delete(secret.StringData, "PRIVATE_KEY") // delete example data
+	delete(secret.StringData, "exampleData") // delete example data
 	secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 	secret.StringData["api-key"] = clusterSecret.ApiKey
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
+	secret.StringData["sync-repo-url"] = clusterSecret.SyncRepoUrl
+	secret.StringData["sync-repo-pat"] = clusterSecret.SyncRepoPat
+	secret.StringData["sync-repo-branch"] = clusterSecret.SyncRepoBranch
+	secret.StringData["sync-allow-pull"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPull)
+	secret.StringData["sync-allow-push"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPush)
+	secret.StringData["sync-frequency-in-sec"] = fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec)
+	secret.StringData["sync-workloads"] = strings.Join(clusterSecret.SyncWorkloads, ",")
+	secret.StringData["sync-ignored-namespaces"] = strings.Join(clusterSecret.IgnoredNamespaces, ",")
 
 	if existingSecret == nil || getErr != nil {
-		logger.Log.Info("Creating new mogenius secret ...")
+		log.Info("🔑 Creating new mogenius secret ...")
 		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
-			logger.Log.Error(err)
+			log.Error(err)
 			return clusterSecret, err
 		}
-		logger.Log.Info("Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
+		log.Info("🔑 Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
 	} else {
-		if string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
-			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
-			logger.Log.Info("Updating existing mogenius secret ...")
-			// keep existing mfa-id if possible
-			if string(existingSecret.Data["cluster-mfa-id"]) != "" {
-				clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
-				secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
-			}
+		if string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
+			string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
+			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName ||
+			string(existingSecret.Data["sync-repo-url"]) != clusterSecret.SyncRepoUrl ||
+			string(existingSecret.Data["sync-repo-pat"]) != clusterSecret.SyncRepoPat ||
+			string(existingSecret.Data["sync-repo-branch"]) != clusterSecret.SyncRepoBranch ||
+			string(existingSecret.Data["sync-allow-pull"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPull) ||
+			string(existingSecret.Data["sync-allow-push"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPush) ||
+			string(existingSecret.Data["sync-frequency-in-sec"]) != fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec) ||
+			string(existingSecret.Data["sync-workloads"]) != strings.Join(clusterSecret.SyncWorkloads, ",") ||
+			string(existingSecret.Data["sync-ignored-namespaces"]) != strings.Join(clusterSecret.IgnoredNamespaces, ",") {
+			log.Info("🔑 Updating existing mogenius secret ...")
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
-				logger.Log.Error(err)
+				log.Error(err)
 				return clusterSecret, err
 			}
-			logger.Log.Info("Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
+			log.Info("🔑 Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
 		} else {
-			clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
-			logger.Log.Info("Using existing mogenius secret.")
+			log.Info("🔑 Using existing mogenius secret.")
 		}
 	}
 
 	return clusterSecret, nil
+}
+
+func InitOrUpdateCrds() {
+	err := CreateOrUpdateYamlString(utils.InitMogeniusCrdProjectsYaml())
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		log.Fatalf("Error updating/creating mogenius Project-CRDs: %s", err.Error())
+	} else {
+		log.Info("Created/updated mogenius Project-CRDs. 🚀")
+	}
+
+	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdEnvironmentsYaml())
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		log.Fatalf("Error updating/creating mogenius Environment-CRDs: %s", err.Error())
+	} else {
+		log.Info("Created/updated mogenius Environment-CRDs. 🚀")
+	}
+
+	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdApplicationKitYaml())
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		log.Fatalf("Error updating/creating mogenius ApplicationKit-CRDs: %s", err.Error())
+	} else {
+		log.Info("Created/updated mogenius ApplicationKit-CRDs. 🚀")
+	}
 }
 
 func addDeployment(provider *punq.KubeProvider) {
@@ -254,15 +416,15 @@ func addDeployment(provider *punq.KubeProvider) {
 	deployment.WithSpec(applyconfapp.DeploymentSpec().WithSelector(labelSelector).WithTemplate(podTemplate))
 
 	// Create Deployment
-	logger.Log.Info("Creating mogenius-k8s-manager deployment ...")
+	log.Info("Creating mogenius-k8s-manager deployment ...")
 	result, err := deploymentClient.Apply(context.TODO(), deployment, applyOptions)
 	if err != nil {
-		logger.Log.Error(err)
+		log.Error(err)
 	}
-	logger.Log.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
+	log.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
 }
 
-func ApplyYamlString(yamlContent string) error {
+func CreateYamlString(yamlContent string) error {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		return err
@@ -296,6 +458,54 @@ func ApplyYamlString(yamlContent string) error {
 
 	if _, err := dynamicResource.Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func CreateOrUpdateYamlString(yamlContent string) error {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(&provider.ClientConfig)
+	if err != nil {
+		return err
+	}
+
+	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+
+	_, groupVersionKind, err := decUnstructured.Decode([]byte(yamlContent), nil, nil)
+	if err != nil {
+		return err
+	}
+
+	resource := &unstructured.Unstructured{}
+	_, _, err = decUnstructured.Decode([]byte(yamlContent), nil, resource)
+	if err != nil {
+		return err
+	}
+
+	groupVersionResource := schema.GroupVersionResource{
+		Group:    groupVersionKind.Group,
+		Version:  groupVersionKind.Version,
+		Resource: strings.ToLower(groupVersionKind.Kind) + "s",
+	}
+
+	dynamicResource := dynamicClient.Resource(groupVersionResource).Namespace(resource.GetNamespace())
+
+	if _, err := dynamicResource.Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			// get the current resourcerevision to update the existing object
+			currentObject, _ := dynamicResource.Get(context.TODO(), resource.GetName(), metav1.GetOptions{})
+			resource.SetResourceVersion(currentObject.GetResourceVersion())
+			if _, err := dynamicResource.Update(context.TODO(), resource, metav1.UpdateOptions{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	return nil

@@ -2,10 +2,9 @@ package utils
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/logger"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/mogenius/punq/structs"
+	log "github.com/sirupsen/logrus"
 )
 
 var validate *validator.Validate
@@ -15,14 +14,14 @@ func init() {
 }
 
 func PrintLogo() {
-	fmt.Println("")
-	fmt.Println("███╗░░░███╗░█████╗░░██████╗░███████╗███╗░░██╗██╗██╗░░░██╗░██████╗")
-	fmt.Println("████╗░████║██╔══██╗██╔════╝░██╔════╝████╗░██║██║██║░░░██║██╔════╝")
-	fmt.Println("██╔████╔██║██║░░██║██║░░██╗░█████╗░░██╔██╗██║██║██║░░░██║╚█████╗░")
-	fmt.Println("██║╚██╔╝██║██║░░██║██║░░╚██╗██╔══╝░░██║╚████║██║██║░░░██║░╚═══██╗")
-	fmt.Println("██║░╚═╝░██║╚█████╔╝╚██████╔╝███████╗██║░╚███║██║╚██████╔╝██████╔╝")
-	fmt.Println("╚═╝░░░░░╚═╝░╚════╝░░╚═════╝░╚══════╝╚═╝░░╚══╝╚═╝░╚═════╝░╚═════╝░")
-	fmt.Println("")
+	log.Info("\n" +
+		"███╗░░░███╗░█████╗░░██████╗░███████╗███╗░░██╗██╗██╗░░░██╗░██████╗\n" +
+		"████╗░████║██╔══██╗██╔════╝░██╔════╝████╗░██║██║██║░░░██║██╔════╝\n" +
+		"██╔████╔██║██║░░██║██║░░██╗░█████╗░░██╔██╗██║██║██║░░░██║╚█████╗░\n" +
+		"██║╚██╔╝██║██║░░██║██║░░╚██╗██╔══╝░░██║╚████║██║██║░░░██║░╚═══██╗\n" +
+		"██║░╚═╝░██║╚█████╔╝╚██████╔╝███████╗██║░╚███║██║╚██████╔╝██████╔╝\n" +
+		"╚═╝░░░░░╚═╝░╚════╝░░╚═════╝░╚══════╝╚═╝░░╚══╝╚═╝░╚═════╝░╚═════╝░\n" +
+		"\n")
 }
 
 type ValidationError struct {
@@ -46,7 +45,7 @@ func ValidateJSON(obj interface{}) *ValidationError {
 			}
 		}
 		//result.Errors = append(result.Errors, err.Error())
-		logger.Log.Error(structs.PrettyPrintString(result))
+		log.Error(PrettyPrintInterface(result))
 		return result
 	}
 	return nil

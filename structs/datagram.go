@@ -2,13 +2,13 @@ package structs
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/utils"
 	"time"
 
 	"github.com/fatih/color"
 	punqStructs "github.com/mogenius/punq/structs"
-	"github.com/mogenius/punq/utils"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type Datagram punqStructs.Datagram
@@ -23,23 +23,19 @@ func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
 	return datagram
 }
 
-func CreateDatagramFromNotification(data *dtos.K8sNotificationDto) Datagram {
-	created, err := time.Parse(time.RFC3339, data.StartedAt)
-	if err != nil {
-		created = time.Now()
-	}
+func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	datagram := Datagram{
-		Id:        utils.NanoId(),
+		Id:        punqUtils.NanoId(),
 		Pattern:   "K8sNotificationDto",
 		Payload:   data,
-		CreatedAt: created,
+		CreatedAt: data.Started,
 	}
 	return datagram
 }
 
 func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	datagram := Datagram{
-		Id:        utils.NanoId(),
+		Id:        punqUtils.NanoId(),
 		Pattern:   pattern,
 		Payload:   data,
 		CreatedAt: time.Now(),
@@ -49,25 +45,27 @@ func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 
 func CreateDatagram(pattern string) Datagram {
 	datagram := Datagram{
-		Id:        utils.NanoId(),
+		Id:        punqUtils.NanoId(),
 		Pattern:   pattern,
 		CreatedAt: time.Now(),
 	}
 	return datagram
 }
 
-func CreateDatagramBuildLogs(prefix string, namespace string, serviceName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
+func CreateDatagramBuildLogs(payload BuildJobInfo) Datagram {
+	// func CreateDatagramBuildLogs(prefix string, namespace string, controllerName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
 	datagram := Datagram{
-		Id:      utils.NanoId(),
+		Id:      punqUtils.NanoId(),
 		Pattern: "build-logs-notification",
-		Payload: map[string]interface{}{
-			"logId":       prefix,
-			"namespace":   namespace,
-			"serviceName": serviceName,
-			"projectId":   projectId,
-			"line":        line,
-			"state":       state,
-		},
+		Payload: payload,
+		//Payload: map[string]interface{}{
+		//	"logId":          prefix,
+		//	"namespace":      namespace,
+		//	"controllerName": controllerName,
+		//	"projectId":      projectId,
+		//	"line":           line,
+		//	"state":          state,
+		//},
 		CreatedAt: time.Now(),
 	}
 	return datagram
@@ -84,7 +82,8 @@ func CreateDatagramAck(pattern string, id string) Datagram {
 
 func CreateEmptyDatagram() Datagram {
 	datagram := Datagram{
-		Id:        utils.NanoId(),
+		Id:        punqUtils.NanoId(),
+		Username:  "",
 		Pattern:   "",
 		CreatedAt: time.Now(),
 	}
@@ -98,28 +97,28 @@ func (d *Datagram) DisplayBeautiful() {
 	SIZECOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
 	PAYLOADCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
 
-	fmt.Printf("%s %s\n", IDCOLOR("ID:      "), d.Id)
-	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
-	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
-	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), punqStructs.DurationStrSince(d.CreatedAt))
-	fmt.Printf("%s %s\n", SIZECOLOR("Size:    "), punqUtils.BytesToHumanReadable(d.GetSize()))
-	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), punqStructs.PrettyPrintString(d.Payload))
+	log.Infof("%s %s\n", IDCOLOR("ID:      "), d.Id)
+	log.Infof("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
+	log.Infof("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
+	log.Infof("%s %s\n", TIMECOLOR("Duration:"), punqStructs.DurationStrSince(d.CreatedAt))
+	log.Infof("%s %s\n", SIZECOLOR("Size:    "), punqUtils.BytesToHumanReadable(d.GetSize()))
+	log.Infof("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), utils.PrettyPrintInterface(d.Payload))
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
-	fmt.Printf("%s%s%s (%s / %s)\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt))
+	log.Infof("%s%s%s%s     %s\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "))
 }
 
 func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
-	fmt.Printf("%s%s%s [Queue: %d/%d] (%s / %s)\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), queuePosition, queueLen, punqUtils.BytesToHumanReadable(d.GetSize()), punqStructs.DurationStrSince(d.CreatedAt))
+	log.Infof("%s%s%s%s     %s %s %s\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "), punqUtils.FillWith(punqStructs.DurationStrSince(d.CreatedAt), 12, " "), color.YellowString(fmt.Sprintf("[Queue: %d/%d]", queuePosition, queueLen)))
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
-	fmt.Printf("%s%s: %s/%s -> %s (Count: %d)\n", punqUtils.FillWith("SENT", 23, " "), d.Pattern, kind, reason, msg, count)
+	log.Infof("%s%s: %s/%s -> %s (Count: %d)\n", punqUtils.FillWith("SENT", 23, " "), d.Pattern, kind, reason, msg, count)
 }
 
 func (d *Datagram) DisplayStreamSummary() {
-	fmt.Printf("%s%s%s\n", punqUtils.FillWith("STREAMING", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
+	log.Infof("%s%s%s\n", punqUtils.FillWith("STREAMING", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
 }
 
 func (d *Datagram) Send() {
@@ -127,5 +126,5 @@ func (d *Datagram) Send() {
 }
 
 func (d *Datagram) GetSize() int64 {
-	return int64(len(punqStructs.PrettyPrintString(d)))
+	return int64(len(utils.PrettyPrintInterface(d)))
 }

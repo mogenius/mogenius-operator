@@ -5,10 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
-	"mogenius-k8s-manager/logger"
+	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
@@ -19,6 +18,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 func InitApi() {
@@ -28,11 +28,15 @@ func InitApi() {
 	router.GET("/healtz", getHealtz)
 	router.POST("/traffic", postTraffic)
 	router.POST("/podstats", postPodStats)
+	router.POST("/nodestats", postNodeStats)
 
-	router.GET("/debug/last-traffic", debugGetLastTraffic)
-	router.GET("/debug/traffic", debugGetTraffic)
-	router.GET("/debug/last-ns", debugGetLastNs)
-	router.GET("/debug/ns", debugGetNs)
+	if utils.CONFIG.Misc.Debug {
+		router.GET("/debug/sum-traffic", debugGetTrafficSum)
+		router.GET("/debug/traffic", debugGetTraffic)
+		router.GET("/debug/last-ns", debugGetLastNs)
+		router.GET("/debug/ns", debugGetNs)
+		router.GET("/debug/chart", debugChart)
+	}
 
 	srv := &http.Server{
 		Addr:    ":1337",
@@ -43,19 +47,19 @@ func InitApi() {
 	// it won't block the graceful shutdown handling below
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
-			logger.Log.Info("listen: %s\n", err)
+			log.Infof("listen: %s\n", err.Error())
 		}
 	}()
 
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 1)
 	// kill (no param) default send syscall.SIGTERM
 	// kill -2 is syscall.SIGINT
 	// kill -9 is syscall.SIGKILL but can't be caught, so don't need to add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	logger.Log.Warning("Shutting down server...")
+	log.Warning("Shutting down server...")
 
 	// The context is used to inform the server it has 5 seconds to finish
 	// the request it is currently handling
@@ -63,10 +67,10 @@ func InitApi() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Log.Warning("Server forced to shutdown:", err)
+		log.Warning("Server forced to shutdown:", err)
 	}
 
-	logger.Log.Warning("Server exiting")
+	log.Warning("Server exiting")
 }
 
 func getHealtz(c *gin.Context) {
@@ -83,17 +87,18 @@ func postTraffic(c *gin.Context) {
 	var out bytes.Buffer
 	body, _ := io.ReadAll(c.Request.Body)
 
-	if utils.CONFIG.Misc.Debug {
-		err := json.Indent(&out, []byte(body), "", "  ")
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(string(out.Bytes()))
+	err := json.Indent(&out, []byte(body), "", "  ")
+	if err != nil {
+		log.Error(err)
+	}
+	if utils.CONFIG.Misc.LogIncomingStats {
+		log.Info(out.String())
 	}
 
 	stat := &structs.InterfaceStats{}
-	err := structs.UnmarshalInterfaceStats(stat, out.Bytes())
+	err = structs.UnmarshalInterfaceStats(stat, out.Bytes())
 	if err != nil {
+		log.Errorf("Error unmarshalling interface stats: %s", err.Error())
 		c.IndentedJSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
 		})
@@ -107,17 +112,18 @@ func postPodStats(c *gin.Context) {
 	var out bytes.Buffer
 	body, _ := io.ReadAll(c.Request.Body)
 
-	if utils.CONFIG.Misc.Debug {
-		err := json.Indent(&out, []byte(body), "", "  ")
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(string(out.Bytes()))
+	err := json.Indent(&out, []byte(body), "", "  ")
+	if err != nil {
+		log.Error(err)
+	}
+	if utils.CONFIG.Misc.LogIncomingStats {
+		log.Info(out.String())
 	}
 
 	stat := &structs.PodStats{}
-	err := structs.UnmarshalPodStats(stat, out.Bytes())
+	err = structs.UnmarshalPodStats(stat, out.Bytes())
 	if err != nil {
+		log.Errorf("Error unmarshalling pod stats: %s", err.Error())
 		c.IndentedJSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
 		})
@@ -127,10 +133,35 @@ func postPodStats(c *gin.Context) {
 	dbstats.AddPodStatsToDb(*stat)
 }
 
-func debugGetLastTraffic(c *gin.Context) {
+func postNodeStats(c *gin.Context) {
+	var out bytes.Buffer
+	body, _ := io.ReadAll(c.Request.Body)
+
+	err := json.Indent(&out, []byte(body), "", "  ")
+	if err != nil {
+		log.Error(err)
+	}
+	if utils.CONFIG.Misc.LogIncomingStats {
+		log.Info(out.String())
+	}
+
+	stat := &structs.NodeStats{}
+	err = structs.UnmarshalNodeStats(stat, out.Bytes())
+	if err != nil {
+		log.Errorf("Error unmarshalling node stats: %s", err.Error())
+		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	dbstats.AddNodeStatsToDb(*stat)
+}
+
+func debugGetTrafficSum(c *gin.Context) {
 	ns := c.Query("ns")
 
-	stats := dbstats.GetLastTrafficStatsEntriesForNamespace(ns)
+	stats := dbstats.GetTrafficStatsEntriesSumForNamespace(ns)
 	c.IndentedJSON(http.StatusOK, stats)
 }
 
@@ -150,4 +181,11 @@ func debugGetNs(c *gin.Context) {
 	ns := c.Query("ns")
 	stats := dbstats.GetPodStatsEntriesForNamespace(ns)
 	c.IndentedJSON(http.StatusOK, stats)
+}
+
+func debugChart(c *gin.Context) {
+	ns := c.Query("namespace")
+	podname := c.Query("podname")
+	html := services.RenderPodNetworkTreePageHtml(ns, podname)
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }

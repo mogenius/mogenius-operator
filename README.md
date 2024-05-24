@@ -37,12 +37,24 @@ image: ghcr.io/mogenius/mogenius-k8s-manager:latest
 imagePullPolicy: Always
 
 TO:
-
 image: localk8smanager:latest
 imagePullPolicy: Never
 ```
 After that simply restart the deployment and you are good to go.
 
+# bolt-db debugging
+```
+apk add go
+go install github.com/br0xen/boltbrowser@latest
+cp /db/mogenius-stats-1.db mogenius-stats1.db
+cp /db/mogenius-1.db mogenius1.db
+/root/go/bin/boltbrowser mogenius-stats1.db
+```
+
+# Testing
+```
+go test -v ./...
+```
 
 # Helm Install
 ```
@@ -81,7 +93,6 @@ helm repo update
 | own_namespace              | mogenius                                    | The Namespace of mogenius platform.     | 
 | cluster_mfa_id             | [auto_generated]                            | UUID of the Kubernetes Cluster for MFA purpose.       | 
 | run_in_cluster             | true                                        | If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context.     |
-| default_container_registry | docker.io                                   | Default Container Image Registry.    | 
 | bbolt_db_path              | bbolt_db_path                               | Path to the bbolt database. This db stores build-related information. |
 | api_ws_server              | 127.0.0.1:8080                              | This depends on your stage. local/dev/prod. Prod: "k8s-ws.mogenius.com"     | 
 | api_ws_path                | /ws                                         | The path of the api server.    | 
@@ -130,6 +141,11 @@ mv k9s /usr/local/bin/.
 rm LICENSE README.md k9s_Linux_amd64.tar.gz get_helm.sh
 ```
 
+# Lint
+```
+golangci-lint run '--fast=false' --sort-results '--max-same-issues=0' '--timeout=1h'
+```
+
 # Slim setup (IMPORTANT: DOES NOT MAKE THE IMAGE SMALLER IN OUR PARTICULAR CASE)
 ```
 slim build --http-probe=false --exec "curl mogenius.com; git; docker info; helm" \
@@ -142,8 +158,8 @@ ghcr.io/mogenius/mogenius-k8s-manager-dev:v1.18.19-develop.92
 ```
 
 
-
 ---------------------
 mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform
+
 
 

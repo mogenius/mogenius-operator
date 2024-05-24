@@ -60,3 +60,59 @@ const (
 	PortTypeTCP   PortTypeEnum = "TCP"
 	PortTypeUDP   PortTypeEnum = "UDP"
 )
+
+type K8sServiceControllerEnum string
+
+const (
+	DEPLOYMENT   K8sServiceControllerEnum = "Deployment"
+	REPLICA_SET  K8sServiceControllerEnum = "ReplicaSet"
+	STATEFUL_SET K8sServiceControllerEnum = "StatefulSet"
+	DAEMON_SET   K8sServiceControllerEnum = "DaemonSet"
+	JOB          K8sServiceControllerEnum = "Job"
+	CRON_JOB     K8sServiceControllerEnum = "CronJob"
+)
+
+type K8sContainerTypeEnum string
+
+const (
+	CONTAINER_GIT_REPOSITORY  K8sContainerTypeEnum = "GIT_REPOSITORY"
+	CONTAINER_CONTAINER_IMAGE K8sContainerTypeEnum = "CONTAINER_IMAGE"
+)
+
+const (
+	KindNamespaces      string = "namespaces"
+	KindDeployments     string = "deployments"
+	KindPods            string = "pods"
+	KindStatefulSets    string = "statefulsets"
+	KindServices        string = "services"
+	KindIngresses       string = "ingresses"
+	KindConfigMaps      string = "configmaps"
+	KindSecrets         string = "secrets"
+	KindJobs            string = "jobs"
+	KindCronJobs        string = "cronjobs"
+	KindDaemonSets      string = "daemonsets"
+	KindNetworkPolicies string = "networkpolicies"
+)
+
+var AvailableSyncWorkloadKinds = []string{
+	KindNamespaces,
+	KindPods,
+	KindDeployments,
+	KindStatefulSets,
+	KindServices,
+	KindIngresses,
+	KindConfigMaps,
+	KindSecrets,
+	KindJobs,
+	KindCronJobs,
+	KindDaemonSets,
+	KindNetworkPolicies,
+}
+
+func DefaultIgnoredNamespaces() []string {
+	return []string{
+		"kube-system",
+		"kube-public",
+		"kube-node-lease",
+	}
+}

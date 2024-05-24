@@ -16,7 +16,7 @@ import (
 
 var installCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install the application into your cluster without auto-removal.",
+	Short: "Install the application into your cluster without auto-removal",
 	Long: `
 	This cmd installs the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,

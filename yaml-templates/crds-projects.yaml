@@ -1,0 +1,66 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: projects.mogenius.io
+spec:
+  group: mogenius.io
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: Display Name
+          jsonPath: .spec.displayName
+          type: string
+        - name: Product ID
+          jsonPath: .spec.productId
+          type: string
+        - name: Created By
+          jsonPath: .spec.createdBy
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                id:
+                  type: string
+                projectName:
+                  type: string
+                displayName:
+                  type: string
+                createdBy:
+                  type: string
+                productId:
+                  type: string
+                clusterId:
+                  type: string
+                environmentRefs:
+                  type: array
+                  items:
+                    type: string
+                limits:
+                  type: object
+                  properties:
+                    limitMemoryMB:
+                      type: integer
+                    limitCpuCores:
+                      type: integer
+                    ephemeralStorageMB:
+                      type: integer
+                    maxVolumeSizeGb:
+                      type: integer
+  scope: Cluster
+  names:
+    plural: projects
+    singular: project
+    kind: Project
+    shortNames:
+      - proj
+      - pro
+      - pj

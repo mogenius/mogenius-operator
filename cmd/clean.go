@@ -16,7 +16,7 @@ import (
 
 var cleanCmd = &cobra.Command{
 	Use:   "clean",
-	Short: "Remove all components from your cluster.",
+	Short: "Remove all components from your cluster",
 	Long: `
 	This cmd removes all remaining parts of the daemonset, configs, etc. from your cluster. 
 	This can be used if something went wrong during automatic cleanup.`,

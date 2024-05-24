@@ -1,10 +1,12 @@
+config:
+  version: 2
+
 kubernetes:
   api_key: YOUR_API_KEY
   cluster_name: your-cluster-name
   own_namespace: mogenius
   cluster_mfa_id:
   run_in_cluster: true
-  default_container_registry: docker.io
   bbolt_db_path: /db/mogenius.db
   bbolt_db_stats_path: /db/mogenius-stats.db
   local_registry_host: mocr.local.mogenius.io
@@ -20,15 +22,26 @@ event_server:
   scheme: wss
   path: /ws
 
-shell_server:
-  server: XXX.dev.mogenius.com
-  scheme: wss
-  path: /ws
+iac:
+  repo_url:
+  repo_pat:
+  repo_branch: main
+  polling_interval_secs: 10 # min is 5 
+  allow_push: false
+  allow_pull: false
+  sync_workloads: ["namespaces", "pods", "deployments", "statefulsets", "services", "ingresses", "configmaps", "secrets", "jobs", "cronjobs", "daemonsets", "networkpolicies"]
+  ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
+  show_diff_in_log: false
+  log_changes: true
 
 misc:
   stage: dev
+  log_format: text # json or text
+  log_level: info  # panic, fatal, error, warn, info, debug, trace
+  log_incoming_stats: false
   default_mount_path: /mo-data
   debug: true
+  debug_log_caller: false
   auto_mount_nfs: true
   log_kubernetes_events: false
   ignore_namespaces: ["kube-system"]
@@ -44,11 +57,15 @@ misc:
   nfs_pod_prefix: nfs-server-pod
 
 builder:
-  max_build_time: 3600   # 1 hour
-  max_scan_time: 200     # seconds
+  max_build_time: 3600      # 1 hour
+  max_scan_time: 200        # seconds
+  max_concurrent_builds: 1  # max concurrent builds
 
 git:
   user_email: git@mogenius.com
   user_name: mogenius git-user
   default_branch: main
   add_ignored_file: false
+
+stats:
+  max_data_points: 1000     # history data points

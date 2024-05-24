@@ -1,10 +1,9 @@
 package kubernetes
 
 import (
-	"mogenius-k8s-manager/logger"
-
 	punq "github.com/mogenius/punq/kubernetes"
 	"github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -37,7 +36,7 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 
 	pod := punq.GetPod(namespace, podName, nil)
 	if pod == nil {
-		logger.Log.Errorf("Pod: '%s/%s' not found.", namespace, podName)
+		log.Errorf("Pod: '%s/%s' not found.", namespace, podName)
 		return nil
 	}
 	ctlr := OwnerFromReference(pod.Namespace, pod.OwnerReferences)
@@ -46,7 +45,7 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 		return ctlr
 	}
 
-	logger.Log.Errorf("Pod: '%s/%s' has no owner.", namespace, podName)
+	log.Debugf("Pod: '%s/%s' has no owner.", namespace, podName)
 	return nil
 }
 
@@ -132,8 +131,23 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 				}
 			}
 			return nil
+		case "Node":
+			data, err := punq.GetK8sNode(owner.Name, nil)
+			if err != nil {
+				log.Errorf("Error getting node: %s", err)
+				return nil
+			}
+			if data != nil {
+				if data.OwnerReferences == nil {
+					return utils.Pointer(NewK8sController("Node", data.Name, ""))
+				} else {
+					// recurse
+					return OwnerFromReference(namespace, data.OwnerReferences)
+				}
+			}
+			return nil
 		default:
-			logger.Log.Errorf("NOT IMPLEMENTED owner kind: %s", owner.Kind)
+			log.Errorf("NOT IMPLEMENTED owner kind: %s", owner.Kind)
 			return nil
 		}
 	}
