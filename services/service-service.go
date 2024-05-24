@@ -8,6 +8,7 @@ import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"os"
 	"sync"
 	"time"
 
@@ -65,7 +66,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		mokubernetes.UpdateCronJob(job, r.Namespace, r.Service, &wg)
 	}
 
-	if r.Service.HasContainerWithGitRepo() {
+	if r.Service.HasContainerWithGitRepo() && serviceHasYamlSettings(r.Service) {
 		updateInfrastructureYaml(job, r.Service, &wg)
 	}
 
@@ -297,6 +298,15 @@ func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 // 	return []*structs.Command{}
 // }
 
+func serviceHasYamlSettings(service dtos.K8sServiceDto) bool {
+	for _, container := range service.Containers {
+		if container.SettingsYaml != nil {
+			return true
+		}
+	}
+	return false
+}
+
 func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("update", "Update infrastructure YAML", job)
 	wg.Add(1)
@@ -305,10 +315,10 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 		cmd.Start(job, "Update infrastructure YAML")
 
 		// dont do this in local environment
-		if utils.CONFIG.Misc.Stage == "local" {
-			cmd.Success(job, "Skipping infrastructure YAML update")
-			return
-		}
+		// if utils.CONFIG.Misc.Stage == "local" {
+		// 	cmd.Success(job, "Skipping infrastructure YAML update")
+		// 	return
+		// }
 
 		for _, container := range service.Containers {
 			if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
@@ -325,7 +335,7 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 					continue
 				}
 
-				tempDir := "/temp"
+				tempDir := os.TempDir()
 				gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
 
 				err := utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
@@ -345,12 +355,12 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 					return
 				}
 
-				err = utils.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml." ; git reset --soft HEAD~1`, gitDir, *container.GitBranch))
+				err = utils.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit --amend --no-edit`, gitDir, *container.GitBranch))
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
 					return
 				}
-				err = utils.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
+				err = utils.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --force --set-upstream origin %s", gitDir, *container.GitBranch))
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
 					return
