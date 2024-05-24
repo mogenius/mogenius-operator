@@ -183,16 +183,16 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 			Namespace: buildJob.Namespace,
 			Service:   buildJob.Service,
 		}
-		UpdateService(r, false) // this blocks until the service is updated
-	}
-
-	// UPDATE IMAGE
-	setImageCmd := structs.CreateCommand("setImage", "Deploying image", job)
-	err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
-	if err != nil {
-		log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
-		done <- structs.JobStateFailed
-		return
+		UpdateService(r)
+	} else {
+		// UPDATE IMAGE
+		setImageCmd := structs.CreateCommand("setImage", "Deploying image", job)
+		err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
+		if err != nil {
+			log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
+			done <- structs.JobStateFailed
+			return
+		}
 	}
 }
 
