@@ -85,7 +85,7 @@ func XTermCommandStreamConnection(
 
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(5*time.Second))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30*time.Minute))
 	// websocket connection
 	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
