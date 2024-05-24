@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"io"
-	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
 	"os/exec"
@@ -15,55 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 	punq "github.com/mogenius/punq/kubernetes"
 	log "github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.KubeProvider, namespace string, podName string, conn *websocket.Conn) {
-	defer func() {
-		wg.Done()
-	}()
-	firstCount := false
-	for {
-		select {
-		case <-ctx.Done():
-			log.Errorf("Context done.")
-			return
-		default:
-			pod, err := provider.ClientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
-			if err != nil {
-				log.Errorf("Unable to get pod: %s", err.Error())
-				if conn != nil {
-					// clear screen
-					clearScreen(conn)
-					closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
-					if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-						// log.Error("write close:", err)
-					}
-				}
-				return
-			}
-
-			if isPodReady(pod) {
-				log.Infof("Pod %s is ready.", pod.Name)
-				// clear screen
-				clearScreen(conn)
-				return
-			} else {
-				log.Info("Pod is not ready, waiting.")
-				msg := "."
-				if !firstCount {
-					firstCount = true
-					msg = "Pod is not ready, waiting."
-				}
-				err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
-				if err != nil {
-					log.Errorf("WriteMessage: %s", err.Error())
-				}
-				time.Sleep(1 * time.Second)
-			}
-		}
-	}
-}
 
 func injectContent(content io.Reader, conn *websocket.Conn) {
 	// Read full content for pre-injection
@@ -134,7 +85,7 @@ func XTermCommandStreamConnection(
 
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(5*time.Second))
 	// websocket connection
 	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {

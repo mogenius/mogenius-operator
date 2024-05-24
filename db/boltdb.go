@@ -629,7 +629,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 func ImageNamesFromBuildJob(buildJob structs.BuildJob) (imageName string, imageTag string, imageTagLatest string) {
 	imageName = fmt.Sprintf("%s-%s", buildJob.Namespace.Name, buildJob.Service.ControllerName)
 	// overwrite images name for local builds
-	if (buildJob.Project.ContainerRegistryUser == nil && buildJob.Project.ContainerRegistryPat == nil) || (*buildJob.Project.ContainerRegistryUser == "" && *buildJob.Project.ContainerRegistryPat == "") {
+	if (buildJob.Project.ContainerRegistryUser == nil && buildJob.Project.ContainerRegistryPat == nil) && (*buildJob.Project.ContainerRegistryUser == "" && *buildJob.Project.ContainerRegistryPat == "") {
 		imageTag = fmt.Sprintf("%s/%s:%d", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName, buildJob.BuildId)
 		imageTagLatest = fmt.Sprintf("%s/%s:latest", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName)
 	} else {

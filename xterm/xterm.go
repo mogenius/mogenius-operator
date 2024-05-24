@@ -3,13 +3,16 @@ package xterm
 import (
 	"context"
 	"encoding/json"
+	punq "github.com/mogenius/punq/kubernetes"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -91,12 +94,64 @@ type XtermReadMessages struct {
 var LogChannels = make(map[string]chan string)
 
 func isPodReady(pod *v1.Pod) bool {
+	if pod.Status.Phase == v1.PodRunning {
+		return true
+	}
 	for _, cond := range pod.Status.Conditions {
 		if cond.Type == v1.PodReady && cond.Status == v1.ConditionTrue {
 			return true
 		}
 	}
 	return false
+}
+
+func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.KubeProvider, namespace string, podName string, conn *websocket.Conn) {
+	defer func() {
+		wg.Done()
+	}()
+	firstCount := false
+	for {
+		select {
+		case <-ctx.Done():
+			log.Errorf("Context done.")
+			return
+		default:
+			pod, err := provider.ClientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+			if err != nil {
+				log.Errorf("Unable to get pod: %s", err.Error())
+				if conn != nil {
+					// clear screen
+					clearScreen(conn)
+					closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
+					if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+						// log.Error("write close:", err)
+					}
+				}
+				return
+			}
+
+			if isPodReady(pod) {
+				log.Infof("Pod %s is ready.", pod.Name)
+				// clear screen
+				clearScreen(conn)
+				return
+			} else {
+				// log.Info("Pod is not ready, waiting.")
+				msg := "."
+				if !firstCount {
+					firstCount = true
+					msg = "Pod is not ready, waiting."
+				}
+				err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
+				if err != nil {
+					log.Errorf("WriteMessage: %s", err.Error())
+					ctx.Done()
+					return
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
 }
 
 func clearScreen(conn *websocket.Conn) {
@@ -162,7 +217,6 @@ func generateWsConnection(
 			continue
 		}
 
-		conn.SetReadDeadline(time.Time{})
 		// log.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
 
 		// oncloseWs will close the connection and the context
@@ -190,7 +244,7 @@ func oncloseWs(conn *websocket.Conn, ctx context.Context, cancel context.CancelF
 		default:
 			messageType, p, err := conn.ReadMessage()
 			if readMessages != nil {
-				readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: nil}
+				readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: err}
 			}
 			if err != nil {
 				if _, ok := err.(*websocket.CloseError); ok {
