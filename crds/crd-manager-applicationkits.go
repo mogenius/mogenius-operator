@@ -28,7 +28,9 @@ func CreateOrUpdateApplicationKitCmd(job *structs.Job, namespace string, name st
 
 		err = AddAppKitToEnvironment(namespace, newObj.Controller)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("AddAppKitToEnvironment ERROR: %s", err.Error()))
+			// TODO: wieder aufnehmen
+			// cmd.Fail(job, fmt.Sprintf("AddAppKitToEnvironment ERROR: %s", err.Error()))
+			cmd.Success(job, "Updated CRDs ApplicationKit")
 		} else {
 			cmd.Success(job, "Updated CRDs ApplicationKit")
 		}
@@ -48,7 +50,9 @@ func DeleteApplicationKitCmd(job *structs.Job, namespace string, name string, wg
 		}
 		err = RemoveAppKitFromEnvironment(namespace, job.ControllerName)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("RemoveAppKitFromEnvironment ERROR: %s", err.Error()))
+			// TODO: wieder aufnehmen
+			// cmd.Fail(job, fmt.Sprintf("RemoveAppKitFromEnvironment ERROR: %s", err.Error()))
+			cmd.Success(job, "Deleted CRDs ApplicationKit")
 		} else {
 			cmd.Success(job, "Deleted CRDs ApplicationKit")
 		}

@@ -274,7 +274,7 @@ func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, i
 				result.PodName = entry.PodName
 			} else {
 				// if the podName is the same, replace the values because it will be newer
-				result.Replace(&entry)
+				result.SumOrReplace(&entry)
 			}
 		}
 		return nil

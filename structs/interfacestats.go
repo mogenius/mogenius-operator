@@ -44,15 +44,27 @@ func (data *InterfaceStats) Sum(dataToAdd *InterfaceStats) {
 	data.ReceivedStartBytes += dataToAdd.ReceivedStartBytes
 }
 
-func (data *InterfaceStats) Replace(dataToAdd *InterfaceStats) {
-	data.PacketsSum = dataToAdd.PacketsSum
-	data.TransmitBytes = dataToAdd.TransmitBytes
-	data.ReceivedBytes = dataToAdd.ReceivedBytes
-	data.UnknownBytes = dataToAdd.UnknownBytes
-	data.LocalTransmitBytes = dataToAdd.LocalTransmitBytes
-	data.LocalReceivedBytes = dataToAdd.LocalReceivedBytes
-	data.TransmitStartBytes = dataToAdd.TransmitStartBytes
-	data.ReceivedStartBytes = dataToAdd.ReceivedStartBytes
+func (data *InterfaceStats) SumOrReplace(dataToAdd *InterfaceStats) {
+	if dataToAdd.TransmitStartBytes > data.TransmitStartBytes || dataToAdd.ReceivedStartBytes > data.ReceivedStartBytes {
+		// new startRX+startTX means an reset of the counters
+		data.TransmitStartBytes = dataToAdd.TransmitStartBytes
+		data.ReceivedStartBytes = dataToAdd.ReceivedStartBytes
+
+		data.PacketsSum = dataToAdd.PacketsSum
+		data.TransmitBytes = dataToAdd.TransmitBytes
+		data.ReceivedBytes = dataToAdd.ReceivedBytes
+		data.UnknownBytes = dataToAdd.UnknownBytes
+		data.LocalTransmitBytes = dataToAdd.LocalTransmitBytes
+		data.LocalReceivedBytes = dataToAdd.LocalReceivedBytes
+	} else {
+		// just sum the values if startRX+startTX is the same (it changes if the traffic collector restarts)
+		data.PacketsSum += dataToAdd.PacketsSum
+		data.TransmitBytes += dataToAdd.TransmitBytes
+		data.ReceivedBytes += dataToAdd.ReceivedBytes
+		data.UnknownBytes += dataToAdd.UnknownBytes
+		data.LocalTransmitBytes += dataToAdd.LocalTransmitBytes
+		data.LocalReceivedBytes += dataToAdd.LocalReceivedBytes
+	}
 }
 
 func (data *InterfaceStats) PrintInfo() {
