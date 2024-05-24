@@ -3,9 +3,7 @@ package xterm
 import (
 	"context"
 	"encoding/json"
-	punq "github.com/mogenius/punq/kubernetes"
 	"io"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/url"
@@ -15,6 +13,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	punq "github.com/mogenius/punq/kubernetes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/creack/pty"
 
@@ -204,7 +205,7 @@ func generateWsConnection(
 		// log.Infof("Connected to %s", u.String())
 
 		// API send ack when it is ready to receive messages.
-		conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+		conn.SetReadDeadline(time.Now().Add(30 * time.Minute))
 		_, _, err = conn.ReadMessage()
 		if err != nil {
 			log.Errorf("Failed to receive ack-ready, retrying in 5 seconds: %s", err.Error())
