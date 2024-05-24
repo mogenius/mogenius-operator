@@ -30,7 +30,7 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
-func UpdateService(r ServiceUpdateRequest) interface{} {
+func UpdateService(r ServiceUpdateRequest, executeAsync bool) interface{} {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
@@ -78,10 +78,15 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		AppId:       "MISSING_FIELD",
 	}, &wg)
 
-	go func() {
+	if executeAsync {
+		go func() {
+			wg.Wait()
+			job.Finish()
+		}()
+	} else {
 		wg.Wait()
 		job.Finish()
-	}()
+	}
 
 	return job
 }

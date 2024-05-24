@@ -548,7 +548,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		data.Service.AddSecretsToRedaction()
 		data.Project.AddSecretsToRedaction()
-		return UpdateService(data)
+		return UpdateService(data, true)
 	case structs.PAT_SERVICE_DELETE:
 		data := ServiceDeleteRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -639,7 +639,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		data.Project.AddSecretsToRedaction()
 		data.Service.AddSecretsToRedaction()
-		return UpdateService(data)
+		return UpdateService(data, true)
 	case structs.PAT_SERVICE_TRIGGER_JOB:
 		data := ServiceTriggerJobRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

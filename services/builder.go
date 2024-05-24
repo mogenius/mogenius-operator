@@ -183,7 +183,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 			Namespace: buildJob.Namespace,
 			Service:   buildJob.Service,
 		}
-		UpdateService(r)
+		UpdateService(r, false) // this blocks until the service is updated
 	}
 
 	// UPDATE IMAGE
@@ -384,9 +384,6 @@ func executeCmd(job *structs.Job, reportCmd *structs.Command, prefix structs.Bui
 	if reportCmd != nil {
 		reportCmd.Start(job, reportCmd.Message)
 	}
-
-	// give the system a little time to breathe (this is for the job start event to be sent)
-	time.Sleep(100 * time.Millisecond)
 
 	cmd := exec.CommandContext(*timeoutCtx, name, arg...)
 
