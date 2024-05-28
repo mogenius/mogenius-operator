@@ -255,12 +255,13 @@ func StartService(r ServiceStartRequest) interface{} {
 
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
 
-	switch r.Service.Controller {
-	case dtos.DEPLOYMENT:
-		mokubernetes.UpdateDeployment(job, r.Namespace, r.Service, &wg)
-	case dtos.CRON_JOB:
-		mokubernetes.UpdateCronJob(job, r.Namespace, r.Service, &wg)
-	}
+	// unnecessary
+	// switch r.Service.Controller {
+	// case dtos.DEPLOYMENT:
+	// 	mokubernetes.UpdateDeployment(job, r.Namespace, r.Service, &wg)
+	// case dtos.CRON_JOB:
+	// 	mokubernetes.UpdateCronJob(job, r.Namespace, r.Service, &wg)
+	// }
 
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 

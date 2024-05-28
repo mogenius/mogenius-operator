@@ -223,7 +223,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		deployment := newController.(*v1.Deployment)
 
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
-		if deployment.ObjectMeta.Annotations == nil {
+		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 			deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
 			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 		} else {
@@ -253,7 +253,11 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	// check if default deployment exists
 	defaultDeployment := GetCustomDeploymentTemplate()
 	if previousDeployment == nil && defaultDeployment != nil {
+		// create new
 		newDeployment = *defaultDeployment
+	} else {
+		// update existing
+		newDeployment = *previousDeployment
 	}
 
 	objectMeta := &newDeployment.ObjectMeta
