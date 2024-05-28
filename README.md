@@ -31,8 +31,12 @@ RUN:
 ```
 docker build -t localk8smanager --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg BUILD_TIMESTAMP="$(date)" --build-arg COMMIT_HASH="XXX" --build-arg GIT_BRANCH=local-development --build-arg VERSION="6.6.6" -f Dockerfile-dev .
 ```
-mogenius-k8s-manager deployment in your cluster change:
+
+Assuming you already have a [prod operator running](https://docs.mogenius.com/cluster-management/installing-mogenius#mogenius-cli), you can adjust the deployment of the operator with e.g.:
+`kubectl edit deployments -n mogenius mogenius-k8s-manager`
+
 ```
+FROM:
 image: ghcr.io/mogenius/mogenius-k8s-manager:latest
 imagePullPolicy: Always
 
