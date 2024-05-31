@@ -255,7 +255,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	if previousDeployment == nil && defaultDeployment != nil {
 		// create new
 		newDeployment = *defaultDeployment
-	} else {
+	} else if previousDeployment != nil {
 		// update existing
 		newDeployment = *previousDeployment
 	}
