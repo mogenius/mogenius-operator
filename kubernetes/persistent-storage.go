@@ -7,6 +7,9 @@ import (
 	"mogenius-k8s-manager/utils"
 	"strings"
 	"sync"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -14,7 +17,131 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	scheme "k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/record"
 )
+
+const (
+	LabelKeyVolumeIdentifier string = "mo-nfs-volume-identifier"
+	LabelKeyVolumeName       string = "mo-nfs-volume-name"
+)
+
+const finalizerName = "mogenius.io/pv-finalizer"
+const eventReason = "Killing"
+
+func PersitentVolumeWatcher() {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Fatalf("Error creating PersitentVolumeWatcher. Cannot continue because it is vital: %s", err.Error())
+		return
+	}
+
+	go watchPersistentVolumeList(provider)
+}
+
+func watchPersistentVolumeList(provider *punq.KubeProvider) {
+	sleepDuration := 10 * time.Second
+
+	for {
+		time.Sleep(sleepDuration)
+
+		pvList, err := provider.ClientSet.CoreV1().PersistentVolumes().List(context.TODO(), metav1.ListOptions{
+			LabelSelector: LabelKeyVolumeName,
+		})
+
+		if err != nil {
+			log.Warnf("Failed to list labeled:'%s' PVs for finalizer handling: %v", LabelKeyVolumeName, err)
+			continue
+		}
+
+		for _, pv := range pvList.Items {
+			if pv.ObjectMeta.DeletionTimestamp != nil {
+				if containsString(pv.ObjectMeta.Finalizers, finalizerName) {
+					// Finalizer logic here
+					handlePVDeletion(&pv, provider)
+				}
+			} else {
+				if !containsString(pv.ObjectMeta.Finalizers, finalizerName) {
+					// Add finalizer
+					pv.ObjectMeta.Finalizers = append(pv.ObjectMeta.Finalizers, finalizerName)
+					_, err := provider.ClientSet.CoreV1().PersistentVolumes().Update(context.TODO(), &pv, metav1.UpdateOptions{})
+					if err != nil {
+						log.Warnf("Failed to add '%s' finalizer to PV %s: %v", finalizerName, pv.Name, err)
+						continue
+					}
+
+					log.Debugf("Added '%s' finalizer to PV %s", finalizerName, pv.Name)
+				}
+			}
+		}
+	}
+}
+
+func handlePVDeletion(pv *v1.PersistentVolume, provider *punq.KubeProvider) {
+	delayDuration := 1 * time.Second
+
+	// Remove the finalizer to allow deletion to proceed
+	pv.ObjectMeta.Finalizers = removeString(pv.ObjectMeta.Finalizers, finalizerName)
+	_, err := provider.ClientSet.CoreV1().PersistentVolumes().Update(context.TODO(), pv, metav1.UpdateOptions{})
+	if err != nil {
+		log.Warnf("Failed to remove '%s' finalizer from PV %s: %v", finalizerName, pv.Name, err)
+		return
+	}
+
+	// Extract label value from the PV
+	volumeName := getLabelValue(pv, LabelKeyVolumeName)
+	if volumeName == "" {
+		log.Warnf("Label '%s' not found on PV %s", finalizerName, pv.Name)
+		return
+	}
+
+	// Extract namespace from the PV name
+	objectMetaName := pv.ObjectMeta.Name
+	namespaceName := strings.TrimSuffix(objectMetaName, "-"+volumeName)
+
+	// Set up a dynamic event broadcaster for the specific namespace
+	broadcaster := record.NewBroadcaster()
+	eventInterface := provider.ClientSet.CoreV1().Events(namespaceName)
+	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
+	namespaceRecorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: finalizerName})
+
+	// Manipulate PV to match the namespace constraint for the event
+	pv.ObjectMeta.Namespace = namespaceName
+	pv.ObjectMeta.Name = volumeName
+
+	time.Sleep(delayDuration)
+
+	// Trigger custom event
+	log.Debugf("PV %s is being deleted in namespace %s, triggering event\n", objectMetaName, namespaceName)
+	namespaceRecorder.Eventf(pv, v1.EventTypeNormal, eventReason, "PersistentVolume %s is being deleted", objectMetaName)
+}
+
+func getLabelValue(pv *v1.PersistentVolume, labelKey string) string {
+	if val, ok := pv.Labels[labelKey]; ok {
+		return val
+	}
+	return ""
+}
+
+func containsString(slice []string, str string) bool {
+	for _, v := range slice {
+		if v == str {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(slice []string, str string) []string {
+	newSlice := []string{}
+	for _, v := range slice {
+		if v != str {
+			newSlice = append(newSlice, v)
+		}
+	}
+	return newSlice
+}
 
 func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
 	result := []structs.Volume{}
@@ -71,8 +198,8 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 
 		// add labels
 		pvc.Labels = MoAddLabels(&pvc.Labels, map[string]string{
-			"mo-nfs-volume-identifier": fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
-			"mo-nfs-volume-name":       volumeName,
+			LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
+			LabelKeyVolumeName:       volumeName,
 		})
 
 		provider, err := punq.NewKubeProvider(nil)
@@ -135,8 +262,8 @@ func CreateMogeniusNfsPersistentVolumeForService(job *structs.Job, namespaceName
 
 		// add labels
 		pv.Labels = MoAddLabels(&pv.Labels, map[string]string{
-			"mo-nfs-volume-identifier": fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
-			"mo-nfs-volume-name":       volumeName,
+			LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
+			LabelKeyVolumeName:       volumeName,
 		})
 
 		provider, err := punq.NewKubeProvider(nil)

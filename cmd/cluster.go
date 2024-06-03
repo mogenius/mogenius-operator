@@ -76,6 +76,7 @@ var clusterCmd = &cobra.Command{
 		go structs.ConnectToJobQueue()
 		go mokubernetes.EventWatcher()
 		go mokubernetes.ResourceWatcher()
+		go mokubernetes.PersitentVolumeWatcher()
 
 		if utils.CONFIG.Misc.Stage != "local" {
 			punq.ExecuteShellCommandSilent("Git setup (1/5)", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
