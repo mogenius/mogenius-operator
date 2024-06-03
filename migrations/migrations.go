@@ -29,16 +29,16 @@ func _PvcMigration1() (string, error) {
 		if strings.HasPrefix(pvc.Name, utils.CONFIG.Misc.NfsPodPrefix) {
 			volumeName := strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
 			pvc.Labels = kubernetes.MoAddLabels(&pvc.Labels, map[string]string{
-				"mo-nfs-volume-identifier": pvc.Name,
-				"mo-nfs-volume-name":       volumeName,
+				kubernetes.LabelKeyVolumeIdentifier: pvc.Name,
+				kubernetes.LabelKeyVolumeName:       volumeName,
 			})
 			punq.UpdateK8sPersistentVolumeClaim(pvc, nil)
 			// now also update auto-created PVC
 			connectedPvc, err := punq.GetPersistentVolumeClaim(pvc.Namespace, volumeName, nil)
 			if err == nil && connectedPvc != nil {
 				connectedPvc.Labels = kubernetes.MoAddLabels(&connectedPvc.Labels, map[string]string{
-					"mo-nfs-volume-identifier": pvc.Name,
-					"mo-nfs-volume-name":       volumeName,
+					kubernetes.LabelKeyVolumeIdentifier: pvc.Name,
+					kubernetes.LabelKeyVolumeName:       volumeName,
 				})
 				punq.UpdateK8sPersistentVolumeClaim(*connectedPvc, nil)
 			}
@@ -52,8 +52,8 @@ func _PvcMigration1() (string, error) {
 			if strings.HasPrefix(pv.Spec.ClaimRef.Name, utils.CONFIG.Misc.NfsPodPrefix) {
 				volumeName := strings.Replace(pv.Spec.ClaimRef.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
 				pv.Labels = kubernetes.MoAddLabels(&pv.Labels, map[string]string{
-					"mo-nfs-volume-identifier": pv.Spec.ClaimRef.Name,
-					"mo-nfs-volume-name":       volumeName,
+					kubernetes.LabelKeyVolumeIdentifier: pv.Spec.ClaimRef.Name,
+					kubernetes.LabelKeyVolumeName:       volumeName,
 				})
 				punq.UpdateK8sPersistentVolume(pv, nil)
 				log.Info("Updated PV: ", pv.Name)
