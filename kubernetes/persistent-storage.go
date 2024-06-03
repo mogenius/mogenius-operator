@@ -59,7 +59,7 @@ func watchPersistentVolumeList(provider *punq.KubeProvider) {
 			if pv.ObjectMeta.DeletionTimestamp != nil {
 				if containsString(pv.ObjectMeta.Finalizers, finalizerName) {
 					// Finalizer logic here
-					handlePVDeletion(&pv, provider)
+					go handlePVDeletion(&pv, provider)
 				}
 			} else {
 				if !containsString(pv.ObjectMeta.Finalizers, finalizerName) {
@@ -79,7 +79,7 @@ func watchPersistentVolumeList(provider *punq.KubeProvider) {
 }
 
 func handlePVDeletion(pv *v1.PersistentVolume, provider *punq.KubeProvider) {
-	delayDuration := 1 * time.Second
+	delayDuration := 2 * time.Second
 
 	// Remove the finalizer to allow deletion to proceed
 	pv.ObjectMeta.Finalizers = removeString(pv.ObjectMeta.Finalizers, finalizerName)
@@ -265,6 +265,9 @@ func CreateMogeniusNfsPersistentVolumeForService(job *structs.Job, namespaceName
 			LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
 			LabelKeyVolumeName:       volumeName,
 		})
+
+		// add finalizer
+		pv.ObjectMeta.Finalizers = append(pv.ObjectMeta.Finalizers, finalizerName)
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
