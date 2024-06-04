@@ -180,7 +180,7 @@ func handlePVDeletion(pv *v1.PersistentVolume, provider *punq.KubeProvider) {
 	time.Sleep(delayDuration)
 
 	// Trigger custom event
-	log.Debugf("PV %s is being deleted in namespace %s, triggering event\n", objectMetaName, namespaceName)
+	log.Infof("PV %s is being deleted in namespace %s, triggering event", objectMetaName, namespaceName)
 	namespaceRecorder.Eventf(pv, v1.EventTypeNormal, PersitentVolumeKillingEventReason, "PersistentVolume %s is being deleted", objectMetaName)
 }
 
