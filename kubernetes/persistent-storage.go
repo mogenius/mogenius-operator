@@ -156,7 +156,7 @@ func handlePVDeletion(pv *v1.PersistentVolume, provider *punq.KubeProvider) {
 	}
 
 	// Extract label value from the PV
-	volumeName := getLabelValue(pv, LabelKeyVolumeName)
+	volumeName := getLabelValue(pv.Labels, LabelKeyVolumeName)
 	if volumeName == "" {
 		log.Warnf("Label value for identifier:'%s' not found on PV %s", LabelKeyVolumeName, pv.Name)
 		return
@@ -184,8 +184,8 @@ func handlePVDeletion(pv *v1.PersistentVolume, provider *punq.KubeProvider) {
 	namespaceRecorder.Eventf(pv, v1.EventTypeNormal, PersitentVolumeKillingEventReason, "PersistentVolume %s is being deleted", objectMetaName)
 }
 
-func getLabelValue(pv *v1.PersistentVolume, labelKey string) string {
-	if val, ok := pv.Labels[labelKey]; ok {
+func getLabelValue(labels map[string]string, labelKey string) string {
+	if val, ok := labels[labelKey]; ok {
 		return val
 	}
 	return ""
