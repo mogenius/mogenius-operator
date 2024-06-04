@@ -107,11 +107,16 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 					}
 				}
 			}
-			ingressToUpdate.Spec.TLS = []v1.IngressTLS{
-				{
-					Hosts:      tlsHosts,
-					SecretName: service.ControllerName,
-				},
+
+			if len(tlsHosts) > 0 {
+				ingressToUpdate.Spec.TLS = []v1.IngressTLS{
+					{
+						Hosts:      tlsHosts,
+						SecretName: service.ControllerName,
+					},
+				}
+			} else {
+				ingressToUpdate.Spec.TLS = []v1.IngressTLS{}
 			}
 
 			// if redirectTo != nil {
