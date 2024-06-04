@@ -151,13 +151,13 @@ func watchPersistentVolumes(provider *punq.KubeProvider, kindName string) error 
 }
 
 func handlePVDeletion(pv *v1.PersistentVolume, provider *punq.KubeProvider) {
-	if !containsLabelKey(pv.Labels, LabelKeyVolumeName) {
+	if !ContainsLabelKey(pv.Labels, LabelKeyVolumeName) {
 		return
 	}
 
 	// Extract label value from the PV
-	volumeName := getLabelValue(pv.Labels, LabelKeyVolumeName)
-	if volumeName == "" {
+	volumeName, err := GetLabelValue(pv.Labels, LabelKeyVolumeName)
+	if err != nil {
 		log.Warnf("Label value for identifier:'%s' not found on PV %s", LabelKeyVolumeName, pv.Name)
 		return
 	}
@@ -182,18 +182,6 @@ func handlePVDeletion(pv *v1.PersistentVolume, provider *punq.KubeProvider) {
 	// Trigger custom event
 	log.Infof("PV %s is being deleted in namespace %s, triggering event", objectMetaName, namespaceName)
 	namespaceRecorder.Eventf(pv, v1.EventTypeNormal, PersitentVolumeKillingEventReason, "PersistentVolume %s is being deleted", objectMetaName)
-}
-
-func getLabelValue(labels map[string]string, labelKey string) string {
-	if val, ok := labels[labelKey]; ok {
-		return val
-	}
-	return ""
-}
-
-func containsLabelKey(labels map[string]string, key string) bool {
-	_, ok := labels[key]
-	return ok
 }
 
 func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
