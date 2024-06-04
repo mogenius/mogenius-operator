@@ -397,3 +397,24 @@ outerLoop:
 	}
 	return result
 }
+
+func GetLabelValue(labels map[string]string, labelKey string) (string, error) {
+	if labels == nil {
+		return "", fmt.Errorf("Labels are nil")
+	}
+
+	if val, ok := labels[labelKey]; ok {
+		return val, nil
+	}
+
+	return "", fmt.Errorf("Label value for key:'%s' not found", labelKey)
+}
+
+func ContainsLabelKey(labels map[string]string, key string) bool {
+	if labels == nil {
+		return false
+	}
+
+	_, ok := labels[key]
+	return ok
+}
