@@ -9,10 +9,17 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	log "github.com/sirupsen/logrus"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func ExecuteMigrations() {
 	name, err := _PvcMigration1()
+	if err != nil {
+		log.Infof("Migration ('%s'): %s", name, err.Error())
+	}
+
+	name, err = _PvMigration2()
 	if err != nil {
 		log.Infof("Migration ('%s'): %s", name, err.Error())
 	}
@@ -58,6 +65,34 @@ func _PvcMigration1() (string, error) {
 				punq.UpdateK8sPersistentVolume(pv, nil)
 				log.Info("Updated PV: ", pv.Name)
 			}
+		}
+	}
+
+	log.Infof("Migration '%s' applied successfuly.", migrationName)
+	err := db.AddMigrationToDb(migrationName)
+	if err != nil {
+		return migrationName, fmt.Errorf("Migration '%s' applied successfuly, but could not be added to migrations table: %s", migrationName, err.Error())
+	}
+	return migrationName, nil
+}
+
+func _PvMigration2() (string, error) {
+	migrationName := utils.GetFunctionName()
+	if db.IsMigrationAlreadyApplied(migrationName) {
+		return migrationName, fmt.Errorf("Migration already applied.")
+	}
+
+	selector := metav1.ListOptions{
+		LabelSelector: kubernetes.LabelKeyVolumeName,
+	}
+
+	pvs := kubernetes.PersistentVolumes(&selector, nil)
+	for _, pv := range pvs {
+		if !kubernetes.ContainsString(pv.ObjectMeta.Finalizers, kubernetes.FinalizerName) {
+			// Add finalizer
+			pv.ObjectMeta.Finalizers = append(pv.ObjectMeta.Finalizers, kubernetes.FinalizerName)
+			punq.UpdateK8sPersistentVolume(pv, nil)
+			log.Info("Updated PV: ", pv.Name)
 		}
 	}
 
