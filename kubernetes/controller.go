@@ -171,9 +171,9 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 		specTemplate.Spec.Volumes = []v1core.Volume{}
 
 		for _, envVar := range container.EnvVars {
-			if envVar.Type == "KEY_VAULT" ||
-				envVar.Type == "PLAINTEXT" ||
-				envVar.Type == "HOSTNAME" {
+			if envVar.Type == dtos.EnvVarKeyVault {
+				//envVar.Type == "PLAINTEXT" ||
+				//envVar.Type == "HOSTNAME" {
 				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
 					Name: envVar.Name,
 					ValueFrom: &v1core.EnvVarSource{
@@ -186,7 +186,13 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					},
 				})
 			}
-			if envVar.Type == "VOLUME_MOUNT" {
+			if envVar.Type == dtos.EnvVarPlainText || envVar.Type == dtos.EnvVarHostname {
+				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
+					Name:  envVar.Name,
+					Value: envVar.Value,
+				})
+			}
+			if envVar.Type == dtos.EnvVarVolumeMount {
 				// VOLUMEMOUNT
 				// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
 				components := strings.Split(envVar.Value, ":")

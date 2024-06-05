@@ -43,9 +43,9 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 
 		for _, container := range service.Containers {
 			for _, envVar := range container.EnvVars {
-				if envVar.Type == "KEY_VAULT" ||
-					envVar.Type == "PLAINTEXT" ||
-					envVar.Type == "HOSTNAME" {
+				if envVar.Type == dtos.EnvVarKeyVault {
+					//envVar.Type == "PLAINTEXT" ||
+					//envVar.Type == "HOSTNAME" {
 					secret.StringData[envVar.Name] = envVar.Value
 				}
 			}
@@ -244,10 +244,15 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 
 		for _, container := range service.Containers {
 			for _, envVar := range container.EnvVars {
-				if envVar.Type == "KEY_VAULT" ||
-					envVar.Type == "PLAINTEXT" ||
-					envVar.Type == "HOSTNAME" {
+				if envVar.Type == dtos.EnvVarKeyVault {
+					//envVar.Type == "PLAINTEXT" ||
+					//envVar.Type == "HOSTNAME" {
 					secret.StringData[envVar.Name] = envVar.Value
+				}
+				if envVar.Type == dtos.EnvVarPlainText ||
+					envVar.Type == dtos.EnvVarHostname {
+					delete(secret.StringData, envVar.Name)
+					// secret.StringData[envVar.Name] = envVar.Value
 				}
 			}
 		}
