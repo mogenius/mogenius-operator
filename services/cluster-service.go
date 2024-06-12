@@ -864,7 +864,7 @@ func SystemCheck() punq.SystemCheckResponse {
 		distriRegistryMsg = fmt.Sprintf("%s is not installed.\nTo have a private container registry running inside your cluster, you need to install this component.", distributionRegistryName)
 	}
 	distriDescription := "A Docker-based container registry inside Kubernetes."
-	currentDistriRegistryVersion := mokubernetes..GetMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
+	currentDistriRegistryVersion := mokubernetes.GetMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
 	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, distriDescription, false, true, distriRegistryVersion, currentDistriRegistryVersion)
 	distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
 	distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
@@ -878,7 +878,7 @@ func SystemCheck() punq.SystemCheckResponse {
 		metallbMsg = fmt.Sprintf("%s is not installed.\nTo have a local load balancer, you need to install this component.", NameMetalLB)
 	}
 	metallbDescription := "A load balancer for local clusters (e.g. Docker Desktop, k3s, minikube, etc.)."
-	currentMetallbVersion := mokubernetes..GetMostCurrentHelmChartVersion(MetalLBHelmIndex, utils.HelmReleaseNameMetalLb)
+	currentMetallbVersion := mokubernetes.GetMostCurrentHelmChartVersion(MetalLBHelmIndex, utils.HelmReleaseNameMetalLb)
 	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, metallbDescription, false, true, metallbVersion, currentMetallbVersion)
 	metallbEntry.InstallPattern = structs.PAT_INSTALL_METALLB
 	metallbEntry.UninstallPattern = structs.PAT_UNINSTALL_METALLB
@@ -893,7 +893,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	// 	keplerMsg = fmt.Sprintf("%s is not installed.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler)
 	// }
 	// keplerDescription := "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption."
-	// currentKeplerVersion := utils.GetMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
+	// currentKeplerVersion := mokubernetes.GetMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
 	// keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false, keplerVersion, currentKeplerVersion)
 	// keplerEntry.InstallPattern = structs.PAT_INSTALL_KEPLER
 	// keplerEntry.UninstallPattern = structs.PAT_UNINSTALL_KEPLER
@@ -922,7 +922,7 @@ func SystemCheck() punq.SystemCheckResponse {
 			entries[i].InstallPattern = structs.PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UninstallPattern = structs.PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
-			entries[i].VersionAvailable = utils.GetMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
+			entries[i].VersionAvailable = mokubernetes.GetMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
 			if entries[i].Status != punq.INSTALLED {
 				entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
 			}
@@ -931,7 +931,7 @@ func SystemCheck() punq.SystemCheckResponse {
 			entries[i].InstallPattern = structs.PAT_INSTALL_METRICS_SERVER
 			entries[i].UninstallPattern = structs.PAT_UNINSTALL_METRICS_SERVER
 			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_METRICS_SERVER
-			entries[i].VersionAvailable = utils.GetMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
+			entries[i].VersionAvailable = mokubernetes.GetMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
 			if entries[i].Status != punq.INSTALLED {
 				entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
 			}
