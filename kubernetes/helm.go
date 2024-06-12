@@ -3,7 +3,9 @@ package kubernetes
 import (
 	"fmt"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"os"
+	"strings"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -63,4 +65,60 @@ func OurStatusFromHelmStatus(status release.Status) punq.SystemCheckStatus {
 	default:
 		return punq.UNKNOWN_STATUS
 	}
+}
+
+type EntryProps struct {
+	Name             string
+	HelmChartIndex   string
+	InstalledErrMsg  string
+	Description      string
+	InstallPattern   string
+	UninstallPattern string
+	UpgradePattern   string
+}
+
+func EntryFactory(ep EntryProps) punq.SystemCheckEntry {
+	chartVersion, chartInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
+	message := fmt.Sprintf("%s (Version: %s) is installed.", ep.Name, chartVersion)
+	isAlreadyInstalled := chartInstalledErr == nil
+
+	if !isAlreadyInstalled {
+		message = fmt.Sprintf("%s is not installed.\n.", ep.Name)
+	}
+	currentChartVersion := GetMostCurrentHelmChartVersion(ep.HelmChartIndex, ep.Name)
+
+	chartEntry := punq.CreateSystemCheckEntry(ep.Name, isAlreadyInstalled, message, ep.Description, false, true, chartVersion, currentChartVersion)
+	chartEntry.InstallPattern = ep.InstallPattern
+	chartEntry.UninstallPattern = ep.UninstallPattern
+	chartEntry.UpgradePattern = ep.UpgradePattern
+	chartEntry.Status = HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
+
+	return chartEntry
+}
+
+func GetMostCurrentHelmChartVersion(url string, chartname string) string {
+	url = addIndexYAMLtoURL(url)
+	data, err := utils.GetVersionData(url)
+	if err != nil {
+		log.Errorf("Error getting helm chart version (%s/%s): %s", url, chartname, err)
+		return ""
+	}
+	chartsArray := data.Entries[chartname]
+	result := "NO_VERSION_FOUND"
+	if len(chartsArray) > 0 {
+		result = chartsArray[0].Version
+	}
+
+	return result
+}
+
+func addIndexYAMLtoURL(url string) string {
+	if !strings.HasSuffix(url, "index.yaml") {
+		// Check if the URL ends with a slash; if not, add one.
+		if !strings.HasSuffix(url, "/") {
+			url += "/"
+		}
+		url += "index.yaml"
+	}
+	return url
 }

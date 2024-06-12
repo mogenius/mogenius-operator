@@ -804,19 +804,14 @@ func SystemCheck() punq.SystemCheckResponse {
 	kubeCtlMsg := punq.StatusMessage(dockerErr, "If docker is missing in this image, we are screwed ;-)", dockerOutput)
 	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, "", true, false, dockerOutput, ""))
 
-	certManagerVersion, certManagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
-	certManagerMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNameCertManager, certManagerVersion)
-	if certManagerInstalledErr != nil {
-		certManagerMsg = fmt.Sprintf("%s is not installed.\nTo create ssl certificates you need to install this component.", utils.HelmReleaseNameCertManager)
-	}
-	certMgrDescription := "Install the cert-manager to automatically issue Let's Encrypt certificates to your services."
-	currentCertManagerVersion := getMostCurrentHelmChartVersion(CertManagerHelmIndex, utils.HelmReleaseNameCertManager)
-	certMgrEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameCertManager, certManagerInstalledErr == nil, certManagerMsg, certMgrDescription, false, true, certManagerVersion, currentCertManagerVersion)
-	certMgrEntry.InstallPattern = structs.PAT_INSTALL_CERT_MANAGER
-	certMgrEntry.UninstallPattern = structs.PAT_UNINSTALL_CERT_MANAGER
-	certMgrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CERT_MANAGER
-	certMgrEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
-	entries = append(entries, certMgrEntry)
+	entries = append(entries, mokubernetes.EntryFactory(mokubernetes.EntryProps{
+		Name:             utils.HelmReleaseNameCertManager,
+		InstalledErrMsg:  "To create ssl certificates you need to install this component.",
+		Description:      "Install the cert-manager to automatically issue Let's Encrypt certificates to your services.",
+		InstallPattern:   structs.PAT_INSTALL_CERT_MANAGER,
+		UninstallPattern: structs.PAT_UNINSTALL_CERT_MANAGER,
+		UpgradePattern:   "", //structs.PAT_UPGRADE_CERT_MANAGER,
+	}))
 
 	_, clusterIssuerInstalledErr := punq.GetClusterIssuer(NameClusterIssuerResource, nil)
 	clusterIssuerMsg := fmt.Sprintf("%s is installed.", NameClusterIssuerResource)
@@ -869,7 +864,7 @@ func SystemCheck() punq.SystemCheckResponse {
 		distriRegistryMsg = fmt.Sprintf("%s is not installed.\nTo have a private container registry running inside your cluster, you need to install this component.", distributionRegistryName)
 	}
 	distriDescription := "A Docker-based container registry inside Kubernetes."
-	currentDistriRegistryVersion := getMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
+	currentDistriRegistryVersion := mokubernetes..GetMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
 	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, distriDescription, false, true, distriRegistryVersion, currentDistriRegistryVersion)
 	distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
 	distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
@@ -883,7 +878,7 @@ func SystemCheck() punq.SystemCheckResponse {
 		metallbMsg = fmt.Sprintf("%s is not installed.\nTo have a local load balancer, you need to install this component.", NameMetalLB)
 	}
 	metallbDescription := "A load balancer for local clusters (e.g. Docker Desktop, k3s, minikube, etc.)."
-	currentMetallbVersion := getMostCurrentHelmChartVersion(MetalLBHelmIndex, utils.HelmReleaseNameMetalLb)
+	currentMetallbVersion := mokubernetes..GetMostCurrentHelmChartVersion(MetalLBHelmIndex, utils.HelmReleaseNameMetalLb)
 	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, metallbDescription, false, true, metallbVersion, currentMetallbVersion)
 	metallbEntry.InstallPattern = structs.PAT_INSTALL_METALLB
 	metallbEntry.UninstallPattern = structs.PAT_UNINSTALL_METALLB
@@ -898,7 +893,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	// 	keplerMsg = fmt.Sprintf("%s is not installed.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler)
 	// }
 	// keplerDescription := "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption."
-	// currentKeplerVersion := getMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
+	// currentKeplerVersion := utils.GetMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
 	// keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false, keplerVersion, currentKeplerVersion)
 	// keplerEntry.InstallPattern = structs.PAT_INSTALL_KEPLER
 	// keplerEntry.UninstallPattern = structs.PAT_UNINSTALL_KEPLER
@@ -927,7 +922,7 @@ func SystemCheck() punq.SystemCheckResponse {
 			entries[i].InstallPattern = structs.PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UninstallPattern = structs.PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
 			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
-			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
+			entries[i].VersionAvailable = utils.GetMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
 			if entries[i].Status != punq.INSTALLED {
 				entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
 			}
@@ -936,7 +931,7 @@ func SystemCheck() punq.SystemCheckResponse {
 			entries[i].InstallPattern = structs.PAT_INSTALL_METRICS_SERVER
 			entries[i].UninstallPattern = structs.PAT_UNINSTALL_METRICS_SERVER
 			entries[i].UpgradePattern = "" // structs.PAT_UPGRADE_METRICS_SERVER
-			entries[i].VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
+			entries[i].VersionAvailable = utils.GetMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
 			if entries[i].Status != punq.INSTALLED {
 				entries[i].Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
 			}
@@ -1677,31 +1672,4 @@ func getCurrentTrafficCollectorAndPodStatsVersion() (string, string, error) {
 		trafficResult = trafficCollector[0].Version
 	}
 	return trafficResult, podstatsResult, nil
-}
-
-func getMostCurrentHelmChartVersion(url string, chartname string) string {
-	url = addIndexYAMLtoURL(url)
-	data, err := utils.GetVersionData(url)
-	if err != nil {
-		log.Errorf("Error getting helm chart version (%s/%s): %s", url, chartname, err)
-		return ""
-	}
-	chartsArray := data.Entries[chartname]
-	result := "NO_VERSION_FOUND"
-	if len(chartsArray) > 0 {
-		result = chartsArray[0].Version
-	}
-
-	return result
-}
-
-func addIndexYAMLtoURL(url string) string {
-	if !strings.HasSuffix(url, "index.yaml") {
-		// Check if the URL ends with a slash; if not, add one.
-		if !strings.HasSuffix(url, "/") {
-			url += "/"
-		}
-		url += "index.yaml"
-	}
-	return url
 }
