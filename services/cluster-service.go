@@ -43,6 +43,7 @@ const (
 	NameIngressController         = "Ingress Controller"
 	NameLocalDevSetup             = "Local Dev Setup"
 	NameInternalContainerRegistry = "Internal Container Registry"
+	NameExternalSecrets           = "External Secrets"
 	NameClusterIssuerResource     = "letsencrypt-cluster-issuer"
 	NameKepler                    = "Kepler"
 	NameNfsStorageClass           = "nfs-storageclass"
@@ -52,6 +53,7 @@ const (
 	MetricsHelmIndex                  = "https://kubernetes-sigs.github.io/metrics-server"
 	IngressControllerTraefikHelmIndex = "https://traefik.github.io/charts"
 	ContainerRegistryHelmIndex        = "https://phntom.kix.co.il/charts"
+	ExternalSecretsHelmIndex          = "https://charts.external-secrets.io"
 	CertManagerHelmIndex              = "https://charts.jetstack.io"
 	KeplerHelmIndex                   = "https://sustainable-computing-io.github.io/kepler-helm-chart"
 	MetalLBHelmIndex                  = "https://metallb.github.io/metallb"
@@ -877,6 +879,21 @@ func SystemCheck() punq.SystemCheckResponse {
 	distriEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
 	entries = append(entries, distriEntry)
 
+	externalSecretsName := "external-secrets"
+	externalSecretsVersion, externalSecretsInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, externalSecretsName)
+	externalSecretsMsg := fmt.Sprintf("%s (Version: %s) is installed.", externalSecretsName, externalSecretsVersion)
+	if externalSecretsInstalledErr != nil {
+		externalSecretsMsg = fmt.Sprintf("%s is not installed.\nTo load secrets from 3rd party vaults (e.g. e.g. Hashicorp Vault, AWS KMS or Azure Key Vault), you need to install this component.", externalSecretsName)
+	}
+	externalSecretsDescription := "A Docker-based External Secrets loader inside Kubernetes that allows you to connect to e.g. Hashicorp Vault, AWS KMS or Azure Key Vault"
+	currentExternalSecretsVersion := getMostCurrentHelmChartVersion(ExternalSecretsHelmIndex, "docker-registry")
+	externalSecretsEntry := punq.CreateSystemCheckEntry(NameExternalSecrets, externalSecretsInstalledErr == nil, externalSecretsMsg, externalSecretsDescription, false, true, externalSecretsVersion, currentExternalSecretsVersion)
+	externalSecretsEntry.InstallPattern = structs.PAT_INSTALL_EXTERNAL_SECRETS
+	externalSecretsEntry.UninstallPattern = structs.PAT_UNINSTALL_EXTERNAL_SECRETS
+	externalSecretsEntry.UpgradePattern = "" // NONE?
+	externalSecretsEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameExternalSecrets)
+	entries = append(entries, externalSecretsEntry)
+
 	metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, "metallb-controller")
 	metallbMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameMetalLB, metallbVersion)
 	if metallbInstalledErr != nil {
@@ -1212,6 +1229,24 @@ func InstallContainerRegistry() string {
 	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
+func InstallExternalSecrets() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    utils.HelmReleaseNameExternalSecrets,
+		HelmRepoUrl:     ExternalSecretsHelmIndex,
+		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
+		HelmChartName:   "external-secrets/external-secrets",
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        structs.HelmInstall,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
 func UpgradeContainerRegistry() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
@@ -1449,6 +1484,24 @@ func UninstallContainerRegistry() string {
 		HelmRepoUrl:     ContainerRegistryHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameDistributionRegistry,
 		HelmChartName:   "",
+		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmTask:        structs.HelmUninstall,
+	}
+	mokubernetes.CreateHelmChartCmd(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	}, func(output string, err error) {
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
+	})
+	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+}
+
+func UninstallExternalSecrets() string {
+	r := ClusterHelmRequest{
+		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		HelmRepoName:    utils.HelmReleaseNameExternalSecrets,
+		HelmRepoUrl:     ExternalSecretsHelmIndex,
+		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
+		HelmChartName:   "external-secrets/external-secrets",
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
 		HelmTask:        structs.HelmUninstall,
 	}
