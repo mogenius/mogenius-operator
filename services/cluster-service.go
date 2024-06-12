@@ -43,6 +43,7 @@ const (
 	NameIngressController         = "Ingress Controller"
 	NameLocalDevSetup             = "Local Dev Setup"
 	NameInternalContainerRegistry = "Internal Container Registry"
+	NameExternalSecrets           = "External Secrets"
 	NameClusterIssuerResource     = "letsencrypt-cluster-issuer"
 	NameKepler                    = "Kepler"
 	NameNfsStorageClass           = "nfs-storageclass"
@@ -52,7 +53,7 @@ const (
 	MetricsHelmIndex                  = "https://kubernetes-sigs.github.io/metrics-server"
 	IngressControllerTraefikHelmIndex = "https://traefik.github.io/charts"
 	ContainerRegistryHelmIndex        = "https://phntom.kix.co.il/charts"
-	ExternalSecrets                   = "https://charts.external-secrets.io"
+	ExternalSecretsIndex              = "https://charts.external-secrets.io"
 	CertManagerHelmIndex              = "https://charts.jetstack.io"
 	KeplerHelmIndex                   = "https://sustainable-computing-io.github.io/kepler-helm-chart"
 	MetalLBHelmIndex                  = "https://metallb.github.io/metallb"
@@ -878,15 +879,15 @@ func SystemCheck() punq.SystemCheckResponse {
 	distriEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
 	entries = append(entries, distriEntry)
 
-	externalSecretsName := "distribution-registry-docker-registry"
+	externalSecretsName := "external-secrets"
 	externalSecretsVersion, externalSecretsInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, externalSecretsName)
 	externalSecretsMsg := fmt.Sprintf("%s (Version: %s) is installed.", externalSecretsName, externalSecretsVersion)
 	if externalSecretsInstalledErr != nil {
 		externalSecretsMsg = fmt.Sprintf("%s is not installed.\nTo have a private container registry running inside your cluster, you need to install this component.", externalSecretsName)
 	}
 	externalSecretsDescription := "A Docker-based External Secrets loader (from Hashicorp Vault) inside Kubernetes."
-	currentExternalSecretsVersion := getMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
-	externalSecretsEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, externalSecretsInstalledErr == nil, externalSecretsMsg, externalSecretsDescription, false, true, externalSecretsVersion, currentExternalSecretsVersion)
+	currentExternalSecretsVersion := getMostCurrentHelmChartVersion(ExternalSecretsIndex, "docker-registry")
+	externalSecretsEntry := punq.CreateSystemCheckEntry(NameExternalSecrets, externalSecretsInstalledErr == nil, externalSecretsMsg, externalSecretsDescription, false, true, externalSecretsVersion, currentExternalSecretsVersion)
 	externalSecretsEntry.InstallPattern = structs.PAT_INSTALL_EXTERNAL_SECRETS
 	externalSecretsEntry.UninstallPattern = structs.PAT_UNINSTALL_EXTERNAL_SECRETS
 	externalSecretsEntry.UpgradePattern = "" // NONE?
@@ -1232,7 +1233,7 @@ func InstallExternalSecrets() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    utils.HelmReleaseNameExternalSecrets,
-		HelmRepoUrl:     ExternalSecrets,
+		HelmRepoUrl:     ExternalSecretsIndex,
 		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
 		HelmChartName:   "external-secrets/external-secrets",
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
@@ -1498,7 +1499,7 @@ func UninstallExternalSecrets() string {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    utils.HelmReleaseNameExternalSecrets,
-		HelmRepoUrl:     ExternalSecrets,
+		HelmRepoUrl:     ExternalSecretsIndex,
 		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
 		HelmChartName:   "external-secrets/external-secrets",
 		HelmFlags:       fmt.Sprintf("--namespace %s", utils.CONFIG.Kubernetes.OwnNamespace),
