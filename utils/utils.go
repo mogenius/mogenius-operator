@@ -33,6 +33,7 @@ const (
 	HelmReleaseNameCertManager          = "cert-manager"
 	HelmReleaseNameClusterIssuer        = "clusterissuer"
 	HelmReleaseNameDistributionRegistry = "distribution-registry"
+	HelmReleaseNameExternalSecrets      = "external-secrets"
 	HelmReleaseNameMetalLb              = "metallb"
 	HelmReleaseNameKepler               = "kepler"
 )

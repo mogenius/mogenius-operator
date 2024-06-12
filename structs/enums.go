@@ -38,6 +38,7 @@ const (
 	PAT_INSTALL_CERT_MANAGER                 string = "install-cert-manager"
 	PAT_INSTALL_CLUSTER_ISSUER               string = "install-cluster-issuer"
 	PAT_INSTALL_CONTAINER_REGISTRY           string = "install-container-registry"
+	PAT_INSTALL_EXTERNAL_SECRETS             string = "install-external-registry"
 	PAT_INSTALL_METALLB                      string = "install-metallb"
 	PAT_INSTALL_KEPLER                       string = "install-kepler"
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR          string = "uninstall-traffic-collector"
@@ -47,6 +48,7 @@ const (
 	PAT_UNINSTALL_CERT_MANAGER               string = "uninstall-cert-manager"
 	PAT_UNINSTALL_CLUSTER_ISSUER             string = "uninstall-cluster-issuer"
 	PAT_UNINSTALL_CONTAINER_REGISTRY         string = "uninstall-container-registry"
+	PAT_UNINSTALL_EXTERNAL_SECRETS           string = "uninstall-external-registry"
 	PAT_UNINSTALL_METALLB                    string = "uninstall-metallb"
 	PAT_UNINSTALL_KEPLER                     string = "uninstall-kepler"
 	PAT_UPGRADE_TRAFFIC_COLLECTOR            string = "upgrade-traffic-collector"
@@ -416,6 +418,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_INSTALL_CERT_MANAGER,
 	PAT_INSTALL_CLUSTER_ISSUER,
 	PAT_INSTALL_CONTAINER_REGISTRY,
+	PAT_INSTALL_EXTERNAL_SECRETS,
 	PAT_INSTALL_METALLB,
 	PAT_INSTALL_KEPLER,
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR,
@@ -425,6 +428,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_UNINSTALL_CERT_MANAGER,
 	PAT_UNINSTALL_CLUSTER_ISSUER,
 	PAT_UNINSTALL_CONTAINER_REGISTRY,
+	PAT_UNINSTALL_EXTERNAL_SECRETS,
 	PAT_UNINSTALL_METALLB,
 	PAT_UNINSTALL_KEPLER,
 	PAT_UPGRADE_TRAFFIC_COLLECTOR,

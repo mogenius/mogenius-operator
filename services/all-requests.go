@@ -122,6 +122,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return InstallClusterIssuer(data.Email, 0)
 	case structs.PAT_INSTALL_CONTAINER_REGISTRY:
 		return InstallContainerRegistry()
+	case structs.PAT_INSTALL_EXTERNAL_SECRETS:
+		return InstallContainerRegistry()
 	case structs.PAT_INSTALL_METALLB:
 		return InstallMetalLb()
 	case structs.PAT_INSTALL_KEPLER:
@@ -139,6 +141,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_UNINSTALL_CLUSTER_ISSUER:
 		return UninstallClusterIssuer()
 	case structs.PAT_UNINSTALL_CONTAINER_REGISTRY:
+		return UninstallContainerRegistry()
+	case structs.PAT_UNINSTALL_EXTERNAL_SECRETS:
 		return UninstallContainerRegistry()
 	case structs.PAT_UNINSTALL_METALLB:
 		return UninstallMetalLb()
