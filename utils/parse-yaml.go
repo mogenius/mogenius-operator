@@ -1,6 +1,7 @@
 package utils
 
 import (
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -119,6 +120,22 @@ func InitMogeniusNfsService() corev1.Service {
 		panic(err)
 	}
 	return service
+}
+
+func InitExternalSecretsStoreYaml() esapi.ClusterSecretStore {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secrets-store-vault.yml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var vaultSecretStore esapi.ClusterSecretStore
+	_, _, err = s.Decode(yaml, nil, &vaultSecretStore)
+	if err != nil {
+		panic(err)
+	}
+	return vaultSecretStore
 }
 
 func InitMogeniusContainerRegistryIngress() netv1.Ingress {
