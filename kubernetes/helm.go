@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	punq "github.com/mogenius/punq/kubernetes"
 	log "github.com/sirupsen/logrus"
 
@@ -67,6 +68,13 @@ func OurStatusFromHelmStatus(status release.Status) punq.SystemCheckStatus {
 	}
 }
 
+// type PuncOperationResult {
+// 	interface{}
+// }
+
+type PuncOperation func(string, string) (string, error)
+type PuncOperationClusterIssuer func(string, *string) (*v1.ClusterIssuer, error)
+
 type EntryProps struct {
 	Name             string
 	HelmChartIndex   string
@@ -75,25 +83,39 @@ type EntryProps struct {
 	InstallPattern   string
 	UninstallPattern string
 	UpgradePattern   string
+	// PuncOperation    PuncOperation
 }
 
-func EntryFactory(ep EntryProps) punq.SystemCheckEntry {
-	chartVersion, chartInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
-	message := fmt.Sprintf("%s (Version: %s) is installed.", ep.Name, chartVersion)
-	isAlreadyInstalled := chartInstalledErr == nil
+func entryFactory(ep EntryProps, isAlreadyInstalled bool, message string) punq.SystemCheckEntry {
 
 	if !isAlreadyInstalled {
 		message = fmt.Sprintf("%s is not installed.\n.", ep.Name)
 	}
 	currentChartVersion := GetMostCurrentHelmChartVersion(ep.HelmChartIndex, ep.Name)
 
-	chartEntry := punq.CreateSystemCheckEntry(ep.Name, isAlreadyInstalled, message, ep.Description, false, true, chartVersion, currentChartVersion)
+	chartEntry := punq.CreateSystemCheckEntry(ep.Name, isAlreadyInstalled, message, ep.Description, false, true, response, currentChartVersion)
 	chartEntry.InstallPattern = ep.InstallPattern
 	chartEntry.UninstallPattern = ep.UninstallPattern
 	chartEntry.UpgradePattern = ep.UpgradePattern
 	chartEntry.Status = HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
 
 	return chartEntry
+}
+
+func EntryFactoryOp(ep EntryProps, operation PuncOperation) punq.SystemCheckEntry {
+	chartVersion, chartInstalledErr := operation(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
+	message := fmt.Sprintf("%s (Version: %s) is installed.", ep.Name, chartVersion)
+	isAlreadyInstalled := chartInstalledErr == nil
+
+	return entryFactory(ep, isAlreadyInstalled, message)
+}
+
+func EntryFactoryOpClusterIssuer(ep EntryProps, operation PuncOperationClusterIssuer) punq.SystemCheckEntry {
+	_, chartInstalledErr := operation(utils.CONFIG.Kubernetes.OwnNamespace, &ep.Name)
+	message := fmt.Sprintf("%s is installed.", ep.Name)
+	isAlreadyInstalled := chartInstalledErr == nil
+
+	return entryFactory(ep, isAlreadyInstalled, message)
 }
 
 func GetMostCurrentHelmChartVersion(url string, chartname string) string {

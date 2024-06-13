@@ -804,26 +804,24 @@ func SystemCheck() punq.SystemCheckResponse {
 	kubeCtlMsg := punq.StatusMessage(dockerErr, "If docker is missing in this image, we are screwed ;-)", dockerOutput)
 	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, "", true, false, dockerOutput, ""))
 
-	entries = append(entries, mokubernetes.EntryFactory(mokubernetes.EntryProps{
-		Name:             utils.HelmReleaseNameCertManager,
-		InstalledErrMsg:  "To create ssl certificates you need to install this component.",
-		Description:      "Install the cert-manager to automatically issue Let's Encrypt certificates to your services.",
-		InstallPattern:   structs.PAT_INSTALL_CERT_MANAGER,
-		UninstallPattern: structs.PAT_UNINSTALL_CERT_MANAGER,
-		UpgradePattern:   "", //structs.PAT_UPGRADE_CERT_MANAGER,
-	}))
-
-	_, clusterIssuerInstalledErr := punq.GetClusterIssuer(NameClusterIssuerResource, nil)
-	clusterIssuerMsg := fmt.Sprintf("%s is installed.", NameClusterIssuerResource)
-	if clusterIssuerInstalledErr != nil {
-		clusterIssuerMsg = fmt.Sprintf("%s is not installed.\nTo issue ssl certificates you need to install this component.", NameClusterIssuerResource)
-	}
-	clusterIssuerDescription := "Responsible for signing certificates."
-	clusterIssuerEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameClusterIssuer, clusterIssuerInstalledErr == nil, clusterIssuerMsg, clusterIssuerDescription, false, true, "", "")
-	clusterIssuerEntry.InstallPattern = structs.PAT_INSTALL_CLUSTER_ISSUER
-	clusterIssuerEntry.UninstallPattern = structs.PAT_UNINSTALL_CLUSTER_ISSUER
-	clusterIssuerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
-	entries = append(entries, clusterIssuerEntry)
+	entries = append(entries,
+		mokubernetes.EntryFactoryOp(mokubernetes.EntryProps{
+			Name:             utils.HelmReleaseNameCertManager,
+			InstalledErrMsg:  "To create ssl certificates you need to install this component.",
+			Description:      "Install the cert-manager to automatically issue Let's Encrypt certificates to your services.",
+			InstallPattern:   structs.PAT_INSTALL_CERT_MANAGER,
+			UninstallPattern: structs.PAT_UNINSTALL_CERT_MANAGER,
+			UpgradePattern:   "", //structs.PAT_UPGRADE_CERT_MANAGER,
+		}, punq.IsDeploymentInstalled),
+		mokubernetes.EntryFactoryOpClusterIssuer(mokubernetes.EntryProps{
+			Name:             utils.HelmReleaseNameCertManager,
+			InstalledErrMsg:  "To issue ssl certificates you need to install this component.",
+			Description:      "Responsible for signing certificates.",
+			InstallPattern:   structs.PAT_INSTALL_CLUSTER_ISSUER,
+			UninstallPattern: structs.PAT_UNINSTALL_CLUSTER_ISSUER,
+			UpgradePattern:   "", //structs.PAT_UPGRADE_CERT_MANAGER,
+		}, punq.GetClusterIssuer),
+	)
 
 	trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
 	if trafficCollectorVersion == "" && trafficCollectorInstalledErr == nil {
