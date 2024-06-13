@@ -93,7 +93,7 @@ func entryFactory(ep EntryProps, isAlreadyInstalled bool, message string) punq.S
 	}
 	currentChartVersion := GetMostCurrentHelmChartVersion(ep.HelmChartIndex, ep.Name)
 
-	chartEntry := punq.CreateSystemCheckEntry(ep.Name, isAlreadyInstalled, message, ep.Description, false, true, response, currentChartVersion)
+	chartEntry := punq.CreateSystemCheckEntry(ep.Name, isAlreadyInstalled, message, ep.Description, false, true, message, currentChartVersion)
 	chartEntry.InstallPattern = ep.InstallPattern
 	chartEntry.UninstallPattern = ep.UninstallPattern
 	chartEntry.UpgradePattern = ep.UpgradePattern
