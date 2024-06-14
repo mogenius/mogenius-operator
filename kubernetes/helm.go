@@ -73,6 +73,7 @@ type PuncOperationClusterIssuer func(string, *string) (*v1.ClusterIssuer, error)
 
 type EntryProps struct {
 	Name                   string
+	CustomDeployName       string
 	HelmChartIndex         string
 	InstalledErrMsg        string
 	Description            string
@@ -115,7 +116,11 @@ func systemCheckEntryFactory(ep EntryProps, isAlreadyInstalled bool, message str
 }
 
 func SystemCheckEntryFactory(ep EntryProps, operation PuncOperation) punq.SystemCheckEntry {
-	chartVersion, chartInstalledErr := operation(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
+	deployName := ep.Name
+	if ep.CustomDeployName != "" {
+		deployName = ep.CustomDeployName
+	}
+	chartVersion, chartInstalledErr := operation(utils.CONFIG.Kubernetes.OwnNamespace, deployName)
 	if ep.FallBackVersion != "" && chartVersion == "" {
 		chartVersion = ep.FallBackVersion
 	}

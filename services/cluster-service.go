@@ -852,6 +852,7 @@ func SystemCheck() punq.SystemCheckResponse {
 		}, punq.IsDeploymentInstalled),
 		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
 			Name:               utils.HelmReleaseNameDistributionRegistry,
+			CustomDeployName:   "distribution-registry-docker-registry",
 			InstalledErrMsg:    "To have a private container registry running inside your cluster, you need to install this component.",
 			Description:        "A Docker-based container registry inside Kubernetes.",
 			InstallPattern:     structs.PAT_INSTALL_CONTAINER_REGISTRY,
@@ -861,6 +862,7 @@ func SystemCheck() punq.SystemCheckResponse {
 		}, punq.IsDeploymentInstalled),
 		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
 			Name:               utils.HelmReleaseNameMetalLb,
+			CustomDeployName:   "metallb-controller",
 			InstalledErrMsg:    "To have a local load balancer, you need to install this component.",
 			Description:        "A load balancer for local clusters (e.g. Docker Desktop, k3s, minikube, etc.).",
 			InstallPattern:     structs.PAT_INSTALL_METALLB,
@@ -871,7 +873,7 @@ func SystemCheck() punq.SystemCheckResponse {
 
 		// TODO: wieder einfügen für go-live
 		// mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
-		// 	Name:               utils.HelmReleaseNameExternalSecrets,
+		// Name:               utils.HelmReleaseNameExternalSecrets,
 		// 	InstalledErrMsg:    "To load secrets from 3rd party vaults (e.g. e.g. Hashicorp Vault, AWS KMS or Azure Key Vault), you need to install this component.",
 		// 	Description:        "A Docker-based External Secrets loader inside Kubernetes that allows you to connect to e.g. Hashicorp Vault, AWS KMS or Azure Key Vault",
 		// 	InstallPattern:     structs.PAT_INSTALL_EXTERNAL_SECRETS,
