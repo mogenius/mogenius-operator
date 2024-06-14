@@ -68,10 +68,6 @@ func OurStatusFromHelmStatus(status release.Status) punq.SystemCheckStatus {
 	}
 }
 
-// type PuncOperationResult {
-// 	interface{}
-// }
-
 type PuncOperation func(string, string) (string, error)
 type PuncOperationClusterIssuer func(string, *string) (*v1.ClusterIssuer, error)
 
@@ -96,7 +92,6 @@ func systemCheckEntryFactory(ep EntryProps, isAlreadyInstalled bool, message str
 	currentChartVersion := GetMostCurrentHelmChartVersion(ep.HelmChartIndex, ep.Name)
 
 	description := ep.Description
-
 	if ep.NewestAvailableVersion != "" {
 		description = description + fmt.Sprintf(" (Installed: %s | Available: %s)", currentChartVersion, ep.NewestAvailableVersion)
 	}
@@ -111,7 +106,6 @@ func systemCheckEntryFactory(ep EntryProps, isAlreadyInstalled bool, message str
 		chartVersion,
 		currentChartVersion,
 	)
-
 	chartEntry.InstallPattern = ep.InstallPattern
 	chartEntry.UninstallPattern = ep.UninstallPattern
 	chartEntry.UpgradePattern = ep.UpgradePattern
@@ -122,7 +116,6 @@ func systemCheckEntryFactory(ep EntryProps, isAlreadyInstalled bool, message str
 
 func SystemCheckEntryFactory(ep EntryProps, operation PuncOperation) punq.SystemCheckEntry {
 	chartVersion, chartInstalledErr := operation(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
-
 	if ep.FallBackVersion != "" && chartVersion == "" {
 		chartVersion = ep.FallBackVersion
 	}
