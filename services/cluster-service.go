@@ -795,17 +795,18 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 func SystemCheck() punq.SystemCheckResponse {
 	entries := punq.SystemCheck()
 
-	trafficCollectorNewestVersion, podstatsCollectorNewestVersion, err := getCurrentTrafficCollectorAndPodStatsVersion()
-	if err != nil {
-		log.Errorf("getCurrentTrafficCollectorVersion Err: %s", err.Error())
-	}
+	// trafficCollectorNewestVersion, podstatsCollectorNewestVersion, err := getCurrentTrafficCollectorAndPodStatsVersion()
+	// if err != nil {
+	// 	log.Errorf("getCurrentTrafficCollectorVersion Err: %s", err.Error())
+	// }
 
 	dockerResult, dockerOutput, dockerErr := IsDockerInstalled()
 	kubeCtlMsg := punq.StatusMessage(dockerErr, "If docker is missing in this image, we are screwed ;-)", dockerOutput)
 	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, "", true, false, dockerOutput, ""))
 
-	entries = append(entries,
-		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
+	var eps []mokubernetes.SystemCheckEntryFactoryProps
+	eps = append(eps, mokubernetes.SystemCheckEntryFactoryProps{
+		mokubernetes.EntryProps{
 			Name:               utils.HelmReleaseNameCertManager,
 			InstalledErrMsg:    "To create ssl certificates you need to install this component.",
 			Description:        "Install the cert-manager to automatically issue Let's Encrypt certificates to your services.",
@@ -813,59 +814,26 @@ func SystemCheck() punq.SystemCheckResponse {
 			UninstallPattern:   structs.PAT_UNINSTALL_CERT_MANAGER,
 			IsRequired:         false,
 			WantsToBeInstalled: true,
-		}, punq.IsDeploymentInstalled),
+		},
+		punq.IsDeploymentInstalled,
+	})
+
+	entries = append(entries, mokubernetes.SystemCheckEntriesFactory(eps)...)
+
+	entries = append(entries,
 		// This is slightly different from the other entries, as it doesn't set a version and has a slightly different function signature
-		mokubernetes.SystemCheckEntryFactoryClusterIssuer(mokubernetes.EntryProps{
-			Name:               utils.HelmReleaseNameClusterIssuer,
-			InstalledErrMsg:    "To issue ssl certificates you need to install this component.",
-			Description:        "Responsible for signing certificates.",
-			InstallPattern:     structs.PAT_INSTALL_CLUSTER_ISSUER,
-			UninstallPattern:   structs.PAT_UNINSTALL_CLUSTER_ISSUER,
-			IsRequired:         false,
-			WantsToBeInstalled: true,
-		}, punq.GetClusterIssuer),
-		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
-			Name:                   utils.HelmReleaseNameTrafficCollector,
-			InstalledErrMsg:        "To gather traffic information you need to install this component.",
-			Description:            "Collects and exposes detailed traffic data for your mogenius services for better monitoring.",
-			InstallPattern:         structs.PAT_INSTALL_TRAFFIC_COLLECTOR,
-			UninstallPattern:       structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR,
-			UpgradePattern:         structs.PAT_UPGRADE_TRAFFIC_COLLECTOR,
-			IsRequired:             false,
-			WantsToBeInstalled:     true,
-			FallBackVersion:        "6.6.6",
-			NewestAvailableVersion: trafficCollectorNewestVersion,
-		}, punq.IsDaemonSetInstalled),
-		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
-			Name:                   utils.HelmReleaseNamePodStatsCollector,
-			InstalledErrMsg:        "To gather pod/event information you need to install this component.",
-			Description:            "Collects and exposes status events of pods for services in mogenius.",
-			InstallPattern:         structs.PAT_INSTALL_POD_STATS_COLLECTOR,
-			UninstallPattern:       structs.PAT_UNINSTALL_POD_STATS_COLLECTOR,
-			UpgradePattern:         structs.PAT_UPGRADE_PODSTATS_COLLECTOR,
-			IsRequired:             true,
-			WantsToBeInstalled:     true,
-			FallBackVersion:        "6.6.6",
-			NewestAvailableVersion: podstatsCollectorNewestVersion,
-		}, punq.IsDeploymentInstalled),
-		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
-			Name:               utils.HelmReleaseNameDistributionRegistry,
-			InstalledErrMsg:    "To have a private container registry running inside your cluster, you need to install this component.",
-			Description:        "A Docker-based container registry inside Kubernetes.",
-			InstallPattern:     structs.PAT_INSTALL_CONTAINER_REGISTRY,
-			UninstallPattern:   structs.PAT_UNINSTALL_CONTAINER_REGISTRY,
-			IsRequired:         false,
-			WantsToBeInstalled: true,
-		}, punq.IsDeploymentInstalled),
-		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
-			Name:               utils.HelmReleaseNameMetalLb,
-			InstalledErrMsg:    "To have a local load balancer, you need to install this component.",
-			Description:        "A load balancer for local clusters (e.g. Docker Desktop, k3s, minikube, etc.).",
-			InstallPattern:     structs.PAT_INSTALL_METALLB,
-			UninstallPattern:   structs.PAT_UNINSTALL_METALLB,
-			IsRequired:         false,
-			WantsToBeInstalled: true,
-		}, punq.IsDeploymentInstalled),
+		mokubernetes.SystemCheckEntryFactoryClusterIssuer(
+			mokubernetes.EntryProps{
+				Name:               utils.HelmReleaseNameClusterIssuer,
+				InstalledErrMsg:    "To issue ssl certificates you need to install this component.",
+				Description:        "Responsible for signing certificates.",
+				InstallPattern:     structs.PAT_INSTALL_CLUSTER_ISSUER,
+				UninstallPattern:   structs.PAT_UNINSTALL_CLUSTER_ISSUER,
+				IsRequired:         false,
+				WantsToBeInstalled: true,
+			},
+			punq.GetClusterIssuer,
+		),
 		// TODO: FIXEN UND WIEDER EINBAUEN: MOG-1051
 		// mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
 		// 	Name:               utils.HelmReleaseNameKepler,
@@ -875,7 +843,7 @@ func SystemCheck() punq.SystemCheckResponse {
 		// 	UninstallPattern:   structs.PAT_UNINSTALL_KEPLER,
 		// 	IsRequired:         false,
 		// 	WantsToBeInstalled: false,
-		// }, punq.IsDaemonSetInstalled),
+		// }, punq.IsDaemonSetInstalled, &wg),
 	)
 
 	clusterIps := punq.GetClusterExternalIps(nil)
@@ -890,6 +858,7 @@ func SystemCheck() punq.SystemCheckResponse {
 	nfsStorageClass := mokubernetes.StorageClassForClusterProvider(utils.ClusterProviderCached)
 	nfsStorageClassMsg := fmt.Sprintf("NFS StorageClass '%s' found.", nfsStorageClass)
 	nfsStorageClassEntry := punq.CreateSystemCheckEntry(NameNfsStorageClass, nfsStorageClass != "", nfsStorageClassMsg, "", true, false, "", "")
+
 	entries = append(entries, nfsStorageClassEntry)
 
 	// add missing patterns
@@ -914,6 +883,7 @@ func SystemCheck() punq.SystemCheckResponse {
 			}
 		}
 	}
+
 	// update entries specificly for certain cluster vendors
 	entries = UpdateSystemCheckStatusForClusterVendor(entries)
 

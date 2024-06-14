@@ -89,14 +89,17 @@ type EntryProps struct {
 	NewestAvailableVersion string
 }
 
+type SystemCheckEntryFactoryProps struct {
+	Ep        EntryProps
+	Operation PuncOperation
+}
+
 func systemCheckEntryFactory(ep EntryProps, isAlreadyInstalled bool, message string, chartVersion string) punq.SystemCheckEntry {
 	if !isAlreadyInstalled {
 		message = fmt.Sprintf("%s is not installed.\n%s", ep.Name, ep.InstalledErrMsg)
 	}
 	currentChartVersion := GetMostCurrentHelmChartVersion(ep.HelmChartIndex, ep.Name)
-
 	description := ep.Description
-
 	if ep.NewestAvailableVersion != "" {
 		description = description + fmt.Sprintf(" (Installed: %s | Available: %s)", currentChartVersion, ep.NewestAvailableVersion)
 	}
@@ -111,7 +114,6 @@ func systemCheckEntryFactory(ep EntryProps, isAlreadyInstalled bool, message str
 		chartVersion,
 		currentChartVersion,
 	)
-
 	chartEntry.InstallPattern = ep.InstallPattern
 	chartEntry.UninstallPattern = ep.UninstallPattern
 	chartEntry.UpgradePattern = ep.UpgradePattern
@@ -119,17 +121,36 @@ func systemCheckEntryFactory(ep EntryProps, isAlreadyInstalled bool, message str
 
 	return chartEntry
 }
+func SystemCheckEntriesFactory(props []SystemCheckEntryFactoryProps) []punq.SystemCheckEntry {
+	wg := &sync.WaitGroup{}
+	resultChans := make([]chan punq.SystemCheckEntry, len(props))
 
-func SystemCheckEntryFactory(ep EntryProps, operation PuncOperation) punq.SystemCheckEntry {
-	chartVersion, chartInstalledErr := operation(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
+	for i, currentProp := range props {
+		wg.Add(1)
+		resultChans[i] = make(chan punq.SystemCheckEntry)
 
-	if ep.FallBackVersion != "" && chartVersion == "" {
-		chartVersion = ep.FallBackVersion
+		go func(ep EntryProps, operation PuncOperation, resultChan chan punq.SystemCheckEntry) {
+			defer wg.Done()
+			chartVersion, chartInstalledErr := operation(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
+
+			if ep.FallBackVersion != "" && chartVersion == "" {
+				chartVersion = ep.FallBackVersion
+			}
+			message := fmt.Sprintf("%s (Version: %s) is installed.", ep.Name, chartVersion)
+			isAlreadyInstalled := chartInstalledErr == nil
+
+			resultChan <- systemCheckEntryFactory(ep, isAlreadyInstalled, message, chartVersion)
+		}(currentProp.Ep, currentProp.Operation, resultChans[i])
 	}
-	message := fmt.Sprintf("%s (Version: %s) is installed.", ep.Name, chartVersion)
-	isAlreadyInstalled := chartInstalledErr == nil
 
-	return systemCheckEntryFactory(ep, isAlreadyInstalled, message, chartVersion)
+	wg.Wait()
+
+	results := make([]punq.SystemCheckEntry, len(props))
+	for i, resultChan := range resultChans {
+		results[i] = <-resultChan
+	}
+
+	return results
 }
 
 func SystemCheckEntryFactoryClusterIssuer(ep EntryProps, operation PuncOperationClusterIssuer) punq.SystemCheckEntry {
