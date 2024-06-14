@@ -805,99 +805,78 @@ func SystemCheck() punq.SystemCheckResponse {
 	entries = append(entries, punq.CreateSystemCheckEntry("docker", dockerResult, kubeCtlMsg, "", true, false, dockerOutput, ""))
 
 	entries = append(entries,
-		mokubernetes.EntryFactoryOp(mokubernetes.EntryProps{
-			Name:             utils.HelmReleaseNameCertManager,
-			InstalledErrMsg:  "To create ssl certificates you need to install this component.",
-			Description:      "Install the cert-manager to automatically issue Let's Encrypt certificates to your services.",
-			InstallPattern:   structs.PAT_INSTALL_CERT_MANAGER,
-			UninstallPattern: structs.PAT_UNINSTALL_CERT_MANAGER,
-			UpgradePattern:   "", //structs.PAT_UPGRADE_CERT_MANAGER,
+		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
+			Name:               utils.HelmReleaseNameCertManager,
+			InstalledErrMsg:    "To create ssl certificates you need to install this component.",
+			Description:        "Install the cert-manager to automatically issue Let's Encrypt certificates to your services.",
+			InstallPattern:     structs.PAT_INSTALL_CERT_MANAGER,
+			UninstallPattern:   structs.PAT_UNINSTALL_CERT_MANAGER,
+			IsRequired:         false,
+			WantsToBeInstalled: true,
 		}, punq.IsDeploymentInstalled),
-		mokubernetes.EntryFactoryOpClusterIssuer(mokubernetes.EntryProps{
-			Name:             utils.HelmReleaseNameCertManager,
-			InstalledErrMsg:  "To issue ssl certificates you need to install this component.",
-			Description:      "Responsible for signing certificates.",
-			InstallPattern:   structs.PAT_INSTALL_CLUSTER_ISSUER,
-			UninstallPattern: structs.PAT_UNINSTALL_CLUSTER_ISSUER,
-			UpgradePattern:   "", //structs.PAT_UPGRADE_CERT_MANAGER,
+		// This is slightly different from the other entries, as it doesn't set a version and has a slightly different function signature
+		mokubernetes.SystemCheckEntryFactoryClusterIssuer(mokubernetes.EntryProps{
+			Name:               utils.HelmReleaseNameClusterIssuer,
+			InstalledErrMsg:    "To issue ssl certificates you need to install this component.",
+			Description:        "Responsible for signing certificates.",
+			InstallPattern:     structs.PAT_INSTALL_CLUSTER_ISSUER,
+			UninstallPattern:   structs.PAT_UNINSTALL_CLUSTER_ISSUER,
+			IsRequired:         false,
+			WantsToBeInstalled: true,
 		}, punq.GetClusterIssuer),
+		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
+			Name:                   utils.HelmReleaseNameTrafficCollector,
+			InstalledErrMsg:        "To gather traffic information you need to install this component.",
+			Description:            "Collects and exposes detailed traffic data for your mogenius services for better monitoring.",
+			InstallPattern:         structs.PAT_INSTALL_TRAFFIC_COLLECTOR,
+			UninstallPattern:       structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR,
+			UpgradePattern:         structs.PAT_UPGRADE_TRAFFIC_COLLECTOR,
+			IsRequired:             false,
+			WantsToBeInstalled:     true,
+			FallBackVersion:        "6.6.6",
+			NewestAvailableVersion: trafficCollectorNewestVersion,
+		}, punq.IsDaemonSetInstalled),
+		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
+			Name:                   utils.HelmReleaseNamePodStatsCollector,
+			InstalledErrMsg:        "To gather pod/event information you need to install this component.",
+			Description:            "Collects and exposes status events of pods for services in mogenius.",
+			InstallPattern:         structs.PAT_INSTALL_POD_STATS_COLLECTOR,
+			UninstallPattern:       structs.PAT_UNINSTALL_POD_STATS_COLLECTOR,
+			UpgradePattern:         structs.PAT_UPGRADE_PODSTATS_COLLECTOR,
+			IsRequired:             true,
+			WantsToBeInstalled:     true,
+			FallBackVersion:        "6.6.6",
+			NewestAvailableVersion: podstatsCollectorNewestVersion,
+		}, punq.IsDeploymentInstalled),
+		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
+			Name:               utils.HelmReleaseNameDistributionRegistry,
+			InstalledErrMsg:    "To have a private container registry running inside your cluster, you need to install this component.",
+			Description:        "A Docker-based container registry inside Kubernetes.",
+			InstallPattern:     structs.PAT_INSTALL_CONTAINER_REGISTRY,
+			UninstallPattern:   structs.PAT_UNINSTALL_CONTAINER_REGISTRY,
+			IsRequired:         false,
+			WantsToBeInstalled: true,
+		}, punq.IsDeploymentInstalled),
+		mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
+			Name:               utils.HelmReleaseNameMetalLb,
+			InstalledErrMsg:    "To have a local load balancer, you need to install this component.",
+			Description:        "A load balancer for local clusters (e.g. Docker Desktop, k3s, minikube, etc.).",
+			InstallPattern:     structs.PAT_INSTALL_METALLB,
+			UninstallPattern:   structs.PAT_UNINSTALL_METALLB,
+			IsRequired:         false,
+			WantsToBeInstalled: true,
+		}, punq.IsDeploymentInstalled),
+		// TODO: FIXEN UND WIEDER EINBAUEN: MOG-1051
+		// mokubernetes.SystemCheckEntryFactory(mokubernetes.EntryProps{
+		// 	Name:               utils.HelmReleaseNameKepler,
+		// 	InstalledErrMsg:    "To observe the power consumption of the cluster, you need to install this component.",
+		// 	Description:        "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption.",
+		// 	InstallPattern:     structs.PAT_INSTALL_KEPLER,
+		// 	UninstallPattern:   structs.PAT_UNINSTALL_KEPLER,
+		// 	IsRequired:         false,
+		// 	WantsToBeInstalled: false,
+		// }, punq.IsDaemonSetInstalled),
 	)
-
-	trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
-	if trafficCollectorVersion == "" && trafficCollectorInstalledErr == nil {
-		trafficCollectorVersion = "6.6.6" // flag local version without tag
-	}
-	trafficMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNameTrafficCollector, trafficCollectorVersion)
-	if trafficCollectorInstalledErr != nil {
-		trafficMsg = fmt.Sprintf("%s is not installed.\nTo gather traffic information you need to install this component.", utils.HelmReleaseNameTrafficCollector)
-	}
-	trafficDescpription := fmt.Sprintf("Collects and exposes detailed traffic data for your mogenius services for better monitoring. (Installed: %s | Available: %s)", trafficCollectorVersion, trafficCollectorNewestVersion)
-	trafficEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNameTrafficCollector, trafficCollectorInstalledErr == nil, trafficMsg, trafficDescpription, false, true, trafficCollectorVersion, trafficCollectorNewestVersion)
-	trafficEntry.InstallPattern = structs.PAT_INSTALL_TRAFFIC_COLLECTOR
-	trafficEntry.UninstallPattern = structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR
-	trafficEntry.UpgradePattern = structs.PAT_UPGRADE_TRAFFIC_COLLECTOR
-	trafficEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
-	entries = append(entries, trafficEntry)
-
-	podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
-	if podStatsCollectorVersion == "" && podStatsCollectorInstalledErr == nil {
-		podStatsCollectorVersion = "6.6.6" // flag local version without tag
-	}
-	podStatsMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNamePodStatsCollector, podStatsCollectorVersion)
-	if podStatsCollectorInstalledErr != nil {
-		podStatsMsg = fmt.Sprintf("%s is not installed.\nTo gather pod/event information you need to install this component.", utils.HelmReleaseNamePodStatsCollector)
-	}
-	podStatsDescription := fmt.Sprintf("Collects and exposes status events of pods for services in mogenius. (Installed: %s | Available: %s)", podStatsCollectorVersion, podstatsCollectorNewestVersion)
-	podEntry := punq.CreateSystemCheckEntry(utils.HelmReleaseNamePodStatsCollector, podStatsCollectorInstalledErr == nil, podStatsMsg, podStatsDescription, true, true, podStatsCollectorVersion, podstatsCollectorNewestVersion)
-	podEntry.InstallPattern = structs.PAT_INSTALL_POD_STATS_COLLECTOR
-	podEntry.UninstallPattern = structs.PAT_UNINSTALL_POD_STATS_COLLECTOR
-	podEntry.UpgradePattern = structs.PAT_UPGRADE_PODSTATS_COLLECTOR
-	podEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
-	entries = append(entries, podEntry)
-
-	distributionRegistryName := "distribution-registry-docker-registry"
-	distriRegistryVersion, distriRegistryInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, distributionRegistryName)
-	distriRegistryMsg := fmt.Sprintf("%s (Version: %s) is installed.", distributionRegistryName, distriRegistryVersion)
-	if distriRegistryInstalledErr != nil {
-		distriRegistryMsg = fmt.Sprintf("%s is not installed.\nTo have a private container registry running inside your cluster, you need to install this component.", distributionRegistryName)
-	}
-	distriDescription := "A Docker-based container registry inside Kubernetes."
-	currentDistriRegistryVersion := mokubernetes.GetMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
-	distriEntry := punq.CreateSystemCheckEntry(NameInternalContainerRegistry, distriRegistryInstalledErr == nil, distriRegistryMsg, distriDescription, false, true, distriRegistryVersion, currentDistriRegistryVersion)
-	distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
-	distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
-	distriEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CONTAINER_REGISTRY
-	distriEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
-	entries = append(entries, distriEntry)
-
-	metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, "metallb-controller")
-	metallbMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameMetalLB, metallbVersion)
-	if metallbInstalledErr != nil {
-		metallbMsg = fmt.Sprintf("%s is not installed.\nTo have a local load balancer, you need to install this component.", NameMetalLB)
-	}
-	metallbDescription := "A load balancer for local clusters (e.g. Docker Desktop, k3s, minikube, etc.)."
-	currentMetallbVersion := mokubernetes.GetMostCurrentHelmChartVersion(MetalLBHelmIndex, utils.HelmReleaseNameMetalLb)
-	metallbEntry := punq.CreateSystemCheckEntry(NameMetalLB, metallbInstalledErr == nil, metallbMsg, metallbDescription, false, true, metallbVersion, currentMetallbVersion)
-	metallbEntry.InstallPattern = structs.PAT_INSTALL_METALLB
-	metallbEntry.UninstallPattern = structs.PAT_UNINSTALL_METALLB
-	metallbEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METALLB
-	metallbEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
-	entries = append(entries, metallbEntry)
-
-	// TODO: FIXEN UND WIEDER EINBAUEN: MOG-1051
-	// keplerVersion, keplerInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
-	// keplerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameKepler, keplerVersion)
-	// if keplerInstalledErr != nil {
-	// 	keplerMsg = fmt.Sprintf("%s is not installed.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler)
-	// }
-	// keplerDescription := "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption."
-	// currentKeplerVersion := mokubernetes.GetMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
-	// keplerEntry := punq.CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false, keplerVersion, currentKeplerVersion)
-	// keplerEntry.InstallPattern = structs.PAT_INSTALL_KEPLER
-	// keplerEntry.UninstallPattern = structs.PAT_UNINSTALL_KEPLER
-	// keplerEntry.UpgradePattern = "" // structs.PAT_UPGRADE_KEPLER
-	// keplerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
-	// entries = append(entries, keplerEntry)
 
 	clusterIps := punq.GetClusterExternalIps(nil)
 	localDevEnvMsg := "Local development environment setup complete (192.168.66.1 found)."

@@ -76,24 +76,42 @@ type PuncOperation func(string, string) (string, error)
 type PuncOperationClusterIssuer func(string, *string) (*v1.ClusterIssuer, error)
 
 type EntryProps struct {
-	Name             string
-	HelmChartIndex   string
-	InstalledErrMsg  string
-	Description      string
-	InstallPattern   string
-	UninstallPattern string
-	UpgradePattern   string
-	// PuncOperation    PuncOperation
+	Name                   string
+	HelmChartIndex         string
+	InstalledErrMsg        string
+	Description            string
+	InstallPattern         string
+	UninstallPattern       string
+	UpgradePattern         string
+	IsRequired             bool
+	WantsToBeInstalled     bool
+	FallBackVersion        string
+	NewestAvailableVersion string
 }
 
-func entryFactory(ep EntryProps, isAlreadyInstalled bool, message string) punq.SystemCheckEntry {
-
+func systemCheckEntryFactory(ep EntryProps, isAlreadyInstalled bool, message string, chartVersion string) punq.SystemCheckEntry {
 	if !isAlreadyInstalled {
-		message = fmt.Sprintf("%s is not installed.\n.", ep.Name)
+		message = fmt.Sprintf("%s is not installed.\n%s", ep.Name, ep.InstalledErrMsg)
 	}
 	currentChartVersion := GetMostCurrentHelmChartVersion(ep.HelmChartIndex, ep.Name)
 
-	chartEntry := punq.CreateSystemCheckEntry(ep.Name, isAlreadyInstalled, message, ep.Description, false, true, message, currentChartVersion)
+	description := ep.Description
+
+	if ep.NewestAvailableVersion != "" {
+		description = description + fmt.Sprintf(" (Installed: %s | Available: %s)", currentChartVersion, ep.NewestAvailableVersion)
+	}
+
+	chartEntry := punq.CreateSystemCheckEntry(
+		ep.Name,
+		isAlreadyInstalled,
+		message,
+		description,
+		ep.IsRequired,
+		ep.WantsToBeInstalled,
+		chartVersion,
+		currentChartVersion,
+	)
+
 	chartEntry.InstallPattern = ep.InstallPattern
 	chartEntry.UninstallPattern = ep.UninstallPattern
 	chartEntry.UpgradePattern = ep.UpgradePattern
@@ -102,20 +120,24 @@ func entryFactory(ep EntryProps, isAlreadyInstalled bool, message string) punq.S
 	return chartEntry
 }
 
-func EntryFactoryOp(ep EntryProps, operation PuncOperation) punq.SystemCheckEntry {
+func SystemCheckEntryFactory(ep EntryProps, operation PuncOperation) punq.SystemCheckEntry {
 	chartVersion, chartInstalledErr := operation(utils.CONFIG.Kubernetes.OwnNamespace, ep.Name)
+
+	if ep.FallBackVersion != "" && chartVersion == "" {
+		chartVersion = ep.FallBackVersion
+	}
 	message := fmt.Sprintf("%s (Version: %s) is installed.", ep.Name, chartVersion)
 	isAlreadyInstalled := chartInstalledErr == nil
 
-	return entryFactory(ep, isAlreadyInstalled, message)
+	return systemCheckEntryFactory(ep, isAlreadyInstalled, message, chartVersion)
 }
 
-func EntryFactoryOpClusterIssuer(ep EntryProps, operation PuncOperationClusterIssuer) punq.SystemCheckEntry {
+func SystemCheckEntryFactoryClusterIssuer(ep EntryProps, operation PuncOperationClusterIssuer) punq.SystemCheckEntry {
 	_, chartInstalledErr := operation(utils.CONFIG.Kubernetes.OwnNamespace, &ep.Name)
 	message := fmt.Sprintf("%s is installed.", ep.Name)
 	isAlreadyInstalled := chartInstalledErr == nil
 
-	return entryFactory(ep, isAlreadyInstalled, message)
+	return systemCheckEntryFactory(ep, isAlreadyInstalled, message, "")
 }
 
 func GetMostCurrentHelmChartVersion(url string, chartname string) string {
