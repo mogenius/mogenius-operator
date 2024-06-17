@@ -18,15 +18,23 @@ spec:
     command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
 `
 	// CREATE
-	err := ApplyResource(yamlData)
+	err := ApplyResource(yamlData, false)
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
 		logger.Log.Info("Resource applied ✅")
 	}
 
+	// UPDATE (same resource), on second call the update client call is tested
+	err = ApplyResource(yamlData, false)
+	if err != nil {
+		t.Errorf("Error applying resource: %s", err.Error())
+	} else {
+		logger.Log.Info("Resource updated ✅")
+	}
+
 	// GET
-	_, err = GetResource("", "v1", "Pods", "mypod", "default")
+	_, err = GetResource("", "v1", "Pods", "mypod", "default", false)
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
 	} else {
@@ -34,7 +42,7 @@ spec:
 	}
 
 	// LIST
-	_, err = ListResources("", "v1", "Pods", "default")
+	_, err = ListResources("", "v1", "Pods", "default", false)
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
 	} else {
@@ -42,7 +50,7 @@ spec:
 	}
 
 	// DELETE
-	err = DeleteResource("", "v1", "Pods", "mypod", "default")
+	err = DeleteResource("", "v1", "Pods", "mypod", "default", false)
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
 	} else {

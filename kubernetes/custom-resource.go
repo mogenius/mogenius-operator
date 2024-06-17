@@ -5,20 +5,17 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mogenius/punq/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/dynamic"
 	scheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-func ApplyResource(yamlData string) error {
-	provider, err := NewDynamicKubeProvider(nil)
-	if err != nil {
-		return err
-	}
-
+func ApplyResource(yamlData string, isClusterWideResource bool) error {
 	jsonData, err := yaml.ToJSON([]byte(yamlData))
 	if err != nil {
 		return err
@@ -32,16 +29,26 @@ func ApplyResource(yamlData string) error {
 	}
 
 	gvr := getGVR(obj)
-
 	namespace := obj.GetNamespace()
-	if namespace == "" {
-		namespace = "default"
+
+	client, err := getClient(gvr, namespace, isClusterWideResource)
+	if err != nil {
+		return err
 	}
 
-	_, err = provider.ClientSet.Resource(gvr).Namespace(namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
+	_, err = client.Create(context.TODO(), obj, metav1.CreateOptions{})
 	if err != nil {
+		// get fresh metadata about existing resource
+		gvr := getGVR(obj)
+		namespace := obj.GetNamespace()
+		res, err := GetResource(gvr.Group, gvr.Version, gvr.Resource, obj.GetName(), namespace, isClusterWideResource)
+		if err != nil {
+			return err
+		} else {
+			logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
+		}
 		// Try update if already exists
-		_, err = provider.ClientSet.Resource(gvr).Namespace(namespace).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		_, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -52,11 +59,44 @@ func ApplyResource(yamlData string) error {
 	return nil
 }
 
-func GetResource(group string, version string, resource string, name string, namespace string) (*unstructured.Unstructured, error) {
-	provider, err := NewDynamicKubeProvider(nil)
+func GetResource(group string, version string, resource string, name string, namespace string, isClusterWideResource bool) (*unstructured.Unstructured, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: strings.ToLower(resource),
+	}
+	client, err := getClient(gvr, namespace, isClusterWideResource)
 	if err != nil {
 		return nil, err
 	}
+	resourceResult, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return resourceResult, nil
+}
+
+func ListResources(group string, version string, resource string, namespace string, isClusterWideResource bool) (*unstructured.UnstructuredList, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: strings.ToLower(resource),
+	}
+
+	client, err := getClient(gvr, namespace, isClusterWideResource)
+	if err != nil {
+		return nil, err
+	}
+	resourceResult, err := client.List(context.TODO(), metav1.ListOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+	return resourceResult, nil
+
+}
+
+func DeleteResource(group string, version string, resource string, name string, namespace string, isClusterWideResource bool) error {
 
 	gvr := schema.GroupVersionResource{
 		Group:    group,
@@ -64,72 +104,29 @@ func GetResource(group string, version string, resource string, name string, nam
 		Resource: strings.ToLower(resource),
 	}
 
-	if namespace == "" {
-		resourceResult, err := provider.ClientSet.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-		return resourceResult, nil
-	} else {
-		resourceResult, err := provider.ClientSet.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-		return resourceResult, nil
-	}
-}
-
-func ListResources(group string, version string, resource string, namespace string) (*unstructured.UnstructuredList, error) {
-	provider, err := NewDynamicKubeProvider(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	gvr := schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: strings.ToLower(resource),
-	}
-
-	if namespace == "" {
-		resourceResult, err := provider.ClientSet.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-		return resourceResult, nil
-	} else {
-		resourceResult, err := provider.ClientSet.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-		return resourceResult, nil
-	}
-}
-
-func DeleteResource(group string, version string, resource string, name string, namespace string) error {
-	provider, err := NewDynamicKubeProvider(nil)
+	client, err := getClient(gvr, namespace, isClusterWideResource)
 	if err != nil {
 		return err
 	}
-
-	gvr := schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: strings.ToLower(resource),
-	}
-
-	if namespace == "" {
-		err = provider.ClientSet.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-	} else {
-		err = provider.ClientSet.Resource(gvr).Namespace(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
+	err = client.Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		return err
 	}
 	return nil
+}
+
+func getClient(gvr schema.GroupVersionResource, namespace string, isClusterWideResource bool) (dynamic.NamespaceableResourceInterface, error) {
+	provider, err := NewDynamicKubeProvider(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	client := provider.ClientSet.Resource(gvr)
+
+	if !isClusterWideResource && namespace == "" {
+		client.Namespace(namespace)
+	}
+	return client, nil
 }
 
 func getGVR(obj *unstructured.Unstructured) schema.GroupVersionResource {
