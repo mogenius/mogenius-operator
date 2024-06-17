@@ -345,7 +345,7 @@ func InitOrUpdateCrds() {
 		log.Info("Created/updated mogenius Project-CRDs. 🚀")
 	}
 
-	err := CreateOrUpdateYamlString(utils.InitExternalSecretsStoreYaml())
+	err = CreateOrUpdateYamlString(utils.InitExternalSecretsStoreYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		log.Fatalf("Error updating/creating External-Secrets-CRDs: %s", err.Error())
 	} else {

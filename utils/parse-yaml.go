@@ -122,22 +122,6 @@ func InitMogeniusNfsService() corev1.Service {
 	return service
 }
 
-func InitExternalSecretsStoreYaml() esapi.ClusterSecretStore {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secrets-store-vault.yml")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	var vaultSecretStore esapi.ClusterSecretStore
-	_, _, err = s.Decode(yaml, nil, &vaultSecretStore)
-	if err != nil {
-		panic(err)
-	}
-	return vaultSecretStore
-}
-
 func InitMogeniusContainerRegistryIngress() netv1.Ingress {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-container-registry-ingress.yaml")
 	if err != nil {
@@ -198,6 +182,24 @@ func InitMogeniusCrdApplicationKitYaml() string {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/crds-applicationkit.yaml")
 	if err != nil {
 		panic(err.Error())
+	}
+
+	return string(yaml)
+}
+
+func InitExternalSecretsStoreYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secrets-store-vault.yml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	// this just validates the yaml, but it's not used to decode it here
+	var vaultSecretStore esapi.ClusterSecretStore
+	_, _, err = s.Decode(yaml, nil, &vaultSecretStore)
+	if err != nil {
+		panic(err)
 	}
 
 	return string(yaml)
