@@ -6,6 +6,6 @@ import (
 
 func CreateExternalSecretsStore() {
 	// CreateOrUpdateYamlString(utils.InitExternalSecretsStoreYaml())
-	ApplyResource(utils.InitExternalSecretsStoreYaml())
+	ApplyResource(utils.InitExternalSecretsStoreYaml(), true)
 
 }

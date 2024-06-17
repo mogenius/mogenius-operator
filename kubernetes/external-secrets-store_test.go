@@ -10,7 +10,7 @@ func TestSecretStoreResource(t *testing.T) {
 	yamlData := `apiVersion: external-secrets.io/v1beta1
 kind: ClusterSecretStore
 metadata:
-  name: secret-store-vault-role-based
+  name: test-secret-store
 spec:
   provider:
     vault:
@@ -24,34 +24,42 @@ spec:
             name: "external-secrets-sa"
 `
 	// CREATE
-	err := ApplyResource(yamlData)
+	err := ApplyResource(yamlData, true)
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
 		logger.Log.Info("Resource applied ✅")
 	}
 
-	// // GET
-	// _, err = GetResource("", "v1", "Pods", "mypod", "default")
-	// if err != nil {
-	// 	t.Errorf("Error getting resource: %s", err.Error())
-	// } else {
-	// 	logger.Log.Info("Resource retrieved ✅")
-	// }
+	// UPDATE (same resource), on second call the update client call is tested
+	err = ApplyResource(yamlData, true)
+	if err != nil {
+		t.Errorf("Error applying resource: %s", err.Error())
+	} else {
+		logger.Log.Info("Resource updated ✅")
+	}
 
-	// // LIST
-	// _, err = ListResources("", "v1", "Pods", "default")
-	// if err != nil {
-	// 	t.Errorf("Error listing resources: %s", err.Error())
-	// } else {
-	// 	logger.Log.Info("Resources listed ✅")
-	// }
+	// LIST
+	_, err = ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
+	if err != nil {
+		t.Errorf("Error listing resources: %s", err.Error())
+	} else {
+		logger.Log.Info("Resources listed ✅")
+	}
 
-	// // DELETE
-	// err = DeleteResource("", "v1", "Pods", "mypod", "default")
-	// if err != nil {
-	// 	t.Errorf("Error deleting resource: %s", err.Error())
-	// } else {
-	// 	logger.Log.Info("Resource deleted ✅")
-	// }
+	// GET
+	_, err = GetResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
+	if err != nil {
+		t.Errorf("Error getting resource: %s", err.Error())
+	} else {
+		logger.Log.Info("Resource retrieved ✅")
+	}
+
+	// DELETE
+	err = DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
+	if err != nil {
+		t.Errorf("Error deleting resource: %s", err.Error())
+	} else {
+		logger.Log.Info("Resource deleted ✅")
+	}
 }
