@@ -191,15 +191,5 @@ func InitExternalSecretsStoreYaml() string {
 	if err != nil {
 		panic(err.Error())
 	}
-
-	// s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	// // this just validates the yaml, but it's not used to decode it here
-	// var vaultSecretStore esapi.ClusterSecretStore
-	// _, _, err = s.Decode(yaml, nil, &vaultSecretStore)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	return string(yaml)
 }
