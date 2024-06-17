@@ -470,6 +470,7 @@ func CreateYamlString(yamlContent string) error {
 	return nil
 }
 
+// todo remove this function and move to new ApplyResource function
 func CreateOrUpdateYamlString(yamlContent string) error {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {

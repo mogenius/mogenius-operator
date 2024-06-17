@@ -5,6 +5,7 @@ import (
 )
 
 func CreateExternalSecretsStore() {
-	CreateOrUpdateYamlString(utils.InitExternalSecretsStoreYaml())
+	// CreateOrUpdateYamlString(utils.InitExternalSecretsStoreYaml())
+	ApplyResource(utils.InitExternalSecretsStoreYaml())
 
 }

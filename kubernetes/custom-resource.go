@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mogenius/punq/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,16 +33,25 @@ func ApplyResource(yamlData string) error {
 	}
 
 	gvr := getGVR(obj)
+	obj.SetGroupVersionKind(gvr.GroupVersion().WithKind(obj.GetKind()))
 
+	client := provider.ClientSet.Resource(gvr)
 	namespace := obj.GetNamespace()
-	if namespace == "" {
-		namespace = "default"
-	}
 
-	_, err = provider.ClientSet.Resource(gvr).Namespace(namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
+	if namespace != "" {
+		client.Namespace(namespace)
+	}
+	_, err = client.Create(context.TODO(), obj, metav1.CreateOptions{})
 	if err != nil {
+		// get metadata about existing resource
+		res, err := GetResource(gvr.Group, gvr.Version, gvr.Resource, obj.GetName(), namespace)
+		if err != nil {
+			return err
+		} else {
+			logger.Log.Info("Resource retrieved ✅")
+		}
 		// Try update if already exists
-		_, err = provider.ClientSet.Resource(gvr).Namespace(namespace).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		_, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}

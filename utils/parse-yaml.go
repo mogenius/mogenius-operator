@@ -1,7 +1,6 @@
 package utils
 
 import (
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -193,14 +192,14 @@ func InitExternalSecretsStoreYaml() string {
 		panic(err.Error())
 	}
 
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+	// s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
-	// this just validates the yaml, but it's not used to decode it here
-	var vaultSecretStore esapi.ClusterSecretStore
-	_, _, err = s.Decode(yaml, nil, &vaultSecretStore)
-	if err != nil {
-		panic(err)
-	}
+	// // this just validates the yaml, but it's not used to decode it here
+	// var vaultSecretStore esapi.ClusterSecretStore
+	// _, _, err = s.Decode(yaml, nil, &vaultSecretStore)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	return string(yaml)
 }

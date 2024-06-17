@@ -393,6 +393,8 @@ const (
 	PAT_POPEYE_CONSOLE string = "popeye_console"
 
 	PAT_FILES_UPLOAD string = "files/upload"
+
+	PAT_EXTERNAL_SECRET_STORE_CREATE string = "external-secret-store/create"
 )
 
 var BINARY_REQUEST_UPLOAD = []string{
@@ -770,6 +772,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_POPEYE_CONSOLE,
 
 	PAT_LOG_LIST_ALL,
+
+	PAT_EXTERNAL_SECRET_STORE_CREATE,
 }
 
 var SUPPRESSED_OUTPUT_PATTERN = []string{
