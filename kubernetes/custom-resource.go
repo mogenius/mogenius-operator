@@ -35,7 +35,6 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 	if err != nil {
 		return err
 	}
-
 	_, err = client.Create(context.TODO(), obj, metav1.CreateOptions{})
 	if err != nil {
 		// get fresh metadata about existing resource
@@ -123,7 +122,10 @@ func getClient(gvr schema.GroupVersionResource, namespace string, isClusterWideR
 
 	client := provider.ClientSet.Resource(gvr)
 
-	if !isClusterWideResource && namespace == "" {
+	if !isClusterWideResource {
+		if namespace == "" {
+			namespace = "default"
+		}
 		client.Namespace(namespace)
 	}
 	return client, nil
