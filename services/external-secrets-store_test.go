@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mogenius/punq/logger"
@@ -10,23 +11,22 @@ import (
 func TestSecretStoreRender(t *testing.T) {
 
 	yamlTemplate := `apiVersion: external-secrets.io/v1beta1
-	kind: ClusterSecretStore
-	metadata:
-	name: secret-store-vault-role-based
-	annotations:
+kind: ClusterSecretStore
+metadata:
+  name: <VAULT_STORE_NAME>
+  annotations:
     mogenius-external-secrets/shared-path: <MO_SHARED_PATH>
-	spec:
-	provider:
+spec:
+  provider:
     vault:
-	server: <VAULT_SERVER_URL>
-	version: "v2"
-	auth:
-	kubernetes:
-	mountPath: "kubernetes"
-	role: <ROLE>
-	serviceAccountRef:
-	name: <SERVICE_ACC>
-	`
+      server: <VAULT_SERVER_URL>
+      version: "v2"
+      auth:
+        kubernetes:
+         mountPath: "kubernetes"
+         role: <ROLE>
+         serviceAccountRef:
+           name: <SERVICE_ACC>`
 
 	secretStore := externalSecretStoreExample()
 	secretStore.Role = "mo-external-secrets-002"
@@ -65,11 +65,35 @@ type YamlData struct {
 }
 
 func TestSecretStoreCreate(t *testing.T) {
-	response := CreateExternalSecretsStore(CreateSecretsStoreRequestExample())
+	testReq := CreateSecretsStoreRequestExample()
+	testReq.NamePrefix = "mo-ex-secr-test-003"
+	response := CreateExternalSecretsStore(testReq)
 
 	if response.Status != "SUCCESS" {
 		t.Errorf("Error creating secret store: %s", response.Status)
 	} else {
 		logger.Log.Info("Secret store created ✅")
+	}
+}
+
+// don't move this test as it is dependent on the previous test to create the secret store!
+func TestSecretStoreList(t *testing.T) {
+	response := ListExternalSecretsStores()
+
+	if len(response.StoresInCluster) == 0 {
+		t.Errorf("Error listing secret stores: %s", "No secret stores found")
+	} else {
+		found := false
+		for _, store := range response.StoresInCluster {
+			if strings.HasPrefix(store.Name, "mo-ex-secr-test-003") {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Error: Expected secret store starting with 'mo-ex-secr-test-003' but none was found")
+		} else {
+			logger.Log.Info("Secret stores listed ✅")
+		}
 	}
 }
