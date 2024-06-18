@@ -1,39 +1,47 @@
-package kubernetes
+package services
 
 import (
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
+
 	"strings"
 )
 
 type ExternalSecretStoreProps struct {
-	Role           string
-	VaultServerUrl string
-	MoSharedPath   string
+	CreateSecretsStoreRequest
 	ServiceAccount string
 }
 
 // NewExternalSecretStore creates a new NewExternalSecretStore with default values.
 func NewExternalSecretStore() *ExternalSecretStoreProps {
+
 	return &ExternalSecretStoreProps{
-		Role:           "mogenius-external-secrets",
-		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		MoSharedPath:   "secret/mogenius-external-secrets",
-		ServiceAccount: "external-secrets-sa",
+		CreateSecretsStoreRequest: CreateSecretsStoreRequestExample(),
+		ServiceAccount:            "external-secrets-sa",
 	}
 }
 
-func CreateExternalSecretsStore() {
+func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsStoreResponse {
 	props := NewExternalSecretStore()
 
-	CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
+	mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
 
-	ApplyResource(
+	err := mokubernetes.ApplyResource(
 		renderClusterSecretStore(
 			utils.InitExternalSecretsStoreYaml(),
 			*props,
 		),
 		true,
 	)
+	if err != nil {
+		return CreateSecretsStoreResponse{
+			Status: "ERROR",
+		}
+	} else {
+		return CreateSecretsStoreResponse{
+			Status: "SUCCESS",
+		}
+	}
 }
 
 func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {

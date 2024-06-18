@@ -745,18 +745,16 @@ type CreateSecretsStoreRequest struct {
 }
 
 func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
-	defaults := mokubernetes.NewExternalSecretStore()
 	return CreateSecretsStoreRequest{
-		Role:           defaults.Role,
-		VaultServerUrl: defaults.VaultServerUrl,
-		MoSharedPath:   defaults.MoSharedPath,
+		Role:           "mogenius-external-secrets",
+		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
+		MoSharedPath:   "secret/mogenius-external-secrets",
 	}
 }
 
-// TODO: is a Response needed?
-// type CreateSecretsStoreResponse struct {
-// 	Status ??? `json:"status"`
-// }
+type CreateSecretsStoreResponse struct {
+	Status string `json:"status"`
+}
 
 var keplerHostAndPort string = ""
 

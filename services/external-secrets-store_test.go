@@ -1,7 +1,9 @@
-package kubernetes
+package services
 
 import (
 	"testing"
+
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 
 	"github.com/mogenius/punq/logger"
 	"gopkg.in/yaml.v2"
@@ -25,7 +27,7 @@ spec:
             name: "external-secrets-sa"
 `
 	// CREATE
-	err := ApplyResource(yamlData, true)
+	err := mokubernetes.ApplyResource(yamlData, true)
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
@@ -33,7 +35,7 @@ spec:
 	}
 
 	// UPDATE (same resource), on second call the update client call is tested
-	err = ApplyResource(yamlData, true)
+	err = mokubernetes.ApplyResource(yamlData, true)
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
@@ -41,7 +43,7 @@ spec:
 	}
 
 	// LIST
-	_, err = ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
+	_, err = mokubernetes.ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
 	} else {
@@ -49,7 +51,7 @@ spec:
 	}
 
 	// GET
-	_, err = GetResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
+	_, err = mokubernetes.GetResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
 	} else {
@@ -57,7 +59,7 @@ spec:
 	}
 
 	// DELETE
-	err = DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
+	err = mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
 	} else {
