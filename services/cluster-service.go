@@ -756,6 +756,10 @@ type CreateSecretsStoreResponse struct {
 	Status string `json:"status"`
 }
 
+type ListSecretsStoresResponse struct {
+	StoresInCluster []SecretStoreListing `json:"storesincluster"`
+}
+
 var keplerHostAndPort string = ""
 
 var energyConsumptionCollectionInProgress bool = false

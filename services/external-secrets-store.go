@@ -1,10 +1,14 @@
 package services
 
 import (
+	"encoding/json"
+	"fmt"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 
 	"strings"
+
+	"github.com/mogenius/punq/logger"
 )
 
 type ExternalSecretStoreProps struct {
@@ -41,6 +45,78 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 		return CreateSecretsStoreResponse{
 			Status: "SUCCESS",
 		}
+	}
+}
+
+type SecretStoreListing struct {
+	Name    string `json:"name"`
+	Role    string `json:"role"`
+	Message string `json:"message"`
+}
+
+type SecretStores struct {
+	Items []struct {
+		Metadata struct {
+			Name string `json:"name"`
+		} `json:"metadata"`
+		Spec struct {
+			Provider struct {
+				Vault struct {
+					Auth struct {
+						Kubernetes struct {
+							Role string `json:"role"`
+						} `json:"kubernetes"`
+					} `json:"auth"`
+				} `json:"vault"`
+			} `json:"provider"`
+		} `json:"spec"`
+		Status struct {
+			Conditions []struct {
+				Message string `json:"message"`
+			} `json:"conditions"`
+		} `json:"status"`
+	} `json:"items"`
+}
+
+func parseSecretStores(jsonStr string) ([]SecretStoreListing, error) {
+	var secretStores SecretStores
+	err := json.Unmarshal([]byte(jsonStr), &secretStores)
+	if err != nil {
+		return nil, err
+	}
+
+	var stores []SecretStoreListing
+	for _, item := range secretStores.Items {
+		store := SecretStoreListing{
+			Name:    item.Metadata.Name,
+			Role:    item.Spec.Provider.Vault.Auth.Kubernetes.Role,
+			Message: item.Status.Conditions[0].Message,
+		}
+		stores = append(stores, store)
+	}
+	return stores, nil
+}
+
+func ListExternalSecretsStores() ListSecretsStoresResponse {
+	// LIST
+	response, err := mokubernetes.ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
+	if err != nil {
+		logger.Log.Info("ListResources failed")
+	}
+
+	jsonOutput, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+		return ListSecretsStoresResponse{}
+	}
+	stores, err := parseSecretStores(string(jsonOutput))
+	if err != nil {
+		fmt.Println(err)
+		return ListSecretsStoresResponse{}
+	}
+
+	return ListSecretsStoresResponse{
+		StoresInCluster: stores,
 	}
 }
 

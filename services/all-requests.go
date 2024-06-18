@@ -2111,6 +2111,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return PopeyeConsole()
 	case structs.PAT_LOG_LIST_ALL:
 		return db.ListLogFromDb()
+
 	case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
 		data := CreateSecretsStoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2118,8 +2119,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return CreateExternalSecretsStore(data)
+	case structs.PAT_EXTERNAL_SECRET_STORE_LIST:
+		return ListExternalSecretsStores()
 	}
-
 	datagram.Err = "Pattern not found"
 	return datagram
 }
