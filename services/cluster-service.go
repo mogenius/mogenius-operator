@@ -738,6 +738,26 @@ type NfsStatusResponse struct {
 	UsedByPods    []string              `json:"usedByPods,omitempty"`
 }
 
+type CreateSecretsStoreRequest struct {
+	Role           string `json:"role" validate:"required"`
+	VaultServerUrl string `json:"vaultServerUrl" validate:"required"`
+	MoSharedPath   string `json:"moSharedPath" validate:"required"`
+}
+
+func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
+	defaults := mokubernetes.NewExternalSecretStore()
+	return CreateSecretsStoreRequest{
+		Role:           defaults.Role,
+		VaultServerUrl: defaults.VaultServerUrl,
+		MoSharedPath:   defaults.MoSharedPath,
+	}
+}
+
+// TODO: is a Response needed?
+// type CreateSecretsStoreResponse struct {
+// 	Status ??? `json:"status"`
+// }
+
 var keplerHostAndPort string = ""
 
 var energyConsumptionCollectionInProgress bool = false

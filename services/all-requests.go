@@ -2111,14 +2111,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return PopeyeConsole()
 	case structs.PAT_LOG_LIST_ALL:
 		return db.ListLogFromDb()
-		// TODO: Add the case for the new pattern
-		// case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
-		// 	data := CreateSecretsStoreRequest{}
-		// 	structs.MarshalUnmarshal(&datagram, &data)
-		// 	if err := utils.ValidateJSON(data); err != nil {
-		// 		return err
-		// 	}
-		// 	return CreateExternalSecretsStore(data)
+	case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
+		data := CreateSecretsStoreRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return CreateExternalSecretsStore(data)
 	}
 
 	datagram.Err = "Pattern not found"

@@ -12,7 +12,7 @@ type ExternalSecretStoreProps struct {
 	ServiceAccount string
 }
 
-// NewExternalSecretStore creates a new SecretStore with default values.
+// NewExternalSecretStore creates a new NewExternalSecretStore with default values.
 func NewExternalSecretStore() *ExternalSecretStoreProps {
 	return &ExternalSecretStoreProps{
 		Role:           "mogenius-external-secrets",
