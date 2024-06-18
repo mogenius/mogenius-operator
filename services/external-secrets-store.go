@@ -13,20 +13,25 @@ import (
 
 type ExternalSecretStoreProps struct {
 	CreateSecretsStoreRequest
+	Name           string
 	ServiceAccount string
 }
 
-// NewExternalSecretStore creates a new NewExternalSecretStore with default values.
-func NewExternalSecretStore() *ExternalSecretStoreProps {
+func externalSecretStoreExample() *ExternalSecretStoreProps {
+	return NewExternalSecretStore(CreateSecretsStoreRequestExample())
+}
 
+// NewExternalSecretStore creates a new NewExternalSecretStore with default values.
+func NewExternalSecretStore(data CreateSecretsStoreRequest) *ExternalSecretStoreProps {
 	return &ExternalSecretStoreProps{
-		CreateSecretsStoreRequest: CreateSecretsStoreRequestExample(),
+		CreateSecretsStoreRequest: data,
+		Name:                      data.NamePrefix + "-vault-secret-store",
 		ServiceAccount:            "external-secrets-sa",
 	}
 }
 
 func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsStoreResponse {
-	props := NewExternalSecretStore()
+	props := NewExternalSecretStore(data)
 
 	mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
 
@@ -48,13 +53,60 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 	}
 }
 
+func ListExternalSecretsStores() ListSecretsStoresResponse {
+	// LIST
+	response, err := mokubernetes.ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
+	if err != nil {
+		logger.Log.Info("ListResources failed")
+	}
+
+	jsonOutput, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+		return ListSecretsStoresResponse{}
+	}
+	stores, err := parseSecretStoresListing(string(jsonOutput))
+	if err != nil {
+		fmt.Println(err)
+		return ListSecretsStoresResponse{}
+	}
+
+	return ListSecretsStoresResponse{
+		StoresInCluster: stores,
+	}
+}
+
+func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
+
+	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", data.Name, "", true)
+	if err != nil {
+		return DeleteSecretsStoreResponse{
+			Status: "ERROR",
+		}
+	} else {
+		return DeleteSecretsStoreResponse{
+			Status: "SUCCESS",
+		}
+	}
+}
+
+func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.MoSharedPath, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<ROLE>", props.Role, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount, -1)
+
+	return yamlTemplateString
+}
+
 type SecretStoreListing struct {
 	Name    string `json:"name"`
 	Role    string `json:"role"`
 	Message string `json:"message"`
 }
 
-type SecretStores struct {
+type SecretStoreListingSchema struct {
 	Items []struct {
 		Metadata struct {
 			Name string `json:"name"`
@@ -78,8 +130,8 @@ type SecretStores struct {
 	} `json:"items"`
 }
 
-func parseSecretStores(jsonStr string) ([]SecretStoreListing, error) {
-	var secretStores SecretStores
+func parseSecretStoresListing(jsonStr string) ([]SecretStoreListing, error) {
+	var secretStores SecretStoreListingSchema
 	err := json.Unmarshal([]byte(jsonStr), &secretStores)
 	if err != nil {
 		return nil, err
@@ -95,36 +147,4 @@ func parseSecretStores(jsonStr string) ([]SecretStoreListing, error) {
 		stores = append(stores, store)
 	}
 	return stores, nil
-}
-
-func ListExternalSecretsStores() ListSecretsStoresResponse {
-	// LIST
-	response, err := mokubernetes.ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
-	if err != nil {
-		logger.Log.Info("ListResources failed")
-	}
-
-	jsonOutput, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		fmt.Println(err)
-		return ListSecretsStoresResponse{}
-	}
-	stores, err := parseSecretStores(string(jsonOutput))
-	if err != nil {
-		fmt.Println(err)
-		return ListSecretsStoresResponse{}
-	}
-
-	return ListSecretsStoresResponse{
-		StoresInCluster: stores,
-	}
-}
-
-func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.MoSharedPath, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<ROLE>", props.Role, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount, -1)
-
-	return yamlTemplateString
 }

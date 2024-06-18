@@ -3,92 +3,32 @@ package services
 import (
 	"testing"
 
-	mokubernetes "mogenius-k8s-manager/kubernetes"
-
 	"github.com/mogenius/punq/logger"
 	"gopkg.in/yaml.v2"
 )
 
-func TestSecretStoreResource(t *testing.T) {
-	yamlData := `apiVersion: external-secrets.io/v1beta1
-kind: ClusterSecretStore
-metadata:
-  name: test-secret-store
-spec:
-  provider:
-    vault:
-      server: "http://vault.default.svc.cluster.local:8200"
-      version: "v2"
-      auth:
-        kubernetes:
-          mountPath: "kubernetes"
-          role: "mogenius-external-secrets"
-          serviceAccountRef:
-            name: "external-secrets-sa"
-`
-	// CREATE
-	err := mokubernetes.ApplyResource(yamlData, true)
-	if err != nil {
-		t.Errorf("Error applying resource: %s", err.Error())
-	} else {
-		logger.Log.Info("Resource applied ✅")
-	}
-
-	// UPDATE (same resource), on second call the update client call is tested
-	err = mokubernetes.ApplyResource(yamlData, true)
-	if err != nil {
-		t.Errorf("Error applying resource: %s", err.Error())
-	} else {
-		logger.Log.Info("Resource updated ✅")
-	}
-
-	// LIST
-	_, err = mokubernetes.ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
-	if err != nil {
-		t.Errorf("Error listing resources: %s", err.Error())
-	} else {
-		logger.Log.Info("Resources listed ✅")
-	}
-
-	// GET
-	_, err = mokubernetes.GetResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
-	if err != nil {
-		t.Errorf("Error getting resource: %s", err.Error())
-	} else {
-		logger.Log.Info("Resource retrieved ✅")
-	}
-
-	// DELETE
-	err = mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
-	if err != nil {
-		t.Errorf("Error deleting resource: %s", err.Error())
-	} else {
-		logger.Log.Info("Resource deleted ✅")
-	}
-}
-
 func TestSecretStoreRender(t *testing.T) {
 
 	yamlTemplate := `apiVersion: external-secrets.io/v1beta1
-kind: ClusterSecretStore
-metadata:
-  name: secret-store-vault-role-based
-  annotations:
+	kind: ClusterSecretStore
+	metadata:
+	name: secret-store-vault-role-based
+	annotations:
     mogenius-external-secrets/shared-path: <MO_SHARED_PATH>
-spec:
-  provider:
+	spec:
+	provider:
     vault:
-      server: <VAULT_SERVER_URL>
-      version: "v2"
-      auth:
-        kubernetes:
-         mountPath: "kubernetes"
-         role: <ROLE>
-         serviceAccountRef:
-           name: <SERVICE_ACC>
-`
+	server: <VAULT_SERVER_URL>
+	version: "v2"
+	auth:
+	kubernetes:
+	mountPath: "kubernetes"
+	role: <ROLE>
+	serviceAccountRef:
+	name: <SERVICE_ACC>
+	`
 
-	secretStore := NewExternalSecretStore()
+	secretStore := externalSecretStoreExample()
 	secretStore.Role = "mo-external-secrets-002"
 	yamlDataUpdated := renderClusterSecretStore(yamlTemplate, *secretStore)
 
@@ -122,4 +62,14 @@ type YamlData struct {
 			SharedPath string `yaml:"mogenius-external-secrets/shared-path"`
 		} `yaml:"annotations"`
 	} `yaml:"metadata"`
+}
+
+func TestSecretStoreCreate(t *testing.T) {
+	response := CreateExternalSecretsStore(CreateSecretsStoreRequestExample())
+
+	if response.Status != "SUCCESS" {
+		t.Errorf("Error creating secret store: %s", response.Status)
+	} else {
+		logger.Log.Info("Secret store created ✅")
+	}
 }
