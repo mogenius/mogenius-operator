@@ -1489,22 +1489,30 @@ spec:
   - fc00:f853:0ccd:e797::/124`
 }
 
-func getCurrentTrafficCollectorAndPodStatsVersion() (string, string, error) {
+func getCurrentTrafficCollectorVersion() (string, error) {
 	data, err := utils.GetVersionData(utils.CONFIG.Misc.HelmIndex)
 	if err != nil {
-		return "NO_VERSION_FOUND", "NO_VERSION_FOUND", err
-	}
-	podstatsCollector := data.Entries[utils.HelmReleaseNamePodStatsCollector]
-	podstatsResult := "NO_VERSION_FOUND"
-	if len(podstatsCollector) > 0 {
-		podstatsResult = podstatsCollector[0].Version
+		return "NO_VERSION_FOUND", err
 	}
 	trafficCollector := data.Entries[utils.HelmReleaseNameTrafficCollector]
 	trafficResult := "NO_VERSION_FOUND"
 	if len(trafficCollector) > 0 {
 		trafficResult = trafficCollector[0].Version
 	}
-	return trafficResult, podstatsResult, nil
+	return trafficResult, nil
+}
+
+func getCurrentPodStatsCollectorVersion() (string, error) {
+	data, err := utils.GetVersionData(utils.CONFIG.Misc.HelmIndex)
+	if err != nil {
+		return "NO_VERSION_FOUND", err
+	}
+	podstatsCollector := data.Entries[utils.HelmReleaseNamePodStatsCollector]
+	podstatsResult := "NO_VERSION_FOUND"
+	if len(podstatsCollector) > 0 {
+		podstatsResult = podstatsCollector[0].Version
+	}
+	return podstatsResult, nil
 }
 
 func getMostCurrentHelmChartVersion(url string, chartname string) string {

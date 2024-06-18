@@ -7,8 +7,10 @@ import (
 	"mogenius-k8s-manager/utils"
 	"net/netip"
 	"os"
+	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -30,7 +32,17 @@ type SystemCheckEntry struct {
 	WantsToBeInstalled bool                      `json:"wantsToBeInstalled"`
 	VersionInstalled   string                    `json:"versionInstalled"`
 	VersionAvailable   string                    `json:"versionAvailable"`
+	ProcessTimeInMs    int64                     `json:"processTimeInMs"`
 }
+
+// sort.Interface for []SystemCheckEntry based on the CheckName field.
+type ByCheckName []SystemCheckEntry
+
+func (a ByCheckName) Len() int           { return len(a) }
+func (a ByCheckName) Less(i, j int) bool { return a[i].CheckName < a[j].CheckName }
+func (a ByCheckName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+var syscheckmutex sync.Mutex
 
 type SystemCheckResponse struct {
 	TerminalString string             `json:"terminalString"`
@@ -56,37 +68,50 @@ func CreateSystemCheckEntry(checkName string, alreadyInstalled bool, message str
 	}
 }
 
+// SysCheckExec measures the execution time of a function
+func SysCheckExec(name string, wg *sync.WaitGroup, entries *[]SystemCheckEntry, fn func() SystemCheckEntry) {
+	defer wg.Done()
+	start := time.Now()
+	entry := fn()
+	duration := time.Since(start)
+	entry.ProcessTimeInMs = duration.Milliseconds()
+	syscheckmutex.Lock()
+	*entries = append(*entries, entry)
+	syscheckmutex.Unlock()
+}
+
 func SystemCheck() SystemCheckResponse {
 	var wg sync.WaitGroup
 	entries := []SystemCheckEntry{}
 
 	// check internet access
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckInternetAccess", &wg, &entries, func() SystemCheckEntry {
 		inetResult, inetErr := punqUtils.CheckInternetAccess()
 		inetMsg := StatusMessage(inetErr, "Check your internet connection.", "Internet access works.")
-		entries = append(entries, CreateSystemCheckEntry("Internet Access", inetResult, inetMsg, "", true, false, "", ""))
-	}()
+		return CreateSystemCheckEntry("Internet Access", inetResult, inetMsg, "", true, false, "", "")
+	})
 
-	// check for kubectl + kubernetes version
+	// check for kubectl
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckKubectl", &wg, &entries, func() SystemCheckEntry {
 		kubectlResult, kubectlOutput, kubectlErr := punqUtils.IsKubectlInstalled()
 		kubeCtlMsg := StatusMessage(kubectlErr, "Plase install kubectl (https://kubernetes.io/docs/tasks/tools/) on your system to proceed.", kubectlOutput)
-		entries = append(entries, CreateSystemCheckEntry("kubectl", kubectlResult, kubeCtlMsg, "", true, false, "", ""))
+		return CreateSystemCheckEntry("kubectl", kubectlResult, kubeCtlMsg, "", true, false, "", "")
+	})
 
+	// check kubernetes version
+	wg.Add(1)
+	go SysCheckExec("CheckKubectlAndKubernetesVersion", &wg, &entries, func() SystemCheckEntry {
 		kubernetesVersion := punq.KubernetesVersion(nil)
 		kubernetesVersionResult := kubernetesVersion != nil
-		kubernetesVersionMsg := StatusMessage(kubectlErr, "Cannot determin version of kubernetes.", fmt.Sprintf("Version: %s\nPlatform: %s", kubernetesVersion.String(), kubernetesVersion.Platform))
-		entries = append(entries, CreateSystemCheckEntry("Kubernetes Version", kubernetesVersionResult, kubernetesVersionMsg, "", true, false, kubernetesVersion.String(), ""))
-	}()
+		kubernetesVersionMsg := StatusMessage(nil, "Cannot determin version of kubernetes.", fmt.Sprintf("Version: %s\nPlatform: %s", kubernetesVersion.String(), kubernetesVersion.Platform))
+		return CreateSystemCheckEntry("Kubernetes Version", kubernetesVersionResult, kubernetesVersionMsg, "", true, false, kubernetesVersion.String(), "")
+	})
 
 	// check for ingresscontroller
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckIngressController", &wg, &entries, func() SystemCheckEntry {
 		ingressType, ingressTypeErr := punq.DetermineIngressControllerType(nil)
 		ingressMsg := StatusMessage(ingressTypeErr, "Cannot determin ingress controller type.", ingressType.String())
 		ingressDescription := "Installs a traefik ingress controller to handle traffic from outside the cluster and more."
@@ -98,13 +123,12 @@ func SystemCheck() SystemCheckResponse {
 		if ingrEntry.Status != structs.INSTALLED {
 			ingrEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
 		}
-		entries = append(entries, ingrEntry)
-	}()
+		return ingrEntry
+	})
 
 	// check for metrics server
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckMetricsServer", &wg, &entries, func() SystemCheckEntry {
 		metricsResult, metricsVersion, metricsErr := punq.IsMetricsServerAvailable(nil)
 		metricsMsg := StatusMessage(metricsErr, "kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml\nNote: Running docker-desktop? Please add '- --kubelet-insecure-tls' to the args sction in the deployment of metrics-server.", metricsVersion)
 		metricsDescription := "Maintained by Kubernetes-SIGs, handles metrics for built-in autoscaling pipelines."
@@ -116,31 +140,28 @@ func SystemCheck() SystemCheckResponse {
 		if metricsEntry.Status != structs.INSTALLED {
 			metricsEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
 		}
-		entries = append(entries)
-	}()
+		return metricsEntry
+	})
 
 	// check for helm
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckHelm", &wg, &entries, func() SystemCheckEntry {
 		helmResult, helmOutput, helmErr := punqUtils.IsHelmInstalled()
 		helmMsg := StatusMessage(helmErr, "Plase install helm (https://helm.sh/docs/intro/install/) on your system to proceed.", helmOutput)
-		entries = append(entries, CreateSystemCheckEntry("Helm", helmResult, helmMsg, "", true, false, helmOutput, ""))
-	}()
+		return CreateSystemCheckEntry("Helm", helmResult, helmMsg, "", true, false, helmOutput, "")
+	})
 
 	// check cluster provider
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckClusterProvider", &wg, &entries, func() SystemCheckEntry {
 		clusterProvOutput, clusterProvErr := punq.GuessClusterProvider(nil)
 		clusterProviderMsg := StatusMessage(clusterProvErr, "We could not determine the provider of this cluster.", string(clusterProvOutput))
-		entries = append(entries, CreateSystemCheckEntry("Cluster Provider", clusterProvErr == nil, clusterProviderMsg, "", false, false, "", ""))
-	}()
+		return CreateSystemCheckEntry("Cluster Provider", clusterProvErr == nil, clusterProviderMsg, "", false, false, "", "")
+	})
 
 	// API Versions
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckApiVersions", &wg, &entries, func() SystemCheckEntry {
 		apiVerResult, apiVerErr := punq.ApiVersions(nil)
 		apiVersStr := ""
 		for _, entry := range apiVerResult {
@@ -148,48 +169,44 @@ func SystemCheck() SystemCheckResponse {
 		}
 		apiVersStr = strings.TrimRight(apiVersStr, "\n\r")
 		apiVersMsg := StatusMessage(apiVerErr, "Metrics Server might be missing. Install the metrics server and try again.", apiVersStr)
-		entries = append(entries, CreateSystemCheckEntry("API Versions", len(apiVerResult) > 0, apiVersMsg, "", true, false, "", ""))
-	}()
+		return CreateSystemCheckEntry("API Versions", len(apiVerResult) > 0, apiVersMsg, "", true, false, "", "")
+	})
 
-	// check cluster provider
+	// check country of cluster
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckClusterCountry", &wg, &entries, func() SystemCheckEntry {
 		countryResult, countryErr := punqUtils.GuessClusterCountry()
 		countryName := ""
 		if countryResult != nil {
 			countryName = countryResult.Name
 		}
 		countryMsg := StatusMessage(countryErr, "We could not determine the location of the cluster.", countryName)
-		entries = append(entries, CreateSystemCheckEntry("Cluster Country", countryErr == nil, countryMsg, "", false, false, "", ""))
-	}()
+		return CreateSystemCheckEntry("Cluster Country", countryErr == nil, countryMsg, "", false, false, "", "")
+	})
 
 	// check for loadbalancer ips
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckLoadBalancerIps", &wg, &entries, func() SystemCheckEntry {
 		lbName := "LoadBalancer IPs/Hosts"
 		loadbalancerIps := punq.GetClusterExternalIps(nil)
 		lbIpsMsg := strings.Join(loadbalancerIps, ", ")
 		if len(loadbalancerIps) == 0 {
 			lbIpsMsg = "No external IPs/Hosts.\nMaybe you don't have TREAFIK or NGINX ingress controller installed."
 		}
-		entries = append(entries, CreateSystemCheckEntry(lbName, len(loadbalancerIps) > 0, lbIpsMsg, "", false, false, "", ""))
-	}()
+		return CreateSystemCheckEntry(lbName, len(loadbalancerIps) > 0, lbIpsMsg, "", false, false, "", "")
+	})
 
 	// check for docker
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckDocker", &wg, &entries, func() SystemCheckEntry {
 		dockerResult, dockerOutput, dockerErr := IsDockerInstalled()
 		dockerMsg := StatusMessage(dockerErr, "If docker is missing in this image, we are screwed ;-)", dockerOutput)
-		entries = append(entries, CreateSystemCheckEntry("docker", dockerResult, dockerMsg, "", true, false, dockerOutput, ""))
-	}()
+		return CreateSystemCheckEntry("docker", dockerResult, dockerMsg, "", true, false, dockerOutput, "")
+	})
 
 	// check for cert-manager
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckCertManager", &wg, &entries, func() SystemCheckEntry {
 		certManagerVersion, certManagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
 		certManagerMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNameCertManager, certManagerVersion)
 		if certManagerInstalledErr != nil {
@@ -202,13 +219,12 @@ func SystemCheck() SystemCheckResponse {
 		certMgrEntry.UninstallPattern = structs.PAT_UNINSTALL_CERT_MANAGER
 		certMgrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CERT_MANAGER
 		certMgrEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
-		entries = append(entries, certMgrEntry)
-	}()
+		return certMgrEntry
+	})
 
 	// check for clusterissuer
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckClusterIssuer", &wg, &entries, func() SystemCheckEntry {
 		_, clusterIssuerInstalledErr := punq.GetClusterIssuer(NameClusterIssuerResource, nil)
 		clusterIssuerMsg := fmt.Sprintf("%s is installed.", NameClusterIssuerResource)
 		if clusterIssuerInstalledErr != nil {
@@ -219,19 +235,16 @@ func SystemCheck() SystemCheckResponse {
 		clusterIssuerEntry.InstallPattern = structs.PAT_INSTALL_CLUSTER_ISSUER
 		clusterIssuerEntry.UninstallPattern = structs.PAT_UNINSTALL_CLUSTER_ISSUER
 		clusterIssuerEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
-		entries = append(entries, clusterIssuerEntry)
-	}()
-
-	// check internal tools version for later usage
-	trafficCollectorNewestVersion, podstatsCollectorNewestVersion, err := getCurrentTrafficCollectorAndPodStatsVersion()
-	if err != nil {
-		log.Errorf("getCurrentTrafficCollectorVersion Err: %s", err.Error())
-	}
+		return clusterIssuerEntry
+	})
 
 	// check for trafficcollector
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckTrafficCollector", &wg, &entries, func() SystemCheckEntry {
+		trafficCollectorNewestVersion, err := getCurrentTrafficCollectorVersion()
+		if err != nil {
+			log.Errorf("getCurrentTrafficCollectorVersion Err: %s", err.Error())
+		}
 		trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
 		if trafficCollectorVersion == "" && trafficCollectorInstalledErr == nil {
 			trafficCollectorVersion = "6.6.6" // flag local version without tag
@@ -246,13 +259,16 @@ func SystemCheck() SystemCheckResponse {
 		trafficEntry.UninstallPattern = structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR
 		trafficEntry.UpgradePattern = structs.PAT_UPGRADE_TRAFFIC_COLLECTOR
 		trafficEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
-		entries = append(entries, trafficEntry)
-	}()
+		return trafficEntry
+	})
 
 	// check for podstatscollector
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckPodStatsCollector", &wg, &entries, func() SystemCheckEntry {
+		podstatsCollectorNewestVersion, err := getCurrentPodStatsCollectorVersion()
+		if err != nil {
+			log.Errorf("getCurrentPodStatsCollectorVersion Err: %s", err.Error())
+		}
 		podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
 		if podStatsCollectorVersion == "" && podStatsCollectorInstalledErr == nil {
 			podStatsCollectorVersion = "6.6.6" // flag local version without tag
@@ -267,13 +283,12 @@ func SystemCheck() SystemCheckResponse {
 		podEntry.UninstallPattern = structs.PAT_UNINSTALL_POD_STATS_COLLECTOR
 		podEntry.UpgradePattern = structs.PAT_UPGRADE_PODSTATS_COLLECTOR
 		podEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
-		entries = append(entries, podEntry)
-	}()
+		return podEntry
+	})
 
 	// check for distribution registry
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckDistributionRegistry", &wg, &entries, func() SystemCheckEntry {
 		distributionRegistryName := "distribution-registry-docker-registry"
 		distriRegistryVersion, distriRegistryInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, distributionRegistryName)
 		distriRegistryMsg := fmt.Sprintf("%s (Version: %s) is installed.", distributionRegistryName, distriRegistryVersion)
@@ -287,8 +302,8 @@ func SystemCheck() SystemCheckResponse {
 		distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
 		distriEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CONTAINER_REGISTRY
 		distriEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
-		entries = append(entries, distriEntry)
-	}()
+		return distriEntry
+	})
 
 	// externalSecretsName := "external-secrets"
 	// externalSecretsVersion, externalSecretsInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, externalSecretsName)
@@ -307,8 +322,7 @@ func SystemCheck() SystemCheckResponse {
 
 	// check for metallb
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckMetalLb", &wg, &entries, func() SystemCheckEntry {
 		metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, "metallb-controller")
 		metallbMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameMetalLB, metallbVersion)
 		if metallbInstalledErr != nil {
@@ -321,8 +335,8 @@ func SystemCheck() SystemCheckResponse {
 		metallbEntry.UninstallPattern = structs.PAT_UNINSTALL_METALLB
 		metallbEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METALLB
 		metallbEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
-		entries = append(entries, metallbEntry)
-	}()
+		return metallbEntry
+	})
 
 	// TODO: FIXEN UND WIEDER EINBAUEN: MOG-1051
 	// keplerVersion, keplerInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
@@ -341,8 +355,7 @@ func SystemCheck() SystemCheckResponse {
 
 	// check for local dev setup
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	go SysCheckExec("CheckLocalDevSetup", &wg, &entries, func() SystemCheckEntry {
 		clusterIps := punq.GetClusterExternalIps(nil)
 		localDevEnvMsg := "Local development environment setup complete (192.168.66.1 found)."
 		contains192168661 := punqUtils.Contains(clusterIps, "192.168.66.1")
@@ -350,18 +363,25 @@ func SystemCheck() SystemCheckResponse {
 			localDevEnvMsg = "Local development environment not setup. Please run 'mocli cluster local-dev-setup' to setup your local environment."
 		}
 		localDevSetupEntry := CreateSystemCheckEntry(NameLocalDevSetup, contains192168661, localDevEnvMsg, "", false, false, "", "")
-		entries = append(entries, localDevSetupEntry)
+		return localDevSetupEntry
+	})
 
+	// check for nfs storage class
+	wg.Add(1)
+	go SysCheckExec("CheckNfsStorageClass", &wg, &entries, func() SystemCheckEntry {
 		nfsStorageClass := kubernetes.StorageClassForClusterProvider(utils.ClusterProviderCached)
 		nfsStorageClassMsg := fmt.Sprintf("NFS StorageClass '%s' found.", nfsStorageClass)
 		nfsStorageClassEntry := CreateSystemCheckEntry(NameNfsStorageClass, nfsStorageClass != "", nfsStorageClassMsg, "", true, false, "", "")
-		entries = append(entries, nfsStorageClassEntry)
-	}()
+		return nfsStorageClassEntry
+	})
 
 	wg.Wait()
 
 	// update entries specificly for certain cluster vendors
 	entries = UpdateSystemCheckStatusForClusterVendor(entries)
+
+	// Sort the entries by CheckName
+	sort.Sort(ByCheckName(entries))
 
 	return GenerateSystemCheckResponse(entries)
 }
@@ -383,14 +403,14 @@ func GenerateSystemCheckResponse(entries []SystemCheckEntry) SystemCheckResponse
 func SystemCheckTerminalString(entries []SystemCheckEntry) string {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Check", "Status", "Required", "Message"})
+	t.AppendHeader(table.Row{"Check", "Status", "Required", "ExecTime", "Message"})
 	for index, entry := range entries {
 		reqStr := "yes"
 		if !entry.IsRequired {
 			reqStr = "no"
 		}
 		t.AppendRow(
-			table.Row{entry.CheckName, StatusEmoji(entry.Status), reqStr, entry.Message},
+			table.Row{entry.CheckName, StatusEmoji(entry.Status), reqStr, entry.ProcessTimeInMs, entry.Message},
 		)
 		if index < len(entries)-1 {
 			t.AppendSeparator()
