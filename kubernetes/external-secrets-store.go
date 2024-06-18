@@ -25,6 +25,8 @@ func NewExternalSecretStore() *ExternalSecretStoreProps {
 func CreateExternalSecretsStore() {
 	props := NewExternalSecretStore()
 
+	CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
+
 	ApplyResource(
 		renderClusterSecretStore(
 			utils.InitExternalSecretsStoreYaml(),

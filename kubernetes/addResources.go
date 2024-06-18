@@ -49,11 +49,6 @@ func Deploy() {
 }
 
 func addRbac(provider *punq.KubeProvider) error {
-	serviceAccount := &core.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: SERVICEACCOUNTNAME,
-		},
-	}
 	clusterRole := &rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: CLUSTERROLENAME,
@@ -86,7 +81,9 @@ func addRbac(provider *punq.KubeProvider) error {
 
 	// CREATE RBAC
 	log.Info("Creating mogenius-k8s-manager RBAC ...")
-	_, err := provider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Create(context.TODO(), serviceAccount, MoCreateOptions())
+
+	_, err := CreateServiceAccount(SERVICEACCOUNTNAME, NAMESPACE)
+
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}
