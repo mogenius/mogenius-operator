@@ -90,11 +90,12 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build --platform=linux/arm64 -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux -t ${{ env.IMAGE_NAME }}:latest-arm64-linux .
-          // no actual push to ghcr.io on feature branches
-
+          # no actual push to ghcr.io on feature branches
 
   build-arm64:
-    needs: prepare
+    needs: 
+      - prepare
+      - passing-tests
     runs-on: [self-hosted, ARM64]
     steps:
       - name: Check out code
@@ -117,10 +118,11 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
-          // no actual push to ghcr.io on feature branches
-
+          # no actual push to ghcr.io on feature branches
   build-armv7:
-    needs: prepare
+    needs: 
+      - prepare
+      - passing-tests
     runs-on: [self-hosted, ARM64]
     steps:
       - name: Check out code
@@ -143,5 +145,5 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --platform=linux/arm/v7 --build-arg GOOS=linux --build-arg GOARCH=arm --build-arg GOARM=7 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm7 -t ${{ env.IMAGE_NAME }}:latest-arm7 .
-          // no actual push to ghcr.io on feature branches
+          # no actual push to ghcr.io on feature branches
         
