@@ -53,6 +53,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.MO_K8s_TOKEN }}
+      # TODO: this should be part of the build / local test logic in some way
+      - name: Prepare CRDs
+        run: |
+          kubectl apply -f yaml-templates/crds-applicationkit.yaml
+          kubectl apply -f yaml-templates/crds-environments.yaml
+          kubectl apply -f yaml-templates/crds-projects.yaml
       - name: Run tests
         run: |
           go mod download
