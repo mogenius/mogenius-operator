@@ -1,5 +1,15 @@
 package structs
 
+type SystemCheckStatus string
+
+const (
+	UNKNOWN_STATUS SystemCheckStatus = "UNKNOWN_STATUS"
+	INSTALLING     SystemCheckStatus = "INSTALLING"
+	UNINSTALLING   SystemCheckStatus = "UNINSTALLING"
+	NOT_INSTALLED  SystemCheckStatus = "NOT_INSTALLED"
+	INSTALLED      SystemCheckStatus = "INSTALLED"
+)
+
 type HelmTaskEnum string
 
 const (

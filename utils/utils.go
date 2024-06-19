@@ -17,6 +17,8 @@ import (
 	"github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+
+	"github.com/patrickmn/go-cache"
 )
 
 const IMAGE_PLACEHOLDER = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
@@ -42,6 +44,8 @@ const (
 //
 //go:embed yaml-templates
 var YamlTemplatesFolder embed.FS
+
+var helmDataVersion = cache.New(2*time.Hour, 30*time.Minute)
 
 func MountPath(namespaceName string, volumeName string, defaultReturnValue string) string {
 	if CONFIG.Kubernetes.RunInCluster {
@@ -123,19 +127,41 @@ func ExecuteShellCommandRealySilent(title string, shellCmd string) error {
 	}
 }
 
+// MeasureTime measures the execution time of a function and prints it in milliseconds.
+func MeasureTime(name string, fn func()) {
+	start := time.Now()
+	fn()
+	elapsed := time.Since(start)
+	log.Infof("%s took %s", name, elapsed)
+}
+
 func GetVersionData(url string) (*punqStructs.HelmData, error) {
+	// Check if the data is already in the cache
+	if cachedData, found := helmDataVersion.Get(url); found {
+		return cachedData.(*punqStructs.HelmData), nil
+	}
+
+	// If not in cache, fetch the data from the URL
 	response, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer response.Body.Close()
 
-	data, _ := io.ReadAll(response.Body)
+	data, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	var helmData punqStructs.HelmData
 	err = yaml.Unmarshal(data, &helmData)
 	if err != nil {
 		return nil, err
 	}
+
+	// Store the fetched data in the cache
+	helmDataVersion.Set(url, &helmData, 2*time.Hour)
+
 	return &helmData, nil
 }
 
