@@ -97,3 +97,14 @@ func TestSecretStoreList(t *testing.T) {
 		}
 	}
 }
+
+func TestSecretStoreDelete(t *testing.T) {
+	status := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
+		Name: "mo-ex-secr-test-003-vault-secret-store",
+	})
+	if status.Status != "SUCCESS" {
+		t.Errorf("Error: Expected secret store starting with 'mo-ex-secr-test-003' but none was found")
+	} else {
+		logger.Log.Info("Secret store deletion confirmed ✅")
+	}
+}
