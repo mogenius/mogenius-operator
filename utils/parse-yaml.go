@@ -1,9 +1,6 @@
 package utils
 
 import (
-	"path/filepath"
-	"runtime"
-
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -189,16 +186,8 @@ func InitMogeniusCrdApplicationKitYaml() string {
 	return string(yaml)
 }
 
-// trying to define absolute path to the yaml templates folder
-var (
-	_, b, _, _ = runtime.Caller(0)
-	basepath   = filepath.Dir(b) + "/.."
-)
-
 func InitExternalSecretsStoreYaml() string {
-	yamlPath := filepath.Join(basepath, "yaml-templates/external-secrets-store-vault.yml")
-
-	yaml, err := YamlTemplatesFolder.ReadFile(yamlPath)
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secrets-store-vault.yaml")
 	if err != nil {
 		panic(err.Error())
 	}

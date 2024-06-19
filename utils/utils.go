@@ -38,6 +38,9 @@ const (
 	HelmReleaseNameKepler               = "kepler"
 )
 
+// this includes the yaml-templates folder into the binary
+//
+//go:embed yaml-templates
 var YamlTemplatesFolder embed.FS
 
 func MountPath(namespaceName string, volumeName string, defaultReturnValue string) string {

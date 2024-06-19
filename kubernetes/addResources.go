@@ -83,7 +83,6 @@ func addRbac(provider *punq.KubeProvider) error {
 	log.Info("Creating mogenius-k8s-manager RBAC ...")
 
 	_, err := CreateServiceAccount(SERVICEACCOUNTNAME, NAMESPACE)
-
 	if err != nil && !k8serrors.IsAlreadyExists(err) {
 		return err
 	}

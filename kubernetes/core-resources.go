@@ -24,9 +24,9 @@ func getCoreClient() v1.CoreV1Interface {
 func CreateServiceAccount(serviceAccountName string, namespace string) (*core.ServiceAccount, error) {
 	serviceAccount := &core.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: SERVICEACCOUNTNAME,
+			Name: serviceAccountName,
 		},
 	}
 
-	return getCoreClient().ServiceAccounts(NAMESPACE).Create(context.TODO(), serviceAccount, MoCreateOptions())
+	return getCoreClient().ServiceAccounts(namespace).Create(context.TODO(), serviceAccount, MoCreateOptions())
 }
