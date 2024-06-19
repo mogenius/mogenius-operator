@@ -114,21 +114,22 @@ func DeleteResource(group string, version string, resource string, name string, 
 	return nil
 }
 
-func getClient(gvr schema.GroupVersionResource, namespace string, isClusterWideResource bool) (dynamic.NamespaceableResourceInterface, error) {
+func getClient(gvr schema.GroupVersionResource, namespace string, isClusterWideResource bool) (dynamic.ResourceInterface, error) {
 	provider, err := NewDynamicKubeProvider(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	client := provider.ClientSet.Resource(gvr)
+	var client dynamic.NamespaceableResourceInterface = provider.ClientSet.Resource(gvr)
 
 	if !isClusterWideResource {
 		if namespace == "" {
 			namespace = "default"
 		}
-		client.Namespace(namespace)
+		return client.Namespace(namespace), nil
+	} else {
+		return client, nil
 	}
-	return client, nil
 }
 
 func getGVR(obj *unstructured.Unstructured) schema.GroupVersionResource {
