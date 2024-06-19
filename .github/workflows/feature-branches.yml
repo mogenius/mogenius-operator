@@ -56,12 +56,7 @@ jobs:
       - name: Run tests
         run: |
           go mod download
-          go test -v ./... > test.out
-          - name: Publish Test Results
-          uses: mikepenz/action-junit-report@v2
-          if: always()
-          with:
-            report_paths: 'test.out'
+          go test -v ./...
 
   build-arm64-linux:
     needs: 
