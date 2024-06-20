@@ -3,6 +3,7 @@
 package main
 
 import (
+	_ "embed"
 	"mogenius-k8s-manager/cmd"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
