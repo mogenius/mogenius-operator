@@ -11,6 +11,10 @@ import (
 	"github.com/mogenius/punq/logger"
 )
 
+const (
+	ExternalSecretsSA = "mo-eso-serviceaccount"
+)
+
 type ExternalSecretStoreProps struct {
 	CreateSecretsStoreRequest
 	Name           string
@@ -26,7 +30,7 @@ func NewExternalSecretStore(data CreateSecretsStoreRequest) *ExternalSecretStore
 	return &ExternalSecretStoreProps{
 		CreateSecretsStoreRequest: data,
 		Name:                      data.NamePrefix + "-vault-secret-store",
-		ServiceAccount:            "external-secrets-sa",
+		ServiceAccount:            ExternalSecretsSA,
 	}
 }
 
@@ -139,10 +143,15 @@ func parseSecretStoresListing(jsonStr string) ([]SecretStoreListing, error) {
 
 	var stores []SecretStoreListing
 	for _, item := range secretStores.Items {
+		statusMessage := ""
+		if len(item.Status.Conditions) > 0 {
+			statusMessage = item.Status.Conditions[0].Message
+		}
+
 		store := SecretStoreListing{
 			Name:    item.Metadata.Name,
 			Role:    item.Spec.Provider.Vault.Auth.Kubernetes.Role,
-			Message: item.Status.Conditions[0].Message,
+			Message: statusMessage,
 		}
 		stores = append(stores, store)
 	}
