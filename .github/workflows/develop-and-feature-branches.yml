@@ -1,8 +1,9 @@
-name: Build, Package, Release (Dev)
+name: Build, Package, Release (Dev & Feature Branches)
 
 on:
   push:
     branches:
+      - feat*
       - develop
 
 env:
@@ -38,8 +39,36 @@ jobs:
           git config --global credential.helper cache
           npx semantic-release
 
-  build-amd64:
+  passing-tests:
     needs: prepare
+    runs-on: [self-hosted, ARM64, k3s-installed]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.MO_K8s_TOKEN }}
+      # TODO: this should be part of the build / local test logic in some way
+      - name: Prepare CRDs
+        run: |
+          kubectl apply -f yaml-templates/crds-applicationkit.yaml
+          kubectl apply -f yaml-templates/crds-environments.yaml
+          kubectl apply -f yaml-templates/crds-projects.yaml
+      - name: Run tests
+        run: |
+          go mod download
+          go test -v ./...
+
+  build-amd64:
+    needs: 
+      - prepare
+      - passing-tests
     runs-on: [self-hosted, X64]
     steps:
       - name: Check out code
@@ -54,7 +83,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.MO_K8s_TOKEN }}
 
-      - name: Build and push AMD64 image
+      - name: Build AMD64 image
         run: |
           GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
           COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -62,10 +91,18 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=amd64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-amd64 -t ${{ env.IMAGE_NAME }}:latest-amd64 .
+          
+      - name: Push AMD64-linux image
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
 
+
   build-arm64-linux:
-    needs: prepare
+    needs: 
+      - prepare
+      - passing-tests
     runs-on: [self-hosted, ARM64]
     steps:
       - name: Check out code
@@ -88,10 +125,17 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build --platform=linux/arm64 -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux -t ${{ env.IMAGE_NAME }}:latest-arm64-linux .
+
+      - name: Push AMD64-linux image
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
 
   build-arm64:
-    needs: prepare
+    needs: 
+      - prepare
+      - passing-tests
     runs-on: [self-hosted, ARM64]
     steps:
       - name: Check out code
@@ -106,7 +150,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.MO_K8s_TOKEN }}
 
-      - name: Build and push ARM64 image
+      - name: Build ARM64 image
         run: |
           GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
           COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -114,10 +158,17 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
 
+      - name: Push AMD64 image
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+          docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
+  
   build-armv7:
-    needs: prepare
+    needs: 
+      - prepare
+      - passing-tests
     runs-on: [self-hosted, ARM64]
     steps:
       - name: Check out code
@@ -140,10 +191,16 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --platform=linux/arm/v7 --build-arg GOOS=linux --build-arg GOARCH=arm --build-arg GOARM=7 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm7 -t ${{ env.IMAGE_NAME }}:latest-arm7 .
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
-        
+
+      - name: Push AMDv7 image
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+          docker push ${{ env.IMAGE_NAME }}:$VERSION-amd7
+
 
   merge-images:
+    if: github.ref == 'refs/heads/develop'
     needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
     runs-on: self-hosted
     steps:
@@ -176,10 +233,9 @@ jobs:
           docker manifest push ${{ env.IMAGE_NAME }}:latest
 
   helm-chart:
-    # needs: [prepare]
+    if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out code
         uses: actions/checkout@v4
