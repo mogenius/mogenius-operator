@@ -9,33 +9,29 @@ import (
 )
 
 func TestSecretListRender(t *testing.T) {
-
 	yamlTemplate := utils.InitExternalSecretListYaml()
+	secretListProps := externalSecretListExample()
 
-	secretListProps := ExternalSecretListProps{
-		NamePrefix:      "team-blue-scrts",
-		Project:         "team-blue",
-		SecretStoreName: "team-blue-scrts" + SecretStoreSuffix,
-	}
+	// rendering overall works
 	yamlDataRendered := renderExternalSecretList(yamlTemplate, secretListProps)
-
 	if yamlTemplate == yamlDataRendered {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
 	} else {
 		logger.Log.Info("Yaml data updated (1/2) ✅")
 	}
+
+	// change values and compare
 	expectedName := "team-yellow-projectMayhem-" + SecretListSuffix
 	secretListProps.NamePrefix = "team-yellow"
 	secretListProps.Project = "projectMayhem"
 	yamlDataRenderedChanged := renderExternalSecretList(yamlTemplate, secretListProps)
-
 	if yamlDataRenderedChanged == yamlDataRendered {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
 	} else {
 		logger.Log.Info("Yaml data updated (2/2) ✅")
 	}
 
-	// check if the values are replaced
+	// check if the values are replaced as expected
 	var data YamlDataList
 	err := yaml.Unmarshal([]byte(yamlDataRenderedChanged), &data)
 	if err != nil {
@@ -57,14 +53,15 @@ type YamlDataList struct {
 	} `yaml:"spec"`
 }
 
-// func TestSecretStoreCreate(t *testing.T) {
-// 	testReq := CreateSecretsStoreRequestExample()
-// 	testReq.NamePrefix = "mo-ex-secr-test-003"
-// 	response := CreateExternalSecretsStore(testReq)
+func TestCreateExternalSecretList(t *testing.T) {
+	utils.InitConfigYaml(false, "", "dev")
+	testReq := externalSecretListExample()
+	testReq.NamePrefix = "mo-ex-secr-test-003"
+	response := CreateExternalSecretList(testReq)
 
-// 	if response.Status != "SUCCESS" {
-// 		t.Errorf("Error creating secret store: %s", response.Status)
-// 	} else {
-// 		logger.Log.Info("Secret store created ✅")
-// 	}
-// }
+	if response.Status != "SUCCESS" {
+		t.Errorf("Error creating secret store: %s", response.Status)
+	} else {
+		logger.Log.Info("Secret store created ✅")
+	}
+}

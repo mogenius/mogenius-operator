@@ -1,6 +1,7 @@
 package utils
 
 import (
+	_ "embed"
 	"mogenius-k8s-manager/version"
 	"net/http"
 	"os"
@@ -105,10 +106,18 @@ type Config struct {
 	} `yaml:"stats"`
 }
 
+//go:embed config/config-local.yaml
 var DefaultConfigLocalFile string
+
+//go:embed config/config-cluster-pre-dev.yaml
 var DefaultConfigClusterFilePreDev string
+
+//go:embed config/config-cluster-dev.yaml
 var DefaultConfigClusterFileDev string
+
+//go:embed config/config-cluster-prod.yaml
 var DefaultConfigClusterFileProd string
+
 var CONFIG Config
 var ConfigPath string
 var ClusterProviderCached punqDtos.KubernetesProvider = punqDtos.UNKNOWN
