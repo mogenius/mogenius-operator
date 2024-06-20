@@ -18,9 +18,7 @@ type ExternalSecretProps struct {
 }
 
 func externalExternalSecretExample() ExternalSecretProps {
-	es := NewExternalSecret(CreateExternalSecretRequestExample())
-	// es.Generated =
-	return es
+	return NewExternalSecret(CreateExternalSecretRequestExample())
 }
 
 // NewExternalSecret creates a new NewExternalSecret with default values.
@@ -35,6 +33,15 @@ type ExternalSecretListProps struct {
 	Project         string
 	SecretStoreName string
 	MoSharedPath    string
+}
+
+func externalSecretListExample() ExternalSecretListProps {
+	return ExternalSecretListProps{
+		NamePrefix:      "team-blue-scrts",
+		Project:         "team-blue",
+		SecretStoreName: "team-blue-scrts" + SecretStoreSuffix,
+		MoSharedPath:    "mogenius/team-blue/scrts",
+	}
 }
 
 func CreateExternalSecretList(props ExternalSecretListProps) CreateExternalSecretResponse {
