@@ -3,7 +3,7 @@
 package main
 
 import (
-	"embed"
+	_ "embed"
 	"mogenius-k8s-manager/cmd"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
@@ -27,9 +27,6 @@ var DefaultConfigClusterFileDev string
 
 //go:embed config/config-cluster-prod.yaml
 var DefaultConfigClusterFileProd string
-
-//go:embed yaml-templates
-var YamlTemplatesFolder embed.FS
 
 func main() {
 	go func() {
@@ -59,7 +56,6 @@ func main() {
 	utils.DefaultConfigClusterFileDev = DefaultConfigClusterFileDev
 	utils.DefaultConfigClusterFileProd = DefaultConfigClusterFileProd
 	utils.DefaultConfigLocalFile = DefaultConfigLocalFile
-	utils.YamlTemplatesFolder = YamlTemplatesFolder
 
 	cmd.Execute()
 }

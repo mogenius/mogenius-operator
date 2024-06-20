@@ -737,6 +737,43 @@ type NfsStatusResponse struct {
 	UsedByPods    []string              `json:"usedByPods,omitempty"`
 }
 
+type CreateSecretsStoreRequest struct {
+	NamePrefix     string `json:"namePrefix" validate:"required"`
+	Role           string `json:"role" validate:"required"`
+	VaultServerUrl string `json:"vaultServerUrl" validate:"required"`
+	MoSharedPath   string `json:"moSharedPath" validate:"required"`
+}
+
+func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
+	return CreateSecretsStoreRequest{
+		NamePrefix:     "mo-test",
+		Role:           "mogenius-external-secrets",
+		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
+		MoSharedPath:   "secret/mogenius-external-secrets",
+	}
+}
+
+type CreateSecretsStoreResponse struct {
+	Status string `json:"status"`
+}
+
+type ListSecretsStoresResponse struct {
+	StoresInCluster []SecretStoreListing `json:"storesincluster"`
+}
+type DeleteSecretsStoreRequest struct {
+	Name string `json:"name" validate:"required"`
+}
+
+func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
+	return DeleteSecretsStoreRequest{
+		Name: "mo-test-vault-secret-store",
+	}
+}
+
+type DeleteSecretsStoreResponse struct {
+	Status string `json:"status"`
+}
+
 var keplerHostAndPort string = ""
 
 var energyConsumptionCollectionInProgress bool = false

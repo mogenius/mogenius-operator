@@ -40,8 +40,12 @@ const (
 	HelmReleaseNameKepler               = "kepler"
 )
 
-var helmDataVersion = cache.New(2*time.Hour, 30*time.Minute)
+// this includes the yaml-templates folder into the binary
+//
+//go:embed yaml-templates
 var YamlTemplatesFolder embed.FS
+
+var helmDataVersion = cache.New(2*time.Hour, 30*time.Minute)
 
 func MountPath(namespaceName string, volumeName string, defaultReturnValue string) string {
 	if CONFIG.Kubernetes.RunInCluster {
