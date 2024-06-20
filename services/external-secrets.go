@@ -11,32 +11,42 @@ import (
 	"github.com/mogenius/punq/logger"
 )
 
-type ExternalSecretStoreProps struct {
-	CreateSecretsStoreRequest
-	Name           string
-	ServiceAccount string
+type ExternalSecretProps struct {
+	CreateExternalSecretRequest
 }
 
-func externalSecretStoreExample() *ExternalSecretStoreProps {
-	return NewExternalSecretStore(CreateSecretsStoreRequestExample())
+func externalExternalSecretExample() ExternalSecretProps {
+	return NewExternalSecret(CreateExternalSecretRequestExample())
 }
 
-// NewExternalSecretStore creates a new NewExternalSecretStore with default values.
-func NewExternalSecretStore(data CreateSecretsStoreRequest) *ExternalSecretStoreProps {
-	return &ExternalSecretStoreProps{
-		CreateSecretsStoreRequest: data,
-		Name:                      data.NamePrefix + "-vault-secret-store",
-		ServiceAccount:            "external-secrets-sa",
+// NewExternalSecret creates a new NewExternalSecret with default values.
+func NewExternalSecret(data CreateExternalSecretRequest) ExternalSecretProps {
+	return ExternalSecretProps{
+		CreateExternalSecretRequest: data,
 	}
 }
 
-func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsStoreResponse {
-	props := NewExternalSecretStore(data)
+type ExternalSecretListProps struct {
+	Project         string
+	SecretStoreName string
+	MoSharedPath    string
+}
+
+func CreateExternalSecretList(ExternalSecretListProps) (CreateExternalSecretResponse, error) {
+
+	return CreateExternalSecretResponse{
+		Status: "SUCCESS",
+	}, nil
+}
+
+func CreateExternalSecret(data CreateExternalSecretRequest) CreateSecretsStoreResponse {
+
+	props := NewExternalSecret(data)
 
 	mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
 
 	err := mokubernetes.ApplyResource(
-		renderClusterSecretStore(
+		renderClusterExternalSecret(
 			utils.InitExternalSecretsStoreYaml(),
 			*props,
 		),
@@ -55,7 +65,7 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 
 func ListExternalSecretsStores() ListSecretsStoresResponse {
 	// LIST
-	response, err := mokubernetes.ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
+	response, err := mokubernetes.ListResources("external-secrets.io", "v1beta1", "clusterExternalSecrets", "", true)
 	if err != nil {
 		logger.Log.Info("ListResources failed")
 	}
@@ -65,7 +75,7 @@ func ListExternalSecretsStores() ListSecretsStoresResponse {
 		fmt.Println(err)
 		return ListSecretsStoresResponse{}
 	}
-	stores, err := parseSecretStoresListing(string(jsonOutput))
+	stores, err := parseExternalSecretsListing(string(jsonOutput))
 	if err != nil {
 		fmt.Println(err)
 		return ListSecretsStoresResponse{}
@@ -78,7 +88,7 @@ func ListExternalSecretsStores() ListSecretsStoresResponse {
 
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
 
-	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", data.Name, "", true)
+	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clusterExternalSecrets", data.Name, "", true)
 	if err != nil {
 		return DeleteSecretsStoreResponse{
 			Status: "ERROR",
@@ -90,7 +100,7 @@ func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsSto
 	}
 }
 
-func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
+func renderClusterExternalSecret(yamlTemplateString string, props ExternalExternalSecretProps) string {
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.MoSharedPath, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl, -1)
@@ -100,13 +110,13 @@ func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretSto
 	return yamlTemplateString
 }
 
-type SecretStoreListing struct {
+type ExternalSecretListing struct {
 	Name    string `json:"name"`
 	Role    string `json:"role"`
 	Message string `json:"message"`
 }
 
-type SecretStoreListingSchema struct {
+type ExternalSecretListingSchema struct {
 	Items []struct {
 		Metadata struct {
 			Name string `json:"name"`
@@ -130,16 +140,16 @@ type SecretStoreListingSchema struct {
 	} `json:"items"`
 }
 
-func parseSecretStoresListing(jsonStr string) ([]SecretStoreListing, error) {
-	var secretStores SecretStoreListingSchema
-	err := json.Unmarshal([]byte(jsonStr), &secretStores)
+func parseExternalSecretsListing(jsonStr string) ([]ExternalSecretListing, error) {
+	var ExternalSecrets ExternalSecretListingSchema
+	err := json.Unmarshal([]byte(jsonStr), &ExternalSecrets)
 	if err != nil {
 		return nil, err
 	}
 
-	var stores []SecretStoreListing
-	for _, item := range secretStores.Items {
-		store := SecretStoreListing{
+	var stores []ExternalSecretListing
+	for _, item := range ExternalSecrets.Items {
+		store := ExternalSecretListing{
 			Name:    item.Metadata.Name,
 			Role:    item.Spec.Provider.Vault.Auth.Kubernetes.Role,
 			Message: item.Status.Conditions[0].Message,

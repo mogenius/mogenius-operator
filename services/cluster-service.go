@@ -738,6 +738,10 @@ type NfsStatusResponse struct {
 }
 
 type CreateSecretsStoreRequest struct {
+	// Secrets stores are bound to a projects,
+	// so that customers can decide which team controls which secrets
+	Project string
+	// customers might want to create multiple stores	and should have IDs to differentiate
 	NamePrefix     string `json:"namePrefix" validate:"required"`
 	Role           string `json:"role" validate:"required"`
 	VaultServerUrl string `json:"vaultServerUrl" validate:"required"`
@@ -771,6 +775,22 @@ func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
 }
 
 type DeleteSecretsStoreResponse struct {
+	Status string `json:"status"`
+}
+
+type CreateExternalSecretRequest struct {
+	Name      string `json:"name" validate:"required"`
+	Namespace string `json:"namespace" validate:"required"`
+}
+
+func CreateExternalSecretRequestExample() CreateExternalSecretRequest {
+	return CreateExternalSecretRequest{
+		Name:      "customer-app01",
+		Namespace: "customer-app-namespace",
+	}
+}
+
+type CreateExternalSecretResponse struct {
 	Status string `json:"status"`
 }
 
