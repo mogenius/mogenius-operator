@@ -781,6 +781,8 @@ type DeleteSecretsStoreResponse struct {
 type CreateExternalSecretRequest struct {
 	Name      string `json:"name" validate:"required"`
 	Namespace string `json:"namespace" validate:"required"`
+	//TODO might be needed?
+	// Project   string `json:"project" validate:"required"`
 }
 
 func CreateExternalSecretRequestExample() CreateExternalSecretRequest {

@@ -7,8 +7,10 @@ import (
 	"mogenius-k8s-manager/utils"
 
 	"strings"
+)
 
-	"github.com/mogenius/punq/logger"
+const (
+	SecretListSuffix = "vault-secret-list"
 )
 
 type ExternalSecretProps struct {
@@ -16,7 +18,9 @@ type ExternalSecretProps struct {
 }
 
 func externalExternalSecretExample() ExternalSecretProps {
-	return NewExternalSecret(CreateExternalSecretRequestExample())
+	es := NewExternalSecret(CreateExternalSecretRequestExample())
+	// es.Generated =
+	return es
 }
 
 // NewExternalSecret creates a new NewExternalSecret with default values.
@@ -27,87 +31,104 @@ func NewExternalSecret(data CreateExternalSecretRequest) ExternalSecretProps {
 }
 
 type ExternalSecretListProps struct {
+	NamePrefix      string
 	Project         string
 	SecretStoreName string
 	MoSharedPath    string
 }
 
-func CreateExternalSecretList(ExternalSecretListProps) (CreateExternalSecretResponse, error) {
-
-	return CreateExternalSecretResponse{
-		Status: "SUCCESS",
-	}, nil
-}
-
-func CreateExternalSecret(data CreateExternalSecretRequest) CreateSecretsStoreResponse {
-
-	props := NewExternalSecret(data)
-
-	mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
-
+func CreateExternalSecretList(props ExternalSecretListProps) CreateExternalSecretResponse {
 	err := mokubernetes.ApplyResource(
-		renderClusterExternalSecret(
-			utils.InitExternalSecretsStoreYaml(),
-			*props,
+		renderExternalSecretList(
+			utils.InitExternalSecretListYaml(),
+			props,
 		),
 		true,
 	)
 	if err != nil {
-		return CreateSecretsStoreResponse{
+		return CreateExternalSecretResponse{
 			Status: "ERROR",
 		}
 	} else {
-		return CreateSecretsStoreResponse{
+		return CreateExternalSecretResponse{
 			Status: "SUCCESS",
 		}
 	}
 }
 
-func ListExternalSecretsStores() ListSecretsStoresResponse {
-	// LIST
-	response, err := mokubernetes.ListResources("external-secrets.io", "v1beta1", "clusterExternalSecrets", "", true)
-	if err != nil {
-		logger.Log.Info("ListResources failed")
-	}
+// func CreateExternalSecret(data CreateExternalSecretRequest) CreateSecretsStoreResponse {
 
-	jsonOutput, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		fmt.Println(err)
-		return ListSecretsStoresResponse{}
-	}
-	stores, err := parseExternalSecretsListing(string(jsonOutput))
-	if err != nil {
-		fmt.Println(err)
-		return ListSecretsStoresResponse{}
-	}
+// 	props := NewExternalSecret(data)
 
-	return ListSecretsStoresResponse{
-		StoresInCluster: stores,
-	}
-}
+// 	mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
 
-func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
+// 	err := mokubernetes.ApplyResource(
+// 		renderClusterExternalSecret(
+// 			utils.InitExternalSecretsStoreYaml(),
+// 			*props,
+// 		),
+// 		true,
+// 	)
+// 	if err != nil {
+// 		return CreateSecretsStoreResponse{
+// 			Status: "ERROR",
+// 		}
+// 	} else {
+// 		return CreateSecretsStoreResponse{
+// 			Status: "SUCCESS",
+// 		}
+// 	}
+// }
 
-	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clusterExternalSecrets", data.Name, "", true)
-	if err != nil {
-		return DeleteSecretsStoreResponse{
-			Status: "ERROR",
-		}
-	} else {
-		return DeleteSecretsStoreResponse{
-			Status: "SUCCESS",
-		}
-	}
-}
+// func ListExternalSecretsStores() ListSecretsStoresResponse {
+// 	// LIST
+// 	response, err := mokubernetes.ListResources("external-secrets.io", "v1beta1", "clusterExternalSecrets", "", true)
+// 	if err != nil {
+// 		logger.Log.Info("ListResources failed")
+// 	}
 
-func renderClusterExternalSecret(yamlTemplateString string, props ExternalExternalSecretProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name, -1)
+// 	jsonOutput, err := json.MarshalIndent(response, "", "  ")
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return ListSecretsStoresResponse{}
+// 	}
+// 	stores, err := parseExternalSecretsListing(string(jsonOutput))
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return ListSecretsStoresResponse{}
+// 	}
+
+// 	return ListSecretsStoresResponse{
+// 		StoresInCluster: stores,
+// 	}
+// }
+
+// func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
+
+// 	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clusterExternalSecrets", data.Name, "", true)
+// 	if err != nil {
+// 		return DeleteSecretsStoreResponse{
+// 			Status: "ERROR",
+// 		}
+// 	} else {
+// 		return DeleteSecretsStoreResponse{
+// 			Status: "SUCCESS",
+// 		}
+// 	}
+// }
+
+func renderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", getSecretListName(props.NamePrefix, props.Project), -1)
+	// the list of all available secrets for a project is only ever read by the operator
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", utils.CONFIG.Kubernetes.OwnNamespace, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.MoSharedPath, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<ROLE>", props.Role, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount, -1)
 
 	return yamlTemplateString
+}
+
+func getSecretListName(customerPrefix string, project string) string {
+	return fmt.Sprintf("%s-%s-%s", customerPrefix, project, SecretListSuffix)
 }
 
 type ExternalSecretListing struct {

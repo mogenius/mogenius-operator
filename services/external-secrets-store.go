@@ -13,6 +13,7 @@ import (
 
 const (
 	ExternalSecretsSA = "mo-eso-serviceaccount"
+	SecretStoreSuffix = "-vault-secret-store"
 )
 
 type ExternalSecretStoreProps struct {
@@ -29,7 +30,7 @@ func externalSecretStoreExample() *ExternalSecretStoreProps {
 func NewExternalSecretStore(data CreateSecretsStoreRequest) *ExternalSecretStoreProps {
 	return &ExternalSecretStoreProps{
 		CreateSecretsStoreRequest: data,
-		Name:                      data.NamePrefix + "-vault-secret-store",
+		Name:                      data.NamePrefix + SecretStoreSuffix,
 		ServiceAccount:            ExternalSecretsSA,
 	}
 }
@@ -53,20 +54,13 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 	}
 	// create the external secrets which will fetch all available secrets from vault
 	// so that we can use them to offer them as UI options before binding them to a mogenius service
-	externalSecretList, err := CreateExternalSecretList(ExternalSecretListProps{
+	externalSecretList := CreateExternalSecretList(ExternalSecretListProps{
+		NamePrefix:      data.NamePrefix,
 		Project:         data.Project,
 		SecretStoreName: props.Name,
 		MoSharedPath:    data.MoSharedPath,
 	})
-	if err != nil {
-		return CreateSecretsStoreResponse{
-			Status: "ERROR",
-		}
-	} else {
-		return CreateSecretsStoreResponse{
-			Status: externalSecretList.Status,
-		}
-	}
+	return CreateSecretsStoreResponse(externalSecretList)
 }
 
 func ListExternalSecretsStores() ListSecretsStoresResponse {
