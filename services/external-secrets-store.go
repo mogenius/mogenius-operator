@@ -38,7 +38,7 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 	props := NewExternalSecretStore(data)
 
 	mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
-
+	// create the secret store which connects to the vault and is able to fetch secrets
 	err := mokubernetes.ApplyResource(
 		renderClusterSecretStore(
 			utils.InitExternalSecretsStoreYaml(),
@@ -50,9 +50,21 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 		return CreateSecretsStoreResponse{
 			Status: "ERROR",
 		}
+	}
+	// create the external secrets which will fetch all available secrets from vault
+	// so that we can use them to offer them as UI options before binding them to a mogenius service
+	externalSecretList, err := CreateExternalSecretList(ExternalSecretListProps{
+		Project:         data.Project,
+		SecretStoreName: props.Name,
+		MoSharedPath:    data.MoSharedPath,
+	})
+	if err != nil {
+		return CreateSecretsStoreResponse{
+			Status: "ERROR",
+		}
 	} else {
 		return CreateSecretsStoreResponse{
-			Status: "SUCCESS",
+			Status: externalSecretList.Status,
 		}
 	}
 }
