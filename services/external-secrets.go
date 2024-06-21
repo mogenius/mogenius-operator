@@ -15,6 +15,8 @@ const (
 
 type ExternalSecretProps struct {
 	CreateExternalSecretRequest
+	SecretStoreName string
+	MoSharedPath    string
 }
 
 func externalExternalSecretExample() ExternalSecretProps {
@@ -37,10 +39,10 @@ type ExternalSecretListProps struct {
 
 func externalSecretListExample() ExternalSecretListProps {
 	return ExternalSecretListProps{
-		NamePrefix:      "team-blue-scrts",
+		NamePrefix:      "team-blue-secrets",
 		Project:         "team-blue",
-		SecretStoreName: "team-blue-scrts" + SecretStoreSuffix,
-		MoSharedPath:    "mogenius/team-blue/scrts",
+		SecretStoreName: "team-blue-secrets" + SecretStoreSuffix,
+		MoSharedPath:    "mogenius-external-secrets",
 	}
 }
 
@@ -50,7 +52,7 @@ func CreateExternalSecretList(props ExternalSecretListProps) CreateExternalSecre
 			utils.InitExternalSecretListYaml(),
 			props,
 		),
-		true,
+		false,
 	)
 	if err != nil {
 		return CreateExternalSecretResponse{
@@ -128,6 +130,15 @@ func renderExternalSecretList(yamlTemplateString string, props ExternalSecretLis
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", getSecretListName(props.NamePrefix, props.Project), -1)
 	// the list of all available secrets for a project is only ever read by the operator
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", utils.CONFIG.Kubernetes.OwnNamespace, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.MoSharedPath, -1)
+
+	return yamlTemplateString
+}
+
+func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) string {
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", props.Name, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", props.Namespace, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.MoSharedPath, -1)
 

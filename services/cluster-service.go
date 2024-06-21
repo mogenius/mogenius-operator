@@ -740,7 +740,7 @@ type NfsStatusResponse struct {
 type CreateSecretsStoreRequest struct {
 	// Secrets stores are bound to a projects,
 	// so that customers can decide which team controls which secrets
-	Project string
+	Project string `json:"project" validate:"required"`
 	// customers might want to create multiple stores	and should have IDs to differentiate
 	NamePrefix     string `json:"namePrefix" validate:"required"`
 	Role           string `json:"role" validate:"required"`
@@ -750,10 +750,11 @@ type CreateSecretsStoreRequest struct {
 
 func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
 	return CreateSecretsStoreRequest{
+		Project:        "phoenix",
 		NamePrefix:     "mo-test",
 		Role:           "mogenius-external-secrets",
 		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		MoSharedPath:   "secret/mogenius-external-secrets",
+		MoSharedPath:   "mogenius-external-secrets",
 	}
 }
 

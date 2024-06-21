@@ -56,10 +56,10 @@
       "type": "go",
       "request": "launch",
       "mode": "test",
-      "program": "crds/crd-manager-applicationkits_test.go",
+      "program": "services/external-secrets_test.go",
       "args": [],
       "asRoot": false,
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
     },
     {
       "name": "system check",
