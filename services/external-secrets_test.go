@@ -9,6 +9,8 @@ import (
 )
 
 func TestSecretListRender(t *testing.T) {
+	utils.TestSetup()
+
 	yamlTemplate := utils.InitExternalSecretListYaml()
 	secretListProps := externalSecretListExample()
 
@@ -54,13 +56,13 @@ type YamlDataList struct {
 }
 
 func TestCreateExternalSecretList(t *testing.T) {
-	utils.InitConfigYaml(false, "", "dev")
-	testReq := externalSecretListExample()
-	testReq.NamePrefix = "mo-ex-secr-test-003"
-	response := CreateExternalSecretList(testReq)
+	utils.TestSetup()
 
+	testReq := externalSecretListExample()
+
+	response := CreateExternalSecretList(testReq)
 	if response.Status != "SUCCESS" {
-		t.Errorf("Error creating secret store: %s", response.Status)
+		t.Errorf("Error creating external secret list: %s", response.Status)
 	} else {
 		logger.Log.Info("Secret store created ✅")
 	}
