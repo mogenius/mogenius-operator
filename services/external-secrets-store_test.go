@@ -112,12 +112,12 @@ func TestSecretStoreList(t *testing.T) {
 func TestSecretStoreDelete(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
-	status := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
+	response := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
 		NamePrefix: NamePrefix,
 		Project:    Project,
 	})
-	if status.Status != "SUCCESS" {
-		t.Errorf("Error: Expected secret store %s to be deleted, but something went wrong.", getSecretStoreName(NamePrefix, Project))
+	if response.Status != "SUCCESS" {
+		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", getSecretStoreName(NamePrefix, Project), response.ErrorMessage)
 	} else {
 		logger.Log.Info("Secret store deletion confirmed ✅")
 	}

@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	ExternalSecretsSA = "mo-eso-serviceaccount"
-	SecretStoreSuffix = "vault-secret-store"
+	ExternalSecretsSA     = "mo-eso-serviceaccount"
+	SecretStoreSuffix     = "vault-secret-store"
+	StoreAnnotationPrefix = "used-by-mogenius/"
 )
 
 type ExternalSecretStoreProps struct {
@@ -38,11 +39,17 @@ func NewExternalSecretStore(data CreateSecretsStoreRequest) *ExternalSecretStore
 func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsStoreResponse {
 	props := NewExternalSecretStore(data)
 
-	err := mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace, nil) //TODO: add annotations
+	// create unique service account tag per project
+	annotations := make(map[string]string)
+	key := fmt.Sprintf("%s%s", StoreAnnotationPrefix, data.Project)
+	annotations[key] = fmt.Sprintf("Used to read secrets from vault path: %s", data.MoSharedPath)
+
+	err := mokubernetes.ApplyServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace, annotations)
 	if err != nil {
-		logger.Log.Info("CreateServiceAccount apply failed")
+		logger.Log.Info("ServiceAccount apply failed")
 		return CreateSecretsStoreResponse{
-			Status: "ERROR",
+			Status:       "ERROR",
+			ErrorMessage: err.Error(),
 		}
 	}
 
@@ -56,7 +63,8 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 	)
 	if err != nil {
 		return CreateSecretsStoreResponse{
-			Status: "ERROR",
+			Status:       "ERROR",
+			ErrorMessage: err.Error(),
 		}
 	}
 	// create the external secrets which will fetch all available secrets from vault
@@ -94,25 +102,68 @@ func ListExternalSecretsStores() ListSecretsStoresResponse {
 }
 
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
-	// TODO: delete the service account
-
 	// delete the external secrets list
 	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "externalsecrets", getSecretListName(data.NamePrefix, data.Project), utils.CONFIG.Kubernetes.OwnNamespace, false)
 	if err != nil {
 		return DeleteSecretsStoreResponse{
-			Status: "ERROR",
+			Status:       "ERROR",
+			ErrorMessage: err.Error(),
 		}
 	}
 	// delete the secret store
 	err = mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", getSecretStoreName(data.NamePrefix, data.Project), "", true)
 	if err != nil {
 		return DeleteSecretsStoreResponse{
-			Status: "ERROR",
+			Status:       "ERROR",
+			ErrorMessage: err.Error(),
+		}
+	}
+	// delete the service account
+	serviceAccount, err := mokubernetes.GetServiceAccount(getServiceAccountName(data.MoSharedPath), utils.CONFIG.Kubernetes.OwnNamespace)
+	if err != nil {
+		return DeleteSecretsStoreResponse{
+			Status:       "ERROR",
+			ErrorMessage: err.Error(),
 		}
 	} else {
-		return DeleteSecretsStoreResponse{
-			Status: "SUCCESS",
+		logger.Log.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
+	}
+	if serviceAccount.Annotations != nil {
+		// remove current claim of using this service account
+		for key, _ := range serviceAccount.Annotations {
+			if key == fmt.Sprintf("%s%s", StoreAnnotationPrefix, data.Project) {
+				delete(serviceAccount.Annotations, key)
+			}
 		}
+		// check if there are any other claims
+		canBeDeleted := true
+		for key, _ := range serviceAccount.Annotations {
+			if strings.HasPrefix(key, StoreAnnotationPrefix) {
+				canBeDeleted = false
+			}
+		}
+		if canBeDeleted {
+			// no annotations left that indicate other usage, delete the sa
+			err = mokubernetes.DeleteServiceAccount(serviceAccount.Name, serviceAccount.Namespace)
+			if err != nil {
+				return DeleteSecretsStoreResponse{
+					Status:       "ERROR",
+					ErrorMessage: err.Error(),
+				}
+			}
+		} else {
+			// there are still claims, don't delete the service account
+			err = mokubernetes.ApplyServiceAccount(serviceAccount.Name, serviceAccount.Namespace, serviceAccount.Annotations)
+			if err != nil {
+				return DeleteSecretsStoreResponse{
+					Status:       "ERROR",
+					ErrorMessage: err.Error(),
+				}
+			}
+		}
+	}
+	return DeleteSecretsStoreResponse{
+		Status: "SUCCESS",
 	}
 }
 
