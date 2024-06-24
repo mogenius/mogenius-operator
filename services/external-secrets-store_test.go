@@ -65,7 +65,10 @@ type YamlData struct {
 	} `yaml:"metadata"`
 }
 
-const PrefixName = "team-blue-secrets"
+const (
+	NamePrefix = "team-blue-secrets"
+	Project    = "blue-backend-database"
+)
 
 func TestSecretStoreCreate(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
@@ -73,8 +76,8 @@ func TestSecretStoreCreate(t *testing.T) {
 	testReq := CreateSecretsStoreRequestExample()
 
 	// assume composed name: team-blue-secrets-vault-secret-store
-	testReq.NamePrefix = PrefixName
-	testReq.Project = "blue-backend-database"
+	testReq.NamePrefix = NamePrefix
+	testReq.Project = Project
 
 	response := CreateExternalSecretsStore(testReq)
 	if response.Status != "SUCCESS" {
@@ -93,13 +96,13 @@ func TestSecretStoreList(t *testing.T) {
 	} else {
 		found := false
 		for _, store := range response.StoresInCluster {
-			if strings.HasPrefix(store.Name, PrefixName) {
+			if strings.HasPrefix(store.Name, NamePrefix) {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Error: Expected secret store starting with %s but none was found", PrefixName)
+			t.Errorf("Error: Expected secret store starting with %s but none was found", NamePrefix)
 		} else {
 			logger.Log.Info("Secret stores listed ✅")
 		}
@@ -108,10 +111,11 @@ func TestSecretStoreList(t *testing.T) {
 
 func TestSecretStoreDelete(t *testing.T) {
 	status := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
-		Name: PrefixName + SecretStoreSuffix,
+		NamePrefix: NamePrefix,
+		Project:    Project,
 	})
 	if status.Status != "SUCCESS" {
-		t.Errorf("Error: Expected secret store starting with %s but none was found", PrefixName)
+		t.Errorf("Error: Expected secret store starting with %s but none was found", NamePrefix)
 	} else {
 		logger.Log.Info("Secret store deletion confirmed ✅")
 	}

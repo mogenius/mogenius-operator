@@ -66,7 +66,6 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 		Project:         props.Project,
 		SecretStoreName: props.Name,
 		MoSharedPath:    props.MoSharedPath,
-		// MoSharedPath:    getMoSharedPath(props.MoSharedPath, props.Project),
 	})
 	return CreateSecretsStoreResponse(externalSecretList)
 }
@@ -95,8 +94,15 @@ func ListExternalSecretsStores() ListSecretsStoresResponse {
 }
 
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
-
-	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", data.Name, "", true)
+	// delerte the external secrets list
+	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "externalsecrets", getSecretListName(data.NamePrefix, data.Project), utils.CONFIG.Kubernetes.OwnNamespace, false)
+	if err != nil {
+		return DeleteSecretsStoreResponse{
+			Status: "ERROR",
+		}
+	}
+	// delete the secret store
+	err = mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", data.Name, "", true)
 	if err != nil {
 		return DeleteSecretsStoreResponse{
 			Status: "ERROR",

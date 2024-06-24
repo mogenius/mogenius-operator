@@ -56,7 +56,7 @@ type YamlDataList struct {
 }
 
 func TestCreateExternalSecretList(t *testing.T) {
-	utils.TestSetup()
+	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	testReq := externalSecretListExample()
 

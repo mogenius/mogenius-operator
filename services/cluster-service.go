@@ -766,12 +766,14 @@ type ListSecretsStoresResponse struct {
 	StoresInCluster []SecretStoreListing `json:"storesincluster"`
 }
 type DeleteSecretsStoreRequest struct {
-	Name string `json:"name" validate:"required"`
+	NamePrefix string `json:"name-prefix" validate:"required"`
+	Project    string `json:"project" validate:"required"`
 }
 
 func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
 	return DeleteSecretsStoreRequest{
-		Name: "mo-test-vault-secret-store",
+		NamePrefix: "mo-test",
+		Project:    "phoenix",
 	}
 }
 
