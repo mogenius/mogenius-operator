@@ -9,6 +9,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	NamePrefix   = "customer-blue"
+	Project      = "backend-project"
+	MoSharedPath = "mogenius-external-secrets"
+)
+
 func TestSecretStoreRender(t *testing.T) {
 
 	yamlTemplate := `apiVersion: external-secrets.io/v1beta1
@@ -65,11 +71,6 @@ type YamlData struct {
 	} `yaml:"metadata"`
 }
 
-const (
-	NamePrefix = "customer-blue"
-	Project    = "backend-project"
-)
-
 func TestSecretStoreCreate(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
@@ -113,8 +114,9 @@ func TestSecretStoreDelete(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	response := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
-		NamePrefix: NamePrefix,
-		Project:    Project,
+		NamePrefix:   NamePrefix,
+		Project:      Project,
+		MoSharedPath: MoSharedPath,
 	})
 	if response.Status != "SUCCESS" {
 		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", getSecretStoreName(NamePrefix, Project), response.ErrorMessage)
