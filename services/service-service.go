@@ -25,6 +25,7 @@ import (
 	scheduling "k8s.io/api/scheduling/v1"
 	storage "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/client-go/rest"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -390,11 +391,28 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 }
 
 func CreateK8sHpa(data K8sCreateHpaRequest) punqUtils.K8sWorkloadResult {
+	deployment, err := punq.GetK8sDeployment(data.Namespace, data.Name, nil)
+	if err != nil || deployment == nil {
+		result := &punqUtils.K8sWorkloadResult{
+			Result: nil,
+			Error:  fmt.Errorf("Cannot create HPA, Deployment not found"),
+		}
+		return *result
+	}
+
 	meta := &metav1.ObjectMeta{
 		Name:      data.Name + "-hpa",
 		Namespace: data.Namespace,
 		Labels: map[string]string{
 			"app": data.Name,
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+				Name:       data.Name,
+				UID:        deployment.UID,
+			},
 		},
 	}
 
