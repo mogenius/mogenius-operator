@@ -133,13 +133,13 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateContainerSecret (create) ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerSecret (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
 					cmd.Success(job, "Created Container secret")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerSecret ERROR: %s", err.Error()))
 			}
 		}
 	}(wg)
@@ -185,13 +185,13 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateContainerSecret (create) ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerSecretForService (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
 					cmd.Success(job, "Created Container secret for service")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("CreateContainerSecret ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerSecretForService ERROR: %s", err.Error()))
 			}
 		}
 	}(wg)
