@@ -9,7 +9,7 @@ import (
 )
 
 func TestSecretListRender(t *testing.T) {
-	utils.TestSetup()
+	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	yamlTemplate := utils.InitExternalSecretListYaml()
 	secretListProps := externalSecretListExample()
