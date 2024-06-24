@@ -56,7 +56,8 @@ func CreateExternalSecretList(props ExternalSecretListProps) CreateExternalSecre
 	)
 	if err != nil {
 		return CreateExternalSecretResponse{
-			Status: "ERROR",
+			Status:       "ERROR",
+			ErrorMessage: err.Error(),
 		}
 	} else {
 		return CreateExternalSecretResponse{

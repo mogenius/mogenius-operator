@@ -759,15 +759,17 @@ func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
 }
 
 type CreateSecretsStoreResponse struct {
-	Status string `json:"status"`
+	Status       string `json:"status"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 type ListSecretsStoresResponse struct {
 	StoresInCluster []SecretStoreListing `json:"storesincluster"`
 }
 type DeleteSecretsStoreRequest struct {
-	NamePrefix string `json:"name-prefix" validate:"required"`
-	Project    string `json:"project" validate:"required"`
+	NamePrefix   string `json:"namePrefix" validate:"required"`
+	Project      string `json:"project" validate:"required"`
+	MoSharedPath string `json:"moSharedPath" validate:"required"`
 }
 
 func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
@@ -778,7 +780,8 @@ func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
 }
 
 type DeleteSecretsStoreResponse struct {
-	Status string `json:"status"`
+	Status       string `json:"status"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 type CreateExternalSecretRequest struct {
@@ -796,7 +799,8 @@ func CreateExternalSecretRequestExample() CreateExternalSecretRequest {
 }
 
 type CreateExternalSecretResponse struct {
-	Status string `json:"status"`
+	Status       string `json:"status"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 var keplerHostAndPort string = ""
