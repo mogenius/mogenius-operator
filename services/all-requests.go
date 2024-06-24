@@ -2111,14 +2111,23 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return PopeyeConsole()
 	case structs.PAT_LOG_LIST_ALL:
 		return db.ListLogFromDb()
-		// TODO: Add the case for the new pattern
-		// case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
-		// 	data := CreateSecretsStoreRequest{}
-		// 	structs.MarshalUnmarshal(&datagram, &data)
-		// 	if err := utils.ValidateJSON(data); err != nil {
-		// 		return err
-		// 	}
-		// 	return CreateExternalSecretsStore(data)
+
+	case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
+		data := CreateSecretsStoreRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return CreateExternalSecretsStore(data)
+	case structs.PAT_EXTERNAL_SECRET_STORE_LIST:
+		return ListExternalSecretsStores()
+	case structs.PAT_EXTERNAL_SECRET_STORE_DELETE:
+		data := DeleteSecretsStoreRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return DeleteExternalSecretsStore(data)
 	case structs.PAT_CREATE_HORIZONTAL_POD_AUTOSCALER:
 		data := K8sCreateHpaRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2128,7 +2137,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 
 		return CreateK8sHpa(data)
 	}
-
 	datagram.Err = "Pattern not found"
 	return datagram
 }

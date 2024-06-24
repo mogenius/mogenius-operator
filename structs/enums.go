@@ -405,6 +405,8 @@ const (
 	PAT_FILES_UPLOAD string = "files/upload"
 
 	PAT_EXTERNAL_SECRET_STORE_CREATE string = "external-secret-store/create"
+	PAT_EXTERNAL_SECRET_STORE_LIST   string = "external-secret-store/list"
+	PAT_EXTERNAL_SECRET_STORE_DELETE string = "external-secret-store/delete"
 )
 
 var BINARY_REQUEST_UPLOAD = []string{
@@ -784,6 +786,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_LOG_LIST_ALL,
 
 	PAT_EXTERNAL_SECRET_STORE_CREATE,
+	PAT_EXTERNAL_SECRET_STORE_LIST,
+	PAT_EXTERNAL_SECRET_STORE_DELETE,
 }
 
 var SUPPRESSED_OUTPUT_PATTERN = []string{
