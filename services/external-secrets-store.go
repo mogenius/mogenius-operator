@@ -13,7 +13,7 @@ import (
 
 const (
 	ExternalSecretsSA = "mo-eso-serviceaccount"
-	SecretStoreSuffix = "-vault-secret-store"
+	SecretStoreSuffix = "vault-secret-store"
 )
 
 type ExternalSecretStoreProps struct {
@@ -30,7 +30,7 @@ func externalSecretStoreExample() *ExternalSecretStoreProps {
 func NewExternalSecretStore(data CreateSecretsStoreRequest) *ExternalSecretStoreProps {
 	return &ExternalSecretStoreProps{
 		CreateSecretsStoreRequest: data,
-		Name:                      data.NamePrefix + SecretStoreSuffix,
+		Name:                      getSecretStoreName(data.NamePrefix, data.Project),
 		ServiceAccount:            ExternalSecretsSA,
 	}
 }
@@ -102,7 +102,7 @@ func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsSto
 		}
 	}
 	// delete the secret store
-	err = mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", data.Name, "", true)
+	err = mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", getSecretStoreName(data.NamePrefix, data.Project), "", true)
 	if err != nil {
 		return DeleteSecretsStoreResponse{
 			Status: "ERROR",
@@ -127,6 +127,10 @@ func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretSto
 
 func getMoSharedPath(moSharedPath string, project string) string {
 	return fmt.Sprintf("%s/%s", moSharedPath, project)
+}
+
+func getSecretStoreName(namePrefix string, project string) string {
+	return fmt.Sprintf("%s-%s-%s", namePrefix, project, SecretStoreSuffix)
 }
 
 type SecretStoreListing struct {

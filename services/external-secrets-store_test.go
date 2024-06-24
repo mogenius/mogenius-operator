@@ -92,7 +92,7 @@ func TestSecretStoreList(t *testing.T) {
 	response := ListExternalSecretsStores()
 
 	if len(response.StoresInCluster) == 0 {
-		t.Errorf("Error listing secret stores: %s", "No secret stores found")
+		t.Errorf("Error listing secret stores: No secret stores found")
 	} else {
 		found := false
 		for _, store := range response.StoresInCluster {
@@ -102,7 +102,7 @@ func TestSecretStoreList(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Errorf("Error: Expected secret store starting with %s but none was found", NamePrefix)
+			t.Errorf("Error: Expected to find secret store %s but none was found", getSecretStoreName(NamePrefix, Project))
 		} else {
 			logger.Log.Info("Secret stores listed ✅")
 		}
@@ -110,12 +110,14 @@ func TestSecretStoreList(t *testing.T) {
 }
 
 func TestSecretStoreDelete(t *testing.T) {
+	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
+
 	status := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
 		NamePrefix: NamePrefix,
 		Project:    Project,
 	})
 	if status.Status != "SUCCESS" {
-		t.Errorf("Error: Expected secret store starting with %s but none was found", NamePrefix)
+		t.Errorf("Error: Expected secret store %s to be deleted, but something went wrong.", getSecretStoreName(NamePrefix, Project))
 	} else {
 		logger.Log.Info("Secret store deletion confirmed ✅")
 	}
