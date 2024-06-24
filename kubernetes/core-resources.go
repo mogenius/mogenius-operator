@@ -34,30 +34,37 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 
 	_, err := client.Create(context.TODO(), serviceAccount, MoCreateOptions())
 	if err == nil {
-		fmt.Println("ServiceAccount created successfully")
+		logger.Log.Info("ServiceAccount created successfully ✅")
 	} else {
 		// Check if already exists
-		res, err := GetServiceAccount(serviceAccountName, namespace)
+		serviceAccount, err := GetServiceAccount(serviceAccountName, namespace)
 		if err != nil {
 			return err
 		} else {
-			logger.Log.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", res.GetNamespace(), res.GetName()))
+			logger.Log.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
 		}
-		if res.Annotations == nil {
-			res.Annotations = make(map[string]string)
+		if serviceAccount.Annotations == nil {
+			serviceAccount.Annotations = make(map[string]string)
 		}
 		// add/overwrite new annotations to existing
 		for key, value := range annotations {
-			res.Annotations[key] = value
+			serviceAccount.Annotations[key] = value
 		}
 
 		// Try update if already exists
-		_, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
-		fmt.Println("ServiceAccount updated successfully")
+		return UpdateServiceAccount(serviceAccount)
 	}
+	return nil
+}
+
+func UpdateServiceAccount(serviceAccount *core.ServiceAccount) error {
+	client := getCoreClient().ServiceAccounts(serviceAccount.GetNamespace())
+
+	_, err := client.Update(context.TODO(), serviceAccount, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+	logger.Log.Info("ServiceAccount updated successfully ✅")
 	return nil
 }
 
@@ -72,5 +79,6 @@ func DeleteServiceAccount(serviceAccountName string, namespace string) error {
 	if err != nil {
 		return err
 	}
+	logger.Log.Info("ServiceAccount deleted successfully ✅")
 	return nil
 }

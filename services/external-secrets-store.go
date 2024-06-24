@@ -118,26 +118,42 @@ func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsSto
 			ErrorMessage: err.Error(),
 		}
 	}
-	// delete the service account
-	serviceAccount, err := mokubernetes.GetServiceAccount(getServiceAccountName(data.MoSharedPath), utils.CONFIG.Kubernetes.OwnNamespace)
+	// delete the service account if it has no annotations from another SecretStore
+	err = deleteUnusedServiceAccount(data)
 	if err != nil {
 		return DeleteSecretsStoreResponse{
 			Status:       "ERROR",
 			ErrorMessage: err.Error(),
 		}
+	}
+	return DeleteSecretsStoreResponse{
+		Status: "SUCCESS",
+	}
+}
+
+func deleteUnusedServiceAccount(data DeleteSecretsStoreRequest) error {
+	serviceAccount, err := mokubernetes.GetServiceAccount(getServiceAccountName(data.MoSharedPath), utils.CONFIG.Kubernetes.OwnNamespace)
+	if err != nil {
+		return err
 	} else {
 		logger.Log.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
 	}
 	if serviceAccount.Annotations != nil {
 		// remove current claim of using this service account
-		for key, _ := range serviceAccount.Annotations {
-			if key == fmt.Sprintf("%s%s", StoreAnnotationPrefix, data.Project) {
-				delete(serviceAccount.Annotations, key)
+		removeKey := ""
+		for key := range serviceAccount.Annotations {
+			myKey := fmt.Sprintf("%s%s", StoreAnnotationPrefix, data.Project)
+			if key == myKey {
+				removeKey = key
 			}
 		}
+		if removeKey != "" {
+			delete(serviceAccount.Annotations, removeKey)
+		}
+
 		// check if there are any other claims
 		canBeDeleted := true
-		for key, _ := range serviceAccount.Annotations {
+		for key := range serviceAccount.Annotations {
 			if strings.HasPrefix(key, StoreAnnotationPrefix) {
 				canBeDeleted = false
 			}
@@ -146,25 +162,17 @@ func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsSto
 			// no annotations left that indicate other usage, delete the sa
 			err = mokubernetes.DeleteServiceAccount(serviceAccount.Name, serviceAccount.Namespace)
 			if err != nil {
-				return DeleteSecretsStoreResponse{
-					Status:       "ERROR",
-					ErrorMessage: err.Error(),
-				}
+				return err
 			}
 		} else {
 			// there are still claims, don't delete the service account
-			err = mokubernetes.ApplyServiceAccount(serviceAccount.Name, serviceAccount.Namespace, serviceAccount.Annotations)
+			err = mokubernetes.UpdateServiceAccount(serviceAccount)
 			if err != nil {
-				return DeleteSecretsStoreResponse{
-					Status:       "ERROR",
-					ErrorMessage: err.Error(),
-				}
+				return err
 			}
 		}
 	}
-	return DeleteSecretsStoreResponse{
-		Status: "SUCCESS",
-	}
+	return nil
 }
 
 func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
