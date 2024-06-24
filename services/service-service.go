@@ -24,6 +24,7 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	scheduling "k8s.io/api/scheduling/v1"
 	storage "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -388,6 +389,23 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 	}(wg)
 }
 
+func CreateK8sHpa(data K8sCreateHpaRequest) punqUtils.K8sWorkloadResult {
+	meta := &metav1.ObjectMeta{
+		Name:      data.Name + "-hpa",
+		Namespace: data.Namespace,
+		Labels: map[string]string{
+			"app": data.Name,
+		},
+	}
+
+	hpa := &v2.HorizontalPodAutoscaler{
+		ObjectMeta: *meta,
+		Spec:       data.Data.Spec,
+	}
+
+	return punq.CreateK8sHpa(*hpa, nil)
+}
+
 type ServiceDeleteRequest struct {
 	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
@@ -666,6 +684,12 @@ func K8sUpdateHPARequestExample() K8sUpdateHPARequest {
 	return K8sUpdateHPARequest{
 		Data: nil,
 	}
+}
+
+type K8sCreateHpaRequest struct {
+	Name      string                      `json:"name" validate:"required"`
+	Namespace string                      `json:"namespace"`
+	Data      *v2.HorizontalPodAutoscaler `json:"data" validate:"required"`
 }
 
 type K8sUpdateCertificateRequest struct {
