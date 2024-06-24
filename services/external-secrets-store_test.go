@@ -66,8 +66,8 @@ type YamlData struct {
 }
 
 const (
-	NamePrefix = "team-blue-secrets"
-	Project    = "blue-backend-database"
+	NamePrefix = "customer-blue"
+	Project    = "backend-project"
 )
 
 func TestSecretStoreCreate(t *testing.T) {

@@ -31,14 +31,14 @@ func NewExternalSecretStore(data CreateSecretsStoreRequest) *ExternalSecretStore
 	return &ExternalSecretStoreProps{
 		CreateSecretsStoreRequest: data,
 		Name:                      getSecretStoreName(data.NamePrefix, data.Project),
-		ServiceAccount:            ExternalSecretsSA,
+		ServiceAccount:            getServiceAccountName(data.MoSharedPath),
 	}
 }
 
 func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsStoreResponse {
 	props := NewExternalSecretStore(data)
 
-	err := mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
+	err := mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace, nil) //TODO: add annotations
 	if err != nil {
 		logger.Log.Info("CreateServiceAccount apply failed")
 		return CreateSecretsStoreResponse{
@@ -94,7 +94,9 @@ func ListExternalSecretsStores() ListSecretsStoresResponse {
 }
 
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
-	// delerte the external secrets list
+	// TODO: delete the service account
+
+	// delete the external secrets list
 	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "externalsecrets", getSecretListName(data.NamePrefix, data.Project), utils.CONFIG.Kubernetes.OwnNamespace, false)
 	if err != nil {
 		return DeleteSecretsStoreResponse{
@@ -123,6 +125,10 @@ func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretSto
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount, -1)
 
 	return yamlTemplateString
+}
+
+func getServiceAccountName(moSharedPath string) string {
+	return fmt.Sprintf("%s-%s", ExternalSecretsSA, moSharedPath)
 }
 
 func getMoSharedPath(moSharedPath string, project string) string {
