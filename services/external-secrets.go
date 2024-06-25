@@ -16,7 +16,7 @@ const (
 type ExternalSecretProps struct {
 	CreateExternalSecretRequest
 	SecretStoreName string
-	MoSharedPath    string
+	secretPath      string
 }
 
 func externalExternalSecretExample() ExternalSecretProps {
@@ -46,10 +46,36 @@ func externalSecretListExample() ExternalSecretListProps {
 	}
 }
 
-func CreateExternalSecretList(props ExternalSecretListProps) CreateExternalSecretResponse {
-	err := mokubernetes.ApplyResource(
+func CreateExternalSecretList(props ExternalSecretListProps) error {
+	return mokubernetes.ApplyResource(
 		renderExternalSecretList(
 			utils.InitExternalSecretListYaml(),
+			props,
+		),
+		false,
+	)
+}
+
+func CreateExternalSecret(data CreateExternalSecretRequest) CreateExternalSecretResponse {
+	responsibleSecStore := getSecretStoreName(data.SecretStoreNamePrefix, data.Project)
+
+	secretPath, err := ReadSecretPathFromSecretStore(responsibleSecStore)
+	if err != nil {
+		return CreateExternalSecretResponse{
+			Status:       "ERROR",
+			ErrorMessage: fmt.Sprintf("Reading secret path from Secret Store failed. Err: %s", err.Error()),
+		}
+	}
+
+	props := ExternalSecretProps{
+		CreateExternalSecretRequest: data,
+		SecretStoreName:             responsibleSecStore,
+		secretPath:                  secretPath,
+	}
+
+	err = mokubernetes.ApplyResource(
+		renderExternalSecret(
+			utils.InitExternalSecretYaml(),
 			props,
 		),
 		false,
@@ -57,7 +83,7 @@ func CreateExternalSecretList(props ExternalSecretListProps) CreateExternalSecre
 	if err != nil {
 		return CreateExternalSecretResponse{
 			Status:       "ERROR",
-			ErrorMessage: err.Error(),
+			ErrorMessage: fmt.Sprintf("Creating external secret failed. Err: %s", err.Error()),
 		}
 	} else {
 		return CreateExternalSecretResponse{
@@ -66,66 +92,20 @@ func CreateExternalSecretList(props ExternalSecretListProps) CreateExternalSecre
 	}
 }
 
-// func CreateExternalSecret(data CreateExternalSecretRequest) CreateSecretsStoreResponse {
+func DeleteExternalSecretList(namePrefix string, project string) error {
+	return DeleteExternalSecret(getSecretListName(namePrefix, project))
+}
 
-// 	props := NewExternalSecret(data)
-
-// 	mokubernetes.CreateServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace)
-
-// 	err := mokubernetes.ApplyResource(
-// 		renderClusterExternalSecret(
-// 			utils.InitExternalSecretsStoreYaml(),
-// 			*props,
-// 		),
-// 		true,
-// 	)
-// 	if err != nil {
-// 		return CreateSecretsStoreResponse{
-// 			Status: "ERROR",
-// 		}
-// 	} else {
-// 		return CreateSecretsStoreResponse{
-// 			Status: "SUCCESS",
-// 		}
-// 	}
-// }
-
-// func ListExternalSecretsStores() ListSecretsStoresResponse {
-// 	// LIST
-// 	response, err := mokubernetes.ListResources("external-secrets.io", "v1beta1", "clusterExternalSecrets", "", true)
-// 	if err != nil {
-// 		logger.Log.Info("ListResources failed")
-// 	}
-
-// 	jsonOutput, err := json.MarshalIndent(response, "", "  ")
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return ListSecretsStoresResponse{}
-// 	}
-// 	stores, err := parseExternalSecretsListing(string(jsonOutput))
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return ListSecretsStoresResponse{}
-// 	}
-
-// 	return ListSecretsStoresResponse{
-// 		StoresInCluster: stores,
-// 	}
-// }
-
-// func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
-
-// 	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clusterExternalSecrets", data.Name, "", true)
-// 	if err != nil {
-// 		return DeleteSecretsStoreResponse{
-// 			Status: "ERROR",
-// 		}
-// 	} else {
-// 		return DeleteSecretsStoreResponse{
-// 			Status: "SUCCESS",
-// 		}
-// 	}
-// }
+func DeleteExternalSecret(name string) error {
+	return mokubernetes.DeleteResource(
+		"external-secrets.io",
+		"v1beta1",
+		"externalsecrets",
+		name,
+		utils.CONFIG.Kubernetes.OwnNamespace,
+		false,
+	)
+}
 
 func renderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", getSecretListName(props.NamePrefix, props.Project), -1)
@@ -141,7 +121,7 @@ func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) 
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", props.Name, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", props.Namespace, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.MoSharedPath, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.secretPath, -1)
 
 	return yamlTemplateString
 }

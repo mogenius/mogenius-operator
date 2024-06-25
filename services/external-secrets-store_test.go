@@ -36,7 +36,7 @@ func TestSecretStoreRender(t *testing.T) {
 	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, *secretStore)
 
 	// check if the values are replaced
-	var data YamlData
+	var data SecretStoreSchema
 	err := yaml.Unmarshal([]byte(yamlDataUpdated), &data)
 	if err != nil {
 		t.Fatalf("Error parsing YAML: %v", err)
@@ -47,14 +47,6 @@ func TestSecretStoreRender(t *testing.T) {
 	} else {
 		logger.Log.Info("MoSharedPath updated ✅")
 	}
-}
-
-type YamlData struct {
-	Metadata struct {
-		Annotations struct {
-			SharedPath string `yaml:"mogenius-external-secrets/shared-path"`
-		} `yaml:"annotations"`
-	} `yaml:"metadata"`
 }
 
 func TestSecretStoreCreate(t *testing.T) {

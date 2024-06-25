@@ -60,9 +60,9 @@ func TestCreateExternalSecretList(t *testing.T) {
 
 	testReq := externalSecretListExample()
 
-	response := CreateExternalSecretList(testReq)
-	if response.Status != "SUCCESS" {
-		t.Errorf("Error creating external secret list: %s", response.Status)
+	err := CreateExternalSecretList(testReq)
+	if err != nil {
+		t.Errorf("Error creating external secret list. Err: %s", err.Error())
 	} else {
 		logger.Log.Info("Secret store created ✅")
 	}

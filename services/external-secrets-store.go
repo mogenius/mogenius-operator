@@ -67,19 +67,53 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 			ErrorMessage: err.Error(),
 		}
 	}
-	// create the external secrets which will fetch all available secrets from vault
+	// create the external secret which will fetch all available secrets from vault
 	// so that we can use them to offer them as UI options before binding them to a mogenius service
-	externalSecretList := CreateExternalSecretList(ExternalSecretListProps{
+	err = CreateExternalSecretList(ExternalSecretListProps{
 		NamePrefix:      props.NamePrefix,
 		Project:         props.Project,
 		SecretStoreName: props.Name,
 		MoSharedPath:    props.MoSharedPath,
 	})
-	return CreateSecretsStoreResponse(externalSecretList)
+	if err != nil {
+		return CreateSecretsStoreResponse{
+			Status:       "ERROR",
+			ErrorMessage: err.Error(),
+		}
+	}
+	return CreateSecretsStoreResponse{
+		Status: "SUCCESS",
+	}
+}
+
+func GetExternalSecretsStore(name string) (SecretStoreSchema, error) {
+	response, err := mokubernetes.GetResource("external-secrets.io", "v1beta1", "clustersecretstores", name, "", true)
+	if err != nil {
+		logger.Log.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
+	} else {
+		logger.Log.Info("GetResource failed for SecretStore: " + name)
+	}
+	jsonOutput, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		return SecretStoreSchema{}, err
+	}
+	secretStore := SecretStoreSchema{}
+	err = json.Unmarshal([]byte(string(jsonOutput)), &secretStore)
+	if err != nil {
+		return SecretStoreSchema{}, err
+	}
+	return secretStore, err
+}
+
+func ReadSecretPathFromSecretStore(name string) (string, error) {
+	secretStore, err := GetExternalSecretsStore(name)
+	if err != nil {
+		return "", err
+	}
+	return secretStore.Metadata.Annotations.SharedPath, nil
 }
 
 func ListExternalSecretsStores() ListSecretsStoresResponse {
-	// LIST
 	response, err := mokubernetes.ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
 		logger.Log.Info("ListResources failed")
@@ -101,9 +135,15 @@ func ListExternalSecretsStores() ListSecretsStoresResponse {
 	}
 }
 
+func ListAvailableExternalSecrets() ListSecretsResponse {
+	// LIST
+	//TODO implement
+	return ListSecretsResponse{}
+}
+
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
 	// delete the external secrets list
-	err := mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "externalsecrets", getSecretListName(data.NamePrefix, data.Project), utils.CONFIG.Kubernetes.OwnNamespace, false)
+	err := DeleteExternalSecretList(data.NamePrefix, data.Project)
 	if err != nil {
 		return DeleteSecretsStoreResponse{
 			Status:       "ERROR",
@@ -204,6 +244,10 @@ type SecretStoreListing struct {
 	Message string `json:"message"`
 }
 
+type SecretListing struct {
+	SecretKey string `json:"secretKey"`
+}
+
 type SecretStoreListingSchema struct {
 	Items []struct {
 		Metadata struct {
@@ -250,4 +294,12 @@ func parseSecretStoresListing(jsonStr string) ([]SecretStoreListing, error) {
 		stores = append(stores, store)
 	}
 	return stores, nil
+}
+
+type SecretStoreSchema struct {
+	Metadata struct {
+		Annotations struct {
+			SharedPath string `yaml:"mogenius-external-secrets/shared-path"`
+		} `yaml:"annotations"`
+	} `yaml:"metadata"`
 }
