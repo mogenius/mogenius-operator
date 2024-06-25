@@ -766,6 +766,10 @@ type CreateSecretsStoreResponse struct {
 type ListSecretsStoresResponse struct {
 	StoresInCluster []SecretStoreListing `json:"storesincluster"`
 }
+type ListSecretsRequest struct {
+	NamePrefix string `json:"namePrefix" validate:"required"`
+	Project    string `json:"project" validate:"required"`
+}
 type ListSecretsResponse struct {
 	SecretsInProject []SecretListing `json:"secretsinproject"`
 }

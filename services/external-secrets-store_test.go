@@ -87,6 +87,22 @@ func TestSecretStoreList(t *testing.T) {
 		}
 	}
 }
+func TestListAvailSecrets(t *testing.T) {
+	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
+
+	//TODO: create a secret list first !
+
+	response := ListAvailableExternalSecrets(ListSecretsRequest{
+		NamePrefix: NamePrefix,
+		Project:    Project,
+	})
+
+	if len(response.SecretsInProject) == 0 {
+		t.Errorf("Error listing available secrets: No secrets found")
+	} else {
+		logger.Log.Info(fmt.Sprintf("Available secrets list ✅: %v", response.SecretsInProject))
+	}
+}
 
 func TestSecretStoreDelete(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"

@@ -135,10 +135,34 @@ func ListExternalSecretsStores() ListSecretsStoresResponse {
 	}
 }
 
-func ListAvailableExternalSecrets() ListSecretsResponse {
-	// LIST
-	//TODO implement
-	return ListSecretsResponse{}
+func ListAvailableExternalSecrets(data ListSecretsRequest) ListSecretsResponse {
+	response, err := mokubernetes.GetDecodedSecret(
+		getSecretListName(data.NamePrefix, data.Project),
+		utils.CONFIG.Kubernetes.OwnNamespace,
+	)
+	if err != nil {
+		logger.Log.Info("Getting secret list failed")
+	}
+	// Initialize result with an empty slice for SecretsInProject
+	result := []SecretListing{}
+	// TODO: add to information that should not be output to logs etc. !
+	for project, secretValue := range response {
+		if project == data.Project {
+			var secretMap map[string]interface{}
+			err := json.Unmarshal([]byte(secretValue), &secretMap)
+			if err != nil {
+				fmt.Println(err)
+				return ListSecretsResponse{}
+			}
+
+			for key := range secretMap {
+				result = append(result, SecretListing{SecretKey: key})
+			}
+		}
+	}
+	return ListSecretsResponse{
+		SecretsInProject: result,
+	}
 }
 
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
