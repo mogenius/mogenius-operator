@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"mogenius-k8s-manager/utils"
 	"strings"
 	"testing"
@@ -17,23 +18,7 @@ const (
 
 func TestSecretStoreRender(t *testing.T) {
 
-	yamlTemplate := `apiVersion: external-secrets.io/v1beta1
-kind: ClusterSecretStore
-metadata:
-  name: <VAULT_STORE_NAME>
-  annotations:
-    mogenius-external-secrets/shared-path: <MO_SHARED_PATH>
-spec:
-  provider:
-    vault:
-      server: <VAULT_SERVER_URL>
-      version: "v2"
-      auth:
-        kubernetes:
-         mountPath: "kubernetes"
-         role: <ROLE>
-         serviceAccountRef:
-           name: <SERVICE_ACC>`
+	yamlTemplate := utils.InitExternalSecretsStoreYaml()
 
 	secretStore := externalSecretStoreExample()
 	secretStore.Role = "mo-external-secrets-002"
@@ -45,8 +30,9 @@ spec:
 		logger.Log.Info("Yaml data updated ✅")
 	}
 
-	expectedPath := "secret/mo-ex-secr-test-003"
+	expectedPath := "secret-mo-ex-secr-test-003"
 	secretStore.MoSharedPath = expectedPath
+	expectedPath = fmt.Sprintf("%s/%s", expectedPath, secretStore.Project) // the rendering adds the project name to the path to reflect the corresponding secret store
 	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, *secretStore)
 
 	// check if the values are replaced
