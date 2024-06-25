@@ -766,6 +766,9 @@ type CreateSecretsStoreResponse struct {
 type ListSecretsStoresResponse struct {
 	StoresInCluster []SecretStoreListing `json:"storesincluster"`
 }
+type ListSecretsResponse struct {
+	SecretsInProject []SecretListing `json:"secretsinproject"`
+}
 type DeleteSecretsStoreRequest struct {
 	NamePrefix   string `json:"namePrefix" validate:"required"`
 	Project      string `json:"project" validate:"required"`
@@ -785,10 +788,10 @@ type DeleteSecretsStoreResponse struct {
 }
 
 type CreateExternalSecretRequest struct {
-	Name      string `json:"name" validate:"required"`
-	Namespace string `json:"namespace" validate:"required"`
-	//TODO might be needed?
-	// Project   string `json:"project" validate:"required"`
+	Name                  string `json:"name" validate:"required"`
+	Namespace             string `json:"namespace" validate:"required"`
+	SecretStoreNamePrefix string `json:"namePrefix" validate:"required"`
+	Project               string `json:"project" validate:"required"`
 }
 
 func CreateExternalSecretRequestExample() CreateExternalSecretRequest {
