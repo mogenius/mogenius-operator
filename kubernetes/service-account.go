@@ -4,24 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	"github.com/mogenius/punq/logger"
-	log "github.com/sirupsen/logrus"
 	core "k8s.io/api/core/v1"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-func getCoreClient() v1.CoreV1Interface {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		log.Fatal("Error creating kubeprovider")
-	}
-	client := provider.ClientSet.CoreV1()
-
-	return client
-}
 
 func ApplyServiceAccount(serviceAccountName string, namespace string, annotations map[string]string) error {
 	serviceAccount := &core.ServiceAccount{
