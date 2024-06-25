@@ -234,3 +234,32 @@ func AppendIfNotExist(slice []string, str string) []string {
 	}
 	return append(slice, str)
 }
+
+func Escape(str string) string {
+	var builder strings.Builder
+	for _, char := range str {
+		switch char {
+		case '\'': // escape single quotes
+			builder.WriteString("'\\''")
+		case '"', '`', '\\', '$', '%', '&', '*', ';', '|', '<', '>', '?', '[', ']', '{', '}', '(', ')':
+			builder.WriteString("\\" + string(char))
+		case '\b':
+			builder.WriteString("\\b")
+		case '\f':
+			builder.WriteString("\\f")
+		case '\n':
+			builder.WriteString("\\n")
+		case '\r':
+			builder.WriteString("\\r")
+		case '\t':
+			builder.WriteString("\\t")
+		case '\u2028':
+			builder.WriteString("\\u2028")
+		case '\u2029':
+			builder.WriteString("\\u2029")
+		default:
+			builder.WriteRune(char)
+		}
+	}
+	return builder.String()
+}
