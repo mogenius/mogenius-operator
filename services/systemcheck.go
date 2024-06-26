@@ -305,20 +305,26 @@ func SystemCheck() SystemCheckResponse {
 		return distriEntry
 	})
 
-	// externalSecretsName := "external-secrets"
-	// externalSecretsVersion, externalSecretsInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, externalSecretsName)
-	// externalSecretsMsg := fmt.Sprintf("%s (Version: %s) is installed.", externalSecretsName, externalSecretsVersion)
-	// if externalSecretsInstalledErr != nil {
-	// 	externalSecretsMsg = fmt.Sprintf("%s is not installed.\nTo load secrets from 3rd party vaults (e.g. e.g. Hashicorp Vault, AWS KMS or Azure Key Vault), you need to install this component.", externalSecretsName)
-	// }
-	// externalSecretsDescription := "A Docker-based External Secrets loader inside Kubernetes that allows you to connect to e.g. Hashicorp Vault, AWS KMS or Azure Key Vault"
-	// currentExternalSecretsVersion := getMostCurrentHelmChartVersion(ExternalSecretsHelmIndex, "docker-registry")
-	// externalSecretsEntry := CreateSystemCheckEntry(NameExternalSecrets, externalSecretsInstalledErr == nil, externalSecretsMsg, externalSecretsDescription, false, true, externalSecretsVersion, currentExternalSecretsVersion)
-	// externalSecretsEntry.InstallPattern = structs.PAT_INSTALL_EXTERNAL_SECRETS
-	// externalSecretsEntry.UninstallPattern = structs.PAT_UNINSTALL_EXTERNAL_SECRETS
-	// externalSecretsEntry.UpgradePattern = "" // NONE?
-	// externalSecretsEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameExternalSecrets)
-	// entries = append(entries, externalSecretsEntry)
+	// check for external secrets
+	if utils.CONFIG.Misc.ExternalSecretsEnabled {
+		wg.Add(1)
+		go SysCheckExec("CheckExternalSecrets", &wg, &entries, func() SystemCheckEntry {
+			externalSecretsName := "external-secrets"
+			externalSecretsVersion, externalSecretsInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, externalSecretsName)
+			externalSecretsMsg := fmt.Sprintf("%s (Version: %s) is installed.", externalSecretsName, externalSecretsVersion)
+			if externalSecretsInstalledErr != nil {
+				externalSecretsMsg = fmt.Sprintf("%s is not installed.\nTo load secrets from 3rd party vaults (e.g. e.g. Hashicorp Vault, AWS KMS or Azure Key Vault), you need to install this component.", externalSecretsName)
+			}
+			externalSecretsDescription := "A Docker-based External Secrets loader inside Kubernetes that allows you to connect to e.g. Hashicorp Vault, AWS KMS or Azure Key Vault"
+			currentExternalSecretsVersion := getMostCurrentHelmChartVersion(ExternalSecretsHelmIndex, "docker-registry")
+			externalSecretsEntry := CreateSystemCheckEntry(NameExternalSecrets, externalSecretsInstalledErr == nil, externalSecretsMsg, externalSecretsDescription, false, true, externalSecretsVersion, currentExternalSecretsVersion)
+			externalSecretsEntry.InstallPattern = structs.PAT_INSTALL_EXTERNAL_SECRETS
+			externalSecretsEntry.UninstallPattern = structs.PAT_UNINSTALL_EXTERNAL_SECRETS
+			externalSecretsEntry.UpgradePattern = "" // NONE?
+			externalSecretsEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameExternalSecrets)
+			return externalSecretsEntry
+		})
+	}
 
 	// check for metallb
 	wg.Add(1)
