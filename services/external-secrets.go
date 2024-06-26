@@ -41,7 +41,7 @@ func externalSecretListExample() ExternalSecretListProps {
 	return ExternalSecretListProps{
 		NamePrefix:      "team-blue-secrets",
 		Project:         "team-blue",
-		SecretStoreName: "team-blue-secrets" + SecretStoreSuffix,
+		SecretStoreName: "team-blue-secrets-" + SecretStoreSuffix,
 		MoSharedPath:    "mogenius-external-secrets",
 	}
 }
@@ -118,16 +118,33 @@ func renderExternalSecretList(yamlTemplateString string, props ExternalSecretLis
 }
 
 func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", props.Name, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", getSecretName(
+		props.SecretStoreNamePrefix, props.Project, props.ServiceName, props.PropertyName,
+	), -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROPERTY_FROM_SECRET>", props.PropertyName, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", props.Namespace, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.secretPath, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROJECT>", props.Project, -1)
 
 	return yamlTemplateString
 }
 
+func getSecretName(namePrefix, project, service, propertyName string) string {
+	return fmt.Sprintf("%s-%s-%s-%s",
+		strings.ToLower(namePrefix),
+		strings.ToLower(project),
+		strings.ToLower(service),
+		strings.ToLower(propertyName),
+	)
+}
+
 func getSecretListName(customerPrefix string, project string) string {
-	return fmt.Sprintf("%s-%s-%s", customerPrefix, project, SecretListSuffix)
+	return fmt.Sprintf("%s-%s-%s",
+		strings.ToLower(customerPrefix),
+		strings.ToLower(project),
+		strings.ToLower(SecretListSuffix),
+	)
 }
 
 type ExternalSecretListing struct {

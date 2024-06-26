@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mogenius/punq/logger"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -89,16 +90,18 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 func GetExternalSecretsStore(name string) (SecretStoreSchema, error) {
 	response, err := mokubernetes.GetResource("external-secrets.io", "v1beta1", "clustersecretstores", name, "", true)
 	if err != nil {
-		logger.Log.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
-	} else {
 		logger.Log.Info("GetResource failed for SecretStore: " + name)
+		return SecretStoreSchema{}, err
 	}
-	jsonOutput, err := json.MarshalIndent(response, "", "  ")
+
+	logger.Log.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
+
+	yamlOutput, err := yaml.Marshal(response.Object)
 	if err != nil {
 		return SecretStoreSchema{}, err
 	}
 	secretStore := SecretStoreSchema{}
-	err = json.Unmarshal([]byte(string(jsonOutput)), &secretStore)
+	err = yaml.Unmarshal([]byte(yamlOutput), &secretStore)
 	if err != nil {
 		return SecretStoreSchema{}, err
 	}
@@ -251,7 +254,10 @@ func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretSto
 }
 
 func getServiceAccountName(moSharedPath string) string {
-	return fmt.Sprintf("%s-%s", ExternalSecretsSA, moSharedPath)
+	return fmt.Sprintf("%s-%s",
+		strings.ToLower(ExternalSecretsSA),
+		strings.ToLower(moSharedPath),
+	)
 }
 
 func getMoSharedPath(moSharedPath string, project string) string {
@@ -259,7 +265,11 @@ func getMoSharedPath(moSharedPath string, project string) string {
 }
 
 func getSecretStoreName(namePrefix string, project string) string {
-	return fmt.Sprintf("%s-%s-%s", namePrefix, project, SecretStoreSuffix)
+	return fmt.Sprintf("%s-%s-%s",
+		strings.ToLower(namePrefix),
+		strings.ToLower(project),
+		strings.ToLower(SecretStoreSuffix),
+	)
 }
 
 type SecretStoreListing struct {
