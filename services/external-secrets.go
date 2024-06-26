@@ -124,7 +124,7 @@ func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) 
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROPERTY_FROM_SECRET>", props.PropertyName, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", props.Namespace, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.secretPath, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_PATH>", props.secretPath, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROJECT>", props.Project, -1)
 
 	return yamlTemplateString
