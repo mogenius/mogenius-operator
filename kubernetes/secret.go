@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
@@ -14,7 +15,6 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -23,19 +23,52 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func CreateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
+	client := getCoreClient()
+	if secret == nil {
+		var err error
+		secret, err = exampleSecret(namespace)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return client.Secrets(namespace).Create(context.TODO(), secret, MoCreateOptions())
+}
+
+func exampleSecret(namespace string) (*v1.Secret, error) {
+	jsonData := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+	}
+
+	jsonString, err := json.Marshal(jsonData)
+	if err != nil {
+		return nil, err
+	}
+	// encodedJson := base64.StdEncoding.EncodeToString(jsonString)
+	return &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "customer-blue-backend-project-vault-secret-list",
+			Namespace: namespace,
+		},
+		Type: v1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"project001":      []byte(jsonString),
+			"backend-project": []byte(jsonString),
+		},
+	}, nil
+
+}
+
+func CreateSecretJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("create", "Create Kubernetes secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(job, "Creating secret")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
 		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
@@ -50,16 +83,30 @@ func CreateSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 				}
 			}
 		}
-
 		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, &service)
 
-		_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+		_, err := CreateSecret(namespace.Name, &secret)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
 		} else {
 			cmd.Success(job, "Created secret")
 		}
 	}(wg)
+}
+
+func GetDecodedSecret(secretName string, namespace string) (map[string]string, error) {
+	client := getCoreClient()
+	secret, err := client.Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret %s in namespace %s: %w", secretName, namespace, err)
+	}
+
+	decodedData := make(map[string]string)
+	for key, value := range secret.Data {
+		decodedData[key] = string(value)
+	}
+
+	return decodedData, nil
 }
 
 func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
@@ -336,7 +383,7 @@ func watchSecrets(provider *punq.KubeProvider, kindName string) error {
 	listWatch := cache.NewListWatchFromClient(
 		provider.ClientSet.CoreV1().RESTClient(),
 		kindName,
-		v1Core.NamespaceAll,
+		v1.NamespaceAll,
 		fields.Nothing(),
 	)
 	resourceInformer := cache.NewSharedInformer(listWatch, &v1.Secret{}, 0)

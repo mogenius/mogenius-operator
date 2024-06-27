@@ -1,6 +1,9 @@
 package services
 
 import (
+	"fmt"
+	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/utils"
 	"strings"
 	"testing"
 
@@ -8,25 +11,15 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	NamePrefix   = "customer-blue"
+	Project      = "backend-project"
+	MoSharedPath = "mogenius-external-secrets"
+)
+
 func TestSecretStoreRender(t *testing.T) {
 
-	yamlTemplate := `apiVersion: external-secrets.io/v1beta1
-kind: ClusterSecretStore
-metadata:
-  name: <VAULT_STORE_NAME>
-  annotations:
-    mogenius-external-secrets/shared-path: <MO_SHARED_PATH>
-spec:
-  provider:
-    vault:
-      server: <VAULT_SERVER_URL>
-      version: "v2"
-      auth:
-        kubernetes:
-         mountPath: "kubernetes"
-         role: <ROLE>
-         serviceAccountRef:
-           name: <SERVICE_ACC>`
+	yamlTemplate := utils.InitExternalSecretsStoreYaml()
 
 	secretStore := externalSecretStoreExample()
 	secretStore.Role = "mo-external-secrets-002"
@@ -38,12 +31,13 @@ spec:
 		logger.Log.Info("Yaml data updated ✅")
 	}
 
-	expectedPath := "secret/mo-ex-secr-test-003"
+	expectedPath := "secret-mo-ex-secr-test-003"
 	secretStore.MoSharedPath = expectedPath
+	expectedPath = fmt.Sprintf("%s/%s", expectedPath, secretStore.ProjectName) // the rendering adds the project name to the path to reflect the corresponding secret store
 	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, *secretStore)
 
 	// check if the values are replaced
-	var data YamlData
+	var data SecretStoreSchema
 	err := yaml.Unmarshal([]byte(yamlDataUpdated), &data)
 	if err != nil {
 		t.Fatalf("Error parsing YAML: %v", err)
@@ -56,21 +50,18 @@ spec:
 	}
 }
 
-type YamlData struct {
-	Metadata struct {
-		Annotations struct {
-			SharedPath string `yaml:"mogenius-external-secrets/shared-path"`
-		} `yaml:"annotations"`
-	} `yaml:"metadata"`
-}
-
 func TestSecretStoreCreate(t *testing.T) {
-	testReq := CreateSecretsStoreRequestExample()
-	testReq.NamePrefix = "mo-ex-secr-test-003"
-	response := CreateExternalSecretsStore(testReq)
+	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
+	testReq := CreateSecretsStoreRequestExample()
+
+	// assume composed name: team-blue-secrets-vault-secret-store
+	testReq.NamePrefix = NamePrefix
+	testReq.ProjectName = Project
+
+	response := CreateExternalSecretsStore(testReq)
 	if response.Status != "SUCCESS" {
-		t.Errorf("Error creating secret store: %s", response.Status)
+		t.Errorf("Error creating secret store: %s", response.ErrorMessage)
 	} else {
 		logger.Log.Info("Secret store created ✅")
 	}
@@ -81,29 +72,53 @@ func TestSecretStoreList(t *testing.T) {
 	response := ListExternalSecretsStores()
 
 	if len(response.StoresInCluster) == 0 {
-		t.Errorf("Error listing secret stores: %s", "No secret stores found")
+		t.Errorf("Error listing secret stores: No secret stores found")
 	} else {
 		found := false
 		for _, store := range response.StoresInCluster {
-			if strings.HasPrefix(store.Name, "mo-ex-secr-test-003") {
+			if strings.HasPrefix(store.Name, NamePrefix) {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Error: Expected secret store starting with 'mo-ex-secr-test-003' but none was found")
+			t.Errorf("Error: Expected to find secret store %s but none was found", getSecretStoreName(NamePrefix, Project))
 		} else {
 			logger.Log.Info("Secret stores listed ✅")
 		}
 	}
 }
+func TestListAvailSecrets(t *testing.T) {
+	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
+	// prereq
+	_, err := kubernetes.CreateSecret(utils.CONFIG.Kubernetes.OwnNamespace, nil)
+	if err != nil {
+		logger.Log.Info("Secret list already exists.")
+	} else {
+		logger.Log.Info("Secret list created ✅")
+	}
+	response := ListAvailableExternalSecrets(ListSecretsRequest{
+		NamePrefix:  NamePrefix,
+		ProjectName: Project,
+	})
+
+	if len(response.SecretsInProject) == 0 {
+		t.Errorf("Error listing available secrets: No secrets found")
+	} else {
+		logger.Log.Info(fmt.Sprintf("Available secrets list ✅: %v", response.SecretsInProject))
+	}
+}
 
 func TestSecretStoreDelete(t *testing.T) {
-	status := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
-		Name: "mo-ex-secr-test-003-vault-secret-store",
+	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
+
+	response := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
+		NamePrefix:   NamePrefix,
+		ProjectName:  Project,
+		MoSharedPath: MoSharedPath,
 	})
-	if status.Status != "SUCCESS" {
-		t.Errorf("Error: Expected secret store starting with 'mo-ex-secr-test-003' but none was found")
+	if response.Status != "SUCCESS" {
+		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", getSecretStoreName(NamePrefix, Project), response.ErrorMessage)
 	} else {
 		logger.Log.Info("Secret store deletion confirmed ✅")
 	}

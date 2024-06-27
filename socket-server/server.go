@@ -299,16 +299,10 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = services.ClusterGetConfigMapExample()
 		case structs.PAT_CLUSTER_LIST_CONFIGMAPS:
 			payload = services.ClusterListWorkloadsExample()
-		// TODO
-		// case structs.PAT_CLUSTER_WRITE_DEPLOYMENT:
-		// 	payload = services.ClusterWriteConfigMapExample()
 		case structs.PAT_CLUSTER_READ_DEPLOYMENT:
 			payload = services.ClusterGetDeploymentExample()
 		case structs.PAT_CLUSTER_LIST_DEPLOYMENTS:
 			payload = services.ClusterListWorkloadsExample()
-		// TODO
-		// case structs.PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM:
-		// 	payload = services.ClusterWriteConfigMapExample()
 		case structs.PAT_CLUSTER_READ_PERSISTENT_VOLUME_CLAIM:
 			payload = services.ClusterGetPersistentVolumeExample()
 		case structs.PAT_CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS:

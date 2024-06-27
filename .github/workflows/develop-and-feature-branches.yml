@@ -3,7 +3,7 @@ name: Build, Package, Release (Dev & Feature Branches)
 on:
   push:
     branches:
-      - feat*
+      - feat**
       - develop
 
 env:
@@ -40,8 +40,13 @@ jobs:
           npx semantic-release
 
   passing-tests:
+    
     needs: prepare
     runs-on: [self-hosted, ARM64, k3s-installed]
+    continue-on-error: false # tests are not stable yet
+    concurrency: 
+      group: passing-tests-LOCK
+      cancel-in-progress: false
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -57,19 +62,31 @@ jobs:
       # TODO: this should be part of the build / local test logic in some way
       - name: Prepare CRDs
         run: |
+          kubectl create namespace mogenius
+          helm repo add external-secrets https://charts.external-secrets.io
+          helm install external-secrets external-secrets/external-secrets
           kubectl apply -f utils/yaml-templates/crds-applicationkit.yaml
           kubectl apply -f utils/yaml-templates/crds-environments.yaml
           kubectl apply -f utils/yaml-templates/crds-projects.yaml
+          
+          # helm release is taking some to boot pods
+          sleep 30
       - name: Run tests
         run: |
           go mod download
+          go clean -testcache
           go test -v ./...
+      - name: Clean up k3s
+        if: always()
+        run: |
+          kubectl delete namespace mogenius
+          helm uninstall external-secrets
 
   build-amd64:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, X64]
+    runs-on: [self-hosted, X64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -103,7 +120,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted, ARM64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -136,7 +153,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted, ARM64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -159,7 +176,7 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
 
-      - name: Push AMD64 image
+      - name: Push ARM64 image
         if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
@@ -169,7 +186,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted, ARM64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -192,7 +209,7 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --platform=linux/arm/v7 --build-arg GOOS=linux --build-arg GOARCH=arm --build-arg GOARM=7 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm7 -t ${{ env.IMAGE_NAME }}:latest-arm7 .
 
-      - name: Push AMDv7 image
+      - name: Push ARMv7 image
         if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
