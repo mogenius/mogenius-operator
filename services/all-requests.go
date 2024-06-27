@@ -2128,14 +2128,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return DeleteExternalSecretsStore(data)
-	case structs.PAT_CREATE_HORIZONTAL_POD_AUTOSCALER:
-		data := K8sCreateHpaRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-
-		return CreateK8sHpa(data)
 	}
 	datagram.Err = "Pattern not found"
 	return datagram
