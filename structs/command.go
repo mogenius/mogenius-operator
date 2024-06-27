@@ -34,7 +34,6 @@ func CreateCommand(command string, title string, job *Job) *Command {
 	return cmd
 }
 
-// XXX NOT USED ANYMORE?
 func CreateShellCommand(command string, title string, job *Job, shellCmd string, wg *sync.WaitGroup) {
 	wg.Add(1)
 	cmd := CreateCommand(command, title, job)
