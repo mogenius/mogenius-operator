@@ -51,9 +51,10 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("Resource updated successfully")
+		logger.Log.Info("Resource updated successfully ✅")
+
 	} else {
-		fmt.Println("Resource created successfully")
+		logger.Log.Info("Resource created successfully ✅")
 	}
 	return nil
 }

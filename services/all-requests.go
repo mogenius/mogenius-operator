@@ -2121,6 +2121,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return CreateExternalSecretsStore(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_LIST:
 		return ListExternalSecretsStores()
+	case structs.PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS:
+		data := ListSecretsRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return ListAvailableExternalSecrets(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_DELETE:
 		data := DeleteSecretsStoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2128,6 +2135,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return DeleteExternalSecretsStore(data)
+	case structs.PAT_EXTERNAL_SECRET_CREATE:
+		data := CreateExternalSecretRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return CreateExternalSecret(data)
 	}
 	datagram.Err = "Pattern not found"
 	return datagram

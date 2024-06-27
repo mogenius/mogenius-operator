@@ -738,6 +738,10 @@ type NfsStatusResponse struct {
 }
 
 type CreateSecretsStoreRequest struct {
+	// Secrets stores are bound to a projects,
+	// so that customers can decide which team controls which secrets
+	ProjectName string `json:"projectName" validate:"required"`
+	// customers might want to create multiple stores	and should have IDs to differentiate
 	NamePrefix     string `json:"namePrefix" validate:"required"`
 	Role           string `json:"role" validate:"required"`
 	VaultServerUrl string `json:"vaultServerUrl" validate:"required"`
@@ -746,32 +750,68 @@ type CreateSecretsStoreRequest struct {
 
 func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
 	return CreateSecretsStoreRequest{
+		ProjectName:    "phoenix",
 		NamePrefix:     "mo-test",
 		Role:           "mogenius-external-secrets",
 		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		MoSharedPath:   "secret/mogenius-external-secrets",
+		MoSharedPath:   "mogenius-external-secrets",
 	}
 }
 
 type CreateSecretsStoreResponse struct {
-	Status string `json:"status"`
+	Status       string `json:"status"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 type ListSecretsStoresResponse struct {
-	StoresInCluster []SecretStoreListing `json:"storesincluster"`
+	StoresInCluster []SecretStoreListing `json:"storesInCluster"`
+}
+type ListSecretsRequest struct {
+	NamePrefix  string `json:"namePrefix" validate:"required"`
+	ProjectName string `json:"projectName" validate:"required"`
+}
+type ListSecretsResponse struct {
+	SecretsInProject []string `json:"secretsInProject"`
 }
 type DeleteSecretsStoreRequest struct {
-	Name string `json:"name" validate:"required"`
+	NamePrefix   string `json:"namePrefix" validate:"required"`
+	ProjectName  string `json:"projectName" validate:"required"`
+	MoSharedPath string `json:"moSharedPath" validate:"required"`
 }
 
 func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
 	return DeleteSecretsStoreRequest{
-		Name: "mo-test-vault-secret-store",
+		NamePrefix:  "mo-test",
+		ProjectName: "phoenix",
 	}
 }
 
 type DeleteSecretsStoreResponse struct {
-	Status string `json:"status"`
+	Status       string `json:"status"`
+	ErrorMessage string `json:"errorMessage"`
+}
+
+type CreateExternalSecretRequest struct {
+	ServiceName           string `json:"serviceName" validate:"required"`
+	Namespace             string `json:"namespace" validate:"required"`
+	ProjectName           string `json:"projectName" validate:"required"`
+	SecretStoreNamePrefix string `json:"namePrefix" validate:"required"`
+	PropertyName          string `json:"propertyName" validate:"required"`
+}
+
+func CreateExternalSecretRequestExample() CreateExternalSecretRequest {
+	return CreateExternalSecretRequest{
+		ServiceName:           "customer-app01",
+		Namespace:             "customer-app-namespace",
+		ProjectName:           "phoenix",
+		SecretStoreNamePrefix: "mo-test",
+		PropertyName:          "postgresURL",
+	}
+}
+
+type CreateExternalSecretResponse struct {
+	Status       string `json:"status"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 var keplerHostAndPort string = ""
