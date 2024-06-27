@@ -23,7 +23,7 @@ func TestSecretListRender(t *testing.T) {
 	}
 
 	// change values and compare
-	expectedName := "team-yellow-projectMayhem-" + SecretListSuffix
+	expectedName := "team-yellow-projectmayhem-" + SecretListSuffix // lowercase only
 	secretListProps.NamePrefix = "team-yellow"
 	secretListProps.Project = "projectMayhem"
 	yamlDataRenderedChanged := renderExternalSecretList(yamlTemplate, secretListProps)
@@ -69,13 +69,16 @@ func TestCreateExternalSecretList(t *testing.T) {
 }
 
 func TestCreateExternalSecret(t *testing.T) {
+	// prereq
+	TestSecretStoreCreate(t)
+
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	testReq := CreateExternalSecretRequestExample()
 
 	// assume composed name: customer-blue-backend-project-backend-service003-postgresURL
 	testReq.SecretStoreNamePrefix = "customer-blue"
-	testReq.Project = "backend-project"
+	testReq.ProjectName = "backend-project"
 	testReq.ServiceName = "backend-service03"
 	testReq.PropertyName = "postgresURL"
 	testReq.Namespace = "mogenius"
@@ -86,4 +89,6 @@ func TestCreateExternalSecret(t *testing.T) {
 	} else {
 		logger.Log.Info("External secret created ✅")
 	}
+	// cleanup
+	TestSecretStoreDelete(t)
 }

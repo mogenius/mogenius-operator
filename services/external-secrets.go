@@ -57,7 +57,7 @@ func CreateExternalSecretList(props ExternalSecretListProps) error {
 }
 
 func CreateExternalSecret(data CreateExternalSecretRequest) CreateExternalSecretResponse {
-	responsibleSecStore := getSecretStoreName(data.SecretStoreNamePrefix, data.Project)
+	responsibleSecStore := getSecretStoreName(data.SecretStoreNamePrefix, data.ProjectName)
 
 	secretPath, err := ReadSecretPathFromSecretStore(responsibleSecStore)
 	if err != nil {
@@ -119,13 +119,13 @@ func renderExternalSecretList(yamlTemplateString string, props ExternalSecretLis
 
 func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) string {
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", getSecretName(
-		props.SecretStoreNamePrefix, props.Project, props.ServiceName, props.PropertyName,
+		props.SecretStoreNamePrefix, props.ProjectName, props.ServiceName, props.PropertyName,
 	), -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROPERTY_FROM_SECRET>", props.PropertyName, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", props.Namespace, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_PATH>", props.secretPath, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROJECT>", props.Project, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROJECT>", props.ProjectName, -1)
 
 	return yamlTemplateString
 }
