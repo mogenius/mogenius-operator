@@ -186,10 +186,14 @@ func parseExternalSecretsListing(jsonStr string) ([]ExternalSecretListing, error
 
 	var stores []ExternalSecretListing
 	for _, item := range ExternalSecrets.Items {
+		message := ""
+		if len(item.Status.Conditions) > 0 {
+			message = item.Status.Conditions[0].Message
+		}
 		store := ExternalSecretListing{
 			Name:    item.Metadata.Name,
 			Role:    item.Spec.Provider.Vault.Auth.Kubernetes.Role,
-			Message: item.Status.Conditions[0].Message,
+			Message: message,
 		}
 		stores = append(stores, store)
 	}
