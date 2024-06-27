@@ -6,11 +6,6 @@ on:
       - feat**
       - develop
 
-# https://stackoverflow.com/a/72408109/3768835
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
   DOCKERFILE: Dockerfile-dev
@@ -49,6 +44,9 @@ jobs:
     needs: prepare
     runs-on: [self-hosted, ARM64, k3s-installed]
     continue-on-error: false # tests are not stable yet
+    concurrency: 
+      group: passing-tests-LOCK
+      cancel-in-progress: false
     steps:
       - name: Check out code
         uses: actions/checkout@v4
