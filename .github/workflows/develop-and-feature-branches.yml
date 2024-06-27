@@ -3,7 +3,7 @@ name: Build, Package, Release (Dev & Feature Branches)
 on:
   push:
     branches:
-      - feat*/**
+      - feat**
       - develop
 
 env:
