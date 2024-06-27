@@ -58,6 +58,7 @@ jobs:
       # TODO: this should be part of the build / local test logic in some way
       - name: Prepare CRDs
         run: |
+          kubectl create namespace mogenius
           helm repo add external-secrets https://charts.external-secrets.io
           helm install external-secrets external-secrets/external-secrets
           kubectl apply -f utils/yaml-templates/crds-applicationkit.yaml
