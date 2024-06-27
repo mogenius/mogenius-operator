@@ -61,7 +61,7 @@ func TestSecretStoreCreate(t *testing.T) {
 
 	response := CreateExternalSecretsStore(testReq)
 	if response.Status != "SUCCESS" {
-		t.Errorf("Error creating secret store: %s", response.Status)
+		t.Errorf("Error creating secret store: %s", response.ErrorMessage)
 	} else {
 		logger.Log.Info("Secret store created ✅")
 	}

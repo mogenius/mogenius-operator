@@ -3,7 +3,7 @@ name: Build, Package, Release (Dev & Feature Branches)
 on:
   push:
     branches:
-      - feat*
+      - feat**
       - develop
 
 env:
@@ -40,9 +40,13 @@ jobs:
           npx semantic-release
 
   passing-tests:
+    
     needs: prepare
     runs-on: [self-hosted, ARM64, k3s-installed]
-    continue-on-error: true # tests are not stable yet
+    continue-on-error: false # tests are not stable yet
+    concurrency: 
+      group: passing-tests-LOCK
+      cancel-in-progress: false
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -58,19 +62,31 @@ jobs:
       # TODO: this should be part of the build / local test logic in some way
       - name: Prepare CRDs
         run: |
+          kubectl create namespace mogenius
+          helm repo add external-secrets https://charts.external-secrets.io
+          helm install external-secrets external-secrets/external-secrets
           kubectl apply -f utils/yaml-templates/crds-applicationkit.yaml
           kubectl apply -f utils/yaml-templates/crds-environments.yaml
           kubectl apply -f utils/yaml-templates/crds-projects.yaml
+          
+          # helm release is taking some to boot pods
+          sleep 30
       - name: Run tests
         run: |
           go mod download
+          go clean -testcache
           go test -v ./...
+      - name: Clean up k3s
+        if: always()
+        run: |
+          kubectl delete namespace mogenius
+          helm uninstall external-secrets
 
   build-amd64:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, X64]
+    runs-on: [self-hosted, X64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -104,7 +120,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted, ARM64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -137,7 +153,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted, ARM64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -170,7 +186,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted, ARM64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4

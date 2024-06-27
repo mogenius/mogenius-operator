@@ -47,14 +47,14 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 			logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
 		}
 		// Try update if already exists
-		_, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
+		obj, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
-		logger.Log.Info("Resource updated successfully ✅")
+		logger.Log.Info("Resource updated successfully ✅: " + obj.GetName())
 
 	} else {
-		logger.Log.Info("Resource created successfully ✅")
+		logger.Log.Info("Resource created successfully ✅: " + obj.GetName())
 	}
 	return nil
 }
