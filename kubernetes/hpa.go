@@ -15,6 +15,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	hpaSuffix = "-hpa"
+)
+
 func DeleteHpa(job *structs.Job, name, namespace string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", fmt.Sprintf("Delete hpa '%s' in '%s'.", name, namespace), job)
 	wg.Add(1)
@@ -22,7 +26,7 @@ func DeleteHpa(job *structs.Job, name, namespace string, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(job, "Delete hpa")
 
-		punq.DeleteK8sHpaBy(namespace, name, nil)
+		punq.DeleteK8sHpaBy(namespace, name+hpaSuffix, nil)
 	}(wg)
 }
 
@@ -33,7 +37,7 @@ func CreateHpa(hpaSettings *dtos.K8sHpaSettingsDto) (*v2.HorizontalPodAutoscaler
 	}
 
 	meta := &metav1.ObjectMeta{
-		Name:      hpaSettings.Name + "-hpa",
+		Name:      hpaSettings.Name + hpaSuffix,
 		Namespace: hpaSettings.Namespace,
 		Labels: map[string]string{
 			"app": hpaSettings.Name,
