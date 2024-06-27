@@ -58,6 +58,8 @@ jobs:
       # TODO: this should be part of the build / local test logic in some way
       - name: Prepare CRDs
         run: |
+          helm repo add external-secrets https://charts.external-secrets.io
+          helm install external-secrets external-secrets/external-secrets
           kubectl apply -f utils/yaml-templates/crds-applicationkit.yaml
           kubectl apply -f utils/yaml-templates/crds-environments.yaml
           kubectl apply -f utils/yaml-templates/crds-projects.yaml
@@ -65,10 +67,11 @@ jobs:
         run: |
           go mod download
           go test -v ./...
-      - name: Always run this command
+      - name: Clean up k3s
         if: always()
         run: |
           kubectl delete namespace mogenius
+          helm uninstall external-secrets
 
   build-amd64:
     needs: 
