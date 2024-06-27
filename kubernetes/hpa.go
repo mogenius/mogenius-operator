@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -23,12 +22,7 @@ func DeleteHpa(job *structs.Job, name, namespace string, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(job, "Delete hpa")
 
-		resource := services.K8sDeleteResourceRequest{
-			Namespace: namespace,
-			Name:      name,
-		}
-
-		services.K8sDeleteHpa(resource)
+		punq.DeleteK8sHpaBy(namespace, name, nil)
 	}(wg)
 }
 
