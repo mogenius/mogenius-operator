@@ -1,6 +1,6 @@
 config:
   version: 2
-  
+
 kubernetes:
   api_key: 94E23575-A689-4F88-8D67-215A274F4E6E
   cluster_name: BenesTestCluster
@@ -26,10 +26,24 @@ iac:
   repo_url:
   repo_pat:
   repo_branch: main
-  polling_interval_secs: 10 # min is 5 
+  polling_interval_secs: 10 # min is 5
   allow_push: false
   allow_pull: false
-  sync_workloads: ["namespaces", "pods", "deployments", "statefulsets", "services", "ingresses", "configmaps", "secrets", "jobs", "cronjobs", "daemonsets", "networkpolicies"]
+  sync_workloads:
+    [
+      "namespaces",
+      "pods",
+      "deployments",
+      "statefulsets",
+      "services",
+      "ingresses",
+      "configmaps",
+      "secrets",
+      "jobs",
+      "cronjobs",
+      "daemonsets",
+      "networkpolicies",
+    ]
   ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
   show_diff_in_log: false
   log_changes: true
@@ -37,7 +51,7 @@ iac:
 misc:
   stage: local
   log_format: text # json or text
-  log_level: info  # panic, fatal, error, warn, info, debug, trace
+  log_level: info # panic, fatal, error, warn, info, debug, trace
   log_incoming_stats: false
   default_mount_path: /mo-data
   debug: true
@@ -55,11 +69,12 @@ misc:
   check_for_updates: 3600
   helm_index: https://helm.mogenius.com/public/index.yaml
   nfs_pod_prefix: nfs-server-pod
+  external_secrets_enabled: false
 
 builder:
-  max_build_time: 3600      # 1 hour
-  max_scan_time: 200        # seconds
-  max_concurrent_builds: 1  # max concurrent builds
+  max_build_time: 3600 # 1 hour
+  max_scan_time: 200 # seconds
+  max_concurrent_builds: 1 # max concurrent builds
 
 git:
   user_email: git@mogenius.com
@@ -68,4 +83,4 @@ git:
   add_ignored_file: false
 
 stats:
-  max_data_points: 1000     # history data points
+  max_data_points: 1000 # history data points
