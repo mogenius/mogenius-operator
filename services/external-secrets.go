@@ -92,8 +92,8 @@ func CreateExternalSecret(data CreateExternalSecretRequest) CreateExternalSecret
 	}
 }
 
-func DeleteExternalSecretList(namePrefix string, project string) error {
-	return DeleteExternalSecret(getSecretListName(namePrefix, project))
+func DeleteExternalSecretList(namePrefix string, projectName string) error {
+	return DeleteExternalSecret(getSecretListName(namePrefix, projectName))
 }
 
 func DeleteExternalSecret(name string) error {
@@ -139,10 +139,10 @@ func getSecretName(namePrefix, project, service, propertyName string) string {
 	)
 }
 
-func getSecretListName(customerPrefix string, project string) string {
+func getSecretListName(customerPrefix string, projectName string) string {
 	return fmt.Sprintf("%s-%s-%s",
 		strings.ToLower(customerPrefix),
-		strings.ToLower(project),
+		strings.ToLower(projectName),
 		strings.ToLower(SecretListSuffix),
 	)
 }

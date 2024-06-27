@@ -32,7 +32,7 @@ func externalSecretStoreExample() *ExternalSecretStoreProps {
 func NewExternalSecretStore(data CreateSecretsStoreRequest) *ExternalSecretStoreProps {
 	return &ExternalSecretStoreProps{
 		CreateSecretsStoreRequest: data,
-		Name:                      getSecretStoreName(data.NamePrefix, data.Project),
+		Name:                      getSecretStoreName(data.NamePrefix, data.ProjectName),
 		ServiceAccount:            getServiceAccountName(data.MoSharedPath),
 	}
 }
@@ -42,7 +42,7 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 
 	// create unique service account tag per project
 	annotations := make(map[string]string)
-	key := fmt.Sprintf("%s%s", StoreAnnotationPrefix, data.Project)
+	key := fmt.Sprintf("%s%s", StoreAnnotationPrefix, data.ProjectName)
 	annotations[key] = fmt.Sprintf("Used to read secrets from vault path: %s", data.MoSharedPath)
 
 	err := mokubernetes.ApplyServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace, annotations)
@@ -72,7 +72,7 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 	// so that we can use them to offer them as UI options before binding them to a mogenius service
 	err = CreateExternalSecretList(ExternalSecretListProps{
 		NamePrefix:      props.NamePrefix,
-		Project:         props.Project,
+		Project:         props.ProjectName,
 		SecretStoreName: props.Name,
 		MoSharedPath:    props.MoSharedPath,
 	})
@@ -242,7 +242,7 @@ func deleteUnusedServiceAccount(data DeleteSecretsStoreRequest) error {
 func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name, -1)
 	// secret stores are currently bound to the project settings
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH_COMBINED>", getMoSharedPath(props.MoSharedPath, props.Project), -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH_COMBINED>", getMoSharedPath(props.MoSharedPath, props.ProjectName), -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<ROLE>", props.Role, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount, -1)

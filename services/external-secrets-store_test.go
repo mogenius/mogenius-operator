@@ -33,7 +33,7 @@ func TestSecretStoreRender(t *testing.T) {
 
 	expectedPath := "secret-mo-ex-secr-test-003"
 	secretStore.MoSharedPath = expectedPath
-	expectedPath = fmt.Sprintf("%s/%s", expectedPath, secretStore.Project) // the rendering adds the project name to the path to reflect the corresponding secret store
+	expectedPath = fmt.Sprintf("%s/%s", expectedPath, secretStore.ProjectName) // the rendering adds the project name to the path to reflect the corresponding secret store
 	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, *secretStore)
 
 	// check if the values are replaced
@@ -57,7 +57,7 @@ func TestSecretStoreCreate(t *testing.T) {
 
 	// assume composed name: team-blue-secrets-vault-secret-store
 	testReq.NamePrefix = NamePrefix
-	testReq.Project = Project
+	testReq.ProjectName = Project
 
 	response := CreateExternalSecretsStore(testReq)
 	if response.Status != "SUCCESS" {
