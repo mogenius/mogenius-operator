@@ -6,6 +6,8 @@ on:
       - feat**
       - develop
 
+# test commit
+
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
   DOCKERFILE: Dockerfile-dev
