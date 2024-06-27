@@ -87,25 +87,25 @@ func CreateExternalSecretsStore(data CreateSecretsStoreRequest) CreateSecretsSto
 	}
 }
 
-func GetExternalSecretsStore(name string) (SecretStoreSchema, error) {
+func GetExternalSecretsStore(name string) (*SecretStoreSchema, error) {
 	response, err := mokubernetes.GetResource("external-secrets.io", "v1beta1", "clustersecretstores", name, "", true)
 	if err != nil {
 		logger.Log.Info("GetResource failed for SecretStore: " + name)
-		return SecretStoreSchema{}, err
+		return nil, err
 	}
 
 	logger.Log.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
 
 	yamlOutput, err := yaml.Marshal(response.Object)
 	if err != nil {
-		return SecretStoreSchema{}, err
+		return nil, err
 	}
 	secretStore := SecretStoreSchema{}
 	err = yaml.Unmarshal([]byte(yamlOutput), &secretStore)
 	if err != nil {
-		return SecretStoreSchema{}, err
+		return nil, err
 	}
-	return secretStore, err
+	return &secretStore, err
 }
 
 func ReadSecretPathFromSecretStore(name string) (string, error) {
@@ -140,27 +140,27 @@ func ListExternalSecretsStores() ListSecretsStoresResponse {
 
 func ListAvailableExternalSecrets(data ListSecretsRequest) ListSecretsResponse {
 	response, err := mokubernetes.GetDecodedSecret(
-		getSecretListName(data.NamePrefix, data.Project),
+		getSecretListName(data.NamePrefix, data.ProjectName),
 		utils.CONFIG.Kubernetes.OwnNamespace,
 	)
 	if err != nil {
-		logger.Log.Info("Getting secret list failed")
+		logger.Log.Error("Getting secret list failed")
 	}
 	// Initialize result with an empty slice for SecretsInProject
-	result := []SecretListing{}
-	// TODO: add to information that should not be output to logs etc. !
+	result := []string{}
 	for project, secretValue := range response {
-		if project == data.Project {
+		if project == data.ProjectName {
 			var secretMap map[string]interface{}
 			err := json.Unmarshal([]byte(secretValue), &secretMap)
 			if err != nil {
-				fmt.Println(err)
+				logger.Log.Error(err)
 				return ListSecretsResponse{}
 			}
 
 			for key := range secretMap {
-				result = append(result, SecretListing{SecretKey: key})
+				result = append(result, key)
 			}
+			break // there should only be one matching project
 		}
 	}
 	return ListSecretsResponse{
@@ -169,28 +169,23 @@ func ListAvailableExternalSecrets(data ListSecretsRequest) ListSecretsResponse {
 }
 
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
+	errors := []error{}
 	// delete the external secrets list
-	err := DeleteExternalSecretList(data.NamePrefix, data.Project)
-	if err != nil {
-		return DeleteSecretsStoreResponse{
-			Status:       "ERROR",
-			ErrorMessage: err.Error(),
-		}
-	}
+	errors = append(errors, DeleteExternalSecretList(data.NamePrefix, data.ProjectName))
+
 	// delete the secret store
-	err = mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", getSecretStoreName(data.NamePrefix, data.Project), "", true)
-	if err != nil {
-		return DeleteSecretsStoreResponse{
-			Status:       "ERROR",
-			ErrorMessage: err.Error(),
-		}
-	}
+	errors = append(errors, mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", getSecretStoreName(data.NamePrefix, data.ProjectName), "", true))
+
 	// delete the service account if it has no annotations from another SecretStore
-	err = deleteUnusedServiceAccount(data)
-	if err != nil {
-		return DeleteSecretsStoreResponse{
-			Status:       "ERROR",
-			ErrorMessage: err.Error(),
+	errors = append(errors, deleteUnusedServiceAccount(data))
+
+	// if any of the above failed, return an error
+	for _, err := range errors {
+		if err != nil {
+			return DeleteSecretsStoreResponse{
+				Status:       "ERROR",
+				ErrorMessage: err.Error(),
+			}
 		}
 	}
 	return DeleteSecretsStoreResponse{
@@ -202,16 +197,17 @@ func deleteUnusedServiceAccount(data DeleteSecretsStoreRequest) error {
 	serviceAccount, err := mokubernetes.GetServiceAccount(getServiceAccountName(data.MoSharedPath), utils.CONFIG.Kubernetes.OwnNamespace)
 	if err != nil {
 		return err
-	} else {
-		logger.Log.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
 	}
+	logger.Log.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
+
 	if serviceAccount.Annotations != nil {
 		// remove current claim of using this service account
 		removeKey := ""
 		for key := range serviceAccount.Annotations {
-			myKey := fmt.Sprintf("%s%s", StoreAnnotationPrefix, data.Project)
+			myKey := fmt.Sprintf("%s%s", StoreAnnotationPrefix, data.ProjectName)
 			if key == myKey {
 				removeKey = key
+				break // "my" claim found, remove it
 			}
 		}
 		if removeKey != "" {
@@ -223,6 +219,7 @@ func deleteUnusedServiceAccount(data DeleteSecretsStoreRequest) error {
 		for key := range serviceAccount.Annotations {
 			if strings.HasPrefix(key, StoreAnnotationPrefix) {
 				canBeDeleted = false
+				break // one claim found, don't delete the sa
 			}
 		}
 		if canBeDeleted {
@@ -260,14 +257,14 @@ func getServiceAccountName(moSharedPath string) string {
 	)
 }
 
-func getMoSharedPath(moSharedPath string, project string) string {
-	return fmt.Sprintf("%s/%s", moSharedPath, project)
+func getMoSharedPath(moSharedPath string, projectName string) string {
+	return fmt.Sprintf("%s/%s", moSharedPath, projectName)
 }
 
-func getSecretStoreName(namePrefix string, project string) string {
+func getSecretStoreName(namePrefix string, projectName string) string {
 	return fmt.Sprintf("%s-%s-%s",
 		strings.ToLower(namePrefix),
-		strings.ToLower(project),
+		strings.ToLower(projectName),
 		strings.ToLower(SecretStoreSuffix),
 	)
 }
@@ -276,10 +273,6 @@ type SecretStoreListing struct {
 	Name    string `json:"name"`
 	Role    string `json:"role"`
 	Message string `json:"message"`
-}
-
-type SecretListing struct {
-	SecretKey string `json:"secretKey"`
 }
 
 type SecretStoreListingSchema struct {

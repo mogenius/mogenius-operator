@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"strings"
 	"testing"
@@ -89,12 +90,16 @@ func TestSecretStoreList(t *testing.T) {
 }
 func TestListAvailSecrets(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
-
-	//TODO: create a secret list first !
-
+	// prereq
+	_, err := kubernetes.CreateSecret(utils.CONFIG.Kubernetes.OwnNamespace, nil)
+	if err != nil {
+		logger.Log.Info("Secret list already exists.")
+	} else {
+		logger.Log.Info("Secret list created ✅")
+	}
 	response := ListAvailableExternalSecrets(ListSecretsRequest{
-		NamePrefix: NamePrefix,
-		Project:    Project,
+		NamePrefix:  NamePrefix,
+		ProjectName: Project,
 	})
 
 	if len(response.SecretsInProject) == 0 {
@@ -109,7 +114,7 @@ func TestSecretStoreDelete(t *testing.T) {
 
 	response := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
 		NamePrefix:   NamePrefix,
-		Project:      Project,
+		ProjectName:  Project,
 		MoSharedPath: MoSharedPath,
 	})
 	if response.Status != "SUCCESS" {

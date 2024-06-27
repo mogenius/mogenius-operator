@@ -740,7 +740,7 @@ type NfsStatusResponse struct {
 type CreateSecretsStoreRequest struct {
 	// Secrets stores are bound to a projects,
 	// so that customers can decide which team controls which secrets
-	Project string `json:"project" validate:"required"`
+	Project string `json:"projectName" validate:"required"`
 	// customers might want to create multiple stores	and should have IDs to differentiate
 	NamePrefix     string `json:"namePrefix" validate:"required"`
 	Role           string `json:"role" validate:"required"`
@@ -764,25 +764,25 @@ type CreateSecretsStoreResponse struct {
 }
 
 type ListSecretsStoresResponse struct {
-	StoresInCluster []SecretStoreListing `json:"storesincluster"`
+	StoresInCluster []SecretStoreListing `json:"storesInCluster"`
 }
 type ListSecretsRequest struct {
-	NamePrefix string `json:"namePrefix" validate:"required"`
-	Project    string `json:"project" validate:"required"`
+	NamePrefix  string `json:"namePrefix" validate:"required"`
+	ProjectName string `json:"projectName" validate:"required"`
 }
 type ListSecretsResponse struct {
-	SecretsInProject []SecretListing `json:"secretsinproject"`
+	SecretsInProject []string `json:"secretsInProject"`
 }
 type DeleteSecretsStoreRequest struct {
 	NamePrefix   string `json:"namePrefix" validate:"required"`
-	Project      string `json:"project" validate:"required"`
+	ProjectName  string `json:"projectName" validate:"required"`
 	MoSharedPath string `json:"moSharedPath" validate:"required"`
 }
 
 func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
 	return DeleteSecretsStoreRequest{
-		NamePrefix: "mo-test",
-		Project:    "phoenix",
+		NamePrefix:  "mo-test",
+		ProjectName: "phoenix",
 	}
 }
 
@@ -792,16 +792,20 @@ type DeleteSecretsStoreResponse struct {
 }
 
 type CreateExternalSecretRequest struct {
-	Name                  string `json:"name" validate:"required"`
+	ServiceName           string `json:"serviceName" validate:"required"`
 	Namespace             string `json:"namespace" validate:"required"`
+	ProjectName           string `json:"projectName" validate:"required"`
 	SecretStoreNamePrefix string `json:"namePrefix" validate:"required"`
-	Project               string `json:"project" validate:"required"`
+	PropertyName          string `json:"propertyName" validate:"required"`
 }
 
 func CreateExternalSecretRequestExample() CreateExternalSecretRequest {
 	return CreateExternalSecretRequest{
-		Name:      "customer-app01",
-		Namespace: "customer-app-namespace",
+		ServiceName:           "customer-app01",
+		Namespace:             "customer-app-namespace",
+		ProjectName:           "phoenix",
+		SecretStoreNamePrefix: "mo-test",
+		PropertyName:          "postgresURL",
 	}
 }
 
