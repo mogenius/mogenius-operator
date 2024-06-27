@@ -239,11 +239,6 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 				}
 			}
 		}
-
-		// SECURITY CONTEXT
-		// TODO XXX wieder in betrieb nehmen
-		//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
-		specTemplate.Spec.Containers[index].SecurityContext = nil
 	}
 
 	// IMAGE PULL SECRET
