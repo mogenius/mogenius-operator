@@ -64,6 +64,9 @@ jobs:
           kubectl apply -f utils/yaml-templates/crds-applicationkit.yaml
           kubectl apply -f utils/yaml-templates/crds-environments.yaml
           kubectl apply -f utils/yaml-templates/crds-projects.yaml
+          
+          # helm release is taking some to boot pods
+          sleep 10
       - name: Run tests
         run: |
           go mod download
