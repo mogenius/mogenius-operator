@@ -99,7 +99,3 @@ func K8sDeleteCronJob(r K8sDeleteResourceRequest) interface{} {
 func K8sDeleteReplicaSet(r K8sDeleteResourceRequest) interface{} {
 	return punq.DeleteK8sReplicasetBy(r.Namespace, r.Name, nil)
 }
-
-func K8sDeleteHpa(r K8sDeleteResourceRequest) interface{} {
-	return punq.DeleteK8sHpaBy(r.Namespace, r.Name, nil)
-}
