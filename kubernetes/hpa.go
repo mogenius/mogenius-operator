@@ -27,7 +27,7 @@ const (
 )
 
 func DeleteHpa(job *structs.Job, name, namespace string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", fmt.Sprintf("Delete hpa '%s' in '%s'.", name, namespace), job)
+	cmd := structs.CreateCommand("delete", fmt.Sprintf("Delete hpa '%s' in '%s'.", name+hpaNameSuffix, namespace), job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
