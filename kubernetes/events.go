@@ -65,7 +65,7 @@ func ResourceWatcher() {
 
 	log.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
-		switch workload {
+		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
 			go WatchConfigmaps()
 		case dtos.KindDeployments:
@@ -104,7 +104,7 @@ func InitAllWorkloads() {
 		return
 	}
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
-		switch workload {
+		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
 			ressources := punq.AllConfigmaps("", nil)
 			for _, res := range ressources {
