@@ -17,8 +17,10 @@ func (s *K8sServiceDto) AddSecretsToRedaction() {
 	for _, container := range s.Containers {
 		utils.AddSecret(container.ContainerImageRepoSecretDecryptValue)
 		utils.AddSecret(container.ContainerImageRepoSecretId)
-		for _, envSecret := range container.EnvVars {
-			utils.AddSecret(&envSecret.Value)
+		for _, envVar := range container.EnvVars {
+			if envVar.Type == EnvVarKeyVault {
+				utils.AddSecret(&envVar.Value)
+			}
 		}
 	}
 }
