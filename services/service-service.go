@@ -669,12 +669,6 @@ func K8sUpdateHPARequestExample() K8sUpdateHPARequest {
 	}
 }
 
-type K8sCreateHpaRequest struct {
-	Name      string                      `json:"name" validate:"required"`
-	Namespace string                      `json:"namespace" validate:"required"`
-	Data      *v2.HorizontalPodAutoscaler `json:"data" validate:"required"`
-}
-
 type K8sUpdateCertificateRequest struct {
 	Data *cmapi.Certificate `json:"data" validate:"required"`
 }
