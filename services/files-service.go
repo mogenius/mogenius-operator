@@ -421,6 +421,7 @@ func FilesDeleteRequestExampleData() FilesDeleteRequest {
 	}
 }
 
+// @todo: calculate dir size. use volume calculation as example
 func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
 	result := []dtos.PersistentFileDto{}
 	err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
