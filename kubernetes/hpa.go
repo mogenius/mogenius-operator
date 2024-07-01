@@ -23,37 +23,37 @@ import (
 )
 
 const (
-	hpaNameSuffix = "-hpa"
+	HpaNameSuffix = "-hpa"
 )
 
-func DeleteHpa(job *structs.Job, name, namespace string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", fmt.Sprintf("Delete hpa '%s' in '%s'.", name+hpaNameSuffix, namespace), job)
+func DeleteHpa(job *structs.Job, namespaceName, controllerName string, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand("delete", fmt.Sprintf("Delete hpa '%s' in '%s'.", controllerName+HpaNameSuffix, namespaceName), job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(job, "Delete hpa")
 
-		punq.DeleteK8sHpaBy(namespace, name+hpaNameSuffix, nil)
+		punq.DeleteK8sHpaBy(namespaceName, controllerName+HpaNameSuffix, nil)
 	}(wg)
 }
 
-func CreateHpa(hpaSettings *dtos.K8sHpaSettingsDto) (*v2.HorizontalPodAutoscaler, error) {
-	deployment, err := punq.GetK8sDeployment(hpaSettings.Namespace, hpaSettings.Name, nil)
+func CreateHpa(namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto) (*v2.HorizontalPodAutoscaler, error) {
+	deployment, err := punq.GetK8sDeployment(namespaceName, controllerName, nil)
 	if err != nil || deployment == nil {
 		return nil, fmt.Errorf("Cannot create HPA, Deployment not found")
 	}
 
 	meta := &metav1.ObjectMeta{
-		Name:      hpaSettings.Name + hpaNameSuffix,
-		Namespace: hpaSettings.Namespace,
+		Name:      controllerName + HpaNameSuffix,
+		Namespace: namespaceName,
 		Labels: map[string]string{
-			"app": hpaSettings.Name,
+			"app": controllerName,
 		},
 		OwnerReferences: []metav1.OwnerReference{
 			{
 				APIVersion: "apps/v1",
 				Kind:       "Deployment",
-				Name:       hpaSettings.Name,
+				Name:       controllerName,
 				UID:        deployment.UID,
 			},
 		},
@@ -61,19 +61,25 @@ func CreateHpa(hpaSettings *dtos.K8sHpaSettingsDto) (*v2.HorizontalPodAutoscaler
 
 	hpa := &v2.HorizontalPodAutoscaler{
 		ObjectMeta: *meta,
-		Spec:       hpaSettings.Data.Spec,
+		Spec:       *hpaSettings.HorizontalPodAutoscalerSpec,
+	}
+
+	hpa.Spec.ScaleTargetRef = v2.CrossVersionObjectReference{
+		Kind:       "Deployment",
+		Name:       controllerName,
+		APIVersion: "apps/v1",
 	}
 
 	return hpa, nil
 }
 
-func CreateOrUpdateHpa(job *structs.Job, hpaSettings *dtos.K8sHpaSettingsDto, wg *sync.WaitGroup) {
+func CreateOrUpdateHpa(job *structs.Job, namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto, wg *sync.WaitGroup) {
 	if hpaSettings == nil {
-		log.Warningf("CreateOrUpdateHpa warning: hpaSettings is nil")
+		log.Warningf("CreateOrUpdate hpa warning: hpaSettings is nil")
 		return
 	}
 
-	cmd := structs.CreateCommand("CreateOrUpdate", "Hpa", job)
+	cmd := structs.CreateCommand("CreateOrUpdate", "CreateOrUpdate Hpa", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -85,8 +91,8 @@ func CreateOrUpdateHpa(job *structs.Job, hpaSettings *dtos.K8sHpaSettingsDto, wg
 			return
 		}
 
-		hpaClient := provider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(hpaSettings.Name)
-		newHpa, err := CreateHpa(hpaSettings)
+		hpaClient := provider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespaceName)
+		newHpa, err := CreateHpa(namespaceName, controllerName, hpaSettings)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
 		}
