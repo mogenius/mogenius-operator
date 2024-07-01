@@ -171,9 +171,9 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 		specTemplate.Spec.Volumes = []v1core.Volume{}
 
 		for _, envVar := range container.EnvVars {
-			if envVar.Type == "KEY_VAULT" ||
-				envVar.Type == "PLAINTEXT" ||
-				envVar.Type == "HOSTNAME" {
+			if envVar.Type == dtos.EnvVarKeyVault {
+				//envVar.Type == "PLAINTEXT" ||
+				//envVar.Type == "HOSTNAME" {
 				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
 					Name: envVar.Name,
 					ValueFrom: &v1core.EnvVarSource{
@@ -186,7 +186,13 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					},
 				})
 			}
-			if envVar.Type == "VOLUME_MOUNT" {
+			if envVar.Type == dtos.EnvVarPlainText || envVar.Type == dtos.EnvVarHostname {
+				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
+					Name:  envVar.Name,
+					Value: envVar.Value,
+				})
+			}
+			if envVar.Type == dtos.EnvVarVolumeMount {
 				// VOLUMEMOUNT
 				// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
 				components := strings.Split(envVar.Value, ":")
@@ -233,15 +239,11 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 				}
 			}
 		}
-
-		// SECURITY CONTEXT
-		// TODO XXX wieder in betrieb nehmen
-		//structs.StateDebugLog(fmt.Sprintf("securityContext of '%s' removed from deployment. BENE MUST SOLVE THIS!", service.K8sName))
-		specTemplate.Spec.Containers[index].SecurityContext = nil
 	}
 
 	// IMAGE PULL SECRET
-	if ContainerSecretDoesExistForStage(namespace) {
+	// the second check because otherwise we would overwrite the imagePullSecrets which is only defined for the service
+	if ContainerSecretDoesExistForStage(namespace) && len(specTemplate.Spec.ImagePullSecrets) <= 0 {
 		containerSecretName := "container-secret-" + namespace.Name
 		specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
 		specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{Name: containerSecretName})

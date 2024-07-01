@@ -1,5 +1,15 @@
 package structs
 
+type SystemCheckStatus string
+
+const (
+	UNKNOWN_STATUS SystemCheckStatus = "UNKNOWN_STATUS"
+	INSTALLING     SystemCheckStatus = "INSTALLING"
+	UNINSTALLING   SystemCheckStatus = "UNINSTALLING"
+	NOT_INSTALLED  SystemCheckStatus = "NOT_INSTALLED"
+	INSTALLED      SystemCheckStatus = "INSTALLED"
+)
+
 type HelmTaskEnum string
 
 const (
@@ -38,6 +48,7 @@ const (
 	PAT_INSTALL_CERT_MANAGER                 string = "install-cert-manager"
 	PAT_INSTALL_CLUSTER_ISSUER               string = "install-cluster-issuer"
 	PAT_INSTALL_CONTAINER_REGISTRY           string = "install-container-registry"
+	PAT_INSTALL_EXTERNAL_SECRETS             string = "install-external-secrets"
 	PAT_INSTALL_METALLB                      string = "install-metallb"
 	PAT_INSTALL_KEPLER                       string = "install-kepler"
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR          string = "uninstall-traffic-collector"
@@ -47,6 +58,7 @@ const (
 	PAT_UNINSTALL_CERT_MANAGER               string = "uninstall-cert-manager"
 	PAT_UNINSTALL_CLUSTER_ISSUER             string = "uninstall-cluster-issuer"
 	PAT_UNINSTALL_CONTAINER_REGISTRY         string = "uninstall-container-registry"
+	PAT_UNINSTALL_EXTERNAL_SECRETS           string = "uninstall-external-secrets"
 	PAT_UNINSTALL_METALLB                    string = "uninstall-metallb"
 	PAT_UNINSTALL_KEPLER                     string = "uninstall-kepler"
 	PAT_UPGRADE_TRAFFIC_COLLECTOR            string = "upgrade-traffic-collector"
@@ -391,6 +403,13 @@ const (
 	PAT_POPEYE_CONSOLE string = "popeye_console"
 
 	PAT_FILES_UPLOAD string = "files/upload"
+
+	PAT_EXTERNAL_SECRET_STORE_CREATE                 string = "external-secret-store/create"
+	PAT_EXTERNAL_SECRET_STORE_LIST                   string = "external-secret-store/list"
+	PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS string = "external-secret-store/list-available-secrets"
+	PAT_EXTERNAL_SECRET_STORE_DELETE                 string = "external-secret/delete"
+	PAT_EXTERNAL_SECRET_CREATE                       string = "external-secret/create"
+	PAT_EXTERNAL_SECRET_DELETE                       string = "external-secret/delete"
 )
 
 var BINARY_REQUEST_UPLOAD = []string{
@@ -416,6 +435,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_INSTALL_CERT_MANAGER,
 	PAT_INSTALL_CLUSTER_ISSUER,
 	PAT_INSTALL_CONTAINER_REGISTRY,
+	PAT_INSTALL_EXTERNAL_SECRETS,
 	PAT_INSTALL_METALLB,
 	PAT_INSTALL_KEPLER,
 	PAT_UNINSTALL_TRAFFIC_COLLECTOR,
@@ -425,6 +445,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_UNINSTALL_CERT_MANAGER,
 	PAT_UNINSTALL_CLUSTER_ISSUER,
 	PAT_UNINSTALL_CONTAINER_REGISTRY,
+	PAT_UNINSTALL_EXTERNAL_SECRETS,
 	PAT_UNINSTALL_METALLB,
 	PAT_UNINSTALL_KEPLER,
 	PAT_UPGRADE_TRAFFIC_COLLECTOR,
@@ -766,6 +787,13 @@ var COMMAND_REQUESTS = []string{
 	PAT_POPEYE_CONSOLE,
 
 	PAT_LOG_LIST_ALL,
+
+	PAT_EXTERNAL_SECRET_STORE_CREATE,
+	PAT_EXTERNAL_SECRET_STORE_LIST,
+	PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS,
+	PAT_EXTERNAL_SECRET_STORE_DELETE,
+	PAT_EXTERNAL_SECRET_CREATE,
+	PAT_EXTERNAL_SECRET_DELETE,
 }
 
 var SUPPRESSED_OUTPUT_PATTERN = []string{

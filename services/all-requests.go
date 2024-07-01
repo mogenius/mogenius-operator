@@ -122,6 +122,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return InstallClusterIssuer(data.Email, 0)
 	case structs.PAT_INSTALL_CONTAINER_REGISTRY:
 		return InstallContainerRegistry()
+	case structs.PAT_INSTALL_EXTERNAL_SECRETS:
+		return InstallExternalSecrets()
 	case structs.PAT_INSTALL_METALLB:
 		return InstallMetalLb()
 	case structs.PAT_INSTALL_KEPLER:
@@ -140,6 +142,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return UninstallClusterIssuer()
 	case structs.PAT_UNINSTALL_CONTAINER_REGISTRY:
 		return UninstallContainerRegistry()
+	case structs.PAT_UNINSTALL_EXTERNAL_SECRETS:
+		return UninstallExternalSecrets()
 	case structs.PAT_UNINSTALL_METALLB:
 		return UninstallMetalLb()
 	case structs.PAT_UNINSTALL_KEPLER:
@@ -2107,8 +2111,38 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return PopeyeConsole()
 	case structs.PAT_LOG_LIST_ALL:
 		return db.ListLogFromDb()
-	}
 
+	case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
+		data := CreateSecretsStoreRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return CreateExternalSecretsStore(data)
+	case structs.PAT_EXTERNAL_SECRET_STORE_LIST:
+		return ListExternalSecretsStores()
+	case structs.PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS:
+		data := ListSecretsRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return ListAvailableExternalSecrets(data)
+	case structs.PAT_EXTERNAL_SECRET_STORE_DELETE:
+		data := DeleteSecretsStoreRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return DeleteExternalSecretsStore(data)
+	case structs.PAT_EXTERNAL_SECRET_CREATE:
+		data := CreateExternalSecretRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return CreateExternalSecret(data)
+	}
 	datagram.Err = "Pattern not found"
 	return datagram
 }

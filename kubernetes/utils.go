@@ -20,6 +20,7 @@ import (
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/scheme"
@@ -66,6 +67,15 @@ func init() {
 	if NAMESPACE == "" {
 		NAMESPACE = "mogenius"
 	}
+}
+func getCoreClient() coreV1.CoreV1Interface {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Fatal("Error creating kubeprovider")
+	}
+	client := provider.ClientSet.CoreV1()
+
+	return client
 }
 
 func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
@@ -396,4 +406,25 @@ outerLoop:
 		result[ip] = ""
 	}
 	return result
+}
+
+func GetLabelValue(labels map[string]string, labelKey string) (string, error) {
+	if labels == nil {
+		return "", fmt.Errorf("Labels are nil")
+	}
+
+	if val, ok := labels[labelKey]; ok {
+		return val, nil
+	}
+
+	return "", fmt.Errorf("Label value for key:'%s' not found", labelKey)
+}
+
+func ContainsLabelKey(labels map[string]string, key string) bool {
+	if labels == nil {
+		return false
+	}
+
+	_, ok := labels[key]
+	return ok
 }

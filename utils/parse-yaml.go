@@ -185,3 +185,27 @@ func InitMogeniusCrdApplicationKitYaml() string {
 
 	return string(yaml)
 }
+
+func InitExternalSecretsStoreYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secrets-store-vault.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+	return string(yaml)
+}
+
+func InitExternalSecretListYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secret-list-available-kvs.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+	return string(yaml)
+}
+
+func InitExternalSecretYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secret.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+	return string(yaml)
+}

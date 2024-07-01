@@ -23,36 +23,6 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func CreateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Create Kubernetes ConfigMap", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Creating ConfigMap")
-
-		provider, err := punq.NewKubeProvider(nil)
-		if provider == nil || err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
-		configMap := punqUtils.InitConfigMap()
-		configMap.ObjectMeta.Name = service.ControllerName
-		configMap.ObjectMeta.Namespace = namespace.Name
-		delete(configMap.Data, "XXX") // delete example data
-
-		// TODO: WRITE STUFF INTO CONFIGMAP
-		configMap.Labels = MoUpdateLabels(&configMap.Labels, nil, nil, &service)
-
-		_, err = configMapClient.Create(context.TODO(), &configMap, MoCreateOptions())
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("CreateConfigMap ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Created ConfigMap")
-		}
-	}(wg)
-}
-
 func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", "Delete Kubernetes configMap", job)
 	wg.Add(1)
@@ -76,39 +46,6 @@ func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 			cmd.Fail(job, fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()))
 		} else {
 			cmd.Success(job, "Deleted configMap")
-		}
-	}(wg)
-}
-
-func UpdateConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Updating configMap")
-
-		provider, err := punq.NewKubeProvider(nil)
-		if provider == nil || err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
-		configMap := punqUtils.InitConfigMap()
-		configMap.ObjectMeta.Name = service.ControllerName
-		configMap.ObjectMeta.Namespace = namespace.Name
-		delete(configMap.Data, "XXX") // delete example data
-
-		// TODO: WRITE STUFF INTO CONFIGMAP
-
-		updateOptions := metav1.UpdateOptions{
-			FieldManager: DEPLOYMENTNAME,
-		}
-
-		_, err = configMapClient.Update(context.TODO(), &configMap, updateOptions)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Update configMap")
 		}
 	}(wg)
 }
