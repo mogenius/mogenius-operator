@@ -3,6 +3,7 @@ package dtos
 import (
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/mogenius/punq/utils"
@@ -35,6 +36,7 @@ type K8sContainerDto struct {
 }
 
 func (k *K8sContainerDto) GetInjectDockerEnvVars(buildId uint64, gitTag string) string {
+	buildIdStr := strconv.FormatUint(buildId, 10)
 	gitTag = strings.ReplaceAll(gitTag, "\n", "")
 	result := ""
 	for _, v := range k.EnvVars {
@@ -42,7 +44,7 @@ func (k *K8sContainerDto) GetInjectDockerEnvVars(buildId uint64, gitTag string) 
 			result += fmt.Sprintf("--build-arg %s=\"$(echo \"%s\" | base64 --decode)\" ", v.Name, base64.StdEncoding.EncodeToString([]byte(v.Value)))
 		}
 	}
-	result += fmt.Sprintf("--build-arg MO_BUILD_ID=\"$(echo \"%s\" | base64 --decode)\" ", base64.StdEncoding.EncodeToString([]byte(string(buildId))))
+	result += fmt.Sprintf("--build-arg MO_BUILD_ID=\"$(echo \"%s\" | base64 --decode)\" ", base64.StdEncoding.EncodeToString([]byte(buildIdStr)))
 	result += fmt.Sprintf("--build-arg MO_GIT_TAG=\"$(echo \"%s\" | base64 --decode)\" ", base64.StdEncoding.EncodeToString([]byte(gitTag)))
 	result += fmt.Sprintf("--build-arg MO_GIT_COMMIT_HASH=\"$(echo \"%s\" | base64 --decode)\" ", base64.StdEncoding.EncodeToString([]byte(*k.GitCommitHash)))
 	result += fmt.Sprintf("--build-arg MO_GIT_COMMIT_AUTHOR=\"$(echo \"%s\" | base64 --decode)\" ", base64.StdEncoding.EncodeToString([]byte(*k.GitCommitAuthor)))
@@ -52,9 +54,11 @@ func (k *K8sContainerDto) GetInjectDockerEnvVars(buildId uint64, gitTag string) 
 }
 
 func (k *K8sContainerDto) AvailableDockerBuildArgs(buildId uint64, gitTag string) string {
+	buildIdStr := strconv.FormatUint(buildId, 10)
+
 	gitTag = strings.ReplaceAll(gitTag, "\n", "")
 	result := ""
-	result += fmt.Sprintf("MO_BUILD_ID=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(string(buildId))))
+	result += fmt.Sprintf("MO_BUILD_ID=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(buildIdStr)))
 	result += fmt.Sprintf("MO_GIT_TAG=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(gitTag)))
 	result += fmt.Sprintf("MO_GIT_COMMIT_HASH=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(*k.GitCommitHash)))
 	result += fmt.Sprintf("MO_GIT_COMMIT_AUTHOR=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(*k.GitCommitAuthor)))
