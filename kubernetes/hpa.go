@@ -27,20 +27,25 @@ const (
 )
 
 func DeleteHpa(job *structs.Job, namespaceName, controllerName string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", fmt.Sprintf("Delete hpa '%s' in '%s'.", controllerName+HpaNameSuffix, namespaceName), job)
+	cmd := structs.CreateCommand("delete", fmt.Sprintf("Delete hpa '%s'.", controllerName+HpaNameSuffix), job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(job, "Delete hpa")
 
-		punq.DeleteK8sHpaBy(namespaceName, controllerName+HpaNameSuffix, nil)
+		err := punq.DeleteK8sHpaBy(namespaceName, controllerName+HpaNameSuffix, nil)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("Deleting hpa ERROR: '%s'", err.Error()))
+		} else {
+			cmd.Success(job, "Deleted hpa")
+		}
 	}(wg)
 }
 
 func CreateHpa(namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto) (*v2.HorizontalPodAutoscaler, error) {
 	deployment, err := punq.GetK8sDeployment(namespaceName, controllerName, nil)
 	if err != nil || deployment == nil {
-		return nil, fmt.Errorf("Cannot create HPA, Deployment not found")
+		return nil, fmt.Errorf("Cannot create hpa, Deployment not found")
 	}
 
 	meta := &metav1.ObjectMeta{
@@ -79,11 +84,11 @@ func CreateOrUpdateHpa(job *structs.Job, namespaceName, controllerName string, h
 		return
 	}
 
-	cmd := structs.CreateCommand("CreateOrUpdate", "CreateOrUpdate Hpa", job)
+	cmd := structs.CreateCommand("CreateOrUpdate", "CreateOrUpdate hpa", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "CreateOrUpdate Hpa")
+		cmd.Start(job, "CreateOrUpdate hpa")
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -102,15 +107,15 @@ func CreateOrUpdateHpa(job *structs.Job, namespaceName, controllerName string, h
 			if apierrors.IsNotFound(err) {
 				_, err = hpaClient.Create(context.TODO(), newHpa, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateOrUpdate ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
 				} else {
-					cmd.Success(job, "Created Hpa")
+					cmd.Success(job, "Created hpa")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("Updating Hpa ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("Updating hpa ERROR: %s", err.Error()))
 			}
 		} else {
-			cmd.Success(job, "Updating Hpa")
+			cmd.Success(job, "Updated hpa")
 		}
 	}(wg)
 }
