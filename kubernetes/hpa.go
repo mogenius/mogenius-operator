@@ -26,6 +26,17 @@ const (
 	HpaNameSuffix = "-hpa"
 )
 
+func HandleHpa(job *structs.Job, namespaceName, controllerName string, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	if service.HpaEnabled() {
+		CreateOrUpdateHpa(job, namespaceName, service.ControllerName, service.HpaSettings, wg)
+	} else {
+		hpa, error := punq.GetHpa(namespaceName, service.ControllerName+HpaNameSuffix, nil)
+		if error == nil && hpa.DeletionTimestamp == nil {
+			DeleteHpa(job, namespaceName, service.ControllerName, wg)
+		}
+	}
+}
+
 func DeleteHpa(job *structs.Job, namespaceName, controllerName string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", fmt.Sprintf("Delete hpa '%s'.", controllerName+HpaNameSuffix), job)
 	wg.Add(1)

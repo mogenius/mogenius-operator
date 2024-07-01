@@ -67,15 +67,6 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		mokubernetes.UpdateCronJob(job, r.Namespace, r.Service, &wg)
 	}
 
-	if r.Service.HpaEnabled() {
-		mokubernetes.CreateOrUpdateHpa(job, r.Namespace.Name, r.Service.ControllerName, r.Service.HpaSettings, &wg)
-	} else {
-		hpa, error := punq.GetHpa(r.Namespace.Name, r.Service.ControllerName+mokubernetes.HpaNameSuffix, nil)
-		if error == nil && hpa.DeletionTimestamp == nil {
-			mokubernetes.DeleteHpa(job, r.Namespace.Name, r.Service.ControllerName, &wg)
-		}
-	}
-
 	if r.Service.HasContainerWithGitRepo() && serviceHasYamlSettings(r.Service) {
 		updateInfrastructureYaml(job, r.Service, &wg)
 	}
