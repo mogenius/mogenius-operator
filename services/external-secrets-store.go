@@ -246,6 +246,7 @@ func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretSto
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<ROLE>", props.Role, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount, -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_DEFAULT_NS>", utils.CONFIG.Kubernetes.OwnNamespace, -1)
 
 	return yamlTemplateString
 }
