@@ -103,14 +103,15 @@ func CreateOrUpdateHpa(job *structs.Job, namespaceName, controllerName string, h
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
 			return
 		}
 
 		hpaClient := provider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespaceName)
 		newHpa, err := CreateHpa(namespaceName, controllerName, hpaSettings)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			cmd.Fail(job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
+			return
 		}
 
 		_, err = hpaClient.Update(context.TODO(), newHpa, MoUpdateOptions())
