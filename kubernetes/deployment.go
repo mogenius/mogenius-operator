@@ -58,6 +58,7 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			cmd.Success(job, "Created deployment")
 		}
 
+		HandleHpa(job, namespace.Name, service.ControllerName, service, wg)
 	}(wg)
 }
 
@@ -85,7 +86,6 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		} else {
 			cmd.Success(job, "Deleted Deployment")
 		}
-
 	}(wg)
 }
 
@@ -128,6 +128,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			cmd.Success(job, "Updating deployment")
 		}
 
+		HandleHpa(job, namespace.Name, service.ControllerName, service, wg)
 	}(wg)
 }
 
@@ -161,6 +162,8 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		} else {
 			cmd.Success(job, "Started Deployment")
 		}
+
+		HandleHpa(job, namespace.Name, service.ControllerName, service, wg)
 	}(wg)
 }
 
@@ -195,6 +198,8 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		} else {
 			cmd.Success(job, "Stopped Deployment")
 		}
+
+		HandleHpa(job, namespace.Name, service.ControllerName, service, wg)
 	}(wg)
 }
 
@@ -236,6 +241,8 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		} else {
 			cmd.Success(job, "Restart Deployment")
 		}
+
+		HandleHpa(job, namespace.Name, service.ControllerName, service, wg)
 	}(wg)
 }
 
