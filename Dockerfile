@@ -95,7 +95,6 @@ RUN adduser -s /bin/sh -D mogee
 WORKDIR /app
 
 COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
-COPY --from=builder ["/app/grype-json-template", "."]
 COPY --from=builder ["/usr/local/bin/helm", "/usr/local/bin/helm"]
 
 ENV GIN_MODE=release
