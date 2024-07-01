@@ -40,11 +40,23 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 		// get fresh metadata about existing resource
 		gvr := getGVR(obj)
 		namespace := obj.GetNamespace()
-		res, err := GetResource(gvr.Group, gvr.Version, gvr.Resource, obj.GetName(), namespace, isClusterWideResource)
-		if err != nil {
-			return err
-		} else {
-			logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
+
+		var res *unstructured.Unstructured
+		var err error
+		for i := 0; i < 3; i++ {
+			GetResource(gvr.Group, gvr.Version, gvr.Resource, obj.GetName(), namespace, isClusterWideResource)
+			if err != nil {
+				return err
+			} else {
+				logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
+				for _, condition := range res.Status.Conditions {
+					if condition.Type == "Ready" && condition.Status == "True" {
+						fmt.Println("Pod is in Ready status.")
+					} else {
+						logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
+					}
+				}
+			}
 		}
 		// Try update if already exists
 		obj, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
