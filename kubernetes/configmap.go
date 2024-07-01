@@ -80,42 +80,42 @@ func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string,
 	}(wg)
 }
 
-func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName string, key string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Update Kubernetes configMap.")
+// func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName string, key string, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Update Kubernetes configMap.")
 
-		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
-		if configMap != nil {
-			if configMap.Data == nil {
-				cmd.Success(job, "ConfigMap contains no data. No key was removed.")
-				return
-			} else {
-				delete(configMap.Data, key)
+// 		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
+// 		if configMap != nil {
+// 			if configMap.Data == nil {
+// 				cmd.Success(job, "ConfigMap contains no data. No key was removed.")
+// 				return
+// 			} else {
+// 				delete(configMap.Data, key)
 
-				provider, err := punq.NewKubeProvider(nil)
-				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-					return
-				}
-				updateOptions := metav1.UpdateOptions{
-					FieldManager: DEPLOYMENTNAME,
-				}
-				configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
-				_, err = configMapClient.Update(context.TODO(), configMap, updateOptions)
-				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
-					return
-				}
-				cmd.Success(job, fmt.Sprintf("Key %s successfully removed.", key))
-				return
-			}
-		}
-		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
-	}(wg)
-}
+// 				provider, err := punq.NewKubeProvider(nil)
+// 				if err != nil {
+// 					cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 					return
+// 				}
+// 				updateOptions := metav1.UpdateOptions{
+// 					FieldManager: DEPLOYMENTNAME,
+// 				}
+// 				configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+// 				_, err = configMapClient.Update(context.TODO(), configMap, updateOptions)
+// 				if err != nil {
+// 					cmd.Fail(job, fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
+// 					return
+// 				}
+// 				cmd.Success(job, fmt.Sprintf("Key %s successfully removed.", key))
+// 				return
+// 			}
+// 		}
+// 		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
+// 	}(wg)
+// }
 
 func WriteConfigMap(namespace string, name string, data string, labels map[string]string) error {
 	provider, err := punq.NewKubeProvider(nil)

@@ -54,28 +54,28 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 	}(wg)
 }
 
-func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Delete NetworkPolicy.", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Delete NetworkPolicy")
+// func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("delete", "Delete NetworkPolicy.", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Delete NetworkPolicy")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
+// 		provider, err := punq.NewKubeProvider(nil)
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 			return
+// 		}
+// 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 
-		err = netPolClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Delete NetworkPolicy")
-		}
-	}(wg)
-}
+// 		err = netPolClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
+// 		} else {
+// 			cmd.Success(job, "Delete NetworkPolicy")
+// 		}
+// 	}(wg)
+// }
 
 func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("create", "Create NetworkPolicy Service", job)

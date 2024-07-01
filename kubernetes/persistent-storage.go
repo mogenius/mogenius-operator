@@ -12,7 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	"github.com/mogenius/punq/logger"
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,32 +39,32 @@ const (
 	resourceKind               string = "persistentvolumes"
 )
 
-func PersistentVolumes(listOptions *metav1.ListOptions, contextId *string) []v1.PersistentVolume {
-	result := []v1.PersistentVolume{}
+// func PersistentVolumes(listOptions *metav1.ListOptions, contextId *string) []v1.PersistentVolume {
+// 	result := []v1.PersistentVolume{}
 
-	provider, err := punq.NewKubeProvider(contextId)
-	if err != nil {
-		return result
-	}
+// 	provider, err := punq.NewKubeProvider(contextId)
+// 	if err != nil {
+// 		return result
+// 	}
 
-	if listOptions == nil {
-		listOptions = &metav1.ListOptions{}
-	}
+// 	if listOptions == nil {
+// 		listOptions = &metav1.ListOptions{}
+// 	}
 
-	pvList, err := provider.ClientSet.CoreV1().PersistentVolumes().List(context.TODO(), *listOptions)
-	if err != nil {
-		logger.Log.Errorf("PersistentVolumes ERROR: %s", err.Error())
-		return result
-	}
+// 	pvList, err := provider.ClientSet.CoreV1().PersistentVolumes().List(context.TODO(), *listOptions)
+// 	if err != nil {
+// 		logger.Log.Errorf("PersistentVolumes ERROR: %s", err.Error())
+// 		return result
+// 	}
 
-	for _, v := range pvList.Items {
-		v.Kind = persistentVolumeKind
-		v.APIVersion = persistentVolumeAPIVersion
-		result = append(result, v)
-	}
+// 	for _, v := range pvList.Items {
+// 		v.Kind = persistentVolumeKind
+// 		v.APIVersion = persistentVolumeAPIVersion
+// 		result = append(result, v)
+// 	}
 
-	return result
-}
+// 	return result
+// }
 
 func WatchPersistentVolumes() {
 	provider, err := punq.NewKubeProvider(nil)
