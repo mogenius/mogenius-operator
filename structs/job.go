@@ -188,7 +188,7 @@ func stateLogCmd(data *Command) {
 	}
 }
 
-func StateDebugLog(debugStr string) {
-	DEBUG := color.New(color.FgWhite, color.BgHiMagenta).SprintFunc()
-	log.Infof("%-6s %-26s %s\n", "DEBUG", DEBUG(punqUtils.FillWith("DEBUG", 15, " ")), debugStr)
-}
+// func StateDebugLog(debugStr string) {
+// 	DEBUG := color.New(color.FgWhite, color.BgHiMagenta).SprintFunc()
+// 	log.Infof("%-6s %-26s %s\n", "DEBUG", DEBUG(punqUtils.FillWith("DEBUG", 15, " ")), debugStr)
+// }

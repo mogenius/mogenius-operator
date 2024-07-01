@@ -196,13 +196,13 @@ const (
 	PAT_LIST_VOLUMESNAPSHOTS             string = "list/volumesnapshots"
 	PAT_LIST_RESOURCEQUOTAS              string = "list/resourcequotas"
 
-	PAT_CREATE_NAMESPACE                   string = "create/namespace"
-	PAT_CREATE_DEPLOYMENT                  string = "create/deployment"
-	PAT_CREATE_SERVICE                     string = "create/service"
-	PAT_CREATE_POD                         string = "create/pod"
-	PAT_CREATE_INGRESS                     string = "create/ingress"
-	PAT_CREATE_CONFIGMAP                   string = "create/configmap"
-	PAT_CREATE_SECRET                      string = "create/secret"
+	// PAT_CREATE_NAMESPACE  string = "create/namespace"
+	// PAT_CREATE_DEPLOYMENT string = "create/deployment"
+	// PAT_CREATE_SERVICE                     string = "create/service"
+	// PAT_CREATE_POD                         string = "create/pod"
+	// PAT_CREATE_INGRESS                     string = "create/ingress"
+	PAT_CREATE_CONFIGMAP string = "create/configmap"
+	// PAT_CREATE_SECRET                      string = "create/secret"
 	PAT_CREATE_DAEMONSET                   string = "create/daemonset"
 	PAT_CREATE_STATEFULSET                 string = "create/statefulset"
 	PAT_CREATE_JOB                         string = "create/job"
@@ -389,12 +389,12 @@ const (
 	PAT_BUILD_LIST_BY_PROJECT string = "build/list-by-project"
 	PAT_BUILD_ADD             string = "build/add"
 	// PAT_BUILD_SCAN                     string = "build/scan"
-	PAT_BUILD_CANCEL                   string = "build/cancel"
-	PAT_BUILD_DELETE                   string = "build/delete"
-	PAT_BUILD_LAST_JOB_OF_SERVICES     string = "build/last-job-of-services"
-	PAT_BUILD_JOB_LIST_OF_SERVICE      string = "build/job-list-of-service"
-	PAT_BUILD_DELETE_ALL_OF_SERVICE    string = "build/delete-of-service"
-	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE string = "build/last-job-info-of-service"
+	PAT_BUILD_CANCEL                string = "build/cancel"
+	PAT_BUILD_DELETE                string = "build/delete"
+	PAT_BUILD_LAST_JOB_OF_SERVICES  string = "build/last-job-of-services"
+	PAT_BUILD_JOB_LIST_OF_SERVICE   string = "build/job-list-of-service"
+	PAT_BUILD_DELETE_ALL_OF_SERVICE string = "build/delete-of-service"
+	// PAT_BUILD_LAST_JOB_INFO_OF_SERVICE string = "build/last-job-info-of-service"
 
 	PAT_LOG_LIST_ALL string = "log/list-all"
 
@@ -582,13 +582,13 @@ var COMMAND_REQUESTS = []string{
 	PAT_LIST_VOLUMESNAPSHOTS,
 	PAT_LIST_RESOURCEQUOTAS,
 
-	PAT_CREATE_NAMESPACE,
-	PAT_CREATE_DEPLOYMENT,
-	PAT_CREATE_SERVICE,
-	PAT_CREATE_POD,
-	PAT_CREATE_INGRESS,
+	// PAT_CREATE_NAMESPACE,
+	// PAT_CREATE_DEPLOYMENT,
+	// PAT_CREATE_SERVICE,
+	// PAT_CREATE_POD,
+	// PAT_CREATE_INGRESS,
 	PAT_CREATE_CONFIGMAP,
-	PAT_CREATE_SECRET,
+	// PAT_CREATE_SECRET,
 	PAT_CREATE_DAEMONSET,
 	PAT_CREATE_STATEFULSET,
 	PAT_CREATE_JOB,
@@ -780,7 +780,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_BUILD_LAST_JOB_OF_SERVICES,
 	PAT_BUILD_JOB_LIST_OF_SERVICE,
 	PAT_BUILD_DELETE_ALL_OF_SERVICE,
-	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE,
+	// PAT_BUILD_LAST_JOB_INFO_OF_SERVICE,
 
 	PAT_EXEC_SHELL,
 
