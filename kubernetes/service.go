@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -58,16 +60,12 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Update Application")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
-		existingService, getSrvErr := serviceClient.Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
+		existingService, getSrvErr := GetService(namespace.Name, service.ControllerName)
 		if getSrvErr != nil {
 			existingService = nil
 		}
+
+		serviceClient := getCoreClient().Services(namespace.Name)
 		updateService := generateService(existingService, namespace, service)
 
 		updateOptions := metav1.UpdateOptions{
@@ -89,7 +87,7 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 				cmd.Success(job, "Updated Application")
 			}
 		} else {
-			_, err = serviceClient.Update(context.TODO(), &updateService, updateOptions)
+			_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
 			if err != nil {
 				cmd.Fail(job, fmt.Sprintf("UpdateApplication ERROR: %s", err.Error()))
 			} else {
@@ -97,6 +95,43 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			}
 		}
 	}(wg)
+}
+
+func GetService(namespace, serviceName string) (*v1Core.Service, error) {
+	client := getCoreClient().Services(namespace)
+	return client.Get(context.TODO(), serviceName, metav1.GetOptions{})
+}
+
+func AppendExternalSecretsToService(service *v1.Service) {
+	serviceObj, err := GetService(service.Namespace, service.Name)
+	if err != nil {
+		log.Errorf("Service %s in namespace %s not found: %s", service.Name, service.Namespace, err.Error())
+		return
+	}
+	
+	var additionalEnvVars []corev1.EnvVar
+	if utils.Config.Misc.ExternalSecretsEnabled {
+		additionalExternalSecrets, err := services.FindExternalSecretsForService(service.Namespace, service.Name)
+		if err != nil {
+			log.Infof("No external secrets for service %s in namespace %s: continuing", service.Name, service.Namespace)
+		}
+		for _, secret := range additionalExternalSecrets {
+			envVar := corev1.EnvVar{
+				Name: secret.Name,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secret.Name,
+						},
+					},
+				},
+			}
+			additionalEnvVars = append(additionalEnvVars, envVar)
+		}
+	}
+	for _, container := range serviceObj.Spec. {
+		container.
+	}
 }
 
 func UpdateServiceWith(service *v1.Service) error {
