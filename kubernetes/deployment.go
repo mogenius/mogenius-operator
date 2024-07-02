@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/structs"
@@ -19,7 +20,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	v1depl "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"k8s.io/client-go/tools/cache"
@@ -338,9 +338,26 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 			spec.Template.Spec.Containers[index].LivenessProbe = nil
 			spec.Template.Spec.Containers[index].ReadinessProbe = nil
 		} else if internalHttpPort != nil {
-			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
-			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
-			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt(*internalHttpPort)
+			// StartupProbe
+			if spec.Template.Spec.Containers[index].StartupProbe == nil {
+				spec.Template.Spec.Containers[index].StartupProbe = &core.Probe{}
+				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &core.HTTPGetAction{}
+			}
+			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+
+			// LivenessProbe
+			if spec.Template.Spec.Containers[index].LivenessProbe == nil {
+				spec.Template.Spec.Containers[index].LivenessProbe = &core.Probe{}
+				spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &core.HTTPGetAction{}
+			}
+			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+
+			// ReadinessProbe
+			if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
+				spec.Template.Spec.Containers[index].ReadinessProbe = &core.Probe{}
+				spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &core.HTTPGetAction{}
+			}
+			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
 		}
 	}
 
