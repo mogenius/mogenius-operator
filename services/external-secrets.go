@@ -3,13 +3,10 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 
 	"strings"
-
-	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -108,21 +105,6 @@ func DeleteExternalSecret(name string) error {
 		utils.CONFIG.Kubernetes.OwnNamespace,
 		false,
 	)
-}
-
-func FindExternalSecretsForService(serviceName, namespace string) ([]v1.Secret, error) {
-	secrets, err := kubernetes.ListSecrets(namespace)
-	if err != nil {
-		return nil, err
-	}
-	matchingSecrets := []v1.Secret{}
-	for secret := range secrets.Items {
-		// check for labels containing the used-by-mo-service: serviceName
-		if val, ok := secrets.Items[secret].Labels["used-by-mo-service"]; ok && val == serviceName {
-			matchingSecrets = append(matchingSecrets, secrets.Items[secret])
-		}
-	}
-	return matchingSecrets, nil
 }
 
 func renderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {

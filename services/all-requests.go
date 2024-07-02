@@ -384,7 +384,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return kubernetes.GetDeployment(data.Namespace, data.Name)
+		return kubernetes.GetDeploymentResult(data.Namespace, data.Name)
 	// TODO
 	// case structs.PAT_CLUSTER_WRITE_DEPLOYMENT:
 	// 	data := ClusterWriteDeployment{}

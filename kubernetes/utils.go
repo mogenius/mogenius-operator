@@ -20,6 +20,7 @@ import (
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	appsV1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -73,9 +74,15 @@ func getCoreClient() coreV1.CoreV1Interface {
 	if provider == nil || err != nil {
 		log.Fatal("Error creating kubeprovider")
 	}
-	client := provider.ClientSet.CoreV1()
+	return provider.ClientSet.CoreV1()
+}
 
-	return client
+func getAppClient() appsV1.AppsV1Interface {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Fatal("Error creating kubeprovider")
+	}
+	return provider.ClientSet.AppsV1()
 }
 
 func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
@@ -427,4 +434,18 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 
 	_, ok := labels[key]
 	return ok
+}
+
+func FindExternalSecretsForMoService(serviceName, namespace string) ([]core.Secret, error) {
+	secrets, err := ListSecrets(namespace)
+	if err != nil {
+		return nil, err
+	}
+	matchingSecrets := []core.Secret{}
+	for secret := range secrets.Items {
+		if val, ok := secrets.Items[secret].Labels["used-by-mo-service"]; ok && val == serviceName {
+			matchingSecrets = append(matchingSecrets, secrets.Items[secret])
+		}
+	}
+	return matchingSecrets, nil
 }

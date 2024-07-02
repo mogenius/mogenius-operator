@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"strings"
 	"sync"
 	"time"
@@ -14,7 +15,6 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
-	core "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,6 +89,45 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 	}(wg)
 }
 
+func GetDeployment(namespace, deploymentName string) (*v1.Deployment, error) {
+	client := getAppClient().Deployments(namespace)
+	return client.Get(context.TODO(), deploymentName, metav1.GetOptions{})
+}
+
+func AppendExternalSecretsToDeployment(deployment *v1.Deployment) {
+	deployObj, err := GetDeployment(deployment.Namespace, deployment.Name)
+	if err != nil {
+		log.Errorf("Deployment %s in namespace %s not found: %s", deployment.Name, deployment.Namespace, err.Error())
+		return
+	}
+
+	var additionalEnvVars []v1Core.EnvVar
+	if utils.CONFIG.Misc.ExternalSecretsEnabled {
+		additionalExternalSecrets, err := FindExternalSecretsForMoService(deployment.Name, deployment.Namespace)
+		if err != nil {
+			log.Infof("No external secrets for service %s in namespace %s: continuing", deployment.Name, deployment.Namespace)
+		}
+		for _, secret := range additionalExternalSecrets {
+			envVar := v1Core.EnvVar{
+				Name: secret.Name,
+				ValueFrom: &v1Core.EnvVarSource{
+					SecretKeyRef: &v1Core.SecretKeySelector{
+						LocalObjectReference: v1Core.LocalObjectReference{
+							Name: secret.Name,
+						},
+					},
+				},
+			}
+			additionalEnvVars = append(additionalEnvVars, envVar)
+		}
+	}
+	for _, container := range deployObj.Spec.Template.Spec.Containers {
+		for _, envVar := range additionalEnvVars {
+			container.Env = append(container.Env, envVar)
+		}
+	}
+}
+
 func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("update", "Update Deployment", job)
 	wg.Add(1)
@@ -96,12 +135,8 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(job, "Updating Deployment")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
+		deploymentClient := getAppClient().Deployments(namespace.Name)
+
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
 			log.Errorf("error: %s", err.Error())
@@ -307,18 +342,18 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 
 	// CONTAINERS
 	if spec.Template.Spec.Containers == nil {
-		spec.Template.Spec.Containers = []core.Container{}
+		spec.Template.Spec.Containers = []v1Core.Container{}
 	}
 	for index, container := range service.Containers {
 		if len(spec.Template.Spec.Containers) <= index {
-			spec.Template.Spec.Containers = append(spec.Template.Spec.Containers, core.Container{})
+			spec.Template.Spec.Containers = append(spec.Template.Spec.Containers, v1Core.Container{})
 		}
 
 		// ImagePullPolicy
 		if container.KubernetesLimits.ImagePullPolicy != "" {
-			spec.Template.Spec.Containers[index].ImagePullPolicy = core.PullPolicy(container.KubernetesLimits.ImagePullPolicy)
+			spec.Template.Spec.Containers[index].ImagePullPolicy = v1Core.PullPolicy(container.KubernetesLimits.ImagePullPolicy)
 		} else {
-			spec.Template.Spec.Containers[index].ImagePullPolicy = core.PullAlways
+			spec.Template.Spec.Containers[index].ImagePullPolicy = v1Core.PullAlways
 		}
 
 		// PORTS
@@ -448,14 +483,8 @@ func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, pr
 	return WorkloadResult(deployments.Items, err)
 }
 
-func GetDeployment(namespace string, name string) K8sWorkloadResult {
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	client := provider.ClientSet.AppsV1().Deployments(namespace)
-
-	deployment, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
+	deployment, err := GetDeployment(namespace, name)
 	if err != nil {
 		return WorkloadResult(nil, err)
 	}
