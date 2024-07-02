@@ -58,12 +58,12 @@ func (k *K8sContainerDto) AvailableDockerBuildArgs(buildId uint64, gitTag string
 
 	gitTag = strings.ReplaceAll(gitTag, "\n", "")
 	result := ""
-	result += fmt.Sprintf("MO_BUILD_ID=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(buildIdStr)))
-	result += fmt.Sprintf("MO_GIT_TAG=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(gitTag)))
-	result += fmt.Sprintf("MO_GIT_COMMIT_HASH=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(*k.GitCommitHash)))
-	result += fmt.Sprintf("MO_GIT_COMMIT_AUTHOR=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(*k.GitCommitAuthor)))
-	result += fmt.Sprintf("MO_GIT_COMMIT_MESSAGE=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(*k.GitCommitMessage)))
-	result += fmt.Sprintf("MO_GIT_BRANCH=\"$(echo \"%s\" | base64 --decode)\"\n", base64.StdEncoding.EncodeToString([]byte(*k.GitBranch)))
+	result += fmt.Sprintf("MO_BUILD_ID=\"%s\"\n", buildIdStr)
+	result += fmt.Sprintf("MO_GIT_TAG=\"%s\"\n", gitTag)
+	result += fmt.Sprintf("MO_GIT_COMMIT_HASH=\"%s\"\n", *k.GitCommitHash)
+	result += fmt.Sprintf("MO_GIT_COMMIT_AUTHOR=\"%s\"\n", *k.GitCommitAuthor)
+	result += fmt.Sprintf("MO_GIT_COMMIT_MESSAGE=\"%s\"\n", *k.GitCommitMessage)
+	result += fmt.Sprintf("MO_GIT_BRANCH=\"%s\"\n", *k.GitBranch)
 	return result
 }
 
