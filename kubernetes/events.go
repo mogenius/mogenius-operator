@@ -65,7 +65,7 @@ func ResourceWatcher() {
 
 	log.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
-		switch workload {
+		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
 			go WatchConfigmaps()
 		case dtos.KindDeployments:
@@ -90,6 +90,8 @@ func ResourceWatcher() {
 			go WatchDaemonSets()
 		case dtos.KindStatefulSets:
 			go WatchStatefulSets()
+		case dtos.KindHorizontalPodAutoscalers:
+			go WatchHpas()
 		default:
 			log.Fatalf("🚫 Unknown resource type: %s", workload)
 		}
@@ -102,7 +104,7 @@ func InitAllWorkloads() {
 		return
 	}
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
-		switch workload {
+		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
 			ressources := punq.AllConfigmaps("", nil)
 			for _, res := range ressources {
@@ -162,6 +164,11 @@ func InitAllWorkloads() {
 			ressources := punq.AllStatefulSets("", nil)
 			for _, res := range ressources {
 				iacmanager.WriteResourceYaml(dtos.KindStatefulSets, res.Namespace, res.Name, res)
+			}
+		case dtos.KindHorizontalPodAutoscalers:
+			ressources := punq.AllHpas("", nil)
+			for _, res := range ressources {
+				iacmanager.WriteResourceYaml(dtos.KindHorizontalPodAutoscalers, res.Namespace, res.Name, res)
 			}
 		default:
 			log.Fatalf("🚫 Unknown resource type: %s", workload)

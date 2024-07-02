@@ -43,6 +43,7 @@ iac:
       "cronjobs",
       "daemonsets",
       "networkpolicies",
+      "horizontalpodautoscalers",
     ]
   ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
   show_diff_in_log: false
