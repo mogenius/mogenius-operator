@@ -186,6 +186,27 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					},
 				})
 			}
+			if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
+				externalSecretStorePrefix := service.EsoSettings.SecretStoreNamePrefix
+				if envVar.Type == dtos.EnvVarKeyEsoHashiVault {
+					specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
+						Name: envVar.Name,
+						ValueFrom: &v1core.EnvVarSource{
+							SecretKeyRef: &v1core.SecretKeySelector{
+								Key: envVar.Name,
+								LocalObjectReference: v1core.LocalObjectReference{
+									Name: utils.GetSecretName(
+										externalSecretStorePrefix,
+										projectId, // TODO is project id == project name?
+										service.ControllerName,
+										envVar.Name,
+									),
+								},
+							},
+						},
+					})
+				}
+			}
 			if envVar.Type == dtos.EnvVarPlainText || envVar.Type == dtos.EnvVarHostname {
 				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
 					Name:  envVar.Name,

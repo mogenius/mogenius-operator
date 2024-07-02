@@ -2135,13 +2135,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return DeleteExternalSecretsStore(data)
-	case structs.PAT_EXTERNAL_SECRET_CREATE:
-		data := CreateExternalSecretRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return CreateExternalSecret(data)
 	}
 	datagram.Err = "Pattern not found"
 	return datagram

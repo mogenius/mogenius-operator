@@ -791,29 +791,6 @@ type DeleteSecretsStoreResponse struct {
 	ErrorMessage string `json:"errorMessage"`
 }
 
-type CreateExternalSecretRequest struct {
-	ServiceName           string `json:"serviceName" validate:"required"`
-	Namespace             string `json:"namespace" validate:"required"`
-	ProjectName           string `json:"projectName" validate:"required"`
-	SecretStoreNamePrefix string `json:"namePrefix" validate:"required"`
-	PropertyName          string `json:"propertyName" validate:"required"`
-}
-
-func CreateExternalSecretRequestExample() CreateExternalSecretRequest {
-	return CreateExternalSecretRequest{
-		ServiceName:           "customer-app01",
-		Namespace:             "customer-app-namespace",
-		ProjectName:           "phoenix",
-		SecretStoreNamePrefix: "mo-test",
-		PropertyName:          "postgresURL",
-	}
-}
-
-type CreateExternalSecretResponse struct {
-	Status       string `json:"status"`
-	ErrorMessage string `json:"errorMessage"`
-}
-
 var keplerHostAndPort string = ""
 
 var energyConsumptionCollectionInProgress bool = false

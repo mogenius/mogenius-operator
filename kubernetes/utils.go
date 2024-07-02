@@ -77,7 +77,7 @@ func getCoreClient() coreV1.CoreV1Interface {
 	return provider.ClientSet.CoreV1()
 }
 
-func getAppClient() appsV1.AppsV1Interface {
+func GetAppClient() appsV1.AppsV1Interface {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		log.Fatal("Error creating kubeprovider")
@@ -436,16 +436,16 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 	return ok
 }
 
-func FindExternalSecretsForMoService(serviceName, namespace string) ([]core.Secret, error) {
-	secrets, err := ListSecrets(namespace)
-	if err != nil {
-		return nil, err
-	}
-	matchingSecrets := []core.Secret{}
-	for secret := range secrets.Items {
-		if val, ok := secrets.Items[secret].Labels["used-by-mo-service"]; ok && val == serviceName {
-			matchingSecrets = append(matchingSecrets, secrets.Items[secret])
-		}
-	}
-	return matchingSecrets, nil
-}
+// func FindExternalSecretsForMoService(serviceName, namespace string) ([]core.Secret, error) {
+// 	secrets, err := ListSecrets(namespace)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	matchingSecrets := []core.Secret{}
+// 	for secret := range secrets.Items {
+// 		if val, ok := secrets.Items[secret].Labels["used-by-mo-service"]; ok && val == serviceName {
+// 			matchingSecrets = append(matchingSecrets, secrets.Items[secret])
+// 		}
+// 	}
+// 	return matchingSecrets, nil
+// }

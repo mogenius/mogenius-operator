@@ -90,43 +90,40 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 }
 
 func GetDeployment(namespace, deploymentName string) (*v1.Deployment, error) {
-	client := getAppClient().Deployments(namespace)
+	client := GetAppClient().Deployments(namespace)
 	return client.Get(context.TODO(), deploymentName, metav1.GetOptions{})
 }
 
-func AppendExternalSecretsToDeployment(deployment *v1.Deployment) {
-	deployObj, err := GetDeployment(deployment.Namespace, deployment.Name)
-	if err != nil {
-		log.Errorf("Deployment %s in namespace %s not found: %s", deployment.Name, deployment.Namespace, err.Error())
-		return
-	}
+// func AppendExternalSecretsToDeployment(deployment *v1.Deployment) {
+// 	deployObj, err := GetDeployment(deployment.Namespace, deployment.Name)
+// 	if err != nil {
+// 		log.Errorf("Deployment %s in namespace %s not found: %s", deployment.Name, deployment.Namespace, err.Error())
+// 		return
+// 	}
 
-	var additionalEnvVars []v1Core.EnvVar
-	if utils.CONFIG.Misc.ExternalSecretsEnabled {
-		additionalExternalSecrets, err := FindExternalSecretsForMoService(deployment.Name, deployment.Namespace)
-		if err != nil {
-			log.Infof("No external secrets for service %s in namespace %s: continuing", deployment.Name, deployment.Namespace)
-		}
-		for _, secret := range additionalExternalSecrets {
-			envVar := v1Core.EnvVar{
-				Name: secret.Name,
-				ValueFrom: &v1Core.EnvVarSource{
-					SecretKeyRef: &v1Core.SecretKeySelector{
-						LocalObjectReference: v1Core.LocalObjectReference{
-							Name: secret.Name,
-						},
-					},
-				},
-			}
-			additionalEnvVars = append(additionalEnvVars, envVar)
-		}
-	}
-	for _, container := range deployObj.Spec.Template.Spec.Containers {
-		for _, envVar := range additionalEnvVars {
-			container.Env = append(container.Env, envVar)
-		}
-	}
-}
+// 	var additionalEnvVars []v1Core.EnvVar
+// 	additionalExternalSecrets, err := FindExternalSecretsForMoService(deployment.Name, deployment.Namespace)
+// 	if err != nil {
+// 		log.Infof("No external secrets for service %s in namespace %s: continuing", deployment.Name, deployment.Namespace)
+// 	}
+// 	for _, secret := range additionalExternalSecrets {
+// 		envVar := v1Core.EnvVar{
+// 			Name: secret.Name,
+// 			ValueFrom: &v1Core.EnvVarSource{
+// 				SecretKeyRef: &v1Core.SecretKeySelector{
+// 					LocalObjectReference: v1Core.LocalObjectReference{
+// 						Name: secret.Name,
+// 					},
+// 				},
+// 			},
+// 		}
+// 		additionalEnvVars = append(additionalEnvVars, envVar)
+// 	}
+
+// 	for _, container := range deployObj.Spec.Template.Spec.Containers {
+// 		container.Env = append(container.Env, additionalEnvVars...)
+// 	}
+// }
 
 func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("update", "Update Deployment", job)
@@ -135,7 +132,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(job, "Updating Deployment")
 
-		deploymentClient := getAppClient().Deployments(namespace.Name)
+		deploymentClient := GetAppClient().Deployments(namespace.Name)
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
@@ -143,10 +140,17 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			cmd.Fail(job, fmt.Sprintf("UpdateDeployment ERROR: %s", err.Error()))
 			return
 		}
+		// add resource creation for external secrets
+		if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
+			CreateExternalSecret(CreateExternalSecretProps{
+				Namespace:             namespace.Name,
+				ServiceName:           service.ControllerName,
+				ProjectName:           job.ProjectId, // TODO: check if id == name
+				SecretStoreNamePrefix: service.EsoSettings.SecretStoreNamePrefix,
+			})
+		}
 
-		// deployment := generateDeployment(namespace, service, false, deploymentClient)
 		deployment := newController.(*v1.Deployment)
-
 		_, err = deploymentClient.Update(context.TODO(), deployment, MoUpdateOptions())
 		if err != nil {
 			if apierrors.IsNotFound(err) {
