@@ -442,7 +442,6 @@ func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
 	return result, err
 }
 
-// ListDirWithTimeout lists the contents of a directory with a timeout
 func ListDirWithTimeout(root string, timeout time.Duration) ([]dtos.PersistentFileDto, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -457,8 +456,8 @@ func ListDirWithTimeout(root string, timeout time.Duration) ([]dtos.PersistentFi
 		// If the context has timed out, set all directory sizes to zero
 		for i := range items {
 			if items[i].Type == "directory" {
-				items[i].SizeInBytes = 0
-				items[i].Size = punqUtils.BytesToHumanReadable(0)
+				items[i].SizeInBytes = -1
+				items[i].Size = "-1"
 			}
 		}
 	default:
