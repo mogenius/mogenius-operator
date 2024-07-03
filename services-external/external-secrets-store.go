@@ -35,6 +35,9 @@ func externalSecretStorePropsExample() ExternalSecretStoreProps {
 }
 
 func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
+	props.Name = utils.GetSecretStoreName(props.NamePrefix, props.ProjectName)
+	props.ServiceAccount = utils.GetServiceAccountName(props.MoSharedPath)
+
 	// create unique service account tag per project
 	annotations := make(map[string]string)
 	key := fmt.Sprintf("%s%s", utils.StoreAnnotationPrefix, props.ProjectName)
