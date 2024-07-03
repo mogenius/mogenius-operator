@@ -602,12 +602,20 @@ func (s *VolumeStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, ch
 		return
 	}
 
+	prefix := fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix)
+
 	var usedBy []string
 	for _, pod := range pods.Items {
 		for _, volume := range pod.Spec.Volumes {
-			if volume.PersistentVolumeClaim != nil && volume.PersistentVolumeClaim.ClaimName == s.persistentVolumeClaimName {
-				usedBy = append(usedBy, pod.Name)
-				s.UsedByPods = append(s.UsedByPods, pod)
+			if volume.PersistentVolumeClaim != nil {
+				// normalize name, convert no prefixed 'nfs-server-pod-' to prefixed and vice versa
+				nonPrefixName := strings.TrimPrefix(volume.PersistentVolumeClaim.ClaimName, prefix)
+				prefixName := prefix + nonPrefixName
+
+				if s.persistentVolumeClaimName == prefixName {
+					usedBy = append(usedBy, pod.Name)
+					s.UsedByPods = append(s.UsedByPods, pod)
+				}
 			}
 		}
 	}
