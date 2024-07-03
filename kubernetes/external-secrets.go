@@ -1,32 +1,44 @@
-package services
+package kubernetes
 
 import (
 	"encoding/json"
-	"fmt"
-	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 
 	"strings"
 )
 
-const (
-	SecretListSuffix = "vault-secret-list"
-)
+type CreateExternalSecretProps struct {
+	ServiceName           string `json:"serviceName" validate:"required"`
+	Namespace             string `json:"namespace" validate:"required"`
+	ProjectName           string `json:"projectName" validate:"required"`
+	SecretStoreNamePrefix string `json:"namePrefix" validate:"required"`
+	PropertyName          string `json:"propertyName" validate:"required"`
+}
+
+func CreateExternalSecretPropsExample() CreateExternalSecretProps {
+	return CreateExternalSecretProps{
+		ServiceName:           "customer-app01",
+		Namespace:             "customer-app-namespace",
+		ProjectName:           "phoenix",
+		SecretStoreNamePrefix: "mo-test",
+		PropertyName:          "postgresURL",
+	}
+}
 
 type ExternalSecretProps struct {
-	CreateExternalSecretRequest
+	CreateExternalSecretProps
 	SecretStoreName string
 	secretPath      string
 }
 
 func externalExternalSecretExample() ExternalSecretProps {
-	return NewExternalSecret(CreateExternalSecretRequestExample())
+	return NewExternalSecret(CreateExternalSecretPropsExample())
 }
 
 // NewExternalSecret creates a new NewExternalSecret with default values.
-func NewExternalSecret(data CreateExternalSecretRequest) ExternalSecretProps {
+func NewExternalSecret(data CreateExternalSecretProps) ExternalSecretProps {
 	return ExternalSecretProps{
-		CreateExternalSecretRequest: data,
+		CreateExternalSecretProps: data,
 	}
 }
 
@@ -41,13 +53,13 @@ func externalSecretListExample() ExternalSecretListProps {
 	return ExternalSecretListProps{
 		NamePrefix:      "team-blue-secrets",
 		Project:         "team-blue",
-		SecretStoreName: "team-blue-secrets-" + SecretStoreSuffix,
+		SecretStoreName: "team-blue-secrets-" + utils.SecretStoreSuffix,
 		MoSharedPath:    "mogenius-external-secrets",
 	}
 }
 
 func CreateExternalSecretList(props ExternalSecretListProps) error {
-	return mokubernetes.ApplyResource(
+	return ApplyResource(
 		renderExternalSecretList(
 			utils.InitExternalSecretListYaml(),
 			props,
@@ -56,24 +68,21 @@ func CreateExternalSecretList(props ExternalSecretListProps) error {
 	)
 }
 
-func CreateExternalSecret(data CreateExternalSecretRequest) CreateExternalSecretResponse {
-	responsibleSecStore := getSecretStoreName(data.SecretStoreNamePrefix, data.ProjectName)
+func CreateExternalSecret(data CreateExternalSecretProps) error {
+	responsibleSecStore := utils.GetSecretStoreName(data.SecretStoreNamePrefix, data.ProjectName)
 
 	secretPath, err := ReadSecretPathFromSecretStore(responsibleSecStore)
 	if err != nil {
-		return CreateExternalSecretResponse{
-			Status:       "ERROR",
-			ErrorMessage: fmt.Sprintf("Reading secret path from Secret Store failed. Err: %s", err.Error()),
-		}
+		return err
 	}
 
 	props := ExternalSecretProps{
-		CreateExternalSecretRequest: data,
-		SecretStoreName:             responsibleSecStore,
-		secretPath:                  secretPath,
+		CreateExternalSecretProps: data,
+		SecretStoreName:           responsibleSecStore,
+		secretPath:                secretPath,
 	}
 
-	err = mokubernetes.ApplyResource(
+	err = ApplyResource(
 		renderExternalSecret(
 			utils.InitExternalSecretYaml(),
 			props,
@@ -81,23 +90,17 @@ func CreateExternalSecret(data CreateExternalSecretRequest) CreateExternalSecret
 		false,
 	)
 	if err != nil {
-		return CreateExternalSecretResponse{
-			Status:       "ERROR",
-			ErrorMessage: fmt.Sprintf("Creating external secret failed. Err: %s", err.Error()),
-		}
-	} else {
-		return CreateExternalSecretResponse{
-			Status: "SUCCESS",
-		}
+		return err
 	}
+	return nil
 }
 
 func DeleteExternalSecretList(namePrefix string, projectName string) error {
-	return DeleteExternalSecret(getSecretListName(namePrefix, projectName))
+	return DeleteExternalSecret(utils.GetSecretListName(namePrefix, projectName))
 }
 
 func DeleteExternalSecret(name string) error {
-	return mokubernetes.DeleteResource(
+	return DeleteResource(
 		"external-secrets.io",
 		"v1beta1",
 		"externalsecrets",
@@ -108,7 +111,7 @@ func DeleteExternalSecret(name string) error {
 }
 
 func renderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", getSecretListName(props.NamePrefix, props.Project), -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretListName(props.NamePrefix, props.Project), -1)
 	// the list of all available secrets for a project is only ever read by the operator
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", utils.CONFIG.Kubernetes.OwnNamespace, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
@@ -118,7 +121,7 @@ func renderExternalSecretList(yamlTemplateString string, props ExternalSecretLis
 }
 
 func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", getSecretName(
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretName(
 		props.SecretStoreNamePrefix, props.ProjectName, props.ServiceName, props.PropertyName,
 	), -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_NAME>", props.ServiceName, -1)
@@ -129,23 +132,6 @@ func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) 
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROJECT>", props.ProjectName, -1)
 
 	return yamlTemplateString
-}
-
-func getSecretName(namePrefix, project, service, propertyName string) string {
-	return fmt.Sprintf("%s-%s-%s-%s",
-		strings.ToLower(namePrefix),
-		strings.ToLower(project),
-		strings.ToLower(service),
-		strings.ToLower(propertyName),
-	)
-}
-
-func getSecretListName(customerPrefix string, projectName string) string {
-	return fmt.Sprintf("%s-%s-%s",
-		strings.ToLower(customerPrefix),
-		strings.ToLower(projectName),
-		strings.ToLower(SecretListSuffix),
-	)
 }
 
 type ExternalSecretListing struct {

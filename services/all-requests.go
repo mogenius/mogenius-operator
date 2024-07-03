@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/controllers"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/dtos"
@@ -2113,28 +2114,28 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return db.ListLogFromDb()
 
 	case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
-		data := CreateSecretsStoreRequest{}
+		data := controllers.CreateSecretsStoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return CreateExternalSecretsStore(data)
+		return controllers.CreateExternalSecretStore(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_LIST:
-		return ListExternalSecretsStores()
+		return controllers.ListExternalSecretsStores()
 	case structs.PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS:
-		data := ListSecretsRequest{}
+		data := controllers.ListSecretsRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return ListAvailableExternalSecrets(data)
+		return controllers.ListAvailableExternalSecrets(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_DELETE:
-		data := DeleteSecretsStoreRequest{}
+		data := controllers.DeleteSecretsStoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return DeleteExternalSecretsStore(data)
+		return controllers.DeleteExternalSecretsStore(data)
 	}
 	datagram.Err = "Pattern not found"
 	return datagram

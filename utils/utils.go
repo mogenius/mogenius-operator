@@ -263,3 +263,46 @@ func Escape(str string) string {
 	}
 	return builder.String()
 }
+
+const (
+	SecretListSuffix      = "vault-secret-list"
+	SecretStoreSuffix     = "vault-secret-store"
+	ExternalSecretsSA     = "mo-eso-serviceaccount"
+	StoreAnnotationPrefix = "used-by-mogenius/"
+)
+
+func GetServiceAccountName(moSharedPath string) string {
+	return fmt.Sprintf("%s-%s",
+		strings.ToLower(ExternalSecretsSA),
+		strings.ToLower(moSharedPath),
+	)
+}
+
+func GetMoSharedPath(moSharedPath string, projectName string) string {
+	return fmt.Sprintf("%s/%s", moSharedPath, projectName)
+}
+
+func GetSecretStoreName(namePrefix string, projectName string) string {
+	return fmt.Sprintf("%s-%s-%s",
+		strings.ToLower(namePrefix),
+		strings.ToLower(projectName),
+		strings.ToLower(SecretStoreSuffix),
+	)
+}
+
+func GetSecretName(namePrefix, project, service, propertyName string) string {
+	return fmt.Sprintf("%s-%s-%s-%s",
+		strings.ToLower(namePrefix),
+		strings.ToLower(project),
+		strings.ToLower(service),
+		strings.ToLower(propertyName),
+	)
+}
+
+func GetSecretListName(customerPrefix string, projectName string) string {
+	return fmt.Sprintf("%s-%s-%s",
+		strings.ToLower(customerPrefix),
+		strings.ToLower(projectName),
+		strings.ToLower(SecretListSuffix),
+	)
+}

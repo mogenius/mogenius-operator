@@ -737,60 +737,6 @@ type NfsStatusResponse struct {
 	UsedByPods    []string              `json:"usedByPods,omitempty"`
 }
 
-type CreateSecretsStoreRequest struct {
-	// Secrets stores are bound to a projects,
-	// so that customers can decide which team controls which secrets
-	ProjectName string `json:"projectName" validate:"required"`
-	// customers might want to create multiple stores	and should have IDs to differentiate
-	NamePrefix     string `json:"namePrefix" validate:"required"`
-	Role           string `json:"role" validate:"required"`
-	VaultServerUrl string `json:"vaultServerUrl" validate:"required"`
-	MoSharedPath   string `json:"moSharedPath" validate:"required"`
-}
-
-func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
-	return CreateSecretsStoreRequest{
-		ProjectName:    "phoenix",
-		NamePrefix:     "mo-test",
-		Role:           "mogenius-external-secrets",
-		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		MoSharedPath:   "mogenius-external-secrets",
-	}
-}
-
-type CreateSecretsStoreResponse struct {
-	Status       string `json:"status"`
-	ErrorMessage string `json:"errorMessage"`
-}
-
-type ListSecretsStoresResponse struct {
-	StoresInCluster []SecretStoreListing `json:"storesInCluster"`
-}
-type ListSecretsRequest struct {
-	NamePrefix  string `json:"namePrefix" validate:"required"`
-	ProjectName string `json:"projectName" validate:"required"`
-}
-type ListSecretsResponse struct {
-	SecretsInProject []string `json:"secretsInProject"`
-}
-type DeleteSecretsStoreRequest struct {
-	NamePrefix   string `json:"namePrefix" validate:"required"`
-	ProjectName  string `json:"projectName" validate:"required"`
-	MoSharedPath string `json:"moSharedPath" validate:"required"`
-}
-
-func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
-	return DeleteSecretsStoreRequest{
-		NamePrefix:  "mo-test",
-		ProjectName: "phoenix",
-	}
-}
-
-type DeleteSecretsStoreResponse struct {
-	Status       string `json:"status"`
-	ErrorMessage string `json:"errorMessage"`
-}
-
 var keplerHostAndPort string = ""
 
 var energyConsumptionCollectionInProgress bool = false

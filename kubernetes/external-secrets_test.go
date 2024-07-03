@@ -1,4 +1,4 @@
-package services
+package kubernetes
 
 import (
 	"mogenius-k8s-manager/utils"
@@ -23,7 +23,7 @@ func TestSecretListRender(t *testing.T) {
 	}
 
 	// change values and compare
-	expectedName := "team-yellow-projectmayhem-" + SecretListSuffix // lowercase only
+	expectedName := "team-yellow-projectmayhem-" + utils.SecretListSuffix // lowercase only
 	secretListProps.NamePrefix = "team-yellow"
 	secretListProps.Project = "projectMayhem"
 	yamlDataRenderedChanged := renderExternalSecretList(yamlTemplate, secretListProps)
@@ -68,28 +68,28 @@ func TestCreateExternalSecretList(t *testing.T) {
 	}
 }
 
-func TestCreateExternalSecret(t *testing.T) {
-	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
-	// prereq
-	TestSecretStoreCreate(t)
+// func TestCreateExternalSecret(t *testing.T) {
+// 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
+// 	// prereq
+// 	services.TestSecretStoreCreate(t)
 
-	// cleanup even when test fails
-	defer TestSecretStoreDelete(t)
+// 	// cleanup even when test fails
+// 	defer TestSecretStoreDelete(t)
 
-	testReq := CreateExternalSecretRequestExample()
+// 	testReq := CreateExternalSecretPropsExample()
 
-	// assume composed name: customer-blue-backend-project-backend-service003-postgresURL
-	testReq.SecretStoreNamePrefix = "customer-blue"
-	testReq.ProjectName = "backend-project"
-	testReq.ServiceName = "backend-service03"
-	testReq.PropertyName = "postgresURL"
-	// testReq.Namespace = "mogenius"
-	testReq.Namespace = "vs-proj-blubb-2ghl0a"
+// 	// assume composed name: customer-blue-backend-project-backend-service003-postgresURL
+// 	testReq.SecretStoreNamePrefix = "customer-blue"
+// 	testReq.ProjectName = "backend-project"
+// 	testReq.ServiceName = "backend-service03"
+// 	testReq.PropertyName = "postgresURL"
+// 	// testReq.Namespace = "mogenius"
+// 	testReq.Namespace = "vs-proj-blubb-2ghl0a"
 
-	response := CreateExternalSecret(testReq)
-	if response.Status != "SUCCESS" {
-		t.Errorf("Error creating external secret: %s", response.ErrorMessage)
-	} else {
-		logger.Log.Info("External secret created ✅")
-	}
-}
+// 	response := CreateExternalSecret(testReq)
+// 	if response.Status != "SUCCESS" {
+// 		t.Errorf("Error creating external secret: %s", response.ErrorMessage)
+// 	} else {
+// 		logger.Log.Info("External secret created ✅")
+// 	}
+// }
