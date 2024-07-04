@@ -27,7 +27,7 @@ func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGrou
 
 func HelmStatus(namespace string, chartname string) structs.SystemCheckStatus {
 	cacheKey := namespace + "/" + chartname
-	cacheTime := 20 * time.Second
+	cacheTime := 1 * time.Second
 
 	// Check if the data is already in the cache
 	if cachedData, found := helmCache.Get(cacheKey); found {
