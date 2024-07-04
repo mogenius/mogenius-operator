@@ -58,7 +58,7 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Update Application")
 
-		existingService, getSrvErr := GetService(namespace.Name, service.ControllerName)
+		existingService, getSrvErr := punq.GetService(namespace.Name, service.ControllerName, nil)
 		if getSrvErr != nil {
 			existingService = nil
 		}
@@ -93,24 +93,6 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			}
 		}
 	}(wg)
-}
-
-func GetService(namespace, serviceName string) (*v1Core.Service, error) {
-	client := getCoreClient().Services(namespace)
-	return client.Get(context.TODO(), serviceName, metav1.GetOptions{})
-}
-
-func UpdateServiceWith(service *v1.Service) error {
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return err
-	}
-	serviceClient := provider.ClientSet.CoreV1().Services("")
-	_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, additive bool) {

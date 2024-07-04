@@ -90,11 +90,6 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 	}(wg)
 }
 
-func GetDeployment(namespace, deploymentName string) (*v1.Deployment, error) {
-	client := GetAppClient().Deployments(namespace)
-	return client.Get(context.TODO(), deploymentName, metav1.GetOptions{})
-}
-
 func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("update", "Update Deployment", job)
 	wg.Add(1)
@@ -115,7 +110,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			CreateExternalSecret(CreateExternalSecretProps{
 				Namespace:             namespace.Name,
 				ServiceName:           service.ControllerName,
-				ProjectName:           job.ProjectId, // TODO: check if id == name
+				ProjectName:           service.EsoSettings.ProjectName,
 				SecretStoreNamePrefix: service.EsoSettings.SecretStoreNamePrefix,
 			})
 		}
@@ -475,7 +470,7 @@ func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, pr
 }
 
 func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
-	deployment, err := GetDeployment(namespace, name)
+	deployment, err := punq.GetK8sDeployment(namespace, name, nil)
 	if err != nil {
 		return WorkloadResult(nil, err)
 	}

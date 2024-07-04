@@ -404,8 +404,3 @@ func watchSecrets(provider *punq.KubeProvider, kindName string) error {
 		}
 	}
 }
-
-func ListSecrets(namespace string) (*v1.SecretList, error) {
-	client := getCoreClient()
-	return client.Secrets(namespace).List(context.TODO(), metav1.ListOptions{})
-}

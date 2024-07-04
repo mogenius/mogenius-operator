@@ -187,6 +187,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					},
 				})
 			}
+			// EXTERNAL SECRETS OPERATOR
 			if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
 				externalSecretStorePrefix := service.EsoSettings.SecretStoreNamePrefix
 				if envVar.Type == dtos.EnvVarKeyEsoHashiVault {
@@ -198,7 +199,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 								LocalObjectReference: v1core.LocalObjectReference{
 									Name: utils.GetSecretName(
 										externalSecretStorePrefix,
-										projectId, // TODO is project id == project name?
+										service.EsoSettings.ProjectName,
 										service.ControllerName,
 										envVar.Name,
 									),
