@@ -95,37 +95,6 @@ func GetDeployment(namespace, deploymentName string) (*v1.Deployment, error) {
 	return client.Get(context.TODO(), deploymentName, metav1.GetOptions{})
 }
 
-// func AppendExternalSecretsToDeployment(deployment *v1.Deployment) {
-// 	deployObj, err := GetDeployment(deployment.Namespace, deployment.Name)
-// 	if err != nil {
-// 		log.Errorf("Deployment %s in namespace %s not found: %s", deployment.Name, deployment.Namespace, err.Error())
-// 		return
-// 	}
-
-// 	var additionalEnvVars []v1Core.EnvVar
-// 	additionalExternalSecrets, err := FindExternalSecretsForMoService(deployment.Name, deployment.Namespace)
-// 	if err != nil {
-// 		log.Infof("No external secrets for service %s in namespace %s: continuing", deployment.Name, deployment.Namespace)
-// 	}
-// 	for _, secret := range additionalExternalSecrets {
-// 		envVar := v1Core.EnvVar{
-// 			Name: secret.Name,
-// 			ValueFrom: &v1Core.EnvVarSource{
-// 				SecretKeyRef: &v1Core.SecretKeySelector{
-// 					LocalObjectReference: v1Core.LocalObjectReference{
-// 						Name: secret.Name,
-// 					},
-// 				},
-// 			},
-// 		}
-// 		additionalEnvVars = append(additionalEnvVars, envVar)
-// 	}
-
-// 	for _, container := range deployObj.Spec.Template.Spec.Containers {
-// 		container.Env = append(container.Env, additionalEnvVars...)
-// 	}
-// }
-
 func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("update", "Update Deployment", job)
 	wg.Add(1)

@@ -435,17 +435,3 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 	_, ok := labels[key]
 	return ok
 }
-
-// func FindExternalSecretsForMoService(serviceName, namespace string) ([]core.Secret, error) {
-// 	secrets, err := ListSecrets(namespace)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	matchingSecrets := []core.Secret{}
-// 	for secret := range secrets.Items {
-// 		if val, ok := secrets.Items[secret].Labels["used-by-mo-service"]; ok && val == serviceName {
-// 			matchingSecrets = append(matchingSecrets, secrets.Items[secret])
-// 		}
-// 	}
-// 	return matchingSecrets, nil
-// }

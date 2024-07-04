@@ -67,29 +67,3 @@ func TestCreateExternalSecretList(t *testing.T) {
 		logger.Log.Info("Secret store created ✅")
 	}
 }
-
-// func TestCreateExternalSecret(t *testing.T) {
-// 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
-// 	// prereq
-// 	services.TestSecretStoreCreate(t)
-
-// 	// cleanup even when test fails
-// 	defer TestSecretStoreDelete(t)
-
-// 	testReq := CreateExternalSecretPropsExample()
-
-// 	// assume composed name: customer-blue-backend-project-backend-service003-postgresURL
-// 	testReq.SecretStoreNamePrefix = "customer-blue"
-// 	testReq.ProjectName = "backend-project"
-// 	testReq.ServiceName = "backend-service03"
-// 	testReq.PropertyName = "postgresURL"
-// 	// testReq.Namespace = "mogenius"
-// 	testReq.Namespace = "vs-proj-blubb-2ghl0a"
-
-// 	response := CreateExternalSecret(testReq)
-// 	if response.Status != "SUCCESS" {
-// 		t.Errorf("Error creating external secret: %s", response.ErrorMessage)
-// 	} else {
-// 		logger.Log.Info("External secret created ✅")
-// 	}
-// }
