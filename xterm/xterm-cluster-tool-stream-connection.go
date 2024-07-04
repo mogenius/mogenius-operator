@@ -80,7 +80,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	go cmdWait(cmd, conn, tty)
 
 	// cmd output to websocket
-	go cmdOutputToWebsocket(ctx, cancel, conn, tty, nil)
+	go cmdOutputToWebsocket(ctx, cancel, conn, tty, nil, nil, nil)
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)
