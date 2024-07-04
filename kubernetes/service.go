@@ -25,36 +25,6 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-// func CreateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-// 	cmd := structs.CreateCommand("create", "Create Application", job)
-// 	wg.Add(1)
-// 	go func(wg *sync.WaitGroup) {
-// 		defer wg.Done()
-// 		cmd.Start(job, "Create Application")
-
-// 		provider, err := punq.NewKubeProvider(nil)
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-// 			return
-// 		}
-// 		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
-// 		newService := generateService(nil, namespace, service)
-
-// 		newService.Labels = MoUpdateLabels(&newService.Labels, nil, nil, &service)
-
-// 		// bind/unbind ports globally
-// 		UpdateTcpUdpPorts(namespace, service, true)
-
-// 		_, err = serviceClient.Create(context.TODO(), &newService, MoCreateOptions())
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("CreateApplication ERROR: %s", err.Error()))
-// 		} else {
-// 			cmd.Success(job, "Created Application")
-// 		}
-
-// 	}(wg)
-// }
-
 func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", "Delete Service", job)
 	wg.Add(1)
@@ -88,16 +58,12 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Update Application")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
-		existingService, getSrvErr := serviceClient.Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
+		existingService, getSrvErr := punq.GetService(namespace.Name, service.ControllerName, nil)
 		if getSrvErr != nil {
 			existingService = nil
 		}
+
+		serviceClient := getCoreClient().Services(namespace.Name)
 		updateService := generateService(existingService, namespace, service)
 
 		updateOptions := metav1.UpdateOptions{
@@ -119,7 +85,7 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 				cmd.Success(job, "Updated Application")
 			}
 		} else {
-			_, err = serviceClient.Update(context.TODO(), &updateService, updateOptions)
+			_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
 			if err != nil {
 				cmd.Fail(job, fmt.Sprintf("UpdateApplication ERROR: %s", err.Error()))
 			} else {
@@ -128,19 +94,6 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		}
 	}(wg)
 }
-
-// func UpdateServiceWith(service *v1.Service) error {
-// 	provider, err := punq.NewKubeProvider(nil)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	serviceClient := provider.ClientSet.CoreV1().Services("")
-// 	_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
 
 func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, additive bool) {
 	// 1. get configmap and ingress service

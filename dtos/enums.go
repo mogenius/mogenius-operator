@@ -45,12 +45,13 @@ const (
 type K8sEnvVarDtoEnum string
 
 const (
-	EnvVarPlainText       K8sEnvVarDtoEnum = "PLAINTEXT"
-	EnvVarKeyVault        K8sEnvVarDtoEnum = "KEY_VAULT"
-	EnvVarVolumeMount     K8sEnvVarDtoEnum = "VOLUME_MOUNT"
-	EnvVarVolumeMountSeed K8sEnvVarDtoEnum = "VOLUME_MOUNT_SEED"
-	EnvVarChangeOwner     K8sEnvVarDtoEnum = "CHANGE_OWNER"
-	EnvVarHostname        K8sEnvVarDtoEnum = "HOSTNAME"
+	EnvVarPlainText        K8sEnvVarDtoEnum = "PLAINTEXT"
+	EnvVarKeyVault         K8sEnvVarDtoEnum = "KEY_VAULT"
+	EnvVarKeyEsoHashiVault K8sEnvVarDtoEnum = "KEY_ESO_HASHI_VAULT"
+	EnvVarVolumeMount      K8sEnvVarDtoEnum = "VOLUME_MOUNT"
+	EnvVarVolumeMountSeed  K8sEnvVarDtoEnum = "VOLUME_MOUNT_SEED"
+	EnvVarChangeOwner      K8sEnvVarDtoEnum = "CHANGE_OWNER"
+	EnvVarHostname         K8sEnvVarDtoEnum = "HOSTNAME"
 )
 
 type PortTypeEnum string

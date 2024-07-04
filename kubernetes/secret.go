@@ -278,12 +278,7 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 		defer wg.Done()
 		cmd.Start(job, "Updating secret")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
+		secretClient := getCoreClient().Secrets(namespace.Name)
 		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
@@ -292,19 +287,16 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 		for _, container := range service.Containers {
 			for _, envVar := range container.EnvVars {
 				if envVar.Type == dtos.EnvVarKeyVault {
-					//envVar.Type == "PLAINTEXT" ||
-					//envVar.Type == "HOSTNAME" {
 					secret.StringData[envVar.Name] = envVar.Value
 				}
 				if envVar.Type == dtos.EnvVarPlainText ||
 					envVar.Type == dtos.EnvVarHostname {
 					delete(secret.StringData, envVar.Name)
-					// secret.StringData[envVar.Name] = envVar.Value
 				}
 			}
 		}
 
-		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
