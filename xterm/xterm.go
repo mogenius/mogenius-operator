@@ -3,6 +3,7 @@ package xterm
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -49,6 +50,13 @@ type BuildLogConnectionRequest struct {
 	WsConnection WsConnectionRequest     `json:"wsConnectionRequest" validate:"required"`
 }
 
+type OperatorLogConnectionRequest struct {
+	Namespace    string              `json:"namespace" validate:"required"`
+	Controller   string              `json:"controller" validate:"required"`
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+	LogTail      string              `json:"logTail"`
+}
+
 type PodEventConnectionRequest struct {
 	Namespace    string              `json:"namespace" validate:"required"`
 	Controller   string              `json:"controller" validate:"required"`
@@ -67,6 +75,14 @@ type ScanImageLogConnectionRequest struct {
 	ContainerRegistryPat  string `json:"containerRegistryPat"`
 
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+}
+
+type LogEntry struct {
+	ControllerName string `json:"controllerName"`
+	Level          string `json:"level"`
+	Namespace      string `json:"namespace"`
+	Message        string `json:"msg"`
+	Time           string `json:"time"`
 }
 
 func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
@@ -302,7 +318,7 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 	}
 }
 
-func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader) {
+func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, namespace *string, controller *string) {
 	if injectPreContent != nil {
 		injectContent(injectPreContent, conn)
 	}
@@ -323,6 +339,30 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 				// log.Errorf("Unable to read from pty/cmd: %s", err.Error())
 				return
 			}
+
+			// filter log lines by namespace and controller
+			if namespace != nil && controller != nil {
+				var entry LogEntry
+				err := json.Unmarshal(buf[:read], &entry)
+				if err != nil {
+					// fmt.Println("Error parsing log line:", string(buf[:read]))
+					continue
+				}
+				if entry.Namespace != *namespace || entry.ControllerName != *controller {
+					continue
+				}
+
+				if conn != nil {
+					messageSt := fmt.Sprintf("[%s][%s] %s", entry.Time, entry.Level, entry.Message)
+					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
+					if err != nil {
+						fmt.Println("WriteMessage", err.Error())
+					}
+					continue
+				}
+				continue
+			}
+
 			if conn != nil {
 				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
 				if err != nil {
