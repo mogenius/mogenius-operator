@@ -43,14 +43,14 @@ func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	return datagram
 }
 
-func CreateDatagram(pattern string) Datagram {
-	datagram := Datagram{
-		Id:        punqUtils.NanoId(),
-		Pattern:   pattern,
-		CreatedAt: time.Now(),
-	}
-	return datagram
-}
+// func CreateDatagram(pattern string) Datagram {
+// 	datagram := Datagram{
+// 		Id:        punqUtils.NanoId(),
+// 		Pattern:   pattern,
+// 		CreatedAt: time.Now(),
+// 	}
+// 	return datagram
+// }
 
 func CreateDatagramBuildLogs(payload BuildJobInfo) Datagram {
 	// func CreateDatagramBuildLogs(prefix string, namespace string, controllerName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
