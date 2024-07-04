@@ -170,35 +170,35 @@ func GetApplicationKit(namespace string, name string) (appkit CrdApplicationKit,
 	return result, appkitItem, err
 }
 
-// func ListApplicationKits(namespace string) (appkit []CrdApplicationKit, appkitRaw *unstructured.UnstructuredList, err error) {
-// 	result := []CrdApplicationKit{}
+func ListApplicationKits(namespace string) (appkit []CrdApplicationKit, appkitRaw *unstructured.UnstructuredList, err error) {
+	result := []CrdApplicationKit{}
 
-// 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
-// 	if provider == nil || err != nil {
-// 		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
-// 		return result, nil, err
-// 	}
+	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	if provider == nil || err != nil {
+		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		return result, nil, err
+	}
 
-// 	appKitsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceApplicationKit}
-// 	appkits, err := provider.ClientSet.Resource(appKitsGVR).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
-// 	if err != nil {
-// 		log.Errorf("Error getting applicationkit: %s", err.Error())
-// 		return result, appkits, err
-// 	}
+	appKitsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceApplicationKit}
+	appkits, err := provider.ClientSet.Resource(appKitsGVR).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		log.Errorf("Error getting applicationkit: %s", err.Error())
+		return result, appkits, err
+	}
 
-// 	for _, appkit := range appkits.Items {
-// 		entry := CrdApplicationKit{}
-// 		jsonData, err := json.Marshal(appkit.Object["spec"])
-// 		if err != nil {
-// 			log.Errorf("Error marshalling applicationkit spec: %s", err.Error())
-// 			return result, appkits, err
-// 		}
-// 		err = json.Unmarshal(jsonData, &entry)
-// 		if err != nil {
-// 			log.Errorf("Error unmarshalling applicationkit spec: %s", err.Error())
-// 			return result, appkits, err
-// 		}
-// 		result = append(result, entry)
-// 	}
-// 	return result, appkits, err
-// }
+	for _, appkit := range appkits.Items {
+		entry := CrdApplicationKit{}
+		jsonData, err := json.Marshal(appkit.Object["spec"])
+		if err != nil {
+			log.Errorf("Error marshalling applicationkit spec: %s", err.Error())
+			return result, appkits, err
+		}
+		err = json.Unmarshal(jsonData, &entry)
+		if err != nil {
+			log.Errorf("Error unmarshalling applicationkit spec: %s", err.Error())
+			return result, appkits, err
+		}
+		result = append(result, entry)
+	}
+	return result, appkits, err
+}

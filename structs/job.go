@@ -115,7 +115,7 @@ func ReportJobStateToServer(job *Job) {
 }
 
 func ReportCmdStateToServer(job *Job, cmd *Command) {
-	stateLogCmd(cmd)
+	stateLogCmd(cmd, job.NamespaceName, job.ControllerName)
 	result := CreateDatagramNotificationFromJob(job)
 	EventServerSendData(result, "", "", "", 1)
 }
@@ -156,7 +156,7 @@ func stateLogJob(data *Job) {
 	}
 }
 
-func stateLogCmd(data *Command) {
+func stateLogCmd(data *Command, ns string, controllerName string) {
 	typeName := "CMD"
 	PEND := color.New(color.FgWhite, color.BgBlue).SprintFunc()
 	STAR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
@@ -175,18 +175,20 @@ func stateLogCmd(data *Command) {
 		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
+	logWithFields := log.WithFields(log.Fields{"namespace": ns, "controllerName": controllerName})
+
 	switch data.State {
 	case JobStatePending:
-		log.Infof("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case JobStateStarted:
-		log.Infof("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case JobStateFailed, JobStateTimeout, JobStateCanceled:
-		log.Infof("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
-		log.Infof("      %s %s %s\n", "", ERRO(punqUtils.FillWith("--> ", 15, " ")), data.Message)
+		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		logWithFields.Infof("      %s %s %s\n", "", ERRO(punqUtils.FillWith("--> ", 15, " ")), data.Message)
 	case JobStateSucceeded:
-		log.Infof("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	default:
-		log.Infof("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	}
 }
 
