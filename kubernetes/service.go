@@ -199,83 +199,83 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 	}
 }
 
-func RemovePortFromService(job *structs.Job, namespace string, controllerName string, port int32, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("remove", "Remove Port from Application", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Remove Port")
+// func RemovePortFromService(job *structs.Job, namespace string, controllerName string, port int32, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("remove", "Remove Port from Application", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Remove Port")
 
-		service := punq.ServiceFor(namespace, controllerName, nil)
-		if service != nil {
-			wasModified := false
-			for index, aPort := range service.Spec.Ports {
-				if aPort.Port == port {
-					service.Spec.Ports = punqUtils.Remove(service.Spec.Ports, index)
-					wasModified = true
-					break
-				}
-			}
+// 		service := punq.ServiceFor(namespace, controllerName, nil)
+// 		if service != nil {
+// 			wasModified := false
+// 			for index, aPort := range service.Spec.Ports {
+// 				if aPort.Port == port {
+// 					service.Spec.Ports = punqUtils.Remove(service.Spec.Ports, index)
+// 					wasModified = true
+// 					break
+// 				}
+// 			}
 
-			if wasModified {
-				provider, err := punq.NewKubeProvider(nil)
-				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-					return
-				}
-				updateOptions := metav1.UpdateOptions{
-					FieldManager: DEPLOYMENTNAME,
-				}
-				serviceClient := provider.ClientSet.CoreV1().Services(namespace)
-				_, err = serviceClient.Update(context.TODO(), service, updateOptions)
-				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
-					return
-				}
-				cmd.Success(job, fmt.Sprintf("Port %d successfully removed", port))
-				return
-			} else {
-				cmd.Success(job, fmt.Sprintf("Port %d was not contained in list", port))
-				return
-			}
-		}
-		cmd.Fail(job, fmt.Sprintf("Service '%s/%s' not found.", namespace, controllerName))
-	}(wg)
-}
+// 			if wasModified {
+// 				provider, err := punq.NewKubeProvider(nil)
+// 				if err != nil {
+// 					cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 					return
+// 				}
+// 				updateOptions := metav1.UpdateOptions{
+// 					FieldManager: DEPLOYMENTNAME,
+// 				}
+// 				serviceClient := provider.ClientSet.CoreV1().Services(namespace)
+// 				_, err = serviceClient.Update(context.TODO(), service, updateOptions)
+// 				if err != nil {
+// 					cmd.Fail(job, fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
+// 					return
+// 				}
+// 				cmd.Success(job, fmt.Sprintf("Port %d successfully removed", port))
+// 				return
+// 			} else {
+// 				cmd.Success(job, fmt.Sprintf("Port %d was not contained in list", port))
+// 				return
+// 			}
+// 		}
+// 		cmd.Fail(job, fmt.Sprintf("Service '%s/%s' not found.", namespace, controllerName))
+// 	}(wg)
+// }
 
-func AddPortToService(job *structs.Job, namespace string, controllerName string, port int32, protocol string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Add Port to Application", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Add Port")
+// func AddPortToService(job *structs.Job, namespace string, controllerName string, port int32, protocol string, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("create", "Add Port to Application", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Add Port")
 
-		service := punq.ServiceFor(namespace, controllerName, nil)
-		if service != nil {
-			provider, err := punq.NewKubeProvider(nil)
-			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-				return
-			}
-			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{
-				Name:       fmt.Sprintf("%d-%s", port, controllerName),
-				Port:       port,
-				Protocol:   v1.Protocol(protocol),
-				TargetPort: intstr.FromInt(int(port)),
-			})
+// 		service := punq.ServiceFor(namespace, controllerName, nil)
+// 		if service != nil {
+// 			provider, err := punq.NewKubeProvider(nil)
+// 			if err != nil {
+// 				cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 				return
+// 			}
+// 			service.Spec.Ports = append(service.Spec.Ports, v1.ServicePort{
+// 				Name:       fmt.Sprintf("%d-%s", port, controllerName),
+// 				Port:       port,
+// 				Protocol:   v1.Protocol(protocol),
+// 				TargetPort: intstr.FromInt(int(port)),
+// 			})
 
-			serviceClient := provider.ClientSet.CoreV1().Services(namespace)
-			_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
-			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("AddPortToService ERROR: %s", err.Error()))
-				return
-			}
-			cmd.Success(job, fmt.Sprintf("Port %d added successfully removed.", port))
-			return
-		}
-		cmd.Fail(job, fmt.Sprintf("Application '%s/%s' not found.", namespace, controllerName))
-	}(wg)
-}
+// 			serviceClient := provider.ClientSet.CoreV1().Services(namespace)
+// 			_, err = serviceClient.Update(context.TODO(), service, metav1.UpdateOptions{})
+// 			if err != nil {
+// 				cmd.Fail(job, fmt.Sprintf("AddPortToService ERROR: %s", err.Error()))
+// 				return
+// 			}
+// 			cmd.Success(job, fmt.Sprintf("Port %d added successfully removed.", port))
+// 			return
+// 		}
+// 		cmd.Fail(job, fmt.Sprintf("Application '%s/%s' not found.", namespace, controllerName))
+// 	}(wg)
+// }
 
 func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) v1.Service {
 	newService := existingService

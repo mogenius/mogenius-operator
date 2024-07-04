@@ -1,10 +1,5 @@
 package dtos
 
-import (
-	punq "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
-)
-
 type NodeStat struct {
 	Name             string `json:"name" validate:"required"`
 	MaschineId       string `json:"maschineId" validate:"required"`
@@ -18,16 +13,16 @@ type NodeStat struct {
 	Architecture     string `json:"architecture" validate:"required"`
 }
 
-func (o *NodeStat) PrintPretty() {
-	log.Infof("%s: %s %s [%s/%s] - CPUs: %d, RAM: %s, Ephemeral: %s, MaxPods: %d\n",
-		o.Name,
-		o.KubletVersion,
-		o.OsImage,
-		o.OsType,
-		o.Architecture,
-		o.Cpus,
-		punq.BytesToHumanReadable(o.MemoryInBytes),
-		punq.BytesToHumanReadable(o.EphemeralInBytes),
-		o.MaxPods,
-	)
-}
+// func (o *NodeStat) PrintPretty() {
+// 	log.Infof("%s: %s %s [%s/%s] - CPUs: %d, RAM: %s, Ephemeral: %s, MaxPods: %d\n",
+// 		o.Name,
+// 		o.KubletVersion,
+// 		o.OsImage,
+// 		o.OsType,
+// 		o.Architecture,
+// 		o.Cpus,
+// 		punq.BytesToHumanReadable(o.MemoryInBytes),
+// 		punq.BytesToHumanReadable(o.EphemeralInBytes),
+// 		o.MaxPods,
+// 	)
+// }

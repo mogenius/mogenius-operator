@@ -269,17 +269,17 @@ func ListByProjectId(projectId string) []structs.BuildJob {
 	return result
 }
 
-func ListByServiceId(serviceId string) []structs.BuildJob {
-	result := []structs.BuildJob{}
+// func ListByServiceId(serviceId string) []structs.BuildJob {
+// 	result := []structs.BuildJob{}
 
-	list := ListAll()
-	for _, queueEntry := range list {
-		if queueEntry.Service.Id == serviceId {
-			result = append(result, queueEntry)
-		}
-	}
-	return result
-}
+// 	list := ListAll()
+// 	for _, queueEntry := range list {
+// 		if queueEntry.Service.Id == serviceId {
+// 			result = append(result, queueEntry)
+// 		}
+// 	}
+// 	return result
+// }
 
 func ListByServiceByNamespaceAndControllerName(namespace, controllerName string) []structs.BuildJob {
 	result := []structs.BuildJob{}
@@ -293,17 +293,17 @@ func ListByServiceByNamespaceAndControllerName(namespace, controllerName string)
 	return result
 }
 
-func ListByServiceIds(serviceIds []string) []structs.BuildJob {
-	result := []structs.BuildJob{}
+// func ListByServiceIds(serviceIds []string) []structs.BuildJob {
+// 	result := []structs.BuildJob{}
 
-	list := ListAll()
-	for _, queueEntry := range list {
-		if punqUtils.Contains(serviceIds, queueEntry.Service.Id) {
-			result = append(result, queueEntry)
-		}
-	}
-	return result
-}
+// 	list := ListAll()
+// 	for _, queueEntry := range list {
+// 		if punqUtils.Contains(serviceIds, queueEntry.Service.Id) {
+// 			result = append(result, queueEntry)
+// 		}
+// 	}
+// 	return result
+// }
 
 //func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJob {
 //	result := []structs.BuildJob{}
@@ -328,41 +328,41 @@ func LastBuildInfosOfServices(data structs.BuildTaskListOfServicesRequest) []str
 	return results
 }
 
-func LastJobForService(serviceId string) structs.BuildJob {
-	result := structs.BuildJob{}
+// func LastJobForService(serviceId string) structs.BuildJob {
+// 	result := structs.BuildJob{}
 
-	list := ListByServiceId(serviceId)
-	if len(list) > 0 {
-		result = list[len(list)-1]
-	}
-	return result
-}
+// 	list := ListByServiceId(serviceId)
+// 	if len(list) > 0 {
+// 		result = list[len(list)-1]
+// 	}
+// 	return result
+// }
 
-func LastJobForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJob {
-	result := structs.BuildJob{}
+// func LastJobForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJob {
+// 	result := structs.BuildJob{}
 
-	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
-	if len(list) > 0 {
-		result = list[len(list)-1]
-	}
-	return result
-}
+// 	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
+// 	if len(list) > 0 {
+// 		result = list[len(list)-1]
+// 	}
+// 	return result
+// }
 
-func LastBuildForService(serviceId string) structs.BuildJobInfo {
-	result := structs.BuildJobInfo{}
+// func LastBuildForService(serviceId string) structs.BuildJobInfo {
+// 	result := structs.BuildJobInfo{}
 
-	var lastJob *structs.BuildJob
-	list := ListByServiceId(serviceId)
-	if len(list) > 0 {
-		lastJob = &list[len(list)-1]
-	}
+// 	var lastJob *structs.BuildJob
+// 	list := ListByServiceId(serviceId)
+// 	if len(list) > 0 {
+// 		lastJob = &list[len(list)-1]
+// 	}
 
-	if lastJob != nil {
-		result = BuildJobInfos(lastJob.BuildId)
-	}
+// 	if lastJob != nil {
+// 		result = BuildJobInfos(lastJob.BuildId)
+// 	}
 
-	return result
-}
+// 	return result
+// }
 
 func LastBuildForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJobInfo {
 	result := structs.BuildJobInfo{}
