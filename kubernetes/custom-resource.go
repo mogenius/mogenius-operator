@@ -43,20 +43,20 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 
 		var res *unstructured.Unstructured
 		var err error
+
+		// check if fetched resource is ready 3x, but finally update it either way
 		for i := 0; i < 3; i++ {
-			GetResource(gvr.Group, gvr.Version, gvr.Resource, obj.GetName(), namespace, isClusterWideResource)
+			res, err = GetResource(gvr.Group, gvr.Version, gvr.Resource, obj.GetName(), namespace, isClusterWideResource)
 			if err != nil {
 				return err
-			} else {
-				logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
-				for _, condition := range res.Status.Conditions {
-					if condition.Type == "Ready" && condition.Status == "True" {
-						fmt.Println("Pod is in Ready status.")
-					} else {
-						logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
-					}
-				}
 			}
+
+			logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
+
+			if isReady(res) {
+				break // resource is ready and probably won't change anymore before the next update
+			}
+
 		}
 		// Try update if already exists
 		obj, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
@@ -70,6 +70,74 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 	}
 	return nil
 }
+
+type ResourceStatus struct {
+	// Object struct {
+	Status struct {
+		Conditions []struct {
+			LastTransitionTime string `yaml:"lastTransitionTime"`
+			Message            string `yaml:"message"`
+			Reason             string `yaml:"reason"`
+			Status             string `yaml:"status"`
+			Type               string `yaml:"type"`
+		} `yaml:"conditions"`
+	} `yaml:"status"`
+	// } `yaml:"Object"`
+}
+
+func isReady(res *unstructured.Unstructured) bool {
+	// Convert res to []byte
+	resBytes, err := res.MarshalJSON()
+	if err != nil {
+		fmt.Println("Error converting res to []byte:", err)
+		return false
+	}
+	var resourceStatus ResourceStatus
+	// Unmarshal the YAML into the struct
+	if err := yaml.Unmarshal(resBytes, &resourceStatus); err != nil {
+		fmt.Println("Error unmarshalling YAML:", err)
+		return false
+	}
+
+	// Iterate through conditions to check if the resource is "Ready"
+	for _, condition := range resourceStatus.Status.Conditions {
+		if condition.Type == "Ready" && condition.Status == "True" {
+			return true
+		}
+	}
+	return false
+}
+
+// func isReady(res *unstructured.Unstructured) bool {
+// 	// Access the 'status' field
+// 	status, found, err := unstructured.NestedFieldNoCopy(res.Object, "status")
+// 	if !found || err != nil {
+// 		logger.Log.Info("Status not found or error accessing status.")
+// 		return false
+// 	}
+
+// 	// Access the 'conditions' slice within the 'status' field
+// 	conditions, found, err := unstructured.NestedSlice(status.(map[string]interface{}), "conditions")
+// 	if !found || err != nil {
+// 		logger.Log.Info("Conditions not found or error accessing conditions.")
+// 		return false
+// 	}
+
+// 	// Iterate through conditions to check if the resource is "Ready"
+// 	for _, condition := range conditions {
+// 		conditionMap, ok := condition.(map[string]interface{})
+// 		if !ok {
+// 			continue // Skip if the condition is not a map
+// 		}
+// 		if conditionType, ok := conditionMap["type"].(string); ok && conditionType == "Ready" {
+// 			if conditionStatus, ok := conditionMap["status"].(string); ok && conditionStatus == "True" {
+// 				fmt.Println("Resource is in Ready status.")
+// 				return true
+// 			}
+// 		}
+// 	}
+// 	return false
+// }
 
 func GetResource(group string, version string, resource string, name string, namespace string, isClusterWideResource bool) (*unstructured.Unstructured, error) {
 	gvr := schema.GroupVersionResource{
