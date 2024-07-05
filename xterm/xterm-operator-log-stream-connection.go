@@ -2,8 +2,8 @@ package xterm
 
 import (
 	"context"
-	"encoding/base64"
-	"io"
+	"fmt"
+	punq "github.com/mogenius/punq/kubernetes"
 	"net/url"
 	"os"
 	"os/exec"
@@ -12,67 +12,27 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
-	punq "github.com/mogenius/punq/kubernetes"
 	log "github.com/sirupsen/logrus"
 )
 
-func injectContent(content io.Reader, conn *websocket.Conn) {
-	// Read full content for pre-injection
-	input, err := io.ReadAll(content)
-	if err != nil {
-		log.Errorf("failed to read data: %v", err)
-	}
-
-	// Encode for security reasons and send to pseudoterminal to be executed
-	// Use pty as a bridge for correct formatting
-	encodedData := base64.StdEncoding.EncodeToString(input)
-	bash := exec.Command("bash", "-c", "echo \""+encodedData+"\" | base64 -d")
-	ttytmp, err := pty.Start(bash)
-	if err != nil {
-		log.Errorf("Unable to start tmp pty/cmd: %s", err.Error())
-		if conn != nil {
-			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
-			if err != nil {
-				log.Errorf("WriteMessage: %s", err.Error())
-			}
-		}
-		return
-	}
-	defer func() { _ = ttytmp.Close() }()
-
-	// Read from pseudoterminal and send to websocket
-	buf := make([]byte, 1024)
-	for {
-		n, err := ttytmp.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-
-			log.Errorf("WriteMessage: %s", err.Error())
-			break
-		}
-		if conn != nil {
-			if err := conn.WriteMessage(websocket.BinaryMessage, buf[:n]); err != nil {
-				log.Errorf("WriteMessage: %s", err.Error())
-				break
-			}
-		} else {
-			break
-		}
-	}
-}
-
-func XTermCommandStreamConnection(
-	cmdType string,
+func XTermOperatorStreamConnection(
 	wsConnectionRequest WsConnectionRequest,
 	namespace string,
 	controller string,
-	podName string,
-	container string,
-	cmd *exec.Cmd,
-	injectPreContent io.Reader,
+	logTail string,
 ) {
+	cmdType := "log"
+
+	k8sManagerNamespace := "mogenius"
+	k8sManagerController := "mogenius-k8s-manager"
+	podName := ""
+
+	podList := punq.PodIdsFor(k8sManagerNamespace, &k8sManagerController, nil)
+	if len(podList) > 0 {
+		podName = podList[0]
+	}
+	cmd := exec.Command("kubectl", "logs", "-f", podName, fmt.Sprintf("--tail=%s", logTail), "-c", k8sManagerController, "-n", k8sManagerNamespace)
+
 	if wsConnectionRequest.WebsocketScheme == "" {
 		log.Error("WebsocketScheme is empty")
 		return
@@ -87,7 +47,7 @@ func XTermCommandStreamConnection(
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30*time.Minute))
 	// websocket connection
-	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, err := generateWsConnection(cmdType, k8sManagerNamespace, k8sManagerController, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
@@ -99,7 +59,7 @@ func XTermCommandStreamConnection(
 	}()
 
 	// Check if pod exists
-	podExists := punq.PodExists(namespace, podName, nil)
+	podExists := punq.PodExists(k8sManagerNamespace, podName, nil)
 	if !podExists.PodExists {
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
@@ -121,7 +81,7 @@ func XTermCommandStreamConnection(
 	var wg sync.WaitGroup
 	wg.Add(1)
 	// check if pod is ready
-	go checkPodIsReady(ctx, &wg, provider, namespace, podName, conn)
+	go checkPodIsReady(ctx, &wg, provider, k8sManagerNamespace, podName, conn)
 	wg.Wait()
 
 	// send ping
@@ -161,7 +121,7 @@ func XTermCommandStreamConnection(
 	go cmdWait(cmd, conn, tty)
 
 	// cmd output to websocket
-	go cmdOutputToWebsocket(ctx, cancel, conn, tty, injectPreContent, nil, nil)
+	go cmdOutputToWebsocket(ctx, cancel, conn, tty, nil, &namespace, &controller)
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)

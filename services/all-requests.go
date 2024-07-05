@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/controllers"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/dtos"
@@ -384,7 +385,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return kubernetes.GetDeployment(data.Namespace, data.Name)
+		return kubernetes.GetDeploymentResult(data.Namespace, data.Name)
 	// TODO
 	// case structs.PAT_CLUSTER_WRITE_DEPLOYMENT:
 	// 	data := ClusterWriteDeployment{}
@@ -691,6 +692,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		go buildLogStreamConnection(data)
+		return nil
+	case structs.PAT_SERVICE_OPERATOR_LOG_STREAM_CONNECTION_REQUEST:
+		data := xterm.OperatorLogConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go operatorLogStreamConnection(data)
 		return nil
 	case structs.PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST:
 		data := xterm.PodEventConnectionRequest{}
@@ -2113,35 +2122,28 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return db.ListLogFromDb()
 
 	case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
-		data := CreateSecretsStoreRequest{}
+		data := controllers.CreateSecretsStoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return CreateExternalSecretsStore(data)
+		return controllers.CreateExternalSecretStore(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_LIST:
-		return ListExternalSecretsStores()
+		return controllers.ListExternalSecretsStores()
 	case structs.PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS:
-		data := ListSecretsRequest{}
+		data := controllers.ListSecretsRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return ListAvailableExternalSecrets(data)
+		return controllers.ListAvailableExternalSecrets(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_DELETE:
-		data := DeleteSecretsStoreRequest{}
+		data := controllers.DeleteSecretsStoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return DeleteExternalSecretsStore(data)
-	case structs.PAT_EXTERNAL_SECRET_CREATE:
-		data := CreateExternalSecretRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return CreateExternalSecret(data)
+		return controllers.DeleteExternalSecretsStore(data)
 	}
 	datagram.Err = "Pattern not found"
 	return datagram
@@ -2339,6 +2341,18 @@ func buildLogStreamConnection(buildLogConnectionRequest xterm.BuildLogConnection
 		buildLogConnectionRequest.Container,
 		buildLogConnectionRequest.BuildTask,
 		buildLogConnectionRequest.BuildId,
+	)
+}
+
+func operatorLogStreamConnection(operatorLogConnectionRequest xterm.OperatorLogConnectionRequest) {
+	if operatorLogConnectionRequest.LogTail == "" {
+		operatorLogConnectionRequest.LogTail = "1000"
+	}
+	xterm.XTermOperatorStreamConnection(
+		operatorLogConnectionRequest.WsConnection,
+		operatorLogConnectionRequest.Namespace,
+		operatorLogConnectionRequest.Controller,
+		operatorLogConnectionRequest.LogTail,
 	)
 }
 

@@ -84,9 +84,9 @@ func HttpHeader(additionalName string) http.Header {
 // 	return parsed, nil
 // }
 
-func Prepend[T any](s []T, values ...T) []T {
-	return append(values, s...)
-}
+// func Prepend[T any](s []T, values ...T) []T {
+// 	return append(values, s...)
+// }
 
 func GetFunctionName() string {
 	pc, _, _, _ := runtime.Caller(1)
@@ -127,13 +127,13 @@ func ExecuteShellCommandRealySilent(title string, shellCmd string) error {
 	}
 }
 
-// MeasureTime measures the execution time of a function and prints it in milliseconds.
-func MeasureTime(name string, fn func()) {
-	start := time.Now()
-	fn()
-	elapsed := time.Since(start)
-	log.Infof("%s took %s", name, elapsed)
-}
+// // MeasureTime measures the execution time of a function and prints it in milliseconds.
+// func MeasureTime(name string, fn func()) {
+// 	start := time.Now()
+// 	fn()
+// 	elapsed := time.Since(start)
+// 	log.Infof("%s took %s", name, elapsed)
+// }
 
 func GetVersionData(url string) (*punqStructs.HelmData, error) {
 	// Check if the data is already in the cache
@@ -193,14 +193,15 @@ func GitCommitLink(gitRepository string, commitHash string) *string {
 	return &commitURL
 }
 
-func ContainsUint64(slice []uint64, value uint64) bool {
-	for _, item := range slice {
-		if item == value {
-			return true
-		}
-	}
-	return false
-}
+// func ContainsUint64(slice []uint64, value uint64) bool {
+// 	for _, item := range slice {
+// 		if item == value {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
+
 func ContainsString(slice []string, value string) bool {
 	for _, item := range slice {
 		if item == value {
@@ -210,21 +211,21 @@ func ContainsString(slice []string, value string) bool {
 	return false
 }
 
-func IsFirstTimestampNewer(ts1, ts2 string) bool {
-	// Parse the timestamps using RFC 3339 format
-	t1, err := time.Parse(time.RFC3339, ts1)
-	if err != nil {
-		log.Error(fmt.Errorf("error parsing ts1: %w", err))
-	}
+// func IsFirstTimestampNewer(ts1, ts2 string) bool {
+// 	// Parse the timestamps using RFC 3339 format
+// 	t1, err := time.Parse(time.RFC3339, ts1)
+// 	if err != nil {
+// 		log.Error(fmt.Errorf("error parsing ts1: %w", err))
+// 	}
 
-	t2, err := time.Parse(time.RFC3339, ts2)
-	if err != nil {
-		log.Error(fmt.Errorf("error parsing ts2: %w", err))
-	}
+// 	t2, err := time.Parse(time.RFC3339, ts2)
+// 	if err != nil {
+// 		log.Error(fmt.Errorf("error parsing ts2: %w", err))
+// 	}
 
-	// Check if the first timestamp is strictly newer than the second
-	return t1.After(t2)
-}
+// 	// Check if the first timestamp is strictly newer than the second
+// 	return t1.After(t2)
+// }
 
 func AppendIfNotExist(slice []string, str string) []string {
 	for _, item := range slice {
@@ -262,4 +263,47 @@ func Escape(str string) string {
 		}
 	}
 	return builder.String()
+}
+
+const (
+	SecretListSuffix      = "vault-secret-list"
+	SecretStoreSuffix     = "vault-secret-store"
+	ExternalSecretsSA     = "mo-eso-serviceaccount"
+	StoreAnnotationPrefix = "used-by-mogenius/"
+)
+
+func GetServiceAccountName(moSharedPath string) string {
+	return fmt.Sprintf("%s-%s",
+		strings.ToLower(ExternalSecretsSA),
+		strings.ToLower(moSharedPath),
+	)
+}
+
+func GetMoSharedPath(moSharedPath string, projectName string) string {
+	return fmt.Sprintf("%s/%s", moSharedPath, projectName)
+}
+
+func GetSecretStoreName(namePrefix string, projectName string) string {
+	return fmt.Sprintf("%s-%s-%s",
+		strings.ToLower(namePrefix),
+		strings.ToLower(projectName),
+		strings.ToLower(SecretStoreSuffix),
+	)
+}
+
+func GetSecretName(namePrefix, project, service, propertyName string) string {
+	return fmt.Sprintf("%s-%s-%s-%s",
+		strings.ToLower(namePrefix),
+		strings.ToLower(project),
+		strings.ToLower(service),
+		strings.ToLower(propertyName),
+	)
+}
+
+func GetSecretListName(customerPrefix string, projectName string) string {
+	return fmt.Sprintf("%s-%s-%s",
+		strings.ToLower(customerPrefix),
+		strings.ToLower(projectName),
+		strings.ToLower(SecretListSuffix),
+	)
 }

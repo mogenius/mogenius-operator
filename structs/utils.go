@@ -43,14 +43,14 @@ func UnmarshalJob(dst *BuildJob, data []byte) error {
 	return nil
 }
 
-func UnmarshalBuildJobInfoEntry(dst *BuildJobInfoEntry, data []byte) error {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	err := json.Unmarshal(data, dst)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func UnmarshalBuildJobInfoEntry(dst *BuildJobInfoEntry, data []byte) error {
+// 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+// 	err := json.Unmarshal(data, dst)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func UnmarshalBuildScanImageEntry(dst *BuildScanImageEntry, data []byte) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary

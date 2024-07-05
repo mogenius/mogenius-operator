@@ -10,6 +10,8 @@ type K8sServiceDto struct {
 	ReplicaCount       int                      `json:"replicaCount"`
 	DeploymentStrategy DeploymentStrategyEnum   `json:"deploymentStrategy"`
 	CronJobSettings    *K8sCronJobSettingsDto   `json:"cronJobSettings"`
+	HpaSettings        *K8sHpaSettingsDto       `json:"hpaSettings,omitempty"`
+	EsoSettings        *K8sEsoSettingsDto       `json:"esoSettings,omitempty"`
 	Containers         []K8sContainerDto        `json:"containers"`
 }
 
@@ -50,6 +52,14 @@ func (k *K8sServiceDto) HasPorts() bool {
 		}
 	}
 	return false
+}
+
+func (k *K8sServiceDto) HpaEnabled() bool {
+	return k.HpaSettings != nil
+}
+
+func (k *K8sServiceDto) ExternalSecretsEnabled() bool {
+	return k.EsoSettings != nil
 }
 
 func (k *K8sServiceDto) GetImageRepoSecretDecryptValue() *string {

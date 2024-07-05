@@ -24,6 +24,7 @@ import (
 	rbac "k8s.io/api/rbac/v1"
 	scheduling "k8s.io/api/scheduling/v1"
 	storage "k8s.io/api/storage/v1"
+
 	"k8s.io/client-go/rest"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -55,6 +56,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		mokubernetes.CreateOrUpdateContainerSecretForService(job, r.Project, r.Namespace, r.Service, &wg)
 	}
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
+
 	mokubernetes.UpdateOrCreateSecrete(job, r.Namespace, r.Service, &wg)
 	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
@@ -200,6 +202,8 @@ func Restart(r ServiceRestartRequest) interface{} {
 	}
 
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateSecrete(job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	go func() {

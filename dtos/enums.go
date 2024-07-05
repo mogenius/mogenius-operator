@@ -45,12 +45,13 @@ const (
 type K8sEnvVarDtoEnum string
 
 const (
-	EnvVarPlainText       K8sEnvVarDtoEnum = "PLAINTEXT"
-	EnvVarKeyVault        K8sEnvVarDtoEnum = "KEY_VAULT"
-	EnvVarVolumeMount     K8sEnvVarDtoEnum = "VOLUME_MOUNT"
-	EnvVarVolumeMountSeed K8sEnvVarDtoEnum = "VOLUME_MOUNT_SEED"
-	EnvVarChangeOwner     K8sEnvVarDtoEnum = "CHANGE_OWNER"
-	EnvVarHostname        K8sEnvVarDtoEnum = "HOSTNAME"
+	EnvVarPlainText        K8sEnvVarDtoEnum = "PLAINTEXT"
+	EnvVarKeyVault         K8sEnvVarDtoEnum = "KEY_VAULT"
+	EnvVarKeyEsoHashiVault K8sEnvVarDtoEnum = "KEY_ESO_HASHI_VAULT"
+	EnvVarVolumeMount      K8sEnvVarDtoEnum = "VOLUME_MOUNT"
+	EnvVarVolumeMountSeed  K8sEnvVarDtoEnum = "VOLUME_MOUNT_SEED"
+	EnvVarChangeOwner      K8sEnvVarDtoEnum = "CHANGE_OWNER"
+	EnvVarHostname         K8sEnvVarDtoEnum = "HOSTNAME"
 )
 
 type PortTypeEnum string
@@ -80,18 +81,19 @@ const (
 )
 
 const (
-	KindNamespaces      string = "namespaces"
-	KindDeployments     string = "deployments"
-	KindPods            string = "pods"
-	KindStatefulSets    string = "statefulsets"
-	KindServices        string = "services"
-	KindIngresses       string = "ingresses"
-	KindConfigMaps      string = "configmaps"
-	KindSecrets         string = "secrets"
-	KindJobs            string = "jobs"
-	KindCronJobs        string = "cronjobs"
-	KindDaemonSets      string = "daemonsets"
-	KindNetworkPolicies string = "networkpolicies"
+	KindNamespaces               string = "namespaces"
+	KindDeployments              string = "deployments"
+	KindPods                     string = "pods"
+	KindStatefulSets             string = "statefulsets"
+	KindServices                 string = "services"
+	KindIngresses                string = "ingresses"
+	KindConfigMaps               string = "configmaps"
+	KindSecrets                  string = "secrets"
+	KindJobs                     string = "jobs"
+	KindCronJobs                 string = "cronjobs"
+	KindDaemonSets               string = "daemonsets"
+	KindNetworkPolicies          string = "networkpolicies"
+	KindHorizontalPodAutoscalers string = "horizontalpodautoscalers"
 )
 
 var AvailableSyncWorkloadKinds = []string{
@@ -107,6 +109,7 @@ var AvailableSyncWorkloadKinds = []string{
 	KindCronJobs,
 	KindDaemonSets,
 	KindNetworkPolicies,
+	KindHorizontalPodAutoscalers,
 }
 
 func DefaultIgnoredNamespaces() []string {

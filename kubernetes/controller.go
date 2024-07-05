@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
+
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -185,6 +186,28 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 						},
 					},
 				})
+			}
+			// EXTERNAL SECRETS OPERATOR
+			if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
+				externalSecretStorePrefix := service.EsoSettings.SecretStoreNamePrefix
+				if envVar.Type == dtos.EnvVarKeyEsoHashiVault {
+					specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
+						Name: envVar.Name,
+						ValueFrom: &v1core.EnvVarSource{
+							SecretKeyRef: &v1core.SecretKeySelector{
+								Key: envVar.Name,
+								LocalObjectReference: v1core.LocalObjectReference{
+									Name: utils.GetSecretName(
+										externalSecretStorePrefix,
+										service.EsoSettings.ProjectName,
+										service.ControllerName,
+										envVar.Name,
+									),
+								},
+							},
+						},
+					})
+				}
 			}
 			if envVar.Type == dtos.EnvVarPlainText || envVar.Type == dtos.EnvVarHostname {
 				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{

@@ -122,16 +122,16 @@ func AddRemote() error {
 	return nil
 }
 
-func RemoveRemote() error {
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	remoteCmdStr := fmt.Sprintf("cd %s; git remote remove origin", folder)
-	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
-	if err != nil {
-		log.Errorf("Error setting up remote: %s", err.Error())
-		return err
-	}
-	return nil
-}
+// func RemoveRemote() error {
+// 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+// 	remoteCmdStr := fmt.Sprintf("cd %s; git remote remove origin", folder)
+// 	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
+// 	if err != nil {
+// 		log.Errorf("Error setting up remote: %s", err.Error())
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func ResetCurrentRepoData(tries int) error {
 	changedFiles = []string{}

@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"sync"
 	"time"
 
@@ -66,42 +65,42 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 	}(wg)
 }
 
-func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Creating CronJob", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Creating CronJob")
+// func CreateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("create", "Creating CronJob", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Creating CronJob")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
+// 		provider, err := punq.NewKubeProvider(nil)
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 			return
+// 		}
 
-		if service.CronJobSettings == nil {
-			cmd.Fail(job, "CronJobSettings is nil.")
-			return
-		}
+// 		if service.CronJobSettings == nil {
+// 			cmd.Fail(job, "CronJobSettings is nil.")
+// 			return
+// 		}
 
-		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
-		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, true, cronJobClient, createCronJobHandler)
-		if err != nil {
-			log.Errorf("error: %s", err.Error())
-		}
+// 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
+// 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, true, cronJobClient, createCronJobHandler)
+// 		if err != nil {
+// 			log.Errorf("error: %s", err.Error())
+// 		}
 
-		newCronJob := newController.(*v1job.CronJob)
-		newCronJob.Labels = MoUpdateLabels(&newCronJob.Labels, nil, nil, &service)
+// 		newCronJob := newController.(*v1job.CronJob)
+// 		newCronJob.Labels = MoUpdateLabels(&newCronJob.Labels, nil, nil, &service)
 
-		_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions())
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("CreateCronJob ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Created CronJob")
-		}
+// 		_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions())
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("CreateCronJob ERROR: %s", err.Error()))
+// 		} else {
+// 			cmd.Success(job, "Created CronJob")
+// 		}
 
-	}(wg)
-}
+// 	}(wg)
+// }
 
 func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", fmt.Sprintf("Deleting CronJob '%s'.", service.ControllerName), job)
@@ -341,107 +340,107 @@ func UpdateCronjobImage(namespaceName string, controllerName string, containerNa
 	return err
 }
 
-func SetCronJobImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("setImage", "Set CronJob Image", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Set Image in CronJob")
+// func SetCronJobImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("setImage", "Set CronJob Image", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Set Image in CronJob")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		cronjobClient := provider.ClientSet.BatchV1().CronJobs(namespaceName)
-		cronjobToUpdate, err := cronjobClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
-			return
-		}
+// 		provider, err := punq.NewKubeProvider(nil)
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 			return
+// 		}
+// 		cronjobClient := provider.ClientSet.BatchV1().CronJobs(namespaceName)
+// 		cronjobToUpdate, err := cronjobClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
+// 			return
+// 		}
 
-		// SET NEW IMAGE
-		for index, container := range cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers {
-			if container.Name == containerName {
-				cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
-			}
-		}
-		cronjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
+// 		// SET NEW IMAGE
+// 		for index, container := range cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers {
+// 			if container.Name == containerName {
+// 				cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
+// 			}
+// 		}
+// 		cronjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
 
-		_, err = cronjobClient.Update(context.TODO(), cronjobToUpdate, metav1.UpdateOptions{})
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Set new image in CronJob")
-		}
-	}(wg)
-}
+// 		_, err = cronjobClient.Update(context.TODO(), cronjobToUpdate, metav1.UpdateOptions{})
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
+// 		} else {
+// 			cmd.Success(job, "Set new image in CronJob")
+// 		}
+// 	}(wg)
+// }
 
-func AllCronjobs(namespaceName string) K8sWorkloadResult {
-	result := []v1job.CronJob{}
+// func AllCronjobs(namespaceName string) K8sWorkloadResult {
+// 	result := []v1job.CronJob{}
 
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	cronJobList, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		log.Errorf("AllCronjobs ERROR: %s", err.Error())
-		return WorkloadResult(nil, err)
-	}
+// 	provider, err := punq.NewKubeProvider(nil)
+// 	if err != nil {
+// 		return WorkloadResult(nil, err)
+// 	}
+// 	cronJobList, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+// 	if err != nil {
+// 		log.Errorf("AllCronjobs ERROR: %s", err.Error())
+// 		return WorkloadResult(nil, err)
+// 	}
 
-	for _, cronJob := range cronJobList.Items {
-		if !punqutils.Contains(punqutils.CONFIG.Misc.IgnoreNamespaces, cronJob.ObjectMeta.Namespace) {
-			result = append(result, cronJob)
-		}
-	}
-	return WorkloadResult(result, nil)
-}
+// 	for _, cronJob := range cronJobList.Items {
+// 		if !punqutils.Contains(punqutils.CONFIG.Misc.IgnoreNamespaces, cronJob.ObjectMeta.Namespace) {
+// 			result = append(result, cronJob)
+// 		}
+// 	}
+// 	return WorkloadResult(result, nil)
+// }
 
-func UpdateK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		return WorkloadResult(nil, err)
-	}
-	cronJobClient := provider.ClientSet.BatchV1().CronJobs(data.Namespace)
-	_, err = cronJobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	return WorkloadResult(nil, nil)
-}
+// func UpdateK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
+// 	provider, err := punq.NewKubeProvider(nil)
+// 	if provider == nil || err != nil {
+// 		return WorkloadResult(nil, err)
+// 	}
+// 	cronJobClient := provider.ClientSet.BatchV1().CronJobs(data.Namespace)
+// 	_, err = cronJobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
+// 	if err != nil {
+// 		return WorkloadResult(nil, err)
+// 	}
+// 	return WorkloadResult(nil, nil)
+// }
 
-func DeleteK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		return WorkloadResult(nil, err)
-	}
-	jobClient := provider.ClientSet.BatchV1().CronJobs(data.Namespace)
-	err = jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	return WorkloadResult(nil, nil)
-}
+// func DeleteK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
+// 	provider, err := punq.NewKubeProvider(nil)
+// 	if provider == nil || err != nil {
+// 		return WorkloadResult(nil, err)
+// 	}
+// 	jobClient := provider.ClientSet.BatchV1().CronJobs(data.Namespace)
+// 	err = jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
+// 	if err != nil {
+// 		return WorkloadResult(nil, err)
+// 	}
+// 	return WorkloadResult(nil, nil)
+// }
 
-func DescribeK8sCronJob(namespace string, name string) K8sWorkloadResult {
-	cmd := exec.Command("kubectl", "describe", "cronjob", name, "-n", namespace)
+// func DescribeK8sCronJob(namespace string, name string) K8sWorkloadResult {
+// 	cmd := exec.Command("kubectl", "describe", "cronjob", name, "-n", namespace)
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-		log.Errorf("Error: %s", string(output))
-		return WorkloadResult(nil, string(output))
-	}
-	return WorkloadResult(string(output), nil)
-}
+// 	output, err := cmd.CombinedOutput()
+// 	if err != nil {
+// 		log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+// 		log.Errorf("Error: %s", string(output))
+// 		return WorkloadResult(nil, string(output))
+// 	}
+// 	return WorkloadResult(string(output), nil)
+// }
 
-func NewK8sCronJob() K8sNewWorkload {
-	return NewWorkload(
-		punq.RES_CRON_JOB,
-		punqutils.InitCronJobYaml(),
-		"A CronJob creates Jobs on a repeating schedule, like the cron utility in Unix-like systems. In this example, a CronJob named 'my-cronjob' is created. It runs a Job every minute. Each Job creates a Pod with a single container from the 'my-cronjob-image' image.")
-}
+// func NewK8sCronJob() K8sNewWorkload {
+// 	return NewWorkload(
+// 		punq.RES_CRON_JOB,
+// 		punqutils.InitCronJobYaml(),
+// 		"A CronJob creates Jobs on a repeating schedule, like the cron utility in Unix-like systems. In this example, a CronJob named 'my-cronjob' is created. It runs a Job every minute. Each Job creates a Pod with a single container from the 'my-cronjob-image' image.")
+// }
 
 func WatchCronJobs() {
 	provider, err := punq.NewKubeProvider(nil)
