@@ -108,37 +108,6 @@ func isReady(res *unstructured.Unstructured) bool {
 	return false
 }
 
-// func isReady(res *unstructured.Unstructured) bool {
-// 	// Access the 'status' field
-// 	status, found, err := unstructured.NestedFieldNoCopy(res.Object, "status")
-// 	if !found || err != nil {
-// 		logger.Log.Info("Status not found or error accessing status.")
-// 		return false
-// 	}
-
-// 	// Access the 'conditions' slice within the 'status' field
-// 	conditions, found, err := unstructured.NestedSlice(status.(map[string]interface{}), "conditions")
-// 	if !found || err != nil {
-// 		logger.Log.Info("Conditions not found or error accessing conditions.")
-// 		return false
-// 	}
-
-// 	// Iterate through conditions to check if the resource is "Ready"
-// 	for _, condition := range conditions {
-// 		conditionMap, ok := condition.(map[string]interface{})
-// 		if !ok {
-// 			continue // Skip if the condition is not a map
-// 		}
-// 		if conditionType, ok := conditionMap["type"].(string); ok && conditionType == "Ready" {
-// 			if conditionStatus, ok := conditionMap["status"].(string); ok && conditionStatus == "True" {
-// 				fmt.Println("Resource is in Ready status.")
-// 				return true
-// 			}
-// 		}
-// 	}
-// 	return false
-// }
-
 func GetResource(group string, version string, resource string, name string, namespace string, isClusterWideResource bool) (*unstructured.Unstructured, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    group,
