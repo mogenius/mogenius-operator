@@ -3,6 +3,7 @@ package servicesExternal
 import (
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
+	"time"
 
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -70,6 +71,9 @@ func TestSecretStoreCreate(t *testing.T) {
 
 // don't move this test as it is dependent on the previous test to create the secret store!
 func TestSecretStoreList(t *testing.T) {
+	// wait for create to finish
+	time.Sleep(5 * time.Second)
+
 	stores, err := kubernetes.ListExternalSecretsStores()
 	if err != nil {
 		t.Errorf("Error listing secret stores: %s", err.Error())
