@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mogenius/punq/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +57,8 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 			if isReady(res) {
 				break // resource is ready and probably won't change anymore before the next update
 			}
-
+			logger.Log.Info(fmt.Sprintf("Resource not ready: %s  Retrying in 2 seconds...", res.GetName()))
+			time.Sleep(2 * time.Second)
 		}
 		// Try update if already exists
 		obj, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
@@ -89,13 +91,13 @@ func isReady(res *unstructured.Unstructured) bool {
 	// Convert res to []byte
 	resBytes, err := res.MarshalJSON()
 	if err != nil {
-		fmt.Println("Error converting res to []byte:", err)
+		logger.Log.Errorf("Error converting res to []byte:", err)
 		return false
 	}
 	var resourceStatus ResourceStatus
 	// Unmarshal the YAML into the struct
 	if err := yaml.Unmarshal(resBytes, &resourceStatus); err != nil {
-		fmt.Println("Error unmarshalling YAML:", err)
+		logger.Log.Errorf("Error unmarshalling YAML:", err)
 		return false
 	}
 
