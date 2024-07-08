@@ -3,16 +3,17 @@ package dtos
 import utils "mogenius-k8s-manager/utils"
 
 type K8sServiceDto struct {
-	Id                 string                   `json:"id" validate:"required"`
-	DisplayName        string                   `json:"displayName" validate:"required"`
-	ControllerName     string                   `json:"controllerName"`
-	Controller         K8sServiceControllerEnum `json:"controller"`
-	ReplicaCount       int                      `json:"replicaCount"`
-	DeploymentStrategy DeploymentStrategyEnum   `json:"deploymentStrategy"`
-	CronJobSettings    *K8sCronJobSettingsDto   `json:"cronJobSettings"`
-	HpaSettings        *K8sHpaSettingsDto       `json:"hpaSettings,omitempty"`
-	EsoSettings        *K8sEsoSettingsDto       `json:"esoSettings,omitempty"`
-	Containers         []K8sContainerDto        `json:"containers"`
+	Id                 string                    `json:"id" validate:"required"`
+	DisplayName        string                    `json:"displayName" validate:"required"`
+	ControllerName     string                    `json:"controllerName"`
+	Controller         K8sServiceControllerEnum  `json:"controller"`
+	ReplicaCount       int                       `json:"replicaCount"`
+	DeploymentStrategy DeploymentStrategyEnum    `json:"deploymentStrategy"`
+	CronJobSettings    *K8sCronJobSettingsDto    `json:"cronJobSettings"`
+	HpaSettings        *K8sHpaSettingsDto        `json:"hpaSettings,omitempty"`
+	EsoSettings        *K8sEsoSettingsDto        `json:"esoSettings,omitempty"`
+	EsoDeleteSettings  *[]K8sEsoDeleteSettingDto `json:"esoDeleteSettings,omitempty"`
+	Containers         []K8sContainerDto         `json:"containers"`
 }
 
 func (s *K8sServiceDto) AddSecretsToRedaction() {

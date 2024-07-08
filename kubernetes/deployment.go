@@ -87,6 +87,16 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		} else {
 			cmd.Success(job, "Deleted Deployment")
 		}
+		// EXTERNAL SECRETS OPERATOR
+		if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
+			eso := service.EsoSettings
+			DeleteExternalSecret(utils.GetSecretName(
+				eso.SecretStoreNamePrefix,
+				eso.ProjectName,
+				service.ControllerName,
+				eso.
+			))
+		}
 	}(wg)
 }
 
