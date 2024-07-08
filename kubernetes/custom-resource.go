@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mogenius/punq/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,11 +41,24 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 		// get fresh metadata about existing resource
 		gvr := getGVR(obj)
 		namespace := obj.GetNamespace()
-		res, err := GetResource(gvr.Group, gvr.Version, gvr.Resource, obj.GetName(), namespace, isClusterWideResource)
-		if err != nil {
-			return err
-		} else {
+
+		var res *unstructured.Unstructured
+		var err error
+
+		// check if fetched resource is ready 3x, but finally update it either way
+		for i := 0; i < 3; i++ {
+			res, err = GetResource(gvr.Group, gvr.Version, gvr.Resource, obj.GetName(), namespace, isClusterWideResource)
+			if err != nil {
+				return err
+			}
+
 			logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
+
+			if isReady(res) {
+				break // resource is ready and probably won't change anymore before the next update
+			}
+			logger.Log.Info(fmt.Sprintf("Resource not ready: %s  Retrying in 2 seconds...", res.GetName()))
+			time.Sleep(2 * time.Second)
 		}
 		// Try update if already exists
 		obj, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
@@ -57,6 +71,43 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 		logger.Log.Info("Resource created successfully ✅: " + obj.GetName())
 	}
 	return nil
+}
+
+type ResourceStatus struct {
+	// Object struct {
+	Status struct {
+		Conditions []struct {
+			LastTransitionTime string `yaml:"lastTransitionTime"`
+			Message            string `yaml:"message"`
+			Reason             string `yaml:"reason"`
+			Status             string `yaml:"status"`
+			Type               string `yaml:"type"`
+		} `yaml:"conditions"`
+	} `yaml:"status"`
+	// } `yaml:"Object"`
+}
+
+func isReady(res *unstructured.Unstructured) bool {
+	// Convert res to []byte
+	resBytes, err := res.MarshalJSON()
+	if err != nil {
+		logger.Log.Errorf("Error converting res to []byte:", err)
+		return false
+	}
+	var resourceStatus ResourceStatus
+	// Unmarshal the YAML into the struct
+	if err := yaml.Unmarshal(resBytes, &resourceStatus); err != nil {
+		logger.Log.Errorf("Error unmarshalling YAML:", err)
+		return false
+	}
+
+	// Iterate through conditions to check if the resource is "Ready"
+	for _, condition := range resourceStatus.Status.Conditions {
+		if condition.Type == "Ready" && condition.Status == "True" {
+			return true
+		}
+	}
+	return false
 }
 
 func GetResource(group string, version string, resource string, name string, namespace string, isClusterWideResource bool) (*unstructured.Unstructured, error) {
