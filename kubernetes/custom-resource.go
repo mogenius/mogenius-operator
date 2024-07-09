@@ -144,8 +144,36 @@ func ListResources(group string, version string, resource string, namespace stri
 		return nil, err
 	}
 	return resourceResult, nil
-
 }
+
+// // alias *unstructured.UnstructuredList to my own class
+// type ResourceList unstructured.UnstructuredList
+
+// func (data *ResourceList) Trollo() []string {
+// 	// // Convert res to []byte
+// 	// resBytes, err := res.MarshalJSON()
+// 	// if err != nil {
+// 	// 	logger.Log.Errorf("Error converting res to []byte:", err)
+// 	// 	return false
+// 	// }
+// 	// var resourceStatus ResourceStatus
+// 	// // Unmarshal the YAML into the struct
+// 	// if err := yaml.Unmarshal(resBytes, &resourceStatus); err != nil {
+// 	// 	logger.Log.Errorf("Error unmarshalling YAML:", err)
+// 	// 	return false
+// 	// }
+
+// 	// // Iterate through conditions to check if the resource is "Ready"
+// 	// for _, condition := range resourceStatus.Status.Conditions {
+// 	// 	if condition.Type == "Ready" && condition.Status == "True" {
+// 	// 		return true
+// 	// 	}
+// 	// }
+// 	// return false
+
+// 	fmt.Println(data)
+// 	return []string{}
+// }
 
 func DeleteResource(group string, version string, resource string, name string, namespace string, isClusterWideResource bool) error {
 

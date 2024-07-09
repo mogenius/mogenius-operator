@@ -1,10 +1,14 @@
 package kubernetes
 
 import (
-	"encoding/json"
 	"mogenius-k8s-manager/utils"
 
 	"strings"
+
+	jsoniter "github.com/json-iterator/go"
+
+	"github.com/mogenius/punq/logger"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type CreateExternalSecretProps struct {
@@ -99,6 +103,60 @@ func DeleteExternalSecretList(namePrefix string, projectName string) error {
 	return DeleteExternalSecret(utils.GetSecretListName(namePrefix, projectName))
 }
 
+func DeleteUnusedSecretsForNamespace(namespace string) error {
+	// DEPLOYMENTs
+	deployments, err := ListDeployments(namespace)
+	if err != nil {
+		return err
+	}
+
+	mountedSecretNames := []string{}
+	for _, deployment := range deployments.Items {
+		for _, volume := range deployment.Spec.Template.Spec.Volumes {
+			if volume.Secret != nil {
+				mountedSecretNames = append(mountedSecretNames, volume.Secret.SecretName)
+			}
+		}
+	}
+
+	// LIST ns secrets
+	secrets, err := ListResources("external-secrets.io", "v1beta1", "externalsecrets", "", true)
+	if err != nil {
+		t.Errorf("Error listing resources: %s", err.Error())
+	} else {
+		logger.Log.Info("Resources listed ✅")
+	}
+
+	existingSecrets, err := parseExternalSecretsListing(secrets)
+	if err != nil {
+		return err
+	}
+	for _, secret := range existingSecrets {
+		isMoExternalSecret := false
+		for key := range secret.Labels {
+			if key == "used-by-mo-service" {
+				isMoExternalSecret = true
+				break
+			}
+		}
+		isUsedByDeployment := false
+		for _, mountedSecretName := range mountedSecretNames {
+			if mountedSecretName == secret.Name {
+				isUsedByDeployment = true
+				break
+			}
+		}
+
+		if isMoExternalSecret && !isUsedByDeployment {
+			err = DeleteExternalSecret(secret.Name)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func DeleteExternalSecret(name string) error {
 	return DeleteResource(
 		"external-secrets.io",
@@ -135,15 +193,17 @@ func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) 
 }
 
 type ExternalSecretListing struct {
-	Name    string `json:"name"`
-	Role    string `json:"role"`
-	Message string `json:"message"`
+	Name    string            `json:"name"`
+	Role    string            `json:"role"`
+	Message string            `json:"message"`
+	Labels  map[string]string `json:"labels"`
 }
 
 type ExternalSecretListingSchema struct {
 	Items []struct {
 		Metadata struct {
-			Name string `json:"name"`
+			Name   string            `json:"name"`
+			Labels map[string]string `json:"labels"`
 		} `json:"metadata"`
 		Spec struct {
 			Provider struct {
@@ -164,25 +224,37 @@ type ExternalSecretListingSchema struct {
 	} `json:"items"`
 }
 
-func parseExternalSecretsListing(jsonStr string) ([]ExternalSecretListing, error) {
-	var ExternalSecrets ExternalSecretListingSchema
-	err := json.Unmarshal([]byte(jsonStr), &ExternalSecrets)
-	if err != nil {
-		return nil, err
+func parseExternalSecretsListing(list *unstructured.UnstructuredList) ([]ExternalSecretListing, error) {
+	var stores []ExternalSecretListing
+
+	for _, item := range list.Items {
+		// Convert item to []byte
+		itemBytes, err := item.MarshalJSON()
+		if err != nil {
+			logger.Log.Errorf("Error converting item to []byte:", err)
+			return nil, err
+		}
+		var ExternalSecrets ExternalSecretListingSchema
+		err = jsoniter.Unmarshal(itemBytes, &ExternalSecrets)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range ExternalSecrets.Items {
+			message := ""
+			if len(item.Status.Conditions) > 0 {
+				message = item.Status.Conditions[0].Message
+			}
+
+			store := ExternalSecretListing{
+				Name:    item.Metadata.Name,
+				Role:    item.Spec.Provider.Vault.Auth.Kubernetes.Role,
+				Message: message,
+				Labels:  item.Metadata.Labels,
+			}
+			stores = append(stores, store)
+		}
 	}
 
-	var stores []ExternalSecretListing
-	for _, item := range ExternalSecrets.Items {
-		message := ""
-		if len(item.Status.Conditions) > 0 {
-			message = item.Status.Conditions[0].Message
-		}
-		store := ExternalSecretListing{
-			Name:    item.Metadata.Name,
-			Role:    item.Spec.Provider.Vault.Auth.Kubernetes.Role,
-			Message: message,
-		}
-		stores = append(stores, store)
-	}
 	return stores, nil
 }

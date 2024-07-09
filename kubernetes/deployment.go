@@ -87,15 +87,9 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		} else {
 			cmd.Success(job, "Deleted Deployment")
 		}
-		// EXTERNAL SECRETS OPERATOR
+		// EXTERNAL SECRETS OPERATOR - cleanup unused secrets
 		if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
-			eso := service.EsoSettings
-			DeleteExternalSecret(utils.GetSecretName(
-				eso.SecretStoreNamePrefix,
-				eso.ProjectName,
-				service.ControllerName,
-				eso.
-			))
+			DeleteUnusedSecretsForNamespace(namespace.Name)
 		}
 	}(wg)
 }
@@ -123,6 +117,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 				ProjectName:           service.EsoSettings.ProjectName,
 				SecretStoreNamePrefix: service.EsoSettings.SecretStoreNamePrefix,
 			})
+			DeleteUnusedSecretsForNamespace(namespace.Name)
 		}
 
 		deployment := newController.(*v1.Deployment)
@@ -453,6 +448,15 @@ func GetDeploymentImage(namespaceName string, controllerName string, containerNa
 		}
 	}
 	return "", fmt.Errorf("Container '%s' not found in Deployment '%s'", containerName, controllerName)
+}
+
+func ListDeployments(namespace string) (*v1.DeploymentList, error) {
+	client := GetAppClient().Deployments(namespace)
+	deployments, err := client.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return deployments, nil
 }
 
 func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
