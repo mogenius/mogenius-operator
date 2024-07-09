@@ -450,15 +450,6 @@ func GetDeploymentImage(namespaceName string, controllerName string, containerNa
 	return "", fmt.Errorf("Container '%s' not found in Deployment '%s'", containerName, controllerName)
 }
 
-func ListDeployments(namespace string) (*v1.DeploymentList, error) {
-	client := GetAppClient().Deployments(namespace)
-	deployments, err := client.List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return deployments, nil
-}
-
 func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {

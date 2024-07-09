@@ -7,6 +7,8 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
+	punq "github.com/mogenius/punq/kubernetes"
+
 	"github.com/mogenius/punq/logger"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -105,13 +107,10 @@ func DeleteExternalSecretList(namePrefix string, projectName string) error {
 
 func DeleteUnusedSecretsForNamespace(namespace string) error {
 	// DEPLOYMENTs
-	deployments, err := ListDeployments(namespace)
-	if err != nil {
-		return err
-	}
+	deployments := punq.AllDeployments(namespace, nil)
 
 	mountedSecretNames := []string{}
-	for _, deployment := range deployments.Items {
+	for _, deployment := range deployments {
 		for _, volume := range deployment.Spec.Template.Spec.Volumes {
 			if volume.Secret != nil {
 				mountedSecretNames = append(mountedSecretNames, volume.Secret.SecretName)
