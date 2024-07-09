@@ -144,7 +144,6 @@ func ListResources(group string, version string, resource string, namespace stri
 		return nil, err
 	}
 	return resourceResult, nil
-
 }
 
 func DeleteResource(group string, version string, resource string, name string, namespace string, isClusterWideResource bool) error {
