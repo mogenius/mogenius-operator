@@ -122,7 +122,7 @@ func DeleteUnusedSecretsForNamespace(namespace string) error {
 	// LIST ns secrets
 	secrets, err := ListResources("external-secrets.io", "v1beta1", "externalsecrets", "", true)
 	if err != nil {
-		t.Errorf("Error listing resources: %s", err.Error())
+		logger.Log.Errorf("Error listing resources: %s", err.Error())
 	} else {
 		logger.Log.Info("Resources listed ✅")
 	}
