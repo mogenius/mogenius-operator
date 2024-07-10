@@ -187,6 +187,8 @@ func GitCommitLink(gitRepository string, commitHash string) *string {
 		commitURL = fmt.Sprintf("%s/commit/%s", baseRepoURL, commitHash)
 	case strings.Contains(u.Host, "dev.azure.com"):
 		commitURL = fmt.Sprintf("%s/_git/%s/commit/%s", baseRepoURL, u.Path, commitHash)
+	case strings.Contains(u.Host, "bitbucket.org"):
+		commitURL = fmt.Sprintf("%s/_git/%s/commits/%s", baseRepoURL, u.Path, commitHash)
 	default:
 		commitURL = fmt.Sprintf("%s/-/commit/%s", baseRepoURL, commitHash)
 	}
