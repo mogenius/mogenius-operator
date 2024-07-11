@@ -60,6 +60,8 @@ misc:
   auto_mount_nfs: true
   log_kubernetes_events: true
   ignore_namespaces: ["kube-system"]
+  log_rotation_size_in_bytes: 5242880 # 5MB
+  log_retention_days: 7
   ignore_resources_backup:
     [
       "events.k8s.io/v1",

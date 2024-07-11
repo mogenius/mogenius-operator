@@ -2,6 +2,7 @@ package utils
 
 import (
 	_ "embed"
+	"io"
 	"mogenius-k8s-manager/version"
 	"net/http"
 	"os"
@@ -83,6 +84,8 @@ type Config struct {
 		LogKubernetesEvents    bool     `yaml:"log_kubernetes_events" env:"log_kubernetes_events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
 		DefaultMountPath       string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
 		IgnoreNamespaces       []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
+		LogRotationSizeInBytes int      `yaml:"log_rotation_size_in_bytes" env:"log_rotation_size_in_bytes" env-description:"Size of the logfile when it is rotated." env-default:"5242880"`
+		LogRetentionDays       int      `yaml:"log_retention_days" env:"log_retention_days" env-description:"Number of days to keep log files." env-default:"7"`
 		AutoMountNfs           bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
 		IgnoreResourcesBackup  []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
 		CheckForUpdates        int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
@@ -183,25 +186,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	}
 
 	// SET LOGGING
-	log.SetReportCaller(CONFIG.Misc.DebugLogCaller)
-	logLevel, err := log.ParseLevel(CONFIG.Misc.LogLevel)
-	if err != nil {
-		logLevel = log.InfoLevel
-		log.Error("Error parsing log level. Using default log level: info")
-	}
-	log.SetLevel(logLevel)
-
-	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
-		log.SetFormatter(&log.JSONFormatter{})
-	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
-		log.SetFormatter(&log.TextFormatter{
-			ForceColors:      true,
-			DisableTimestamp: true,
-			DisableQuote:     true,
-		})
-	} else {
-		log.SetFormatter(&log.TextFormatter{})
-	}
+	setupLogging()
 
 	if CONFIG.Misc.Debug {
 		log.Info("Starting serice for pprof in localhost:6060")
@@ -223,6 +208,52 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 			log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
 			log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
 		}()
+	}
+}
+
+func setupLogging() {
+	// Create a log file
+	err := os.MkdirAll(MainLogFolder(), os.ModePerm)
+	if err != nil {
+		log.Fatalf("Failed to create parent directories: %v", err)
+	}
+	file, err := os.OpenFile(MainLogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %v", err)
+	}
+
+	mw := io.MultiWriter(os.Stdout, file)
+
+	log.SetOutput(mw)
+	log.SetLevel(log.TraceLevel)
+
+	log.AddHook(&SecretRedactionHook{})
+	log.AddHook(&LogRotationHook{})
+
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:      true,
+		DisableTimestamp: false,
+		DisableQuote:     true,
+	})
+
+	log.SetReportCaller(CONFIG.Misc.DebugLogCaller)
+	logLevel, err := log.ParseLevel(CONFIG.Misc.LogLevel)
+	if err != nil {
+		logLevel = log.InfoLevel
+		log.Error("Error parsing log level. Using default log level: info")
+	}
+	log.SetLevel(logLevel)
+
+	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
+		log.SetFormatter(&log.JSONFormatter{})
+	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
+		log.SetFormatter(&log.TextFormatter{
+			ForceColors:      true,
+			DisableTimestamp: false,
+			DisableQuote:     true,
+		})
+	} else {
+		log.SetFormatter(&log.TextFormatter{})
 	}
 }
 
@@ -295,6 +326,8 @@ func PrintSettings() {
 	log.Infof("DefaultMountPath:          %s", CONFIG.Misc.DefaultMountPath)
 	log.Infof("IgnoreResourcesBackup:     %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
 	log.Infof("IgnoreNamespaces:          %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
+	log.Infof("LogRotationSizeInBytes:    %d", CONFIG.Misc.LogRotationSizeInBytes)
+	log.Infof("LogRetentionDays:          %d", CONFIG.Misc.LogRetentionDays)
 	log.Infof("CheckForUpdates:           %d", CONFIG.Misc.CheckForUpdates)
 	log.Infof("HelmIndex:                 %s", CONFIG.Misc.HelmIndex)
 	log.Infof("NfsPodPrefix:              %s\n\n", CONFIG.Misc.NfsPodPrefix)

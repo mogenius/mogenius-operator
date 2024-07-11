@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
@@ -49,4 +50,13 @@ func ValidateJSON(obj interface{}) *ValidationError {
 		return result
 	}
 	return nil
+}
+
+func FormatJsonTimePretty(jsonTimestamp string) string {
+	t, err := time.Parse(time.RFC3339, jsonTimestamp)
+	if err != nil {
+		log.Errorf("Failed to parse timestamp: %v", err)
+		return jsonTimestamp
+	}
+	return t.Format("2006-01-02 15:04:05")
 }
