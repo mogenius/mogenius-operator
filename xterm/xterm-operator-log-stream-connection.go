@@ -21,7 +21,7 @@ func XTermOperatorStreamConnection(
 ) {
 	cmdType := "log"
 
-	cmd := exec.Command("tail", "-f", "-n", "100000", utils.MainLogPath()) // tail the last 100000 lines of the main log file
+	cmd := exec.Command("tail", "-F", "-n", "100000", utils.MainLogPath()) // tail the last 100000 lines of the main log file
 
 	if wsConnectionRequest.WebsocketScheme == "" {
 		log.Error("WebsocketScheme is empty")
