@@ -1,6 +1,7 @@
 package xterm
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -333,44 +334,47 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 		case <-ctx.Done():
 			return
 		default:
-			buf := make([]byte, 1024)
-			read, err := tty.Read(buf)
-			if err != nil {
-				// log.Errorf("Unable to read from pty/cmd: %s", err.Error())
-				return
-			}
-
-			// filter log lines by namespace and controller
-			if namespace != nil && controller != nil {
-				var entry LogEntry
-				err := json.Unmarshal(buf[:read], &entry)
+			reader := bufio.NewReader(tty)
+			for {
+				line, err := reader.ReadString('\n')
 				if err != nil {
-					// fmt.Println("Error parsing log line:", string(buf[:read]))
-					continue
+					if err.Error() == "EOF" {
+						break
+					}
+					return
 				}
-				if entry.Namespace != *namespace || entry.ControllerName != *controller {
+
+				// filter log lines by namespace and controller
+				if namespace != nil && controller != nil {
+					var entry LogEntry
+					err := json.Unmarshal([]byte(line), &entry)
+					if err != nil {
+						continue
+					}
+					if entry.Namespace != *namespace || entry.ControllerName != *controller {
+						continue
+					}
+
+					if conn != nil {
+						messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+						err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
+						if err != nil {
+							fmt.Println("WriteMessage", err.Error())
+						}
+						continue
+					}
 					continue
 				}
 
 				if conn != nil {
-					messageSt := fmt.Sprintf("[%s][%s] %s", entry.Time, entry.Level, entry.Message)
-					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
+					err := conn.WriteMessage(websocket.BinaryMessage, []byte(line))
 					if err != nil {
-						fmt.Println("WriteMessage", err.Error())
+						log.Errorf("WriteMessage: %s", err.Error())
 					}
 					continue
 				}
-				continue
+				return
 			}
-
-			if conn != nil {
-				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
-				if err != nil {
-					log.Errorf("WriteMessage: %s", err.Error())
-				}
-				continue
-			}
-			return
 		}
 	}
 }

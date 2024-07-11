@@ -2,12 +2,10 @@ package xterm
 
 import (
 	"context"
-	"fmt"
-	punq "github.com/mogenius/punq/kubernetes"
+	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
 	"os/exec"
-	"sync"
 	"time"
 
 	"github.com/creack/pty"
@@ -23,15 +21,7 @@ func XTermOperatorStreamConnection(
 ) {
 	cmdType := "log"
 
-	k8sManagerNamespace := "mogenius"
-	k8sManagerController := "mogenius-k8s-manager"
-	podName := ""
-
-	podList := punq.PodIdsFor(k8sManagerNamespace, &k8sManagerController, nil)
-	if len(podList) > 0 {
-		podName = podList[0]
-	}
-	cmd := exec.Command("kubectl", "logs", "-f", podName, fmt.Sprintf("--tail=%s", logTail), "-c", k8sManagerController, "-n", k8sManagerNamespace)
+	cmd := exec.Command("tail", "-f", "-n", "100000", utils.MainLogPath()) // tail the last 100000 lines of the main log file
 
 	if wsConnectionRequest.WebsocketScheme == "" {
 		log.Error("WebsocketScheme is empty")
@@ -47,7 +37,7 @@ func XTermOperatorStreamConnection(
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30*time.Minute))
 	// websocket connection
-	readMessages, conn, err := generateWsConnection(cmdType, k8sManagerNamespace, k8sManagerController, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
@@ -57,32 +47,6 @@ func XTermOperatorStreamConnection(
 		// log.Info("[XTermCommandStreamConnection] Closing connection.")
 		cancel()
 	}()
-
-	// Check if pod exists
-	podExists := punq.PodExists(k8sManagerNamespace, podName, nil)
-	if !podExists.PodExists {
-		if conn != nil {
-			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
-			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				// log.Error("write close:", err)
-			}
-		}
-		log.Errorf("Pod %s does not exist, closing connection.", podName)
-		return
-	}
-
-	// kube provider
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		log.Warningf("Unable to create kube provider: %s", err.Error())
-		return
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	// check if pod is ready
-	go checkPodIsReady(ctx, &wg, provider, k8sManagerNamespace, podName, conn)
-	wg.Wait()
 
 	// send ping
 	err = wsPing(conn)

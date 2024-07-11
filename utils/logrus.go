@@ -1,10 +1,15 @@
 package utils
 
 import (
+	"fmt"
+	"io"
+	"os"
 	"strings"
+	"time"
 
 	punqStructs "github.com/mogenius/punq/structs"
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var secrets = map[string]bool{}
@@ -26,7 +31,10 @@ func SecretArray() []string {
 	return result
 }
 
+var logbytesCounter uint64 = 0
+
 type SecretRedactionHook struct{}
+type LogRotationHook struct{}
 
 func (hook *SecretRedactionHook) Levels() []logrus.Level {
 	return logrus.AllLevels
@@ -62,4 +70,93 @@ func PrettyPrintInterface(i interface{}) string {
 func PrettyPrintInterfaceLog(data []byte) {
 	str := RedactString(string(data))
 	punqStructs.PrettyPrintJSON([]byte(str))
+}
+
+func (hook *LogRotationHook) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
+func (hook *LogRotationHook) Fire(entry *logrus.Entry) error {
+	logbytesCounter += uint64(len(entry.Message))
+
+	if logbytesCounter > uint64(CONFIG.Misc.LogRotationSizeInBytes) {
+		rotateLog()
+	}
+
+	return nil
+}
+
+func rotateLog() {
+	logbytesCounter = 0
+
+	rotatedLogfilePath := fmt.Sprintf("%s/logs/%s.log", CONFIG.Misc.DefaultMountPath, time.Now().Format("2006-01-02-15-04-05.000"))
+	err := os.MkdirAll(MainLogFolder(), os.ModePerm)
+	if err != nil {
+		log.Errorf("Failed to create parent directories for rotation: %v", err)
+	}
+
+	sourceFile, err := os.OpenFile(MainLogPath(), os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Errorf("Failed to open main log file: %v", err)
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(rotatedLogfilePath)
+	if err != nil {
+		log.Errorf("Failed to open rotated log file: %v", err)
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		log.Errorf("Failed to copy log file: %v", err)
+	}
+
+	err = os.Truncate(MainLogPath(), 0)
+	if err != nil {
+		log.Errorf("Failed to truncate log file: %v", err)
+	}
+
+	deleteFilesOlderThanLogRetention()
+}
+
+func deleteFilesOlderThanLogRetention() {
+	fileDir := fmt.Sprintf("%s/logs", CONFIG.Misc.DefaultMountPath)
+	files, err := os.ReadDir(fileDir)
+	if err != nil {
+		log.Errorf("Failed to read directory: %v", err)
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		if strings.HasPrefix(file.Name(), "main.log") {
+			continue
+		}
+
+		fileInfo, err := file.Info()
+		if err != nil {
+			log.Errorf("Failed to get file info: %v", err)
+			continue
+		}
+
+		if time.Since(fileInfo.ModTime()).Hours() > float64(CONFIG.Misc.LogRetentionDays*24) {
+			err := os.Remove(fmt.Sprintf("%s/%s", fileDir, file.Name()))
+			if err != nil {
+				log.Errorf("Failed to delete file: %v", err)
+			}
+		}
+	}
+}
+
+func MainLogPath() string {
+	fileDir := fmt.Sprintf("%s/logs", CONFIG.Misc.DefaultMountPath)
+	logFilePath := fmt.Sprintf("%s/main.log", fileDir)
+	return logFilePath
+}
+
+func MainLogFolder() string {
+	fileDir := fmt.Sprintf("%s/logs", CONFIG.Misc.DefaultMountPath)
+	return fileDir
 }
