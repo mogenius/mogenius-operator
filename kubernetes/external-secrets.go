@@ -227,7 +227,7 @@ func parseExternalSecretsListing(list *unstructured.UnstructuredList) ([]Externa
 		// Convert item to []byte
 		itemBytes, err := item.MarshalJSON()
 		if err != nil {
-			K8sLogger.Errorf("Error converting item to []byte:", err)
+			K8sLogger.Error("Error converting item to []byte:", err)
 			return nil, err
 		}
 		var ExternalSecrets ExternalSecretListingSchema
