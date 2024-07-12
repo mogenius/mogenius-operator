@@ -10,7 +10,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 func CreateNamespace(r NamespaceCreateRequest) *structs.Job {
@@ -97,9 +96,9 @@ func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClu
 }
 
 func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
-	log.Infof("CleanupIngressPorts: %d ports received from DB.", len(r.Ports))
+	ServiceLogger.Infof("CleanupIngressPorts: %d ports received from DB.", len(r.Ports))
 	if len(r.Ports) <= 0 {
-		log.Error("Received empty ports list. Something seems wrong. Skipping process.")
+		ServiceLogger.Error("Received empty ports list. Something seems wrong. Skipping process.")
 		return nil
 	}
 	mokubernetes.CleanupIngressControllerServicePorts(r.Ports)

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mogenius/punq/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -52,12 +51,12 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 				return err
 			}
 
-			logger.Log.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
+			K8sLogger.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
 
 			if isReady(res) {
 				break // resource is ready and probably won't change anymore before the next update
 			}
-			logger.Log.Info(fmt.Sprintf("Resource not ready: %s  Retrying in 2 seconds...", res.GetName()))
+			K8sLogger.Info(fmt.Sprintf("Resource not ready: %s  Retrying in 2 seconds...", res.GetName()))
 			time.Sleep(2 * time.Second)
 		}
 		// Try update if already exists
@@ -65,10 +64,10 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 		if err != nil {
 			return err
 		}
-		logger.Log.Info("Resource updated successfully ✅: " + obj.GetName())
+		K8sLogger.Info("Resource updated successfully ✅: " + obj.GetName())
 
 	} else {
-		logger.Log.Info("Resource created successfully ✅: " + obj.GetName())
+		K8sLogger.Info("Resource created successfully ✅: " + obj.GetName())
 	}
 	return nil
 }
@@ -91,13 +90,13 @@ func isReady(res *unstructured.Unstructured) bool {
 	// Convert res to []byte
 	resBytes, err := res.MarshalJSON()
 	if err != nil {
-		logger.Log.Errorf("Error converting res to []byte:", err)
+		K8sLogger.Errorf("Error converting res to []byte:", err)
 		return false
 	}
 	var resourceStatus ResourceStatus
 	// Unmarshal the YAML into the struct
 	if err := yaml.Unmarshal(resBytes, &resourceStatus); err != nil {
-		logger.Log.Errorf("Error unmarshalling YAML:", err)
+		K8sLogger.Errorf("Error unmarshalling YAML:", err)
 		return false
 	}
 

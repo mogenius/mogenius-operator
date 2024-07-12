@@ -8,7 +8,6 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -144,7 +143,7 @@ func WriteConfigMap(namespace string, name string, data string, labels map[strin
 			return err
 		}
 	} else {
-		log.Errorf("CreateOrUpdateConfigMap ERROR: %s", err.Error())
+		K8sLogger.Errorf("CreateOrUpdateConfigMap ERROR: %s", err.Error())
 		return err
 	}
 	return nil
@@ -191,7 +190,7 @@ func ListConfigMapWithFieldSelector(namespace string, labelSelector string, pref
 func WatchConfigmaps() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -205,7 +204,7 @@ func WatchConfigmaps() {
 		return watchConfigmaps(provider, "configmaps")
 	})
 	if err != nil {
-		log.Fatalf("Error watching configmaps: %s", err.Error())
+		K8sLogger.Fatalf("Error watching configmaps: %s", err.Error())
 	}
 
 	// Wait forever

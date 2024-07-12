@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mogenius/punq/logger"
 	"gopkg.in/yaml.v2"
 )
 
 func ListExternalSecretsStores() ([]string, error) {
 	response, err := ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
-		logger.Log.Info("ListResources failed")
+		K8sLogger.Info("ListResources failed")
 	}
 
 	jsonOutput, err := json.MarshalIndent(response, "", "  ")
@@ -29,11 +28,11 @@ func ListExternalSecretsStores() ([]string, error) {
 func GetExternalSecretsStore(name string) (*SecretStoreSchema, error) {
 	response, err := GetResource("external-secrets.io", "v1beta1", "clustersecretstores", name, "", true)
 	if err != nil {
-		logger.Log.Info("GetResource failed for SecretStore: " + name)
+		K8sLogger.Info("GetResource failed for SecretStore: " + name)
 		return nil, err
 	}
 
-	logger.Log.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
+	K8sLogger.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
 
 	yamlOutput, err := yaml.Marshal(response.Object)
 	if err != nil {

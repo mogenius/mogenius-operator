@@ -27,6 +27,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	MAX_TAIL_LINES = "100000"
+)
+
 type WsConnectionRequest struct {
 	ChannelId       string `json:"channelId" validate:"required"`
 	WebsocketScheme string `json:"websocketScheme" validate:"required"`
@@ -58,6 +62,11 @@ type OperatorLogConnectionRequest struct {
 	LogTail      string              `json:"logTail"`
 }
 
+type ComponentLogConnectionRequest struct {
+	WsConnection WsConnectionRequest   `json:"wsConnectionRequest" validate:"required"`
+	Component    structs.ComponentEnum `json:"component" validate:"required"`
+}
+
 type PodEventConnectionRequest struct {
 	Namespace    string              `json:"namespace" validate:"required"`
 	Controller   string              `json:"controller" validate:"required"`
@@ -79,11 +88,12 @@ type ScanImageLogConnectionRequest struct {
 }
 
 type LogEntry struct {
-	ControllerName string `json:"controllerName"`
-	Level          string `json:"level"`
-	Namespace      string `json:"namespace"`
-	Message        string `json:"msg"`
-	Time           string `json:"time"`
+	ControllerName string                `json:"controllerName"`
+	Level          string                `json:"level"`
+	Namespace      string                `json:"namespace"`
+	Component      structs.ComponentEnum `json:"component"`
+	Message        string                `json:"msg"`
+	Time           string                `json:"time"`
 }
 
 func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
@@ -326,7 +336,6 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 
 	defer func() {
 		cancel()
-		// log.Info("[cmdOutputToWebsocket] Closing connection.")
 	}()
 
 	for {
@@ -374,6 +383,49 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 					continue
 				}
 				return
+			}
+		}
+	}
+}
+
+func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, component structs.ComponentEnum) {
+	if injectPreContent != nil {
+		injectContent(injectPreContent, conn)
+	}
+
+	defer func() {
+		cancel()
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			scanner := bufio.NewScanner(tty)
+			for scanner.Scan() {
+				line := scanner.Text()
+
+				var entry LogEntry
+				err := json.Unmarshal([]byte(line), &entry)
+				if err != nil {
+					continue
+				}
+
+				if component != structs.ComponentAll {
+					if entry.Component != component {
+						continue
+					}
+				}
+
+				if conn != nil {
+					messageSt := fmt.Sprintf("[%s] %s %s\n", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
+					if err != nil {
+						fmt.Println("WriteMessage", err.Error())
+					}
+					continue
+				}
 			}
 		}
 	}

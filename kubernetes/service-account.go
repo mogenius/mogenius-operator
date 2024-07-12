@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mogenius/punq/logger"
 	core "k8s.io/api/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,14 +20,14 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 
 	_, err := client.Create(context.TODO(), serviceAccount, MoCreateOptions())
 	if err == nil {
-		logger.Log.Info("ServiceAccount created successfully ✅")
+		K8sLogger.Info("ServiceAccount created successfully ✅")
 	} else {
 		// Check if already exists
 		serviceAccount, err := GetServiceAccount(serviceAccountName, namespace)
 		if err != nil {
 			return err
 		} else {
-			logger.Log.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
+			K8sLogger.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
 		}
 		if serviceAccount.Annotations == nil {
 			serviceAccount.Annotations = make(map[string]string)
@@ -51,7 +50,7 @@ func UpdateServiceAccount(serviceAccount *core.ServiceAccount) error {
 	if err != nil {
 		return err
 	}
-	logger.Log.Info("ServiceAccount updated successfully ✅")
+	K8sLogger.Info("ServiceAccount updated successfully ✅")
 	return nil
 }
 
@@ -66,6 +65,6 @@ func DeleteServiceAccount(serviceAccountName string, namespace string) error {
 	if err != nil {
 		return err
 	}
-	logger.Log.Info("ServiceAccount deleted successfully ✅")
+	K8sLogger.Info("ServiceAccount deleted successfully ✅")
 	return nil
 }

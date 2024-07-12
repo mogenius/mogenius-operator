@@ -17,7 +17,6 @@ import (
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 type SystemCheckEntry struct {
@@ -359,7 +358,7 @@ func SystemCheck() SystemCheckResponse {
 	go SysCheckExec("CheckTrafficCollector", &wg, &entries, func() SystemCheckEntry {
 		trafficCollectorNewestVersion, err := getCurrentTrafficCollectorVersion()
 		if err != nil {
-			log.Errorf("getCurrentTrafficCollectorVersion Err: %s", err.Error())
+			ServiceLogger.Errorf("getCurrentTrafficCollectorVersion Err: %s", err.Error())
 		}
 		trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
 		if trafficCollectorVersion == "" && trafficCollectorInstalledErr == nil {
@@ -388,7 +387,7 @@ func SystemCheck() SystemCheckResponse {
 	go SysCheckExec("CheckPodStatsCollector", &wg, &entries, func() SystemCheckEntry {
 		podstatsCollectorNewestVersion, err := getCurrentPodStatsCollectorVersion()
 		if err != nil {
-			log.Errorf("getCurrentPodStatsCollectorVersion Err: %s", err.Error())
+			ServiceLogger.Errorf("getCurrentPodStatsCollectorVersion Err: %s", err.Error())
 		}
 		podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
 		if podStatsCollectorVersion == "" && podStatsCollectorInstalledErr == nil {
@@ -621,7 +620,7 @@ func StatusEmoji(state structs.SystemCheckStatus) string {
 func UpdateSystemCheckStatusForClusterVendor(entries []SystemCheckEntry) []SystemCheckEntry {
 	provider, err := punq.GuessClusterProvider(nil)
 	if err != nil {
-		log.Errorf("UpdateSystemCheckStatusForClusterVendor Err: %s", err.Error())
+		ServiceLogger.Errorf("UpdateSystemCheckStatusForClusterVendor Err: %s", err.Error())
 		return entries
 	}
 
@@ -631,7 +630,7 @@ func UpdateSystemCheckStatusForClusterVendor(entries []SystemCheckEntry) []Syste
 		entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
 		entries = deleteSystemCheckEntryByName(entries, NameLocalDevSetup)
 	case punqDtos.UNKNOWN:
-		log.Warnf("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
+		ServiceLogger.Warnf("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
 	}
 
 	// if public IP is available we skip metallLB

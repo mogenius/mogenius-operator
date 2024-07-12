@@ -4,7 +4,6 @@ import (
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	"github.com/mogenius/punq/logger"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
@@ -24,7 +23,7 @@ func NewDynamicKubeProvider(contextId *string) (*DynamicKubeProvider, error) {
 	}
 
 	if err != nil {
-		logger.Log.Errorf("ERROR: %s", err.Error())
+		K8sLogger.Errorf("ERROR: %s", err.Error())
 	}
 	return provider, err
 }

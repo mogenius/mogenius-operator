@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/structs"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -64,7 +63,7 @@ func DeleteProjectCmd(job *structs.Job, name string, wg *sync.WaitGroup) {
 func CreateProject(name string, newObj CrdProject) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return err
 	}
 
@@ -72,7 +71,7 @@ func CreateProject(name string, newObj CrdProject) error {
 	raw := newObj.ToUnstructuredProject(name)
 	_, err = provider.ClientSet.Resource(projectsGVR).Create(context.Background(), raw, metav1.CreateOptions{})
 	if err != nil {
-		log.Errorf("Error creating project: %s", err.Error())
+		CrdLogger.Errorf("Error creating project: %s", err.Error())
 		return err
 	}
 
@@ -82,13 +81,13 @@ func CreateProject(name string, newObj CrdProject) error {
 func UpdateProject(name string, id string, projectName string, displayName string, productId string, limits ProjectLimits) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return err
 	}
 
 	existingProject, projectUnstructured, err := GetProject(name)
 	if err != nil {
-		log.Errorf("Error updating project: %s", err.Error())
+		CrdLogger.Errorf("Error updating project: %s", err.Error())
 		return err
 	}
 	existingProject.Id = id
@@ -99,7 +98,7 @@ func UpdateProject(name string, id string, projectName string, displayName strin
 
 	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(existingProject)
 	if err != nil {
-		log.Errorf("Error converting project to unstructured: %s", err.Error())
+		CrdLogger.Errorf("Error converting project to unstructured: %s", err.Error())
 		return err
 	}
 	projectUnstructured.Object["spec"] = unstrRaw
@@ -107,7 +106,7 @@ func UpdateProject(name string, id string, projectName string, displayName strin
 	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
 	_, err = provider.ClientSet.Resource(projectsGVR).Update(context.Background(), projectUnstructured, metav1.UpdateOptions{})
 	if err != nil {
-		log.Errorf("Error updating project: %s", err.Error())
+		CrdLogger.Errorf("Error updating project: %s", err.Error())
 		return err
 	}
 
@@ -117,14 +116,14 @@ func UpdateProject(name string, id string, projectName string, displayName strin
 func DeleteProject(name string) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return err
 	}
 
 	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
 	err = provider.ClientSet.Resource(projectsGVR).Delete(context.Background(), name, metav1.DeleteOptions{})
 	if err != nil {
-		log.Errorf("Error deleting project: %s", err.Error())
+		CrdLogger.Errorf("Error deleting project: %s", err.Error())
 		return err
 	}
 
@@ -136,25 +135,25 @@ func GetProject(name string) (project *CrdProject, projectRaw *unstructured.Unst
 
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return nil, nil, err
 	}
 
 	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
 	projectItem, err := provider.ClientSet.Resource(projectsGVR).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
-		log.Errorf("Error getting project: %s", err.Error())
+		CrdLogger.Errorf("Error getting project: %s", err.Error())
 		return nil, projectItem, err
 	}
 
 	jsonData, err := json.Marshal(projectItem.Object["spec"])
 	if err != nil {
-		log.Errorf("Error marshalling project spec: %s", err.Error())
+		CrdLogger.Errorf("Error marshalling project spec: %s", err.Error())
 		return nil, projectItem, err
 	}
 	err = json.Unmarshal(jsonData, &result)
 	if err != nil {
-		log.Errorf("Error unmarshalling project spec: %s", err.Error())
+		CrdLogger.Errorf("Error unmarshalling project spec: %s", err.Error())
 		return nil, projectItem, err
 	}
 
@@ -166,14 +165,14 @@ func ListProjects() (project []CrdProject, projectRaw *unstructured.Unstructured
 
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return result, nil, err
 	}
 
 	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
 	projects, err := provider.ClientSet.Resource(projectsGVR).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("Error getting project: %s", err.Error())
+		CrdLogger.Errorf("Error getting project: %s", err.Error())
 		return result, projects, err
 	}
 
@@ -181,12 +180,12 @@ func ListProjects() (project []CrdProject, projectRaw *unstructured.Unstructured
 		entry := CrdProject{}
 		jsonData, err := json.Marshal(project.Object["spec"])
 		if err != nil {
-			log.Errorf("Error marshalling project spec: %s", err.Error())
+			CrdLogger.Errorf("Error marshalling project spec: %s", err.Error())
 			return result, projects, err
 		}
 		err = json.Unmarshal(jsonData, &entry)
 		if err != nil {
-			log.Errorf("Error unmarshalling project spec: %s", err.Error())
+			CrdLogger.Errorf("Error unmarshalling project spec: %s", err.Error())
 			return result, projects, err
 		}
 		result = append(result, entry)
@@ -197,14 +196,14 @@ func ListProjects() (project []CrdProject, projectRaw *unstructured.Unstructured
 func CountProject() (count int, err error) {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return 0, err
 	}
 
 	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
 	projects, err := provider.ClientSet.Resource(projectsGVR).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("Error getting project: %s", err.Error())
+		CrdLogger.Errorf("Error getting project: %s", err.Error())
 		return 0, err
 	}
 
@@ -214,20 +213,20 @@ func CountProject() (count int, err error) {
 func AddEnvironmentToProject(name string, environmentName string) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return err
 	}
 
 	existingProject, projectUnstructured, err := GetProject(name)
 	if err != nil {
-		log.Errorf("Error updating project: %s", err.Error())
+		CrdLogger.Errorf("Error updating project: %s", err.Error())
 		return err
 	}
 	existingProject.EnvironmentRefs = append(existingProject.EnvironmentRefs, environmentName)
 
 	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(existingProject)
 	if err != nil {
-		log.Errorf("Error converting project to unstructured: %s", err.Error())
+		CrdLogger.Errorf("Error converting project to unstructured: %s", err.Error())
 		return err
 	}
 	projectUnstructured.Object["spec"] = unstrRaw
@@ -235,7 +234,7 @@ func AddEnvironmentToProject(name string, environmentName string) error {
 	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
 	_, err = provider.ClientSet.Resource(projectsGVR).Update(context.Background(), projectUnstructured, metav1.UpdateOptions{})
 	if err != nil {
-		log.Errorf("Error updating project: %s", err.Error())
+		CrdLogger.Errorf("Error updating project: %s", err.Error())
 		return err
 	}
 
@@ -245,13 +244,13 @@ func AddEnvironmentToProject(name string, environmentName string) error {
 func RemoveEnvironmentFromProject(name string, environmentName string) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
 		return err
 	}
 
 	existingProject, projectUnstructured, err := GetProject(name)
 	if err != nil {
-		log.Errorf("Error updating project: %s", err.Error())
+		CrdLogger.Errorf("Error updating project: %s", err.Error())
 		return err
 	}
 	for i, id := range existingProject.EnvironmentRefs {
@@ -263,7 +262,7 @@ func RemoveEnvironmentFromProject(name string, environmentName string) error {
 
 	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(existingProject)
 	if err != nil {
-		log.Errorf("Error converting project to unstructured: %s", err.Error())
+		CrdLogger.Errorf("Error converting project to unstructured: %s", err.Error())
 		return err
 	}
 	projectUnstructured.Object["spec"] = unstrRaw
@@ -271,7 +270,7 @@ func RemoveEnvironmentFromProject(name string, environmentName string) error {
 	projectsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceProject}
 	_, err = provider.ClientSet.Resource(projectsGVR).Update(context.Background(), projectUnstructured, metav1.UpdateOptions{})
 	if err != nil {
-		log.Errorf("Error updating project: %s", err.Error())
+		CrdLogger.Errorf("Error updating project: %s", err.Error())
 		return err
 	}
 

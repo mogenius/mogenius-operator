@@ -2,7 +2,6 @@ package crds
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -16,7 +15,7 @@ func TestEnvironment(t *testing.T) {
 	// CREATE
 	err := CreateEnvironment(namespace, newEnvironmentName, CrdEnvironment{})
 	if err != nil {
-		log.Fatalf("Error creating Environment: %s", err.Error())
+		CrdLogger.Fatalf("Error creating Environment: %s", err.Error())
 	} else {
 		fmt.Println("Environment created ✅")
 	}
@@ -24,7 +23,7 @@ func TestEnvironment(t *testing.T) {
 	// GET
 	environment, _, err := GetEnvironment(namespace, newEnvironmentName)
 	if err != nil {
-		log.Fatalf("Error getting Environment: %s", err.Error())
+		CrdLogger.Fatalf("Error getting Environment: %s", err.Error())
 	} else {
 		fmt.Println("Environment retrieved ✅")
 	}
@@ -34,7 +33,7 @@ func TestEnvironment(t *testing.T) {
 	// UPDATE
 	err = UpdateEnvironment(namespace, newEnvironmentName, environment)
 	if err != nil {
-		log.Fatalf("Error updating environment: %s", err.Error())
+		CrdLogger.Fatalf("Error updating environment: %s", err.Error())
 	} else {
 		fmt.Println("environment updated ✅")
 	}
@@ -42,7 +41,7 @@ func TestEnvironment(t *testing.T) {
 	// DELETE
 	err = DeleteEnvironment(namespace, newEnvironmentName)
 	if err != nil {
-		log.Fatalf("Error deleting environment: %s", err.Error())
+		CrdLogger.Fatalf("Error deleting environment: %s", err.Error())
 	} else {
 		fmt.Println("environment deleted ✅")
 	}
@@ -50,7 +49,7 @@ func TestEnvironment(t *testing.T) {
 	// LIST
 	_, _, err = ListEnvironments(namespace)
 	if err != nil {
-		log.Fatalf("Error listing environments: %s", err.Error())
+		CrdLogger.Fatalf("Error listing environments: %s", err.Error())
 	} else {
 		fmt.Println("environments listed ✅")
 	}

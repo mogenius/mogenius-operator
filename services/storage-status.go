@@ -12,7 +12,6 @@ import (
 
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -100,7 +99,7 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 	nonPrefixName := strings.TrimPrefix(r.Name, prefix)
 	prefixName := prefix + nonPrefixName
 
-	log.Debugf("Storage status for (%s): nonPrefixName:%s, prefixName:%s", r.StorageAPIObject, nonPrefixName, prefixName)
+	ServiceLogger.Debugf("Storage status for (%s): nonPrefixName:%s, prefixName:%s", r.StorageAPIObject, nonPrefixName, prefixName)
 
 	nfsStatusResponse := NfsStatusResponse{
 		VolumeName: nonPrefixName,
@@ -115,7 +114,7 @@ func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		log.Warningf("Warning: %s", err.Error())
+		ServiceLogger.Warningf("Warning: %s", err.Error())
 		nfsStatusResponse.ProcessNfsStatusResponse(nil, err)
 		return nfsStatusResponse
 	}
@@ -337,7 +336,7 @@ func (s *VolumeStatus) SetClient(client *kubernetes.Clientset) {
 func (s *VolumeStatus) GetByPVCName(namespace, name string) (*VolumeStatus, error) {
 	pvc, err := s.getPVC(namespace, name)
 	if err != nil {
-		log.Warningf("Warning getting PVC: %v\n", err)
+		ServiceLogger.Warningf("Warning getting PVC: %v\n", err)
 		return nil, err
 	}
 
@@ -348,7 +347,7 @@ func (s *VolumeStatus) GetByPVCName(namespace, name string) (*VolumeStatus, erro
 	// Get the PV from volumeName
 	pv, err := s.getPV(pvc.Spec.VolumeName)
 	if err != nil {
-		log.Warningf("Warning getting PV: %v\n", err)
+		ServiceLogger.Warningf("Warning getting PV: %v\n", err)
 		return s, err
 	}
 	s.PersistentVolume = pv
@@ -365,7 +364,7 @@ func (s *VolumeStatus) GetByPVCName(namespace, name string) (*VolumeStatus, erro
 func (s *VolumeStatus) GetByPVName(name string) (*VolumeStatus, error) {
 	pv, err := s.getPV(name)
 	if err != nil {
-		log.Warningf("Warning getting PV: %v\n", err)
+		ServiceLogger.Warningf("Warning getting PV: %v\n", err)
 		return nil, err
 	}
 
@@ -376,7 +375,7 @@ func (s *VolumeStatus) GetByPVName(name string) (*VolumeStatus, error) {
 	if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Kind == VolumeTypePersistentVolumeClaim.String() {
 		pvc, err := s.getPVC(pv.Spec.ClaimRef.Namespace, pv.Spec.ClaimRef.Name)
 		if err != nil {
-			log.Warningf("Warning getting PVC: %v\n", err)
+			ServiceLogger.Warningf("Warning getting PVC: %v\n", err)
 			return s, err
 		}
 
@@ -386,7 +385,7 @@ func (s *VolumeStatus) GetByPVName(name string) (*VolumeStatus, error) {
 	} else {
 		pvc, err := s.findPVCByPVName(pv.Name)
 		if err != nil {
-			log.Warningf("Warning getting PVC: %v\n", err)
+			ServiceLogger.Warningf("Warning getting PVC: %v\n", err)
 			return s, err
 		}
 
@@ -447,7 +446,7 @@ func (s *VolumeStatus) collectEventsAndUsedByPods() (*VolumeStatus, error) {
 		close(pvcsEventsChan)
 		close(errorChan)
 
-		log.Debug("All goroutines channels closed: podsEventsChan,pvsEventsChan,pvcsEventsChan,errorChan.")
+		ServiceLogger.Debug("All goroutines channels closed: podsEventsChan,pvsEventsChan,pvcsEventsChan,errorChan.")
 	}()
 
 	var chanError error
@@ -458,7 +457,7 @@ EventLoop:
 		case events, ok := <-pvsEventsChan:
 			processedPvs = true
 			if !ok {
-				log.Debug("Warning PV event channel closed.")
+				ServiceLogger.Debug("Warning PV event channel closed.")
 				break
 			}
 			s.PersistentVolumeEvents = events
@@ -466,7 +465,7 @@ EventLoop:
 		case events, ok := <-pvcsEventsChan:
 			processedPvcs = true
 			if !ok {
-				log.Debug("Warning PVC event channel closed.")
+				ServiceLogger.Debug("Warning PVC event channel closed.")
 				break
 			}
 			s.PersistentVolumeClaimEvents = events
@@ -474,23 +473,23 @@ EventLoop:
 		case _, ok := <-podsEventsChan:
 			processedPods = true
 			if !ok {
-				log.Debug("Warning Pods event channel closed.")
+				ServiceLogger.Debug("Warning Pods event channel closed.")
 			}
 
 		case chanError = <-errorChan:
 			break EventLoop
 
 		case <-ctx.Done():
-			log.Debug("Warning timeout waiting for events")
+			ServiceLogger.Debug("Warning timeout waiting for events")
 			break EventLoop
 
 		default:
 			if processedPvs && processedPvcs && processedPods {
-				log.Debug("EventLoop default break.")
+				ServiceLogger.Debug("EventLoop default break.")
 				break EventLoop
 			}
 
-			log.Debug("EventLoop default 15millis sleep.")
+			ServiceLogger.Debug("EventLoop default 15millis sleep.")
 
 			time.Sleep(15 * time.Millisecond)
 		}
@@ -576,10 +575,10 @@ func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, wg *syn
 	// Push the events into the channel
 	select {
 	case <-ctx.Done():
-		log.Debugf("Async: timeout waiting for events: %s\n", kind)
+		ServiceLogger.Debugf("Async: timeout waiting for events: %s\n", kind)
 		return
 	case channel <- events:
-		log.Debugf("Async: push the events into the channel: %s\n", kind)
+		ServiceLogger.Debugf("Async: push the events into the channel: %s\n", kind)
 	}
 }
 
@@ -623,9 +622,9 @@ func (s *VolumeStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, ch
 	// Push the events into the channel
 	select {
 	case <-ctx.Done():
-		log.Debugf("Async: timeout waiting for pods")
+		ServiceLogger.Debugf("Async: timeout waiting for pods")
 		return
 	case channel <- usedBy:
-		log.Debugf("Async: push pods into the channel")
+		ServiceLogger.Debugf("Async: push pods into the channel")
 	}
 }

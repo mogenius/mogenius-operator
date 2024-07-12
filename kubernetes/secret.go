@@ -13,7 +13,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -329,7 +328,7 @@ func ContainerSecretDoesExistForStage(namespace dtos.K8sNamespaceDto) bool {
 func WatchSecrets() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -344,7 +343,7 @@ func WatchSecrets() {
 	})
 
 	if err != nil {
-		log.Fatalf("Error watching secrets: %s", err.Error())
+		K8sLogger.Fatalf("Error watching secrets: %s", err.Error())
 	}
 
 	// Wait forever

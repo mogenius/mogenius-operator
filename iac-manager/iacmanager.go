@@ -3,6 +3,7 @@ package iacmanager
 import (
 	"bytes"
 	"fmt"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
 	"os/exec"
@@ -36,7 +37,7 @@ var syncInProcess = false
 var SetupInProcess = false
 var initialRepoApplied = false
 
-var iaclogger = log.WithField("component", "iac")
+var iaclogger = log.WithField("component", structs.ComponentIacManager)
 
 func IsIgnoredNamespace(namespace string) bool {
 	return utils.ContainsString(utils.CONFIG.Iac.IgnoredNamespaces, namespace)

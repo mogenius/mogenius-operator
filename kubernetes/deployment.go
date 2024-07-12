@@ -15,7 +15,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,7 +41,7 @@ func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, true, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -105,7 +104,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("UpdateDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -157,7 +156,7 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("StartDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -191,7 +190,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -228,7 +227,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -485,7 +484,7 @@ func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
 func WatchDeployments() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -499,7 +498,7 @@ func WatchDeployments() {
 		return watchDeployments(provider, "deployments")
 	})
 	if err != nil {
-		log.Fatalf("Error watching deployments: %s", err.Error())
+		K8sLogger.Fatalf("Error watching deployments: %s", err.Error())
 	}
 
 	// Wait forever

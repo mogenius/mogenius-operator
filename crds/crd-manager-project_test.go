@@ -2,7 +2,6 @@ package crds
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -18,7 +17,7 @@ func TestProject(t *testing.T) {
 		Limits:          ProjectLimits{LimitMemoryMB: 1024, LimitCpuCores: 1.0, EphemeralStorageMB: 1024, MaxVolumeSizeGb: 10}},
 	)
 	if err != nil {
-		log.Fatalf("Error creating project: %s", err.Error())
+		CrdLogger.Fatalf("Error creating project: %s", err.Error())
 	} else {
 		fmt.Println("Project created ✅")
 	}
@@ -26,7 +25,7 @@ func TestProject(t *testing.T) {
 	// GET
 	project, _, err := GetProject(newProjectName)
 	if err != nil {
-		log.Fatalf("Error getting project: %s", err.Error())
+		CrdLogger.Fatalf("Error getting project: %s", err.Error())
 	} else {
 		fmt.Println("Project retrieved ✅")
 	}
@@ -40,7 +39,7 @@ func TestProject(t *testing.T) {
 	// UPDATE
 	err = UpdateProject(newProjectName, project.Id, project.ProjectName, project.DisplayName, project.ProductId, project.Limits)
 	if err != nil {
-		log.Fatalf("Error updating project: %s", err.Error())
+		CrdLogger.Fatalf("Error updating project: %s", err.Error())
 	} else {
 		fmt.Println("Project updated ✅")
 	}
@@ -48,7 +47,7 @@ func TestProject(t *testing.T) {
 	// DELETE
 	err = DeleteProject(newProjectName)
 	if err != nil {
-		log.Fatalf("Error deleting project: %s", err.Error())
+		CrdLogger.Fatalf("Error deleting project: %s", err.Error())
 	} else {
 		fmt.Println("Project deleted ✅")
 	}
@@ -56,7 +55,7 @@ func TestProject(t *testing.T) {
 	// LIST
 	_, _, err = ListProjects()
 	if err != nil {
-		log.Fatalf("Error listing projects: %s", err.Error())
+		CrdLogger.Fatalf("Error listing projects: %s", err.Error())
 	} else {
 		fmt.Println("Projects listed ✅")
 	}
