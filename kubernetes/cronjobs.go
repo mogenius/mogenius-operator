@@ -3,6 +3,8 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	punqutils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
+	apipatchv1 "k8s.io/api/batch/v1"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
@@ -23,7 +26,48 @@ import (
 	batchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
+
+	cron "github.com/robfig/cron/v3"
 )
+
+type JobInfoTileType string
+type JobInfoStatusType string
+
+const (
+	JobInfoStatusTypeActive    JobInfoStatusType = "Active"
+	JobInfoStatusTypeSucceeded JobInfoStatusType = "Succeeded"
+	JobInfoStatusTypeFailed    JobInfoStatusType = "Failed"
+	JobInfoStatusTypeSuspended JobInfoStatusType = "Suspended"
+	JobInfoStatusTypeUnkown    JobInfoStatusType = "Unkown"
+)
+
+const (
+	JobInfoTileTypeJob   JobInfoTileType = "Job"
+	JobInfoTileTypeEmpty JobInfoTileType = "Empty"
+)
+
+type JobInfo struct {
+	Schedule      time.Time         `json:"schedule"`
+	Status        JobInfoStatusType `json:"status"`
+	TileType      JobInfoTileType   `json:"tileType"`
+	JobName       string            `json:"jobName,omitempty"`
+	JobId         string            `json:"jobId,omitempty"`
+	PodName       string            `json:"podName,omitempty"`
+	DurationInSec string            `json:"durationInSec,omitempty"`
+	Message       *StatusMessage    `json:"message,omitempty"`
+}
+
+type ListJobInfoResponse struct {
+	ControllerName string    `json:"controllerName"`
+	NamespaceName  string    `json:"namespaceName"`
+	ProjectId      string    `json:"projectId"`
+	JobsInfo       []JobInfo `json:"jobsInfo"`
+}
+
+type StatusMessage struct {
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
+}
 
 func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("trigger", fmt.Sprintf("Trigger Job from CronJob '%s'.", namespace), job)
@@ -53,7 +97,12 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 			Spec:       cronjob.Spec.JobTemplate.Spec,
 		}
 		jobSpec.Name = fmt.Sprintf("%s-%s", controller, punqutils.NanoIdSmallLowerCase())
-		jobSpec.Spec.TTLSecondsAfterFinished = punqutils.Pointer(int32(60))
+
+		// disable TTL to keep history limit
+		// both, jobs and pods are keept then
+		// otherwise we need to implement a custom JobReconciler which
+		// deletes the jobs and keeps the pods with client.PropagationPolicy(metav1.DeletePropagationOrphan)
+		jobSpec.Spec.TTLSecondsAfterFinished = nil
 
 		// create job
 		_, err = jobs.Create(context.TODO(), jobSpec, metav1.CreateOptions{})
@@ -314,6 +363,20 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 		spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(service.CronJobSettings.BackoffLimit)
 	}
 
+	// HISTORY LIMITS
+	if service.CronJobSettings.FailedJobsHistoryLimit > 0 {
+		spec.FailedJobsHistoryLimit = punqutils.Pointer(service.CronJobSettings.FailedJobsHistoryLimit)
+	}
+	if service.CronJobSettings.SuccessfulJobsHistoryLimit > 0 {
+		spec.SuccessfulJobsHistoryLimit = punqutils.Pointer(service.CronJobSettings.SuccessfulJobsHistoryLimit)
+	}
+
+	// disable TTL to keep history limit
+	// both, jobs and pods are keept then
+	// otherwise we need to implement a custom JobReconciler which
+	// deletes the jobs and keeps the pods with client.PropagationPolicy(metav1.DeletePropagationOrphan)
+	spec.JobTemplate.Spec.TTLSecondsAfterFinished = nil
+
 	return objectMeta, &SpecCronJob{spec, previousSpec}, &newCronJob, nil
 }
 
@@ -441,6 +504,159 @@ func UpdateCronjobImage(namespaceName string, controllerName string, containerNa
 // 		punqutils.InitCronJobYaml(),
 // 		"A CronJob creates Jobs on a repeating schedule, like the cron utility in Unix-like systems. In this example, a CronJob named 'my-cronjob' is created. It runs a Job every minute. Each Job creates a Pod with a single container from the 'my-cronjob-image' image.")
 // }
+
+func getNextSchedule(cronExpr string, lastScheduleTime time.Time) (time.Time, error) {
+	sched, err := cron.ParseStandard(cronExpr)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return sched.Next(lastScheduleTime), nil
+}
+
+func getJobStatus(conditions []apipatchv1.JobCondition) JobInfoStatusType {
+	for _, condition := range conditions {
+		switch condition.Type {
+		case apipatchv1.JobSuspended:
+			return JobInfoStatusTypeSuspended
+		case apipatchv1.JobComplete:
+			return JobInfoStatusTypeSucceeded
+		case apipatchv1.JobFailed:
+			return JobInfoStatusTypeFailed
+		case apipatchv1.JobFailureTarget:
+			return JobInfoStatusTypeFailed
+		case apipatchv1.JobSuccessCriteriaMet:
+			return JobInfoStatusTypeSucceeded
+		}
+	}
+	return JobInfoStatusTypeUnkown
+}
+
+func hasLabel(labels map[string]string, labelKey string, labelValue string) bool {
+	_, exists := labels[labelKey]
+	return exists && labels[labelKey] == labelValue
+}
+
+func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInfoResponse {
+	list := ListJobInfoResponse{
+		ControllerName: controllerName,
+		NamespaceName:  namespaceName,
+		ProjectId:      projectId,
+		JobsInfo:       []JobInfo{},
+	}
+
+	var jobInfos []JobInfo
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		log.Warnf("Error creating provider for ListJobs: %s", err.Error())
+		return list
+	}
+
+	// Get the CronJob
+	cronJob, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+
+	if err != nil {
+		log.Warnf("Error getting cronjob %s: %s", controllerName, err.Error())
+		return list
+	}
+
+	jobLabelSelectors := []string{
+		fmt.Sprintf("mo-app=%s", controllerName),
+		fmt.Sprintf("mo-ns=%s", namespaceName),
+		fmt.Sprintf("mo-project-id=%s", projectId),
+	}
+
+	// Get the list of Jobs for each CronJob using multiple label selectors
+	jobs, err := provider.ClientSet.BatchV1().Jobs(namespaceName).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: strings.Join(jobLabelSelectors, ","),
+	})
+	if err != nil {
+		log.Warnf("Error getting jobs for cronjob %s: %s", cronJob.Name, err.Error())
+		return list
+	}
+
+	podLabelSelectors := []string{}
+	for _, job := range jobs.Items {
+		podLabelSelectors = append(podLabelSelectors, job.Name)
+	}
+
+	// Get the Pods associated with the Job
+	pods, err := provider.ClientSet.CoreV1().Pods(namespaceName).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("job-name in (%s)", strings.Join(podLabelSelectors, ",")),
+	})
+	if err != nil {
+		log.Warnf("Error getting pods for cronjob %s: %s", cronJob.Name, err.Error())
+		return list
+	}
+
+	for _, job := range jobs.Items {
+		jobInfo := JobInfo{
+			JobName:  job.Name,
+			JobId:    string(job.UID),
+			PodName:  "",
+			TileType: JobInfoTileTypeJob,
+		}
+
+		if job.Status.StartTime != nil {
+			jobInfo.Schedule = job.Status.StartTime.Time
+			if job.Status.CompletionTime != nil {
+				duration := job.Status.CompletionTime.Sub(job.Status.StartTime.Time).Seconds()
+				jobInfo.DurationInSec = fmt.Sprintf("%.2f", duration)
+			}
+		}
+
+		if len(job.Status.Conditions) > 0 {
+			jobInfo.Status = getJobStatus(job.Status.Conditions)
+			condition := job.Status.Conditions[0]
+
+			if condition.Message != "" && condition.Reason != "" {
+				jobInfo.Message = &StatusMessage{
+					Reason:  condition.Reason,
+					Message: condition.Message,
+				}
+			}
+		} else if job.Status.CompletionTime == nil {
+			jobInfo.Status = JobInfoStatusTypeActive
+		} else {
+			jobInfo.Status = JobInfoStatusTypeUnkown
+		}
+
+		for _, pod := range pods.Items {
+			labelKey := "job-name"
+			labelValue := job.Name
+
+			if hasLabel(pod.Labels, labelKey, labelValue) {
+				jobInfo.PodName = pod.Name
+				jobInfos = append(jobInfos, jobInfo)
+			}
+		}
+
+	}
+
+	sort.Slice(jobInfos, func(i, j int) bool {
+		return jobInfos[i].Schedule.After(jobInfos[j].Schedule)
+	})
+
+	// Add an empty item for the next schedule
+	if cronJob.Status.LastScheduleTime != nil {
+		nextScheduleTime, err := getNextSchedule(cronJob.Spec.Schedule, cronJob.Status.LastScheduleTime.Time)
+		if err != nil {
+			log.Warnf("Error getting next schedule for cronjob %s: %s", cronJob.Name, err.Error())
+			list.JobsInfo = jobInfos
+			return list
+		}
+		// add an empty item to the beginning of the list
+		jobInfos = append([]JobInfo{{
+			Schedule: nextScheduleTime,
+			TileType: JobInfoTileTypeEmpty,
+			Status:   JobInfoStatusTypeUnkown,
+		}}, jobInfos...)
+	}
+
+	list.JobsInfo = jobInfos
+
+	return list
+}
 
 func WatchCronJobs() {
 	provider, err := punq.NewKubeProvider(nil)

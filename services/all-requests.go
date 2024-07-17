@@ -2149,6 +2149,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return controllers.DeleteExternalSecretsStore(data)
+	case structs.PAT_LIST_CRONJOB_JOBS:
+		data := ListCronjobJobsRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return kubernetes.ListCronjobJobs(data.ControllerName, data.NamespaceName, data.ProjectId)
 	}
 	datagram.Err = "Pattern not found"
 	return datagram

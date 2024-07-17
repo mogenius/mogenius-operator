@@ -6,6 +6,9 @@ type K8sCronJobSettingsDto struct {
 	BackoffLimit int32  `json:"backoffLimit,omitempty"`
 	// maximum duration
 	ActiveDeadlineSeconds int64 `json:"activeDeadlineSeconds,omitempty"`
+	// pod history limits
+	FailedJobsHistoryLimit     int32 `json:"failedJobsHistoryLimit,omitempty"`
+	SuccessfulJobsHistoryLimit int32 `json:"successfulJobsHistoryLimit,omitempty"`
 }
 
 func K8sCronJobSettingsDtoExampleData() *K8sCronJobSettingsDto {
