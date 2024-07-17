@@ -48,25 +48,24 @@ const (
 
 type JobInfo struct {
 	Schedule      time.Time         `json:"schedule"`
-	DurationInSec string            `json:"durationInSec,omitempty"`
 	Status        JobInfoStatusType `json:"status"`
-	Message       *StatusMessage    `json:"message,omitempty"`
-	TileType      JobInfoTileType   `json:"jobInfoTileType"`
-	PodName       string            `json:"podName,omitempty"`
+	TileType      JobInfoTileType   `json:"tileType"`
 	JobName       string            `json:"jobName,omitempty"`
-	Namespace     string            `json:"namespace"`
+	PodName       string            `json:"podName,omitempty"`
+	DurationInSec string            `json:"durationInSec,omitempty"`
+	Message       *StatusMessage    `json:"message,omitempty"`
 }
 
 type ListJobInfoResponse struct {
 	ControllerName string    `json:"controllerName"`
 	NamespaceName  string    `json:"namespaceName"`
 	ProjectId      string    `json:"projectId"`
-	JobInfos       []JobInfo `json:"jobInfos"`
+	JobsInfo       []JobInfo `json:"jobsInfo"`
 }
 
 type StatusMessage struct {
-	Reason  string
-	Message string
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
 }
 
 func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string, wg *sync.WaitGroup) {
@@ -541,7 +540,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 		ControllerName: controllerName,
 		NamespaceName:  namespaceName,
 		ProjectId:      projectId,
-		JobInfos:       []JobInfo{},
+		JobsInfo:       []JobInfo{},
 	}
 
 	var jobInfos []JobInfo
@@ -591,10 +590,9 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 
 	for _, job := range jobs.Items {
 		jobInfo := JobInfo{
-			JobName:   job.Name,
-			PodName:   "",
-			TileType:  JobInfoTileTypeJob,
-			Namespace: job.Namespace,
+			JobName:  job.Name,
+			PodName:  "",
+			TileType: JobInfoTileTypeJob,
 		}
 
 		if job.Status.StartTime != nil {
@@ -642,7 +640,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 		nextScheduleTime, err := getNextSchedule(cronJob.Spec.Schedule, cronJob.Status.LastScheduleTime.Time)
 		if err != nil {
 			log.Warnf("Error getting next schedule for cronjob %s: %s", cronJob.Name, err.Error())
-			list.JobInfos = jobInfos
+			list.JobsInfo = jobInfos
 			return list
 		}
 		// add an empty item to the beginning of the list
@@ -653,7 +651,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 		}}, jobInfos...)
 	}
 
-	list.JobInfos = jobInfos
+	list.JobsInfo = jobInfos
 
 	return list
 }
