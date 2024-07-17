@@ -51,6 +51,7 @@ type JobInfo struct {
 	Status        JobInfoStatusType `json:"status"`
 	TileType      JobInfoTileType   `json:"tileType"`
 	JobName       string            `json:"jobName,omitempty"`
+	JobId         string            `json:"jobId,omitempty"`
 	PodName       string            `json:"podName,omitempty"`
 	DurationInSec string            `json:"durationInSec,omitempty"`
 	Message       *StatusMessage    `json:"message,omitempty"`
@@ -591,6 +592,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 	for _, job := range jobs.Items {
 		jobInfo := JobInfo{
 			JobName:  job.Name,
+			JobId:    string(job.UID),
 			PodName:  "",
 			TileType: JobInfoTileTypeJob,
 		}
@@ -599,7 +601,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 			jobInfo.Schedule = job.Status.StartTime.Time
 			if job.Status.CompletionTime != nil {
 				duration := job.Status.CompletionTime.Sub(job.Status.StartTime.Time).Seconds()
-				jobInfo.DurationInSec = fmt.Sprintf("%.2fs\n", duration)
+				jobInfo.DurationInSec = fmt.Sprintf("%.2f", duration)
 			}
 		}
 
