@@ -15,7 +15,7 @@ import (
 
 const (
 	NamePrefix   = "customer-blue"
-	Project      = "backend-project"
+	ProjectName  = "backend-project"
 	MoSharedPath = "mogenius-external-secrets"
 )
 
@@ -59,7 +59,7 @@ func TestSecretStoreCreate(t *testing.T) {
 
 	// assume composed name: team-blue-secrets-vault-secret-store
 	props.NamePrefix = NamePrefix
-	props.ProjectName = Project
+	props.ProjectName = ProjectName
 
 	err := CreateExternalSecretsStore(props)
 	if err != nil {
@@ -74,7 +74,7 @@ func TestSecretStoreList(t *testing.T) {
 	// wait for create to finish
 	time.Sleep(3 * time.Second)
 
-	stores, err := kubernetes.ListExternalSecretsStores()
+	stores, err := kubernetes.ListExternalSecretsStores(ProjectName)
 	if err != nil {
 		t.Errorf("Error listing secret stores: %s", err.Error())
 	}
@@ -90,7 +90,7 @@ func TestSecretStoreList(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Errorf("Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix, Project))
+			t.Errorf("Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix, ProjectName))
 		} else {
 			logger.Log.Info("Secret stores listed ✅")
 		}
@@ -105,7 +105,7 @@ func TestListAvailSecrets(t *testing.T) {
 	} else {
 		logger.Log.Info("Secret list created ✅")
 	}
-	availSecrets := ListAvailableExternalSecrets(NamePrefix, Project)
+	availSecrets := ListAvailableExternalSecrets(NamePrefix, ProjectName)
 
 	if len(availSecrets) == 0 {
 		t.Errorf("Error listing available secrets: No secrets found")
@@ -117,9 +117,9 @@ func TestListAvailSecrets(t *testing.T) {
 func TestSecretStoreDelete(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
-	err := DeleteExternalSecretsStore(NamePrefix, Project, MoSharedPath)
+	err := DeleteExternalSecretsStore(NamePrefix, ProjectName, MoSharedPath)
 	if err != nil {
-		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", utils.GetSecretStoreName(NamePrefix, Project), err.Error())
+		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", utils.GetSecretStoreName(NamePrefix, ProjectName), err.Error())
 	} else {
 		logger.Log.Info("Secret store deletion confirmed ✅")
 	}

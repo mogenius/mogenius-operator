@@ -3,12 +3,13 @@ package kubernetes
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/mogenius/punq/logger"
 	"gopkg.in/yaml.v2"
 )
 
-func ListExternalSecretsStores() ([]string, error) {
+func ListExternalSecretsStores(projectName string) ([]string, error) {
 	response, err := ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
 		logger.Log.Info("ListResources failed")
@@ -22,8 +23,14 @@ func ListExternalSecretsStores() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	filteredStores := []string{}
+	for _, store := range stores {
+		if strings.Contains(store, projectName) {
+			filteredStores = append(filteredStores, store)
+		}
+	}
 
-	return stores, nil
+	return filteredStores, nil
 }
 
 func GetExternalSecretsStore(name string) (*SecretStoreSchema, error) {

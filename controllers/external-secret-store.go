@@ -37,6 +37,10 @@ type CreateSecretsStoreResponse struct {
 type ListSecretsStoresResponse struct {
 	StoresInCluster []string `json:"storesInCluster"`
 }
+type ListSecretStoresRequest struct {
+	ProjectName string `json:"projectName" validate:"required"`
+}
+
 type ListSecretsRequest struct {
 	NamePrefix  string `json:"namePrefix" validate:"required"`
 	ProjectName string `json:"projectName" validate:"required"`
@@ -87,8 +91,8 @@ func CreateExternalSecretStore(data CreateSecretsStoreRequest) CreateSecretsStor
 	}
 }
 
-func ListExternalSecretsStores() ListSecretsStoresResponse {
-	stores, err := mokubernetes.ListExternalSecretsStores()
+func ListExternalSecretsStores(data ListSecretStoresRequest) ListSecretsStoresResponse {
+	stores, err := mokubernetes.ListExternalSecretsStores(data.ProjectName)
 	if err != nil {
 		logger.Log.Error("Getting secret stores failed with error: %v", err)
 	}
