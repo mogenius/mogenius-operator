@@ -47,14 +47,14 @@ const (
 )
 
 type JobInfo struct {
-	Schedule      time.Time         `json:"schedule"`
-	Status        JobInfoStatusType `json:"status"`
-	TileType      JobInfoTileType   `json:"tileType"`
-	JobName       string            `json:"jobName,omitempty"`
-	JobId         string            `json:"jobId,omitempty"`
-	PodName       string            `json:"podName,omitempty"`
-	DurationInSec string            `json:"durationInSec,omitempty"`
-	Message       *StatusMessage    `json:"message,omitempty"`
+	Schedule     time.Time         `json:"schedule"`
+	Status       JobInfoStatusType `json:"status"`
+	TileType     JobInfoTileType   `json:"tileType"`
+	JobName      string            `json:"jobName,omitempty"`
+	JobId        string            `json:"jobId,omitempty"`
+	PodName      string            `json:"podName,omitempty"`
+	DurationInMs int64             `json:"durationInMs,omitempty"`
+	Message      *StatusMessage    `json:"message,omitempty"`
 }
 
 type ListJobInfoResponse struct {
@@ -600,8 +600,8 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 		if job.Status.StartTime != nil {
 			jobInfo.Schedule = job.Status.StartTime.Time
 			if job.Status.CompletionTime != nil {
-				duration := job.Status.CompletionTime.Sub(job.Status.StartTime.Time).Seconds()
-				jobInfo.DurationInSec = fmt.Sprintf("%.2f", duration)
+				duration := job.Status.CompletionTime.Sub(job.Status.StartTime.Time).Abs().Milliseconds()
+				jobInfo.DurationInMs = duration
 			}
 		}
 
