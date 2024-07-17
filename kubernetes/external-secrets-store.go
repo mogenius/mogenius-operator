@@ -30,7 +30,7 @@ func ListExternalSecretsStores(projectName string) ([]string, error) {
 		}
 	}
 
-	return stores, nil
+	return filteredStores, nil
 }
 
 func GetExternalSecretsStore(name string) (*SecretStoreSchema, error) {
