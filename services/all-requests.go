@@ -2129,7 +2129,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return controllers.CreateExternalSecretStore(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_LIST:
-		return controllers.ListExternalSecretsStores()
+		data := controllers.ListSecretStoresRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return controllers.ListExternalSecretsStores(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS:
 		data := controllers.ListSecretsRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
