@@ -121,8 +121,12 @@ type XtermReadMessages struct {
 
 var LogChannels = make(map[string]chan string)
 
-func isPodReady(pod *v1.Pod) bool {
+func isPodAvailable(pod *v1.Pod) bool {
 	if pod.Status.Phase == v1.PodRunning {
+		return true
+	} else if pod.Status.Phase == v1.PodSucceeded {
+		return true
+	} else if pod.Status.Phase == v1.PodFailed {
 		return true
 	}
 	for _, cond := range pod.Status.Conditions {
@@ -158,7 +162,7 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.Kub
 				return
 			}
 
-			if isPodReady(pod) {
+			if isPodAvailable(pod) {
 				log.Infof("Pod %s is ready.", pod.Name)
 				// clear screen
 				clearScreen(conn)
