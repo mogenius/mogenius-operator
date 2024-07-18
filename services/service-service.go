@@ -14,7 +14,6 @@ import (
 
 	v1cm "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	v2 "k8s.io/api/autoscaling/v2"
 	v1job "k8s.io/api/batch/v1"
@@ -39,7 +38,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	// check if namespace exists and CREATE IT IF NOT
 	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name, nil)
 	if nsErr != nil {
-		log.Warning(nsErr.Error())
+		ServiceLogger.Warning(nsErr.Error())
 	}
 	if !nsExists {
 		nsReq := NamespaceCreateRequest{
@@ -113,7 +112,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 
 		time.Sleep(10 * time.Second)
 		for _, container := range r.Service.Containers {
-			log.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
+			ServiceLogger.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
 			db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
 		}
 	}()
@@ -291,11 +290,11 @@ func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 
 // 	for _, container := range service.Containers {
 // 		if container.GitRepository == nil {
-// 			log.Errorf("%s: GitRepository cannot be nil", container.Name)
+// 			ServiceLogger.Errorf("%s: GitRepository cannot be nil", container.Name)
 // 			continue
 // 		}
 // 		if container.GitBranch == nil {
-// 			log.Errorf("%s: GitBranch cannot be nil", container.Name)
+// 			ServiceLogger.Errorf("%s: GitBranch cannot be nil", container.Name)
 // 			continue
 // 		}
 // 		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
@@ -339,15 +338,15 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 		for _, container := range service.Containers {
 			if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 				if container.GitRepository == nil {
-					log.Errorf("%s: GitRepository cannot be nil", service.ControllerName)
+					ServiceLogger.Errorf("%s: GitRepository cannot be nil", service.ControllerName)
 					continue
 				}
 				if container.GitBranch == nil {
-					log.Errorf("%s: GitBranch cannot be nil", service.ControllerName)
+					ServiceLogger.Errorf("%s: GitBranch cannot be nil", service.ControllerName)
 					continue
 				}
 				if container.SettingsYaml == nil {
-					log.Errorf("%s: SettingsYaml cannot be nil", service.ControllerName)
+					ServiceLogger.Errorf("%s: SettingsYaml cannot be nil", service.ControllerName)
 					continue
 				}
 

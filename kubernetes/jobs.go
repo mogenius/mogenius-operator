@@ -6,7 +6,6 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 	v1job "k8s.io/api/batch/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +18,7 @@ import (
 func WatchJobs() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -33,7 +32,7 @@ func WatchJobs() {
 		return watchJobs(provider, "jobs")
 	})
 	if err != nil {
-		log.Fatalf("Error watching jobs: %s", err.Error())
+		K8sLogger.Fatalf("Error watching jobs: %s", err.Error())
 	}
 
 	// Wait forever

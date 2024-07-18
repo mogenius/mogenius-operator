@@ -20,7 +20,6 @@ import (
 	"time"
 
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 func List(r FilesListRequest) []dtos.PersistentFileDto {
@@ -32,7 +31,7 @@ func List(r FilesListRequest) []dtos.PersistentFileDto {
 	// result, err = listFiles(pathToFile, 0)
 	result, err = ListDirWithTimeout(pathToFile, 250*time.Millisecond)
 	if err != nil {
-		log.Errorf("Files List Error: %s", err.Error())
+		ServiceLogger.Errorf("Files List Error: %s", err.Error())
 	}
 	return result
 }
@@ -41,7 +40,7 @@ func Info(r dtos.PersistentFileRequestDto) dtos.PersistentFileDto {
 	result := dtos.PersistentFileDto{}
 	pathToFile, err := verify(&r)
 	if err != nil {
-		log.Errorf("file info verify error: %s", err.Error())
+		ServiceLogger.Errorf("file info verify error: %s", err.Error())
 		return result
 	}
 	return dtos.PersistentFileDtoFrom(pathToFile, pathToFile)
@@ -115,7 +114,7 @@ func Download(r FilesDownloadRequest) interface{} {
 		})
 
 		if err != nil {
-			log.Errorf("directory zip walk files error: %s", err.Error())
+			ServiceLogger.Errorf("directory zip walk files error: %s", err.Error())
 			result.Error = err.Error()
 			return result
 		}
@@ -123,21 +122,21 @@ func Download(r FilesDownloadRequest) interface{} {
 		// Close the zip archive
 		err = zipWriter.Close()
 		if err != nil {
-			log.Errorf("zip error: %s", err.Error())
+			ServiceLogger.Errorf("zip error: %s", err.Error())
 			result.Error = err.Error()
 			return result
 		}
 	} else {
 		// SEND FILE TO HTTP
 		if err != nil {
-			log.Errorf("Error creating form file: %s", err)
+			ServiceLogger.Errorf("Error creating form file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
 
 		_, err = io.Copy(w, file)
 		if err != nil {
-			log.Errorf("Error copying file: %s", err)
+			ServiceLogger.Errorf("Error copying file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
@@ -150,7 +149,7 @@ func Download(r FilesDownloadRequest) interface{} {
 	// Upload the file
 	req, err := http.NewRequest("POST", r.PostTo, buf)
 	if err != nil {
-		log.Errorf("Error sending request: %s", err)
+		ServiceLogger.Errorf("Error sending request: %s", err)
 		result.Error = err.Error()
 		return result
 	}
@@ -160,7 +159,7 @@ func Download(r FilesDownloadRequest) interface{} {
 	client := &http.Client{}
 	response, err := client.Do(req)
 	if err != nil {
-		log.Errorf("Error sending request: %s", err)
+		ServiceLogger.Errorf("Error sending request: %s", err)
 		result.Error = err.Error()
 		return result
 	}
@@ -177,17 +176,17 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	// 1: VERIFY
 	targetDestination, err := verify(&fileReq.File)
 	if err != nil {
-		log.Error(err)
+		ServiceLogger.Error(err)
 	}
-	log.Infof("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
+	ServiceLogger.Infof("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
 	if err != nil {
-		log.Error(err)
+		ServiceLogger.Error(err)
 	}
 	for _, file := range files {
-		log.Info("uncompress: " + file)
+		ServiceLogger.Info("uncompress: " + file)
 	}
 	return nil
 }

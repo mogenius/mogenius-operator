@@ -20,7 +20,6 @@ import (
 
 	"k8s.io/client-go/util/retry"
 
-	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -32,7 +31,7 @@ var EventChannels = make(map[string]chan string)
 func EventWatcher() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -46,7 +45,7 @@ func EventWatcher() {
 		return watchEvents(provider)
 	})
 	if err != nil {
-		log.Fatalf("Error watching events: %s", err.Error())
+		K8sLogger.Fatalf("Error watching events: %s", err.Error())
 	}
 
 	// Wait forever
@@ -55,15 +54,15 @@ func EventWatcher() {
 
 func ResourceWatcher() {
 	// if !iacmanager.ShouldWatchResources() {
-	// 	log.Warn("Nor Pull nor Push enabled. Skip watching resources.")
+	// 	K8sLogger.Warn("Nor Pull nor Push enabled. Skip watching resources.")
 	// 	return
 	// }
 	// if resourceWatcherRunning {
-	// 	log.Warn("Resource watcher already running.")
+	// 	K8sLogger.Warn("Resource watcher already running.")
 	// 	return
 	// }
 
-	log.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
+	K8sLogger.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
 		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
@@ -93,9 +92,9 @@ func ResourceWatcher() {
 		case dtos.KindHorizontalPodAutoscalers:
 			go WatchHpas()
 		default:
-			log.Fatalf("🚫 Unknown resource type: %s", workload)
+			K8sLogger.Fatalf("🚫 Unknown resource type: %s", workload)
 		}
-		log.Infof("Started watching %s 🚀.", workload)
+		K8sLogger.Infof("Started watching %s 🚀.", workload)
 	}
 }
 
@@ -171,7 +170,7 @@ func InitAllWorkloads() {
 				iacmanager.WriteResourceYaml(dtos.KindHorizontalPodAutoscalers, res.Namespace, res.Name, res)
 			}
 		default:
-			log.Fatalf("🚫 Unknown resource type: %s", workload)
+			K8sLogger.Fatalf("🚫 Unknown resource type: %s", workload)
 		}
 	}
 }
@@ -205,7 +204,7 @@ func processEvent(event *v1Core.Event) {
 			controllerName := strings.Join(parts, "-")
 			err := db.AddPodEvent(event.InvolvedObject.Namespace, controllerName, event, 150)
 			if err != nil {
-				log.Errorf("Error adding event to db: %s", err.Error())
+				K8sLogger.Errorf("Error adding event to db: %s", err.Error())
 			}
 
 			key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, controllerName)
@@ -221,7 +220,7 @@ func processEvent(event *v1Core.Event) {
 
 		}
 	} else {
-		log.Errorf("malformed event received")
+		K8sLogger.Errorf("malformed event received")
 	}
 }
 

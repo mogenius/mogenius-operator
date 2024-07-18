@@ -4,7 +4,6 @@ import (
 	"context"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,33 +23,33 @@ func removeDeployment(provider *punq.KubeProvider) {
 	deploymentClient := provider.ClientSet.AppsV1().Deployments(NAMESPACE)
 
 	// DELETE Deployment
-	log.Info("Deleting mogenius-k8s-manager deployment ...")
+	K8sLogger.Info("Deleting mogenius-k8s-manager deployment ...")
 	deletePolicy := metav1.DeletePropagationForeground
 	err := deploymentClient.Delete(context.TODO(), DEPLOYMENTNAME, metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
-		log.Error(err)
+		K8sLogger.Error(err)
 		return
 	}
-	log.Info("Deleted mogenius-k8s-manager deployment.")
+	K8sLogger.Info("Deleted mogenius-k8s-manager deployment.")
 }
 
 func removeRbac(provider *punq.KubeProvider) {
 	// CREATE RBAC
-	log.Info("Deleting mogenius-k8s-manager RBAC ...")
+	K8sLogger.Info("Deleting mogenius-k8s-manager RBAC ...")
 	err := provider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Delete(context.TODO(), SERVICEACCOUNTNAME, metav1.DeleteOptions{})
 	if err != nil {
-		log.Error(err)
+		K8sLogger.Error(err)
 		return
 	}
 	err = provider.ClientSet.RbacV1().ClusterRoles().Delete(context.TODO(), CLUSTERROLENAME, metav1.DeleteOptions{})
 	if err != nil {
-		log.Error(err)
+		K8sLogger.Error(err)
 		return
 	}
 	err = provider.ClientSet.RbacV1().ClusterRoleBindings().Delete(context.TODO(), CLUSTERROLEBINDINGNAME, metav1.DeleteOptions{})
 	if err != nil {
-		log.Error(err)
+		K8sLogger.Error(err)
 		return
 	}
-	log.Info("Deleted mogenius-k8s-manager RBAC.")
+	K8sLogger.Info("Deleted mogenius-k8s-manager RBAC.")
 }

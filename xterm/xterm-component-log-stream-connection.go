@@ -2,6 +2,8 @@ package xterm
 
 import (
 	"context"
+	"fmt"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
@@ -13,14 +15,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func XTermOperatorStreamConnection(
+func XTermComponentStreamConnection(
 	wsConnectionRequest WsConnectionRequest,
-	namespace string,
-	controller string,
+	component structs.ComponentEnum,
 ) {
 	cmdType := "log"
 
-	cmd := exec.Command("tail", "-F", "-n", MAX_TAIL_LINES, utils.MainLogPath())
+	cmd := exec.Command("bash", "-c", fmt.Sprintf("tail -F -n %s %s", MAX_TAIL_LINES, utils.MainLogPath()))
 
 	if wsConnectionRequest.WebsocketScheme == "" {
 		log.Error("WebsocketScheme is empty")
@@ -36,14 +37,13 @@ func XTermOperatorStreamConnection(
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30*time.Minute))
 	// websocket connection
-	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, err := generateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		log.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
 	}
 
 	defer func() {
-		// log.Info("[XTermCommandStreamConnection] Closing connection.")
 		cancel()
 	}()
 
@@ -84,7 +84,7 @@ func XTermOperatorStreamConnection(
 	go cmdWait(cmd, conn, tty)
 
 	// cmd output to websocket
-	go cmdOutputToWebsocket(ctx, cancel, conn, tty, nil, &namespace, &controller)
+	go cmdOutputScannerToWebsocket(ctx, cancel, conn, tty, nil, component)
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)

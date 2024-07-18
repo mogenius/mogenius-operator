@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	v1core "k8s.io/api/core/v1"
@@ -160,7 +159,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					specTemplate.Spec.Containers[index].Image = imgName
 				} else {
 					imgErr := fmt.Errorf("No image found for '%s/%s'. Maybe the build failed or is still running.", namespace.Name, container.Name)
-					log.Errorf(imgErr.Error())
+					K8sLogger.Errorf(imgErr.Error())
 					return nil, imgErr
 				}
 			}
@@ -255,10 +254,10 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 							})
 						}
 					} else {
-						log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
+						K8sLogger.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
 					}
 				} else {
-					log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
+					K8sLogger.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
 				}
 			}
 		}

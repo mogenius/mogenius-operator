@@ -9,7 +9,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 
-	"github.com/mogenius/punq/logger"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -121,7 +120,7 @@ func DeleteUnusedSecretsForNamespace(namespace string) error {
 	// LIST ns secrets
 	secrets, err := ListResources("external-secrets.io", "v1beta1", "externalsecrets", "", true)
 	if err != nil {
-		logger.Log.Errorf("Error listing resources: %s", err.Error())
+		K8sLogger.Errorf("Error listing resources: %s", err.Error())
 	}
 
 	existingSecrets, err := parseExternalSecretsListing(secrets)
@@ -228,7 +227,7 @@ func parseExternalSecretsListing(list *unstructured.UnstructuredList) ([]Externa
 		// Convert item to []byte
 		itemBytes, err := item.MarshalJSON()
 		if err != nil {
-			logger.Log.Errorf("Error converting item to []byte:", err)
+			K8sLogger.Error("Error converting item to []byte:", err)
 			return nil, err
 		}
 		var ExternalSecrets ExternalSecretListingSchema

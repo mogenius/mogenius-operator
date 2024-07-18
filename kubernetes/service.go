@@ -13,7 +13,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -102,12 +101,12 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 	ingControllerService := punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller", nil)
 
 	if tcpConfigmap == nil {
-		log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp")
+		K8sLogger.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp")
 		return
 	}
 
 	if udpConfigmap == nil {
-		log.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp")
+		K8sLogger.Errorf("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp")
 		return
 	}
 
@@ -169,15 +168,15 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 	// 4. write results to k8s
 	tcpResult := punq.UpdateK8sConfigMap(*tcpConfigmap, nil)
 	if tcpResult.Error != nil {
-		log.Errorf("UpdateK8sConfigMap: %s", tcpResult)
+		K8sLogger.Errorf("UpdateK8sConfigMap: %s", tcpResult)
 	}
 	udpResult := punq.UpdateK8sConfigMap(*udpConfigmap, nil)
 	if udpResult.Error != nil {
-		log.Errorf("UpdateK8sConfigMap: %s", udpResult)
+		K8sLogger.Errorf("UpdateK8sConfigMap: %s", udpResult)
 	}
 	ingContrResult := punq.UpdateK8sService(*ingControllerService, nil)
 	if ingContrResult.Error != nil {
-		log.Errorf("UpdateK8sConfigMap: %s", ingContrResult)
+		K8sLogger.Errorf("UpdateK8sConfigMap: %s", ingContrResult)
 	}
 }
 
@@ -299,23 +298,23 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 func ServiceWithLabels(labelSelector string, contextId *string) *v1.Service {
 	provider, err := punq.NewKubeProvider(contextId)
 	if err != nil {
-		log.Errorf("ServiceWith ERROR: %s", err.Error())
+		K8sLogger.Errorf("ServiceWith ERROR: %s", err.Error())
 		return nil
 	}
 	serviceClient := provider.ClientSet.CoreV1().Services("")
 	service, err := serviceClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
-		log.Errorf("ServiceFor ERROR: %s", err.Error())
+		K8sLogger.Errorf("ServiceFor ERROR: %s", err.Error())
 		return nil
 	}
 
 	if len(service.Items) == 1 {
 		return &service.Items[0]
 	} else if len(service.Items) > 1 {
-		log.Errorf("ServiceFor ERR: More (%d) than one service found for '%s'. Returning first one.", len(service.Items), labelSelector)
+		K8sLogger.Errorf("ServiceFor ERR: More (%d) than one service found for '%s'. Returning first one.", len(service.Items), labelSelector)
 		return &service.Items[0]
 	} else {
-		log.Errorf("ServiceFor ERR: No service found for labelsSelector '%s'.", labelSelector)
+		K8sLogger.Errorf("ServiceFor ERR: No service found for labelsSelector '%s'.", labelSelector)
 		return nil
 	}
 }
@@ -323,7 +322,7 @@ func ServiceWithLabels(labelSelector string, contextId *string) *v1.Service {
 func WatchServices() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -337,7 +336,7 @@ func WatchServices() {
 		return watchServices(provider, "services")
 	})
 	if err != nil {
-		log.Fatalf("Error watching services: %s", err.Error())
+		K8sLogger.Fatalf("Error watching services: %s", err.Error())
 	}
 
 	// Wait forever

@@ -2,7 +2,6 @@ package crds
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -16,7 +15,7 @@ func TestApplicationKit(t *testing.T) {
 	// CREATE
 	err := CreateApplicationKit(namespace, newAppkitName, CrdApplicationKit{Id: name, DisplayName: "Test Project", CreatedBy: name, Controller: "tesst", AppId: "gtesdf"})
 	if err != nil {
-		log.Fatalf("Error creating appkit: %s", err.Error())
+		CrdLogger.Fatalf("Error creating appkit: %s", err.Error())
 	} else {
 		fmt.Println("Applicationkit created ✅")
 	}
@@ -24,7 +23,7 @@ func TestApplicationKit(t *testing.T) {
 	// GET
 	appkit, _, err := GetApplicationKit(namespace, newAppkitName)
 	if err != nil {
-		log.Fatalf("Error getting appkit: %s", err.Error())
+		CrdLogger.Fatalf("Error getting appkit: %s", err.Error())
 	} else {
 		fmt.Println("Applicationkit retrieved ✅")
 	}
@@ -37,7 +36,7 @@ func TestApplicationKit(t *testing.T) {
 	// UPDATE
 	err = UpdateApplicationKit(namespace, newAppkitName, &appkit)
 	if err != nil {
-		log.Fatalf("Error updating appkit: %s", err.Error())
+		CrdLogger.Fatalf("Error updating appkit: %s", err.Error())
 	} else {
 		fmt.Println("Applicationkit updated ✅")
 	}
@@ -45,7 +44,7 @@ func TestApplicationKit(t *testing.T) {
 	// DELETE
 	err = DeleteApplicationKit(namespace, newAppkitName)
 	if err != nil {
-		log.Fatalf("Error deleting appkit: %s", err.Error())
+		CrdLogger.Fatalf("Error deleting appkit: %s", err.Error())
 	} else {
 		fmt.Println("ApplicationKit deleted ✅")
 	}
@@ -53,7 +52,7 @@ func TestApplicationKit(t *testing.T) {
 	// LIST
 	_, _, err = ListProjects()
 	if err != nil {
-		log.Fatalf("Error listing appkits: %s", err.Error())
+		CrdLogger.Fatalf("Error listing appkits: %s", err.Error())
 	} else {
 		fmt.Println("Applicationkits listed ✅")
 	}

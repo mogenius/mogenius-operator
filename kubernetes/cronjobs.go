@@ -135,7 +135,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 // 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 // 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, true, cronJobClient, createCronJobHandler)
 // 		if err != nil {
-// 			log.Errorf("error: %s", err.Error())
+// 			K8sLogger.Errorf("error: %s", err.Error())
 // 		}
 
 // 		newCronJob := newController.(*v1job.CronJob)
@@ -194,7 +194,7 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 		}
 
 		newCronJob := newController.(*v1job.CronJob)
@@ -234,7 +234,7 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 		}
 
 		cronJob := newController.(*v1job.CronJob)
@@ -263,7 +263,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 		}
 		cronJob := newController.(*v1job.CronJob)
 		cronJob.Spec.Suspend = punqutils.Pointer(true)
@@ -292,7 +292,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 		}
 		cronJob := newController.(*v1job.CronJob)
 
@@ -448,7 +448,7 @@ func UpdateCronjobImage(namespaceName string, controllerName string, containerNa
 // 	}
 // 	cronJobList, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 // 	if err != nil {
-// 		log.Errorf("AllCronjobs ERROR: %s", err.Error())
+// 		K8sLogger.Errorf("AllCronjobs ERROR: %s", err.Error())
 // 		return WorkloadResult(nil, err)
 // 	}
 
@@ -491,8 +491,8 @@ func UpdateCronjobImage(namespaceName string, controllerName string, containerNa
 
 // 	output, err := cmd.CombinedOutput()
 // 	if err != nil {
-// 		log.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-// 		log.Errorf("Error: %s", string(output))
+// 		K8sLogger.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
+// 		K8sLogger.Errorf("Error: %s", string(output))
 // 		return WorkloadResult(nil, string(output))
 // 	}
 // 	return WorkloadResult(string(output), nil)
@@ -661,7 +661,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 func WatchCronJobs() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -675,7 +675,7 @@ func WatchCronJobs() {
 		return watchCronJobs(provider, "cronjobs")
 	})
 	if err != nil {
-		log.Fatalf("Error watching cronjobs: %s", err.Error())
+		K8sLogger.Fatalf("Error watching cronjobs: %s", err.Error())
 	}
 
 	// Wait forever

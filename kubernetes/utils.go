@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"net"
@@ -26,6 +27,8 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/scheme"
 )
+
+var K8sLogger = log.WithField("component", structs.ComponentKubernetes)
 
 var (
 	NAMESPACE       = utils.CONFIG.Kubernetes.OwnNamespace
@@ -72,7 +75,7 @@ func init() {
 func getCoreClient() coreV1.CoreV1Interface {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatal("Error creating kubeprovider")
+		K8sLogger.Fatal("Error creating kubeprovider")
 	}
 	return provider.ClientSet.CoreV1()
 }
@@ -80,7 +83,7 @@ func getCoreClient() coreV1.CoreV1Interface {
 func GetAppClient() appsV1.AppsV1Interface {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatal("Error creating kubeprovider")
+		K8sLogger.Fatal("Error creating kubeprovider")
 	}
 	return provider.ClientSet.AppsV1()
 }
@@ -126,7 +129,7 @@ func CurrentContextName() string {
 // func Hostname() string {
 // 	provider, err := punq.NewKubeProvider(nil)
 // 	if provider == nil || err != nil {
-// 		log.Fatal("error creating kubeprovider")
+// 		K8sLogger.Fatal("error creating kubeprovider")
 // 	}
 
 // 	return provider.ClientConfig.Host
@@ -135,13 +138,13 @@ func CurrentContextName() string {
 func ListNodes() []core.Node {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatal("error creating kubeprovider")
+		K8sLogger.Fatal("error creating kubeprovider")
 		return []core.Node{}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
+		K8sLogger.Errorf("ListNodeMetrics ERROR: %s", err.Error())
 		return []core.Node{}
 	}
 	return nodeMetricsList.Items
@@ -270,7 +273,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 				punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
 			}
 		} else {
-			log.Warningf("No ClusterIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
+			K8sLogger.Warningf("No ClusterIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
 		}
 	}()
 }
@@ -310,7 +313,7 @@ func IsLocalClusterSetup() bool {
 func GetCustomDeploymentTemplate() *v1.Deployment {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		log.Error(fmt.Sprintf("GetCustomDeploymentTemplate: %s", err.Error()))
+		K8sLogger.Error(fmt.Sprintf("GetCustomDeploymentTemplate: %s", err.Error()))
 		return nil
 	}
 	client := provider.ClientSet.CoreV1().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
@@ -323,7 +326,7 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 		s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 		_, _, err = s.Decode(yamlBytes, nil, &deployment)
 		if err != nil {
-			log.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
+			K8sLogger.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
 			return nil
 		}
 		return &deployment
@@ -336,12 +339,12 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		log.Errorf("StorageClassForClusterProvider ERR: %s", err.Error())
+		K8sLogger.Errorf("StorageClassForClusterProvider ERR: %s", err.Error())
 		return nfsStorageClassStr
 	}
 	storageClasses, err := provider.ClientSet.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("StorageClassForClusterProvider List ERR: %s", err.Error())
+		K8sLogger.Errorf("StorageClassForClusterProvider List ERR: %s", err.Error())
 		return nfsStorageClassStr
 	}
 	for _, storageClass := range storageClasses.Items {
@@ -370,7 +373,7 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 	}
 
 	if nfsStorageClassStr == "" {
-		log.Errorf("No default storage class found for cluster provider '%s'.", clusterProvider)
+		K8sLogger.Errorf("No default storage class found for cluster provider '%s'.", clusterProvider)
 	}
 
 	return nfsStorageClassStr

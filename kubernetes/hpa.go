@@ -11,7 +11,6 @@ import (
 	"mogenius-k8s-manager/structs"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 	v2 "k8s.io/api/autoscaling/v2"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -91,7 +90,7 @@ func CreateHpa(namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSet
 
 func CreateOrUpdateHpa(job *structs.Job, namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto, wg *sync.WaitGroup) {
 	if hpaSettings == nil {
-		log.Warningf("CreateOrUpdate hpa warning: hpaSettings is nil")
+		K8sLogger.Warningf("CreateOrUpdate hpa warning: hpaSettings is nil")
 		return
 	}
 
@@ -135,7 +134,7 @@ func CreateOrUpdateHpa(job *structs.Job, namespaceName, controllerName string, h
 func WatchHpas() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -149,7 +148,7 @@ func WatchHpas() {
 		return watchHpas(provider, dtos.KindHorizontalPodAutoscalers)
 	})
 	if err != nil {
-		log.Fatalf("Error watching cronjobs: %s", err.Error())
+		K8sLogger.Fatalf("Error watching cronjobs: %s", err.Error())
 	}
 
 	// Wait forever

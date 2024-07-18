@@ -18,6 +18,18 @@ const (
 	HelmUninstall HelmTaskEnum = "uninstall"
 )
 
+type ComponentEnum string
+
+const (
+	ComponentAll        ComponentEnum = "all"
+	ComponentIacManager ComponentEnum = "iac"
+	ComponentDb         ComponentEnum = "db"
+	ComponentDbStats    ComponentEnum = "db-stats"
+	ComponentCrds       ComponentEnum = "crds"
+	ComponentKubernetes ComponentEnum = "kubernetes"
+	ComponentServices   ComponentEnum = "services"
+)
+
 type JobStateEnum string
 
 const (
@@ -79,14 +91,15 @@ const (
 	PAT_FILES_DELETE        string = "files/delete"
 	PAT_FILES_INFO          string = "files/info"
 
-	PAT_CLUSTER_EXECUTE_HELM_CHART_TASK string = "cluster/execute-helm-chart-task"
-	PAT_CLUSTER_UNINSTALL_HELM_CHART    string = "cluster/uninstall-helm-chart"
-	PAT_CLUSTER_TCP_UDP_CONFIGURATION   string = "cluster/tcp-udp-configuration"
-	PAT_CLUSTER_BACKUP                  string = "cluster/backup"
-	PAT_CLUSTER_RESTART                 string = "cluster/restart"
-	PAT_ENERGY_CONSUMPTION              string = "cluster/energy-consumption"
-	PAT_CLUSTER_SYNC_INFO               string = "cluster/sync-info"
-	PAT_CLUSTER_SYNC_UPDATE             string = "cluster/sync-update"
+	PAT_CLUSTER_EXECUTE_HELM_CHART_TASK                 string = "cluster/execute-helm-chart-task"
+	PAT_CLUSTER_UNINSTALL_HELM_CHART                    string = "cluster/uninstall-helm-chart"
+	PAT_CLUSTER_TCP_UDP_CONFIGURATION                   string = "cluster/tcp-udp-configuration"
+	PAT_CLUSTER_BACKUP                                  string = "cluster/backup"
+	PAT_CLUSTER_RESTART                                 string = "cluster/restart"
+	PAT_ENERGY_CONSUMPTION                              string = "cluster/energy-consumption"
+	PAT_CLUSTER_SYNC_INFO                               string = "cluster/sync-info"
+	PAT_CLUSTER_SYNC_UPDATE                             string = "cluster/sync-update"
+	PAT_CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST string = "cluster/component-log-stream-connection-request"
 
 	PAT_CLUSTER_WRITE_CONFIGMAP               string = "cluster/write-configmap"
 	PAT_CLUSTER_READ_CONFIGMAP                string = "cluster/read-configmap"
@@ -477,6 +490,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_ENERGY_CONSUMPTION,
 	PAT_CLUSTER_SYNC_INFO,
 	PAT_CLUSTER_SYNC_UPDATE,
+	PAT_CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_CLUSTER_WRITE_CONFIGMAP,
 	PAT_CLUSTER_READ_CONFIGMAP,
 	PAT_CLUSTER_LIST_CONFIGMAPS,
