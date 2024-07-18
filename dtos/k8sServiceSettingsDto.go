@@ -5,7 +5,6 @@ type K8sServiceSettingsDto struct {
 	LimitMemoryMB      int                 `json:"limitMemoryMB"`
 	EphemeralStorageMB int                 `json:"ephemeralStorageMB"`
 	ImagePullPolicy    ImagePullPolicyEnum `json:"imagePullPolicy"`
-	ProbesOn           bool                `json:"probesOn,omitempty"`
 }
 
 func K8sServiceSettingsDtoExampleData() K8sServiceSettingsDto {
@@ -14,7 +13,6 @@ func K8sServiceSettingsDtoExampleData() K8sServiceSettingsDto {
 		LimitMemoryMB:      128,
 		EphemeralStorageMB: 200,
 		ImagePullPolicy:    "Always",
-		ProbesOn:           false,
 	}
 }
 

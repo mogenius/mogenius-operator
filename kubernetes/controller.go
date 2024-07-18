@@ -89,19 +89,20 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 	specTemplate.ObjectMeta.Labels["mo-project-id"] = projectId
 
 	for index, container := range service.Containers {
+		// TODO REMOVE
 		// PORTS
-		if len(container.Ports) > 0 {
-			specTemplate.Spec.Containers[index].Ports = []v1core.ContainerPort{}
-			for _, port := range container.Ports {
-				if port.Expose {
-					specTemplate.Spec.Containers[index].Ports = append(specTemplate.Spec.Containers[index].Ports, v1core.ContainerPort{
-						ContainerPort: int32(port.InternalPort),
-					})
-				}
-			}
-		} else {
-			specTemplate.Spec.Containers[index].Ports = nil
-		}
+		//if len(container.Ports) > 0 {
+		//	specTemplate.Spec.Containers[index].Ports = []v1core.ContainerPort{}
+		//	for _, port := range container.Ports {
+		//		if port.Expose {
+		//			specTemplate.Spec.Containers[index].Ports = append(specTemplate.Spec.Containers[index].Ports, v1core.ContainerPort{
+		//				ContainerPort: int32(port.InternalPort),
+		//			})
+		//		}
+		//	}
+		//} else {
+		//	specTemplate.Spec.Containers[index].Ports = nil
+		//}
 
 		// RESOURCES
 		if container.KubernetesLimits.IsLimitSetup() {
