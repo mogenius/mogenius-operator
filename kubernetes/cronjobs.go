@@ -38,7 +38,7 @@ const (
 	JobInfoStatusTypeSucceeded JobInfoStatusType = "Succeeded"
 	JobInfoStatusTypeFailed    JobInfoStatusType = "Failed"
 	JobInfoStatusTypeSuspended JobInfoStatusType = "Suspended"
-	JobInfoStatusTypeUnkown    JobInfoStatusType = "Unkown"
+	JobInfoStatusTypeUnknown   JobInfoStatusType = "Unknown"
 )
 
 const (
@@ -528,7 +528,7 @@ func getJobStatus(conditions []apipatchv1.JobCondition) JobInfoStatusType {
 			return JobInfoStatusTypeSucceeded
 		}
 	}
-	return JobInfoStatusTypeUnkown
+	return JobInfoStatusTypeUnknown
 }
 
 func hasLabel(labels map[string]string, labelKey string, labelValue string) bool {
@@ -618,7 +618,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 		} else if job.Status.CompletionTime == nil {
 			jobInfo.Status = JobInfoStatusTypeActive
 		} else {
-			jobInfo.Status = JobInfoStatusTypeUnkown
+			jobInfo.Status = JobInfoStatusTypeUnknown
 		}
 
 		for _, pod := range pods.Items {
@@ -649,7 +649,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 		jobInfos = append([]JobInfo{{
 			Schedule: nextScheduleTime,
 			TileType: JobInfoTileTypeEmpty,
-			Status:   JobInfoStatusTypeUnkown,
+			Status:   JobInfoStatusTypeUnknown,
 		}}, jobInfos...)
 	}
 
