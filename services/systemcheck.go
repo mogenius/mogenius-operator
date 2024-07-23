@@ -371,7 +371,7 @@ func SystemCheck() SystemCheckResponse {
 			fmt.Sprintf("%s is not installed.\nTo gather traffic information you need to install this component.", utils.HelmReleaseNameTrafficCollector),
 			trafficCollectorInstalledErr,
 			fmt.Sprintf("Collects and exposes detailed traffic data for your mogenius services for better monitoring. (Installed: %s | Available: %s)", trafficCollectorVersion, trafficCollectorNewestVersion),
-			false,
+			true,
 			true,
 			trafficCollectorVersion,
 			trafficCollectorNewestVersion)
@@ -455,7 +455,7 @@ func SystemCheck() SystemCheckResponse {
 				externalSecretsInstalledErr,
 				"A Docker-based External Secrets loader inside Kubernetes that allows you to connect to e.g. Hashicorp Vault, AWS KMS or Azure Key Vault",
 				false,
-				true,
+				false,
 				externalSecretsVersion,
 				currentExternalSecretsVersion)
 			externalSecretsEntry.InstallPattern = structs.PAT_INSTALL_EXTERNAL_SECRETS
