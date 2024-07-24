@@ -139,7 +139,9 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 			if container.ContainerImageCommandArgs != nil {
 				specTemplate.Spec.Containers[index].Args = punqUtils.ParseJsonStringArray(*container.ContainerImageCommandArgs)
 			}
-			if container.ContainerImageRepoSecretDecryptValue != nil {
+			if container.ContainerImageRepoSecretDecryptValue == nil {
+				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
+			} else {
 				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
 				specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{
 					Name: fmt.Sprintf("container-secret-service-%s", service.ControllerName),
