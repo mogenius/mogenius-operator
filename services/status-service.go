@@ -160,7 +160,9 @@ type ServiceStatusItem struct {
 	Status    ServiceStatusType      `json:"status,omitempty"`
 	Messages  []ServiceStatusMessage `json:"messages,omitempty"`
 	// Additional status information for different types which are omited if empty
-	StatusObject ServiceStatusObject `json:"statusObject,omitempty"`
+	CreatedAt       *metav1.Time     `json:"createdAt,omitempty"`
+	ContainerStatus XContainerStatus `json:"containerStatus,omitempty"`
+	PodStatus       XPodStatus       `json:"podStatus,omitempty"`
 }
 
 type ServiceStatusObject struct {
@@ -170,13 +172,15 @@ type ServiceStatusObject struct {
 	PodStatus XPodStatus `json:"podStatus,omitempty"`
 }
 
+// Xustom container status
 type XContainerStatus struct {
 	RestartCount int32        `json:"restartCount,omitempty"`
-	StartTime    *metav1.Time `json:"startTime,omitempty"`
+	CreatedAt    *metav1.Time `json:"createdAt,omitempty"`
 }
 
+// Xustom pod status
 type XPodStatus struct {
-	StartTime *metav1.Time `json:"startTime,omitempty"`
+	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
 }
 
 type ServiceStatusResponse struct {
@@ -286,7 +290,8 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 				newItem.Status = *status
 			}
 			if statusObject != nil {
-				newItem.StatusObject = *statusObject
+				newItem.PodStatus = statusObject.PodStatus
+				newItem.CreatedAt = statusObject.PodStatus.CreatedAt
 			}
 			if messages != nil {
 				newItem.Messages = append(newItem.Messages, messages...)
@@ -295,7 +300,9 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 			if status, statusObject := item.ContainerStatus(); status != nil {
 				newItem.Status = *status
 				if statusObject != nil {
-					newItem.StatusObject = *statusObject
+					// newItem.StatusObject = *statusObject
+					newItem.CreatedAt = statusObject.ContainerStatus.CreatedAt
+					newItem.ContainerStatus = statusObject.ContainerStatus
 				}
 			}
 		}
@@ -311,12 +318,12 @@ func (r *ResourceItem) ContainerStatus() (*ServiceStatusType, *ServiceStatusObje
 			var statusObject ServiceStatusObject
 			if containerStatus.State.Running != nil {
 				// retsart count & start time
-				startTime := &containerStatus.State.Running.StartedAt
+				createdAt := &containerStatus.State.Running.StartedAt
 				restartCount := containerStatus.RestartCount
 				statusObject = ServiceStatusObject{
 					ContainerStatus: XContainerStatus{
 						RestartCount: restartCount,
-						StartTime:    startTime,
+						CreatedAt:    createdAt,
 					},
 				}
 			}
@@ -378,7 +385,7 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage, 
 			if podStatus.StartTime != nil {
 				statusObject = ServiceStatusObject{
 					PodStatus: XPodStatus{
-						StartTime: podStatus.StartTime,
+						CreatedAt: podStatus.StartTime,
 					},
 				}
 			}
@@ -579,29 +586,22 @@ func (r *ResourceItem) DeploymentStatus() (*ServiceStatusType, bool) {
 
 				conditions := originalDeploymentStatus.Conditions
 
-				// find condition type Available
 				for _, condition := range conditions {
-					if condition.Type == appsv1.DeploymentAvailable {
+					switch condition.Type {
+					case appsv1.DeploymentAvailable:
+						// find condition type Available
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypeSuccess
 							return &status, switchedOn
 						}
-					}
-				}
-
-				// find condition type ReplicaFailure
-				for _, condition := range conditions {
-					if condition.Type == appsv1.DeploymentReplicaFailure {
+					case appsv1.DeploymentReplicaFailure:
+						// find condition type ReplicaFailure
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypeError
 							return &status, switchedOn
 						}
-					}
-				}
-
-				// find condition type Progressing
-				for _, condition := range conditions {
-					if condition.Type == appsv1.DeploymentProgressing {
+					case appsv1.DeploymentProgressing:
+						// find condition type Progressing
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypePending
 							return &status, switchedOn
