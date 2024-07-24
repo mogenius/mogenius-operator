@@ -162,7 +162,7 @@ type ServiceStatusItem struct {
 	// Additional status information for different types which are omited if empty
 	CreatedAt       *metav1.Time     `json:"createdAt,omitempty"`
 	ContainerStatus XContainerStatus `json:"containerStatus,omitempty"`
-	PodStatus       XPodStatus       `json:"podStatus,omitempty"`
+	// PodStatus       XPodStatus       `json:"podStatus,omitempty"`
 }
 
 type ServiceStatusObject struct {
@@ -290,7 +290,7 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 				newItem.Status = *status
 			}
 			if statusObject != nil {
-				newItem.PodStatus = statusObject.PodStatus
+				// newItem.PodStatus = statusObject.PodStatus
 				newItem.CreatedAt = statusObject.PodStatus.CreatedAt
 			}
 			if messages != nil {
