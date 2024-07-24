@@ -24,13 +24,13 @@ func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGrou
 	structs.CreateShellCommand("helm uninstall", "Uninstall chart", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
 }
 
-func HelmStatus(namespace string, chartname string) structs.SystemCheckStatus {
+func HelmStatus(namespace string, chartname string) release.Status {
 	cacheKey := namespace + "/" + chartname
 	cacheTime := 1 * time.Second
 
 	// Check if the data is already in the cache
 	if cachedData, found := helmCache.Get(cacheKey); found {
-		return cachedData.(structs.SystemCheckStatus)
+		return cachedData.(release.Status)
 	}
 
 	settings := cli.New()
@@ -39,40 +39,21 @@ func HelmStatus(namespace string, chartname string) structs.SystemCheckStatus {
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), K8sLogger.Infof); err != nil {
 		K8sLogger.Errorf("HelmStatus Init Error: %s", err.Error())
-		helmCache.Set(cacheKey, structs.UNKNOWN_STATUS, cacheTime)
-		return structs.UNKNOWN_STATUS
+		helmCache.Set(cacheKey, release.StatusUnknown, cacheTime)
+		return release.StatusUnknown
 	}
 
 	get := action.NewGet(actionConfig)
 	chart, err := get.Run(chartname)
 	if err != nil && err.Error() != "release: not found" {
 		K8sLogger.Errorf("HelmStatus List Error: %s", err.Error())
-		helmCache.Set(cacheKey, structs.UNKNOWN_STATUS, cacheTime)
-		return structs.UNKNOWN_STATUS
+		helmCache.Set(cacheKey, release.StatusUnknown, cacheTime)
+		return release.StatusUnknown
 	}
 
 	if chart == nil {
-		helmCache.Set(cacheKey, structs.NOT_INSTALLED, cacheTime)
-		return structs.NOT_INSTALLED
+		return release.StatusUnknown
 	} else {
-		helmCache.Set(cacheKey, OurStatusFromHelmStatus(chart.Info.Status), cacheTime)
-		return OurStatusFromHelmStatus(chart.Info.Status)
-	}
-}
-
-func OurStatusFromHelmStatus(status release.Status) structs.SystemCheckStatus {
-	switch status {
-	case release.StatusUnknown:
-		return structs.UNKNOWN_STATUS
-	case release.StatusDeployed, release.StatusSuperseded:
-		return structs.INSTALLED
-	case release.StatusUninstalled, release.StatusFailed:
-		return structs.NOT_INSTALLED
-	case release.StatusUninstalling:
-		return structs.UNINSTALLING
-	case release.StatusPendingInstall, release.StatusPendingUpgrade, release.StatusPendingRollback:
-		return structs.INSTALLING
-	default:
-		return structs.UNKNOWN_STATUS
+		return chart.Info.Status
 	}
 }

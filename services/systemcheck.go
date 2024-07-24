@@ -17,23 +17,25 @@ import (
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	"helm.sh/helm/v3/pkg/release"
 )
 
 type SystemCheckEntry struct {
-	CheckName          string                    `json:"checkName"`
-	Status             structs.SystemCheckStatus `json:"status"`
-	SuccessMessage     string                    `json:"successMessage"`
-	ErrorMessage       *string                   `json:"errorMessage"`
-	SolutionMessage    string                    `json:"solutionMessage"`
-	Description        string                    `json:"description"`
-	InstallPattern     string                    `json:"installPattern"`
-	UpgradePattern     string                    `json:"upgradePattern"`
-	UninstallPattern   string                    `json:"uninstallPattern"`
-	IsRequired         bool                      `json:"isRequired"`
-	WantsToBeInstalled bool                      `json:"wantsToBeInstalled"`
-	VersionInstalled   string                    `json:"versionInstalled"`
-	VersionAvailable   string                    `json:"versionAvailable"`
-	ProcessTimeInMs    int64                     `json:"processTimeInMs"`
+	CheckName          string         `json:"checkName"`
+	HelmStatus         release.Status `json:"helmStatus"`
+	IsRunning          bool           `json:"isRunning"`
+	SuccessMessage     string         `json:"successMessage"`
+	ErrorMessage       *string        `json:"errorMessage"`
+	SolutionMessage    string         `json:"solutionMessage"`
+	Description        string         `json:"description"`
+	InstallPattern     string         `json:"installPattern"`
+	UpgradePattern     string         `json:"upgradePattern"`
+	UninstallPattern   string         `json:"uninstallPattern"`
+	IsRequired         bool           `json:"isRequired"`
+	WantsToBeInstalled bool           `json:"wantsToBeInstalled"`
+	VersionInstalled   string         `json:"versionInstalled"`
+	VersionAvailable   string         `json:"versionAvailable"`
+	ProcessTimeInMs    int64          `json:"processTimeInMs"`
 }
 
 // sort.Interface for []SystemCheckEntry based on the CheckName field.
@@ -50,13 +52,8 @@ type SystemCheckResponse struct {
 	Entries        []SystemCheckEntry `json:"entries"`
 }
 
-func CreateSystemCheckEntry(checkName string, alreadyInstalled bool, successMessage string, solutionMsg string, err error, description string, isRequired bool, wantsToBeInstalled bool, versionInstalled string, versionAvailable string) SystemCheckEntry {
-	var status structs.SystemCheckStatus
-	if alreadyInstalled {
-		status = structs.INSTALLED
-	} else {
-		status = structs.NOT_INSTALLED
-	}
+func CreateSystemCheckEntry(checkName string, isRunning bool, successMessage string, solutionMsg string, err error, description string, isRequired bool, wantsToBeInstalled bool, versionInstalled string, versionAvailable string) SystemCheckEntry {
+
 	var errMsg *string
 	if err != nil {
 		errMsgStr := err.Error()
@@ -64,8 +61,8 @@ func CreateSystemCheckEntry(checkName string, alreadyInstalled bool, successMess
 	}
 
 	return SystemCheckEntry{
+		IsRunning:          isRunning,
 		CheckName:          checkName,
-		Status:             status,
 		SuccessMessage:     successMessage,
 		ErrorMessage:       errMsg,
 		SolutionMessage:    solutionMsg,
@@ -161,9 +158,7 @@ func SystemCheck() SystemCheckResponse {
 		ingrEntry.UninstallPattern = structs.PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
 		ingrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
 		ingrEntry.VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
-		if ingrEntry.Status != structs.INSTALLED {
-			ingrEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
-		}
+		ingrEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
 		return ingrEntry
 	})
 
@@ -186,9 +181,7 @@ func SystemCheck() SystemCheckResponse {
 		metricsEntry.UninstallPattern = structs.PAT_UNINSTALL_METRICS_SERVER
 		metricsEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METRICS_SERVER
 		metricsEntry.VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
-		if metricsEntry.Status != structs.INSTALLED {
-			metricsEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
-		}
+		metricsEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
 		return metricsEntry
 	})
 
@@ -327,7 +320,7 @@ func SystemCheck() SystemCheckResponse {
 		certMgrEntry.InstallPattern = structs.PAT_INSTALL_CERT_MANAGER
 		certMgrEntry.UninstallPattern = structs.PAT_UNINSTALL_CERT_MANAGER
 		certMgrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CERT_MANAGER
-		certMgrEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
+		certMgrEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
 		return certMgrEntry
 	})
 
@@ -349,7 +342,7 @@ func SystemCheck() SystemCheckResponse {
 			"")
 		clusterIssuerEntry.InstallPattern = structs.PAT_INSTALL_CLUSTER_ISSUER
 		clusterIssuerEntry.UninstallPattern = structs.PAT_UNINSTALL_CLUSTER_ISSUER
-		clusterIssuerEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
+		clusterIssuerEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
 		return clusterIssuerEntry
 	})
 
@@ -378,7 +371,7 @@ func SystemCheck() SystemCheckResponse {
 		trafficEntry.InstallPattern = structs.PAT_INSTALL_TRAFFIC_COLLECTOR
 		trafficEntry.UninstallPattern = structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR
 		trafficEntry.UpgradePattern = structs.PAT_UPGRADE_TRAFFIC_COLLECTOR
-		trafficEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
+		trafficEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
 		return trafficEntry
 	})
 
@@ -409,7 +402,7 @@ func SystemCheck() SystemCheckResponse {
 		podEntry.InstallPattern = structs.PAT_INSTALL_POD_STATS_COLLECTOR
 		podEntry.UninstallPattern = structs.PAT_UNINSTALL_POD_STATS_COLLECTOR
 		podEntry.UpgradePattern = structs.PAT_UPGRADE_PODSTATS_COLLECTOR
-		podEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
+		podEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
 		return podEntry
 	})
 
@@ -434,7 +427,7 @@ func SystemCheck() SystemCheckResponse {
 		distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
 		distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
 		distriEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CONTAINER_REGISTRY
-		distriEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
+		distriEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
 		return distriEntry
 	})
 
@@ -461,7 +454,7 @@ func SystemCheck() SystemCheckResponse {
 			externalSecretsEntry.InstallPattern = structs.PAT_INSTALL_EXTERNAL_SECRETS
 			externalSecretsEntry.UninstallPattern = structs.PAT_UNINSTALL_EXTERNAL_SECRETS
 			externalSecretsEntry.UpgradePattern = "" // NONE?
-			externalSecretsEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameExternalSecrets)
+			externalSecretsEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameExternalSecrets)
 			return externalSecretsEntry
 		})
 	}
@@ -486,7 +479,7 @@ func SystemCheck() SystemCheckResponse {
 		metallbEntry.InstallPattern = structs.PAT_INSTALL_METALLB
 		metallbEntry.UninstallPattern = structs.PAT_UNINSTALL_METALLB
 		metallbEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METALLB
-		metallbEntry.Status = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
+		metallbEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
 		return metallbEntry
 	})
 
@@ -572,19 +565,23 @@ func GenerateSystemCheckResponse(entries []SystemCheckEntry) SystemCheckResponse
 func SystemCheckTerminalString(entries []SystemCheckEntry) string {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Check", "Status", "Required", "ExecTime", "Message"})
+	t.AppendHeader(table.Row{"Check", "HelmStatus", "IsRunning", "Required", "ExecTime", "Message"})
 	for index, entry := range entries {
 		reqStr := "yes"
 		if !entry.IsRequired {
 			reqStr = "no"
 		}
+		isRunningStr := "yes"
+		if !entry.IsRunning {
+			isRunningStr = "no"
+		}
 		if entry.ErrorMessage != nil {
 			t.AppendRow(
-				table.Row{entry.CheckName, StatusEmoji(entry.Status), reqStr, entry.ProcessTimeInMs, entry.ErrorMessage},
+				table.Row{entry.CheckName, StatusEmoji(entry.HelmStatus), isRunningStr, reqStr, entry.ProcessTimeInMs, entry.ErrorMessage},
 			)
 		} else {
 			t.AppendRow(
-				table.Row{entry.CheckName, StatusEmoji(entry.Status), reqStr, entry.ProcessTimeInMs, entry.SuccessMessage},
+				table.Row{entry.CheckName, StatusEmoji(entry.HelmStatus), isRunningStr, reqStr, entry.ProcessTimeInMs, entry.SuccessMessage},
 			)
 		}
 		if index < len(entries)-1 {
@@ -600,18 +597,16 @@ func SystemCheckTerminalString(entries []SystemCheckEntry) string {
 	return t.Render()
 }
 
-func StatusEmoji(state structs.SystemCheckStatus) string {
+func StatusEmoji(state release.Status) string {
 	switch state {
-	case structs.UNKNOWN_STATUS:
-		return "❓"
-	case structs.INSTALLING:
+	case release.StatusPendingInstall, release.StatusUninstalled, release.StatusPendingUpgrade, release.StatusPendingRollback:
 		return "🔧"
-	case structs.UNINSTALLING:
-		return "🔧"
-	case structs.NOT_INSTALLED:
+	case release.StatusFailed:
 		return "❌"
-	case structs.INSTALLED:
+	case release.StatusDeployed:
 		return "✅"
+	case release.StatusSuperseded:
+		return "🔄"
 	default:
 		return "❓"
 	}
