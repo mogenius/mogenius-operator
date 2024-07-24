@@ -98,6 +98,17 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		}
 		jobSpec.Name = fmt.Sprintf("%s-%s", controller, punqutils.NanoIdSmallLowerCase())
 
+		// set owner reference to cronjob
+		ownerReference := metav1.OwnerReference{
+			APIVersion:         cronjob.APIVersion,
+			Kind:               cronjob.Kind,
+			Name:               cronjob.Name,
+			UID:                cronjob.UID,
+			Controller:         punqutils.Pointer(true),
+			BlockOwnerDeletion: punqutils.Pointer(true),
+		}
+		jobSpec.SetOwnerReferences([]metav1.OwnerReference{ownerReference})
+
 		// disable TTL to keep history limit
 		// both, jobs and pods are keept then
 		// otherwise we need to implement a custom JobReconciler which
