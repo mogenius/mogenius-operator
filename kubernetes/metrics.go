@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -13,17 +12,17 @@ import (
 )
 
 type Metrics struct {
-	Namespace                string `json:"namespace"`
-	Name                     string `json:"name"`
-	Kind                     string `json:"kind"`
-	Cpu                      int64  `json:"cpu"`
-	CpuLimit                 int64  `json:"cpuLimit"`
-	CpuAverageUtilization    int64  `json:"cpuAverageUtilization"`
-	Memory                   int64  `json:"memory"`
-	MemoryLimit              int64  `json:"memoryLimit"`
-	MemoryAverageUtilization int64  `json:"MemoryAverageUtilization"`
-	CreatedAt                string `json:"createdAt"`
-	WindowInMs               string `json:"window"`
+	Namespace                string      `json:"namespace"`
+	Name                     string      `json:"name"`
+	Kind                     string      `json:"kind"`
+	Cpu                      int64       `json:"cpu"`
+	CpuLimit                 int64       `json:"cpuLimit"`
+	CpuAverageUtilization    int64       `json:"cpuAverageUtilization"`
+	Memory                   int64       `json:"memory"`
+	MemoryLimit              int64       `json:"memoryLimit"`
+	MemoryAverageUtilization int64       `json:"MemoryAverageUtilization"`
+	CreatedAt                metav1.Time `json:"createdAt"`
+	WindowInMs               int64       `json:"windowInMs"`
 }
 
 type MetricsProvider struct {
@@ -118,6 +117,7 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 	var totalCPURequests int64 = 0
 	var totalMemoryRequests int64 = 0
 	var podCount int64 = 0
+	var avgWindowInMs int64 = 0
 
 	for _, pod := range podList.Items {
 		podMetrics, err := metricsProvider.ClientSet.MetricsV1beta1().PodMetricses(namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
@@ -130,12 +130,9 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 			cpuUsage := container.Usage["cpu"]
 			memoryUsage := container.Usage["memory"]
 
-			// cpuUsageValue := cpuUsage.AsApproximateFloat64()
 			cpuUsageValue := cpuUsage.Value()
-			// memoryUsageValue := memoryUsage.Value() / (1024 * 1024) // Convert to MiB
 			memoryUsageValue := memoryUsage.Value()
 
-			// totalCPUUsage += int64(cpuUsageValue)
 			totalCPUUsage += cpuUsageValue
 			totalMemoryUsage += memoryUsageValue
 
@@ -143,16 +140,15 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 			cpuRequest := containerSpec.Resources.Requests["cpu"]
 			memoryRequest := containerSpec.Resources.Requests["memory"]
 
-			// cpuRequestValue := cpuRequest.AsApproximateFloat64()
-			// fmt.Printf("cpuRequestValue: %d\n", cpuRequest.Value())
-			// memoryRequestValue := memoryRequest.Value() / (1024 * 1024) // Convert to MiB
 			cpuRequestValue := cpuRequest.Value()
 			memoryRequestValue := memoryRequest.Value()
 
-			// totalCPURequests += int64(cpuRequestValue)
 			totalCPURequests += cpuRequestValue
 			totalMemoryRequests += memoryRequestValue
 		}
+
+		// window duration in ms
+		avgWindowInMs += podMetrics.Window.Milliseconds()
 
 		podCount++
 	}
@@ -161,6 +157,7 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 		log.Fatalf("No pods found for deployment %s", deploymentName)
 	}
 
+	avgWindowInMs = avgWindowInMs / podCount
 	avgCPUUsage := totalCPUUsage / podCount
 	avgMemoryUsage := totalMemoryUsage / podCount
 	avgCPURequest := totalCPURequests / podCount
@@ -169,11 +166,17 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 	avgCPUUtilization := (float64(avgCPUUsage) / float64(avgCPURequest)) * 100
 	avgMemoryUtilization := (float64(avgMemoryUsage) / float64(avgMemoryRequest)) * 100
 
-	fmt.Printf("Average CPU Usage (nanocores): %d\n", avgCPUUsage)
-	fmt.Printf("Total CPU Request (nanocores): %d\n", totalCPURequests)
-	fmt.Printf("Average CPU Utilization: %.2f%%\n", avgCPUUtilization)
-	fmt.Println("")
-	fmt.Printf("Average Memory Usage (bytes): %d\n", avgMemoryUsage)
-	fmt.Printf("Total Memory Request (bytes): %d\n", totalMemoryRequests)
-	fmt.Printf("Average Memory Utilization: %.2f%%\n", avgMemoryUtilization)
+	return &Metrics{
+		Namespace:                namespace,
+		Name:                     deploymentName,
+		Kind:                     "Deployment",
+		Cpu:                      avgCPUUsage,
+		CpuLimit:                 totalCPURequests,
+		CpuAverageUtilization:    int64(avgCPUUtilization),
+		Memory:                   avgMemoryUsage,
+		MemoryLimit:              totalMemoryRequests,
+		MemoryAverageUtilization: int64(avgMemoryUtilization),
+		CreatedAt:                metav1.Now(),
+		WindowInMs:               avgWindowInMs,
+	}
 }
