@@ -159,6 +159,28 @@ type ServiceStatusItem struct {
 	OwnerKind ServiceStatusKindType  `json:"ownerKind,omitempty"`
 	Status    ServiceStatusType      `json:"status,omitempty"`
 	Messages  []ServiceStatusMessage `json:"messages,omitempty"`
+	// Additional status information for different types which are omited if empty
+	CreatedAt       *metav1.Time      `json:"createdAt,omitempty"`
+	ContainerStatus *XContainerStatus `json:"containerStatus,omitempty"`
+	// PodStatus       XPodStatus       `json:"podStatus,omitempty"`
+}
+
+type ServiceStatusObject struct {
+	// Container status with restart count and creation or start time
+	ContainerStatus XContainerStatus `json:"containerStatus,omitempty"`
+	// Pod status with creation time
+	PodStatus XPodStatus `json:"podStatus,omitempty"`
+}
+
+// Xustom container status
+type XContainerStatus struct {
+	RestartCount int32        `json:"restartCount,omitempty"`
+	CreatedAt    *metav1.Time `json:"createdAt,omitempty"`
+}
+
+// Xustom pod status
+type XPodStatus struct {
+	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
 }
 
 type ServiceStatusResponse struct {
@@ -263,16 +285,25 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 				}
 			}
 		case string(ServiceStatusKindTypePod):
-			status, messages := item.PodStatus()
+			status, messages, statusObject := item.PodStatus()
 			if status != nil {
 				newItem.Status = *status
+			}
+			if statusObject != nil {
+				// newItem.PodStatus = statusObject.PodStatus
+				newItem.CreatedAt = statusObject.PodStatus.CreatedAt
 			}
 			if messages != nil {
 				newItem.Messages = append(newItem.Messages, messages...)
 			}
 		case string(ServiceStatusKindTypeContainer):
-			if status := item.ContainerStatus(); status != nil {
+			if status, statusObject := item.ContainerStatus(); status != nil {
 				newItem.Status = *status
+				if statusObject != nil {
+					// newItem.StatusObject = *statusObject
+					newItem.CreatedAt = statusObject.ContainerStatus.CreatedAt
+					newItem.ContainerStatus = &statusObject.ContainerStatus
+				}
 			}
 		}
 	}
@@ -280,38 +311,51 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 	return newItem
 }
 
-func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
+func (r *ResourceItem) ContainerStatus() (*ServiceStatusType, *ServiceStatusObject) {
 	if r.StatusObject != nil {
 		if containerStatus, ok := r.StatusObject.(corev1.ContainerStatus); ok {
 
+			var statusObject ServiceStatusObject
+			if containerStatus.State.Running != nil {
+				// retsart count & start time
+				createdAt := &containerStatus.State.Running.StartedAt
+				restartCount := containerStatus.RestartCount
+				statusObject = ServiceStatusObject{
+					ContainerStatus: XContainerStatus{
+						RestartCount: restartCount,
+						CreatedAt:    createdAt,
+					},
+				}
+			}
+
 			if containerStatus.State.Terminated != nil {
 				status := ServiceStatusTypeError
-				return &status
+				return &status, &statusObject
 			}
 
 			if containerStatus.State.Waiting != nil {
 				switch reason := containerStatus.State.Waiting.Reason; reason {
 				case ErrImagePull.Error(), ErrImagePullBackOff.Error(), ErrImageInspect.Error(), ErrImageNeverPull.Error(), ErrInvalidImageName.Error():
 					status := ServiceStatusTypeError
-					return &status
+					return &status, &statusObject
 				case ErrCrashLoopBackOff.Error(), ErrContainerNotFound.Error(), ErrRunContainer.Error(), ErrKillContainer.Error(), ErrCreatePodSandbox.Error(), ErrConfigPodSandbox.Error(), ErrKillPodSandbox.Error():
 					status := ServiceStatusTypeError
-					return &status
+					return &status, &statusObject
 				case ErrRegistryUnavailable.Error(), ErrSignatureValidationFailed.Error():
 					status := ServiceStatusTypeError
-					return &status
+					return &status, &statusObject
 				case ErrCreateContainerConfig.Error(), ErrPreCreateHook.Error(), ErrCreateContainer.Error(), ErrPreStartHook.Error(), ErrPostStartHook.Error():
 					status := ServiceStatusTypeError
-					return &status
+					return &status, &statusObject
 				case PodInitializing, ContainerCreating:
 					status := ServiceStatusTypePending
-					return &status
+					return &status, &statusObject
 				default:
 					ServiceLogger.Warningf("Unhandled status - Container '%s' waiting. %s: %s.", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
 				}
 
 				status := ServiceStatusTypePending
-				return &status
+				return &status, &statusObject
 			}
 
 			// readiness probe OR running without readiness probe, default is true
@@ -324,19 +368,28 @@ func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
 
 			if started && ready {
 				status := ServiceStatusTypeSuccess
-				return &status
+				return &status, &statusObject
 			}
 
 			status := ServiceStatusTypeWarning
-			return &status
+			return &status, &statusObject
 		}
 	}
-	return nil
+	return nil, nil
 }
 
-func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) {
+func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage, *ServiceStatusObject) {
 	if r.StatusObject != nil {
 		if podStatus, ok := r.StatusObject.(corev1.PodStatus); ok {
+			var statusObject ServiceStatusObject
+			if podStatus.StartTime != nil {
+				statusObject = ServiceStatusObject{
+					PodStatus: XPodStatus{
+						CreatedAt: podStatus.StartTime,
+					},
+				}
+			}
+
 			// readiness probe
 			ready := true
 			for _, containerStatus := range podStatus.ContainerStatuses {
@@ -380,13 +433,13 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 			case corev1.PodRunning:
 				if started && ready {
 					status := ServiceStatusTypeSuccess
-					return &status, messages
+					return &status, messages, &statusObject
 				}
 				status := ServiceStatusTypeWarning
-				return &status, messages
+				return &status, messages, &statusObject
 			case corev1.PodSucceeded:
 				status := ServiceStatusTypeSuccess
-				return &status, messages
+				return &status, messages, &statusObject
 			case corev1.PodPending:
 				// if !started || !ready {
 				// 	status := ServiceStatusTypeWarning
@@ -405,18 +458,18 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 				// }
 
 				status := ServiceStatusTypePending
-				return &status, messages
+				return &status, messages, &statusObject
 			case corev1.PodFailed:
 				status := ServiceStatusTypeError
-				return &status, messages
+				return &status, messages, &statusObject
 			default:
 				status := ServiceStatusTypeUnkown
-				return &status, messages
+				return &status, messages, &statusObject
 			}
 		}
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
 func (r *ResourceItem) BuildJobStatus() *ServiceStatusType {
@@ -533,29 +586,22 @@ func (r *ResourceItem) DeploymentStatus() (*ServiceStatusType, bool) {
 
 				conditions := originalDeploymentStatus.Conditions
 
-				// find condition type Available
 				for _, condition := range conditions {
-					if condition.Type == appsv1.DeploymentAvailable {
+					switch condition.Type {
+					case appsv1.DeploymentAvailable:
+						// find condition type Available
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypeSuccess
 							return &status, switchedOn
 						}
-					}
-				}
-
-				// find condition type ReplicaFailure
-				for _, condition := range conditions {
-					if condition.Type == appsv1.DeploymentReplicaFailure {
+					case appsv1.DeploymentReplicaFailure:
+						// find condition type ReplicaFailure
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypeError
 							return &status, switchedOn
 						}
-					}
-				}
-
-				// find condition type Progressing
-				for _, condition := range conditions {
-					if condition.Type == appsv1.DeploymentProgressing {
+					case appsv1.DeploymentProgressing:
+						// find condition type Progressing
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypePending
 							return &status, switchedOn
