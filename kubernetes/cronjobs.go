@@ -114,6 +114,10 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		// otherwise we need to implement a custom JobReconciler which
 		// deletes the jobs and keeps the pods with client.PropagationPolicy(metav1.DeletePropagationOrphan)
 		jobSpec.Spec.TTLSecondsAfterFinished = nil
+		// force pod restartPolicy: Never
+		jobSpec.Spec.Template.Spec.RestartPolicy = v1core.RestartPolicyNever
+		// disable backofflimit to avoid weird behavior for restartPolicy: Never
+		jobSpec.Spec.BackoffLimit = nil
 
 		// create job
 		_, err = jobs.Create(context.TODO(), jobSpec, metav1.CreateOptions{})
