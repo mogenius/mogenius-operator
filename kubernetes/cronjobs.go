@@ -100,12 +100,10 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 
 		// set owner reference to cronjob
 		ownerReference := metav1.OwnerReference{
-			APIVersion:         cronjob.APIVersion,
-			Kind:               cronjob.Kind,
-			Name:               cronjob.Name,
-			UID:                cronjob.UID,
-			Controller:         punqutils.Pointer(true),
-			BlockOwnerDeletion: punqutils.Pointer(true),
+			APIVersion: "batch/v1",
+			Kind:       "CronJob",
+			Name:       cronjob.Name,
+			UID:        cronjob.UID,
 		}
 		jobSpec.SetOwnerReferences([]metav1.OwnerReference{ownerReference})
 
