@@ -160,8 +160,8 @@ type ServiceStatusItem struct {
 	Status    ServiceStatusType      `json:"status,omitempty"`
 	Messages  []ServiceStatusMessage `json:"messages,omitempty"`
 	// Additional status information for different types which are omited if empty
-	CreatedAt       *metav1.Time     `json:"createdAt,omitempty"`
-	ContainerStatus XContainerStatus `json:"containerStatus,omitempty"`
+	CreatedAt       *metav1.Time      `json:"createdAt,omitempty"`
+	ContainerStatus *XContainerStatus `json:"containerStatus,omitempty"`
 	// PodStatus       XPodStatus       `json:"podStatus,omitempty"`
 }
 
@@ -302,7 +302,7 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 				if statusObject != nil {
 					// newItem.StatusObject = *statusObject
 					newItem.CreatedAt = statusObject.ContainerStatus.CreatedAt
-					newItem.ContainerStatus = statusObject.ContainerStatus
+					newItem.ContainerStatus = &statusObject.ContainerStatus
 				}
 			}
 		}
