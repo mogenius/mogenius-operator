@@ -348,24 +348,23 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage, 
 
 	if r.StatusObject != nil {
 		if podStatus, ok := r.StatusObject.(corev1.PodStatus); ok {
-			// readiness probe
+
 			ready := true
-			for _, containerStatus := range podStatus.ContainerStatuses {
-				ready = ready && containerStatus.Ready
-			}
-			// startup probe
 			started := true
+
+			// create container messages if not running
+			var messages []ServiceStatusMessage
 			for _, containerStatus := range podStatus.ContainerStatuses {
+				// readiness probe
+				ready = ready && containerStatus.Ready
+
+				// startup probe
 				if containerStatus.Started == nil {
 					started = false
 				} else {
 					started = started && *containerStatus.Started
 				}
-			}
 
-			// create container messages if not running
-			var messages []ServiceStatusMessage
-			for _, containerStatus := range podStatus.ContainerStatuses {
 				if containerStatus.State.Terminated != nil {
 					messages = append(messages, ServiceStatusMessage{
 						Type:    ServiceStatusMessageTypeWarning,
@@ -548,28 +547,24 @@ func (r *ResourceItem) DeploymentStatus() (*ServiceStatusType, bool) {
 
 				conditions := originalDeploymentStatus.Conditions
 
-				// find condition type Available
 				for _, condition := range conditions {
+					// find condition type Available
 					if condition.Type == appsv1.DeploymentAvailable {
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypeSuccess
 							return &status, switchedOn
 						}
 					}
-				}
 
-				// find condition type ReplicaFailure
-				for _, condition := range conditions {
+					// find condition type ReplicaFailure
 					if condition.Type == appsv1.DeploymentReplicaFailure {
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypeError
 							return &status, switchedOn
 						}
 					}
-				}
 
-				// find condition type Progressing
-				for _, condition := range conditions {
+					// find condition type Progressing
 					if condition.Type == appsv1.DeploymentProgressing {
 						if condition.Status == corev1.ConditionTrue {
 							status := ServiceStatusTypePending
@@ -772,7 +767,7 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	}
 
 	metaName, metaNamespace, kind, references, labelSelector, object := status(resourceInterface)
-	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
+	resourceItems = controllerItem(metaName, kind, metaNamespace, references, object, resourceItems)
 
 	pods, err := pods(namespace, labelSelector, clientset)
 	if err != nil {
@@ -878,7 +873,7 @@ func containerItems(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem
 	return resourceItems
 }
 
-func controllerItem(name, kind, namespace, resourceController string, references []metav1.OwnerReference, object interface{}, resourceItems []ResourceItem) []ResourceItem {
+func controllerItem(name string, kind string, namespace string, references []metav1.OwnerReference, object interface{}, resourceItems []ResourceItem) []ResourceItem {
 	if len(references) > 0 {
 		for _, parentRef := range references {
 			if *parentRef.Controller {
@@ -945,7 +940,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 
 	// Extract status data from controller
 	name, namespace, kind, references, _, object := status(resourceInterface)
-	resourceItems = controllerItem(name, kind, namespace, NewResourceController(kind).String(), references, object, resourceItems)
+	resourceItems = controllerItem(name, kind, namespace, references, object, resourceItems)
 
 	// Fetch next parent controller
 	if len(references) > 0 {
