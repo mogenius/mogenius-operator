@@ -116,8 +116,8 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		jobSpec.Spec.TTLSecondsAfterFinished = nil
 		// force pod restartPolicy: Never
 		jobSpec.Spec.Template.Spec.RestartPolicy = v1core.RestartPolicyNever
-		// disable backofflimit to avoid weird behavior for restartPolicy: Never
-		jobSpec.Spec.BackoffLimit = nil
+		// set backofflimit=0 to avoid weird behavior for restartPolicy: Never
+		jobSpec.Spec.BackoffLimit = punqutils.Pointer(int32(0))
 
 		// create job
 		_, err = jobs.Create(context.TODO(), jobSpec, metav1.CreateOptions{})
@@ -390,8 +390,8 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	spec.JobTemplate.Spec.TTLSecondsAfterFinished = nil
 	// force pod restartPolicy: Never
 	spec.JobTemplate.Spec.Template.Spec.RestartPolicy = v1core.RestartPolicyNever
-	// disable backofflimit to avoid weird behavior for restartPolicy: Never
-	spec.JobTemplate.Spec.BackoffLimit = nil
+	// set backofflimit=0 to avoid weird behavior for restartPolicy: Never
+	spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(int32(0))
 
 	return objectMeta, &SpecCronJob{spec, previousSpec}, &newCronJob, nil
 }
@@ -654,7 +654,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 	})
 
 	// Add an empty item for the next schedule
-	if cronJob.Status.LastScheduleTime != nil {
+	if cronJob.Status.LastScheduleTime != nil && cronJob.Spec.Suspend != nil && !*cronJob.Spec.Suspend {
 		nextScheduleTime, err := getNextSchedule(cronJob.Spec.Schedule, cronJob.Status.LastScheduleTime.Time)
 		if err != nil {
 			log.Warnf("Error getting next schedule for cronjob %s: %s", cronJob.Name, err.Error())
