@@ -297,14 +297,16 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 				newItem.Messages = append(newItem.Messages, messages...)
 			}
 		case string(ServiceStatusKindTypeContainer):
-			if status, statusObject := item.ContainerStatus(); status != nil {
+			status, statusObject := item.ContainerStatus()
+			if status != nil {
 				newItem.Status = *status
-				if statusObject != nil {
-					// newItem.StatusObject = *statusObject
-					newItem.CreatedAt = statusObject.ContainerStatus.CreatedAt
-					newItem.ContainerStatus = &statusObject.ContainerStatus
-				}
 			}
+			if statusObject != nil {
+				// newItem.StatusObject = *statusObject
+				newItem.CreatedAt = statusObject.ContainerStatus.CreatedAt
+				newItem.ContainerStatus = &statusObject.ContainerStatus
+			}
+
 		}
 	}
 
@@ -381,6 +383,7 @@ func (r *ResourceItem) ContainerStatus() (*ServiceStatusType, *ServiceStatusObje
 func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage, *ServiceStatusObject) {
 	if r.StatusObject != nil {
 		if podStatus, ok := r.StatusObject.(corev1.PodStatus); ok {
+
 			var statusObject ServiceStatusObject
 			if podStatus.StartTime != nil {
 				statusObject = ServiceStatusObject{
@@ -586,27 +589,50 @@ func (r *ResourceItem) DeploymentStatus() (*ServiceStatusType, bool) {
 
 				conditions := originalDeploymentStatus.Conditions
 
+				// condtitions are weighted in order of importance
+				// if multiple conditions are true, the highest value is returned
+				// if no conditions are true, continue
+				//
+				// DeploymentAvailable = 4
+				// DeploymentReplicaFailure = 2
+				// DeploymentProgressing = 1
+
+				// create inline struct for weighted
+				type WeightedCondition struct {
+					Type   appsv1.DeploymentConditionType
+					Weight int
+					Status ServiceStatusType
+				}
+
+				// create slice of weighted conditions
+				weightedConditions := []WeightedCondition{}
+
 				for _, condition := range conditions {
 					switch condition.Type {
 					case appsv1.DeploymentAvailable:
-						// find condition type Available
 						if condition.Status == corev1.ConditionTrue {
-							status := ServiceStatusTypeSuccess
-							return &status, switchedOn
+							weightedConditions = append(weightedConditions, WeightedCondition{appsv1.DeploymentAvailable, 4, ServiceStatusTypeSuccess})
 						}
 					case appsv1.DeploymentReplicaFailure:
-						// find condition type ReplicaFailure
 						if condition.Status == corev1.ConditionTrue {
-							status := ServiceStatusTypeError
-							return &status, switchedOn
+							weightedConditions = append(weightedConditions, WeightedCondition{appsv1.DeploymentReplicaFailure, 2, ServiceStatusTypeError})
 						}
 					case appsv1.DeploymentProgressing:
-						// find condition type Progressing
 						if condition.Status == corev1.ConditionTrue {
-							status := ServiceStatusTypePending
-							return &status, switchedOn
+							weightedConditions = append(weightedConditions, WeightedCondition{appsv1.DeploymentProgressing, 1, ServiceStatusTypePending})
 						}
 					}
+				}
+
+				// return the first condition
+				if len(weightedConditions) > 0 {
+					// sort conditions by weight
+					sort.Slice(weightedConditions, func(i, j int) bool {
+						return weightedConditions[i].Weight > weightedConditions[j].Weight
+					})
+
+					status := weightedConditions[0].Status
+					return &status, switchedOn
 				}
 
 				if originalDeploymentStatus.UnavailableReplicas > 0 {
