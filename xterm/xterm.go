@@ -333,7 +333,7 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 	}
 }
 
-func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, namespace *string, controller *string) {
+func cmdOutputToWebsocketForOperatorLog(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, namespace *string, controller *string) {
 	if injectPreContent != nil {
 		injectContent(injectPreContent, conn)
 	}
@@ -388,6 +388,39 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 				}
 				return
 			}
+		}
+	}
+}
+
+func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader) {
+	if injectPreContent != nil {
+		injectContent(injectPreContent, conn)
+	}
+
+	defer func() {
+		cancel()
+		// log.Info("[cmdOutputToWebsocket] Closing connection.")
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			buf := make([]byte, 1024)
+			read, err := tty.Read(buf)
+			if err != nil {
+				// log.Errorf("Unable to read from pty/cmd: %s", err.Error())
+				return
+			}
+			if conn != nil {
+				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
+				if err != nil {
+					log.Errorf("WriteMessage: %s", err.Error())
+				}
+				continue
+			}
+			return
 		}
 	}
 }
