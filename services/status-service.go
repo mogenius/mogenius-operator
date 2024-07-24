@@ -152,13 +152,19 @@ type ServiceStatusMessage struct {
 }
 
 type ServiceStatusItem struct {
-	Kind      ServiceStatusKindType  `json:"kind"`
-	Name      string                 `json:"name"`
-	Namespace string                 `json:"namespace"`
-	OwnerName string                 `json:"ownerName,omitempty"`
-	OwnerKind ServiceStatusKindType  `json:"ownerKind,omitempty"`
-	Status    ServiceStatusType      `json:"status,omitempty"`
-	Messages  []ServiceStatusMessage `json:"messages,omitempty"`
+	Kind            ServiceStatusKindType  `json:"kind"`
+	Name            string                 `json:"name"`
+	Namespace       string                 `json:"namespace"`
+	OwnerName       string                 `json:"ownerName,omitempty"`
+	OwnerKind       ServiceStatusKindType  `json:"ownerKind,omitempty"`
+	Status          ServiceStatusType      `json:"status,omitempty"`
+	Messages        []ServiceStatusMessage `json:"messages,omitempty"`
+	ContainerStatus *[]ContainerStatus     `json:"containerStatus,omitempty"`
+}
+
+type ContainerStatus struct {
+	ContainerName string `json:"containerName"`
+	RestartCount  int32  `json:"restartCount"`
 }
 
 type ServiceStatusResponse struct {
@@ -263,12 +269,15 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 				}
 			}
 		case string(ServiceStatusKindTypePod):
-			status, messages := item.PodStatus()
+			status, messages, containerStatuses := item.PodStatus()
 			if status != nil {
 				newItem.Status = *status
 			}
 			if messages != nil {
 				newItem.Messages = append(newItem.Messages, messages...)
+			}
+			if len(containerStatuses) > 0 {
+				newItem.ContainerStatus = &containerStatuses
 			}
 		case string(ServiceStatusKindTypeContainer):
 			if status := item.ContainerStatus(); status != nil {
@@ -334,7 +343,9 @@ func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
 	return nil
 }
 
-func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) {
+func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage, []ContainerStatus) {
+	statuses := []ContainerStatus{}
+
 	if r.StatusObject != nil {
 		if podStatus, ok := r.StatusObject.(corev1.PodStatus); ok {
 			// readiness probe
@@ -367,6 +378,10 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 						Message: fmt.Sprintf("Container '%s' waiting. %s: %s.", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message),
 					})
 				}
+				statuses = append(statuses, ContainerStatus{
+					ContainerName: containerStatus.Name,
+					RestartCount:  containerStatus.RestartCount,
+				})
 			}
 
 			if podStatus.Reason != "" && podStatus.Message != "" {
@@ -380,13 +395,13 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 			case corev1.PodRunning:
 				if started && ready {
 					status := ServiceStatusTypeSuccess
-					return &status, messages
+					return &status, messages, statuses
 				}
 				status := ServiceStatusTypeWarning
-				return &status, messages
+				return &status, messages, statuses
 			case corev1.PodSucceeded:
 				status := ServiceStatusTypeSuccess
-				return &status, messages
+				return &status, messages, statuses
 			case corev1.PodPending:
 				// if !started || !ready {
 				// 	status := ServiceStatusTypeWarning
@@ -405,18 +420,18 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 				// }
 
 				status := ServiceStatusTypePending
-				return &status, messages
+				return &status, messages, statuses
 			case corev1.PodFailed:
 				status := ServiceStatusTypeError
-				return &status, messages
+				return &status, messages, statuses
 			default:
 				status := ServiceStatusTypeUnkown
-				return &status, messages
+				return &status, messages, statuses
 			}
 		}
 	}
 
-	return nil, nil
+	return nil, nil, statuses
 }
 
 func (r *ResourceItem) BuildJobStatus() *ServiceStatusType {
