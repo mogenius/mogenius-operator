@@ -119,7 +119,7 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 
 	// create an inner strcut to hold data from pods for direct access with key pod_name and container_name
 	type PodResourceRequests struct {
-		Requests corev1.ResourceList
+		resources corev1.ResourceList
 	}
 
 	podResourceRequestsMap := make(map[string]map[string]PodResourceRequests)
@@ -128,7 +128,7 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 		podResourceRequestsMap[pod.Name] = make(map[string]PodResourceRequests)
 		for _, container := range pod.Spec.Containers {
 			podResourceRequestsMap[pod.Name][container.Name] = PodResourceRequests{
-				Requests: container.Resources.Requests,
+				resources: container.Resources.Requests,
 			}
 		}
 	}
@@ -140,6 +140,7 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 	var podCount int64 = 0
 	var avgWindowInMs int64 = 0
 
+MetricLoop:
 	for _, podMetrics := range podMetricsList.Items {
 		for _, container := range podMetrics.Containers {
 			// Check if the pod exists in the map
@@ -147,9 +148,9 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 				// Check if the container exists in the map
 				if resources, containerExists := containerMap[container.Name]; containerExists {
 					// Check if the Requests map is nil
-					if resources.Requests == nil {
+					if resources.resources == nil {
 						K8sLogger.Warningf("No resource requests found for container %s in pod %s", container.Name, podMetrics.Name)
-						continue
+						continue MetricLoop
 					}
 				}
 			}
@@ -164,8 +165,8 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 			totalMemoryUsage += memoryUsageValue
 
 			containerSpec := podResourceRequestsMap[podMetrics.Name][container.Name]
-			cpuRequest := containerSpec.Requests["cpu"]
-			memoryRequest := containerSpec.Requests["memory"]
+			cpuRequest := containerSpec.resources["cpu"]
+			memoryRequest := containerSpec.resources["memory"]
 
 			cpuRequestValue := cpuRequest.Value()
 			memoryRequestValue := memoryRequest.Value()
