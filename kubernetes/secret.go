@@ -154,21 +154,34 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
+		secretStringData := make(map[string]string)
 
-		if project.ContainerRegistryUser == nil || project.ContainerRegistryPat == nil || project.ContainerRegistryUrl == nil {
-			cmd.Fail(job, "ERROR: ContainerRegistryUser, ContainerRegistryPat & ContainerRegistryUrl cannot be nil.")
-			return
+		if project.ContainerRegistryUser != nil && project.ContainerRegistryPat != nil && project.ContainerRegistryUrl != nil {
+			// cmd.Fail(job, "ERROR: ContainerRegistryUser, ContainerRegistryPat & ContainerRegistryUrl cannot be nil.")
+			// return
+			authStr := fmt.Sprintf("%s:%s", *project.ContainerRegistryUser, *project.ContainerRegistryPat)
+			authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
+			jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, *project.ContainerRegistryUrl, *project.ContainerRegistryUser, *project.ContainerRegistryPat, authStrBase64)
+			secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
+		} else {
+			if _, ok := secret.StringData[".dockerconfigjson"]; ok {
+				delete(secret.StringData, ".dockerconfigjson")
+			}
 		}
 
-		authStr := fmt.Sprintf("%s:%s", *project.ContainerRegistryUser, *project.ContainerRegistryPat)
-		authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
-		jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, *project.ContainerRegistryUrl, *project.ContainerRegistryUser, *project.ContainerRegistryPat, authStrBase64)
-
-		secretStringData := make(map[string]string)
-		secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
 		secret.StringData = secretStringData
 
 		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
+
+		if len(secret.StringData) == 0 {
+			err = secretClient.Delete(context.TODO(), secretName, metav1.DeleteOptions{})
+			if err != nil {
+				cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+			} else {
+				cmd.Success(job, "Deleted Container secret")
+			}
+			return
+		}
 
 		// Check if exists
 		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
