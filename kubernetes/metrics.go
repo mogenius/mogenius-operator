@@ -19,7 +19,7 @@ type Metrics struct {
 	CpuAverageUtilization    int64       `json:"cpuAverageUtilization"`
 	Memory                   int64       `json:"memory"`
 	MemoryLimit              int64       `json:"memoryLimit"`
-	MemoryAverageUtilization int64       `json:"MemoryAverageUtilization"`
+	MemoryAverageUtilization int64       `json:"memoryAverageUtilization"`
 	CreatedAt                metav1.Time `json:"createdAt"`
 	WindowInMs               int64       `json:"windowInMs"`
 }
