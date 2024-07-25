@@ -142,6 +142,18 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 
 	for _, podMetrics := range podMetricsList.Items {
 		for _, container := range podMetrics.Containers {
+			// Check if the pod exists in the map
+			if containerMap, podExists := podResourceRequestsMap[podMetrics.Name]; podExists {
+				// Check if the container exists in the map
+				if resources, containerExists := containerMap[container.Name]; containerExists {
+					// Check if the Requests map is nil
+					if resources.Requests == nil {
+						K8sLogger.Warningf("No resource requests found for container %s in pod %s", container.Name, podMetrics.Name)
+						continue
+					}
+				}
+			}
+
 			cpuUsage := container.Usage["cpu"]
 			memoryUsage := container.Usage["memory"]
 
