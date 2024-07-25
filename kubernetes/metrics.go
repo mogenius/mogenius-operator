@@ -180,40 +180,6 @@ MetricLoop:
 		podCount++
 	}
 
-	// for _, pod := range podList.Items {
-	// 	podMetrics, err := metricsProvider.ClientSet.MetricsV1beta1().PodMetricses(data.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
-	// 	if err != nil {
-	// 		K8sLogger.Errorf("Error getting metrics for pod %s: %v", pod.Name, err)
-	// 		continue
-	// 	}
-
-	// 	for i, container := range podMetrics.Containers {
-	// 		cpuUsage := container.Usage["cpu"]
-	// 		memoryUsage := container.Usage["memory"]
-
-	// 		cpuUsageValue := cpuUsage.Value()
-	// 		memoryUsageValue := memoryUsage.Value()
-
-	// 		totalCPUUsage += cpuUsageValue
-	// 		totalMemoryUsage += memoryUsageValue
-
-	// 		containerSpec := pod.Spec.Containers[i]
-	// 		cpuRequest := containerSpec.Resources.Requests["cpu"]
-	// 		memoryRequest := containerSpec.Resources.Requests["memory"]
-
-	// 		cpuRequestValue := cpuRequest.Value()
-	// 		memoryRequestValue := memoryRequest.Value()
-
-	// 		totalCPURequests += cpuRequestValue
-	// 		totalMemoryRequests += memoryRequestValue
-	// 	}
-
-	// 	// window duration in ms
-	// 	avgWindowInMs += podMetrics.Window.Milliseconds()
-
-	// 	podCount++
-	// }
-
 	if podCount == 0 {
 		K8sLogger.Errorf("No pods found for deployment %s", data.Name)
 		return nil
