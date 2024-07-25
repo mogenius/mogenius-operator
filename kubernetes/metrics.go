@@ -2,10 +2,8 @@ package kubernetes
 
 import (
 	"context"
-	"log"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	"github.com/mogenius/punq/logger"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
@@ -40,7 +38,7 @@ func NewMetricsProvider(contextId *string) (*MetricsProvider, error) {
 	}
 
 	if err != nil {
-		logger.Log.Errorf("ERROR: %s", err.Error())
+		K8sLogger.Errorf("ERROR: %s", err.Error())
 	}
 	return provider, err
 }
@@ -96,20 +94,19 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 		return nil
 	}
 
-	namespace := data.Namespace
-	deploymentName := data.Name
-
-	deployment, err := kubeProvider.ClientSet.AppsV1().Deployments(namespace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
+	deployment, err := kubeProvider.ClientSet.AppsV1().Deployments(data.Namespace).Get(context.TODO(), data.Name, metav1.GetOptions{})
 	if err != nil {
-		log.Fatalf("Error getting deployment: %v", err)
+		K8sLogger.Errorf("Error getting deployment: %v", err)
+		return nil
 	}
 
 	labelSelector := metav1.FormatLabelSelector(deployment.Spec.Selector)
-	podList, err := kubeProvider.ClientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+	podList, err := kubeProvider.ClientSet.CoreV1().Pods(data.Namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
-		log.Fatalf("Error listing pods: %v", err)
+		K8sLogger.Errorf("Error listing pods: %v", err)
+		return nil
 	}
 
 	var totalCPUUsage int64 = 0
@@ -120,9 +117,9 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 	var avgWindowInMs int64 = 0
 
 	for _, pod := range podList.Items {
-		podMetrics, err := metricsProvider.ClientSet.MetricsV1beta1().PodMetricses(namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+		podMetrics, err := metricsProvider.ClientSet.MetricsV1beta1().PodMetricses(data.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 		if err != nil {
-			log.Printf("Error getting metrics for pod %s: %v", pod.Name, err)
+			K8sLogger.Errorf("Error getting metrics for pod %s: %v", pod.Name, err)
 			continue
 		}
 
@@ -154,7 +151,8 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 	}
 
 	if podCount == 0 {
-		log.Fatalf("No pods found for deployment %s", deploymentName)
+		K8sLogger.Errorf("No pods found for deployment %s", data.Name)
+		return nil
 	}
 
 	avgWindowInMs = avgWindowInMs / podCount
@@ -167,9 +165,9 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 	avgMemoryUtilization := (float64(avgMemoryUsage) / float64(avgMemoryRequest)) * 100
 
 	return &Metrics{
-		Namespace:                namespace,
-		Name:                     deploymentName,
-		Kind:                     "Deployment",
+		Namespace:                data.Namespace,
+		Name:                     data.Name,
+		Kind:                     data.Kind,
 		Cpu:                      avgCPUUsage,
 		CpuLimit:                 totalCPURequests,
 		CpuAverageUtilization:    int64(avgCPUUtilization),
