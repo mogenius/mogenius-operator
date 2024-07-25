@@ -4,6 +4,7 @@ import (
 	"context"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	corev1 "k8s.io/api/core/v1" // Add this line to import the corev1 package
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
@@ -109,6 +110,29 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 		return nil
 	}
 
+	podMetricsList, err := metricsProvider.ClientSet.MetricsV1beta1().PodMetricses(data.Namespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		K8sLogger.Errorf("Error getting pods metrics: %v", err)
+	}
+
+	// create an inner strcut to hold data from pods for direct access with key pod_name and container_name
+	type PodResourceRequests struct {
+		Requests corev1.ResourceList
+	}
+
+	podResourceRequestsMap := make(map[string]map[string]PodResourceRequests)
+	// fill map with pod metrics
+	for _, pod := range podList.Items {
+		podResourceRequestsMap[pod.Name] = make(map[string]PodResourceRequests)
+		for _, container := range pod.Spec.Containers {
+			podResourceRequestsMap[pod.Name][container.Name] = PodResourceRequests{
+				Requests: container.Resources.Requests,
+			}
+		}
+	}
+
 	var totalCPUUsage int64 = 0
 	var totalMemoryUsage int64 = 0
 	var totalCPURequests int64 = 0
@@ -116,14 +140,8 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 	var podCount int64 = 0
 	var avgWindowInMs int64 = 0
 
-	for _, pod := range podList.Items {
-		podMetrics, err := metricsProvider.ClientSet.MetricsV1beta1().PodMetricses(data.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
-		if err != nil {
-			K8sLogger.Errorf("Error getting metrics for pod %s: %v", pod.Name, err)
-			continue
-		}
-
-		for i, container := range podMetrics.Containers {
+	for _, podMetrics := range podMetricsList.Items {
+		for _, container := range podMetrics.Containers {
 			cpuUsage := container.Usage["cpu"]
 			memoryUsage := container.Usage["memory"]
 
@@ -133,9 +151,9 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 			totalCPUUsage += cpuUsageValue
 			totalMemoryUsage += memoryUsageValue
 
-			containerSpec := pod.Spec.Containers[i]
-			cpuRequest := containerSpec.Resources.Requests["cpu"]
-			memoryRequest := containerSpec.Resources.Requests["memory"]
+			containerSpec := podResourceRequestsMap[podMetrics.Name][container.Name]
+			cpuRequest := containerSpec.Requests["cpu"]
+			memoryRequest := containerSpec.Requests["memory"]
 
 			cpuRequestValue := cpuRequest.Value()
 			memoryRequestValue := memoryRequest.Value()
@@ -143,12 +161,45 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 			totalCPURequests += cpuRequestValue
 			totalMemoryRequests += memoryRequestValue
 		}
-
 		// window duration in ms
 		avgWindowInMs += podMetrics.Window.Milliseconds()
 
 		podCount++
 	}
+
+	// for _, pod := range podList.Items {
+	// 	podMetrics, err := metricsProvider.ClientSet.MetricsV1beta1().PodMetricses(data.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+	// 	if err != nil {
+	// 		K8sLogger.Errorf("Error getting metrics for pod %s: %v", pod.Name, err)
+	// 		continue
+	// 	}
+
+	// 	for i, container := range podMetrics.Containers {
+	// 		cpuUsage := container.Usage["cpu"]
+	// 		memoryUsage := container.Usage["memory"]
+
+	// 		cpuUsageValue := cpuUsage.Value()
+	// 		memoryUsageValue := memoryUsage.Value()
+
+	// 		totalCPUUsage += cpuUsageValue
+	// 		totalMemoryUsage += memoryUsageValue
+
+	// 		containerSpec := pod.Spec.Containers[i]
+	// 		cpuRequest := containerSpec.Resources.Requests["cpu"]
+	// 		memoryRequest := containerSpec.Resources.Requests["memory"]
+
+	// 		cpuRequestValue := cpuRequest.Value()
+	// 		memoryRequestValue := memoryRequest.Value()
+
+	// 		totalCPURequests += cpuRequestValue
+	// 		totalMemoryRequests += memoryRequestValue
+	// 	}
+
+	// 	// window duration in ms
+	// 	avgWindowInMs += podMetrics.Window.Milliseconds()
+
+	// 	podCount++
+	// }
 
 	if podCount == 0 {
 		K8sLogger.Errorf("No pods found for deployment %s", data.Name)
