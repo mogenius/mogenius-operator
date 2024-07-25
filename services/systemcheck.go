@@ -360,10 +360,11 @@ func SystemCheck() SystemCheckResponse {
 		trafficMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNameTrafficCollector, trafficCollectorVersion)
 		trafficEntry := CreateSystemCheckEntry(
 			utils.HelmReleaseNameTrafficCollector,
-			trafficCollectorInstalledErr == nil, trafficMsg,
+			trafficCollectorInstalledErr == nil,
+			trafficMsg,
 			fmt.Sprintf("%s is not installed.\nTo gather traffic information you need to install this component.", utils.HelmReleaseNameTrafficCollector),
 			trafficCollectorInstalledErr,
-			fmt.Sprintf("Collects and exposes detailed traffic data for your mogenius services for better monitoring. (Installed: %s | Available: %s)", trafficCollectorVersion, trafficCollectorNewestVersion),
+			"Collects and exposes detailed traffic data for your mogenius services for better monitoring.",
 			true,
 			true,
 			trafficCollectorVersion,
@@ -394,7 +395,7 @@ func SystemCheck() SystemCheckResponse {
 			podStatsMsg,
 			fmt.Sprintf("%s is not installed.\nTo gather pod/event information you need to install this component.", utils.HelmReleaseNamePodStatsCollector),
 			podStatsCollectorInstalledErr,
-			fmt.Sprintf("Collects and exposes status events of pods for services in mogenius. (Installed: %s | Available: %s)", podStatsCollectorVersion, podstatsCollectorNewestVersion),
+			"Collects and exposes status events of pods for services in mogenius.",
 			true,
 			true,
 			podStatsCollectorVersion,
