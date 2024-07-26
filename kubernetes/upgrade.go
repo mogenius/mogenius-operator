@@ -40,6 +40,41 @@ func ClusterForceReconnect() bool {
 	return true
 }
 
+func ClusterForceDisconnect() bool {
+	// restart deployments/daemonsets for
+	// - traffic
+	// - podstats
+	// - k8s-manager
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return false
+	}
+	podClient := provider.ClientSet.CoreV1().Pods(utils.CONFIG.Kubernetes.OwnNamespace)
+
+	// stop k8s-manager
+	deploymentClient := provider.ClientSet.AppsV1().Deployments(utils.CONFIG.Kubernetes.OwnNamespace)
+	deployment, _ := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
+	deployment.Spec.Paused = true
+	deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+
+	podsToKill := []string{}
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", utils.HelmReleaseNameTrafficCollector, nil)...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", utils.HelmReleaseNamePodStatsCollector, nil)...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)
+
+	for _, podName := range podsToKill {
+		K8sLogger.Warningf("Restarting %s ...", podName)
+		err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{})
+
+		if err != nil {
+			K8sLogger.Errorf("ClusterForceReconnect ERR: %s", err.Error())
+		}
+	}
+
+	return true
+}
+
 func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("upgrade operator", "Upgrade mogenius platform ...", job)
 	wg.Add(1)

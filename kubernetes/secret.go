@@ -174,11 +174,14 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
 
 		if len(secret.StringData) == 0 {
-			err = secretClient.Delete(context.TODO(), secretName, metav1.DeleteOptions{})
-			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
-			} else {
-				cmd.Success(job, "Deleted Container secret")
+			existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+			if existingSecret != nil {
+				err = secretClient.Delete(context.TODO(), secretName, metav1.DeleteOptions{})
+				if err != nil {
+					cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+				} else {
+					cmd.Success(job, "Deleted Container secret")
+				}
 			}
 			return
 		}
@@ -274,11 +277,14 @@ func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg 
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
-		err = secretClient.Delete(context.TODO(), "container-secret-"+namespace.Name, deleteOptions)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Deleted Container secret")
+		existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+		if existingSecret != nil {
+			err = secretClient.Delete(context.TODO(), "container-secret-"+namespace.Name, deleteOptions)
+			if err != nil {
+				cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+			} else {
+				cmd.Success(job, "Deleted Container secret")
+			}
 		}
 	}(wg)
 }
