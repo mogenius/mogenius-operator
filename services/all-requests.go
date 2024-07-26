@@ -208,7 +208,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return dbstats.GetLastPodStatsEntryForController(data)
-
 	case structs.PAT_STATS_TRAFFIC_FOR_CONTROLLER_ALL:
 		data := kubernetes.K8sController{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -284,6 +283,15 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return RenderPodNetworkTreePageJson(data.Namespace, data.PodName)
 
+	case structs.PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION:
+		data := kubernetes.K8sController{}
+		data.Kind = "Deployment"
+
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return kubernetes.GetAverageUtilizationForDeployment(data)
 	case structs.PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
