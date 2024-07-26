@@ -6,8 +6,6 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	corev1 "k8s.io/api/core/v1" // Add this line to import the corev1 package
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
-	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 type Metrics struct {
@@ -24,73 +22,13 @@ type Metrics struct {
 	WindowInMs               int64       `json:"windowInMs"`
 }
 
-type MetricsProvider struct {
-	ClientSet    *metricsv.Clientset
-	ClientConfig rest.Config
-}
-
-func NewMetricsProvider(contextId *string) (*MetricsProvider, error) {
-	var provider *MetricsProvider
-	var err error
-	if punq.RunsInCluster {
-		provider, err = newMetricsProviderInCluster(contextId)
-	} else {
-		provider, err = newMetricsProviderLocal(contextId)
-	}
-
-	if err != nil {
-		K8sLogger.Errorf("ERROR: %s", err.Error())
-	}
-	return provider, err
-}
-
-func newMetricsProviderLocal(contextId *string) (*MetricsProvider, error) {
-	config, err := punq.ContextSwitcher(contextId)
-	if err != nil {
-		return nil, err
-	}
-
-	clientSet, errClientSet := metricsv.NewForConfig(config)
-	if errClientSet != nil {
-		return nil, errClientSet
-	}
-
-	return &MetricsProvider{
-		ClientSet:    clientSet,
-		ClientConfig: *config,
-	}, nil
-}
-
-func newMetricsProviderInCluster(contextId *string) (*MetricsProvider, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	if contextId != nil {
-		config, err = punq.ContextSwitcher(contextId)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	clientset, err := metricsv.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &MetricsProvider{
-		ClientSet:    clientset,
-		ClientConfig: *config,
-	}, nil
-}
-
 func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 	kubeProvider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		return nil
 	}
-	metricsProvider, err := NewMetricsProvider(nil)
+
+	metricsProvider, err := punq.NewKubeProviderMetrics(nil)
 	if err != nil {
 		return nil
 	}
