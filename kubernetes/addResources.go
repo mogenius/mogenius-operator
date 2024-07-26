@@ -284,7 +284,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	secret := punqUtils.InitSecret()
 	secret.ObjectMeta.Name = NAMESPACE
 	secret.ObjectMeta.Namespace = NAMESPACE
-	delete(secret.StringData, "PRIVATE_KEY") // delete example data
 	delete(secret.StringData, "exampleData") // delete example data
 	secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 	secret.StringData["api-key"] = clusterSecret.ApiKey
