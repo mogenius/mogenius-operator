@@ -654,8 +654,15 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 	})
 
 	// Add an empty item for the next schedule
-	if cronJob.Status.LastScheduleTime != nil && cronJob.Spec.Suspend != nil && !*cronJob.Spec.Suspend {
-		nextScheduleTime, err := getNextSchedule(cronJob.Spec.Schedule, cronJob.Status.LastScheduleTime.Time)
+	if cronJob.Spec.Suspend != nil && !*cronJob.Spec.Suspend {
+		var lastTime time.Time
+		if cronJob.Status.LastScheduleTime != nil {
+			lastTime = cronJob.Status.LastScheduleTime.Time
+		} else {
+			lastTime = time.Now()
+		}
+
+		nextScheduleTime, err := getNextSchedule(cronJob.Spec.Schedule, lastTime)
 		if err != nil {
 			log.Warnf("Error getting next schedule for cronjob %s: %s", cronJob.Name, err.Error())
 			list.JobsInfo = jobInfos
