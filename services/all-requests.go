@@ -61,6 +61,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		time.Sleep(1 * time.Second)
 		return kubernetes.ClusterForceReconnect()
 
+	case structs.PAT_CLUSTER_FORCE_DISCONNECT:
+		time.Sleep(1 * time.Second)
+		return kubernetes.ClusterForceDisconnect()
+
 	case structs.PAT_SYSTEM_CHECK:
 		return SystemCheck()
 	case structs.PAT_CLUSTER_RESTART:
