@@ -71,7 +71,7 @@ func CreateSecretJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
-		delete(secret.StringData, "PRIVATE_KEY") // delete example data
+		delete(secret.StringData, "exampleData") // delete example data
 
 		for _, container := range service.Containers {
 			for _, envVar := range container.EnvVars {
@@ -300,7 +300,7 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
-		delete(secret.StringData, "PRIVATE_KEY") // delete example data
+		delete(secret.StringData, "exampleData") // delete example data
 
 		for _, container := range service.Containers {
 			for _, envVar := range container.EnvVars {
@@ -312,6 +312,16 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 					delete(secret.StringData, envVar.Name)
 				}
 			}
+		}
+
+		// delete secret if empty
+		if len(secret.StringData) == 0 {
+			existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+			if existingSecret != nil {
+				secretClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+				cmd.Success(job, "Deleted unneeded secret")
+			}
+			return
 		}
 
 		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
