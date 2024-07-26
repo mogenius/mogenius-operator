@@ -12,7 +12,7 @@ type Metrics struct {
 	Namespace                string       `json:"namespace"`
 	Name                     string       `json:"name"`
 	Kind                     string       `json:"kind"`
-	PodMetrics               []PodMetrics `json:"podMetrics"`
+	PodsMetrics              []PodMetrics `json:"podsMetrics"`
 	CpuAverageUtilization    int64        `json:"cpuAverageUtilization"`
 	MemoryAverageUtilization int64        `json:"memoryAverageUtilization"`
 	CreatedAt                metav1.Time  `json:"createdAt"`
@@ -168,7 +168,7 @@ MetricLoop:
 		Namespace:                data.Namespace,
 		Name:                     data.Name,
 		Kind:                     data.Kind,
-		PodMetrics:               pods,
+		PodsMetrics:              pods,
 		CpuAverageUtilization:    int64(avgCPUUtilization),
 		MemoryAverageUtilization: int64(avgMemoryUtilization),
 		CreatedAt:                metav1.Now(),
