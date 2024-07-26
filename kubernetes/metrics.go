@@ -9,17 +9,27 @@ import (
 )
 
 type Metrics struct {
-	Namespace                string      `json:"namespace"`
-	Name                     string      `json:"name"`
-	Kind                     string      `json:"kind"`
-	Cpu                      int64       `json:"cpu"`
-	CpuLimit                 int64       `json:"cpuLimit"`
-	CpuAverageUtilization    int64       `json:"cpuAverageUtilization"`
-	Memory                   int64       `json:"memory"`
-	MemoryLimit              int64       `json:"memoryLimit"`
-	MemoryAverageUtilization int64       `json:"memoryAverageUtilization"`
-	CreatedAt                metav1.Time `json:"createdAt"`
-	WindowInMs               int64       `json:"windowInMs"`
+	Namespace                string       `json:"namespace"`
+	Name                     string       `json:"name"`
+	Kind                     string       `json:"kind"`
+	PodMetrics               []PodMetrics `json:"podMetrics"`
+	CpuAverageUtilization    int64        `json:"cpuAverageUtilization"`
+	MemoryAverageUtilization int64        `json:"memoryAverageUtilization"`
+	CreatedAt                metav1.Time  `json:"createdAt"`
+	WindowInMs               int64        `json:"windowInMs"`
+}
+
+type PodMetrics struct {
+	Name       string             `json:"name"`
+	Containers []ContainerMetrics `json:"containers"`
+}
+
+type ContainerMetrics struct {
+	Name       string `json:"name"`
+	CpuUsage   int64  `json:"cpuUsage"`
+	CpuRequest int64  `json:"cpuRequest"`
+	MemUsage   int64  `json:"memUsage"`
+	MemRequest int64  `json:"memRequest"`
 }
 
 func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
@@ -78,8 +88,13 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 	var podCount int64 = 0
 	var avgWindowInMs int64 = 0
 
+	pods := []PodMetrics{}
+
 MetricLoop:
 	for _, podMetrics := range podMetricsList.Items {
+
+		containers := []ContainerMetrics{}
+
 		for _, container := range podMetrics.Containers {
 			// Check if the pod exists in the map
 			if containerMap, podExists := podResourceRequestsMap[podMetrics.Name]; podExists {
@@ -93,25 +108,42 @@ MetricLoop:
 				}
 			}
 
-			cpuUsage := container.Usage["cpu"]
-			memoryUsage := container.Usage["memory"]
+			cpuUsage := container.Usage.Cpu()
+			memoryUsage := container.Usage.Memory()
 
-			cpuUsageValue := cpuUsage.Value()
+			cpuUsageValue := cpuUsage.MilliValue()
 			memoryUsageValue := memoryUsage.Value()
 
 			totalCPUUsage += cpuUsageValue
 			totalMemoryUsage += memoryUsageValue
 
 			containerSpec := podResourceRequestsMap[podMetrics.Name][container.Name]
-			cpuRequest := containerSpec.resources["cpu"]
-			memoryRequest := containerSpec.resources["memory"]
+			cpuRequest := containerSpec.resources.Cpu()
+			memoryRequest := containerSpec.resources.Memory()
 
-			cpuRequestValue := cpuRequest.Value()
+			cpuRequestValue := cpuRequest.MilliValue()
 			memoryRequestValue := memoryRequest.Value()
 
 			totalCPURequests += cpuRequestValue
 			totalMemoryRequests += memoryRequestValue
+
+			// map into ContainerMetrics
+			containers = append(containers, ContainerMetrics{
+				Name:       container.Name,
+				CpuUsage:   cpuUsageValue,
+				CpuRequest: cpuRequestValue,
+				MemUsage:   memoryUsageValue,
+				MemRequest: memoryRequestValue,
+			})
 		}
+
+		if len(containers) > 0 {
+			pods = append(pods, PodMetrics{
+				Name:       podMetrics.Name,
+				Containers: containers,
+			})
+		}
+
 		// window duration in ms
 		avgWindowInMs += podMetrics.Window.Milliseconds()
 
@@ -136,11 +168,8 @@ MetricLoop:
 		Namespace:                data.Namespace,
 		Name:                     data.Name,
 		Kind:                     data.Kind,
-		Cpu:                      avgCPUUsage,
-		CpuLimit:                 totalCPURequests,
+		PodMetrics:               pods,
 		CpuAverageUtilization:    int64(avgCPUUtilization),
-		Memory:                   avgMemoryUsage,
-		MemoryLimit:              totalMemoryRequests,
 		MemoryAverageUtilization: int64(avgMemoryUtilization),
 		CreatedAt:                metav1.Now(),
 		WindowInMs:               avgWindowInMs,
