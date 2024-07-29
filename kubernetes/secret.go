@@ -322,7 +322,7 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 // Service Secret
 // -----------------------------------------------------
 
-func UpdateOrCreateControllerSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("update", "Update Kubernetes secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
@@ -362,12 +362,12 @@ func UpdateOrCreateControllerSecrete(job *structs.Job, namespace dtos.K8sNamespa
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
 				} else {
 					cmd.Success(job, "Created secret")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
 			}
 		} else {
 			cmd.Success(job, "Update secret")
