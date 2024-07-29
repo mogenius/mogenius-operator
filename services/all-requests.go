@@ -61,6 +61,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		time.Sleep(1 * time.Second)
 		return kubernetes.ClusterForceReconnect()
 
+	case structs.PAT_CLUSTER_FORCE_DISCONNECT:
+		time.Sleep(1 * time.Second)
+		return kubernetes.ClusterForceDisconnect()
+
 	case structs.PAT_SYSTEM_CHECK:
 		return SystemCheck()
 	case structs.PAT_CLUSTER_RESTART:
@@ -204,7 +208,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return dbstats.GetLastPodStatsEntryForController(data)
-
 	case structs.PAT_STATS_TRAFFIC_FOR_CONTROLLER_ALL:
 		data := kubernetes.K8sController{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -280,6 +283,15 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return RenderPodNetworkTreePageJson(data.Namespace, data.PodName)
 
+	case structs.PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION:
+		data := kubernetes.K8sController{}
+		data.Kind = "Deployment"
+
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return kubernetes.GetAverageUtilizationForDeployment(data)
 	case structs.PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

@@ -18,7 +18,7 @@ import (
 	apipatchv1 "k8s.io/api/batch/v1"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
-	v1Core "k8s.io/api/core/v1"
+	v1core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -38,7 +38,7 @@ const (
 	JobInfoStatusTypeSucceeded JobInfoStatusType = "Succeeded"
 	JobInfoStatusTypeFailed    JobInfoStatusType = "Failed"
 	JobInfoStatusTypeSuspended JobInfoStatusType = "Suspended"
-	JobInfoStatusTypeUnkown    JobInfoStatusType = "Unkown"
+	JobInfoStatusTypeUnknown   JobInfoStatusType = "Unknown"
 )
 
 const (
@@ -98,11 +98,26 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		}
 		jobSpec.Name = fmt.Sprintf("%s-%s", controller, punqutils.NanoIdSmallLowerCase())
 
+		// set owner reference to cronjob
+		ownerReference := metav1.OwnerReference{
+			APIVersion:         "batch/v1",
+			Kind:               "CronJob",
+			Name:               cronjob.Name,
+			UID:                cronjob.UID,
+			Controller:         punqutils.Pointer(true),
+			BlockOwnerDeletion: punqutils.Pointer(true),
+		}
+		jobSpec.SetOwnerReferences([]metav1.OwnerReference{ownerReference})
+
 		// disable TTL to keep history limit
 		// both, jobs and pods are keept then
 		// otherwise we need to implement a custom JobReconciler which
 		// deletes the jobs and keeps the pods with client.PropagationPolicy(metav1.DeletePropagationOrphan)
 		jobSpec.Spec.TTLSecondsAfterFinished = nil
+		// force pod restartPolicy: Never
+		jobSpec.Spec.Template.Spec.RestartPolicy = v1core.RestartPolicyNever
+		// set backofflimit=0 to avoid weird behavior for restartPolicy: Never
+		jobSpec.Spec.BackoffLimit = punqutils.Pointer(int32(0))
 
 		// create job
 		_, err = jobs.Create(context.TODO(), jobSpec, metav1.CreateOptions{})
@@ -359,9 +374,6 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	if service.CronJobSettings.ActiveDeadlineSeconds > 0 {
 		spec.JobTemplate.Spec.ActiveDeadlineSeconds = punqutils.Pointer(service.CronJobSettings.ActiveDeadlineSeconds)
 	}
-	if service.CronJobSettings.BackoffLimit > 0 {
-		spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(service.CronJobSettings.BackoffLimit)
-	}
 
 	// HISTORY LIMITS
 	if service.CronJobSettings.FailedJobsHistoryLimit > 0 {
@@ -376,6 +388,10 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	// otherwise we need to implement a custom JobReconciler which
 	// deletes the jobs and keeps the pods with client.PropagationPolicy(metav1.DeletePropagationOrphan)
 	spec.JobTemplate.Spec.TTLSecondsAfterFinished = nil
+	// force pod restartPolicy: Never
+	spec.JobTemplate.Spec.Template.Spec.RestartPolicy = v1core.RestartPolicyNever
+	// set backofflimit=0 to avoid weird behavior for restartPolicy: Never
+	spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(int32(0))
 
 	return objectMeta, &SpecCronJob{spec, previousSpec}, &newCronJob, nil
 }
@@ -528,7 +544,7 @@ func getJobStatus(conditions []apipatchv1.JobCondition) JobInfoStatusType {
 			return JobInfoStatusTypeSucceeded
 		}
 	}
-	return JobInfoStatusTypeUnkown
+	return JobInfoStatusTypeUnknown
 }
 
 func hasLabel(labels map[string]string, labelKey string, labelValue string) bool {
@@ -618,7 +634,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 		} else if job.Status.CompletionTime == nil {
 			jobInfo.Status = JobInfoStatusTypeActive
 		} else {
-			jobInfo.Status = JobInfoStatusTypeUnkown
+			jobInfo.Status = JobInfoStatusTypeUnknown
 		}
 
 		for _, pod := range pods.Items {
@@ -638,8 +654,15 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 	})
 
 	// Add an empty item for the next schedule
-	if cronJob.Status.LastScheduleTime != nil {
-		nextScheduleTime, err := getNextSchedule(cronJob.Spec.Schedule, cronJob.Status.LastScheduleTime.Time)
+	if cronJob.Spec.Suspend != nil && !*cronJob.Spec.Suspend {
+		var lastTime time.Time
+		if cronJob.Status.LastScheduleTime != nil {
+			lastTime = cronJob.Status.LastScheduleTime.Time
+		} else {
+			lastTime = time.Now()
+		}
+
+		nextScheduleTime, err := getNextSchedule(cronJob.Spec.Schedule, lastTime)
 		if err != nil {
 			log.Warnf("Error getting next schedule for cronjob %s: %s", cronJob.Name, err.Error())
 			list.JobsInfo = jobInfos
@@ -649,7 +672,7 @@ func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInf
 		jobInfos = append([]JobInfo{{
 			Schedule: nextScheduleTime,
 			TileType: JobInfoTileTypeEmpty,
-			Status:   JobInfoStatusTypeUnkown,
+			Status:   JobInfoStatusTypeUnknown,
 		}}, jobInfos...)
 	}
 
@@ -706,7 +729,7 @@ func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
 	listWatch := cache.NewListWatchFromClient(
 		provider.ClientSet.BatchV1().RESTClient(),
 		kindName,
-		v1Core.NamespaceAll,
+		v1core.NamespaceAll,
 		fields.Nothing(),
 	)
 	resourceInformer := cache.NewSharedInformer(listWatch, &v1job.CronJob{}, 0)

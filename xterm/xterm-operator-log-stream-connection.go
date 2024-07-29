@@ -84,7 +84,7 @@ func XTermOperatorStreamConnection(
 	go cmdWait(cmd, conn, tty)
 
 	// cmd output to websocket
-	go cmdOutputToWebsocket(ctx, cancel, conn, tty, nil, &namespace, &controller)
+	go cmdOutputToWebsocketForOperatorLog(ctx, cancel, conn, tty, nil, &namespace, &controller)
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)

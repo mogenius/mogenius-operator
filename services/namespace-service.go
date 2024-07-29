@@ -31,9 +31,9 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 	mokubernetes.CreateNamespace(job, r.Project, r.Namespace)
 	mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, wg)
 
-	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg)
-	}
+	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
+	mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, wg)
+	// }
 	crds.CreateEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, crds.CrdEnvironment{
 		Id:          r.Namespace.Id,
 		DisplayName: r.Namespace.DisplayName,
