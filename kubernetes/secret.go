@@ -71,7 +71,7 @@ func CreateSecretJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
-		delete(secret.StringData, "PRIVATE_KEY") // delete example data
+		delete(secret.StringData, "exampleData") // delete example data
 
 		for _, container := range service.Containers {
 			for _, envVar := range container.EnvVars {
@@ -154,21 +154,37 @@ func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto,
 		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
+		secretStringData := make(map[string]string)
 
-		if project.ContainerRegistryUser == nil || project.ContainerRegistryPat == nil || project.ContainerRegistryUrl == nil {
-			cmd.Fail(job, "ERROR: ContainerRegistryUser, ContainerRegistryPat & ContainerRegistryUrl cannot be nil.")
-			return
+		if project.ContainerRegistryUser != nil && project.ContainerRegistryPat != nil && project.ContainerRegistryUrl != nil {
+			// cmd.Fail(job, "ERROR: ContainerRegistryUser, ContainerRegistryPat & ContainerRegistryUrl cannot be nil.")
+			// return
+			authStr := fmt.Sprintf("%s:%s", *project.ContainerRegistryUser, *project.ContainerRegistryPat)
+			authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
+			jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, *project.ContainerRegistryUrl, *project.ContainerRegistryUser, *project.ContainerRegistryPat, authStrBase64)
+			secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
+		} else {
+			if _, ok := secret.StringData[".dockerconfigjson"]; ok {
+				delete(secret.StringData, ".dockerconfigjson")
+			}
 		}
 
-		authStr := fmt.Sprintf("%s:%s", *project.ContainerRegistryUser, *project.ContainerRegistryPat)
-		authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
-		jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, *project.ContainerRegistryUrl, *project.ContainerRegistryUser, *project.ContainerRegistryPat, authStrBase64)
-
-		secretStringData := make(map[string]string)
-		secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
 		secret.StringData = secretStringData
 
 		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
+
+		if len(secret.StringData) == 0 {
+			existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+			if existingSecret != nil {
+				err = secretClient.Delete(context.TODO(), secretName, metav1.DeleteOptions{})
+				if err != nil {
+					cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+				} else {
+					cmd.Success(job, "Deleted Container secret")
+				}
+			}
+			return
+		}
 
 		// Check if exists
 		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
@@ -261,11 +277,14 @@ func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg 
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
-		err = secretClient.Delete(context.TODO(), "container-secret-"+namespace.Name, deleteOptions)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Deleted Container secret")
+		existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+		if existingSecret != nil {
+			err = secretClient.Delete(context.TODO(), "container-secret-"+namespace.Name, deleteOptions)
+			if err != nil {
+				cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+			} else {
+				cmd.Success(job, "Deleted Container secret")
+			}
 		}
 	}(wg)
 }
@@ -281,7 +300,7 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
-		delete(secret.StringData, "PRIVATE_KEY") // delete example data
+		delete(secret.StringData, "exampleData") // delete example data
 
 		for _, container := range service.Containers {
 			for _, envVar := range container.EnvVars {
@@ -293,6 +312,16 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 					delete(secret.StringData, envVar.Name)
 				}
 			}
+		}
+
+		// delete secret if empty
+		if len(secret.StringData) == 0 {
+			existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+			if existingSecret != nil {
+				secretClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+				cmd.Success(job, "Deleted unneeded secret")
+			}
+			return
 		}
 
 		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())

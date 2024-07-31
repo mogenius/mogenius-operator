@@ -39,7 +39,8 @@ func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
 
 		// bind/unbind ports globally
-		UpdateTcpUdpPorts(namespace, service, false)
+		// TODO: rework TCP/UDP stuff
+		// UpdateTcpUdpPorts(namespace, service, false)
 
 		err = serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
@@ -70,7 +71,8 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		}
 
 		// bind/unbind ports globally
-		UpdateTcpUdpPorts(namespace, service, true)
+		// TODO: rework TCP/UDP stuff
+		// UpdateTcpUdpPorts(namespace, service, true)
 
 		if len(updateService.Spec.Ports) <= 0 {
 			if getSrvErr == nil {

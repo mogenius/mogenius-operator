@@ -48,9 +48,9 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		CreateNamespaceCmds(job, nsReq, &wg)
 	}
 
-	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
-	}
+	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
+	mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
+	// }
 	if r.Service.GetImageRepoSecretDecryptValue() != nil {
 		mokubernetes.CreateOrUpdateContainerSecretForService(job, r.Project, r.Namespace, r.Service, &wg)
 	}
@@ -189,9 +189,9 @@ func Restart(r ServiceRestartRequest) interface{} {
 	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
-	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
-	}
+	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
+	mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
+	// }
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
@@ -242,9 +242,9 @@ func StartService(r ServiceStartRequest) interface{} {
 	job := structs.CreateJob("Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
-	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
-	}
+	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
+	mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
+	// }
 	if r.Service.GetImageRepoSecretDecryptValue() != nil {
 		mokubernetes.CreateOrUpdateContainerSecretForService(job, r.Project, r.Namespace, r.Service, &wg)
 	}
@@ -351,38 +351,38 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 				}
 
 				tempDir := os.TempDir()
-				gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
+				gitDir := fmt.Sprintf("%s/%s", tempDir, punqUtils.NanoId())
 
 				err := utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up before: %s", err.Error()))
 					return
 				}
 				err = utils.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error cloning: %s", err.Error()))
 					return
 				}
 
 				err = utils.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error updating file: %s", err.Error()))
 					return
 				}
 
 				err = utils.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, *container.GitBranch))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error commiting: %s", err.Error()))
 					return
 				}
 				err = utils.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error pushing: %s", err.Error()))
 					return
 				}
 				err = utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up after: %s", err.Error()))
 					return
 				}
 			}

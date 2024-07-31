@@ -1,15 +1,5 @@
 package structs
 
-type SystemCheckStatus string
-
-const (
-	UNKNOWN_STATUS SystemCheckStatus = "UNKNOWN_STATUS"
-	INSTALLING     SystemCheckStatus = "INSTALLING"
-	UNINSTALLING   SystemCheckStatus = "UNINSTALLING"
-	NOT_INSTALLED  SystemCheckStatus = "NOT_INSTALLED"
-	INSTALLED      SystemCheckStatus = "INSTALLED"
-)
-
 type HelmTaskEnum string
 
 const (
@@ -42,15 +32,16 @@ const (
 )
 
 const (
-	PAT_K8SNOTIFICATION         string = "K8sNotification"
-	PAT_CLUSTERSTATUS           string = "ClusterStatus"
-	PAT_CLUSTERRESOURCEINFO     string = "ClusterResourceInfo"
-	PAT_KUBERNETESEVENT         string = "KubernetesEvent"
-	PAT_UPGRADEK8SMANAGER       string = "UpgradeK8sManager"
-	PAT_SERVICE_POD_EXISTS      string = "SERVICE_POD_EXISTS"
-	PAT_SERVICE_PODS            string = "SERVICE_PODS"
-	PAT_CLUSTER_FORCE_RECONNECT string = "ClusterForceReconnect"
-	PAT_SYSTEM_CHECK            string = "SYSTEM_CHECK"
+	PAT_K8SNOTIFICATION          string = "K8sNotification"
+	PAT_CLUSTERSTATUS            string = "ClusterStatus"
+	PAT_CLUSTERRESOURCEINFO      string = "ClusterResourceInfo"
+	PAT_KUBERNETESEVENT          string = "KubernetesEvent"
+	PAT_UPGRADEK8SMANAGER        string = "UpgradeK8sManager"
+	PAT_SERVICE_POD_EXISTS       string = "SERVICE_POD_EXISTS"
+	PAT_SERVICE_PODS             string = "SERVICE_PODS"
+	PAT_CLUSTER_FORCE_RECONNECT  string = "ClusterForceReconnect"
+	PAT_CLUSTER_FORCE_DISCONNECT string = "ClusterForceDisconnect"
+	PAT_SYSTEM_CHECK             string = "SYSTEM_CHECK"
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS         string = "install-local-dev-components"
 	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
@@ -129,6 +120,8 @@ const (
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL   string = "stats/podstat/all-for-namespace"
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST  string = "stats/podstat/last-for-namespace"
 	PAT_STATS_CHART_FOR_POD               string = "stats/chart/for-pod"
+
+	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION string = "metrics/deployment/average-utilization"
 
 	PAT_PROJECT_CREATE string = "project/create"
 	PAT_PROJECT_UPDATE string = "project/update"
@@ -441,6 +434,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_POD_EXISTS,
 	PAT_SERVICE_PODS,
 	PAT_CLUSTER_FORCE_RECONNECT,
+	PAT_CLUSTER_FORCE_DISCONNECT,
 	PAT_SYSTEM_CHECK,
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS,
@@ -519,6 +513,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST, // legacy-support TODO: REMOVE
 	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST,  // legacy-support TODO: REMOVE
 	PAT_STATS_CHART_FOR_POD,
+
+	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION,
 
 	PAT_PROJECT_CREATE,
 	PAT_PROJECT_UPDATE,
@@ -826,4 +822,5 @@ var SUPPRESSED_OUTPUT_PATTERN = []string{
 	PAT_CLUSTER_UPDATE_LOCAL_TLS_SECRET,
 	// PAT_BUILD_LAST_JOB_OF_SERVICES,
 	// PAT_BUILD_SCAN,
+	PAT_LIST_CRONJOB_JOBS,
 }

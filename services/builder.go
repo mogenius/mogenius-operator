@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
@@ -558,8 +559,24 @@ func updateContainerImage(job *structs.Job, reportCmd *structs.Command, buildJob
 	switch buildJob.Service.Controller {
 	case dtos.CRON_JOB:
 		err = kubernetes.UpdateCronjobImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				var wg sync.WaitGroup
+				kubernetes.UpdateCronJob(job, buildJob.Namespace, buildJob.Service, &wg)
+				err = nil
+				wg.Wait()
+			}
+		}
 	default:
 		err = kubernetes.UpdateDeploymentImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				var wg sync.WaitGroup
+				kubernetes.UpdateDeployment(job, buildJob.Namespace, buildJob.Service, &wg)
+				err = nil
+				wg.Wait()
+			}
+		}
 	}
 
 	elapsedTime := time.Since(startTime)
