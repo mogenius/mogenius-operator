@@ -102,6 +102,9 @@ func Close() {
 	}
 }
 
+// make function mockable
+var getControllerFunc = kubernetes.ControllerForPod
+
 func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
 	err := dbStats.Update(func(tx *bolt.Tx) error {
@@ -114,7 +117,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		}
 
 		// CREATE A BUCKET FOR EACH CONTROLLER
-		controller := kubernetes.ControllerForPod(stats.Namespace, stats.PodName)
+		controller := getControllerFunc(stats.Namespace, stats.PodName)
 		if controller == nil {
 			return fmt.Errorf("Controller not found for '%s/%s'", stats.Namespace, stats.PodName)
 		}
