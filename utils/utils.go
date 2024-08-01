@@ -27,6 +27,8 @@ const APP_NAME = "k8s"
 const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-k8s-manager-default-apps"
 const MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME = "mogenius-k8s-manager-default-deployment"
 
+const MAX_NAME_LENGTH = 253
+
 const (
 	HelmReleaseNameTrafficCollector     = "mogenius-traffic-collector"
 	HelmReleaseNamePodStatsCollector    = "mogenius-pod-stats-collector"
@@ -308,4 +310,11 @@ func GetSecretListName(customerPrefix string, projectName string) string {
 		strings.ToLower(projectName),
 		strings.ToLower(SecretListSuffix),
 	)
+}
+
+func ParseK8sName(name string) string {
+	if len(name) > MAX_NAME_LENGTH {
+		name = name[:MAX_NAME_LENGTH]
+	}
+	return strings.ToLower(name)
 }
