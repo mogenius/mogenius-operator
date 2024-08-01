@@ -23,8 +23,8 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	getControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
 		return &kubernetes.K8sController{
 			Kind:      "Deployment",
-			Name:      stat.PodName,
-			Namespace: stat.Namespace,
+			Name:      podName,
+			Namespace: namespace,
 		}
 	}
 	Init()
@@ -55,18 +55,19 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	// add 3 random interface stats for TESTCONTROLLER
 	for i := 0; i < 3; i++ {
 		stats := generateRandomInterfaceStats()
+		stats.Namespace = "TESTNS"
 		AddInterfaceStatsToDb(stats)
 	}
 
 	//check if the data points are limited to 3
-	bucket := getSubBucket(dbStats, "TESTCONTROLLER")
+	bucket := getNestedBucket(dbStats, []string{"TESTNS", "TESTCONTROLLER"})
 	if bucket == nil {
 		t.Errorf("Bucket for namespace TESTCONTROLLER does not exist but should have been created!") //TODO subbucket should exist but bolt 'forgets' it
 	}
 
 }
 
-func getSubBucket(db *bolt.DB, bucketName string) *bolt.Bucket {
+func getNestedBucket(db *bolt.DB, bucketChain []string) *bolt.Bucket {
 	tx, err := db.Begin(false)
 	if err != nil {
 		log.Fatalf("Error beginning transaction: %v", err)
@@ -78,12 +79,18 @@ func getSubBucket(db *bolt.DB, bucketName string) *bolt.Bucket {
 	if mainBucket == nil {
 		return nil
 	}
-
-	return mainBucket.Bucket([]byte(bucketName))
+	result := mainBucket
+	for _, v := range bucketChain {
+		result = result.Bucket([]byte(v))
+		if result == nil {
+			return nil
+		}
+	}
+	return result
 }
 
 func bucketExists(db *bolt.DB, bucketName string) bool {
-	bucket := getSubBucket(db, bucketName)
+	bucket := getNestedBucket(db, []string{bucketName})
 	if bucket == nil {
 		log.Fatalf("Error checking bucket existence: %v", bucketName)
 		return false
