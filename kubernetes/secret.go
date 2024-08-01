@@ -163,12 +163,7 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 		defer wg.Done()
 		cmd.Start(job, "Creating Cluster Image-Pull secret")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
+		secretClient := getCoreClient().Secrets(namespace.Name)
 
 		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
@@ -185,7 +180,7 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 		secret.StringData = secretStringData
 
 		// Check if exists
-		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
 			cmd.Success(job, "Created Cluster Image-Pull secret")
@@ -206,12 +201,8 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 }
 
 func ExistsClusterImagePullSecret(namespace string) bool {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		return false
-	}
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace))
-	secret, err := provider.ClientSet.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	secret, err := getCoreClient().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return false
 	}
@@ -242,12 +233,7 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 		defer wg.Done()
 		cmd.Start(job, "Creating Container Image-Pull secret")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
+		secretClient := getCoreClient().Secrets(namespace.Name)
 
 		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
@@ -260,7 +246,7 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
 
 		// Check if exists
-		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
 			cmd.Success(job, "Created Container Image-Pull secret")
@@ -293,12 +279,7 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 		defer wg.Done()
 		cmd.Start(job, "Deleting Container secret")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
+		secretClient := getCoreClient().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
@@ -306,7 +287,7 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 
 		existingSecret, _ := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
 		if existingSecret != nil {
-			err = secretClient.Delete(context.TODO(), secretName, deleteOptions)
+			err := secretClient.Delete(context.TODO(), secretName, deleteOptions)
 			if err != nil {
 				cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
 			} else {
