@@ -352,6 +352,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
 			}
 			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Path = "/healthz"
 
 			// LivenessProbe
 			if spec.Template.Spec.Containers[index].LivenessProbe == nil {
@@ -359,6 +360,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 				spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &v1Core.HTTPGetAction{}
 			}
 			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Path = "/healthz"
 
 			// ReadinessProbe
 			if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
@@ -366,6 +368,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 				spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &v1Core.HTTPGetAction{}
 			}
 			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Path = "/healthz"
 		}
 	}
 
