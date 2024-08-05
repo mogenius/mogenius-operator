@@ -189,7 +189,7 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 	}
 }
 
-// if a job was started and the server was restarted/crashed, we need to reset the state to pending to resume the builld
+// if a job was started and the server was restarted/crashed, we need to reset the state to pending to resume the build
 func resetStartedJobsToPendingOnInit() {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
