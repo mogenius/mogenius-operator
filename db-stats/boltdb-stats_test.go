@@ -17,7 +17,7 @@ import (
 func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	stat := generateRandomInterfaceStats()
 
-	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test.db"
+	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test01.db"
 	utils.CONFIG.Stats.MaxDataPoints = 1000
 
 	getControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
@@ -36,7 +36,7 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 
 	// check if db has a bucket for the namespace
 	if !bucketExists(tx, stat.Namespace) {
-		t.Logf("Bucket for namespace %s does not exist and should be created once the stat is added", stat.Namespace)
+		log.Printf("Bucket for namespace %s does not exist and should be created once the stat is added", stat.Namespace)
 	}
 	tx.Rollback()
 	AddInterfaceStatsToDb(stat)
@@ -52,7 +52,7 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 }
 
 func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
-	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test.db"
+	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test02.db"
 	utils.CONFIG.Stats.MaxDataPoints = 3
 	Init()
 
