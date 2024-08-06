@@ -5,18 +5,15 @@ import (
 	"errors"
 	"fmt"
 	punq "github.com/mogenius/punq/kubernetes"
-	utils2 "github.com/mogenius/punq/utils"
-	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
-	"sort"
-	"strings"
-	"time"
-
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
+	"sort"
+	"strings"
 )
 
 // Due to issues importing the library, the following constants are copied from the library
@@ -820,21 +817,23 @@ func NewResourceController(resourceController string) ResourceController {
 //}
 
 func StatusService(r ServiceStatusRequest) interface{} {
-	timeout := 5 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
 		ServiceLogger.Warningf("Warningf: %s", err.Error())
 		return nil
 	}
 
-	allK8sEventsChan := make(chan utils2.K8sWorkloadResult)
+	allK8sEvents := punq.AllK8sEvents(r.Namespace, nil)
 
-	go func() {
-		allK8sEventsChan <- punq.AllK8sEvents(r.Namespace, nil)
-	}()
+	var events []corev1.Event
+	if allK8sEvents.Error != nil {
+		ServiceLogger.Warningf("Warning fetching events: %s", allK8sEvents.Error)
+		events = []corev1.Event{}
+	}
+
+	if allK8sEvents.Result != nil {
+		events = allK8sEvents.Result.([]corev1.Event)
+	}
 
 	resourceItems := []ResourceItem{}
 	resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
@@ -847,30 +846,15 @@ func StatusService(r ServiceStatusRequest) interface{} {
 		ServiceLogger.Warningf("Warning buildItem: %v", err)
 	}
 
-	select {
-	case allK8sEvents := <-allK8sEventsChan:
-		var events []corev1.Event
-		if allK8sEvents.Error != nil {
-			ServiceLogger.Warningf("Warning fetching events: %s", allK8sEvents.Error)
-			events = []corev1.Event{}
-		}
-
-		if allK8sEvents.Result != nil {
-			events = allK8sEvents.Result.([]corev1.Event)
-		}
-
-		for _, event := range events {
-			for i, item := range resourceItems {
-				if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
-					resourceItems[i].Events = append(resourceItems[i].Events, event)
-				}
+	for _, event := range events {
+		for i, item := range resourceItems {
+			if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
+				resourceItems[i].Events = append(resourceItems[i].Events, event)
 			}
 		}
-
-		return ProcessServiceStatusResponse(resourceItems)
-	case <-ctx.Done():
-		return ProcessServiceStatusResponse(resourceItems)
 	}
+
+	return ProcessServiceStatusResponse(resourceItems)
 }
 
 func kubernetesItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset, resourceItems []ResourceItem) ([]ResourceItem, error) {
