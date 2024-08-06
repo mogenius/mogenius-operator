@@ -26,42 +26,6 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-//func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-//	cmd := structs.CreateCommand("create", "Creating Deployment", job)
-//	wg.Add(1)
-//	go func(wg *sync.WaitGroup) {
-//		defer wg.Done()
-//		cmd.Start(job, "Creating Deployment")
-//
-//		provider, err := punq.NewKubeProvider(nil)
-//		if err != nil {
-//			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-//			return
-//		}
-//		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-//		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, true, deploymentClient, createDeploymentHandler)
-//		if err != nil {
-//			K8sLogger.Errorf("error: %s", err.Error())
-//			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
-//			return
-//		}
-//
-//		// deployment := generateDeployment(namespace, service, false, deploymentClient)
-//		deployment := newController.(*v1.Deployment)
-//
-//		deployment.Labels = MoUpdateLabels(&deployment.Labels, nil, nil, &service)
-//
-//		_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions())
-//		if err != nil {
-//			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
-//		} else {
-//			cmd.Success(job, "Created deployment")
-//		}
-//
-//		HandleHpa(job, namespace.Name, service.ControllerName, service, wg)
-//	}(wg)
-//}
-
 func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", "Delete Deployment", job)
 	wg.Add(1)
