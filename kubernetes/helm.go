@@ -401,7 +401,7 @@ func HelmChartShow(chartname string, format action.ShowOutputFormat) (string, er
 	return result, nil
 }
 
-func HelmHistory(namespace string, chartname string) ([]*release.Release, error) {
+func HelmHistory(namespace string, releaseName string) ([]*release.Release, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 
@@ -413,7 +413,7 @@ func HelmHistory(namespace string, chartname string) ([]*release.Release, error)
 
 	history := action.NewHistory(actionConfig)
 	history.Max = 10
-	releases, err := history.Run(chartname)
+	releases, err := history.Run(releaseName)
 	if err != nil {
 		K8sLogger.Errorf("HelmHistory List Error: %s", err.Error())
 		return releases, err
@@ -442,7 +442,7 @@ func HelmRollback(namespace string, release string, revision int) (string, error
 	return fmt.Sprintf("Rolled back '%s/%s' to revision %d", namespace, release, revision), nil
 }
 
-func HelmGet(namespace string, chartname string, helmGetType structs.HelmGetEnum) (string, error) {
+func HelmGet(namespace string, releaseName string, helmGetType structs.HelmGetEnum) (string, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 
@@ -453,7 +453,7 @@ func HelmGet(namespace string, chartname string, helmGetType structs.HelmGetEnum
 	}
 
 	get := action.NewGet(actionConfig)
-	release, err := get.Run(chartname)
+	release, err := get.Run(releaseName)
 	if err != nil && err.Error() != "release: not found" {
 		K8sLogger.Errorf("HelmGet List Error: %s", err.Error())
 		return "", err

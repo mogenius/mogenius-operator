@@ -7,7 +7,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 )
 
-func TestHelmGet(t *testing.T) {
+func TestHelm(t *testing.T) {
 	testNamespace := "default"
 	testRepo := "bitnami"
 	testChartUrl := "https://charts.bitnami.com/bitnami"
@@ -15,6 +15,22 @@ func TestHelmGet(t *testing.T) {
 	testRelease := "nginx-test"
 	testValues := "#values_yaml"
 	testDryRun := false
+
+	defer func() {
+		// PAT_NAMESPACE_HELM_UNINSTALL - remove repo is purposely placed at the end
+		// no futher testing needed no error is sufficient
+		_, err := HelmUninstall(testNamespace, testRelease, testDryRun)
+		if err != nil {
+			t.Error(err)
+		}
+
+		// PAT_NAMESPACE_HELM_REPO_REMOVE - remove repo is purposely placed at the end
+		// no futher testing needed no error is sufficient
+		_, err = HelmRepoRemove(testRepo)
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// PAT_NAMESPACE_HELM_REPO_ADD
 	// no futher testing needed no error is sufficient
@@ -94,14 +110,14 @@ func TestHelmGet(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_GET
 	// no futher testing needed no error is sufficient
-	_, err = HelmGet(testRepo, testRelease, structs.HelmGetAll)
+	_, err = HelmGet(testNamespace, testRelease, structs.HelmGetAll)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// PAT_NAMESPACE_HELM_HISTORY
 	// history should have at least 1 entry
-	historyList, err := HelmHistory(testRepo, testRelease)
+	historyList, err := HelmHistory(testNamespace, testRelease)
 	if err != nil {
 		t.Error(err)
 	}
@@ -112,20 +128,6 @@ func TestHelmGet(t *testing.T) {
 	// PAT_NAMESPACE_HELM_ROLLBACK
 	// no futher testing needed no error is sufficient
 	_, err = HelmRollback(testNamespace, testRelease, 1)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// PAT_NAMESPACE_HELM_UNINSTALL - remove repo is purposely placed at the end
-	// no futher testing needed no error is sufficient
-	_, err = HelmUninstall(testNamespace, testRelease, testDryRun)
-	if err != nil {
-		t.Error(err)
-	}
-
-	// PAT_NAMESPACE_HELM_REPO_REMOVE - remove repo is purposely placed at the end
-	// no futher testing needed no error is sufficient
-	_, err = HelmRepoRemove(testRepo)
 	if err != nil {
 		t.Error(err)
 	}
