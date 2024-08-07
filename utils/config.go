@@ -32,7 +32,6 @@ type ClusterSecret struct {
 
 const CONFIGVERSION = 2
 
-const STAGE_PRE_DEV = "pre-dev"
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
@@ -111,9 +110,6 @@ type Config struct {
 
 //go:embed config/config-local.yaml
 var DefaultConfigLocalFile string
-
-//go:embed config/config-cluster-pre-dev.yaml
-var DefaultConfigClusterFilePreDev string
 
 //go:embed config/config-cluster-dev.yaml
 var DefaultConfigClusterFileDev string
@@ -408,9 +404,7 @@ func writeDefaultConfig(stage string) {
 		}
 	}
 
-	if stage == STAGE_PRE_DEV {
-		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFilePreDev), 0755)
-	} else if stage == STAGE_DEV {
+	if stage == STAGE_DEV {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileDev), 0755)
 	} else if stage == STAGE_PROD {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileProd), 0755)

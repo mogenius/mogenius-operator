@@ -39,11 +39,11 @@ var initialRepoApplied = false
 
 var iaclogger = log.WithField("component", structs.ComponentIacManager)
 
-func IsIgnoredNamespace(namespace string) bool {
+func isIgnoredNamespace(namespace string) bool {
 	return utils.ContainsString(utils.CONFIG.Iac.IgnoredNamespaces, namespace)
 }
 
-func IsIgnoredNamespaceInFile(file string) (result bool, namespace *string) {
+func isIgnoredNamespaceInFile(file string) (result bool, namespace *string) {
 	for _, namespace := range utils.CONFIG.Iac.IgnoredNamespaces {
 		if strings.Contains(file, fmt.Sprintf("%s_", namespace)) {
 			return true, &namespace
@@ -60,11 +60,11 @@ func IsIgnoredNamespaceInFile(file string) (result bool, namespace *string) {
 }
 
 func Init() {
-	GitInitRepo()
+	gitInitRepo()
 
 	// Set up the remote repository
 	if !gitHasRemotes() {
-		AddRemote()
+		addRemote()
 	}
 
 	// START SYNCING CHANGES
@@ -75,7 +75,7 @@ func ShouldWatchResources() bool {
 	return utils.CONFIG.Iac.AllowPull || utils.CONFIG.Iac.AllowPush
 }
 
-func GitInitRepo() error {
+func gitInitRepo() error {
 	// Create a git repository
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
@@ -102,7 +102,7 @@ func GitInitRepo() error {
 	return err
 }
 
-func AddRemote() error {
+func addRemote() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
 		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
 	}
@@ -149,12 +149,12 @@ func ResetCurrentRepoData(tries int) error {
 		}
 	}
 
-	err = GitInitRepo()
+	err = gitInitRepo()
 	if err != nil {
 		return err
 	}
 
-	err = AddRemote()
+	err = addRemote()
 
 	return err
 }
@@ -182,13 +182,20 @@ func CheckRepoAccess() error {
 	return nil
 }
 
+func IsIacEnabled() bool {
+	return utils.CONFIG.Iac.AllowPull || utils.CONFIG.Iac.AllowPush
+}
+
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
 	if SetupInProcess {
 		return
 	}
+	if !IsIacEnabled() {
+		return
+	}
 
 	// Exceptions
-	if IsIgnoredNamespace(namespace) {
+	if isIgnoredNamespace(namespace) {
 		return
 	}
 	if shouldSkipResource(fileNameForRaw(kind, namespace, resourceName)) {
@@ -244,9 +251,12 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	if SetupInProcess {
 		return
 	}
+	if !IsIacEnabled() {
+		return
+	}
 
 	// Exceptions
-	if IsIgnoredNamespace(namespace) {
+	if isIgnoredNamespace(namespace) {
 		return
 	}
 	if shouldSkipResource(fileNameForRaw(kind, namespace, resourceName)) {
@@ -367,7 +377,9 @@ func syncChangesTimer() {
 		for {
 			select {
 			case <-ticker.C:
-				SyncChanges()
+				if IsIacEnabled() {
+					SyncChanges()
+				}
 			case <-quit:
 				ticker.Stop()
 				return
@@ -758,37 +770,13 @@ func shouldSkipResource(path string) bool {
 			return true
 		}
 	}
-	hasIgnoredNs, nsName := IsIgnoredNamespaceInFile(path)
+	hasIgnoredNs, nsName := isIgnoredNamespaceInFile(path)
 	if hasIgnoredNs {
 		iaclogger.Infof("😑 Skipping (because contains ignored namespace '%s'): %s", *nsName, path)
 		return true
 	}
 	return false
 }
-
-// removeFieldAtPath recursively searches through the data structure.
-// If the current path matches the target path, it removes the specified field.
-// func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
-// 	// Check if the current path matches the target path for removal.
-// 	if len(currentPath) >= len(targetPath) && strings.Join(currentPath[len(currentPath)-len(targetPath):], "/") == strings.Join(targetPath, "/") {
-// 		delete(data, field)
-// 	}
-// 	// Continue searching within the map.
-// 	for key, value := range data {
-// 		switch v := value.(type) {
-// 		case map[string]interface{}:
-// 			removeFieldAtPath(v, field, targetPath, append(currentPath, key))
-// 		case []interface{}:
-// 			for i, item := range v {
-// 				if itemMap, ok := item.(map[string]interface{}); ok {
-// 					// Construct a new path for each item in the list.
-// 					newPath := append(currentPath, fmt.Sprintf("%s[%d]", key, i))
-// 					removeFieldAtPath(itemMap, field, targetPath, newPath)
-// 				}
-// 			}
-// 		}
-// 	}
-// }
 
 func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
 	// Check if the current path matches the target path for removal.
