@@ -65,38 +65,6 @@ func exampleSecret(namespace string) (*v1.Secret, error) {
 
 }
 
-//func CreateSecretJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-//	cmd := structs.CreateCommand("create", "Create Kubernetes secret", job)
-//	wg.Add(1)
-//	go func(wg *sync.WaitGroup) {
-//		defer wg.Done()
-//		cmd.Start(job, "Creating secret")
-//
-//		secret := punqUtils.InitSecret()
-//		secret.ObjectMeta.Name = service.ControllerName
-//		secret.ObjectMeta.Namespace = namespace.Name
-//		delete(secret.StringData, "exampleData") // delete example data
-//
-//		for _, container := range service.Containers {
-//			for _, envVar := range container.EnvVars {
-//				if envVar.Type == dtos.EnvVarKeyVault {
-//					//envVar.Type == "PLAINTEXT" ||
-//					//envVar.Type == "HOSTNAME" {
-//					secret.StringData[envVar.Name] = envVar.Value
-//				}
-//			}
-//		}
-//		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, &service)
-//
-//		_, err := CreateSecret(namespace.Name, &secret)
-//		if err != nil {
-//			cmd.Fail(job, fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
-//		} else {
-//			cmd.Success(job, "Created secret")
-//		}
-//	}(wg)
-//}
-
 func GetDecodedSecret(secretName string, namespace string) (map[string]string, error) {
 	client := getCoreClient()
 	secret, err := client.Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
@@ -111,33 +79,6 @@ func GetDecodedSecret(secretName string, namespace string) (map[string]string, e
 
 	return decodedData, nil
 }
-
-//func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-//	cmd := structs.CreateCommand("delete", "Delete Kubernetes secret", job)
-//	wg.Add(1)
-//	go func(wg *sync.WaitGroup) {
-//		defer wg.Done()
-//		cmd.Start(job, "Deleting secret")
-//
-//		provider, err := punq.NewKubeProvider(nil)
-//		if err != nil {
-//			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-//			return
-//		}
-//		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
-//
-//		deleteOptions := metav1.DeleteOptions{
-//			GracePeriodSeconds: punqUtils.Pointer[int64](5),
-//		}
-//
-//		err = secretClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
-//		if err != nil {
-//			cmd.Fail(job, fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()))
-//		} else {
-//			cmd.Success(job, "Deleted secret")
-//		}
-//	}(wg)
-//}
 
 // -----------------------------------------------------
 // Cluster Image Pull Secret
@@ -355,18 +296,6 @@ func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespac
 		}
 	}(wg)
 }
-
-//func ContainerSecretDoesExistForStage(namespace dtos.K8sNamespaceDto) bool {
-//	provider, err := punq.NewKubeProvider(nil)
-//	if provider == nil || err != nil {
-//		return false
-//	}
-//	secret, err := provider.ClientSet.CoreV1().Secrets(namespace.Name).Get(context.TODO(), "container-secret-"+namespace.Name, metav1.GetOptions{})
-//	if err != nil {
-//		return false
-//	}
-//	return secret != nil
-//}
 
 //-----------------------------------------------------
 // Watch Secrets
