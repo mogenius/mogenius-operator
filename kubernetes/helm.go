@@ -156,17 +156,7 @@ func HelmRepoList() ([]*repo.Entry, error) {
 		return []*repo.Entry{}, fmt.Errorf("failed to load repository file: %s", err)
 	}
 
-	result := []*repo.Entry{}
-	for _, re := range repoFile.Repositories {
-		// re.CAFile = ""
-		// re.CertFile = ""
-		// re.KeyFile = ""
-		// re.Username = ""
-		// re.Password = ""
-		result = append(result, re)
-	}
-
-	return result, nil
+	return repoFile.Repositories, nil
 }
 
 func HelmRepoRemove(helmRepoName string) (string, error) {
