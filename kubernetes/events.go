@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/db"
@@ -13,8 +14,11 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	"github.com/mogenius/punq/logger"
+	punqutils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -267,4 +271,27 @@ func watchEvents(provider *punq.KubeProvider) error {
 			// You can adjust the time as per your needs.
 		}
 	}
+}
+
+func AllEventsForNamespace(namespaceName string) []v1Core.Event {
+	result := []v1Core.Event{}
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return result
+	}
+	eventList, err := provider.ClientSet.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllEvents ERROR: %s", err.Error())
+		return result
+	}
+
+	for _, event := range eventList.Items {
+		if !punqutils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, event.ObjectMeta.Namespace) {
+			event.Kind = "Event"
+			event.APIVersion = "v1"
+			result = append(result, event)
+		}
+	}
+	return result
 }

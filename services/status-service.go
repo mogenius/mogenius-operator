@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
+	"sort"
+	"strings"
+
 	punq "github.com/mogenius/punq/kubernetes"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
-	"sort"
-	"strings"
 )
 
 // Due to issues importing the library, the following constants are copied from the library
@@ -817,26 +818,9 @@ func NewResourceController(resourceController string) ResourceController {
 //}
 
 func StatusService(r ServiceStatusRequest) interface{} {
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		ServiceLogger.Warningf("Warningf: %s", err.Error())
-		return nil
-	}
+	events := kubernetes.AllEventsForNamespace(r.Namespace)
 
-	allK8sEvents := punq.AllK8sEvents(r.Namespace, nil)
-
-	var events []corev1.Event
-	if allK8sEvents.Error != nil {
-		ServiceLogger.Warningf("Warning fetching events: %s", allK8sEvents.Error)
-		events = []corev1.Event{}
-	}
-
-	if allK8sEvents.Result != nil {
-		events = allK8sEvents.Result.([]corev1.Event)
-	}
-
-	resourceItems := []ResourceItem{}
-	resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
+	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
 	if err != nil {
 		ServiceLogger.Warningf("Warning statusItems: %v", err)
 	}
@@ -857,8 +841,9 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	return ProcessServiceStatusResponse(resourceItems)
 }
 
-func kubernetesItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset, resourceItems []ResourceItem) ([]ResourceItem, error) {
-	resourceInterface, err := controller(namespace, name, resourceController, clientset)
+func kubernetesItems(namespace string, name string, resourceController ResourceController) ([]ResourceItem, error) {
+	resourceItems := []ResourceItem{}
+	resourceInterface, err := controller(namespace, name, resourceController)
 	if err != nil {
 		ServiceLogger.Warningf("\nWarning fetching controller: %s\n", err)
 		return resourceItems, err
@@ -867,7 +852,7 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	metaName, metaNamespace, kind, references, labelSelector, object := status(resourceInterface)
 	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
 
-	pods, err := pods(namespace, labelSelector, clientset)
+	pods, err := pods(namespace, labelSelector)
 	if err != nil {
 		ServiceLogger.Warningf("\nWarning fetching pods: %s\n", err)
 		return resourceItems, err
@@ -881,7 +866,7 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 			for _, ownerRef := range pod.OwnerReferences {
 				// only controller parents
 				if *ownerRef.Controller {
-					resourceItems = recursiveOwnerRef(pod.Namespace, ownerRef, clientset, resourceItems)
+					resourceItems = recursiveOwnerRef(pod.Namespace, ownerRef, resourceItems)
 				}
 			}
 		}
@@ -890,23 +875,29 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	return resourceItems, nil
 }
 
-func controller(namespace string, controllerName string, resourceController ResourceController, clientset *kubernetes.Clientset) (interface{}, error) {
+func controller(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
 	var err error
 	var resourceInterface interface{}
 
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		ServiceLogger.Warningf("Warningf: %s", err.Error())
+		return nil, nil
+	}
+
 	switch resourceController {
 	case Deployment:
-		resourceInterface, err = clientset.AppsV1().Deployments(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface, err = provider.ClientSet.AppsV1().Deployments(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case ReplicaSet:
-		resourceInterface, err = clientset.AppsV1().ReplicaSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface, err = provider.ClientSet.AppsV1().ReplicaSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case StatefulSet:
-		resourceInterface, err = clientset.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case DaemonSet:
-		resourceInterface, err = clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case Job:
-		resourceInterface, err = clientset.BatchV1().Jobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface, err = provider.ClientSet.BatchV1().Jobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case CronJob:
-		resourceInterface, err = clientset.BatchV1().CronJobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface, err = provider.ClientSet.BatchV1().CronJobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	}
 
 	if err != nil {
@@ -917,10 +908,15 @@ func controller(namespace string, controllerName string, resourceController Reso
 	return resourceInterface, nil
 }
 
-func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kubernetes.Clientset) (*corev1.PodList, error) {
+func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
 	if labelSelector != nil {
+		provider, err := punq.NewKubeProvider(nil)
+		if err != nil {
+			ServiceLogger.Warningf("Warningf: %s", err.Error())
+			return nil, nil
+		}
 		selector := metav1.FormatLabelSelector(labelSelector)
-		pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+		pods, err := provider.ClientSet.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
 			LabelSelector: selector,
 			FieldSelector: "status.phase!=Succeeded",
 		})
@@ -1021,7 +1017,7 @@ func podItem(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem {
 	return resourceItems
 }
 
-func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clientset *kubernetes.Clientset, resourceItems []ResourceItem) []ResourceItem {
+func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, resourceItems []ResourceItem) []ResourceItem {
 	// Skip already included resourceItems
 	for _, item := range resourceItems {
 		if item.Kind == ownerRef.Kind {
@@ -1030,7 +1026,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 	}
 
 	// Fetch next k8s controller
-	resourceInterface, err := controller(namespace, ownerRef.Name, NewResourceController(ownerRef.Kind), clientset)
+	resourceInterface, err := controller(namespace, ownerRef.Name, NewResourceController(ownerRef.Kind))
 	if err != nil {
 		ServiceLogger.Warningf("\nWarning fetching resources: %s\n", err)
 		return resourceItems
@@ -1044,7 +1040,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 	if len(references) > 0 {
 		for _, parentRef := range references {
 			if *parentRef.Controller {
-				return recursiveOwnerRef(namespace, parentRef, clientset, resourceItems)
+				return recursiveOwnerRef(namespace, parentRef, resourceItems)
 			}
 		}
 	}
