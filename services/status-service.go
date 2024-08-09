@@ -740,87 +740,93 @@ func NewResourceController(resourceController string) ResourceController {
 //	}
 //}
 
-//func StatusService(r ServiceStatusRequest) interface{} {
-//	//ServiceLogger.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
+//	func StatusService(r ServiceStatusRequest) interface{} {
+//		//ServiceLogger.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
 //
-//	provider, err := punq.NewKubeProvider(nil)
-//	if err != nil {
-//		ServiceLogger.Warningf("Warningf: %s", err.Error())
-//		return nil
-//	}
-//
-//	// Create a channel to receive an array of events
-//	eventsChan := make(chan []corev1.Event, 1)
-//	var wg sync.WaitGroup
-//
-//	// Context with timeout to handle cancellation and timeout
-//	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-//	defer cancel()
-//
-//	wg.Add(1)
-//	// Run a goroutine to fetch k8s events then push them into the channel before timeout
-//	go requestEvents(r.Namespace, ctx, &wg, eventsChan)
-//
-//	go func() {
-//		wg.Wait()         // Wait for all goroutines to finish.
-//		close(eventsChan) // IMPORTANT!: Safely close channel after all sends are done.
-//	}()
-//
-//	resourceItems := []ResourceItem{}
-//	resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
-//	if err != nil {
-//		ServiceLogger.Warningf("Warning statusItems: %v", err)
-//	}
-//
-//	resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
-//	if err != nil {
-//		ServiceLogger.Warningf("Warning buildItem: %v", err)
-//	}
-//
-//	// Wait for the result from the channel or timeout
-//	select {
-//	case events, ok := <-eventsChan:
-//		if !ok {
-//			ServiceLogger.Warningf("Warning event channel closed.")
-//			break
+//		provider, err := punq.NewKubeProvider(nil)
+//		if err != nil {
+//			ServiceLogger.Warningf("Warningf: %s", err.Error())
+//			return nil
 //		}
 //
-//		// Sort events by lastTimestamp from newest to oldest
-//		sort.SliceStable(events, func(i, j int) bool {
-//			return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
-//		})
+//		// Create a channel to receive an array of events
+//		eventsChan := make(chan []corev1.Event, 1)
+//		var wg sync.WaitGroup
 //
-//		// Iterate events and add them to resourceItems
-//	EventLoop:
-//		for _, event := range events {
-//			for i, item := range resourceItems {
-//				if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
-//					resourceItems[i].Events = append(resourceItems[i].Events, event)
-//					continue EventLoop
+//		// Context with timeout to handle cancellation and timeout
+//		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+//		defer cancel()
+//
+//		wg.Add(1)
+//		// Run a goroutine to fetch k8s events then push them into the channel before timeout
+//		go requestEvents(r.Namespace, ctx, &wg, eventsChan)
+//
+//		go func() {
+//			wg.Wait()         // Wait for all goroutines to finish.
+//			close(eventsChan) // IMPORTANT!: Safely close channel after all sends are done.
+//		}()
+//
+//		resourceItems := []ResourceItem{}
+//		resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
+//		if err != nil {
+//			ServiceLogger.Warningf("Warning statusItems: %v", err)
+//		}
+//
+//		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
+//		if err != nil {
+//			ServiceLogger.Warningf("Warning buildItem: %v", err)
+//		}
+//
+//		// Wait for the result from the channel or timeout
+//		select {
+//		case events, ok := <-eventsChan:
+//			if !ok {
+//				ServiceLogger.Warningf("Warning event channel closed.")
+//				break
+//			}
+//
+//			// Sort events by lastTimestamp from newest to oldest
+//			sort.SliceStable(events, func(i, j int) bool {
+//				return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
+//			})
+//
+//			// Iterate events and add them to resourceItems
+//		EventLoop:
+//			for _, event := range events {
+//				for i, item := range resourceItems {
+//					if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
+//						resourceItems[i].Events = append(resourceItems[i].Events, event)
+//						continue EventLoop
+//					}
 //				}
 //			}
+//		case <-ctx.Done():
+//			ServiceLogger.Warningf("Warning timeout waiting for events")
 //		}
-//	case <-ctx.Done():
-//		ServiceLogger.Warningf("Warning timeout waiting for events")
+//
+//		// Debug logs
+//		// jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
+//		// if err != nil {
+//		// 	ServiceLogger.Warningf("Warning marshaling JSON: %v", err)
+//		// 	return nil
+//		// }
+//		// ServiceLogger.Debugf("JSON: %s", jsonData)
+//
+//		// return resourceItems
+//
+//		return ProcessServiceStatusResponse(resourceItems)
 //	}
-//
-//	// Debug logs
-//	// jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
-//	// if err != nil {
-//	// 	ServiceLogger.Warningf("Warning marshaling JSON: %v", err)
-//	// 	return nil
-//	// }
-//	// ServiceLogger.Debugf("JSON: %s", jsonData)
-//
-//	// return resourceItems
-//
-//	return ProcessServiceStatusResponse(resourceItems)
-//}
+var debounce = utils.NewDebounce()
 
 func StatusService(r ServiceStatusRequest) interface{} {
+	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
+	result := debounce.CallFn(key, func() interface{} {
+		return StatusService2(r)
+	})
+	return result
+}
 
-	s := ServiceStatusResponse{}
-	return s
+func StatusService2(r ServiceStatusRequest) interface{} {
 	events := kubernetes.AllEventsForNamespace(r.Namespace)
 
 	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
