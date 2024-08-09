@@ -93,7 +93,17 @@ type VolumeStatusMessage struct {
 	Message string                  `json:"message"`
 }
 
-func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
+var statusMogeniusNfsDebounce = utils.NewDebounce()
+
+func StatusMogeniusNfs(r NfsStatusRequest) interface{} {
+	key := fmt.Sprintf("%s-%s-%s", r.Name, r.Namespace, r.StorageAPIObject)
+	result := statusMogeniusNfsDebounce.CallFn(key, func() interface{} {
+		return StatusMogeniusNfs2(r)
+	})
+	return result
+}
+
+func StatusMogeniusNfs2(r NfsStatusRequest) NfsStatusResponse {
 	prefix := fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix)
 	// normalize name, convert no prefixed 'nfs-server-pod-' to prefixed and vice versa
 	nonPrefixName := strings.TrimPrefix(r.Name, prefix)

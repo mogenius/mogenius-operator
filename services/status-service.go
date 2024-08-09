@@ -816,11 +816,11 @@ func NewResourceController(resourceController string) ResourceController {
 //
 //		return ProcessServiceStatusResponse(resourceItems)
 //	}
-var debounce = utils.NewDebounce()
+var StatusServiceDebounce = utils.NewDebounce()
 
 func StatusService(r ServiceStatusRequest) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
-	result := debounce.CallFn(key, func() interface{} {
+	result := StatusServiceDebounce.CallFn(key, func() interface{} {
 		return StatusService2(r)
 	})
 	return result
