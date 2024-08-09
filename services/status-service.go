@@ -818,6 +818,8 @@ func NewResourceController(resourceController string) ResourceController {
 //}
 
 func StatusService(r ServiceStatusRequest) interface{} {
+	s := ServiceStatusResponse{}
+	return s
 	events := kubernetes.AllEventsForNamespace(r.Namespace)
 
 	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
