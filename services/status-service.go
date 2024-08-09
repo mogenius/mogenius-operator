@@ -816,12 +816,12 @@ func NewResourceController(resourceController string) ResourceController {
 //
 //		return ProcessServiceStatusResponse(resourceItems)
 //	}
-var StatusServiceDebounce = utils.NewDebounce()
+var StatusServiceDebounce = utils.NewDebounce("StatusServiceDebounce")
 
 func StatusService(r ServiceStatusRequest) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
-	result, _ := StatusServiceDebounce.CallFn(key, func() interface{} {
-		return StatusService2(r)
+	result, _ := StatusServiceDebounce.CallFn(key, func() (interface{}, error) {
+		return StatusService2(r), nil
 	})
 	return result
 }
@@ -884,7 +884,17 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	return resourceItems, nil
 }
 
+var controllerDebounce = utils.NewDebounce("controller")
+
 func controller(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
+	key := fmt.Sprintf("%s-%s-%s", namespace, controllerName, resourceController.String())
+	result, err := controllerDebounce.CallFn(key, func() (interface{}, error) {
+		return controller2(namespace, controllerName, resourceController)
+	})
+	return result, *err
+}
+
+func controller2(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
 	var err error
 	var resourceInterface interface{}
 
@@ -917,7 +927,17 @@ func controller(namespace string, controllerName string, resourceController Reso
 	return resourceInterface, nil
 }
 
+var podsDebounce = utils.NewDebounce("podsDebounce")
+
 func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
+	key := fmt.Sprintf("%s-%s", namespace, labelSelector)
+	result, err := podsDebounce.CallFn(key, func() (interface{}, error) {
+		return pods2(namespace, labelSelector)
+	})
+	return result.(*corev1.PodList), *err
+}
+
+func pods2(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
 	if labelSelector != nil {
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {

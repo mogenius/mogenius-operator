@@ -66,13 +66,13 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		updateInfrastructureYaml(job, r.Service, &wg)
 	}
 
-	crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
-		Id:          r.Service.Id,
-		DisplayName: r.Service.DisplayName,
-		CreatedBy:   "MISSING_FIELD",
-		Controller:  r.Service.ControllerName,
-		AppId:       "MISSING_FIELD",
-	}, &wg)
+	// crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
+	// 	Id:          r.Service.Id,
+	// 	DisplayName: r.Service.DisplayName,
+	// 	CreatedBy:   "MISSING_FIELD",
+	// 	Controller:  r.Service.ControllerName,
+	// 	AppId:       "MISSING_FIELD",
+	// }, &wg)
 
 	go func() {
 		wg.Wait()
@@ -160,12 +160,12 @@ func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	return punq.PodStatus(r.Namespace, r.Name, r.StatusOnly, nil)
 }
 
-var ServicePodStatusDebounce = utils.NewDebounce()
+var ServicePodStatusDebounce = utils.NewDebounce("ServicePodStatusDebounce")
 
 func ServicePodStatus(r ServicePodsRequest) interface{} {
 	key := fmt.Sprintf("%s-%s", r.Namespace, r.ControllerName)
-	result, _ := ServicePodStatusDebounce.CallFn(key, func() interface{} {
-		return ServicePodStatus2(r)
+	result, _ := ServicePodStatusDebounce.CallFn(key, func() (interface{}, error) {
+		return ServicePodStatus2(r), nil
 	})
 	return result
 }
