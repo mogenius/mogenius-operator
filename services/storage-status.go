@@ -97,7 +97,7 @@ var statusMogeniusNfsDebounce = utils.NewDebounce()
 
 func StatusMogeniusNfs(r NfsStatusRequest) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", r.Name, r.Namespace, r.StorageAPIObject)
-	result := statusMogeniusNfsDebounce.CallFn(key, func() interface{} {
+	result, _ := statusMogeniusNfsDebounce.CallFn(key, func() interface{} {
 		return StatusMogeniusNfs2(r)
 	})
 	return result

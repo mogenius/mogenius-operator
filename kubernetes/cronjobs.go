@@ -557,7 +557,7 @@ var ListCronjobJobsDebounce = utils.NewDebounce()
 
 func ListCronjobJobs(controllerName string, namespaceName string, projectId string) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", controllerName, namespaceName, projectId)
-	result := ListCronjobJobsDebounce.CallFn(key, func() interface{} {
+	result, _ := ListCronjobJobsDebounce.CallFn(key, func() interface{} {
 		return ListCronjobJobs2(controllerName, namespaceName, projectId)
 	})
 	return result

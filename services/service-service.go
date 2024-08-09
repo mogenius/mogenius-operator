@@ -164,7 +164,7 @@ var ServicePodStatusDebounce = utils.NewDebounce()
 
 func ServicePodStatus(r ServicePodsRequest) interface{} {
 	key := fmt.Sprintf("%s-%s", r.Namespace, r.ControllerName)
-	result := ServicePodStatusDebounce.CallFn(key, func() interface{} {
+	result, _ := ServicePodStatusDebounce.CallFn(key, func() interface{} {
 		return ServicePodStatus2(r)
 	})
 	return result
