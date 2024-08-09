@@ -160,7 +160,17 @@ func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	return punq.PodStatus(r.Namespace, r.Name, r.StatusOnly, nil)
 }
 
+var ServicePodStatusDebounce = utils.NewDebounce()
+
 func ServicePodStatus(r ServicePodsRequest) interface{} {
+	key := fmt.Sprintf("%s-%s", r.Namespace, r.ControllerName)
+	result := ServicePodStatusDebounce.CallFn(key, func() interface{} {
+		return ServicePodStatus2(r)
+	})
+	return result
+}
+
+func ServicePodStatus2(r ServicePodsRequest) interface{} {
 	return punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
 }
 

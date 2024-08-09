@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/utils"
 	"sort"
 	"strings"
 	"sync"
@@ -552,7 +553,17 @@ func hasLabel(labels map[string]string, labelKey string, labelValue string) bool
 	return exists && labels[labelKey] == labelValue
 }
 
-func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInfoResponse {
+var ListCronjobJobsDebounce = utils.NewDebounce()
+
+func ListCronjobJobs(controllerName string, namespaceName string, projectId string) interface{} {
+	key := fmt.Sprintf("%s-%s-%s", controllerName, namespaceName, projectId)
+	result := ListCronjobJobsDebounce.CallFn(key, func() interface{} {
+		return ListCronjobJobs2(controllerName, namespaceName, projectId)
+	})
+	return result
+}
+
+func ListCronjobJobs2(controllerName string, namespaceName string, projectId string) ListJobInfoResponse {
 	list := ListJobInfoResponse{
 		ControllerName: controllerName,
 		NamespaceName:  namespaceName,
