@@ -25,15 +25,21 @@ func (d *Debounce) CallFn(key string, fn func() interface{}) interface{} {
 		<-entry.done
 		return entry.result
 	}
-	result := fn()
 
 	entry := &DebounceEntry{done: make(chan struct{})}
 	d.cache[key] = entry
 	d.mutex.Unlock()
 
+	result := fn()
+
+	defer func() {
+		d.mutex.Lock()
+		close(entry.done)
+		delete(d.cache, key)
+		d.mutex.Unlock()
+	}()
+
 	entry.result = result
 
-	close(entry.done)
-	delete(d.cache, key)
 	return result
 }
