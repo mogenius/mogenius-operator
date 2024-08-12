@@ -760,19 +760,24 @@ func kubernetesRevertFromPath(path string) error {
 }
 
 func shouldSkipResource(path string) bool {
+	if strings.Contains(path, "/kube-root-ca.crt") {
+		iaclogger.Debugf("😑 Skipping (because kube-root-ca.crt): %s", path)
+		return true
+	}
+
 	if strings.Contains(path, "/pods/") {
-		iaclogger.Infof("😑 Skipping (because pods won't by synced): %s", path)
+		iaclogger.Debugf("😑 Skipping (because pods won't by synced): %s", path)
 		return true
 	}
 	if utils.CONFIG.Misc.Stage != "local" {
 		if strings.Contains(path, "/mogenius-k8s-manager") {
-			iaclogger.Infof("😑 Skipping (because contains keyword mogenius-k8s-manager): %s", path)
+			iaclogger.Debugf("😑 Skipping (because contains keyword mogenius-k8s-manager): %s", path)
 			return true
 		}
 	}
 	hasIgnoredNs, nsName := isIgnoredNamespaceInFile(path)
 	if hasIgnoredNs {
-		iaclogger.Infof("😑 Skipping (because contains ignored namespace '%s'): %s", *nsName, path)
+		iaclogger.Debugf("😑 Skipping (because contains ignored namespace '%s'): %s", *nsName, path)
 		return true
 	}
 	return false
