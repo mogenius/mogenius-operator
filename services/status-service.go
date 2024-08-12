@@ -835,6 +835,8 @@ func StatusService2(r ServiceStatusRequest) interface{} {
 	if err != nil {
 		ServiceLogger.Warningf("Warning statusItems: %v", err)
 	}
+
+	// buildItem
 	if r.GitRepository {
 		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
 		if err != nil {
