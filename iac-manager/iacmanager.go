@@ -760,7 +760,7 @@ func kubernetesRevertFromPath(path string) error {
 }
 
 func shouldSkipResource(path string) bool {
-	if strings.Contains(path, "/kube-root-ca.crt") {
+	if strings.Contains(path, "kube-root-ca.crt") {
 		iaclogger.Debugf("😑 Skipping (because kube-root-ca.crt): %s", path)
 		return true
 	}
