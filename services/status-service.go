@@ -979,6 +979,12 @@ func buildItem(namespace, name string, resourceItems []ResourceItem) ([]Resource
 		return resourceItems, nil
 	}
 
+	// TODO Remove this code
+	//lastJob := LastBuildForNamespaceAndControllerName(namespace, name)
+	//if lastJob.IsEmpty() {
+	//	return resourceItems, nil
+	//}
+
 	item := &ResourceItem{
 		Kind:         "BuildJob",
 		Name:         name,
