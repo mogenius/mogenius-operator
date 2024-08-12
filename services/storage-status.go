@@ -93,7 +93,7 @@ type VolumeStatusMessage struct {
 	Message string                  `json:"message"`
 }
 
-var statusMogeniusNfsDebounce = utils.NewDebounce("statusMogeniusNfsDebounce", 1000 * time.Millisecond)
+var statusMogeniusNfsDebounce = utils.NewDebounce("statusMogeniusNfsDebounce", 1000*time.Millisecond)
 
 func StatusMogeniusNfs(r NfsStatusRequest) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", r.Name, r.Namespace, r.StorageAPIObject)
