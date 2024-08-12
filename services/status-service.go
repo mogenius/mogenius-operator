@@ -9,6 +9,7 @@ import (
 	"mogenius-k8s-manager/utils"
 	"sort"
 	"strings"
+	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	appsv1 "k8s.io/api/apps/v1"
@@ -71,6 +72,7 @@ type ServiceStatusRequest struct {
 	Namespace      string `json:"namespace" validate:"required"`
 	ControllerName string `json:"controllerName" validate:"required"`
 	Controller     string `json:"controller" validate:"required"`
+	GitRepository  bool   `json:"gitRepository"`
 }
 
 func ServiceStatusRequestExample() ServiceStatusRequest {
@@ -816,11 +818,11 @@ func NewResourceController(resourceController string) ResourceController {
 //
 //		return ProcessServiceStatusResponse(resourceItems)
 //	}
-var StatusServiceDebounce = utils.NewDebounce("StatusServiceDebounce")
+var statusServiceDebounce = utils.NewDebounce("StatusServiceDebounce", 1000*time.Millisecond)
 
 func StatusService(r ServiceStatusRequest) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
-	result, _ := StatusServiceDebounce.CallFn(key, func() (interface{}, error) {
+	result, _ := statusServiceDebounce.CallFn(key, func() (interface{}, error) {
 		return StatusService2(r), nil
 	})
 	return result
@@ -833,10 +835,11 @@ func StatusService2(r ServiceStatusRequest) interface{} {
 	if err != nil {
 		ServiceLogger.Warningf("Warning statusItems: %v", err)
 	}
-
-	resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
-	if err != nil {
-		ServiceLogger.Warningf("Warning buildItem: %v", err)
+	if r.GitRepository {
+		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
+		if err != nil {
+			ServiceLogger.Warningf("Warning buildItem: %v", err)
+		}
 	}
 
 	for _, event := range events {
@@ -850,7 +853,17 @@ func StatusService2(r ServiceStatusRequest) interface{} {
 	return ProcessServiceStatusResponse(resourceItems)
 }
 
+var kubernetesItemsDebounce = utils.NewDebounce("kubernetesItemsDebounce", 1000*time.Millisecond)
+
 func kubernetesItems(namespace string, name string, resourceController ResourceController) ([]ResourceItem, error) {
+	key := fmt.Sprintf("%s-%s-%s", namespace, name, resourceController)
+	result, err := kubernetesItemsDebounce.CallFn(key, func() (interface{}, error) {
+		return kubernetesItems2(namespace, name, resourceController)
+	})
+	return result.([]ResourceItem), *err
+}
+
+func kubernetesItems2(namespace string, name string, resourceController ResourceController) ([]ResourceItem, error) {
 	resourceItems := []ResourceItem{}
 	resourceInterface, err := controller(namespace, name, resourceController)
 	if err != nil {
@@ -884,7 +897,7 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	return resourceItems, nil
 }
 
-var controllerDebounce = utils.NewDebounce("controller")
+var controllerDebounce = utils.NewDebounce("controllerDebounce", 1000*time.Millisecond)
 
 func controller(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
 	key := fmt.Sprintf("%s-%s-%s", namespace, controllerName, resourceController.String())
@@ -927,7 +940,7 @@ func controller2(namespace string, controllerName string, resourceController Res
 	return resourceInterface, nil
 }
 
-var podsDebounce = utils.NewDebounce("podsDebounce")
+var podsDebounce = utils.NewDebounce("podsDebounce", 1000*time.Millisecond)
 
 func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
 	key := fmt.Sprintf("%s-%s", namespace, labelSelector)

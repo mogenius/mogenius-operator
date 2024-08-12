@@ -160,11 +160,11 @@ func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	return punq.PodStatus(r.Namespace, r.Name, r.StatusOnly, nil)
 }
 
-var ServicePodStatusDebounce = utils.NewDebounce("ServicePodStatusDebounce")
+var servicePodStatusDebounce = utils.NewDebounce("ServicePodStatusDebounce", 1000*time.Millisecond)
 
 func ServicePodStatus(r ServicePodsRequest) interface{} {
 	key := fmt.Sprintf("%s-%s", r.Namespace, r.ControllerName)
-	result, _ := ServicePodStatusDebounce.CallFn(key, func() (interface{}, error) {
+	result, _ := servicePodStatusDebounce.CallFn(key, func() (interface{}, error) {
 		return ServicePodStatus2(r), nil
 	})
 	return result

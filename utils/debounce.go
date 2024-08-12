@@ -14,15 +14,17 @@ type DebounceEntry struct {
 }
 
 type Debounce struct {
-	name  string
-	cache map[string]*DebounceEntry
-	mutex sync.Mutex
+	name     string
+	cacheTTL time.Duration
+	cache    map[string]*DebounceEntry
+	mutex    sync.Mutex
 }
 
-func NewDebounce(name string) *Debounce {
+func NewDebounce(name string, cacheTTL time.Duration) *Debounce {
 	return &Debounce{
-		name:  name,
-		cache: make(map[string]*DebounceEntry),
+		name:     name,
+		cacheTTL: cacheTTL,
+		cache:    make(map[string]*DebounceEntry),
 	}
 }
 
@@ -50,7 +52,7 @@ func (d *Debounce) CallFn(key string, fn func() (interface{}, error)) (interface
 	<-entry.done
 
 	go func() {
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(d.cacheTTL)
 		d.mutex.Lock()
 		delete(d.cache, key)
 		d.mutex.Unlock()
