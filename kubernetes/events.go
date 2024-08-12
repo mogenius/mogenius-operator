@@ -273,7 +273,7 @@ func watchEvents(provider *punq.KubeProvider) error {
 	}
 }
 
-var allEventsForNamespaceDebounce = utils.NewDebounce("AllEventsForNamespaceDebounce", 1000*time.Millisecond)
+var allEventsForNamespaceDebounce = utils.NewDebounce("allEventsForNamespaceDebounce", 1000*time.Millisecond)
 
 func AllEventsForNamespace(namespaceName string) []v1Core.Event {
 	key := fmt.Sprintf("%s", namespaceName)

@@ -818,7 +818,7 @@ func NewResourceController(resourceController string) ResourceController {
 //
 //		return ProcessServiceStatusResponse(resourceItems)
 //	}
-var statusServiceDebounce = utils.NewDebounce("StatusServiceDebounce", 1000*time.Millisecond)
+var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond)
 
 func StatusService(r ServiceStatusRequest) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)

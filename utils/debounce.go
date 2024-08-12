@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
@@ -32,7 +31,7 @@ func (d *Debounce) CallFn(key string, fn func() (interface{}, error)) (interface
 	key = fmt.Sprintf("%s-%s", d.name, key)
 	d.mutex.Lock()
 	if entry, found := d.cache[key]; found {
-		log.Infof("--- DEBOUNCED_CALL_FOR_KEY %s ---", key)
+		// log.Infof("--- DEBOUNCED_CALL_FOR_KEY %s ---", key)
 		d.mutex.Unlock()
 		<-entry.done
 		return entry.result, entry.err

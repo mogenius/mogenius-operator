@@ -252,7 +252,17 @@ func DeleteBuild(buildId uint64) structs.BuildDeleteResult {
 	return structs.BuildDeleteResult{Result: fmt.Sprintf("Build '%d' deleted successfuly (or has been deleted before).", buildId)}
 }
 
+var listAllDebounce = utils.NewDebounce("listAllDebounce", 1000*time.Millisecond)
+
 func ListAll() []structs.BuildJob {
+	key := fmt.Sprintf("%s-%s", "ListAll")
+	result, _ := listAllDebounce.CallFn(key, func() (interface{}, error) {
+		return ListAll2(), nil
+	})
+	return result.([]structs.BuildJob)
+}
+
+func ListAll2() []structs.BuildJob {
 	return db.GetBuildJobListFromDb()
 }
 
@@ -363,7 +373,7 @@ func LastBuildInfosOfServices(data structs.BuildTaskListOfServicesRequest) []str
 // 	return result
 // }
 
-var lastBuildForNamespaceAndControllerNameDebounce = utils.NewDebounce("LastBuildForNamespaceAndControllerNameDebounce", 5*time.Second)
+var lastBuildForNamespaceAndControllerNameDebounce = utils.NewDebounce("lastBuildForNamespaceAndControllerNameDebounce", 2000*time.Millisecond)
 
 func LastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
 	key := fmt.Sprintf("%s-%s", namespace, controllerName)
