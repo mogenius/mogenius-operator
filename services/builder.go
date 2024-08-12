@@ -373,7 +373,7 @@ func LastBuildInfosOfServices(data structs.BuildTaskListOfServicesRequest) []str
 // 	return result
 // }
 
-var lastBuildForNamespaceAndControllerNameDebounce = utils.NewDebounce("lastBuildForNamespaceAndControllerNameDebounce", 2000*time.Millisecond)
+var lastBuildForNamespaceAndControllerNameDebounce = utils.NewDebounce("lastBuildForNamespaceAndControllerNameDebounce", 1000*time.Millisecond)
 
 func LastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
 	key := fmt.Sprintf("%s-%s", namespace, controllerName)
