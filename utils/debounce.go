@@ -55,7 +55,13 @@ func (d *Debounce) CallFn(key string, fn func() (interface{}, error)) (interface
 		result, err := fn()
 		entry.result = result
 		entry.err = &err
-		close(entry.done)
+
+		d.mutex.Lock()
+		if entry.done != nil {
+			close(entry.done)
+			entry.done = nil
+		}
+		d.mutex.Unlock()
 	})
 
 	//entry := &DebounceEntry{done: make(chan struct{})}
