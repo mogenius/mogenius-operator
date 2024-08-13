@@ -34,6 +34,7 @@ func NewDebounce(name string, cacheTTL time.Duration, timer time.Duration) *Debo
 func (d *Debounce) CallFn(key string, fn func() (interface{}, error)) (interface{}, *error) {
 	key = fmt.Sprintf("%s-%s", d.name, key)
 	d.mutex.Lock()
+
 	if entry, found := d.cache[key]; found {
 		log.Infof("--- DEBOUNCED_CALL_FOR_KEY %s ---", key)
 		if entry.timer != nil {
@@ -51,12 +52,10 @@ func (d *Debounce) CallFn(key string, fn func() (interface{}, error)) (interface
 	d.mutex.Unlock()
 
 	entry.timer = time.AfterFunc(d.timer, func() {
-		go func() {
-			result, err := fn()
-			entry.result = result
-			entry.err = &err
-			close(entry.done)
-		}()
+		result, err := fn()
+		entry.result = result
+		entry.err = &err
+		close(entry.done)
 	})
 
 	//entry := &DebounceEntry{done: make(chan struct{})}
