@@ -355,17 +355,7 @@ func GetLastBuildJobInfosFromDb(data structs.BuildTaskRequest) structs.BuildJobI
 	return result
 }
 
-var getLastBuildForNamespaceAndControllerNameDebounce = utils.NewDebounce("getLastBuildForNamespaceAndControllerNameDebounce", 500*time.Millisecond)
-
 func GetLastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
-	key := fmt.Sprintf("%s-%s", namespace, controllerName)
-	result, _ := getLastBuildForNamespaceAndControllerNameDebounce.CallFn(key, func() (interface{}, error) {
-		return GetLastBuildForNamespaceAndControllerName2(namespace, controllerName), nil
-	})
-	return result.(structs.BuildJobInfo)
-}
-
-func GetLastBuildForNamespaceAndControllerName2(namespace string, controllerName string) structs.BuildJobInfo {
 	result := structs.BuildJobInfo{}
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))

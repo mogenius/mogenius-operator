@@ -818,7 +818,7 @@ func NewResourceController(resourceController string) ResourceController {
 //
 //		return ProcessServiceStatusResponse(resourceItems)
 //	}
-var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond)
+var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
 func StatusService(r ServiceStatusRequest) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
@@ -855,17 +855,7 @@ func StatusService2(r ServiceStatusRequest) interface{} {
 	return ProcessServiceStatusResponse(resourceItems)
 }
 
-var kubernetesItemsDebounce = utils.NewDebounce("kubernetesItemsDebounce", 1000*time.Millisecond)
-
 func kubernetesItems(namespace string, name string, resourceController ResourceController) ([]ResourceItem, error) {
-	key := fmt.Sprintf("%s-%s-%s", namespace, name, resourceController)
-	result, err := kubernetesItemsDebounce.CallFn(key, func() (interface{}, error) {
-		return kubernetesItems2(namespace, name, resourceController)
-	})
-	return result.([]ResourceItem), *err
-}
-
-func kubernetesItems2(namespace string, name string, resourceController ResourceController) ([]ResourceItem, error) {
 	resourceItems := []ResourceItem{}
 	resourceInterface, err := controller(namespace, name, resourceController)
 	if err != nil {
@@ -899,17 +889,7 @@ func kubernetesItems2(namespace string, name string, resourceController Resource
 	return resourceItems, nil
 }
 
-var controllerDebounce = utils.NewDebounce("controllerDebounce", 1000*time.Millisecond)
-
 func controller(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
-	key := fmt.Sprintf("%s-%s-%s", namespace, controllerName, resourceController.String())
-	result, err := controllerDebounce.CallFn(key, func() (interface{}, error) {
-		return controller2(namespace, controllerName, resourceController)
-	})
-	return result, *err
-}
-
-func controller2(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
 	var err error
 	var resourceInterface interface{}
 
@@ -942,7 +922,7 @@ func controller2(namespace string, controllerName string, resourceController Res
 	return resourceInterface, nil
 }
 
-var podsDebounce = utils.NewDebounce("podsDebounce", 1000*time.Millisecond)
+var podsDebounce = utils.NewDebounce("podsDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
 func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
 	key := fmt.Sprintf("%s-%s", namespace, labelSelector)

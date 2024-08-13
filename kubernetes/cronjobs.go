@@ -553,7 +553,7 @@ func hasLabel(labels map[string]string, labelKey string, labelValue string) bool
 	return exists && labels[labelKey] == labelValue
 }
 
-var listCronjobJobsDebounce = utils.NewDebounce("listCronjobJobsDebounce", 1000*time.Millisecond)
+var listCronjobJobsDebounce = utils.NewDebounce("listCronjobJobsDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
 func ListCronjobJobs(controllerName string, namespaceName string, projectId string) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", controllerName, namespaceName, projectId)
