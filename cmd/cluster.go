@@ -13,6 +13,7 @@ import (
 	"mogenius-k8s-manager/migrations"
 	"mogenius-k8s-manager/services"
 	socketclient "mogenius-k8s-manager/socket-client"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
@@ -39,6 +40,7 @@ var clusterCmd = &cobra.Command{
 
 		log.Infof("Init DB ...")
 		db.Init()
+		store.Init()
 		dbstats.Init()
 		iacmanager.Init()
 
@@ -89,6 +91,8 @@ var clusterCmd = &cobra.Command{
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 
 		socketclient.StartK8sManager()
+
+		defer store.GlobalStore.Close()
 	},
 }
 

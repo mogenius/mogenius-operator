@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -68,18 +69,24 @@ func watchPods(provider *punq.KubeProvider, kindName string) error {
 			castedObj.Kind = "Pod"
 			castedObj.APIVersion = "v1"
 			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			
+			store.GlobalStore.Set(castedObj, string(castedObj.UID), castedObj.Namespace, castedObj.Name, castedObj.Labels["mo-app"])
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.Pod)
 			castedObj.Kind = "Pod"
 			castedObj.APIVersion = "v1"
 			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+
+			store.GlobalStore.Set(castedObj, string(castedObj.UID), castedObj.Namespace, castedObj.Name, castedObj.Labels["mo-app"])
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Pod)
 			castedObj.Kind = "Pod"
 			castedObj.APIVersion = "v1"
 			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+
+			store.GlobalStore.Delete(string(castedObj.UID), castedObj.Namespace, castedObj.Name, castedObj.Labels["mo-app"])
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

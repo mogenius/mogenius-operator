@@ -10,6 +10,7 @@ import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/migrations"
 	socketclient "mogenius-k8s-manager/socket-client"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
@@ -23,6 +24,7 @@ var testClientCmd = &cobra.Command{
 	Long:  `Print testServerCmd information and exit`,
 	Run: func(cmd *cobra.Command, args []string) {
 		db.Init()
+		store.Init()
 		dbstats.Init()
 
 		migrations.ExecuteMigrations()
@@ -47,6 +49,8 @@ var testClientCmd = &cobra.Command{
 		go mokubernetes.EventWatcher()
 
 		socketclient.StartK8sManager()
+
+		defer store.GlobalStore.Close()
 	},
 }
 

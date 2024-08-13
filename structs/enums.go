@@ -14,6 +14,7 @@ const (
 	ComponentAll        ComponentEnum = "all"
 	ComponentIacManager ComponentEnum = "iac"
 	ComponentDb         ComponentEnum = "db"
+	Store               ComponentEnum = "store"
 	ComponentDbStats    ComponentEnum = "db-stats"
 	ComponentCrds       ComponentEnum = "crds"
 	ComponentKubernetes ComponentEnum = "kubernetes"

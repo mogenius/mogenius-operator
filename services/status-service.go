@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sort"
@@ -866,6 +869,15 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	metaName, metaNamespace, kind, references, labelSelector, object := status(resourceInterface)
 	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
 
+	log.Infof("--------------------------------kind: %s, name: %s, namespace: %s, ownerKind: %s, ownerName: %s", kind, metaName, metaNamespace, references, object)
+	podsTemp := store.GlobalStore.GetByKeyPart(metaName, &v1.Pod{})
+
+	if podsTemp != nil {
+		log.Infof("pod: %v", podsTemp)
+		//for _, pod := range podsTemp {
+		//	log.Infof("pod: %s", pod.(corev1.Pod).Labels["mo-app"])
+		//}
+	}
 	pods, err := pods(namespace, labelSelector)
 	if err != nil {
 		ServiceLogger.Warningf("\nWarning fetching pods: %s\n", err)
@@ -922,17 +934,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 	return resourceInterface, nil
 }
 
-var podsDebounce = utils.NewDebounce("podsDebounce", 1000*time.Millisecond, 300*time.Millisecond)
-
 func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
-	key := fmt.Sprintf("%s-%s", namespace, labelSelector)
-	result, err := podsDebounce.CallFn(key, func() (interface{}, error) {
-		return pods2(namespace, labelSelector)
-	})
-	return result.(*corev1.PodList), *err
-}
-
-func pods2(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
 	if labelSelector != nil {
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
