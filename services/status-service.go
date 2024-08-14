@@ -833,10 +833,11 @@ func StatusService(r ServiceStatusRequest) interface{} {
 }
 
 func StatusService2(r ServiceStatusRequest) interface{} {
-	// ae: discuss if events should be cached and fetch from cache
-	// events := kubernetes.AllEventsForNamespace(r.Namespace)
 	resultType := reflect.TypeOf(corev1.Event{})
 	events, err := store.GlobalStore.SearchByPrefix(resultType, "Event", r.Namespace)
+	if err != nil {
+		ServiceLogger.Warningf("Warning fetching events: %s\n", err)
+	}
 
 	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
 	if err != nil {
