@@ -4,21 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
-	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // Due to issues importing the library, the following constants are copied from the library
@@ -832,7 +833,8 @@ func StatusService(r ServiceStatusRequest) interface{} {
 }
 
 func StatusService2(r ServiceStatusRequest) interface{} {
-	events := kubernetes.AllEventsForNamespace(r.Namespace)
+	// ae: discuss if events should be cached and fetch from cache
+	// events := kubernetes.AllEventsForNamespace(r.Namespace)
 
 	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
 	if err != nil {
@@ -847,13 +849,13 @@ func StatusService2(r ServiceStatusRequest) interface{} {
 		}
 	}
 
-	for _, event := range events {
-		for i, item := range resourceItems {
-			if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
-				resourceItems[i].Events = append(resourceItems[i].Events, event)
-			}
-		}
-	}
+	// for _, event := range events {
+	// 	for i, item := range resourceItems {
+	// 		if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
+	// 			resourceItems[i].Events = append(resourceItems[i].Events, event)
+	// 		}
+	// 	}
+	// }
 
 	return ProcessServiceStatusResponse(resourceItems)
 }
@@ -869,24 +871,31 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	metaName, metaNamespace, kind, references, labelSelector, object := status(resourceInterface)
 	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
 
-	log.Infof("--------------------------------kind: %s, name: %s, namespace: %s, ownerKind: %s, ownerName: %s", kind, metaName, metaNamespace, references, object)
-	podsTemp := store.GlobalStore.GetByKeyPart(metaName, &v1.Pod{})
+	log.Infof("--------------------------------kind: %s, name: %s, namespace: %s, ownerReference: %v, status: %v", resourceController.String(), metaName, metaNamespace, references, object)
 
-	if podsTemp != nil {
-		log.Infof("pod: %v", podsTemp)
-		//for _, pod := range podsTemp {
-		//	log.Infof("pod: %s", pod.(corev1.Pod).Labels["mo-app"])
-		//}
-	}
-	pods, err := pods(namespace, labelSelector)
+	// Fetch pods
+	resultType := reflect.TypeOf(corev1.Pod{})
+	pods, err := store.GlobalStore.SearchByPrefix(resultType, "Pod", metaNamespace, metaName)
 	if err != nil {
 		ServiceLogger.Warningf("\nWarning fetching pods: %s\n", err)
 		return resourceItems, err
 	}
+	for _, podRef := range pods {
+		pod := podRef.(*corev1.Pod)
+		if pod == nil {
+			continue
+		}
 
-	for _, pod := range pods.Items {
-		resourceItems = containerItems(pod, resourceItems)
-		resourceItems = podItem(pod, resourceItems)
+		// check if labels match
+		if labelSelector != nil {
+			if !labels.SelectorFromSet(labelSelector.MatchLabels).Matches(labels.Set(pod.Labels)) {
+				continue
+			}
+		}
+
+		resourceItems = containerItems(*pod, resourceItems)
+		resourceItems = podItem(*pod, resourceItems)
+
 		// Owner reference kind and name
 		if len(pod.OwnerReferences) > 0 {
 			for _, ownerRef := range pod.OwnerReferences {
@@ -913,17 +922,19 @@ func controller(namespace string, controllerName string, resourceController Reso
 
 	switch resourceController {
 	case Deployment:
-		resourceInterface, err = provider.ClientSet.AppsV1().Deployments(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(&appsv1.Deployment{}, resourceController.String(), namespace, controllerName)
 	case ReplicaSet:
-		resourceInterface, err = provider.ClientSet.AppsV1().ReplicaSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(&appsv1.ReplicaSet{}, resourceController.String(), namespace, controllerName)
 	case StatefulSet:
+		// ae: not used at the moment, old code
 		resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case DaemonSet:
+		// ae: not used at the moment, old code
 		resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case Job:
-		resourceInterface, err = provider.ClientSet.BatchV1().Jobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(&batchv1.Job{}, resourceController.String(), namespace, controllerName)
 	case CronJob:
-		resourceInterface, err = provider.ClientSet.BatchV1().CronJobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(&batchv1.CronJob{}, resourceController.String(), namespace, controllerName)
 	}
 
 	if err != nil {
@@ -931,31 +942,35 @@ func controller(namespace string, controllerName string, resourceController Reso
 		return nil, err
 	}
 
+	if resourceInterface == nil {
+		return nil, fmt.Errorf("\nWarning fetching controller: %s\n", controllerName)
+	}
+
 	return resourceInterface, nil
 }
 
-func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
-	if labelSelector != nil {
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			ServiceLogger.Warningf("Warningf: %s", err.Error())
-			return nil, nil
-		}
-		selector := metav1.FormatLabelSelector(labelSelector)
-		pods, err := provider.ClientSet.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
-			LabelSelector: selector,
-			FieldSelector: "status.phase!=Succeeded",
-		})
+// func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
+// 	if labelSelector != nil {
+// 		provider, err := punq.NewKubeProvider(nil)
+// 		if err != nil {
+// 			ServiceLogger.Warningf("Warningf: %s", err.Error())
+// 			return nil, nil
+// 		}
+// 		selector := metav1.FormatLabelSelector(labelSelector)
+// 		pods, err := provider.ClientSet.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+// 			LabelSelector: selector,
+// 			FieldSelector: "status.phase!=Succeeded",
+// 		})
 
-		if err != nil {
-			return nil, err
-		}
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		return pods, nil
-	}
+// 		return pods, nil
+// 	}
 
-	return &corev1.PodList{}, nil
-}
+// 	return &corev1.PodList{}, nil
+// }
 
 func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
 	lastJob := LastBuildForNamespaceAndControllerName(namespace, name)

@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.53.15
 	github.com/cert-manager/cert-manager v1.14.3
 	github.com/creack/pty v1.1.21
+	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/fatih/color v1.17.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-echarts/go-echarts/v2 v2.4.0-rc1
@@ -25,6 +26,7 @@ require (
 	github.com/spf13/cobra v1.8.0
 	go.etcd.io/bbolt v1.3.8
 	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
+	google.golang.org/appengine v1.6.8
 	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.14.0
 	k8s.io/api v0.30.1
@@ -57,7 +59,6 @@ require (
 	github.com/containerd/containerd v1.7.11 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
-	github.com/dgraph-io/badger/v4 v4.2.0 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/docker/cli v24.0.6+incompatible // indirect

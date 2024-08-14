@@ -1,6 +1,7 @@
 package store
 
 import (
+	"strings"
 	"sync"
 )
 
@@ -63,4 +64,8 @@ func (s *ReverseIndexStore) DeletePartKey(part string) {
 	defer s.mu.Unlock()
 
 	delete(s.index, part)
+}
+
+func CreateKey(parts ...string) string {
+	return strings.Join(parts, "___")
 }

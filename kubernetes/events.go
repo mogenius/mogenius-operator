@@ -67,14 +67,23 @@ func ResourceWatcher() {
 	// }
 
 	K8sLogger.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
+
+	MapIacSyncWorkloadIntoConfigMap()
+
+	go WatchDeployments()
+	go WatchReplicaSets()
+	go WatchCronJobs()
+	go WatchJobs()
+	go WatchPods()
+
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
 		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
 			go WatchConfigmaps()
 		case dtos.KindDeployments:
-			go WatchDeployments()
+			// go WatchDeployments()
 		case dtos.KindPods:
-			go WatchPods()
+			// go WatchPods()
 		case dtos.KindIngresses:
 			go WatchIngresses()
 		case dtos.KindSecrets:
@@ -86,9 +95,9 @@ func ResourceWatcher() {
 		case dtos.KindNetworkPolicies:
 			go WatchNetworkPolicies()
 		case dtos.KindJobs:
-			go WatchJobs()
+			// go WatchJobs()
 		case dtos.KindCronJobs:
-			go WatchCronJobs()
+			// go WatchCronJobs()
 		case dtos.KindDaemonSets:
 			go WatchDaemonSets()
 		case dtos.KindStatefulSets:
@@ -102,10 +111,52 @@ func ResourceWatcher() {
 	}
 }
 
+func MapIacSyncWorkloadIntoConfigMap() {
+	// init all with false
+	utils.IacWorkloadConfigMap = make(map[string]bool)
+	for _, kind := range dtos.AvailableSyncWorkloadKinds {
+		utils.IacWorkloadConfigMap[kind] = false
+	}
+	// set to true for the ones we want to watch
+	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
+		utils.IacWorkloadConfigMap[strings.TrimSpace(workload)] = true
+	}
+}
+
 func InitAllWorkloads() {
+	// maybe obsolete? it looks like the watchers "add" func is called initaly to get all the resources
+	//
+	// MapIacSyncWorkloadIntoConfigMap()
+
+	// deployments := punq.AllDeployments("", nil)
+	// for _, res := range deployments {
+	// 	if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+	// 		iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
+	// 	}
+
+	// 	store.GlobalStore.Set(res, "Deployment", res.Namespace, res.Name)
+	// }
+	// cronjobs := punq.AllCronjobs("", nil)
+	// for _, res := range cronjobs {
+	// 	if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
+	// 		iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
+	// 	}
+
+	// 	store.GlobalStore.Set(res, "CronJob", res.Namespace, res.Name)
+	// }
+	// pods := punq.AllPods("", nil)
+	// for _, res := range pods {
+	// 	if utils.IacWorkloadConfigMap[dtos.KindPods] {
+	// 		iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
+	// 	}
+
+	// 	store.GlobalStore.Set(res, "Pod", res.Namespace, res.Name)
+	// }
+
 	if !iacmanager.ShouldWatchResources() {
 		return
 	}
+
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
 		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:

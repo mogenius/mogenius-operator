@@ -1,20 +1,17 @@
 package store
 
 import (
-	"bytes"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
-	"github.com/dgraph-io/badger/v4"
-	log "github.com/sirupsen/logrus"
 	"mogenius-k8s-manager/structs"
 	"reflect"
-	"strings"
 	"sync"
+
+	"github.com/dgraph-io/badger/v4"
+	log "github.com/sirupsen/logrus"
 )
 
 var storeLogger = log.WithField("component", structs.Store)
-var registeredTypes = make(map[reflect.Type]struct{})
-var registeredTypesMutex sync.Mutex
 
 type Store struct {
 	db         *badger.DB
@@ -42,13 +39,12 @@ func (s *Store) Set(value interface{}, keys ...string) error {
 		return fmt.Errorf("database is not initialized")
 	}
 
-	key := strings.Join(keys, "___")
-	log.Info("-----------------------KEY added: ", key)
+	key := CreateKey(keys...)
+	log.Info("-----------------------KEY updated: ", key)
 
 	s.indexStore.AddCompositeKey(key, keys...)
 
 	keyBytes := []byte(key)
-	s.registerGobType(value)
 
 	valueBytes, err := s.serialize(value)
 	if err != nil {
@@ -82,7 +78,7 @@ func (s *Store) Get(key string, result interface{}) (interface{}, error) {
 			return err
 		}
 
-		err = s.deserialize(valueBytes, &result)
+		err = s.deserialize(valueBytes, result)
 		if err != nil {
 			return err
 		}
@@ -90,6 +86,16 @@ func (s *Store) Get(key string, result interface{}) (interface{}, error) {
 		return nil
 	})
 	return result, err
+}
+
+func (s *Store) GetByKeyParts(result interface{}, keys ...string) interface{} {
+	key := CreateKey(keys...)
+	value, err := s.Get(key, result)
+	if err != nil {
+		log.Errorf("Error getting value for key %s: %s", key, err.Error())
+		return nil
+	}
+	return value
 }
 
 func (s *Store) GetByKeyPart(keyPart string, result interface{}) []interface{} {
@@ -113,8 +119,10 @@ func (s *Store) Delete(keys ...string) error {
 		return fmt.Errorf("database is not initialized")
 	}
 
-	key := strings.Join(keys, "___")
+	key := CreateKey(keys...)
 	s.indexStore.DeleteCompositeKey(key, keys...)
+
+	log.Info("-----------------------KEY deleted: ", key)
 
 	keyBytes := []byte(key)
 
@@ -122,6 +130,51 @@ func (s *Store) Delete(keys ...string) error {
 		return txn.Delete(keyBytes)
 	})
 	return err
+}
+
+func (s *Store) SearchByPrefix(resultType reflect.Type, parts ...string) ([]interface{}, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.db == nil {
+		return nil, fmt.Errorf("database is not initialized")
+	}
+
+	key := CreateKey(parts...)
+	items := make([]interface{}, 0)
+
+	// var result interface{}
+	err := s.db.View(func(txn *badger.Txn) error {
+		prefix := []byte(key)
+		opts := badger.DefaultIteratorOptions
+		opts.Prefix = prefix
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			item := it.Item()
+
+			// Create a new instance of the resultType
+			result := reflect.New(resultType).Interface()
+
+			err := item.Value(func(v []byte) error {
+				return s.deserialize(v, result)
+			})
+
+			if err != nil {
+				return err
+			}
+
+			items = append(items, result)
+		}
+
+		return nil
+	})
+
+	if len(items) == 0 {
+		return nil, fmt.Errorf("No entry found for %s", key)
+	}
+
+	return items, err
 }
 
 func (s *Store) SearchByUUID(uuid string, result interface{}) (interface{}, error) {
@@ -144,7 +197,7 @@ func (s *Store) SearchByUUID(uuid string, result interface{}) (interface{}, erro
 
 			err := item.Value(func(v []byte) error {
 				var err error
-				err = s.deserialize(v, &result)
+				err = s.deserialize(v, result)
 				return err
 			})
 			return err
@@ -181,7 +234,7 @@ func (s *Store) SearchByNames(namespace string, name string, result interface{})
 			if len(key) >= len(searchSuffix) && key[len(key)-len(searchSuffix):] == searchSuffix {
 				err := item.Value(func(v []byte) error {
 					var err error
-					err = s.deserialize(v, &result)
+					err = s.deserialize(v, result)
 					return err
 				})
 				return err
@@ -196,64 +249,21 @@ func (s *Store) SearchByNames(namespace string, name string, result interface{})
 
 	return result, err
 }
-func (s *Store) registerGobType(value interface{}) {
-	typ := reflect.TypeOf(value)
-
-	if gobTypeAlreadyRegistered(typ) {
-		return
-	}
-
-	gob.Register(value)
-}
-
-func gobTypeAlreadyRegistered(typ reflect.Type) bool {
-	registeredTypesMutex.Lock()
-	defer registeredTypesMutex.Unlock()
-
-	_, alreadyRegistered := registeredTypes[typ]
-	if !alreadyRegistered {
-		registeredTypes[typ] = struct{}{}
-	}
-	return alreadyRegistered
-}
 
 func (s *Store) serialize(value interface{}) ([]byte, error) {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(value)
+	// use json for serialization to not lose data (pointer)
+	data, err := json.Marshal(value)
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+
+	return data, nil
 }
 
 func (s *Store) deserialize(data []byte, value interface{}) error {
-	buf := bytes.NewBuffer(data)
-	dec := gob.NewDecoder(buf)
-	return dec.Decode(value)
+	return json.Unmarshal(data, value)
 }
 
-//	func (s *Store) serialize(data interface{}) ([]byte, error) {
-//		var buf bytes.Buffer
-//		enc := gob.NewEncoder(&buf)
-//		err := enc.Encode(data)
-//		if err != nil {
-//			return nil, err
-//		}
-//		return buf.Bytes(), nil
-//	}
-//
-//	func (s *Store) deserialize(data []byte, result interface{}) (interface{}, error) {
-//		var buf bytes.Buffer
-//		buf.Write(data)
-//		dec := gob.NewDecoder(&buf)
-//		// var result interface{}
-//		err := dec.Decode(&result)
-//		if err != nil {
-//			return nil, err
-//		}
-//		return result, nil
-//	}
 func (s *Store) Close() error {
 	return s.db.Close()
 }
