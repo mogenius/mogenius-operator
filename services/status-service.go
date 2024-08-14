@@ -835,6 +835,8 @@ func StatusService(r ServiceStatusRequest) interface{} {
 func StatusService2(r ServiceStatusRequest) interface{} {
 	// ae: discuss if events should be cached and fetch from cache
 	// events := kubernetes.AllEventsForNamespace(r.Namespace)
+	resultType := reflect.TypeOf(corev1.Event{})
+	events, err := store.GlobalStore.SearchByPrefix(resultType, "Event", r.Namespace)
 
 	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
 	if err != nil {
@@ -849,13 +851,18 @@ func StatusService2(r ServiceStatusRequest) interface{} {
 		}
 	}
 
-	// for _, event := range events {
-	// 	for i, item := range resourceItems {
-	// 		if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
-	// 			resourceItems[i].Events = append(resourceItems[i].Events, event)
-	// 		}
-	// 	}
-	// }
+	for _, eventRef := range events {
+		event := eventRef.(*corev1.Event)
+		if event == nil {
+			continue
+		}
+
+		for i, item := range resourceItems {
+			if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
+				resourceItems[i].Events = append(resourceItems[i].Events, *event)
+			}
+		}
+	}
 
 	return ProcessServiceStatusResponse(resourceItems)
 }

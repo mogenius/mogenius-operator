@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/utils"
 	"strings"
 
@@ -284,14 +285,20 @@ func watchEvents(provider *punq.KubeProvider) error {
 		AddFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
 			processEvent(event)
+
+			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			event := newObj.(*v1Core.Event)
 			processEvent(event)
+
+			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
 		},
 		DeleteFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
 			processEvent(event)
+
+			store.GlobalStore.Delete("Event", event.Namespace, event.Name)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(
