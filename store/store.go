@@ -57,7 +57,7 @@ func (s *Store) Set(value interface{}, keys ...string) error {
 	return err
 }
 
-func (s *Store) Get(key string, result interface{}) (interface{}, error) {
+func (s *Store) Get(key string, resultType reflect.Type) (interface{}, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.db == nil {
@@ -65,6 +65,7 @@ func (s *Store) Get(key string, result interface{}) (interface{}, error) {
 	}
 
 	keyBytes := []byte(key)
+	result := reflect.New(resultType).Interface()
 
 	// var result interface{}
 	err := s.db.View(func(txn *badger.Txn) error {
@@ -88,9 +89,9 @@ func (s *Store) Get(key string, result interface{}) (interface{}, error) {
 	return result, err
 }
 
-func (s *Store) GetByKeyParts(result interface{}, keys ...string) interface{} {
+func (s *Store) GetByKeyParts(resultType reflect.Type, keys ...string) interface{} {
 	key := CreateKey(keys...)
-	value, err := s.Get(key, result)
+	value, err := s.Get(key, resultType)
 	if err != nil {
 		log.Errorf("Error getting value for key %s: %s", key, err.Error())
 		return nil
@@ -98,11 +99,11 @@ func (s *Store) GetByKeyParts(result interface{}, keys ...string) interface{} {
 	return value
 }
 
-func (s *Store) GetByKeyPart(keyPart string, result interface{}) []interface{} {
+func (s *Store) GetByKeyPart(keyPart string, resultType reflect.Type) []interface{} {
 	keys := s.indexStore.GetCompositeKeys(keyPart)
 	values := make([]interface{}, 0, len(keys))
 	for _, key := range keys {
-		value, err := s.Get(key, result)
+		value, err := s.Get(key, resultType)
 		if err != nil {
 			log.Errorf("Error getting value for key %s: %s", key, err.Error())
 			continue

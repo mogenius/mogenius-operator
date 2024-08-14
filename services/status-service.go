@@ -1,7 +1,6 @@
 package services
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"mogenius-k8s-manager/store"
@@ -14,7 +13,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -922,36 +920,40 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 }
 
 func controller(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
-	var err error
+	// var err error
 	var resourceInterface interface{}
 
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		ServiceLogger.Warningf("Warningf: %s", err.Error())
-		return nil, nil
-	}
+	// provider, err := punq.NewKubeProvider(nil)
+	// if err != nil {
+	// 	ServiceLogger.Warningf("Warningf: %s", err.Error())
+	// 	return nil, nil
+	// }
 
 	switch resourceController {
 	case Deployment:
-		resourceInterface = store.GlobalStore.GetByKeyParts(&appsv1.Deployment{}, resourceController.String(), namespace, controllerName)
+		resultType := reflect.TypeOf(appsv1.Deployment{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
 	case ReplicaSet:
-		resourceInterface = store.GlobalStore.GetByKeyParts(&appsv1.ReplicaSet{}, resourceController.String(), namespace, controllerName)
-	case StatefulSet:
-		// ae: not used at the moment, old code
-		resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
-	case DaemonSet:
-		// ae: not used at the moment, old code
-		resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resultType := reflect.TypeOf(appsv1.ReplicaSet{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
+	// case StatefulSet:
+	// 	// ae: not used at the moment, old code
+	// 	resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+	// case DaemonSet:
+	// 	// ae: not used at the moment, old code
+	// 	resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case Job:
-		resourceInterface = store.GlobalStore.GetByKeyParts(&batchv1.Job{}, resourceController.String(), namespace, controllerName)
+		resultType := reflect.TypeOf(batchv1.Job{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
 	case CronJob:
-		resourceInterface = store.GlobalStore.GetByKeyParts(&batchv1.CronJob{}, resourceController.String(), namespace, controllerName)
+		resultType := reflect.TypeOf(batchv1.CronJob{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
 	}
 
-	if err != nil {
-		ServiceLogger.Warningf("\nWarning fetching resources %s, ns: %s, name: %s, err: %s\n", resourceController.String(), namespace, controllerName, err)
-		return nil, err
-	}
+	// if err != nil {
+	// 	ServiceLogger.Warningf("\nWarning fetching resources %s, ns: %s, name: %s, err: %s\n", resourceController.String(), namespace, controllerName, err)
+	// 	return nil, err
+	// }
 
 	if resourceInterface == nil {
 		return nil, fmt.Errorf("\nWarning fetching controller: %s\n", controllerName)
