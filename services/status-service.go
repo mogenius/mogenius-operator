@@ -894,6 +894,9 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 			continue
 		}
 
+		if pod.Status.Phase == corev1.PodSucceeded {
+			continue
+		}
 		// check if labels match
 		if labelSelector != nil {
 			if !labels.SelectorFromSet(labelSelector.MatchLabels).Matches(labels.Set(pod.Labels)) {
