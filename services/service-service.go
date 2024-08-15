@@ -172,37 +172,6 @@ func ServicePodStatus(r ServicePodsRequest) interface{} {
 
 func ServicePodStatus2(r ServicePodsRequest) interface{} {
 	return punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
-	// test := punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
-
-	// resultType := reflect.TypeOf(corev1.Pod{})
-	// pods, err := store.GlobalStore.SearchByPrefix(resultType, "Pod", r.Namespace, r.ControllerName)
-	// if err != nil {
-	// 	ServiceLogger.Warningf("\nWarning fetching pods: %s\n", err)
-	// 	return nil
-	// }
-
-	// filtered := make([]corev1.Pod, 0)
-	// for _, podRef := range pods {
-	// 	pod := podRef.(*corev1.Pod)
-	// 	if pod == nil {
-	// 		continue
-	// 	}
-	// check if app label is equal r.controllerName
-	// if pod.Labels["app"] != r.ControllerName {
-	// 	continue
-	// }
-
-	// 	filtered = append(filtered, *pod)
-	// }
-
-	// fmt.Printf("ServicePodStatus2 fetch: %s, %s\n", r.Namespace, r.ControllerName)
-	// fmt.Println("")
-	// fmt.Printf("ServicePodStatus2 result: %v\n", filtered)
-	// fmt.Println("")
-	// fmt.Printf("ServicePodStatus2 test: %v\n", test)
-	// fmt.Println("")
-
-	// return filtered
 }
 
 func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
