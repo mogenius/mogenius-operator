@@ -822,15 +822,15 @@ func NewResourceController(resourceController string) ResourceController {
 //	}
 var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-func StatusService(r ServiceStatusRequest) interface{} {
+func StatusServiceDebounced(r ServiceStatusRequest) interface{} {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
 	result, _ := statusServiceDebounce.CallFn(key, func() (interface{}, error) {
-		return StatusService2(r), nil
+		return statusService(r), nil
 	})
 	return result
 }
 
-func StatusService2(r ServiceStatusRequest) interface{} {
+func statusService(r ServiceStatusRequest) interface{} {
 	resultType := reflect.TypeOf(corev1.Event{})
 	events, err := store.GlobalStore.SearchByPrefix(resultType, "Event", r.Namespace)
 	if err != nil {

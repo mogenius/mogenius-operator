@@ -25,6 +25,7 @@ var testClientCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		db.Init()
 		store.Init()
+		defer store.GlobalStore.Close()
 		dbstats.Init()
 
 		migrations.ExecuteMigrations()
@@ -49,8 +50,6 @@ var testClientCmd = &cobra.Command{
 		go mokubernetes.EventWatcher()
 
 		socketclient.StartK8sManager()
-
-		defer store.GlobalStore.Close()
 	},
 }
 
