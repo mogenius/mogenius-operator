@@ -302,21 +302,18 @@ func watchEvents(provider *punq.KubeProvider) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
-			processEvent(event)
-
 			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
+			processEvent(event)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			event := newObj.(*v1Core.Event)
-			processEvent(event)
-
 			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
+			processEvent(event)
 		},
 		DeleteFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
-			processEvent(event)
-
 			store.GlobalStore.Delete("Event", event.Namespace, event.Name)
+			processEvent(event)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(
