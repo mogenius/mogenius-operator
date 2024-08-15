@@ -16,7 +16,6 @@ import (
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
-	"time"
 
 	punq "github.com/mogenius/punq/structs"
 	log "github.com/sirupsen/logrus"
@@ -42,23 +41,9 @@ var clusterCmd = &cobra.Command{
 		log.Infof("Init DB ...")
 		db.Init()
 		store.Init()
-		defer store.GlobalStore.Close()
+		defer store.Defer()
 		dbstats.Init()
 		iacmanager.Init()
-
-		ticker := time.NewTicker(5 * time.Minute)
-		defer ticker.Stop()
-
-		go func() {
-			for range ticker.C {
-			again:
-				log.Infof("Run garbage collection DB ...")
-				err := store.GlobalStore.RunGC()
-				if err == nil {
-					goto again
-				}
-			}
-		}()
 
 		migrations.ExecuteMigrations()
 

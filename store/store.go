@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/structs"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/dgraph-io/badger/v4"
 	log "github.com/sirupsen/logrus"
@@ -20,6 +21,7 @@ type Store struct {
 }
 
 var GlobalStore *Store
+var garbageCollectionTicker *time.Ticker
 
 func Init() {
 	var err error
@@ -27,6 +29,28 @@ func Init() {
 	if err != nil {
 		storeLogger.Errorf("Error initializing store: %s", err.Error())
 		storeLogger.Fatal(err.Error())
+	}
+
+	// Run garbage collection every 5 minutes
+	garbageCollectionTicker = time.NewTicker(5 * time.Minute)
+	go func() {
+		for range garbageCollectionTicker.C {
+		again:
+			log.Infof("Run garbage collection DB ...")
+			err := GlobalStore.RunGC()
+			if err == nil {
+				goto again
+			}
+		}
+	}()
+}
+
+func Defer() {
+	if garbageCollectionTicker != nil {
+		garbageCollectionTicker.Stop()
+	}
+	if GlobalStore != nil {
+		GlobalStore.Close()
 	}
 }
 
