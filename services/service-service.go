@@ -183,16 +183,6 @@ func ServicePodStatus2(r ServicePodsRequest) interface{} {
 		return nil
 	}
 	return pods
-	// for _, podRef := range pods {
-	// 	pod := podRef.(*corev1.Pod)
-	// 	if pod == nil {
-	// 		continue
-	// 	}
-
-	// 	if pod.Status.Phase == corev1.PodSucceeded {
-	// 		continue
-	// 	}
-	// }
 }
 
 func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
