@@ -46,36 +46,33 @@ func watchJobs(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.Job)
+			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
 
 			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
 				castedObj.Kind = "Job"
 				castedObj.APIVersion = "batch/v1"
 				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
-
-			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1job.Job)
+			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
 
 			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
 				castedObj.Kind = "Job"
 				castedObj.APIVersion = "batch/v1"
 				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
-
-			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.Job)
+			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
 
 			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
 				castedObj.Kind = "Job"
 				castedObj.APIVersion = "batch/v1"
 				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 			}
-
-			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

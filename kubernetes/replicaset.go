@@ -46,36 +46,33 @@ func watchReplicaSets(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.ReplicaSet)
+			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
 
 			if utils.IacWorkloadConfigMap[dtos.KindReplicaSets] {
 				castedObj.Kind = "ReplicaSet"
 				castedObj.APIVersion = "apps/v1"
 				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
-
-			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.ReplicaSet)
+			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
 
 			if utils.IacWorkloadConfigMap[dtos.KindReplicaSets] {
 				castedObj.Kind = "ReplicaSet"
 				castedObj.APIVersion = "apps/v1"
 				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
-
-			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.ReplicaSet)
+			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
 
 			if utils.IacWorkloadConfigMap[dtos.KindReplicaSets] {
 				castedObj.Kind = "ReplicaSet"
 				castedObj.APIVersion = "apps/v1"
 				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 			}
-
-			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(
