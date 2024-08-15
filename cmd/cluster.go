@@ -42,6 +42,7 @@ var clusterCmd = &cobra.Command{
 		log.Infof("Init DB ...")
 		db.Init()
 		store.Init()
+		defer store.GlobalStore.Close()
 		dbstats.Init()
 		iacmanager.Init()
 
@@ -106,8 +107,6 @@ var clusterCmd = &cobra.Command{
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 
 		socketclient.StartK8sManager()
-
-		defer store.GlobalStore.Close()
 	},
 }
 
