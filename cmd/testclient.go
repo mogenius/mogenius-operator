@@ -25,7 +25,7 @@ var testClientCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		db.Init()
 		store.Init()
-		defer store.GlobalStore.Close()
+		defer store.Defer()
 		dbstats.Init()
 
 		migrations.ExecuteMigrations()
