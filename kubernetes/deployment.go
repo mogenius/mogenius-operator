@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -476,21 +477,36 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
+
+			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
+
+			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			}
+
+			store.GlobalStore.Delete("Deployment", castedObj.Namespace, castedObj.Name)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

@@ -121,6 +121,9 @@ var CONFIG Config
 var ConfigPath string
 var ClusterProviderCached punqDtos.KubernetesProvider = punqDtos.UNKNOWN
 
+// preconfigure with dtos
+var IacWorkloadConfigMap map[string]bool
+
 func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// try to load stage if not set
 	if stage == "" {

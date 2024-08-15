@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/utils"
 	"strings"
 
@@ -67,14 +68,23 @@ func ResourceWatcher() {
 	// }
 
 	K8sLogger.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
+
+	MapIacSyncWorkloadIntoConfigMap()
+
+	go WatchDeployments()
+	go WatchReplicaSets()
+	go WatchCronJobs()
+	go WatchJobs()
+	go WatchPods()
+
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
 		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
 			go WatchConfigmaps()
 		case dtos.KindDeployments:
-			go WatchDeployments()
+			// go WatchDeployments()
 		case dtos.KindPods:
-			go WatchPods()
+			// go WatchPods()
 		case dtos.KindIngresses:
 			go WatchIngresses()
 		case dtos.KindSecrets:
@@ -86,9 +96,9 @@ func ResourceWatcher() {
 		case dtos.KindNetworkPolicies:
 			go WatchNetworkPolicies()
 		case dtos.KindJobs:
-			go WatchJobs()
+			// go WatchJobs()
 		case dtos.KindCronJobs:
-			go WatchCronJobs()
+			// go WatchCronJobs()
 		case dtos.KindDaemonSets:
 			go WatchDaemonSets()
 		case dtos.KindStatefulSets:
@@ -102,10 +112,70 @@ func ResourceWatcher() {
 	}
 }
 
+func MapIacSyncWorkloadIntoConfigMap() {
+	// init all with false
+	utils.IacWorkloadConfigMap = make(map[string]bool)
+	for _, kind := range dtos.AvailableSyncWorkloadKinds {
+		utils.IacWorkloadConfigMap[kind] = false
+	}
+	// set to true for the ones we want to watch
+	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
+		utils.IacWorkloadConfigMap[strings.TrimSpace(workload)] = true
+	}
+}
+
 func InitAllWorkloads() {
+	MapIacSyncWorkloadIntoConfigMap()
+
+	deployments := punq.AllDeployments("", nil)
+	for _, res := range deployments {
+		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+			iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
+		}
+
+		store.GlobalStore.Set(res, "Deployment", res.Namespace, res.Name)
+	}
+
+	replicasets := punq.AllReplicasets("", nil)
+	for _, res := range replicasets {
+		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindReplicaSets] {
+			iacmanager.WriteResourceYaml(dtos.KindReplicaSets, res.Namespace, res.Name, res)
+		}
+
+		store.GlobalStore.Set(res, "ReplicaSet", res.Namespace, res.Name)
+	}
+
+	cronjobs := punq.AllCronjobs("", nil)
+	for _, res := range cronjobs {
+		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
+			iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
+		}
+
+		store.GlobalStore.Set(res, "CronJob", res.Namespace, res.Name)
+	}
+
+	jobs := punq.AllJobs("", nil)
+	for _, res := range jobs {
+		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindJobs] {
+			iacmanager.WriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
+		}
+
+		store.GlobalStore.Set(res, "Job", res.Namespace, res.Name)
+	}
+
+	pods := punq.AllPods("", nil)
+	for _, res := range pods {
+		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindPods] {
+			iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
+		}
+
+		store.GlobalStore.Set(res, "Pod", res.Namespace, res.Name)
+	}
+
 	if !iacmanager.ShouldWatchResources() {
 		return
 	}
+
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
 		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
@@ -114,15 +184,15 @@ func InitAllWorkloads() {
 				iacmanager.WriteResourceYaml(dtos.KindConfigMaps, res.Namespace, res.Name, res)
 			}
 		case dtos.KindDeployments:
-			ressources := punq.AllDeployments("", nil)
-			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
-			}
+			// ressources := punq.AllDeployments("", nil)
+			// for _, res := range ressources {
+			// 	iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
+			// }
 		case dtos.KindPods:
-			ressources := punq.AllPods("", nil)
-			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
-			}
+			// ressources := punq.AllPods("", nil)
+			// for _, res := range ressources {
+			// 	iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
+			// }
 		case dtos.KindIngresses:
 			ressources := punq.AllIngresses("", nil)
 			for _, res := range ressources {
@@ -149,15 +219,15 @@ func InitAllWorkloads() {
 				iacmanager.WriteResourceYaml(dtos.KindNetworkPolicies, res.Namespace, res.Name, res)
 			}
 		case dtos.KindJobs:
-			ressources := punq.AllJobs("", nil)
-			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
-			}
+			// ressources := punq.AllJobs("", nil)
+			// for _, res := range ressources {
+			// 	iacmanager.WriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
+			// }
 		case dtos.KindCronJobs:
-			ressources := punq.AllCronjobs("", nil)
-			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
-			}
+			// ressources := punq.AllCronjobs("", nil)
+			// for _, res := range ressources {
+			// 	iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
+			// }
 		case dtos.KindDaemonSets:
 			ressources := punq.AllDaemonsets("", nil)
 			for _, res := range ressources {
@@ -233,14 +303,20 @@ func watchEvents(provider *punq.KubeProvider) error {
 		AddFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
 			processEvent(event)
+
+			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			event := newObj.(*v1Core.Event)
 			processEvent(event)
+
+			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
 		},
 		DeleteFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
 			processEvent(event)
+
+			store.GlobalStore.Delete("Event", event.Namespace, event.Name)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(
