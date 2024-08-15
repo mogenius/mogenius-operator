@@ -6,11 +6,9 @@ import (
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
-	"reflect"
 	"sync"
 	"time"
 
@@ -21,7 +19,6 @@ import (
 	v1job "k8s.io/api/batch/v1"
 	coordination "k8s.io/api/coordination/v1"
 	core "k8s.io/api/core/v1"
-	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
 	scheduling "k8s.io/api/scheduling/v1"
@@ -174,15 +171,38 @@ func ServicePodStatus(r ServicePodsRequest) interface{} {
 }
 
 func ServicePodStatus2(r ServicePodsRequest) interface{} {
-	// return punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
+	return punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
+	// test := punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
 
-	resultType := reflect.TypeOf(corev1.Pod{})
-	pods, err := store.GlobalStore.SearchByPrefix(resultType, "Pod", r.Namespace, r.ControllerName)
-	if err != nil {
-		ServiceLogger.Warningf("\nWarning fetching pods: %s\n", err)
-		return nil
-	}
-	return pods
+	// resultType := reflect.TypeOf(corev1.Pod{})
+	// pods, err := store.GlobalStore.SearchByPrefix(resultType, "Pod", r.Namespace, r.ControllerName)
+	// if err != nil {
+	// 	ServiceLogger.Warningf("\nWarning fetching pods: %s\n", err)
+	// 	return nil
+	// }
+
+	// filtered := make([]corev1.Pod, 0)
+	// for _, podRef := range pods {
+	// 	pod := podRef.(*corev1.Pod)
+	// 	if pod == nil {
+	// 		continue
+	// 	}
+	// check if app label is equal r.controllerName
+	// if pod.Labels["app"] != r.ControllerName {
+	// 	continue
+	// }
+
+	// 	filtered = append(filtered, *pod)
+	// }
+
+	// fmt.Printf("ServicePodStatus2 fetch: %s, %s\n", r.Namespace, r.ControllerName)
+	// fmt.Println("")
+	// fmt.Printf("ServicePodStatus2 result: %v\n", filtered)
+	// fmt.Println("")
+	// fmt.Printf("ServicePodStatus2 test: %v\n", test)
+	// fmt.Println("")
+
+	// return filtered
 }
 
 func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
