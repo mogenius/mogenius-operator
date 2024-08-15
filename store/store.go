@@ -54,6 +54,7 @@ func (s *Store) Set(value interface{}, keys ...string) error {
 	err = s.db.Update(func(txn *badger.Txn) error {
 		return txn.Set(keyBytes, valueBytes)
 	})
+
 	return err
 }
 
@@ -267,6 +268,10 @@ func (s *Store) deserialize(data []byte, value interface{}) error {
 
 func (s *Store) Close() error {
 	return s.db.Close()
+}
+
+func (s *Store) RunGC() error {
+	return s.db.RunValueLogGC(0.7)
 }
 
 var GlobalStore *Store

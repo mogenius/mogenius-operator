@@ -6,9 +6,11 @@ import (
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
+	"reflect"
 	"sync"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 	v1job "k8s.io/api/batch/v1"
 	coordination "k8s.io/api/coordination/v1"
 	core "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbac "k8s.io/api/rbac/v1"
 	scheduling "k8s.io/api/scheduling/v1"
@@ -171,7 +174,25 @@ func ServicePodStatus(r ServicePodsRequest) interface{} {
 }
 
 func ServicePodStatus2(r ServicePodsRequest) interface{} {
-	return punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
+	// return punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
+
+	resultType := reflect.TypeOf(corev1.Pod{})
+	pods, err := store.GlobalStore.SearchByPrefix(resultType, "Pod", r.Namespace, r.ControllerName)
+	if err != nil {
+		ServiceLogger.Warningf("\nWarning fetching pods: %s\n", err)
+		return nil
+	}
+	return pods
+	// for _, podRef := range pods {
+	// 	pod := podRef.(*corev1.Pod)
+	// 	if pod == nil {
+	// 		continue
+	// 	}
+
+	// 	if pod.Status.Phase == corev1.PodSucceeded {
+	// 		continue
+	// 	}
+	// }
 }
 
 func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
