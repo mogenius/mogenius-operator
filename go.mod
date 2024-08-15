@@ -26,7 +26,6 @@ require (
 	github.com/spf13/cobra v1.8.0
 	go.etcd.io/bbolt v1.3.8
 	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
-	google.golang.org/appengine v1.6.8
 	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.14.0
 	k8s.io/api v0.30.1

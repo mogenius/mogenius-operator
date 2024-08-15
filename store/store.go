@@ -19,6 +19,21 @@ type Store struct {
 	indexStore *ReverseIndexStore
 }
 
+var GlobalStore *Store
+
+func Init() {
+	var err error
+	GlobalStore, err = NewStore()
+	if err != nil {
+		storeLogger.Errorf("Error initializing store: %s", err.Error())
+		storeLogger.Fatal(err.Error())
+	}
+}
+
+func (s *Store) Close() error {
+	return s.db.Close()
+}
+
 func NewStore() (*Store, error) {
 	opts := badger.DefaultOptions("").WithInMemory(true)
 	db, err := badger.Open(opts)
@@ -263,19 +278,4 @@ func (s *Store) serialize(value interface{}) ([]byte, error) {
 
 func (s *Store) deserialize(data []byte, value interface{}) error {
 	return json.Unmarshal(data, value)
-}
-
-func (s *Store) Close() error {
-	return s.db.Close()
-}
-
-var GlobalStore *Store
-
-func Init() {
-	var err error
-	GlobalStore, err = NewStore()
-	if err != nil {
-		storeLogger.Errorf("Error initializing store: %s", err.Error())
-		storeLogger.Fatal(err.Error())
-	}
 }
