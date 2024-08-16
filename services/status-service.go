@@ -317,17 +317,15 @@ func (r *ResourceItem) ContainerStatus() (*ServiceStatusType, *ServiceStatusObje
 	if r.StatusObject != nil {
 		if containerStatus, ok := r.StatusObject.(corev1.ContainerStatus); ok {
 
-			var statusObject ServiceStatusObject
+			// retsart count & start time
+			statusObject := ServiceStatusObject{
+				ContainerStatus: XContainerStatus{
+					RestartCount: containerStatus.RestartCount,
+				},
+			}
 			if containerStatus.State.Running != nil {
-				// retsart count & start time
 				createdAt := &containerStatus.State.Running.StartedAt
-				restartCount := containerStatus.RestartCount
-				statusObject = ServiceStatusObject{
-					ContainerStatus: XContainerStatus{
-						RestartCount: restartCount,
-						CreatedAt:    createdAt,
-					},
-				}
+				statusObject.ContainerStatus.CreatedAt = createdAt
 			}
 
 			if containerStatus.State.Terminated != nil {
