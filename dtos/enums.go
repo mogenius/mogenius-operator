@@ -94,7 +94,6 @@ const (
 	KindDaemonSets               string = "daemonsets"
 	KindNetworkPolicies          string = "networkpolicies"
 	KindHorizontalPodAutoscalers string = "horizontalpodautoscalers"
-	KindReplicaSets              string = "replicasets"
 )
 
 var AvailableSyncWorkloadKinds = []string{
@@ -111,7 +110,6 @@ var AvailableSyncWorkloadKinds = []string{
 	KindDaemonSets,
 	KindNetworkPolicies,
 	KindHorizontalPodAutoscalers,
-	KindReplicaSets,
 }
 
 func DefaultIgnoredNamespaces() []string {

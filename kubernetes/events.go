@@ -105,8 +105,6 @@ func ResourceWatcher() {
 			go WatchStatefulSets()
 		case dtos.KindHorizontalPodAutoscalers:
 			go WatchHpas()
-		case dtos.KindReplicaSets:
-			// go WatchReplicaSets()
 		default:
 			K8sLogger.Fatalf("🚫 Unknown resource type: %s", workload)
 		}
@@ -140,10 +138,6 @@ func InitAllWorkloads() {
 
 	replicasets := punq.AllReplicasets("", nil)
 	for _, res := range replicasets {
-		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindReplicaSets] {
-			iacmanager.WriteResourceYaml(dtos.KindReplicaSets, res.Namespace, res.Name, res)
-		}
-
 		store.GlobalStore.Set(res, "ReplicaSet", res.Namespace, res.Name)
 	}
 
@@ -245,11 +239,6 @@ func InitAllWorkloads() {
 			for _, res := range ressources {
 				iacmanager.WriteResourceYaml(dtos.KindHorizontalPodAutoscalers, res.Namespace, res.Name, res)
 			}
-		case dtos.KindReplicaSets:
-			// replicasets := punq.AllReplicasets("", nil)
-			// for _, res := range replicasets {
-			// 	iacmanager.WriteResourceYaml(dtos.KindReplicaSets, res.Namespace, res.Name, res)
-			// }
 		default:
 			K8sLogger.Fatalf("🚫 Unknown resource type: %s", workload)
 		}
