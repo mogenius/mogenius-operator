@@ -79,7 +79,6 @@ func (s *Store) Set(value interface{}, keys ...string) error {
 	}
 
 	key := CreateKey(keys...)
-	log.Info("-----------------------KEY updated: ", key)
 
 	s.indexStore.AddCompositeKey(key, keys...)
 
@@ -162,8 +161,6 @@ func (s *Store) Delete(keys ...string) error {
 
 	key := CreateKey(keys...)
 	s.indexStore.DeleteCompositeKey(key, keys...)
-
-	log.Info("-----------------------KEY deleted: ", key)
 
 	keyBytes := []byte(key)
 

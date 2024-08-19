@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -874,8 +872,6 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 
 	metaName, metaNamespace, kind, references, labelSelector, object := status(resourceInterface)
 	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
-
-	log.Infof("--------------------------------kind: %s, name: %s, namespace: %s, ownerReference: %v, status: %v", resourceController.String(), metaName, metaNamespace, references, object)
 
 	// Fetch pods
 	resultType := reflect.TypeOf(corev1.Pod{})
