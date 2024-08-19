@@ -36,7 +36,7 @@ func (d *Debounce) CallFn(key string, fn func() (interface{}, error)) (interface
 	d.mutex.Lock()
 
 	if entry, found := d.cache[key]; found {
-		log.Infof("--- DEBOUNCED_CALL_FOR_KEY %s ---", key)
+		log.Infof("---- DEBOUNCED_CALL_FOR_KEY %s ---", key)
 		if entry.timer != nil {
 			entry.timer.Reset(d.timer)
 		}
