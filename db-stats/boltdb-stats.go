@@ -24,6 +24,8 @@ const (
 	SOCKET_STATS_BUCKET    = "socket-stats"
 )
 
+var dbstatslogger = log.WithField("component", structs.ComponentDbStats)
+
 var dbStats *bolt.DB
 var cleanupTimer = time.NewTicker(1 * time.Minute)
 
@@ -31,8 +33,8 @@ func Init() {
 	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbStatsPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		log.Errorf("Error opening bbolt database from '%s'.", dbPath)
-		log.Fatal(err.Error())
+		dbstatslogger.Errorf("Error opening bbolt database from '%s'.", dbPath)
+		dbstatslogger.Fatal(err.Error())
 	}
 	dbStats = database
 
@@ -40,51 +42,51 @@ func Init() {
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(TRAFFIC_BUCKET_NAME))
 		if err == nil {
-			log.Infof("Bucket '%s' created 🚀.", TRAFFIC_BUCKET_NAME)
+			dbstatslogger.Infof("Bucket '%s' created 🚀.", TRAFFIC_BUCKET_NAME)
 		}
 		return err
 	})
 	if err != nil {
-		log.Errorf("Error creating bucket ('%s'): %s", TRAFFIC_BUCKET_NAME, err)
+		dbstatslogger.Errorf("Error creating bucket ('%s'): %s", TRAFFIC_BUCKET_NAME, err)
 	}
 
 	// ### POD STATS BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(POD_STATS_BUCKET_NAME))
 		if err == nil {
-			log.Infof("Bucket '%s' created 🚀.", POD_STATS_BUCKET_NAME)
+			dbstatslogger.Infof("Bucket '%s' created 🚀.", POD_STATS_BUCKET_NAME)
 		}
 		return err
 	})
 	if err != nil {
-		log.Errorf("Error creating bucket ('%s'): %s", POD_STATS_BUCKET_NAME, err)
+		dbstatslogger.Errorf("Error creating bucket ('%s'): %s", POD_STATS_BUCKET_NAME, err)
 	}
 
 	// ### NODE STATS BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(NODE_STATS_BUCKET_NAME))
 		if err == nil {
-			log.Infof("Bucket '%s' created 🚀.", NODE_STATS_BUCKET_NAME)
+			dbstatslogger.Infof("Bucket '%s' created 🚀.", NODE_STATS_BUCKET_NAME)
 		}
 		return err
 	})
 	if err != nil {
-		log.Errorf("Error creating bucket ('%s'): %s", NODE_STATS_BUCKET_NAME, err)
+		dbstatslogger.Errorf("Error creating bucket ('%s'): %s", NODE_STATS_BUCKET_NAME, err)
 	}
 
 	// ### SOCKET STATS BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(SOCKET_STATS_BUCKET))
 		if err == nil {
-			log.Infof("Bucket '%s' created 🚀.", SOCKET_STATS_BUCKET)
+			dbstatslogger.Infof("Bucket '%s' created 🚀.", SOCKET_STATS_BUCKET)
 		}
 		return err
 	})
 	if err != nil {
-		log.Errorf("Error creating bucket ('%s'): %s", SOCKET_STATS_BUCKET, err)
+		dbstatslogger.Errorf("Error creating bucket ('%s'): %s", SOCKET_STATS_BUCKET, err)
 	}
 
-	log.Infof("bbold started 🚀 (Path: '%s')", dbPath)
+	dbstatslogger.Infof("bbold started 🚀 (Path: '%s')", dbPath)
 
 	go func() {
 		cleanupStats()
@@ -100,6 +102,9 @@ func Close() {
 	}
 }
 
+// make function mockable
+var getControllerFunc = kubernetes.ControllerForPod
+
 func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
 	err := dbStats.Update(func(tx *bolt.Tx) error {
@@ -112,7 +117,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		}
 
 		// CREATE A BUCKET FOR EACH CONTROLLER
-		controller := kubernetes.ControllerForPod(stats.Namespace, stats.PodName)
+		controller := getControllerFunc(stats.Namespace, stats.PodName)
 		if controller == nil {
 			return fmt.Errorf("Controller not found for '%s/%s'", stats.Namespace, stats.PodName)
 		}
@@ -132,7 +137,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		socketBucket := tx.Bucket([]byte(SOCKET_STATS_BUCKET))
 		err = socketBucket.Put([]byte(stats.PodName), []byte(punqStructs.PrettyPrintString(cleanSocketConnections(stats.SocketConnections))))
 		if err != nil {
-			log.Errorf("Error adding socket connections for '%s': %s", stats.PodName, err.Error())
+			dbstatslogger.Errorf("Error adding socket connections for '%s': %s", stats.PodName, err.Error())
 		}
 		stats.SocketConnections = nil
 
@@ -141,7 +146,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
-		log.Errorf("Error adding interface stats for '%s': %s", stats.Namespace, err.Error())
+		dbstatslogger.Errorf("Error adding interface stats for '%s': %s", stats.Namespace, err.Error())
 	}
 }
 
@@ -173,7 +178,7 @@ func GetSocketConnectionsForPod(podName string) structs.SocketConnections {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetSocketConnectionsForPod: %s", err.Error())
+		dbstatslogger.Errorf("GetSocketConnectionsForPod: %s", err.Error())
 	}
 	return result
 }
@@ -201,7 +206,7 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 		return nodeBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
-		log.Errorf("Error adding node stats for '%s': %s", stats.Name, err.Error())
+		dbstatslogger.Errorf("Error adding node stats for '%s': %s", stats.Name, err.Error())
 	}
 }
 
@@ -242,7 +247,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
-		log.Errorf("Error adding pod stats for '%s': %s", stats.Namespace, err.Error())
+		dbstatslogger.Errorf("Error adding pod stats for '%s': %s", stats.Namespace, err.Error())
 	}
 }
 
@@ -280,7 +285,7 @@ func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, i
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetTrafficStatsEntrySumForController: %s", err.Error())
+		dbstatslogger.Errorf("GetTrafficStatsEntrySumForController: %s", err.Error())
 	}
 	result.PrintInfo()
 	return result
@@ -305,7 +310,7 @@ func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[
 		})
 	})
 	if err != nil {
-		log.Errorf("GetTrafficStatsEntriesForController: %s", err.Error())
+		dbstatslogger.Errorf("GetTrafficStatsEntriesForController: %s", err.Error())
 	}
 	return result
 }
@@ -329,7 +334,7 @@ func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *str
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetLastPodStatsEntryForController: %s", err.Error())
+		dbstatslogger.Errorf("GetLastPodStatsEntryForController: %s", err.Error())
 	}
 	return result
 }
@@ -353,7 +358,7 @@ func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]str
 		})
 	})
 	if err != nil {
-		log.Errorf("GetPodStatsEntriesForController: %s", err.Error())
+		dbstatslogger.Errorf("GetPodStatsEntriesForController: %s", err.Error())
 	}
 	return result
 }
@@ -386,7 +391,7 @@ func GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
 		})
 	})
 	if err != nil {
-		log.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
+		dbstatslogger.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
 	}
 	return result
 }
@@ -409,7 +414,7 @@ func GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
 		})
 	})
 	if err != nil {
-		log.Errorf("GetPodStatsEntriesForNamespace: %s", err.Error())
+		dbstatslogger.Errorf("GetPodStatsEntriesForNamespace: %s", err.Error())
 	}
 	return result
 }
@@ -433,7 +438,7 @@ func GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.Interface
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetTrafficStatsEntriesSumForNamespace: %s", err.Error())
+		dbstatslogger.Errorf("GetTrafficStatsEntriesSumForNamespace: %s", err.Error())
 	}
 	return result
 }
@@ -456,7 +461,7 @@ func GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceSt
 		})
 	})
 	if err != nil {
-		log.Errorf("GetTrafficStatsEntriesForNamespace: %s", err.Error())
+		dbstatslogger.Errorf("GetTrafficStatsEntriesForNamespace: %s", err.Error())
 	}
 	return result
 }
@@ -549,7 +554,7 @@ func cleanupStats() {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("cleanupStats: %s", err.Error())
+		dbstatslogger.Errorf("cleanupStats: %s", err.Error())
 	}
 }
 

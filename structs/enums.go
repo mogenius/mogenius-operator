@@ -1,21 +1,24 @@
 package structs
 
-type SystemCheckStatus string
-
-const (
-	UNKNOWN_STATUS SystemCheckStatus = "UNKNOWN_STATUS"
-	INSTALLING     SystemCheckStatus = "INSTALLING"
-	UNINSTALLING   SystemCheckStatus = "UNINSTALLING"
-	NOT_INSTALLED  SystemCheckStatus = "NOT_INSTALLED"
-	INSTALLED      SystemCheckStatus = "INSTALLED"
-)
-
 type HelmTaskEnum string
 
 const (
 	HelmInstall   HelmTaskEnum = "install"
 	HelmUpgrade   HelmTaskEnum = "upgrade"
 	HelmUninstall HelmTaskEnum = "uninstall"
+)
+
+type ComponentEnum string
+
+const (
+	ComponentAll        ComponentEnum = "all"
+	ComponentIacManager ComponentEnum = "iac"
+	ComponentDb         ComponentEnum = "db"
+	Store               ComponentEnum = "store"
+	ComponentDbStats    ComponentEnum = "db-stats"
+	ComponentCrds       ComponentEnum = "crds"
+	ComponentKubernetes ComponentEnum = "kubernetes"
+	ComponentServices   ComponentEnum = "services"
 )
 
 type JobStateEnum string
@@ -30,15 +33,16 @@ const (
 )
 
 const (
-	PAT_K8SNOTIFICATION         string = "K8sNotification"
-	PAT_CLUSTERSTATUS           string = "ClusterStatus"
-	PAT_CLUSTERRESOURCEINFO     string = "ClusterResourceInfo"
-	PAT_KUBERNETESEVENT         string = "KubernetesEvent"
-	PAT_UPGRADEK8SMANAGER       string = "UpgradeK8sManager"
-	PAT_SERVICE_POD_EXISTS      string = "SERVICE_POD_EXISTS"
-	PAT_SERVICE_PODS            string = "SERVICE_PODS"
-	PAT_CLUSTER_FORCE_RECONNECT string = "ClusterForceReconnect"
-	PAT_SYSTEM_CHECK            string = "SYSTEM_CHECK"
+	PAT_K8SNOTIFICATION          string = "K8sNotification"
+	PAT_CLUSTERSTATUS            string = "ClusterStatus"
+	PAT_CLUSTERRESOURCEINFO      string = "ClusterResourceInfo"
+	PAT_KUBERNETESEVENT          string = "KubernetesEvent"
+	PAT_UPGRADEK8SMANAGER        string = "UpgradeK8sManager"
+	PAT_SERVICE_POD_EXISTS       string = "SERVICE_POD_EXISTS"
+	PAT_SERVICE_PODS             string = "SERVICE_PODS"
+	PAT_CLUSTER_FORCE_RECONNECT  string = "ClusterForceReconnect"
+	PAT_CLUSTER_FORCE_DISCONNECT string = "ClusterForceDisconnect"
+	PAT_SYSTEM_CHECK             string = "SYSTEM_CHECK"
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS         string = "install-local-dev-components"
 	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
@@ -79,14 +83,15 @@ const (
 	PAT_FILES_DELETE        string = "files/delete"
 	PAT_FILES_INFO          string = "files/info"
 
-	PAT_CLUSTER_EXECUTE_HELM_CHART_TASK string = "cluster/execute-helm-chart-task"
-	PAT_CLUSTER_UNINSTALL_HELM_CHART    string = "cluster/uninstall-helm-chart"
-	PAT_CLUSTER_TCP_UDP_CONFIGURATION   string = "cluster/tcp-udp-configuration"
-	PAT_CLUSTER_BACKUP                  string = "cluster/backup"
-	PAT_CLUSTER_RESTART                 string = "cluster/restart"
-	PAT_ENERGY_CONSUMPTION              string = "cluster/energy-consumption"
-	PAT_CLUSTER_SYNC_INFO               string = "cluster/sync-info"
-	PAT_CLUSTER_SYNC_UPDATE             string = "cluster/sync-update"
+	PAT_CLUSTER_EXECUTE_HELM_CHART_TASK                 string = "cluster/execute-helm-chart-task"
+	PAT_CLUSTER_UNINSTALL_HELM_CHART                    string = "cluster/uninstall-helm-chart"
+	PAT_CLUSTER_TCP_UDP_CONFIGURATION                   string = "cluster/tcp-udp-configuration"
+	PAT_CLUSTER_BACKUP                                  string = "cluster/backup"
+	PAT_CLUSTER_RESTART                                 string = "cluster/restart"
+	PAT_ENERGY_CONSUMPTION                              string = "cluster/energy-consumption"
+	PAT_CLUSTER_SYNC_INFO                               string = "cluster/sync-info"
+	PAT_CLUSTER_SYNC_UPDATE                             string = "cluster/sync-update"
+	PAT_CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST string = "cluster/component-log-stream-connection-request"
 
 	PAT_CLUSTER_WRITE_CONFIGMAP               string = "cluster/write-configmap"
 	PAT_CLUSTER_READ_CONFIGMAP                string = "cluster/read-configmap"
@@ -116,6 +121,8 @@ const (
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL   string = "stats/podstat/all-for-namespace"
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST  string = "stats/podstat/last-for-namespace"
 	PAT_STATS_CHART_FOR_POD               string = "stats/chart/for-pod"
+
+	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION string = "metrics/deployment/average-utilization"
 
 	PAT_PROJECT_CREATE string = "project/create"
 	PAT_PROJECT_UPDATE string = "project/update"
@@ -153,6 +160,7 @@ const (
 	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST               string = "service/exec-sh-connection-request"
 	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST            string = "service/log-stream-connection-request"
 	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST      string = "service/build-log-stream-connection-request"
+	PAT_SERVICE_OPERATOR_LOG_STREAM_CONNECTION_REQUEST   string = "service/operator-log-stream-connection-request"
 	PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST      string = "service/pod-event-stream-connection-request"
 	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST string = "service/scan-image-log-stream-connection-request"
 	PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST   string = "service/cluster-tool-stream-connection-request"
@@ -196,40 +204,40 @@ const (
 	PAT_LIST_VOLUMESNAPSHOTS             string = "list/volumesnapshots"
 	PAT_LIST_RESOURCEQUOTAS              string = "list/resourcequotas"
 
-	PAT_CREATE_NAMESPACE                   string = "create/namespace"
-	PAT_CREATE_DEPLOYMENT                  string = "create/deployment"
-	PAT_CREATE_SERVICE                     string = "create/service"
-	PAT_CREATE_POD                         string = "create/pod"
-	PAT_CREATE_INGRESS                     string = "create/ingress"
-	PAT_CREATE_CONFIGMAP                   string = "create/configmap"
-	PAT_CREATE_SECRET                      string = "create/secret"
-	PAT_CREATE_DAEMONSET                   string = "create/daemonset"
-	PAT_CREATE_STATEFULSET                 string = "create/statefulset"
-	PAT_CREATE_JOB                         string = "create/job"
-	PAT_CREATE_CRONJOB                     string = "create/cronjob"
-	PAT_CREATE_REPLICASET                  string = "create/replicaset"
-	PAT_CREATE_PERSISTENT_VOLUME           string = "create/persistent_volume"
-	PAT_CREATE_PERSISTENT_VOLUME_CLAIM     string = "create/persistent_volume_claim"
-	PAT_CREATE_HORIZONTAL_POD_AUTOSCALER   string = "create/horizontal_pod_autoscaler"
-	PAT_CREATE_CERTIFICATE                 string = "create/certificate"
-	PAT_CREATE_CERTIFICATEREQUEST          string = "create/certificaterequest"
-	PAT_CREATE_ORDER                       string = "create/order"
-	PAT_CREATE_ISSUER                      string = "create/issuer"
-	PAT_CREATE_CLUSTERISSUER               string = "create/clusterissuer"
-	PAT_CREATE_SERVICE_ACCOUNT             string = "create/service_account"
-	PAT_CREATE_ROLE                        string = "create/role"
-	PAT_CREATE_ROLE_BINDING                string = "create/role_binding"
-	PAT_CREATE_CLUSTER_ROLE                string = "create/cluster_role"
-	PAT_CREATE_CLUSTER_ROLE_BINDING        string = "create/cluster_role_binding"
-	PAT_CREATE_VOLUME_ATTACHMENT           string = "create/volume_attachment"
-	PAT_CREATE_NETWORK_POLICY              string = "create/network_policy"
-	PAT_CREATE_STORAGE_CLASS               string = "create/storage_class"
-	PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS string = "create/custom_resource_definitions"
-	PAT_CREATE_ENDPOINTS                   string = "create/endpoints"
-	PAT_CREATE_LEASES                      string = "create/leases"
-	PAT_CREATE_PRIORITYCLASSES             string = "create/priorityclasses"
-	PAT_CREATE_VOLUMESNAPSHOTS             string = "create/volumesnapshots"
-	PAT_CREATE_RESOURCEQUOTAS              string = "create/resourcequotas"
+	// PAT_CREATE_NAMESPACE  string = "create/namespace"
+	// PAT_CREATE_DEPLOYMENT string = "create/deployment"
+	// PAT_CREATE_SERVICE                     string = "create/service"
+	// PAT_CREATE_POD                         string = "create/pod"
+	// PAT_CREATE_INGRESS                     string = "create/ingress"
+	// PAT_CREATE_CONFIGMAP string = "create/configmap"
+	// PAT_CREATE_SECRET                      string = "create/secret"
+	// PAT_CREATE_DAEMONSET                   string = "create/daemonset"
+	// PAT_CREATE_STATEFULSET                 string = "create/statefulset"
+	// PAT_CREATE_JOB                         string = "create/job"
+	// PAT_CREATE_CRONJOB                     string = "create/cronjob"
+	// PAT_CREATE_REPLICASET                  string = "create/replicaset"
+	// PAT_CREATE_PERSISTENT_VOLUME           string = "create/persistent_volume"
+	// PAT_CREATE_PERSISTENT_VOLUME_CLAIM     string = "create/persistent_volume_claim"
+	// PAT_CREATE_HORIZONTAL_POD_AUTOSCALER   string = "create/horizontal_pod_autoscaler"
+	// PAT_CREATE_CERTIFICATE                 string = "create/certificate"
+	// PAT_CREATE_CERTIFICATEREQUEST          string = "create/certificaterequest"
+	// PAT_CREATE_ORDER                       string = "create/order"
+	// PAT_CREATE_ISSUER                      string = "create/issuer"
+	// PAT_CREATE_CLUSTERISSUER               string = "create/clusterissuer"
+	// PAT_CREATE_SERVICE_ACCOUNT             string = "create/service_account"
+	// PAT_CREATE_ROLE                        string = "create/role"
+	// PAT_CREATE_ROLE_BINDING                string = "create/role_binding"
+	// PAT_CREATE_CLUSTER_ROLE                string = "create/cluster_role"
+	// PAT_CREATE_CLUSTER_ROLE_BINDING        string = "create/cluster_role_binding"
+	// PAT_CREATE_VOLUME_ATTACHMENT           string = "create/volume_attachment"
+	// PAT_CREATE_NETWORK_POLICY              string = "create/network_policy"
+	// PAT_CREATE_STORAGE_CLASS               string = "create/storage_class"
+	// PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS string = "create/custom_resource_definitions"
+	// PAT_CREATE_ENDPOINTS                   string = "create/endpoints"
+	// PAT_CREATE_LEASES                      string = "create/leases"
+	// PAT_CREATE_PRIORITYCLASSES             string = "create/priorityclasses"
+	// PAT_CREATE_VOLUMESNAPSHOTS             string = "create/volumesnapshots"
+	// PAT_CREATE_RESOURCEQUOTAS              string = "create/resourcequotas"
 
 	PAT_DESCRIBE_NAMESPACE                   string = "describe/namespace"
 	PAT_DESCRIBE_DEPLOYMENT                  string = "describe/deployment"
@@ -389,12 +397,12 @@ const (
 	PAT_BUILD_LIST_BY_PROJECT string = "build/list-by-project"
 	PAT_BUILD_ADD             string = "build/add"
 	// PAT_BUILD_SCAN                     string = "build/scan"
-	PAT_BUILD_CANCEL                   string = "build/cancel"
-	PAT_BUILD_DELETE                   string = "build/delete"
-	PAT_BUILD_LAST_JOB_OF_SERVICES     string = "build/last-job-of-services"
-	PAT_BUILD_JOB_LIST_OF_SERVICE      string = "build/job-list-of-service"
-	PAT_BUILD_DELETE_ALL_OF_SERVICE    string = "build/delete-of-service"
-	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE string = "build/last-job-info-of-service"
+	PAT_BUILD_CANCEL                string = "build/cancel"
+	PAT_BUILD_DELETE                string = "build/delete"
+	PAT_BUILD_LAST_JOB_OF_SERVICES  string = "build/last-job-of-services"
+	PAT_BUILD_JOB_LIST_OF_SERVICE   string = "build/job-list-of-service"
+	PAT_BUILD_DELETE_ALL_OF_SERVICE string = "build/delete-of-service"
+	// PAT_BUILD_LAST_JOB_INFO_OF_SERVICE string = "build/last-job-info-of-service"
 
 	PAT_LOG_LIST_ALL string = "log/list-all"
 
@@ -410,6 +418,8 @@ const (
 	PAT_EXTERNAL_SECRET_STORE_DELETE                 string = "external-secret/delete"
 	PAT_EXTERNAL_SECRET_CREATE                       string = "external-secret/create"
 	PAT_EXTERNAL_SECRET_DELETE                       string = "external-secret/delete"
+
+	PAT_LIST_CRONJOB_JOBS string = "list/cronjob-jobs"
 )
 
 var BINARY_REQUEST_UPLOAD = []string{
@@ -425,6 +435,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_POD_EXISTS,
 	PAT_SERVICE_PODS,
 	PAT_CLUSTER_FORCE_RECONNECT,
+	PAT_CLUSTER_FORCE_DISCONNECT,
 	PAT_SYSTEM_CHECK,
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS,
@@ -474,6 +485,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_ENERGY_CONSUMPTION,
 	PAT_CLUSTER_SYNC_INFO,
 	PAT_CLUSTER_SYNC_UPDATE,
+	PAT_CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_CLUSTER_WRITE_CONFIGMAP,
 	PAT_CLUSTER_READ_CONFIGMAP,
 	PAT_CLUSTER_LIST_CONFIGMAPS,
@@ -502,6 +514,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST, // legacy-support TODO: REMOVE
 	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST,  // legacy-support TODO: REMOVE
 	PAT_STATS_CHART_FOR_POD,
+
+	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION,
 
 	PAT_PROJECT_CREATE,
 	PAT_PROJECT_UPDATE,
@@ -539,6 +553,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST,
 	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST,
+	PAT_SERVICE_OPERATOR_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST,
@@ -582,40 +597,40 @@ var COMMAND_REQUESTS = []string{
 	PAT_LIST_VOLUMESNAPSHOTS,
 	PAT_LIST_RESOURCEQUOTAS,
 
-	PAT_CREATE_NAMESPACE,
-	PAT_CREATE_DEPLOYMENT,
-	PAT_CREATE_SERVICE,
-	PAT_CREATE_POD,
-	PAT_CREATE_INGRESS,
-	PAT_CREATE_CONFIGMAP,
-	PAT_CREATE_SECRET,
-	PAT_CREATE_DAEMONSET,
-	PAT_CREATE_STATEFULSET,
-	PAT_CREATE_JOB,
-	PAT_CREATE_CRONJOB,
-	PAT_CREATE_REPLICASET,
-	PAT_CREATE_PERSISTENT_VOLUME,
-	PAT_CREATE_PERSISTENT_VOLUME_CLAIM,
-	PAT_CREATE_HORIZONTAL_POD_AUTOSCALER,
-	PAT_CREATE_CERTIFICATE,
-	PAT_CREATE_CERTIFICATEREQUEST,
-	PAT_CREATE_ORDER,
-	PAT_CREATE_ISSUER,
-	PAT_CREATE_CLUSTERISSUER,
-	PAT_CREATE_SERVICE_ACCOUNT,
-	PAT_CREATE_ROLE,
-	PAT_CREATE_ROLE_BINDING,
-	PAT_CREATE_CLUSTER_ROLE,
-	PAT_CREATE_CLUSTER_ROLE_BINDING,
-	PAT_CREATE_VOLUME_ATTACHMENT,
-	PAT_CREATE_NETWORK_POLICY,
-	PAT_CREATE_STORAGE_CLASS,
-	PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS,
-	PAT_CREATE_ENDPOINTS,
-	PAT_CREATE_LEASES,
-	PAT_CREATE_PRIORITYCLASSES,
-	PAT_CREATE_VOLUMESNAPSHOTS,
-	PAT_CREATE_RESOURCEQUOTAS,
+	// PAT_CREATE_NAMESPACE,
+	// PAT_CREATE_DEPLOYMENT,
+	// PAT_CREATE_SERVICE,
+	// PAT_CREATE_POD,
+	// PAT_CREATE_INGRESS,
+	// PAT_CREATE_CONFIGMAP,
+	// PAT_CREATE_SECRET,
+	// PAT_CREATE_DAEMONSET,
+	// PAT_CREATE_STATEFULSET,
+	// PAT_CREATE_JOB,
+	// PAT_CREATE_CRONJOB,
+	// PAT_CREATE_REPLICASET,
+	// PAT_CREATE_PERSISTENT_VOLUME,
+	// PAT_CREATE_PERSISTENT_VOLUME_CLAIM,
+	// PAT_CREATE_HORIZONTAL_POD_AUTOSCALER,
+	// PAT_CREATE_CERTIFICATE,
+	// PAT_CREATE_CERTIFICATEREQUEST,
+	// PAT_CREATE_ORDER,
+	// PAT_CREATE_ISSUER,
+	// PAT_CREATE_CLUSTERISSUER,
+	// PAT_CREATE_SERVICE_ACCOUNT,
+	// PAT_CREATE_ROLE,
+	// PAT_CREATE_ROLE_BINDING,
+	// PAT_CREATE_CLUSTER_ROLE,
+	// PAT_CREATE_CLUSTER_ROLE_BINDING,
+	// PAT_CREATE_VOLUME_ATTACHMENT,
+	// PAT_CREATE_NETWORK_POLICY,
+	// PAT_CREATE_STORAGE_CLASS,
+	// PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS,
+	// PAT_CREATE_ENDPOINTS,
+	// PAT_CREATE_LEASES,
+	// PAT_CREATE_PRIORITYCLASSES,
+	// PAT_CREATE_VOLUMESNAPSHOTS,
+	// PAT_CREATE_RESOURCEQUOTAS,
 
 	PAT_DESCRIBE_NAMESPACE,
 	PAT_DESCRIBE_DEPLOYMENT,
@@ -780,7 +795,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_BUILD_LAST_JOB_OF_SERVICES,
 	PAT_BUILD_JOB_LIST_OF_SERVICE,
 	PAT_BUILD_DELETE_ALL_OF_SERVICE,
-	PAT_BUILD_LAST_JOB_INFO_OF_SERVICE,
+	// PAT_BUILD_LAST_JOB_INFO_OF_SERVICE,
 
 	PAT_EXEC_SHELL,
 
@@ -794,6 +809,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_EXTERNAL_SECRET_STORE_DELETE,
 	PAT_EXTERNAL_SECRET_CREATE,
 	PAT_EXTERNAL_SECRET_DELETE,
+
+	PAT_LIST_CRONJOB_JOBS,
 }
 
 var SUPPRESSED_OUTPUT_PATTERN = []string{
@@ -806,4 +823,5 @@ var SUPPRESSED_OUTPUT_PATTERN = []string{
 	PAT_CLUSTER_UPDATE_LOCAL_TLS_SECRET,
 	// PAT_BUILD_LAST_JOB_OF_SERVICES,
 	// PAT_BUILD_SCAN,
+	PAT_LIST_CRONJOB_JOBS,
 }

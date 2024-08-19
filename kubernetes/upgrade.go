@@ -9,7 +9,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -31,10 +30,44 @@ func ClusterForceReconnect() bool {
 	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)
 
 	for _, podName := range podsToKill {
-		log.Warningf("Restarting %s ...", podName)
+		K8sLogger.Warningf("Restarting %s ...", podName)
 		err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{})
 		if err != nil {
-			log.Errorf("ClusterForceReconnect ERR: %s", err.Error())
+			K8sLogger.Errorf("ClusterForceReconnect ERR: %s", err.Error())
+		}
+	}
+
+	return true
+}
+
+func ClusterForceDisconnect() bool {
+	// restart deployments/daemonsets for
+	// - traffic
+	// - podstats
+	// - k8s-manager
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return false
+	}
+	podClient := provider.ClientSet.CoreV1().Pods(utils.CONFIG.Kubernetes.OwnNamespace)
+
+	// stop k8s-manager
+	deploymentClient := provider.ClientSet.AppsV1().Deployments(utils.CONFIG.Kubernetes.OwnNamespace)
+	deployment, _ := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
+	deployment.Spec.Paused = true
+	deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
+	deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+
+	podsToKill := []string{}
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)
+
+	for _, podName := range podsToKill {
+		K8sLogger.Warningf("Restarting %s ...", podName)
+		err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{})
+
+		if err != nil {
+			K8sLogger.Errorf("ClusterForceReconnect ERR: %s", err.Error())
 		}
 	}
 

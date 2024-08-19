@@ -19,7 +19,6 @@ import (
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -142,14 +141,14 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 		TotalBytes: total,
 	}
 
-	log.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(result.UsedBytes)), punqUtils.BytesToHumanReadable(int64(result.TotalBytes)), punqUtils.BytesToHumanReadable(int64(result.FreeBytes)))
+	ServiceLogger.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(result.UsedBytes)), punqUtils.BytesToHumanReadable(int64(result.TotalBytes)), punqUtils.BytesToHumanReadable(int64(result.FreeBytes)))
 	return result
 }
 
 func diskUsage(mountPath string) (uint64, uint64, uint64, error) {
 	usage, err := disk.Usage(mountPath)
 	if err != nil {
-		log.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
+		ServiceLogger.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
 		return 0, 0, 0, err
 	} else {
 		return usage.Free, usage.Used, usage.Total, nil
@@ -160,7 +159,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 	result := []NfsVolumeStatsResponse{}
 
 	if r.NamespaceName == "null" || r.NamespaceName == "" {
-		log.Errorf("StatsMogeniusNfsNamespace Err: namespaceName cannot be null or empty.")
+		ServiceLogger.Errorf("StatsMogeniusNfsNamespace Err: namespaceName cannot be null or empty.")
 		return result
 	}
 
@@ -200,7 +199,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 			}
 		}
 
-		log.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), punqUtils.BytesToHumanReadable(int64(entry.FreeBytes)))
+		ServiceLogger.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), punqUtils.BytesToHumanReadable(int64(entry.FreeBytes)))
 		result = append(result, entry)
 	}
 	return result
@@ -304,7 +303,7 @@ func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey st
 		Key:    aws.String(BackupKey),
 	})
 	if err != nil {
-		log.Errorf("s3 Download error: %s", err.Error())
+		ServiceLogger.Errorf("s3 Download error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -319,13 +318,13 @@ func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey st
 	mountPath = fmt.Sprintf("%s/restore", mountPath)
 	err = os.MkdirAll(mountPath, 0755)
 	if err != nil {
-		log.Fatal(err)
+		ServiceLogger.Fatal(err)
 	}
 
 	for _, f := range r.File {
 		rc, err := f.Open()
 		if err != nil {
-			log.Error(err)
+			ServiceLogger.Error(err)
 		}
 		defer rc.Close()
 
@@ -333,24 +332,24 @@ func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey st
 		destFilepath := fmt.Sprintf("%s/%s", mountPath, f.Name)
 		destFile, err := os.Create(destFilepath)
 		if err != nil {
-			log.Error(err)
+			ServiceLogger.Error(err)
 		}
 		defer destFile.Close()
 
 		// Copy the contents of the source file to the destination file
 		_, err = io.Copy(destFile, rc)
 		if err != nil {
-			log.Error(err)
+			ServiceLogger.Error(err)
 		}
 
 		// Print the name of the unzipped file
 		if utils.CONFIG.Misc.Debug {
-			log.Infof("Unzipped file: %s\n", destFilepath)
+			ServiceLogger.Infof("Unzipped file: %s\n", destFilepath)
 		}
 	}
 
 	msg := fmt.Sprintf("Successfully restored volume (%s) from S3!\n", punqUtils.BytesToHumanReadable(downloadedBytes))
-	log.Info(msg)
+	ServiceLogger.Info(msg)
 	result.Message = msg
 
 	return result
@@ -399,7 +398,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 		return nil
 	})
 	if err != nil {
-		log.Errorf("s3 walk files error: %s", err.Error())
+		ServiceLogger.Errorf("s3 walk files error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -407,7 +406,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 	// Close the zip archive
 	err = zipWriter.Close()
 	if err != nil {
-		log.Errorf("s3 zip error: %s", err.Error())
+		ServiceLogger.Errorf("s3 zip error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -420,7 +419,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 		Body:   bytes.NewReader(buf.Bytes()),
 	})
 	if err != nil {
-		log.Errorf("s3 Send error: %s", err.Error())
+		ServiceLogger.Errorf("s3 Send error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -432,7 +431,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 	})
 	url, err := req.Presign(15 * time.Minute)
 	if err != nil {
-		log.Errorf("s3 presign error: %s", err.Error())
+		ServiceLogger.Errorf("s3 presign error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -441,7 +440,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 		Key:    aws.String(targetFileName),
 	})
 	if err != nil {
-		log.Errorf("s3 headobject error: %s", err.Error())
+		ServiceLogger.Errorf("s3 headobject error: %s", err.Error())
 		result.Error = err.Error()
 		return result
 	}
@@ -451,7 +450,7 @@ func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result Nf
 		result.Bytes = *headObj.ContentLength
 	}
 
-	log.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", punqUtils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
+	ServiceLogger.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", punqUtils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
 
 	return result
 }
@@ -737,83 +736,6 @@ type NfsStatusResponse struct {
 	UsedByPods    []string              `json:"usedByPods,omitempty"`
 }
 
-type CreateSecretsStoreRequest struct {
-	// Secrets stores are bound to a projects,
-	// so that customers can decide which team controls which secrets
-	ProjectName string `json:"projectName" validate:"required"`
-	// customers might want to create multiple stores	and should have IDs to differentiate
-	NamePrefix     string `json:"namePrefix" validate:"required"`
-	Role           string `json:"role" validate:"required"`
-	VaultServerUrl string `json:"vaultServerUrl" validate:"required"`
-	MoSharedPath   string `json:"moSharedPath" validate:"required"`
-}
-
-func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
-	return CreateSecretsStoreRequest{
-		ProjectName:    "phoenix",
-		NamePrefix:     "mo-test",
-		Role:           "mogenius-external-secrets",
-		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		MoSharedPath:   "mogenius-external-secrets",
-	}
-}
-
-type CreateSecretsStoreResponse struct {
-	Status       string `json:"status"`
-	ErrorMessage string `json:"errorMessage"`
-}
-
-type ListSecretsStoresResponse struct {
-	StoresInCluster []SecretStoreListing `json:"storesInCluster"`
-}
-type ListSecretsRequest struct {
-	NamePrefix  string `json:"namePrefix" validate:"required"`
-	ProjectName string `json:"projectName" validate:"required"`
-}
-type ListSecretsResponse struct {
-	SecretsInProject []string `json:"secretsInProject"`
-}
-type DeleteSecretsStoreRequest struct {
-	NamePrefix   string `json:"namePrefix" validate:"required"`
-	ProjectName  string `json:"projectName" validate:"required"`
-	MoSharedPath string `json:"moSharedPath" validate:"required"`
-}
-
-func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
-	return DeleteSecretsStoreRequest{
-		NamePrefix:  "mo-test",
-		ProjectName: "phoenix",
-	}
-}
-
-type DeleteSecretsStoreResponse struct {
-	Status       string `json:"status"`
-	ErrorMessage string `json:"errorMessage"`
-}
-
-type CreateExternalSecretRequest struct {
-	ServiceName           string `json:"serviceName" validate:"required"`
-	Namespace             string `json:"namespace" validate:"required"`
-	ProjectName           string `json:"projectName" validate:"required"`
-	SecretStoreNamePrefix string `json:"namePrefix" validate:"required"`
-	PropertyName          string `json:"propertyName" validate:"required"`
-}
-
-func CreateExternalSecretRequestExample() CreateExternalSecretRequest {
-	return CreateExternalSecretRequest{
-		ServiceName:           "customer-app01",
-		Namespace:             "customer-app-namespace",
-		ProjectName:           "phoenix",
-		SecretStoreNamePrefix: "mo-test",
-		PropertyName:          "postgresURL",
-	}
-}
-
-type CreateExternalSecretResponse struct {
-	Status       string `json:"status"`
-	ErrorMessage string `json:"errorMessage"`
-}
-
 var keplerHostAndPort string = ""
 
 var energyConsumptionCollectionInProgress bool = false
@@ -828,11 +750,11 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 		if keplerservice != nil {
 			keplerHostAndPort = fmt.Sprintf("%s:%d", keplerservice.Name, keplerservice.Spec.Ports[0].Port)
 		} else {
-			log.Errorf("EnergyConsumption Err: kepler service not found.")
+			ServiceLogger.Errorf("EnergyConsumption Err: kepler service not found.")
 			return structs.CurrentEnergyConsumptionResponse
 		}
 		// if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
-		// 	log.Warning("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
+		// 	ServiceLogger.Warning("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
 		// 	keplerHostAndPort = "127.0.0.1:9102"
 		// }
 	}
@@ -850,13 +772,13 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 			// download the data
 			response, err := http.Get(fmt.Sprintf("http://%s/metrics", keplerHostAndPort))
 			if err != nil {
-				log.Errorf("EnergyConsumption Err: %s", err.Error())
+				ServiceLogger.Errorf("EnergyConsumption Err: %s", err.Error())
 				return
 			}
 			defer response.Body.Close()
 			data, err := io.ReadAll(response.Body)
 			if err != nil {
-				log.Errorf("EnergyConsumptionRead Err: %s", err.Error())
+				ServiceLogger.Errorf("EnergyConsumptionRead Err: %s", err.Error())
 				return
 			}
 
@@ -1134,10 +1056,10 @@ func InstallMetalLb() string {
 			time.Sleep(1 * time.Second)
 			err := mokubernetes.CreateYamlString(InstallAddressPool())
 			if err != nil && !apierrors.IsAlreadyExists(err) {
-				log.Errorf("Error installing metallb address pool: %s", err.Error())
+				ServiceLogger.Errorf("Error installing metallb address pool: %s", err.Error())
 			}
 			if err != nil && apierrors.IsInternalError(err) {
-				log.Infof("Control plane not ready. Waiting for metallb address pool installation ...")
+				ServiceLogger.Infof("Control plane not ready. Waiting for metallb address pool installation ...")
 			}
 			if err == nil {
 				return
@@ -1212,7 +1134,7 @@ func InstallClusterIssuer(email string, currentRetries int) string {
 	} else {
 		ingType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
-			log.Errorf("InstallClusterIssuer: Error determining ingress controller type: %s", err.Error())
+			ServiceLogger.Errorf("InstallClusterIssuer: Error determining ingress controller type: %s", err.Error())
 		}
 		if ingType == punq.TRAEFIK || ingType == punq.NGINX {
 			r := ClusterHelmRequest{
@@ -1233,7 +1155,7 @@ func InstallClusterIssuer(email string, currentRetries int) string {
 			})
 			return fmt.Sprintf("Successfully triggert '%s' of '%s' (%s, %s).", r.HelmTask, r.HelmReleaseName, email, strings.ToLower(ingType.String()))
 		}
-		log.Infof("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), currentRetries, maxRetries)
+		ServiceLogger.Infof("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), currentRetries, maxRetries)
 		currentRetries++
 		return InstallClusterIssuer(email, currentRetries)
 	}
@@ -1596,7 +1518,7 @@ func getMostCurrentHelmChartVersion(url string, chartname string) string {
 	url = addIndexYAMLtoURL(url)
 	data, err := utils.GetVersionData(url)
 	if err != nil {
-		log.Errorf("Error getting helm chart version (%s/%s): %s", url, chartname, err)
+		ServiceLogger.Errorf("Error getting helm chart version (%s/%s): %s", url, chartname, err)
 		return ""
 	}
 	chartsArray := data.Entries[chartname]

@@ -2,24 +2,20 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"reflect"
 	"sort"
 	"strings"
-	"sync"
 	"time"
-
-	"context"
-	"fmt"
-
-	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // Due to issues importing the library, the following constants are copied from the library
@@ -76,6 +72,7 @@ type ServiceStatusRequest struct {
 	Namespace      string `json:"namespace" validate:"required"`
 	ControllerName string `json:"controllerName" validate:"required"`
 	Controller     string `json:"controller" validate:"required"`
+	GitRepository  bool   `json:"gitRepository"`
 }
 
 func ServiceStatusRequestExample() ServiceStatusRequest {
@@ -160,6 +157,28 @@ type ServiceStatusItem struct {
 	OwnerKind ServiceStatusKindType  `json:"ownerKind,omitempty"`
 	Status    ServiceStatusType      `json:"status,omitempty"`
 	Messages  []ServiceStatusMessage `json:"messages,omitempty"`
+	// Additional status information for different types which are omited if empty
+	CreatedAt       *metav1.Time      `json:"createdAt,omitempty"`
+	ContainerStatus *XContainerStatus `json:"containerStatus,omitempty"`
+	// PodStatus       XPodStatus       `json:"podStatus,omitempty"`
+}
+
+type ServiceStatusObject struct {
+	// Container status with restart count and creation or start time
+	ContainerStatus XContainerStatus `json:"containerStatus,omitempty"`
+	// Pod status with creation time
+	PodStatus XPodStatus `json:"podStatus,omitempty"`
+}
+
+// Xustom container status
+type XContainerStatus struct {
+	RestartCount int32        `json:"restartCount,omitempty"`
+	CreatedAt    *metav1.Time `json:"createdAt,omitempty"`
+}
+
+// Xustom pod status
+type XPodStatus struct {
+	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
 }
 
 type ServiceStatusResponse struct {
@@ -264,55 +283,77 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 				}
 			}
 		case string(ServiceStatusKindTypePod):
-			status, messages := item.PodStatus()
+			status, messages, statusObject := item.PodStatus()
 			if status != nil {
 				newItem.Status = *status
+			}
+			if statusObject != nil {
+				// newItem.PodStatus = statusObject.PodStatus
+				newItem.CreatedAt = statusObject.PodStatus.CreatedAt
 			}
 			if messages != nil {
 				newItem.Messages = append(newItem.Messages, messages...)
 			}
 		case string(ServiceStatusKindTypeContainer):
-			if status := item.ContainerStatus(); status != nil {
+			status, statusObject := item.ContainerStatus()
+			if status != nil {
 				newItem.Status = *status
 			}
+			if statusObject != nil {
+				// newItem.StatusObject = *statusObject
+				newItem.CreatedAt = statusObject.ContainerStatus.CreatedAt
+				newItem.ContainerStatus = &statusObject.ContainerStatus
+			}
+
 		}
 	}
 
 	return newItem
 }
 
-func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
+func (r *ResourceItem) ContainerStatus() (*ServiceStatusType, *ServiceStatusObject) {
 	if r.StatusObject != nil {
 		if containerStatus, ok := r.StatusObject.(corev1.ContainerStatus); ok {
 
+			// retsart count & start time
+			statusObject := ServiceStatusObject{
+				ContainerStatus: XContainerStatus{
+					RestartCount: containerStatus.RestartCount,
+				},
+			}
+			if containerStatus.State.Running != nil {
+				createdAt := &containerStatus.State.Running.StartedAt
+				statusObject.ContainerStatus.CreatedAt = createdAt
+			}
+
 			if containerStatus.State.Terminated != nil {
 				status := ServiceStatusTypeError
-				return &status
+				return &status, &statusObject
 			}
 
 			if containerStatus.State.Waiting != nil {
 				switch reason := containerStatus.State.Waiting.Reason; reason {
 				case ErrImagePull.Error(), ErrImagePullBackOff.Error(), ErrImageInspect.Error(), ErrImageNeverPull.Error(), ErrInvalidImageName.Error():
 					status := ServiceStatusTypeError
-					return &status
+					return &status, &statusObject
 				case ErrCrashLoopBackOff.Error(), ErrContainerNotFound.Error(), ErrRunContainer.Error(), ErrKillContainer.Error(), ErrCreatePodSandbox.Error(), ErrConfigPodSandbox.Error(), ErrKillPodSandbox.Error():
 					status := ServiceStatusTypeError
-					return &status
+					return &status, &statusObject
 				case ErrRegistryUnavailable.Error(), ErrSignatureValidationFailed.Error():
 					status := ServiceStatusTypeError
-					return &status
+					return &status, &statusObject
 				case ErrCreateContainerConfig.Error(), ErrPreCreateHook.Error(), ErrCreateContainer.Error(), ErrPreStartHook.Error(), ErrPostStartHook.Error():
 					status := ServiceStatusTypeError
-					return &status
+					return &status, &statusObject
 				case PodInitializing, ContainerCreating:
 					status := ServiceStatusTypePending
-					return &status
+					return &status, &statusObject
 				default:
-					log.Warningf("Unhandled status - Container '%s' waiting. %s: %s.", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
+					ServiceLogger.Warningf("Unhandled status - Container '%s' waiting. %s: %s.", containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
 				}
 
 				status := ServiceStatusTypePending
-				return &status
+				return &status, &statusObject
 			}
 
 			// readiness probe OR running without readiness probe, default is true
@@ -325,19 +366,29 @@ func (r *ResourceItem) ContainerStatus() *ServiceStatusType {
 
 			if started && ready {
 				status := ServiceStatusTypeSuccess
-				return &status
+				return &status, &statusObject
 			}
 
 			status := ServiceStatusTypeWarning
-			return &status
+			return &status, &statusObject
 		}
 	}
-	return nil
+	return nil, nil
 }
 
-func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) {
+func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage, *ServiceStatusObject) {
 	if r.StatusObject != nil {
 		if podStatus, ok := r.StatusObject.(corev1.PodStatus); ok {
+
+			var statusObject ServiceStatusObject
+			if podStatus.StartTime != nil {
+				statusObject = ServiceStatusObject{
+					PodStatus: XPodStatus{
+						CreatedAt: podStatus.StartTime,
+					},
+				}
+			}
+
 			// readiness probe
 			ready := true
 			for _, containerStatus := range podStatus.ContainerStatuses {
@@ -381,13 +432,13 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 			case corev1.PodRunning:
 				if started && ready {
 					status := ServiceStatusTypeSuccess
-					return &status, messages
+					return &status, messages, &statusObject
 				}
 				status := ServiceStatusTypeWarning
-				return &status, messages
+				return &status, messages, &statusObject
 			case corev1.PodSucceeded:
 				status := ServiceStatusTypeSuccess
-				return &status, messages
+				return &status, messages, &statusObject
 			case corev1.PodPending:
 				// if !started || !ready {
 				// 	status := ServiceStatusTypeWarning
@@ -406,18 +457,18 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage) 
 				// }
 
 				status := ServiceStatusTypePending
-				return &status, messages
+				return &status, messages, &statusObject
 			case corev1.PodFailed:
 				status := ServiceStatusTypeError
-				return &status, messages
+				return &status, messages, &statusObject
 			default:
 				status := ServiceStatusTypeUnkown
-				return &status, messages
+				return &status, messages, &statusObject
 			}
 		}
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
 func (r *ResourceItem) BuildJobStatus() *ServiceStatusType {
@@ -534,34 +585,50 @@ func (r *ResourceItem) DeploymentStatus() (*ServiceStatusType, bool) {
 
 				conditions := originalDeploymentStatus.Conditions
 
-				// find condition type Available
+				// condtitions are weighted in order of importance
+				// if multiple conditions are true, the highest value is returned
+				// if no conditions are true, continue
+				//
+				// DeploymentAvailable = 4
+				// DeploymentReplicaFailure = 2
+				// DeploymentProgressing = 1
+
+				// create inline struct for weighted
+				type WeightedCondition struct {
+					Type   appsv1.DeploymentConditionType
+					Weight int
+					Status ServiceStatusType
+				}
+
+				// create slice of weighted conditions
+				weightedConditions := []WeightedCondition{}
+
 				for _, condition := range conditions {
-					if condition.Type == appsv1.DeploymentAvailable {
+					switch condition.Type {
+					case appsv1.DeploymentAvailable:
 						if condition.Status == corev1.ConditionTrue {
-							status := ServiceStatusTypeSuccess
-							return &status, switchedOn
+							weightedConditions = append(weightedConditions, WeightedCondition{appsv1.DeploymentAvailable, 4, ServiceStatusTypeSuccess})
+						}
+					case appsv1.DeploymentReplicaFailure:
+						if condition.Status == corev1.ConditionTrue {
+							weightedConditions = append(weightedConditions, WeightedCondition{appsv1.DeploymentReplicaFailure, 2, ServiceStatusTypeError})
+						}
+					case appsv1.DeploymentProgressing:
+						if condition.Status == corev1.ConditionTrue {
+							weightedConditions = append(weightedConditions, WeightedCondition{appsv1.DeploymentProgressing, 1, ServiceStatusTypePending})
 						}
 					}
 				}
 
-				// find condition type ReplicaFailure
-				for _, condition := range conditions {
-					if condition.Type == appsv1.DeploymentReplicaFailure {
-						if condition.Status == corev1.ConditionTrue {
-							status := ServiceStatusTypeError
-							return &status, switchedOn
-						}
-					}
-				}
+				// return the first condition
+				if len(weightedConditions) > 0 {
+					// sort conditions by weight
+					sort.Slice(weightedConditions, func(i, j int) bool {
+						return weightedConditions[i].Weight > weightedConditions[j].Weight
+					})
 
-				// find condition type Progressing
-				for _, condition := range conditions {
-					if condition.Type == appsv1.DeploymentProgressing {
-						if condition.Status == corev1.ConditionTrue {
-							status := ServiceStatusTypePending
-							return &status, switchedOn
-						}
-					}
+					status := weightedConditions[0].Status
+					return &status, switchedOn
 				}
 
 				if originalDeploymentStatus.UnavailableReplicas > 0 {
@@ -646,135 +713,198 @@ func NewResourceController(resourceController string) ResourceController {
 }
 
 // Run a goroutine to fetch k8s events then push them into the channel before timeout
-func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, eventsChan chan<- []corev1.Event) {
-	defer wg.Done()
+//func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, eventsChan chan<- []corev1.Event) {
+//	defer wg.Done()
+//
+//	r := punq.AllK8sEvents(namespace, nil)
+//
+//	var events []corev1.Event
+//	if r.Error != nil {
+//		ServiceLogger.Warningf("Warning fetching events: %s", r.Error)
+//		events = []corev1.Event{}
+//		eventsChan <- events
+//		return
+//	}
+//
+//	if r.Result != nil {
+//		events = r.Result.([]corev1.Event)
+//	}
+//
+//	// Push the events into the channel
+//	select {
+//	case <-ctx.Done():
+//		ServiceLogger.Debugf("go: timeout waiting for events")
+//		return
+//	case eventsChan <- events:
+//		//ServiceLogger.Debugf("go: push the events into the channel")
+//	}
+//}
 
-	r := punq.AllK8sEvents(namespace, nil)
+//	func StatusService(r ServiceStatusRequest) interface{} {
+//		//ServiceLogger.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
+//
+//		provider, err := punq.NewKubeProvider(nil)
+//		if err != nil {
+//			ServiceLogger.Warningf("Warningf: %s", err.Error())
+//			return nil
+//		}
+//
+//		// Create a channel to receive an array of events
+//		eventsChan := make(chan []corev1.Event, 1)
+//		var wg sync.WaitGroup
+//
+//		// Context with timeout to handle cancellation and timeout
+//		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+//		defer cancel()
+//
+//		wg.Add(1)
+//		// Run a goroutine to fetch k8s events then push them into the channel before timeout
+//		go requestEvents(r.Namespace, ctx, &wg, eventsChan)
+//
+//		go func() {
+//			wg.Wait()         // Wait for all goroutines to finish.
+//			close(eventsChan) // IMPORTANT!: Safely close channel after all sends are done.
+//		}()
+//
+//		resourceItems := []ResourceItem{}
+//		resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
+//		if err != nil {
+//			ServiceLogger.Warningf("Warning statusItems: %v", err)
+//		}
+//
+//		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
+//		if err != nil {
+//			ServiceLogger.Warningf("Warning buildItem: %v", err)
+//		}
+//
+//		// Wait for the result from the channel or timeout
+//		select {
+//		case events, ok := <-eventsChan:
+//			if !ok {
+//				ServiceLogger.Warningf("Warning event channel closed.")
+//				break
+//			}
+//
+//			// Sort events by lastTimestamp from newest to oldest
+//			sort.SliceStable(events, func(i, j int) bool {
+//				return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
+//			})
+//
+//			// Iterate events and add them to resourceItems
+//		EventLoop:
+//			for _, event := range events {
+//				for i, item := range resourceItems {
+//					if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
+//						resourceItems[i].Events = append(resourceItems[i].Events, event)
+//						continue EventLoop
+//					}
+//				}
+//			}
+//		case <-ctx.Done():
+//			ServiceLogger.Warningf("Warning timeout waiting for events")
+//		}
+//
+//		// Debug logs
+//		// jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
+//		// if err != nil {
+//		// 	ServiceLogger.Warningf("Warning marshaling JSON: %v", err)
+//		// 	return nil
+//		// }
+//		// ServiceLogger.Debugf("JSON: %s", jsonData)
+//
+//		// return resourceItems
+//
+//		return ProcessServiceStatusResponse(resourceItems)
+//	}
+var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-	var events []corev1.Event
-	if r.Error != nil {
-		log.Warningf("Warning fetching events: %s", r.Error)
-		events = []corev1.Event{}
-		eventsChan <- events
-		return
-	}
-
-	if r.Result != nil {
-		events = r.Result.([]corev1.Event)
-	}
-
-	// Push the events into the channel
-	select {
-	case <-ctx.Done():
-		log.Debugf("go: timeout waiting for events")
-		return
-	case eventsChan <- events:
-		//log.Debugf("go: push the events into the channel")
-	}
+func StatusServiceDebounced(r ServiceStatusRequest) interface{} {
+	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
+	result, _ := statusServiceDebounce.CallFn(key, func() (interface{}, error) {
+		return statusService(r), nil
+	})
+	return result
 }
 
-func StatusService(r ServiceStatusRequest) interface{} {
-	//log.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
-
-	provider, err := punq.NewKubeProvider(nil)
+func statusService(r ServiceStatusRequest) interface{} {
+	resultType := reflect.TypeOf(corev1.Event{})
+	events, err := store.GlobalStore.SearchByPrefix(resultType, "Event", r.Namespace)
 	if err != nil {
-		log.Warningf("Warningf: %s", err.Error())
-		return nil
+		ServiceLogger.Warningf("Warning fetching events: %s\n", err)
 	}
 
-	// Create a channel to receive an array of events
-	eventsChan := make(chan []corev1.Event, 1)
-	var wg sync.WaitGroup
-
-	// Context with timeout to handle cancellation and timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
-
-	wg.Add(1)
-	// Run a goroutine to fetch k8s events then push them into the channel before timeout
-	go requestEvents(r.Namespace, ctx, &wg, eventsChan)
-
-	go func() {
-		wg.Wait()         // Wait for all goroutines to finish.
-		close(eventsChan) // IMPORTANT!: Safely close channel after all sends are done.
-	}()
-
-	resourceItems := []ResourceItem{}
-	resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
+	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
 	if err != nil {
-		log.Warningf("Warning statusItems: %v", err)
+		ServiceLogger.Warningf("Warning statusItems: %v", err)
 	}
 
-	resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
-	if err != nil {
-		log.Warningf("Warning buildItem: %v", err)
+	// buildItem
+	if r.GitRepository {
+		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
+		if err != nil {
+			ServiceLogger.Warningf("Warning buildItem: %v", err)
+		}
 	}
 
-	// Wait for the result from the channel or timeout
-	select {
-	case events, ok := <-eventsChan:
-		if !ok {
-			log.Warningf("Warning event channel closed.")
-			break
+	for _, eventRef := range events {
+		event := eventRef.(*corev1.Event)
+		if event == nil {
+			continue
 		}
 
-		// Sort events by lastTimestamp from newest to oldest
-		sort.SliceStable(events, func(i, j int) bool {
-			return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
-		})
-
-		// Iterate events and add them to resourceItems
-	EventLoop:
-		for _, event := range events {
-			for i, item := range resourceItems {
-				if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
-					resourceItems[i].Events = append(resourceItems[i].Events, event)
-					continue EventLoop
-				}
+		for i, item := range resourceItems {
+			if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
+				resourceItems[i].Events = append(resourceItems[i].Events, *event)
 			}
 		}
-	case <-ctx.Done():
-		log.Warningf("Warning timeout waiting for events")
 	}
-
-	// Debug logs
-	// jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
-	// if err != nil {
-	// 	log.Warningf("Warning marshaling JSON: %v", err)
-	// 	return nil
-	// }
-	// log.Debugf("JSON: %s", jsonData)
-
-	// return resourceItems
 
 	return ProcessServiceStatusResponse(resourceItems)
 }
 
-func kubernetesItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset, resourceItems []ResourceItem) ([]ResourceItem, error) {
-	resourceInterface, err := controller(namespace, name, resourceController, clientset)
+func kubernetesItems(namespace string, name string, resourceController ResourceController) ([]ResourceItem, error) {
+	resourceItems := []ResourceItem{}
+	resourceInterface, err := controller(namespace, name, resourceController)
 	if err != nil {
-		log.Warningf("\nWarning fetching controller: %s\n", err)
+		ServiceLogger.Warningf("\nWarning fetching controller: %s\n", err)
 		return resourceItems, err
 	}
 
 	metaName, metaNamespace, kind, references, labelSelector, object := status(resourceInterface)
 	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
 
-	pods, err := pods(namespace, labelSelector, clientset)
+	// Fetch pods
+	resultType := reflect.TypeOf(corev1.Pod{})
+	pods, err := store.GlobalStore.SearchByPrefix(resultType, "Pod", metaNamespace, metaName)
 	if err != nil {
-		log.Warningf("\nWarning fetching pods: %s\n", err)
+		ServiceLogger.Warningf("\nWarning fetching pods: %s\n", err)
 		return resourceItems, err
 	}
+	for _, podRef := range pods {
+		pod := podRef.(*corev1.Pod)
+		if pod == nil {
+			continue
+		}
 
-	for _, pod := range pods.Items {
-		resourceItems = containerItems(pod, resourceItems)
-		resourceItems = podItem(pod, resourceItems)
+		if pod.Status.Phase == corev1.PodSucceeded {
+			continue
+		}
+		// check if labels match
+		if labelSelector != nil {
+			if !labels.SelectorFromSet(labelSelector.MatchLabels).Matches(labels.Set(pod.Labels)) {
+				continue
+			}
+		}
+
+		resourceItems = containerItems(*pod, resourceItems)
+		resourceItems = podItem(*pod, resourceItems)
+
 		// Owner reference kind and name
 		if len(pod.OwnerReferences) > 0 {
 			for _, ownerRef := range pod.OwnerReferences {
 				// only controller parents
 				if *ownerRef.Controller {
-					resourceItems = recursiveOwnerRef(pod.Namespace, ownerRef, clientset, resourceItems)
+					resourceItems = recursiveOwnerRef(pod.Namespace, ownerRef, resourceItems)
 				}
 			}
 		}
@@ -783,56 +913,83 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	return resourceItems, nil
 }
 
-func controller(namespace string, controllerName string, resourceController ResourceController, clientset *kubernetes.Clientset) (interface{}, error) {
-	var err error
+func controller(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
+	// var err error
 	var resourceInterface interface{}
+
+	// provider, err := punq.NewKubeProvider(nil)
+	// if err != nil {
+	// 	ServiceLogger.Warningf("Warningf: %s", err.Error())
+	// 	return nil, nil
+	// }
 
 	switch resourceController {
 	case Deployment:
-		resourceInterface, err = clientset.AppsV1().Deployments(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resultType := reflect.TypeOf(appsv1.Deployment{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
 	case ReplicaSet:
-		resourceInterface, err = clientset.AppsV1().ReplicaSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
-	case StatefulSet:
-		resourceInterface, err = clientset.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
-	case DaemonSet:
-		resourceInterface, err = clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resultType := reflect.TypeOf(appsv1.ReplicaSet{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
+	// case StatefulSet:
+	// 	// ae: not used at the moment, old code
+	// 	resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+	// case DaemonSet:
+	// 	// ae: not used at the moment, old code
+	// 	resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case Job:
-		resourceInterface, err = clientset.BatchV1().Jobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resultType := reflect.TypeOf(batchv1.Job{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
 	case CronJob:
-		resourceInterface, err = clientset.BatchV1().CronJobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resultType := reflect.TypeOf(batchv1.CronJob{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
 	}
 
-	if err != nil {
-		log.Warningf("\nWarning fetching resources %s, ns: %s, name: %s, err: %s\n", resourceController.String(), namespace, controllerName, err)
-		return nil, err
+	// if err != nil {
+	// 	ServiceLogger.Warningf("\nWarning fetching resources %s, ns: %s, name: %s, err: %s\n", resourceController.String(), namespace, controllerName, err)
+	// 	return nil, err
+	// }
+
+	if resourceInterface == nil {
+		return nil, fmt.Errorf("\nWarning fetching controller: %s\n", controllerName)
 	}
 
 	return resourceInterface, nil
 }
 
-func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kubernetes.Clientset) (*corev1.PodList, error) {
-	if labelSelector != nil {
-		selector := metav1.FormatLabelSelector(labelSelector)
-		pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
-			LabelSelector: selector,
-			FieldSelector: "status.phase!=Succeeded",
-		})
+// func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
+// 	if labelSelector != nil {
+// 		provider, err := punq.NewKubeProvider(nil)
+// 		if err != nil {
+// 			ServiceLogger.Warningf("Warningf: %s", err.Error())
+// 			return nil, nil
+// 		}
+// 		selector := metav1.FormatLabelSelector(labelSelector)
+// 		pods, err := provider.ClientSet.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+// 			LabelSelector: selector,
+// 			FieldSelector: "status.phase!=Succeeded",
+// 		})
 
-		if err != nil {
-			return nil, err
-		}
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		return pods, nil
-	}
+// 		return pods, nil
+// 	}
 
-	return &corev1.PodList{}, nil
-}
+// 	return &corev1.PodList{}, nil
+// }
 
 func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
 	lastJob := LastBuildForNamespaceAndControllerName(namespace, name)
 	if lastJob.IsEmpty() {
 		return resourceItems, nil
 	}
+
+	// TODO Remove this code
+	//lastJob := LastBuildForNamespaceAndControllerName(namespace, name)
+	//if lastJob.IsEmpty() {
+	//	return resourceItems, nil
+	//}
 
 	item := &ResourceItem{
 		Kind:         "BuildJob",
@@ -914,7 +1071,7 @@ func podItem(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem {
 	return resourceItems
 }
 
-func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clientset *kubernetes.Clientset, resourceItems []ResourceItem) []ResourceItem {
+func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, resourceItems []ResourceItem) []ResourceItem {
 	// Skip already included resourceItems
 	for _, item := range resourceItems {
 		if item.Kind == ownerRef.Kind {
@@ -923,9 +1080,9 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 	}
 
 	// Fetch next k8s controller
-	resourceInterface, err := controller(namespace, ownerRef.Name, NewResourceController(ownerRef.Kind), clientset)
+	resourceInterface, err := controller(namespace, ownerRef.Name, NewResourceController(ownerRef.Kind))
 	if err != nil {
-		log.Warningf("\nWarning fetching resources: %s\n", err)
+		ServiceLogger.Warningf("\nWarning fetching resources: %s\n", err)
 		return resourceItems
 	}
 
@@ -937,7 +1094,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 	if len(references) > 0 {
 		for _, parentRef := range references {
 			if *parentRef.Controller {
-				return recursiveOwnerRef(namespace, parentRef, clientset, resourceItems)
+				return recursiveOwnerRef(namespace, parentRef, resourceItems)
 			}
 		}
 	}

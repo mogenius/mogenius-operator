@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/controllers"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
 	"mogenius-k8s-manager/dtos"
@@ -19,16 +20,17 @@ import (
 	"mogenius-k8s-manager/structs"
 	"net/url"
 
-	log "github.com/sirupsen/logrus"
-
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
+	log "github.com/sirupsen/logrus"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )
+
+var ServiceLogger = log.WithField("component", structs.ComponentServices)
 
 func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	switch datagram.Pattern {
@@ -59,10 +61,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		time.Sleep(1 * time.Second)
 		return kubernetes.ClusterForceReconnect()
 
+	case structs.PAT_CLUSTER_FORCE_DISCONNECT:
+		time.Sleep(1 * time.Second)
+		return kubernetes.ClusterForceDisconnect()
+
 	case structs.PAT_SYSTEM_CHECK:
 		return SystemCheck()
 	case structs.PAT_CLUSTER_RESTART:
-		log.Infof("😵😵😵 Received RESTART COMMAND. Restarting now ...")
+		ServiceLogger.Infof("😵😵😵 Received RESTART COMMAND. Restarting now ...")
 		time.Sleep(1 * time.Second)
 		os.Exit(0)
 		return nil
@@ -202,7 +208,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return dbstats.GetLastPodStatsEntryForController(data)
-
 	case structs.PAT_STATS_TRAFFIC_FOR_CONTROLLER_ALL:
 		data := kubernetes.K8sController{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -278,6 +283,15 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return RenderPodNetworkTreePageJson(data.Namespace, data.PodName)
 
+	case structs.PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION:
+		data := kubernetes.K8sController{}
+		data.Kind = "Deployment"
+
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return kubernetes.GetAverageUtilizationForDeployment(data)
 	case structs.PAT_FILES_LIST:
 		data := FilesListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -384,7 +398,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return kubernetes.GetDeployment(data.Namespace, data.Name)
+		return kubernetes.GetDeploymentResult(data.Namespace, data.Name)
 	// TODO
 	// case structs.PAT_CLUSTER_WRITE_DEPLOYMENT:
 	// 	data := ClusterWriteDeployment{}
@@ -657,7 +671,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return StatusService(data)
+		return StatusServiceDebounced(data)
 
 	case structs.PAT_SERVICE_LOG_STREAM:
 		data := ServiceLogStreamRequest{}
@@ -691,6 +705,22 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		go buildLogStreamConnection(data)
+		return nil
+	case structs.PAT_SERVICE_OPERATOR_LOG_STREAM_CONNECTION_REQUEST:
+		data := xterm.OperatorLogConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go operatorLogStreamConnection(data)
+		return nil
+	case structs.PAT_CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST:
+		data := xterm.ComponentLogConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go componentLogStreamConnection(data)
 		return nil
 	case structs.PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST:
 		data := xterm.PodEventConnectionRequest{}
@@ -2113,35 +2143,40 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return db.ListLogFromDb()
 
 	case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
-		data := CreateSecretsStoreRequest{}
+		data := controllers.CreateSecretsStoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return CreateExternalSecretsStore(data)
+		return controllers.CreateExternalSecretStore(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_LIST:
-		return ListExternalSecretsStores()
+		data := controllers.ListSecretStoresRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return controllers.ListExternalSecretsStores(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS:
-		data := ListSecretsRequest{}
+		data := controllers.ListSecretsRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return ListAvailableExternalSecrets(data)
+		return controllers.ListAvailableExternalSecrets(data)
 	case structs.PAT_EXTERNAL_SECRET_STORE_DELETE:
-		data := DeleteSecretsStoreRequest{}
+		data := controllers.DeleteSecretsStoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return DeleteExternalSecretsStore(data)
-	case structs.PAT_EXTERNAL_SECRET_CREATE:
-		data := CreateExternalSecretRequest{}
+		return controllers.DeleteExternalSecretsStore(data)
+	case structs.PAT_LIST_CRONJOB_JOBS:
+		data := ListCronjobJobsRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return CreateExternalSecret(data)
+		return kubernetes.ListCronjobJobs(data.ControllerName, data.NamespaceName, data.ProjectId)
 	}
 	datagram.Err = "Pattern not found"
 	return datagram
@@ -2154,7 +2189,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if err != nil {
 		result.Error = err.Error()
 		result.Success = false
-		log.Error(result.Error)
+		ServiceLogger.Error(result.Error)
 		return result
 	}
 
@@ -2165,7 +2200,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if terminatedState != nil {
 		tmpPreviousResReq, err := PreviousPodLogStream(data.Namespace, data.PodId)
 		if err != nil {
-			log.Error(err.Error())
+			ServiceLogger.Error(err.Error())
 		} else {
 			previousResReq = tmpPreviousResReq
 		}
@@ -2175,15 +2210,15 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if err != nil {
 		result.Error = err.Error()
 		result.Success = false
-		log.Error(result.Error)
+		ServiceLogger.Error(result.Error)
 		return result
 	}
 
 	if terminatedState != nil {
-		log.Infof("Logger try multiStreamData")
+		ServiceLogger.Infof("Logger try multiStreamData")
 		go multiStreamData(previousResReq, restReq, terminatedState, url.String())
 	} else {
-		log.Infof("Logger try streamData")
+		ServiceLogger.Infof("Logger try streamData")
 		go streamData(restReq, url.String())
 	}
 
@@ -2197,7 +2232,7 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	cancelCtx, endGofunc := context.WithCancel(ctx)
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
-		log.Error(err.Error())
+		ServiceLogger.Error(err.Error())
 	} else {
 		structs.SendDataWs(toServerUrl, stream)
 	}
@@ -2214,7 +2249,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	if previousRestReq != nil {
 		tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 		if err != nil {
-			log.Error(err.Error())
+			ServiceLogger.Error(err.Error())
 			previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 		} else {
 			previousStream = tmpPreviousStream
@@ -2223,7 +2258,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
-		log.Error(err.Error())
+		ServiceLogger.Error(err.Error())
 		stream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 	}
 
@@ -2249,7 +2284,7 @@ func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
 }
 
 func K8sNotification(d structs.Datagram) interface{} {
-	log.Infof("Received '%s'.", d.Pattern)
+	ServiceLogger.Infof("Received '%s'.", d.Pattern)
 	return nil
 }
 
@@ -2280,7 +2315,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 	if terminatedState != nil {
 		tmpPreviousResReq, err := PreviousPodLogStream(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod)
 		if err != nil {
-			log.Error(err.Error())
+			ServiceLogger.Error(err.Error())
 		} else {
 			previousRestReq = tmpPreviousResReq
 		}
@@ -2293,7 +2328,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 	var previousStream io.ReadCloser
 	tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 	if err != nil {
-		log.Error(err.Error())
+		ServiceLogger.Error(err.Error())
 		previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 	} else {
 		previousStream = tmpPreviousStream
@@ -2301,7 +2336,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 
 	data, err := io.ReadAll(previousStream)
 	if err != nil {
-		log.Errorf("failed to read data: %v", err)
+		ServiceLogger.Errorf("failed to read data: %v", err)
 	}
 
 	lastState := punq.LastTerminatedStateToString(terminatedState)
@@ -2339,6 +2374,24 @@ func buildLogStreamConnection(buildLogConnectionRequest xterm.BuildLogConnection
 		buildLogConnectionRequest.Container,
 		buildLogConnectionRequest.BuildTask,
 		buildLogConnectionRequest.BuildId,
+	)
+}
+
+func operatorLogStreamConnection(operatorLogConnectionRequest xterm.OperatorLogConnectionRequest) {
+	if operatorLogConnectionRequest.LogTail == "" {
+		operatorLogConnectionRequest.LogTail = "1000"
+	}
+	xterm.XTermOperatorStreamConnection(
+		operatorLogConnectionRequest.WsConnection,
+		operatorLogConnectionRequest.Namespace,
+		operatorLogConnectionRequest.Controller,
+	)
+}
+
+func componentLogStreamConnection(componentLogConnectionRequest xterm.ComponentLogConnectionRequest) {
+	xterm.XTermComponentStreamConnection(
+		componentLogConnectionRequest.WsConnection,
+		componentLogConnectionRequest.Component,
 	)
 }
 

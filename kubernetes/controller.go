@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
+
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	v1core "k8s.io/api/core/v1"
@@ -142,8 +142,15 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 			if container.ContainerImageRepoSecretDecryptValue != nil {
 				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
 				specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{
-					Name: fmt.Sprintf("container-secret-service-%s", service.ControllerName),
+					Name: fmt.Sprintf("%s-%s", ContainerImagePullSecretName, service.ControllerName),
 				})
+			} else if ExistsClusterImagePullSecret(namespace.Name) {
+				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
+				specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{
+					Name: fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name),
+				})
+			} else {
+				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
 			}
 		} else {
 			// this will be setup UNTIL the buildserver overwrites the image with the real one.
@@ -159,7 +166,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					specTemplate.Spec.Containers[index].Image = imgName
 				} else {
 					imgErr := fmt.Errorf("No image found for '%s/%s'. Maybe the build failed or is still running.", namespace.Name, container.Name)
-					log.Errorf(imgErr.Error())
+					K8sLogger.Errorf(imgErr.Error())
 					return nil, imgErr
 				}
 			}
@@ -185,6 +192,28 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 						},
 					},
 				})
+			}
+			// EXTERNAL SECRETS OPERATOR
+			if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
+				externalSecretStorePrefix := service.EsoSettings.SecretStoreNamePrefix
+				if envVar.Type == dtos.EnvVarKeyEsoHashiVault {
+					specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
+						Name: envVar.Name,
+						ValueFrom: &v1core.EnvVarSource{
+							SecretKeyRef: &v1core.SecretKeySelector{
+								Key: envVar.Name,
+								LocalObjectReference: v1core.LocalObjectReference{
+									Name: utils.GetSecretName(
+										externalSecretStorePrefix,
+										service.EsoSettings.ProjectName,
+										service.ControllerName,
+										envVar.Name,
+									),
+								},
+							},
+						},
+					})
+				}
 			}
 			if envVar.Type == dtos.EnvVarPlainText || envVar.Type == dtos.EnvVarHostname {
 				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
@@ -232,10 +261,10 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 							})
 						}
 					} else {
-						log.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
+						K8sLogger.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
 					}
 				} else {
-					log.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
+					K8sLogger.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
 				}
 			}
 		}
@@ -243,11 +272,11 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 
 	// IMAGE PULL SECRET
 	// the second check because otherwise we would overwrite the imagePullSecrets which is only defined for the service
-	if ContainerSecretDoesExistForStage(namespace) && len(specTemplate.Spec.ImagePullSecrets) <= 0 {
-		containerSecretName := "container-secret-" + namespace.Name
-		specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
-		specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{Name: containerSecretName})
-	}
+	//if ContainerSecretDoesExistForStage(namespace) && len(specTemplate.Spec.ImagePullSecrets) <= 0 {
+	//	containerSecretName := "container-secret-" + namespace.Name
+	//	specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
+	//	specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{Name: containerSecretName})
+	//}
 
 	return controller, nil
 }

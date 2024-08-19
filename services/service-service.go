@@ -14,7 +14,6 @@ import (
 
 	v1cm "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	v2 "k8s.io/api/autoscaling/v2"
 	v1job "k8s.io/api/batch/v1"
@@ -39,7 +38,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	// check if namespace exists and CREATE IT IF NOT
 	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name, nil)
 	if nsErr != nil {
-		log.Warning(nsErr.Error())
+		ServiceLogger.Warning(nsErr.Error())
 	}
 	if !nsExists {
 		nsReq := NamespaceCreateRequest{
@@ -49,14 +48,10 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		CreateNamespaceCmds(job, nsReq, &wg)
 	}
 
-	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
-	}
-	if r.Service.GetImageRepoSecretDecryptValue() != nil {
-		mokubernetes.CreateOrUpdateContainerSecretForService(job, r.Project, r.Namespace, r.Service, &wg)
-	}
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateOrCreateSecrete(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
 	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
@@ -71,13 +66,13 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		updateInfrastructureYaml(job, r.Service, &wg)
 	}
 
-	crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
-		Id:          r.Service.Id,
-		DisplayName: r.Service.DisplayName,
-		CreatedBy:   "MISSING_FIELD",
-		Controller:  r.Service.ControllerName,
-		AppId:       "MISSING_FIELD",
-	}, &wg)
+	// crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
+	// 	Id:          r.Service.Id,
+	// 	DisplayName: r.Service.DisplayName,
+	// 	CreatedBy:   "MISSING_FIELD",
+	// 	Controller:  r.Service.ControllerName,
+	// 	AppId:       "MISSING_FIELD",
+	// }, &wg)
 
 	go func() {
 		wg.Wait()
@@ -92,7 +87,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 	mokubernetes.DeleteService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.DeleteSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
@@ -112,7 +107,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 
 		time.Sleep(10 * time.Second)
 		for _, container := range r.Service.Containers {
-			log.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
+			ServiceLogger.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
 			db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
 		}
 	}()
@@ -165,7 +160,17 @@ func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	return punq.PodStatus(r.Namespace, r.Name, r.StatusOnly, nil)
 }
 
+var servicePodStatusDebounce = utils.NewDebounce("servicePodStatusDebounce", 1000*time.Millisecond, 300*time.Millisecond)
+
 func ServicePodStatus(r ServicePodsRequest) interface{} {
+	key := fmt.Sprintf("%s-%s", r.Namespace, r.ControllerName)
+	result, _ := servicePodStatusDebounce.CallFn(key, func() (interface{}, error) {
+		return ServicePodStatus2(r), nil
+	})
+	return result
+}
+
+func ServicePodStatus2(r ServicePodsRequest) interface{} {
 	return punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
 }
 
@@ -189,9 +194,12 @@ func Restart(r ServiceRestartRequest) interface{} {
 	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
-	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
-	}
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
@@ -199,11 +207,6 @@ func Restart(r ServiceRestartRequest) interface{} {
 	case dtos.CRON_JOB:
 		mokubernetes.RestartCronJob(job, r.Namespace, r.Service, &wg)
 	}
-
-	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateOrCreateSecrete(job, r.Namespace, r.Service, &wg)
-	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	go func() {
 		wg.Wait()
@@ -242,12 +245,12 @@ func StartService(r ServiceStartRequest) interface{} {
 	job := structs.CreateJob("Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
-	if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-		mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
-	}
-	if r.Service.GetImageRepoSecretDecryptValue() != nil {
-		mokubernetes.CreateOrUpdateContainerSecretForService(job, r.Project, r.Namespace, r.Service, &wg)
-	}
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
@@ -255,18 +258,6 @@ func StartService(r ServiceStartRequest) interface{} {
 	case dtos.CRON_JOB:
 		mokubernetes.StartCronJob(job, r.Namespace, r.Service, &wg)
 	}
-
-	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-
-	// unnecessary
-	// switch r.Service.Controller {
-	// case dtos.DEPLOYMENT:
-	// 	mokubernetes.UpdateDeployment(job, r.Namespace, r.Service, &wg)
-	// case dtos.CRON_JOB:
-	// 	mokubernetes.UpdateCronJob(job, r.Namespace, r.Service, &wg)
-	// }
-
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	go func() {
 		wg.Wait()
@@ -290,11 +281,11 @@ func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 
 // 	for _, container := range service.Containers {
 // 		if container.GitRepository == nil {
-// 			log.Errorf("%s: GitRepository cannot be nil", container.Name)
+// 			ServiceLogger.Errorf("%s: GitRepository cannot be nil", container.Name)
 // 			continue
 // 		}
 // 		if container.GitBranch == nil {
-// 			log.Errorf("%s: GitBranch cannot be nil", container.Name)
+// 			ServiceLogger.Errorf("%s: GitBranch cannot be nil", container.Name)
 // 			continue
 // 		}
 // 		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
@@ -338,51 +329,51 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 		for _, container := range service.Containers {
 			if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 				if container.GitRepository == nil {
-					log.Errorf("%s: GitRepository cannot be nil", service.ControllerName)
+					ServiceLogger.Errorf("%s: GitRepository cannot be nil", service.ControllerName)
 					continue
 				}
 				if container.GitBranch == nil {
-					log.Errorf("%s: GitBranch cannot be nil", service.ControllerName)
+					ServiceLogger.Errorf("%s: GitBranch cannot be nil", service.ControllerName)
 					continue
 				}
 				if container.SettingsYaml == nil {
-					log.Errorf("%s: SettingsYaml cannot be nil", service.ControllerName)
+					ServiceLogger.Errorf("%s: SettingsYaml cannot be nil", service.ControllerName)
 					continue
 				}
 
 				tempDir := os.TempDir()
-				gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
+				gitDir := fmt.Sprintf("%s/%s", tempDir, punqUtils.NanoId())
 
 				err := utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up before: %s", err.Error()))
 					return
 				}
 				err = utils.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error cloning: %s", err.Error()))
 					return
 				}
 
 				err = utils.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error updating file: %s", err.Error()))
 					return
 				}
 
 				err = utils.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, *container.GitBranch))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error commiting: %s", err.Error()))
 					return
 				}
 				err = utils.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error pushing: %s", err.Error()))
 					return
 				}
 				err = utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("Error cleaning up after: %s", err.Error()))
 					return
 				}
 			}
@@ -941,6 +932,20 @@ type ServiceTriggerJobRequest struct {
 
 func ServiceTriggerJobRequestExample() ServiceTriggerJobRequest {
 	return ServiceTriggerJobRequest{
+		ProjectId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+		NamespaceName:  "my-namespace",
+		ControllerName: "my-service",
+	}
+}
+
+type ListCronjobJobsRequest struct {
+	ProjectId      string `json:"projectId" validate:"required"`
+	NamespaceName  string `json:"namespaceName" validate:"required"`
+	ControllerName string `json:"controllerName" validate:"required"`
+}
+
+func ListJobsByCronJobByServiceRequestExample() ListCronjobJobsRequest {
+	return ListCronjobJobsRequest{
 		ProjectId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		NamespaceName:  "my-namespace",
 		ControllerName: "my-service",

@@ -13,7 +13,6 @@ import (
 
 	v1Core "k8s.io/api/core/v1"
 
-	jsoniter "github.com/json-iterator/go"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
@@ -46,6 +45,8 @@ const (
 	MAX_ENTRY_LENGTH = 1024 * 1024 * 50 // 50 MB
 )
 
+var dblogger = log.WithField("component", structs.ComponentDb)
+
 func BuildJobKey(buildId uint64) string {
 	return fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
 }
@@ -56,8 +57,8 @@ func Init() {
 	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		log.Errorf("Error opening bbolt database from '%s'", dbPath)
-		log.Fatal(err.Error())
+		dblogger.Errorf("Error opening bbolt database from '%s'", dbPath)
+		dblogger.Fatal(err.Error())
 	}
 	// ### BUILD BUCKET ###
 	db = database
@@ -69,7 +70,7 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Error creating bucket ('%s'): %s", BUILD_BUCKET_NAME, err)
+		dblogger.Errorf("Error creating bucket ('%s'): %s", BUILD_BUCKET_NAME, err)
 	}
 	// ### SCAN BUCKET ### create a new scan bucket on every startup
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -92,7 +93,7 @@ func Init() {
 			return nil
 		})
 		if err != nil {
-			log.Errorf("Error recreating bucket ('%s'): %s", SCAN_BUCKET_NAME, err)
+			dblogger.Errorf("Error recreating bucket ('%s'): %s", SCAN_BUCKET_NAME, err)
 		}
 	}
 	// ### LOG BUCKET ###
@@ -105,7 +106,7 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
+		dblogger.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
 	}
 
 	// ### POD EVENT BUCKET ###
@@ -118,7 +119,7 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Error creating bucket ('%s'): %s", POD_EVENT_BUCKET_NAME, err)
+		dblogger.Errorf("Error creating bucket ('%s'): %s", POD_EVENT_BUCKET_NAME, err)
 	}
 
 	// ### MIGRATION BUCKET ###
@@ -131,13 +132,13 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
+		dblogger.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
 	}
 
 	// RESET STARTED JOBS TO PENDING
 	resetStartedJobsToPendingOnInit()
 
-	log.Infof("bbold started 🚀 (Path: '%s')", dbPath)
+	dblogger.Infof("bbold started 🚀 (Path: '%s')", dbPath)
 }
 
 func Close() {
@@ -156,7 +157,7 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 				// delete all build data
 				err := bucket.Delete(k)
 				if err != nil {
-					log.Errorf("DeleteAllBuildData delete build data: %s", err.Error())
+					dblogger.Errorf("DeleteAllBuildData delete build data: %s", err.Error())
 				}
 
 				parts := strings.Split(string(k), "___")
@@ -164,13 +165,13 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 					buildIdStr := parts[0]
 					buildId, err := strconv.ParseUint(buildIdStr, 10, 64)
 					if err != nil {
-						log.Errorf("DeleteAllBuildData parse buildId: %s", err.Error())
+						dblogger.Errorf("DeleteAllBuildData parse buildId: %s", err.Error())
 					}
 					// Delete queue entry
 					queueKey := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
 					err = bucket.Delete([]byte(queueKey))
 					if err != nil {
-						log.Errorf("DeleteAllBuildData delete queue entry: %s", err.Error())
+						dblogger.Errorf("DeleteAllBuildData delete queue entry: %s", err.Error())
 					}
 				}
 			}
@@ -178,17 +179,17 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("DeleteAllBuildData: %s", err.Error())
+		dblogger.Errorf("DeleteAllBuildData: %s", err.Error())
 	}
 	// Delete event entry
 	eventKey := fmt.Sprintf("%s-%s", namespace, controller)
 	err = DeleteEventByKey(eventKey)
 	if err != nil {
-		log.Errorf("DeleteAllBuildData delete event entry: %s", err.Error())
+		dblogger.Errorf("DeleteAllBuildData delete event entry: %s", err.Error())
 	}
 }
 
-// if a job was started and the server was restarted/crashed, we need to reset the state to pending to resume the builld
+// if a job was started and the server was restarted/crashed, we need to reset the state to pending to resume the build
 func resetStartedJobsToPendingOnInit() {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
@@ -198,7 +199,7 @@ func resetStartedJobsToPendingOnInit() {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err != nil {
-				log.Errorf("Init (unmarshall) ERR: %s", err.Error())
+				dblogger.Errorf("Init (unmarshall) ERR: %s", err.Error())
 				continue
 			}
 			if job.State == structs.JobStateStarted {
@@ -206,14 +207,14 @@ func resetStartedJobsToPendingOnInit() {
 				key := BuildJobKey(job.BuildId)
 				err := bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
 				if err != nil {
-					log.Errorf("Init (update) ERR: %s", err.Error())
+					dblogger.Errorf("Init (update) ERR: %s", err.Error())
 				}
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Init (db) ERR: %s", err.Error())
+		dblogger.Errorf("Init (db) ERR: %s", err.Error())
 	}
 }
 
@@ -230,51 +231,51 @@ func GetJobsToBuildFromDb() []structs.BuildJob {
 					result = append(result, job)
 				}
 			} else {
-				log.Errorf("ProcessQueue (unmarshall) ERR: %s", err.Error())
+				dblogger.Errorf("ProcessQueue (unmarshall) ERR: %s", err.Error())
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetJobsToBuildFromDb (db) ERR: %s", err.Error())
+		dblogger.Errorf("GetJobsToBuildFromDb (db) ERR: %s", err.Error())
 	}
 	return result
 }
 
-func GetScannedImageFromCache(req structs.ScanImageRequest) (structs.BuildJobInfoEntry, error) {
-	entry := structs.CreateBuildJobInfoEntryFromScanImageReq(req)
-	err := db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
-		rawData := string(bucket.Get([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, req.ContainerImage))))
+// func GetScannedImageFromCache(req structs.ScanImageRequest) (structs.BuildJobInfoEntry, error) {
+// 	entry := structs.CreateBuildJobInfoEntryFromScanImageReq(req)
+// 	err := db.View(func(tx *bolt.Tx) error {
+// 		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
+// 		rawData := string(bucket.Get([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, req.ContainerImage))))
 
-		// FOUND SOMETHING IN BOLT DB, SEND IT TO SERVER
-		if rawData != "" {
-			err := structs.UnmarshalBuildJobInfoEntry(&entry, []byte(rawData))
-			if err == nil && !isMoreThan24HoursAgo(entry.StartTime) {
-				return nil
-			}
-		}
-		return fmt.Errorf("Not cached data found in bold db for %s. Starting scan ...", req.ContainerImage)
-	})
-	return entry, err
-}
+// 		// FOUND SOMETHING IN BOLT DB, SEND IT TO SERVER
+// 		if rawData != "" {
+// 			err := structs.UnmarshalBuildJobInfoEntry(&entry, []byte(rawData))
+// 			if err == nil && !isMoreThan24HoursAgo(entry.StartTime) {
+// 				return nil
+// 			}
+// 		}
+// 		return fmt.Errorf("Not cached data found in bold db for %s. Starting scan ...", req.ContainerImage)
+// 	})
+// 	return entry, err
+// }
 
-func StartScanInCache(data structs.BuildJobInfoEntry, imageName string) {
-	// FIRST CREATE A DB ENTRY TO AVOID MULTIPLE SCANS
-	err := db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
+// func StartScanInCache(data structs.BuildJobInfoEntry, imageName string) {
+// 	// FIRST CREATE A DB ENTRY TO AVOID MULTIPLE SCANS
+// 	err := db.Update(func(tx *bolt.Tx) error {
+// 		bucket := tx.Bucket([]byte(SCAN_BUCKET_NAME))
 
-		var json = jsoniter.ConfigCompatibleWithStandardLibrary
-		bytes, err := json.Marshal(data)
-		if err != nil {
-			log.Errorf("Error %s: %s", PREFIX_VUL_SCAN, err.Error())
-		}
-		return bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, imageName)), bytes)
-	})
-	if err != nil {
-		log.Errorf("Error saving scan data for '%s'.", imageName)
-	}
-}
+// 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
+// 		bytes, err := json.Marshal(data)
+// 		if err != nil {
+// 			dblogger.Errorf("Error %s: %s", PREFIX_VUL_SCAN, err.Error())
+// 		}
+// 		return bucket.Put([]byte(fmt.Sprintf("%s%s", PREFIX_VUL_SCAN, imageName)), bytes)
+// 	})
+// 	if err != nil {
+// 		dblogger.Errorf("Error saving scan data for '%s'.", imageName)
+// 	}
+// }
 
 func GetBuilderStatus() structs.BuilderStatus {
 	result := structs.BuilderStatus{}
@@ -315,7 +316,7 @@ func GetBuilderStatus() structs.BuilderStatus {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
+		dblogger.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
 	}
 	return result
 }
@@ -341,7 +342,7 @@ func GetLastBuildJobInfosFromDb(data structs.BuildTaskRequest) structs.BuildJobI
 			buildId := parts[0]
 			lastBuildId, err := strconv.ParseUint(buildId, 10, 64)
 			if err != nil {
-				log.Errorf("GetLastBuildJobInfosFromDb: %s", err.Error())
+				dblogger.Errorf("GetLastBuildJobInfosFromDb: %s", err.Error())
 				return err
 			}
 			result = GetBuildJobInfosFromDb(lastBuildId)
@@ -349,10 +350,48 @@ func GetLastBuildJobInfosFromDb(data structs.BuildTaskRequest) structs.BuildJobI
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetBuildJobListFromDb: %s", err.Error())
+		dblogger.Errorf("GetBuildJobListFromDb: %s", err.Error())
 	}
 	return result
 }
+
+func GetLastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
+	result := structs.BuildJobInfo{}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		cursorBuild := bucket.Cursor()
+
+		suffix := structs.GetLastBuildJobInfosFromDbByNamespaceAndControllerName(namespace, controllerName)
+		var lastBuildKey string
+		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
+			if strings.Contains(string(k), suffix) {
+				lastBuildKey = string(k)
+				break
+			}
+		}
+
+		if lastBuildKey == "" {
+			return nil
+		}
+
+		parts := strings.Split(lastBuildKey, "___")
+		if len(parts) >= 3 {
+			buildId := parts[0]
+			lastBuildId, err := strconv.ParseUint(buildId, 10, 64)
+			if err != nil {
+				dblogger.Errorf("GetLastBuildJobInfosFromDb: %s", err.Error())
+				return err
+			}
+			result = GetBuildJobInfosFromDb(lastBuildId)
+		}
+		return nil
+	})
+	if err != nil {
+		dblogger.Errorf("GetBuildJobListFromDb: %s", err.Error())
+	}
+	return result
+}
+
 func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
 	result := structs.BuildJobInfo{}
 	err := db.View(func(tx *bolt.Tx) error {
@@ -411,7 +450,7 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetBuildJobFromDb (db) ERR: %s", err.Error())
+		dblogger.Errorf("GetBuildJobFromDb (db) ERR: %s", err.Error())
 	}
 
 	return result
@@ -447,7 +486,7 @@ func GetBuildJobInfosListFromDb(namespace string, controller string, container s
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetBuildJobInfosListFromDb (db) ERR: %s", err.Error())
+		dblogger.Errorf("GetBuildJobInfosListFromDb (db) ERR: %s", err.Error())
 	}
 
 	return results
@@ -461,7 +500,7 @@ func GetItemByKey(key string) []byte {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
+		dblogger.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
 	}
 	return rawData
 }
@@ -492,7 +531,7 @@ func GetBuildJobListFromDb() []structs.BuildJob {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetBuildJobListFromDb: %s", err.Error())
+		dblogger.Errorf("GetBuildJobListFromDb: %s", err.Error())
 	}
 	return result
 }
@@ -512,37 +551,37 @@ func UpdateStateInDb(buildJob structs.BuildJob, newState structs.JobStateEnum) {
 	})
 	if err != nil {
 		errStr := fmt.Sprintf("Error updating state for build '%d'. REASON: %s", buildJob.BuildId, err.Error())
-		log.Error(errStr)
+		dblogger.Error(errStr)
 	}
-	log.Infof(fmt.Sprintf("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState))
+	dblogger.Infof(fmt.Sprintf("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState))
 }
 
-func PositionInQueueFromDb(buildId uint64) int {
-	positionInQueue := 0
+// func PositionInQueueFromDb(buildId uint64) int {
+// 	positionInQueue := 0
 
-	err := db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+// 	err := db.View(func(tx *bolt.Tx) error {
+// 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 
-		// FIRST: CHECK FOR DUPLICATES
-		c := bucket.Cursor()
-		prefix := []byte(PREFIX_QUEUE)
-		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
-			job := structs.BuildJob{}
-			err := structs.UnmarshalJob(&job, jobData)
-			if err == nil {
-				if job.State == structs.JobStatePending && job.BuildId != buildId {
-					positionInQueue++
-				}
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return -1
-	}
+// 		// FIRST: CHECK FOR DUPLICATES
+// 		c := bucket.Cursor()
+// 		prefix := []byte(PREFIX_QUEUE)
+// 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
+// 			job := structs.BuildJob{}
+// 			err := structs.UnmarshalJob(&job, jobData)
+// 			if err == nil {
+// 				if job.State == structs.JobStatePending && job.BuildId != buildId {
+// 					positionInQueue++
+// 				}
+// 			}
+// 		}
+// 		return nil
+// 	})
+// 	if err != nil {
+// 		return -1
+// 	}
 
-	return positionInQueue
-}
+// 	return positionInQueue
+// }
 
 func SaveJobInDb(buildJob structs.BuildJob) {
 	err := db.Update(func(tx *bolt.Tx) error {
@@ -551,28 +590,28 @@ func SaveJobInDb(buildJob structs.BuildJob) {
 		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	if err != nil {
-		log.Errorf("Error saving job '%d'.", buildJob.BuildId)
+		dblogger.Errorf("Error saving job '%d'.", buildJob.BuildId)
 	}
 }
 
-func PrintAllEntriesFromDb(bucketName string, prefix string) {
-	err := db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(bucketName))
-		c := bucket.Cursor()
-		prefix := []byte(prefix)
-		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
-			job := structs.BuildJob{}
-			err := structs.UnmarshalJob(&job, jobData)
-			if err != nil {
-				log.Infof("bucket=%s, key=%s, value=%d\n", bucketName, string(k), job.BuildId)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		log.Errorf("printAllEntries: %s", err.Error())
-	}
-}
+// func PrintAllEntriesFromDb(bucketName string, prefix string) {
+// 	err := db.View(func(tx *bolt.Tx) error {
+// 		bucket := tx.Bucket([]byte(bucketName))
+// 		c := bucket.Cursor()
+// 		prefix := []byte(prefix)
+// 		for k, jobData := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, jobData = c.Next() {
+// 			job := structs.BuildJob{}
+// 			err := structs.UnmarshalJob(&job, jobData)
+// 			if err != nil {
+// 				dblogger.Infof("bucket=%s, key=%s, value=%d\n", bucketName, string(k), job.BuildId)
+// 			}
+// 		}
+// 		return nil
+// 	})
+// 	if err != nil {
+// 		dblogger.Errorf("printAllEntries: %s", err.Error())
+// 	}
+// }
 
 func DeleteBuildJobFromDb(bucket string, buildId uint64) error {
 	return db.Update(func(tx *bolt.Tx) error {
@@ -602,7 +641,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err != nil {
-				log.Errorf("AddToDb (unmarshall) ERR: %s", err.Error())
+				dblogger.Errorf("AddToDb (unmarshall) ERR: %s", err.Error())
 				continue
 			}
 			//
@@ -657,7 +696,7 @@ func SaveBuildResult(
 		return bucket.Put([]byte(key), entry)
 	})
 	if err != nil {
-		log.Errorf("Error saving build result for '%d'.", job.BuildId)
+		dblogger.Errorf("Error saving build result for '%d'.", job.BuildId)
 	}
 	return err
 }
@@ -670,7 +709,7 @@ func AddLogToDb(title string, message string, category structs.Category, logType
 		return bucket.Put([]byte(fmt.Sprintf("%s_%s_%s", entry.CreatedAt, entry.Category, entry.Type)), structs.LogBytes(entry))
 	})
 	if err != nil {
-		log.Errorf("Error adding log for '%s': %s", title, err.Error())
+		dblogger.Errorf("Error adding log for '%s': %s", title, err.Error())
 	}
 }
 
@@ -691,7 +730,7 @@ func ListLogFromDb() []structs.Log {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("ListLog: %s", err.Error())
+		dblogger.Errorf("ListLog: %s", err.Error())
 	}
 	return result
 }
@@ -704,7 +743,7 @@ func AddMigrationToDb(name string) error {
 		return bucket.Put([]byte(entry.Name), structs.MigrationBytes(entry))
 	})
 	if err != nil {
-		log.Errorf("Error adding migration '%s'.", name)
+		dblogger.Errorf("Error adding migration '%s'.", name)
 	}
 	return err
 }
@@ -721,21 +760,21 @@ func IsMigrationAlreadyApplied(name string) bool {
 	return err == nil
 }
 
-func AppendToKey(bucket string, key string, value string) error {
-	err := db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(bucket))
-		rawData := bucket.Get([]byte(key))
-		if len(rawData) > 0 {
-			if len(rawData) > MAX_ENTRY_LENGTH {
-				return fmt.Errorf("Entry for key '%s' is too long (%d is the limit).", key, MAX_ENTRY_LENGTH)
-			}
-			rawData = append(rawData, []byte(value)...)
-			return bucket.Put([]byte(key), rawData)
-		}
-		return fmt.Errorf("Not key found for name '%s'.", key)
-	})
-	return err
-}
+// func AppendToKey(bucket string, key string, value string) error {
+// 	err := db.Update(func(tx *bolt.Tx) error {
+// 		bucket := tx.Bucket([]byte(bucket))
+// 		rawData := bucket.Get([]byte(key))
+// 		if len(rawData) > 0 {
+// 			if len(rawData) > MAX_ENTRY_LENGTH {
+// 				return fmt.Errorf("Entry for key '%s' is too long (%d is the limit).", key, MAX_ENTRY_LENGTH)
+// 			}
+// 			rawData = append(rawData, []byte(value)...)
+// 			return bucket.Put([]byte(key), rawData)
+// 		}
+// 		return fmt.Errorf("Not key found for name '%s'.", key)
+// 	})
+// 	return err
+// }
 
 func AddPodEvent(namespace string, controller string, event *v1Core.Event, maxSize int) error {
 	return db.Update(func(tx *bolt.Tx) error {
@@ -779,7 +818,7 @@ func GetEventByKey(key string) []byte {
 		return nil
 	})
 	if err != nil {
-		log.Errorf("GetEventByKey (db) ERR: %s", err.Error())
+		dblogger.Errorf("GetEventByKey (db) ERR: %s", err.Error())
 	}
 	return rawData
 }
@@ -789,7 +828,7 @@ func DeleteEventByKey(key string) error {
 		bucket := tx.Bucket([]byte(POD_EVENT_BUCKET_NAME))
 		err := bucket.Delete([]byte(key))
 		if err != nil {
-			log.Errorf("DeleteEventByKey: %s", err.Error())
+			dblogger.Errorf("DeleteEventByKey: %s", err.Error())
 		}
 		return nil
 	})

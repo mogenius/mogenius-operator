@@ -9,10 +9,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	punq "github.com/mogenius/punq/kubernetes"
-	"github.com/mogenius/punq/logger"
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,37 +37,37 @@ const (
 	resourceKind               string = "persistentvolumes"
 )
 
-func PersistentVolumes(listOptions *metav1.ListOptions, contextId *string) []v1.PersistentVolume {
-	result := []v1.PersistentVolume{}
+// func PersistentVolumes(listOptions *metav1.ListOptions, contextId *string) []v1.PersistentVolume {
+// 	result := []v1.PersistentVolume{}
 
-	provider, err := punq.NewKubeProvider(contextId)
-	if err != nil {
-		return result
-	}
+// 	provider, err := punq.NewKubeProvider(contextId)
+// 	if err != nil {
+// 		return result
+// 	}
 
-	if listOptions == nil {
-		listOptions = &metav1.ListOptions{}
-	}
+// 	if listOptions == nil {
+// 		listOptions = &metav1.ListOptions{}
+// 	}
 
-	pvList, err := provider.ClientSet.CoreV1().PersistentVolumes().List(context.TODO(), *listOptions)
-	if err != nil {
-		logger.Log.Errorf("PersistentVolumes ERROR: %s", err.Error())
-		return result
-	}
+// 	pvList, err := provider.ClientSet.CoreV1().PersistentVolumes().List(context.TODO(), *listOptions)
+// 	if err != nil {
+// 		K8sLogger.Errorf("PersistentVolumes ERROR: %s", err.Error())
+// 		return result
+// 	}
 
-	for _, v := range pvList.Items {
-		v.Kind = persistentVolumeKind
-		v.APIVersion = persistentVolumeAPIVersion
-		result = append(result, v)
-	}
+// 	for _, v := range pvList.Items {
+// 		v.Kind = persistentVolumeKind
+// 		v.APIVersion = persistentVolumeAPIVersion
+// 		result = append(result, v)
+// 	}
 
-	return result
-}
+// 	return result
+// }
 
 func WatchPersistentVolumes() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -84,7 +81,7 @@ func WatchPersistentVolumes() {
 		return watchPersistentVolumes(provider, resourceKind)
 	})
 	if err != nil {
-		log.Fatalf("Error watching persistentvolumes: %s", err.Error())
+		K8sLogger.Fatalf("Error watching persistentvolumes: %s", err.Error())
 	}
 
 	// Wait forever
@@ -98,21 +95,21 @@ func watchPersistentVolumes(provider *punq.KubeProvider, kindName string) error 
 			castedObj.Kind = persistentVolumeKind
 			castedObj.APIVersion = persistentVolumeAPIVersion
 
-			log.Debugf("Added PersistentVolume: %s", castedObj.Name)
+			K8sLogger.Debugf("Added PersistentVolume: %s", castedObj.Name)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.PersistentVolume)
 			castedObj.Kind = persistentVolumeKind
 			castedObj.APIVersion = persistentVolumeAPIVersion
 
-			log.Debugf("Updated PersistentVolume: %s", castedObj.Name)
+			K8sLogger.Debugf("Updated PersistentVolume: %s", castedObj.Name)
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.PersistentVolume)
 			castedObj.Kind = persistentVolumeKind
 			castedObj.APIVersion = persistentVolumeAPIVersion
 
-			log.Debugf("Deleted PersistentVolume: %s", castedObj.Name)
+			K8sLogger.Debugf("Deleted PersistentVolume: %s", castedObj.Name)
 
 			handlePVDeletion(castedObj, provider)
 		},
@@ -158,7 +155,7 @@ func handlePVDeletion(pv *v1.PersistentVolume, provider *punq.KubeProvider) {
 	// Extract label value from the PV
 	volumeName, err := GetLabelValue(pv.Labels, LabelKeyVolumeName)
 	if err != nil {
-		log.Warnf("Label value for identifier:'%s' not found on PV %s", LabelKeyVolumeName, pv.Name)
+		K8sLogger.Warnf("Label value for identifier:'%s' not found on PV %s", LabelKeyVolumeName, pv.Name)
 		return
 	}
 
@@ -180,7 +177,7 @@ func handlePVDeletion(pv *v1.PersistentVolume, provider *punq.KubeProvider) {
 	time.Sleep(delayDuration)
 
 	// Trigger custom event
-	log.Infof("PV %s is being deleted in namespace %s, triggering event", objectMetaName, namespaceName)
+	K8sLogger.Infof("PV %s is being deleted in namespace %s, triggering event", objectMetaName, namespaceName)
 	namespaceRecorder.Eventf(pv, v1.EventTypeNormal, PersitentVolumeKillingEventReason, "PersistentVolume %s is being deleted", objectMetaName)
 }
 

@@ -1,11 +1,13 @@
 package kubernetes
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/utils"
 	"strings"
 
@@ -13,14 +15,16 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	"github.com/mogenius/punq/logger"
+	punqutils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"k8s.io/client-go/util/retry"
 
-	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -32,7 +36,7 @@ var EventChannels = make(map[string]chan string)
 func EventWatcher() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -46,7 +50,7 @@ func EventWatcher() {
 		return watchEvents(provider)
 	})
 	if err != nil {
-		log.Fatalf("Error watching events: %s", err.Error())
+		K8sLogger.Fatalf("Error watching events: %s", err.Error())
 	}
 
 	// Wait forever
@@ -55,23 +59,32 @@ func EventWatcher() {
 
 func ResourceWatcher() {
 	// if !iacmanager.ShouldWatchResources() {
-	// 	log.Warn("Nor Pull nor Push enabled. Skip watching resources.")
+	// 	K8sLogger.Warn("Nor Pull nor Push enabled. Skip watching resources.")
 	// 	return
 	// }
 	// if resourceWatcherRunning {
-	// 	log.Warn("Resource watcher already running.")
+	// 	K8sLogger.Warn("Resource watcher already running.")
 	// 	return
 	// }
 
-	log.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
+	K8sLogger.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
+
+	MapIacSyncWorkloadIntoConfigMap()
+
+	go WatchDeployments()
+	go WatchReplicaSets()
+	go WatchCronJobs()
+	go WatchJobs()
+	go WatchPods()
+
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
 		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
 			go WatchConfigmaps()
 		case dtos.KindDeployments:
-			go WatchDeployments()
+			// go WatchDeployments()
 		case dtos.KindPods:
-			go WatchPods()
+			// go WatchPods()
 		case dtos.KindIngresses:
 			go WatchIngresses()
 		case dtos.KindSecrets:
@@ -83,9 +96,9 @@ func ResourceWatcher() {
 		case dtos.KindNetworkPolicies:
 			go WatchNetworkPolicies()
 		case dtos.KindJobs:
-			go WatchJobs()
+			// go WatchJobs()
 		case dtos.KindCronJobs:
-			go WatchCronJobs()
+			// go WatchCronJobs()
 		case dtos.KindDaemonSets:
 			go WatchDaemonSets()
 		case dtos.KindStatefulSets:
@@ -93,16 +106,72 @@ func ResourceWatcher() {
 		case dtos.KindHorizontalPodAutoscalers:
 			go WatchHpas()
 		default:
-			log.Fatalf("🚫 Unknown resource type: %s", workload)
+			K8sLogger.Fatalf("🚫 Unknown resource type: %s", workload)
 		}
-		log.Infof("Started watching %s 🚀.", workload)
+		K8sLogger.Infof("Started watching %s 🚀.", workload)
+	}
+}
+
+func MapIacSyncWorkloadIntoConfigMap() {
+	// init all with false
+	utils.IacWorkloadConfigMap = make(map[string]bool)
+	for _, kind := range dtos.AvailableSyncWorkloadKinds {
+		utils.IacWorkloadConfigMap[kind] = false
+	}
+	// set to true for the ones we want to watch
+	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
+		utils.IacWorkloadConfigMap[strings.TrimSpace(workload)] = true
 	}
 }
 
 func InitAllWorkloads() {
+	MapIacSyncWorkloadIntoConfigMap()
+
+	deployments := punq.AllDeployments("", nil)
+	for _, res := range deployments {
+		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+			iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
+		}
+
+		store.GlobalStore.Set(res, "Deployment", res.Namespace, res.Name)
+	}
+
+	replicasets := punq.AllReplicasets("", nil)
+	for _, res := range replicasets {
+		store.GlobalStore.Set(res, "ReplicaSet", res.Namespace, res.Name)
+	}
+
+	cronjobs := punq.AllCronjobs("", nil)
+	for _, res := range cronjobs {
+		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
+			iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
+		}
+
+		store.GlobalStore.Set(res, "CronJob", res.Namespace, res.Name)
+	}
+
+	jobs := punq.AllJobs("", nil)
+	for _, res := range jobs {
+		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindJobs] {
+			iacmanager.WriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
+		}
+
+		store.GlobalStore.Set(res, "Job", res.Namespace, res.Name)
+	}
+
+	pods := punq.AllPods("", nil)
+	for _, res := range pods {
+		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindPods] {
+			iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
+		}
+
+		store.GlobalStore.Set(res, "Pod", res.Namespace, res.Name)
+	}
+
 	if !iacmanager.ShouldWatchResources() {
 		return
 	}
+
 	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
 		switch strings.TrimSpace(workload) {
 		case dtos.KindConfigMaps:
@@ -111,15 +180,15 @@ func InitAllWorkloads() {
 				iacmanager.WriteResourceYaml(dtos.KindConfigMaps, res.Namespace, res.Name, res)
 			}
 		case dtos.KindDeployments:
-			ressources := punq.AllDeployments("", nil)
-			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
-			}
+			// ressources := punq.AllDeployments("", nil)
+			// for _, res := range ressources {
+			// 	iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
+			// }
 		case dtos.KindPods:
-			ressources := punq.AllPods("", nil)
-			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
-			}
+			// ressources := punq.AllPods("", nil)
+			// for _, res := range ressources {
+			// 	iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
+			// }
 		case dtos.KindIngresses:
 			ressources := punq.AllIngresses("", nil)
 			for _, res := range ressources {
@@ -146,15 +215,15 @@ func InitAllWorkloads() {
 				iacmanager.WriteResourceYaml(dtos.KindNetworkPolicies, res.Namespace, res.Name, res)
 			}
 		case dtos.KindJobs:
-			ressources := punq.AllJobs("", nil)
-			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
-			}
+			// ressources := punq.AllJobs("", nil)
+			// for _, res := range ressources {
+			// 	iacmanager.WriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
+			// }
 		case dtos.KindCronJobs:
-			ressources := punq.AllCronjobs("", nil)
-			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
-			}
+			// ressources := punq.AllCronjobs("", nil)
+			// for _, res := range ressources {
+			// 	iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
+			// }
 		case dtos.KindDaemonSets:
 			ressources := punq.AllDaemonsets("", nil)
 			for _, res := range ressources {
@@ -171,7 +240,7 @@ func InitAllWorkloads() {
 				iacmanager.WriteResourceYaml(dtos.KindHorizontalPodAutoscalers, res.Namespace, res.Name, res)
 			}
 		default:
-			log.Fatalf("🚫 Unknown resource type: %s", workload)
+			K8sLogger.Fatalf("🚫 Unknown resource type: %s", workload)
 		}
 	}
 }
@@ -205,7 +274,7 @@ func processEvent(event *v1Core.Event) {
 			controllerName := strings.Join(parts, "-")
 			err := db.AddPodEvent(event.InvolvedObject.Namespace, controllerName, event, 150)
 			if err != nil {
-				log.Errorf("Error adding event to db: %s", err.Error())
+				K8sLogger.Errorf("Error adding event to db: %s", err.Error())
 			}
 
 			key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, controllerName)
@@ -221,7 +290,7 @@ func processEvent(event *v1Core.Event) {
 
 		}
 	} else {
-		log.Errorf("malformed event received")
+		K8sLogger.Errorf("malformed event received")
 	}
 }
 
@@ -229,14 +298,17 @@ func watchEvents(provider *punq.KubeProvider) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
+			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
 			processEvent(event)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			event := newObj.(*v1Core.Event)
+			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
 			processEvent(event)
 		},
 		DeleteFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
+			store.GlobalStore.Delete("Event", event.Namespace, event.Name)
 			processEvent(event)
 		},
 	}
@@ -268,4 +340,37 @@ func watchEvents(provider *punq.KubeProvider) error {
 			// You can adjust the time as per your needs.
 		}
 	}
+}
+
+var allEventsForNamespaceDebounce = utils.NewDebounce("allEventsForNamespaceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
+
+func AllEventsForNamespace(namespaceName string) []v1Core.Event {
+	key := fmt.Sprintf("%s", namespaceName)
+	result, _ := allEventsForNamespaceDebounce.CallFn(key, func() (interface{}, error) {
+		return AllEventsForNamespace2(namespaceName), nil
+	})
+	return result.([]v1Core.Event)
+}
+
+func AllEventsForNamespace2(namespaceName string) []v1Core.Event {
+	result := []v1Core.Event{}
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return result
+	}
+	eventList, err := provider.ClientSet.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		logger.Log.Errorf("AllEvents ERROR: %s", err.Error())
+		return result
+	}
+
+	for _, event := range eventList.Items {
+		if !punqutils.Contains(utils.CONFIG.Misc.IgnoreNamespaces, event.ObjectMeta.Namespace) {
+			event.Kind = "Event"
+			event.APIVersion = "v1"
+			result = append(result, event)
+		}
+	}
+	return result
 }

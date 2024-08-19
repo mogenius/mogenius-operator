@@ -6,7 +6,6 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	appv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +18,7 @@ import (
 func WatchStatefulSets() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -33,7 +32,7 @@ func WatchStatefulSets() {
 		return watchStatefulSets(provider, "statefulsets")
 	})
 	if err != nil {
-		log.Fatalf("Error watching statefulsets: %s", err.Error())
+		K8sLogger.Fatalf("Error watching statefulsets: %s", err.Error())
 	}
 
 	// Wait forever

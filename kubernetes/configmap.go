@@ -3,16 +3,11 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
-	"mogenius-k8s-manager/structs"
 	"strings"
-	"sync"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,99 +18,99 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Delete Kubernetes configMap", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Deleting configMap")
+// func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("delete", "Delete Kubernetes configMap", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Deleting configMap")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
+// 		provider, err := punq.NewKubeProvider(nil)
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 			return
+// 		}
+// 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 
-		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: punqUtils.Pointer[int64](5),
-		}
+// 		deleteOptions := metav1.DeleteOptions{
+// 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
+// 		}
 
-		err = configMapClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Deleted configMap")
-		}
-	}(wg)
-}
+// 		err = configMapClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()))
+// 		} else {
+// 			cmd.Success(job, "Deleted configMap")
+// 		}
+// 	}(wg)
+// }
 
-func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string, key string, value string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Updating configMap")
+// func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string, key string, value string, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Updating configMap")
 
-		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
-		if configMap != nil {
-			provider, err := punq.NewKubeProvider(nil)
-			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-				return
-			}
-			configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
-			configMap.Data[key] = value
+// 		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
+// 		if configMap != nil {
+// 			provider, err := punq.NewKubeProvider(nil)
+// 			if err != nil {
+// 				cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 				return
+// 			}
+// 			configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+// 			configMap.Data[key] = value
 
-			_, err = configMapClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
-			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
-				return
-			} else {
-				cmd.Success(job, "Update configMap")
-				return
-			}
-		}
-		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
-	}(wg)
-}
+// 			_, err = configMapClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
+// 			if err != nil {
+// 				cmd.Fail(job, fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
+// 				return
+// 			} else {
+// 				cmd.Success(job, "Update configMap")
+// 				return
+// 			}
+// 		}
+// 		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
+// 	}(wg)
+// }
 
-func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName string, key string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Update Kubernetes configMap.")
+// func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName string, key string, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Update Kubernetes configMap.")
 
-		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
-		if configMap != nil {
-			if configMap.Data == nil {
-				cmd.Success(job, "ConfigMap contains no data. No key was removed.")
-				return
-			} else {
-				delete(configMap.Data, key)
+// 		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
+// 		if configMap != nil {
+// 			if configMap.Data == nil {
+// 				cmd.Success(job, "ConfigMap contains no data. No key was removed.")
+// 				return
+// 			} else {
+// 				delete(configMap.Data, key)
 
-				provider, err := punq.NewKubeProvider(nil)
-				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-					return
-				}
-				updateOptions := metav1.UpdateOptions{
-					FieldManager: DEPLOYMENTNAME,
-				}
-				configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
-				_, err = configMapClient.Update(context.TODO(), configMap, updateOptions)
-				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
-					return
-				}
-				cmd.Success(job, fmt.Sprintf("Key %s successfully removed.", key))
-				return
-			}
-		}
-		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
-	}(wg)
-}
+// 				provider, err := punq.NewKubeProvider(nil)
+// 				if err != nil {
+// 					cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 					return
+// 				}
+// 				updateOptions := metav1.UpdateOptions{
+// 					FieldManager: DEPLOYMENTNAME,
+// 				}
+// 				configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+// 				_, err = configMapClient.Update(context.TODO(), configMap, updateOptions)
+// 				if err != nil {
+// 					cmd.Fail(job, fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
+// 					return
+// 				}
+// 				cmd.Success(job, fmt.Sprintf("Key %s successfully removed.", key))
+// 				return
+// 			}
+// 		}
+// 		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
+// 	}(wg)
+// }
 
 func WriteConfigMap(namespace string, name string, data string, labels map[string]string) error {
 	provider, err := punq.NewKubeProvider(nil)
@@ -148,7 +143,7 @@ func WriteConfigMap(namespace string, name string, data string, labels map[strin
 			return err
 		}
 	} else {
-		log.Errorf("CreateOrUpdateConfigMap ERROR: %s", err.Error())
+		K8sLogger.Errorf("CreateOrUpdateConfigMap ERROR: %s", err.Error())
 		return err
 	}
 	return nil
@@ -195,7 +190,7 @@ func ListConfigMapWithFieldSelector(namespace string, labelSelector string, pref
 func WatchConfigmaps() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -209,7 +204,7 @@ func WatchConfigmaps() {
 		return watchConfigmaps(provider, "configmaps")
 	})
 	if err != nil {
-		log.Fatalf("Error watching configmaps: %s", err.Error())
+		K8sLogger.Fatalf("Error watching configmaps: %s", err.Error())
 	}
 
 	// Wait forever

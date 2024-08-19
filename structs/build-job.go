@@ -74,54 +74,54 @@ func (b BuildJob) IsEmpty() bool {
 		b.BuildId == 0
 }
 
-// type BuildJobListEntry struct {
-// 	// only "clusterId" was removed because we dont need it anymore
-// 	JobId                 string `json:"jobId"`
-// 	ProjectId             string `json:"projectId"`
-// 	NamespaceId           string `json:"namespaceId"`
-// 	Namespace             string `json:"namespace"`
-// 	ServiceId             string `json:"serviceId"`
-// 	ControllerName        string `json:"controllerName"`
-// 	GitRepo               string `json:"gitRepo"`
-// 	GitBranch             string `json:"gitBranch"`
-// 	GitCommitAuthor       string `json:"gitCommitAuthor"`
-// 	GitCommitHash         string `json:"gitCommitHash"`
-// 	GitCommitMessage      string `json:"gitCommitMessage"`
-// 	DockerFile            string `json:"dockerFile"`
-// 	DockerContext         string `json:"dockerContext"`
-// 	ContainerRegistryPath string `json:"containerRegistryPath"`
-// 	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
-// 	StartTimestamp        string `json:"startTimestamp"`
-// 	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
-// 	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING
-// 	StartedAt             string `json:"startedAt"`
-// 	DurationMs            int    `json:"durationMs"`
-// 	BuildId               int    `json:"buildId"`
-// }
+type BuildJobListEntry struct {
+	// only "clusterId" was removed because we dont need it anymore
+	JobId                 string `json:"jobId"`
+	ProjectId             string `json:"projectId"`
+	NamespaceId           string `json:"namespaceId"`
+	Namespace             string `json:"namespace"`
+	ServiceId             string `json:"serviceId"`
+	ControllerName        string `json:"controllerName"`
+	GitRepo               string `json:"gitRepo"`
+	GitBranch             string `json:"gitBranch"`
+	GitCommitAuthor       string `json:"gitCommitAuthor"`
+	GitCommitHash         string `json:"gitCommitHash"`
+	GitCommitMessage      string `json:"gitCommitMessage"`
+	DockerFile            string `json:"dockerFile"`
+	DockerContext         string `json:"dockerContext"`
+	ContainerRegistryPath string `json:"containerRegistryPath"`
+	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
+	StartTimestamp        string `json:"startTimestamp"`
+	InjectDockerEnvVars   string `json:"injectDockerEnvVars"`
+	State                 string `json:"state"` // FAILED, SUCCEEDED, STARTED, PENDING
+	StartedAt             string `json:"startedAt"`
+	DurationMs            int    `json:"durationMs"`
+	BuildId               int    `json:"buildId"`
+}
 
-// func (b BuildJobListEntry) IsEmpty() bool {
-// 	return b.JobId == "" &&
-// 		b.ProjectId == "" &&
-// 		b.NamespaceId == "" &&
-// 		b.Namespace == "" &&
-// 		b.ServiceId == "" &&
-// 		b.ControllerName == "" &&
-// 		b.GitRepo == "" &&
-// 		b.GitBranch == "" &&
-// 		b.GitCommitAuthor == "" &&
-// 		b.GitCommitHash == "" &&
-// 		b.GitCommitMessage == "" &&
-// 		b.DockerFile == "" &&
-// 		b.DockerContext == "" &&
-// 		b.ContainerRegistryPath == "" &&
-// 		b.ContainerRegistryUrl == "" &&
-// 		b.StartTimestamp == "" &&
-// 		b.InjectDockerEnvVars == "" &&
-// 		b.State == "" &&
-// 		b.StartedAt == "" &&
-// 		b.DurationMs == 0 &&
-// 		b.BuildId == 0
-// }
+func (b BuildJobListEntry) IsEmpty() bool {
+	return b.JobId == "" &&
+		b.ProjectId == "" &&
+		b.NamespaceId == "" &&
+		b.Namespace == "" &&
+		b.ServiceId == "" &&
+		b.ControllerName == "" &&
+		b.GitRepo == "" &&
+		b.GitBranch == "" &&
+		b.GitCommitAuthor == "" &&
+		b.GitCommitHash == "" &&
+		b.GitCommitMessage == "" &&
+		b.DockerFile == "" &&
+		b.DockerContext == "" &&
+		b.ContainerRegistryPath == "" &&
+		b.ContainerRegistryUrl == "" &&
+		b.StartTimestamp == "" &&
+		b.InjectDockerEnvVars == "" &&
+		b.State == "" &&
+		b.StartedAt == "" &&
+		b.DurationMs == 0 &&
+		b.BuildId == 0
+}
 
 func BuildJobExample() BuildJob {
 	return BuildJob{
@@ -342,6 +342,10 @@ func BuildJobInfosKeySuffix(namespace string, controller string, container strin
 	return fmt.Sprintf("___%s___%s___%s", namespace, controller, container)
 }
 
+func GetLastBuildJobInfosFromDbByNamespaceAndControllerName(namespace string, controller string) string {
+	return fmt.Sprintf("___%s___%s___", namespace, controller)
+}
+
 func GetBuildJobInfosPrefix(buildId uint64, prefix BuildPrefixEnum, namespace string, controller string) string {
 	return fmt.Sprintf("%s___%s___%s___%s", utils.SequenceToKey(buildId), prefix, namespace, controller)
 }
@@ -453,7 +457,6 @@ func CreateBuildJobInfoEntryBytes(
 		log.Errorf("createBuildJobInfoEntryBytes ERR: %s", err.Error())
 	}
 	return bytes
-
 }
 
 func CreateScanImageEntryBytes(
@@ -473,19 +476,18 @@ func CreateScanImageEntryBytes(
 
 }
 
-func CreateBuildJobInfoEntryBytesForScan(state JobStateEnum, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
-	entry := BuildJobInfoEntry{
-		State:      state,
-		Result:     string(cmdOutput),
-		StartTime:  startTime.Format(time.RFC3339),
-		FinishTime: finishTime.Format(time.RFC3339),
-	}
+// func CreateBuildJobInfoEntryBytesForScan(state JobStateEnum, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
+// 	entry := BuildJobInfoEntry{
+// 		State:      state,
+// 		Result:     string(cmdOutput),
+// 		StartTime:  startTime.Format(time.RFC3339),
+// 		FinishTime: finishTime.Format(time.RFC3339),
+// 	}
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	bytes, err := json.Marshal(entry)
-	if err != nil {
-		log.Errorf("CreateBuildJobInfoEntryBytesForScan ERR: %s", err.Error())
-	}
-	return bytes
-
-}
+// 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+// 	bytes, err := json.Marshal(entry)
+// 	if err != nil {
+// 		log.Errorf("CreateBuildJobInfoEntryBytesForScan ERR: %s", err.Error())
+// 	}
+// 	return bytes
+// }

@@ -2,7 +2,7 @@ package kubernetes
 
 // func UpdateNamespaceCertificate(namespaceName string, hostNames []string) {
 // 	if utils.CONFIG.Misc.Debug {
-// 		log.Infof("Updating Ingress for [%s] ...", strings.Join(hostNames, ", "))
+// 		K8sLogger.Infof("Updating Ingress for [%s] ...", strings.Join(hostNames, ", "))
 // 	}
 // 	if len(hostNames) <= 0 {
 // 		return
@@ -18,7 +18,7 @@ package kubernetes
 // 			createNew = true
 // 		}
 // 		if apierrors.IsForbidden(err) {
-// 			log.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
+// 			K8sLogger.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
 // 			return
 // 		}
 // 	}
@@ -38,7 +38,7 @@ package kubernetes
 // 	if foundChanges {
 // 		provider, err := punq.NewKubeProviderCertManager(nil)
 // 		if provider == nil || err != nil {
-// 			log.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
+// 			K8sLogger.Errorf("UpdateNamespaceCertificate ERROR: %s", err.Error())
 // 			return
 // 		}
 // 		if createNew {
@@ -50,7 +50,7 @@ package kubernetes
 // 			provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Create(context.TODO(), &cert, metav1.CreateOptions{})
 
 // 			if utils.CONFIG.Misc.Debug {
-// 				log.Info("Certificate has been created because something changed.")
+// 				K8sLogger.Info("Certificate has been created because something changed.")
 // 			}
 // 			return
 // 		} else {
@@ -66,12 +66,12 @@ package kubernetes
 // 			provider.ClientSet.CertmanagerV1().Certificates(namespaceName).Update(context.TODO(), cert, metav1.UpdateOptions{})
 
 // 			if utils.CONFIG.Misc.Debug {
-// 				log.Info("Certificate has been updated because something changed.")
+// 				K8sLogger.Info("Certificate has been updated because something changed.")
 // 			}
 // 			return
 // 		}
 // 	}
 // 	if utils.CONFIG.Misc.Debug {
-// 		log.Info("Certificate has NOT been updated/created because nothing changed.")
+// 		K8sLogger.Info("Certificate has NOT been updated/created because nothing changed.")
 // 	}
 // }

@@ -3,19 +3,20 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"strings"
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
-	core "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,42 +26,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 )
-
-func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Creating Deployment", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Creating Deployment")
-
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, true, deploymentClient, createDeploymentHandler)
-		if err != nil {
-			log.Errorf("error: %s", err.Error())
-			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
-			return
-		}
-
-		// deployment := generateDeployment(namespace, service, false, deploymentClient)
-		deployment := newController.(*v1.Deployment)
-
-		deployment.Labels = MoUpdateLabels(&deployment.Labels, nil, nil, &service)
-
-		_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions())
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Created deployment")
-		}
-
-		HandleHpa(job, namespace.Name, service.ControllerName, service, wg)
-	}(wg)
-}
 
 func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", "Delete Deployment", job)
@@ -86,6 +51,10 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		} else {
 			cmd.Success(job, "Deleted Deployment")
 		}
+		// EXTERNAL SECRETS OPERATOR - cleanup unused secrets
+		if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
+			DeleteUnusedSecretsForNamespace(namespace.Name)
+		}
 	}(wg)
 }
 
@@ -96,22 +65,26 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(job, "Updating Deployment")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
+		deploymentClient := GetAppClient().Deployments(namespace.Name)
+
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("UpdateDeployment ERROR: %s", err.Error()))
 			return
 		}
+		// add resource creation for external secrets
+		if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
+			CreateExternalSecret(CreateExternalSecretProps{
+				Namespace:             namespace.Name,
+				ServiceName:           service.ControllerName,
+				ProjectName:           service.EsoSettings.ProjectName,
+				SecretStoreNamePrefix: service.EsoSettings.SecretStoreNamePrefix,
+			})
+			DeleteUnusedSecretsForNamespace(namespace.Name)
+		}
 
-		// deployment := generateDeployment(namespace, service, false, deploymentClient)
 		deployment := newController.(*v1.Deployment)
-
 		_, err = deploymentClient.Update(context.TODO(), deployment, MoUpdateOptions())
 		if err != nil {
 			if apierrors.IsNotFound(err) {
@@ -148,7 +121,7 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("StartDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -182,7 +155,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -219,7 +192,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			log.Errorf("error: %s", err.Error())
+			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -307,18 +280,18 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 
 	// CONTAINERS
 	if spec.Template.Spec.Containers == nil {
-		spec.Template.Spec.Containers = []core.Container{}
+		spec.Template.Spec.Containers = []v1Core.Container{}
 	}
 	for index, container := range service.Containers {
 		if len(spec.Template.Spec.Containers) <= index {
-			spec.Template.Spec.Containers = append(spec.Template.Spec.Containers, core.Container{})
+			spec.Template.Spec.Containers = append(spec.Template.Spec.Containers, v1Core.Container{})
 		}
 
 		// ImagePullPolicy
 		if container.KubernetesLimits.ImagePullPolicy != "" {
-			spec.Template.Spec.Containers[index].ImagePullPolicy = core.PullPolicy(container.KubernetesLimits.ImagePullPolicy)
+			spec.Template.Spec.Containers[index].ImagePullPolicy = v1Core.PullPolicy(container.KubernetesLimits.ImagePullPolicy)
 		} else {
-			spec.Template.Spec.Containers[index].ImagePullPolicy = core.PullAlways
+			spec.Template.Spec.Containers[index].ImagePullPolicy = v1Core.PullAlways
 		}
 
 		// PORTS
@@ -340,65 +313,68 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 		} else if internalHttpPort != nil {
 			// StartupProbe
 			if spec.Template.Spec.Containers[index].StartupProbe == nil {
-				spec.Template.Spec.Containers[index].StartupProbe = &core.Probe{}
-				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &core.HTTPGetAction{}
+				spec.Template.Spec.Containers[index].StartupProbe = &v1Core.Probe{}
+				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
 			}
 			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Path = "/healthz"
 
 			// LivenessProbe
 			if spec.Template.Spec.Containers[index].LivenessProbe == nil {
-				spec.Template.Spec.Containers[index].LivenessProbe = &core.Probe{}
-				spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &core.HTTPGetAction{}
+				spec.Template.Spec.Containers[index].LivenessProbe = &v1Core.Probe{}
+				spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &v1Core.HTTPGetAction{}
 			}
 			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Path = "/healthz"
 
 			// ReadinessProbe
 			if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
-				spec.Template.Spec.Containers[index].ReadinessProbe = &core.Probe{}
-				spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &core.HTTPGetAction{}
+				spec.Template.Spec.Containers[index].ReadinessProbe = &v1Core.Probe{}
+				spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &v1Core.HTTPGetAction{}
 			}
 			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Path = "/healthz"
 		}
 	}
 
 	return objectMeta, &SpecDeployment{spec, previousSpec}, &newDeployment, nil
 }
 
-func SetDeploymentImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("setImage", "Set Deployment Image", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Set Image in Deployment")
+// func SetDeploymentImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("setImage", "Set Deployment Image", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Set Image in Deployment")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
-		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("SetImage ERROR: %s", err.Error()))
-			return
-		}
+// 		provider, err := punq.NewKubeProvider(nil)
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 			return
+// 		}
+// 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
+// 		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("SetImage ERROR: %s", err.Error()))
+// 			return
+// 		}
 
-		// SET NEW IMAGE
-		for index, container := range deploymentToUpdate.Spec.Template.Spec.Containers {
-			if container.Name == containerName {
-				deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
-			}
-		}
-		deploymentToUpdate.Spec.Paused = false
+// 		// SET NEW IMAGE
+// 		for index, container := range deploymentToUpdate.Spec.Template.Spec.Containers {
+// 			if container.Name == containerName {
+// 				deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
+// 			}
+// 		}
+// 		deploymentToUpdate.Spec.Paused = false
 
-		_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("SetImage ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Set new image in Deployment")
-		}
-	}(wg)
-}
+// 		_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("SetImage ERROR: %s", err.Error()))
+// 		} else {
+// 			cmd.Success(job, "Set new image in Deployment")
+// 		}
+// 	}(wg)
+// }
 
 func UpdateDeploymentImage(namespaceName string, controllerName string, containerName string, imageName string) error {
 	provider, err := punq.NewKubeProvider(nil)
@@ -465,14 +441,8 @@ func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, pr
 	return WorkloadResult(deployments.Items, err)
 }
 
-func GetDeployment(namespace string, name string) K8sWorkloadResult {
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	client := provider.ClientSet.AppsV1().Deployments(namespace)
-
-	deployment, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
+	deployment, err := punq.GetK8sDeployment(namespace, name, nil)
 	if err != nil {
 		return WorkloadResult(nil, err)
 	}
@@ -482,7 +452,7 @@ func GetDeployment(namespace string, name string) K8sWorkloadResult {
 func WatchDeployments() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -496,7 +466,7 @@ func WatchDeployments() {
 		return watchDeployments(provider, "deployments")
 	})
 	if err != nil {
-		log.Fatalf("Error watching deployments: %s", err.Error())
+		K8sLogger.Fatalf("Error watching deployments: %s", err.Error())
 	}
 
 	// Wait forever
@@ -507,21 +477,33 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			store.GlobalStore.Delete("Deployment", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			}
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

@@ -1,8 +1,10 @@
-package services
+package servicesExternal
 
 import (
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
+	"time"
+
 	"mogenius-k8s-manager/utils"
 	"strings"
 	"testing"
@@ -13,7 +15,7 @@ import (
 
 const (
 	NamePrefix   = "customer-blue"
-	Project      = "backend-project"
+	ProjectName  = "backend-project"
 	MoSharedPath = "mogenius-external-secrets"
 )
 
@@ -21,9 +23,9 @@ func TestSecretStoreRender(t *testing.T) {
 
 	yamlTemplate := utils.InitExternalSecretsStoreYaml()
 
-	secretStore := externalSecretStoreExample()
+	secretStore := externalSecretStorePropsExample()
 	secretStore.Role = "mo-external-secrets-002"
-	yamlDataUpdated := renderClusterSecretStore(yamlTemplate, *secretStore)
+	yamlDataUpdated := renderClusterSecretStore(yamlTemplate, secretStore)
 
 	if yamlTemplate == yamlDataUpdated {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
@@ -34,10 +36,10 @@ func TestSecretStoreRender(t *testing.T) {
 	expectedPath := "secret-mo-ex-secr-test-003"
 	secretStore.MoSharedPath = expectedPath
 	expectedPath = fmt.Sprintf("%s/%s", expectedPath, secretStore.ProjectName) // the rendering adds the project name to the path to reflect the corresponding secret store
-	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, *secretStore)
+	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, secretStore)
 
 	// check if the values are replaced
-	var data SecretStoreSchema
+	var data kubernetes.SecretStoreSchema
 	err := yaml.Unmarshal([]byte(yamlDataUpdated), &data)
 	if err != nil {
 		t.Fatalf("Error parsing YAML: %v", err)
@@ -53,15 +55,15 @@ func TestSecretStoreRender(t *testing.T) {
 func TestSecretStoreCreate(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
-	testReq := CreateSecretsStoreRequestExample()
+	props := externalSecretStorePropsExample()
 
 	// assume composed name: team-blue-secrets-vault-secret-store
-	testReq.NamePrefix = NamePrefix
-	testReq.ProjectName = Project
+	props.NamePrefix = NamePrefix
+	props.ProjectName = ProjectName
 
-	response := CreateExternalSecretsStore(testReq)
-	if response.Status != "SUCCESS" {
-		t.Errorf("Error creating secret store: %s", response.ErrorMessage)
+	err := CreateExternalSecretsStore(props)
+	if err != nil {
+		t.Errorf("Error creating secret store: %s", err.Error())
 	} else {
 		logger.Log.Info("Secret store created ✅")
 	}
@@ -69,20 +71,26 @@ func TestSecretStoreCreate(t *testing.T) {
 
 // don't move this test as it is dependent on the previous test to create the secret store!
 func TestSecretStoreList(t *testing.T) {
-	response := ListExternalSecretsStores()
+	// wait for create to finish
+	time.Sleep(3 * time.Second)
 
-	if len(response.StoresInCluster) == 0 {
+	stores, err := kubernetes.ListExternalSecretsStores(ProjectName)
+	if err != nil {
+		t.Errorf("Error listing secret stores: %s", err.Error())
+	}
+
+	if len(stores) == 0 {
 		t.Errorf("Error listing secret stores: No secret stores found")
 	} else {
 		found := false
-		for _, store := range response.StoresInCluster {
-			if strings.HasPrefix(store.Name, NamePrefix) {
+		for _, store := range stores {
+			if strings.HasPrefix(store, NamePrefix) {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Error: Expected to find secret store %s but none was found", getSecretStoreName(NamePrefix, Project))
+			t.Errorf("Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix, ProjectName))
 		} else {
 			logger.Log.Info("Secret stores listed ✅")
 		}
@@ -97,28 +105,21 @@ func TestListAvailSecrets(t *testing.T) {
 	} else {
 		logger.Log.Info("Secret list created ✅")
 	}
-	response := ListAvailableExternalSecrets(ListSecretsRequest{
-		NamePrefix:  NamePrefix,
-		ProjectName: Project,
-	})
+	availSecrets := ListAvailableExternalSecrets(NamePrefix, ProjectName)
 
-	if len(response.SecretsInProject) == 0 {
+	if len(availSecrets) == 0 {
 		t.Errorf("Error listing available secrets: No secrets found")
 	} else {
-		logger.Log.Info(fmt.Sprintf("Available secrets list ✅: %v", response.SecretsInProject))
+		logger.Log.Info(fmt.Sprintf("Available secrets list ✅: %v", availSecrets))
 	}
 }
 
 func TestSecretStoreDelete(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
-	response := DeleteExternalSecretsStore(DeleteSecretsStoreRequest{
-		NamePrefix:   NamePrefix,
-		ProjectName:  Project,
-		MoSharedPath: MoSharedPath,
-	})
-	if response.Status != "SUCCESS" {
-		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", getSecretStoreName(NamePrefix, Project), response.ErrorMessage)
+	err := DeleteExternalSecretsStore(NamePrefix, ProjectName, MoSharedPath)
+	if err != nil {
+		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", utils.GetSecretStoreName(NamePrefix, ProjectName), err.Error())
 	} else {
 		logger.Log.Info("Secret store deletion confirmed ✅")
 	}

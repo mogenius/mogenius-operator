@@ -11,7 +11,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -54,28 +53,28 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 	}(wg)
 }
 
-func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Delete NetworkPolicy.", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Delete NetworkPolicy")
+// func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("delete", "Delete NetworkPolicy.", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Delete NetworkPolicy")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
+// 		provider, err := punq.NewKubeProvider(nil)
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+// 			return
+// 		}
+// 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
 
-		err = netPolClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Delete NetworkPolicy")
-		}
-	}(wg)
-}
+// 		err = netPolClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
+// 		if err != nil {
+// 			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
+// 		} else {
+// 			cmd.Success(job, "Delete NetworkPolicy")
+// 		}
+// 	}(wg)
+// }
 
 func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("create", "Create NetworkPolicy Service", job)
@@ -152,7 +151,7 @@ func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 func WatchNetworkPolicies() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -166,7 +165,7 @@ func WatchNetworkPolicies() {
 		return watchNetworkPolicies(provider, "networkpolicies")
 	})
 	if err != nil {
-		log.Fatalf("Error watching networkpolicies: %s", err.Error())
+		K8sLogger.Fatalf("Error watching networkpolicies: %s", err.Error())
 	}
 
 	// Wait forever

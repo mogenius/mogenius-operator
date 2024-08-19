@@ -1,4 +1,4 @@
-package services
+package kubernetes
 
 import (
 	"mogenius-k8s-manager/utils"
@@ -23,7 +23,7 @@ func TestSecretListRender(t *testing.T) {
 	}
 
 	// change values and compare
-	expectedName := "team-yellow-projectmayhem-" + SecretListSuffix // lowercase only
+	expectedName := "team-yellow-projectmayhem-" + utils.SecretListSuffix // lowercase only
 	secretListProps.NamePrefix = "team-yellow"
 	secretListProps.Project = "projectMayhem"
 	yamlDataRenderedChanged := renderExternalSecretList(yamlTemplate, secretListProps)
@@ -66,29 +66,4 @@ func TestCreateExternalSecretList(t *testing.T) {
 	} else {
 		logger.Log.Info("Secret store created ✅")
 	}
-}
-
-func TestCreateExternalSecret(t *testing.T) {
-	// prereq
-	TestSecretStoreCreate(t)
-
-	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
-
-	testReq := CreateExternalSecretRequestExample()
-
-	// assume composed name: customer-blue-backend-project-backend-service003-postgresURL
-	testReq.SecretStoreNamePrefix = "customer-blue"
-	testReq.ProjectName = "backend-project"
-	testReq.ServiceName = "backend-service03"
-	testReq.PropertyName = "postgresURL"
-	testReq.Namespace = "mogenius"
-
-	response := CreateExternalSecret(testReq)
-	if response.Status != "SUCCESS" {
-		t.Errorf("Error creating external secret: %s", response.ErrorMessage)
-	} else {
-		logger.Log.Info("External secret created ✅")
-	}
-	// cleanup
-	TestSecretStoreDelete(t)
 }

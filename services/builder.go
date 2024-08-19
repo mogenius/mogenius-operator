@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
@@ -18,8 +19,6 @@ import (
 
 	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var DISABLEQUEUE bool = true
@@ -39,7 +38,7 @@ func ProcessQueue() {
 	jobsToBuild := db.GetJobsToBuildFromDb()
 
 	// this must happen outside the transaction to avoid dead-locks
-	log.Infof("Queued %d/%d jobs in build-queue.", len(jobsToBuild), utils.CONFIG.Builder.MaxConcurrentBuilds)
+	ServiceLogger.Infof("Queued %d/%d jobs in build-queue.", len(jobsToBuild), utils.CONFIG.Builder.MaxConcurrentBuilds)
 	for _, buildJob := range jobsToBuild {
 		for _, container := range buildJob.Service.Containers {
 			// only build git-repositories
@@ -65,20 +64,20 @@ func ProcessQueue() {
 
 			select {
 			case <-ctx.Done():
-				log.Errorf("BUILD TIMEOUT (after %ds)! (%s)", utils.CONFIG.Builder.BuildTimeout, ctx.Err())
+				ServiceLogger.Errorf("BUILD TIMEOUT (after %ds)! (%s)", utils.CONFIG.Builder.BuildTimeout, ctx.Err())
 				job.State = structs.JobStateTimeout
 				buildJob.State = structs.JobStateTimeout
 				saveJob(buildJob)
 			case result := <-currentBuildChannel:
 				switch result {
 				case structs.JobStateTimeout:
-					log.Warningf("Build '%d' CANCELED successfuly. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
+					ServiceLogger.Warningf("Build '%d' CANCELED successfuly. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
 				case structs.JobStateFailed:
-					log.Errorf("Build '%d' FAILDED. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
+					ServiceLogger.Errorf("Build '%d' FAILDED. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
 				case structs.JobStateSucceeded:
-					log.Infof("Build '%d' finished successfuly. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
+					ServiceLogger.Infof("Build '%d' finished successfuly. (Took: %dms)", buildJob.BuildId, buildJob.DurationMs)
 				default:
-					log.Errorf("Unhandled channelMsg for '%d': %s", buildJob.BuildId, result)
+					ServiceLogger.Errorf("Unhandled channelMsg for '%d': %s", buildJob.BuildId, result)
 				}
 
 				job.State = result
@@ -123,7 +122,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	cloneCmd := structs.CreateCommand(string(structs.PrefixGitClone), "Clone repository", job)
 	err := executeCmd(job, cloneCmd, structs.PrefixGitClone, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("git clone --progress -b %s --single-branch %s %s", *container.GitBranch, *container.GitRepository, workingDir))
 	if err != nil {
-		log.Errorf("Error%s: %s", structs.PrefixGitClone, err.Error())
+		ServiceLogger.Errorf("Error%s: %s", structs.PrefixGitClone, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
@@ -138,7 +137,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	lsCmd := structs.CreateCommand(string(structs.PrefixLs), "List contents", job)
 	err = executeCmd(job, lsCmd, structs.PrefixLs, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; echo 'ℹ️  Current directory contents:'; ls -lisa; echo '\nℹ️  Git Log: '; git log -1 --decorate; echo '\nℹ️  Following ARGs are available for Docker build:'; echo '%s'", workingDir, container.AvailableDockerBuildArgs(job.BuildId, string(gitTagData))))
 	if err != nil {
-		log.Errorf("Error%s: %s", structs.PrefixLs, err.Error())
+		ServiceLogger.Errorf("Error%s: %s", structs.PrefixLs, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
@@ -148,7 +147,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		loginCmd := structs.CreateCommand(string(structs.PrefixLogin), "Authenticate with container registry", job)
 		err = executeCmd(job, loginCmd, structs.PrefixLogin, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker login %s -u %s -p %s", *buildJob.Project.ContainerRegistryUrl, *buildJob.Project.ContainerRegistryUser, *buildJob.Project.ContainerRegistryPat))
 		if err != nil {
-			log.Errorf("Error%s: %s", structs.PrefixLogin, err.Error())
+			ServiceLogger.Errorf("Error%s: %s", structs.PrefixLogin, err.Error())
 			done <- structs.JobStateFailed
 			return
 		}
@@ -158,7 +157,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	buildCmd := structs.CreateCommand(string(structs.PrefixBuild), "Building container", job)
 	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build --network host -f %s %s -t %s -t %s %s", workingDir, *container.DockerfileName, container.GetInjectDockerEnvVars(job.BuildId, string(gitTagData)), tagName, latestTagName, *container.DockerContext))
 	if err != nil {
-		log.Errorf("Error%s: %s", structs.PrefixBuild, err.Error())
+		ServiceLogger.Errorf("Error%s: %s", structs.PrefixBuild, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
@@ -167,13 +166,13 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	pushCmd := structs.CreateCommand(string(structs.PrefixPush), "Pushing container", job)
 	err = executeCmd(job, pushCmd, structs.PrefixPush, buildJob, container, false, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
 	if err != nil {
-		log.Errorf("Error%s: %s", structs.PrefixPush, err.Error())
+		ServiceLogger.Errorf("Error%s: %s", structs.PrefixPush, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
 	err = executeCmd(job, pushCmd, structs.PrefixPush, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", tagName))
 	if err != nil {
-		log.Errorf("Error%s: %s", structs.PrefixPush, err.Error())
+		ServiceLogger.Errorf("Error%s: %s", structs.PrefixPush, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
@@ -191,7 +190,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		setImageCmd := structs.CreateCommand("setImage", "Deploying image", job)
 		err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
 		if err != nil {
-			log.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
+			ServiceLogger.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
 			done <- structs.JobStateFailed
 			return
 		}
@@ -209,6 +208,9 @@ func BuildJobInfos(buildId uint64) structs.BuildJobInfo {
 func LastBuildInfos(data structs.BuildTaskRequest) structs.BuildJobInfo {
 	return db.GetLastBuildJobInfosFromDb(data)
 }
+func LastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
+	return db.GetLastBuildForNamespaceAndControllerName(namespace, controllerName)
+}
 func BuildInfosList(data structs.BuildTaskRequest) []structs.BuildJobInfo {
 	return db.GetBuildJobInfosListFromDb(data.Namespace, data.Controller, data.Container)
 }
@@ -219,7 +221,7 @@ func DeleteAllBuildData(data structs.BuildTaskRequest) {
 func AddBuildJob(buildJob structs.BuildJob) structs.BuildAddResult {
 	nextBuildId, err := db.AddToDb(buildJob)
 	if err != nil {
-		log.Errorf("Error adding job for '%s/%s'. REASON: %s", buildJob.Namespace.Name, buildJob.Service.ControllerName, err.Error())
+		ServiceLogger.Errorf("Error adding job for '%s/%s'. REASON: %s", buildJob.Namespace.Name, buildJob.Service.ControllerName, err.Error())
 		return structs.BuildAddResult{BuildId: nextBuildId}
 	}
 
@@ -247,7 +249,7 @@ func DeleteBuild(buildId uint64) structs.BuildDeleteResult {
 	err := db.DeleteBuildJobFromDb(db.BUILD_BUCKET_NAME, buildId)
 	if err != nil {
 		errStr := fmt.Sprintf("Error deleting build '%d' in bucket. REASON: %s", buildId, err.Error())
-		log.Error(errStr)
+		ServiceLogger.Error(errStr)
 		return structs.BuildDeleteResult{Error: errStr}
 	}
 	return structs.BuildDeleteResult{Result: fmt.Sprintf("Build '%d' deleted successfuly (or has been deleted before).", buildId)}
@@ -269,41 +271,42 @@ func ListByProjectId(projectId string) []structs.BuildJob {
 	return result
 }
 
-func ListByServiceId(serviceId string) []structs.BuildJob {
-	result := []structs.BuildJob{}
+// func ListByServiceId(serviceId string) []structs.BuildJob {
+// 	result := []structs.BuildJob{}
 
-	list := ListAll()
-	for _, queueEntry := range list {
-		if queueEntry.Service.Id == serviceId {
-			result = append(result, queueEntry)
-		}
-	}
-	return result
-}
+// 	list := ListAll()
+// 	for _, queueEntry := range list {
+// 		if queueEntry.Service.Id == serviceId {
+// 			result = append(result, queueEntry)
+// 		}
+// 	}
+// 	return result
+// }
 
-func ListByServiceByNamespaceAndControllerName(namespace, controllerName string) []structs.BuildJob {
-	result := []structs.BuildJob{}
+// TODO Remove this code
+//func ListByServiceByNamespaceAndControllerName(namespace, controllerName string) []structs.BuildJob {
+//	result := []structs.BuildJob{}
+//
+//	list := ListAll()
+//	for _, queueEntry := range list {
+//		if queueEntry.Service.ControllerName == controllerName && queueEntry.Namespace.Name == namespace {
+//			result = append(result, queueEntry)
+//		}
+//	}
+//	return result
+//}
 
-	list := ListAll()
-	for _, queueEntry := range list {
-		if queueEntry.Service.ControllerName == controllerName && queueEntry.Namespace.Name == namespace {
-			result = append(result, queueEntry)
-		}
-	}
-	return result
-}
+// func ListByServiceIds(serviceIds []string) []structs.BuildJob {
+// 	result := []structs.BuildJob{}
 
-func ListByServiceIds(serviceIds []string) []structs.BuildJob {
-	result := []structs.BuildJob{}
-
-	list := ListAll()
-	for _, queueEntry := range list {
-		if punqUtils.Contains(serviceIds, queueEntry.Service.Id) {
-			result = append(result, queueEntry)
-		}
-	}
-	return result
-}
+// 	list := ListAll()
+// 	for _, queueEntry := range list {
+// 		if punqUtils.Contains(serviceIds, queueEntry.Service.Id) {
+// 			result = append(result, queueEntry)
+// 		}
+// 	}
+// 	return result
+// }
 
 //func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJob {
 //	result := []structs.BuildJob{}
@@ -328,57 +331,68 @@ func LastBuildInfosOfServices(data structs.BuildTaskListOfServicesRequest) []str
 	return results
 }
 
-func LastJobForService(serviceId string) structs.BuildJob {
-	result := structs.BuildJob{}
+// func LastJobForService(serviceId string) structs.BuildJob {
+// 	result := structs.BuildJob{}
 
-	list := ListByServiceId(serviceId)
-	if len(list) > 0 {
-		result = list[len(list)-1]
-	}
-	return result
-}
+// 	list := ListByServiceId(serviceId)
+// 	if len(list) > 0 {
+// 		result = list[len(list)-1]
+// 	}
+// 	return result
+// }
 
-func LastJobForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJob {
-	result := structs.BuildJob{}
+// func LastJobForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJob {
+// 	result := structs.BuildJob{}
 
-	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
-	if len(list) > 0 {
-		result = list[len(list)-1]
-	}
-	return result
-}
+// 	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
+// 	if len(list) > 0 {
+// 		result = list[len(list)-1]
+// 	}
+// 	return result
+// }
 
-func LastBuildForService(serviceId string) structs.BuildJobInfo {
-	result := structs.BuildJobInfo{}
+// func LastBuildForService(serviceId string) structs.BuildJobInfo {
+// 	result := structs.BuildJobInfo{}
 
-	var lastJob *structs.BuildJob
-	list := ListByServiceId(serviceId)
-	if len(list) > 0 {
-		lastJob = &list[len(list)-1]
-	}
+// 	var lastJob *structs.BuildJob
+// 	list := ListByServiceId(serviceId)
+// 	if len(list) > 0 {
+// 		lastJob = &list[len(list)-1]
+// 	}
 
-	if lastJob != nil {
-		result = BuildJobInfos(lastJob.BuildId)
-	}
+// 	if lastJob != nil {
+// 		result = BuildJobInfos(lastJob.BuildId)
+// 	}
 
-	return result
-}
+// 	return result
+// }
 
-func LastBuildForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJobInfo {
-	result := structs.BuildJobInfo{}
-
-	var lastJob *structs.BuildJob
-	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
-	if len(list) > 0 {
-		lastJob = &list[len(list)-1]
-	}
-
-	if lastJob != nil {
-		result = BuildJobInfos(lastJob.BuildId)
-	}
-
-	return result
-}
+// TODO Remove this code
+//var lastBuildForNamespaceAndControllerNameDebounce = utils.NewDebounce("lastBuildForNamespaceAndControllerNameDebounce", 1000*time.Millisecond)
+// TODO Remove this code
+//func LastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
+//	key := fmt.Sprintf("%s-%s", namespace, controllerName)
+//	result, _ := lastBuildForNamespaceAndControllerNameDebounce.CallFn(key, func() (interface{}, error) {
+//		return LastBuildForNamespaceAndControllerName2(namespace, controllerName), nil
+//	})
+//	return result.(structs.BuildJobInfo)
+//}
+// TODO Remove this code
+//func LastBuildForNamespaceAndControllerName2(namespace string, controllerName string) structs.BuildJobInfo {
+//	result := structs.BuildJobInfo{}
+//
+//	var lastJob *structs.BuildJob
+//	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
+//	if len(list) > 0 {
+//		lastJob = &list[len(list)-1]
+//	}
+//
+//	if lastJob != nil {
+//		result = BuildJobInfos(lastJob.BuildId)
+//	}
+//
+//	return result
+//}
 
 func executeCmd(job *structs.Job, reportCmd *structs.Command, prefix structs.BuildPrefixEnum, buildJob *structs.BuildJob, container *dtos.K8sContainerDto, saveLog bool, enableTimestamp bool, timeoutCtx *context.Context, name string, arg ...string) error {
 	startTime := time.Now()
@@ -402,8 +416,8 @@ func executeCmd(job *structs.Job, reportCmd *structs.Command, prefix structs.Bui
 	var cmdOutput strings.Builder
 	execErr := cmd.Start()
 	if execErr != nil {
-		log.Errorf("Failed to execute command (%s): %v", cmd.String(), execErr)
-		log.Errorf("Error: %s", cmdOutput.String())
+		ServiceLogger.Errorf("Failed to execute command (%s): %v", cmd.String(), execErr)
+		ServiceLogger.Errorf("Error: %s", cmdOutput.String())
 		if reportCmd != nil {
 			reportCmd.Fail(job, fmt.Sprintf("%s: %s", execErr.Error(), cmdOutput.String()))
 			return execErr
@@ -444,9 +458,9 @@ func executeCmd(job *structs.Job, reportCmd *structs.Command, prefix structs.Bui
 	waitErr := cmd.Wait()
 
 	if waitErr != nil {
-		log.Errorf("Failed wait for command (%s): %v", cmd.String(), waitErr)
-		log.Errorf("Error: %s", cmdOutput.String())
-		log.Info(reportCmd == nil)
+		ServiceLogger.Errorf("Failed wait for command (%s): %v", cmd.String(), waitErr)
+		ServiceLogger.Errorf("Error: %s", cmdOutput.String())
+		ServiceLogger.Info(reportCmd == nil)
 		if prefix == structs.PrefixPush {
 			saveLog = true
 		}
@@ -459,9 +473,9 @@ func executeCmd(job *structs.Job, reportCmd *structs.Command, prefix structs.Bui
 	if utils.CONFIG.Misc.Debug && buildJob != nil {
 		elapsedTime := time.Since(startTime)
 		buildJob.DurationMs = int(elapsedTime.Milliseconds()) + buildJob.DurationMs
-		log.Infof("%s%d: %dms", prefix, buildJob.BuildId, buildJob.DurationMs)
-		log.Infof("%s%d: %s", prefix, buildJob.BuildId, cmd.String())
-		log.Infof("%s%d: %s", prefix, buildJob.BuildId, cmdOutput.String())
+		ServiceLogger.Infof("%s%d: %dms", prefix, buildJob.BuildId, buildJob.DurationMs)
+		ServiceLogger.Infof("%s%d: %s", prefix, buildJob.BuildId, cmd.String())
+		ServiceLogger.Infof("%s%d: %s", prefix, buildJob.BuildId, cmdOutput.String())
 	}
 
 	if reportCmd != nil {
@@ -496,7 +510,7 @@ func processLine(
 			elapsedTime := time.Since(startTime)
 			job.DurationMs = int(elapsedTime.Milliseconds()) + job.DurationMs
 		} else {
-			log.Infof("Notice: job is nil")
+			ServiceLogger.Infof("Notice: job is nil")
 			return
 		}
 		nextLine := applyErrorSuggestions(cmdOutput.String())
@@ -560,8 +574,24 @@ func updateContainerImage(job *structs.Job, reportCmd *structs.Command, buildJob
 	switch buildJob.Service.Controller {
 	case dtos.CRON_JOB:
 		err = kubernetes.UpdateCronjobImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				var wg sync.WaitGroup
+				kubernetes.UpdateCronJob(job, buildJob.Namespace, buildJob.Service, &wg)
+				err = nil
+				wg.Wait()
+			}
+		}
 	default:
 		err = kubernetes.UpdateDeploymentImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				var wg sync.WaitGroup
+				kubernetes.UpdateDeployment(job, buildJob.Namespace, buildJob.Service, &wg)
+				err = nil
+				wg.Wait()
+			}
+		}
 	}
 
 	elapsedTime := time.Since(startTime)

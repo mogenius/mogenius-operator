@@ -2,11 +2,13 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
+	"mogenius-k8s-manager/utils"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 	v1job "k8s.io/api/batch/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +21,7 @@ import (
 func WatchJobs() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
 		return
 	}
 
@@ -33,7 +35,7 @@ func WatchJobs() {
 		return watchJobs(provider, "jobs")
 	})
 	if err != nil {
-		log.Fatalf("Error watching jobs: %s", err.Error())
+		K8sLogger.Fatalf("Error watching jobs: %s", err.Error())
 	}
 
 	// Wait forever
@@ -44,21 +46,33 @@ func watchJobs(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.Job)
-			castedObj.Kind = "Job"
-			castedObj.APIVersion = "batch/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
+				castedObj.Kind = "Job"
+				castedObj.APIVersion = "batch/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1job.Job)
-			castedObj.Kind = "Job"
-			castedObj.APIVersion = "batch/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
+				castedObj.Kind = "Job"
+				castedObj.APIVersion = "batch/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.Job)
-			castedObj.Kind = "Job"
-			castedObj.APIVersion = "batch/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
+				castedObj.Kind = "Job"
+				castedObj.APIVersion = "batch/v1"
+				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			}
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

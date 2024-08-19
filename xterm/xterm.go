@@ -1,8 +1,10 @@
 package xterm
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -23,6 +25,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	MAX_TAIL_LINES = "100000"
 )
 
 type WsConnectionRequest struct {
@@ -49,6 +55,18 @@ type BuildLogConnectionRequest struct {
 	WsConnection WsConnectionRequest     `json:"wsConnectionRequest" validate:"required"`
 }
 
+type OperatorLogConnectionRequest struct {
+	Namespace    string              `json:"namespace" validate:"required"`
+	Controller   string              `json:"controller" validate:"required"`
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+	LogTail      string              `json:"logTail"`
+}
+
+type ComponentLogConnectionRequest struct {
+	WsConnection WsConnectionRequest   `json:"wsConnectionRequest" validate:"required"`
+	Component    structs.ComponentEnum `json:"component" validate:"required"`
+}
+
 type PodEventConnectionRequest struct {
 	Namespace    string              `json:"namespace" validate:"required"`
 	Controller   string              `json:"controller" validate:"required"`
@@ -67,6 +85,15 @@ type ScanImageLogConnectionRequest struct {
 	ContainerRegistryPat  string `json:"containerRegistryPat"`
 
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+}
+
+type LogEntry struct {
+	ControllerName string                `json:"controllerName"`
+	Level          string                `json:"level"`
+	Namespace      string                `json:"namespace"`
+	Component      structs.ComponentEnum `json:"component"`
+	Message        string                `json:"msg"`
+	Time           string                `json:"time"`
 }
 
 func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
@@ -94,8 +121,12 @@ type XtermReadMessages struct {
 
 var LogChannels = make(map[string]chan string)
 
-func isPodReady(pod *v1.Pod) bool {
+func isPodAvailable(pod *v1.Pod) bool {
 	if pod.Status.Phase == v1.PodRunning {
+		return true
+	} else if pod.Status.Phase == v1.PodSucceeded {
+		return true
+	} else if pod.Status.Phase == v1.PodFailed {
 		return true
 	}
 	for _, cond := range pod.Status.Conditions {
@@ -131,7 +162,7 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.Kub
 				return
 			}
 
-			if isPodReady(pod) {
+			if isPodAvailable(pod) {
 				log.Infof("Pod %s is ready.", pod.Name)
 				// clear screen
 				clearScreen(conn)
@@ -302,6 +333,65 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 	}
 }
 
+func cmdOutputToWebsocketForOperatorLog(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, namespace *string, controller *string) {
+	if injectPreContent != nil {
+		injectContent(injectPreContent, conn)
+	}
+
+	defer func() {
+		cancel()
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			reader := bufio.NewReader(tty)
+			for {
+				line, err := reader.ReadString('\n')
+				if err != nil {
+					if err.Error() == "EOF" {
+						break
+					}
+					return
+				}
+
+				// filter log lines by namespace and controller
+				if namespace != nil && controller != nil {
+					var entry LogEntry
+					err := json.Unmarshal([]byte(line), &entry)
+					if err != nil {
+						continue
+					}
+					if entry.Namespace != *namespace || entry.ControllerName != *controller {
+						continue
+					}
+
+					if conn != nil {
+						messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+						err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
+						if err != nil {
+							fmt.Println("WriteMessage", err.Error())
+						}
+						continue
+					}
+					continue
+				}
+
+				if conn != nil {
+					err := conn.WriteMessage(websocket.BinaryMessage, []byte(line))
+					if err != nil {
+						log.Errorf("WriteMessage: %s", err.Error())
+					}
+					continue
+				}
+				return
+			}
+		}
+	}
+}
+
 func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader) {
 	if injectPreContent != nil {
 		injectContent(injectPreContent, conn)
@@ -331,6 +421,49 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 				continue
 			}
 			return
+		}
+	}
+}
+
+func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, component structs.ComponentEnum) {
+	if injectPreContent != nil {
+		injectContent(injectPreContent, conn)
+	}
+
+	defer func() {
+		cancel()
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			scanner := bufio.NewScanner(tty)
+			for scanner.Scan() {
+				line := scanner.Text()
+
+				var entry LogEntry
+				err := json.Unmarshal([]byte(line), &entry)
+				if err != nil {
+					continue
+				}
+
+				if component != structs.ComponentAll {
+					if entry.Component != component {
+						continue
+					}
+				}
+
+				if conn != nil {
+					messageSt := fmt.Sprintf("[%s] %s %s\n", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
+					if err != nil {
+						fmt.Println("WriteMessage", err.Error())
+					}
+					continue
+				}
+			}
 		}
 	}
 }

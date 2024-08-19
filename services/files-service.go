@@ -3,6 +3,7 @@ package services
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -15,9 +16,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 func List(r FilesListRequest) []dtos.PersistentFileDto {
@@ -26,9 +28,10 @@ func List(r FilesListRequest) []dtos.PersistentFileDto {
 	if err != nil {
 		return result
 	}
-	result, err = listFiles(pathToFile, 0)
+	// result, err = listFiles(pathToFile, 0)
+	result, err = ListDirWithTimeout(pathToFile, 250*time.Millisecond)
 	if err != nil {
-		log.Errorf("Files List Error: %s", err.Error())
+		ServiceLogger.Errorf("Files List Error: %s", err.Error())
 	}
 	return result
 }
@@ -37,7 +40,7 @@ func Info(r dtos.PersistentFileRequestDto) dtos.PersistentFileDto {
 	result := dtos.PersistentFileDto{}
 	pathToFile, err := verify(&r)
 	if err != nil {
-		log.Errorf("file info verify error: %s", err.Error())
+		ServiceLogger.Errorf("file info verify error: %s", err.Error())
 		return result
 	}
 	return dtos.PersistentFileDtoFrom(pathToFile, pathToFile)
@@ -111,7 +114,7 @@ func Download(r FilesDownloadRequest) interface{} {
 		})
 
 		if err != nil {
-			log.Errorf("directory zip walk files error: %s", err.Error())
+			ServiceLogger.Errorf("directory zip walk files error: %s", err.Error())
 			result.Error = err.Error()
 			return result
 		}
@@ -119,21 +122,21 @@ func Download(r FilesDownloadRequest) interface{} {
 		// Close the zip archive
 		err = zipWriter.Close()
 		if err != nil {
-			log.Errorf("zip error: %s", err.Error())
+			ServiceLogger.Errorf("zip error: %s", err.Error())
 			result.Error = err.Error()
 			return result
 		}
 	} else {
 		// SEND FILE TO HTTP
 		if err != nil {
-			log.Errorf("Error creating form file: %s", err)
+			ServiceLogger.Errorf("Error creating form file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
 
 		_, err = io.Copy(w, file)
 		if err != nil {
-			log.Errorf("Error copying file: %s", err)
+			ServiceLogger.Errorf("Error copying file: %s", err)
 			result.Error = err.Error()
 			return result
 		}
@@ -146,7 +149,7 @@ func Download(r FilesDownloadRequest) interface{} {
 	// Upload the file
 	req, err := http.NewRequest("POST", r.PostTo, buf)
 	if err != nil {
-		log.Errorf("Error sending request: %s", err)
+		ServiceLogger.Errorf("Error sending request: %s", err)
 		result.Error = err.Error()
 		return result
 	}
@@ -156,7 +159,7 @@ func Download(r FilesDownloadRequest) interface{} {
 	client := &http.Client{}
 	response, err := client.Do(req)
 	if err != nil {
-		log.Errorf("Error sending request: %s", err)
+		ServiceLogger.Errorf("Error sending request: %s", err)
 		result.Error = err.Error()
 		return result
 	}
@@ -173,17 +176,17 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	// 1: VERIFY
 	targetDestination, err := verify(&fileReq.File)
 	if err != nil {
-		log.Error(err)
+		ServiceLogger.Error(err)
 	}
-	log.Infof("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
+	ServiceLogger.Infof("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
 	if err != nil {
-		log.Error(err)
+		ServiceLogger.Error(err)
 	}
 	for _, file := range files {
-		log.Info("uncompress: " + file)
+		ServiceLogger.Info("uncompress: " + file)
 	}
 	return nil
 }
@@ -421,7 +424,7 @@ func FilesDeleteRequestExampleData() FilesDeleteRequest {
 	}
 }
 
-// @todo: calculate dir size. use volume calculation as example
+// deprecated: use ListDirWithTimeout instead
 func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
 	result := []dtos.PersistentFileDto{}
 	err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
@@ -436,6 +439,140 @@ func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
 		return nil
 	})
 	return result, err
+}
+
+func ListDirWithTimeout(root string, timeout time.Duration) ([]dtos.PersistentFileDto, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	items, err := ListDir(ctx, root)
+	if err != nil {
+		return nil, err
+	}
+
+	select {
+	case <-ctx.Done():
+		// If the context has timed out, set all directory sizes to zero
+		for i := range items {
+			if items[i].Type == "directory" {
+				items[i].SizeInBytes = -1
+				items[i].Size = "-1"
+			}
+		}
+	default:
+		// If the context has not timed out, return the items as is
+	}
+
+	return items, nil
+}
+
+func ListDir(ctx context.Context, root string) ([]dtos.PersistentFileDto, error) {
+	var items []dtos.PersistentFileDto
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var errs []error
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		path := filepath.Join(root, entry.Name())
+		item := dtos.PersistentFileDtoFrom(root, path)
+
+		if entry.IsDir() {
+			wg.Add(1)
+			go func(item dtos.PersistentFileDto, path string) {
+				defer wg.Done()
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					size, err := DirSize(ctx, path)
+					if err != nil {
+						mu.Lock()
+						errs = append(errs, err)
+						mu.Unlock()
+						return
+					}
+					item.SizeInBytes = size
+					item.Size = punqUtils.BytesToHumanReadable(size)
+					mu.Lock()
+					items = append(items, item)
+					mu.Unlock()
+				}
+			}(item, path)
+		} else {
+			items = append(items, item)
+		}
+	}
+
+	wg.Wait()
+
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("encountered errors: %v", errs)
+	}
+
+	return items, nil
+}
+
+func DirSize(ctx context.Context, path string) (int64, error) {
+	var size int64
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var errs []error
+
+	err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() && p != path {
+			wg.Add(1)
+			go func(p string) {
+				defer wg.Done()
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					dirSize, err := DirSize(ctx, p)
+					if err != nil {
+						mu.Lock()
+						errs = append(errs, err)
+						mu.Unlock()
+						return
+					}
+					mu.Lock()
+					size += dirSize
+					mu.Unlock()
+				}
+			}(p)
+			return filepath.SkipDir
+		}
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		default:
+			mu.Lock()
+			size += info.Size()
+			mu.Unlock()
+		}
+		return nil
+	})
+
+	wg.Wait()
+
+	if len(errs) > 0 {
+		return 0, fmt.Errorf("encountered errors: %v", errs)
+	}
+
+	if err != nil && err != context.Canceled {
+		return 0, err
+	}
+
+	return size, nil
 }
 
 func verify(data *dtos.PersistentFileRequestDto) (string, error) {

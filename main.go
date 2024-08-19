@@ -27,13 +27,12 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// DEFAULT LOGGING
+	// DEFAULT LOGGING --- will be overwritten by utils when envvars and yamlconfig is loaded
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.TraceLevel)
-	log.AddHook(&utils.SecretRedactionHook{})
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:      true,
-		DisableTimestamp: true,
+		DisableTimestamp: false,
 		DisableQuote:     true,
 	})
 

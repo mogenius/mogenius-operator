@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"net"
@@ -20,11 +21,14 @@ import (
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	appsV1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/scheme"
 )
+
+var K8sLogger = log.WithField("component", structs.ComponentKubernetes)
 
 var (
 	NAMESPACE       = utils.CONFIG.Kubernetes.OwnNamespace
@@ -71,11 +75,17 @@ func init() {
 func getCoreClient() coreV1.CoreV1Interface {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatal("Error creating kubeprovider")
+		K8sLogger.Fatal("Error creating kubeprovider")
 	}
-	client := provider.ClientSet.CoreV1()
+	return provider.ClientSet.CoreV1()
+}
 
-	return client
+func GetAppClient() appsV1.AppsV1Interface {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Fatal("Error creating kubeprovider")
+	}
+	return provider.ClientSet.AppsV1()
 }
 
 func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
@@ -85,13 +95,13 @@ func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
 	}
 }
 
-func NewWorkload(name string, yaml string, description string) K8sNewWorkload {
-	return K8sNewWorkload{
-		Name:        name,
-		YamlString:  yaml,
-		Description: description,
-	}
-}
+// func NewWorkload(name string, yaml string, description string) K8sNewWorkload {
+// 	return K8sNewWorkload{
+// 		Name:        name,
+// 		YamlString:  yaml,
+// 		Description: description,
+// 	}
+// }
 
 func CurrentContextName() string {
 	if utils.CONFIG.Kubernetes.RunInCluster {
@@ -116,77 +126,77 @@ func CurrentContextName() string {
 	return config.CurrentContext
 }
 
-func Hostname() string {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		log.Fatal("error creating kubeprovider")
-	}
+// func Hostname() string {
+// 	provider, err := punq.NewKubeProvider(nil)
+// 	if provider == nil || err != nil {
+// 		K8sLogger.Fatal("error creating kubeprovider")
+// 	}
 
-	return provider.ClientConfig.Host
-}
+// 	return provider.ClientConfig.Host
+// }
 
 func ListNodes() []core.Node {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		log.Fatal("error creating kubeprovider")
+		K8sLogger.Fatal("error creating kubeprovider")
 		return []core.Node{}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("ListNodeMetrics ERROR: %s", err.Error())
+		K8sLogger.Errorf("ListNodeMetrics ERROR: %s", err.Error())
 		return []core.Node{}
 	}
 	return nodeMetricsList.Items
 }
 
 // TAKEN FROM Kubernetes apimachineryv0.25.1
-func HumanDuration(d time.Duration) string {
-	// Allow deviation no more than 2 seconds(excluded) to tolerate machine time
-	// inconsistence, it can be considered as almost now.
-	if seconds := int(d.Seconds()); seconds < -1 {
-		return "<invalid>"
-	} else if seconds < 0 {
-		return "0s"
-	} else if seconds < 60*2 {
-		return fmt.Sprintf("%ds", seconds)
-	}
-	minutes := int(d / time.Minute)
-	if minutes < 10 {
-		s := int(d/time.Second) % 60
-		if s == 0 {
-			return fmt.Sprintf("%dm", minutes)
-		}
-		return fmt.Sprintf("%dm%ds", minutes, s)
-	} else if minutes < 60*3 {
-		return fmt.Sprintf("%dm", minutes)
-	}
-	hours := int(d / time.Hour)
-	if hours < 8 {
-		m := int(d/time.Minute) % 60
-		if m == 0 {
-			return fmt.Sprintf("%dh", hours)
-		}
-		return fmt.Sprintf("%dh%dm", hours, m)
-	} else if hours < 48 {
-		return fmt.Sprintf("%dh", hours)
-	} else if hours < 24*8 {
-		h := hours % 24
-		if h == 0 {
-			return fmt.Sprintf("%dd", hours/24)
-		}
-		return fmt.Sprintf("%dd%dh", hours/24, h)
-	} else if hours < 24*365*2 {
-		return fmt.Sprintf("%dd", hours/24)
-	} else if hours < 24*365*8 {
-		dy := int(hours/24) % 365
-		if dy == 0 {
-			return fmt.Sprintf("%dy", hours/24/365)
-		}
-		return fmt.Sprintf("%dy%dd", hours/24/365, dy)
-	}
-	return fmt.Sprintf("%dy", int(hours/24/365))
-}
+// func HumanDuration(d time.Duration) string {
+// 	// Allow deviation no more than 2 seconds(excluded) to tolerate machine time
+// 	// inconsistence, it can be considered as almost now.
+// 	if seconds := int(d.Seconds()); seconds < -1 {
+// 		return "<invalid>"
+// 	} else if seconds < 0 {
+// 		return "0s"
+// 	} else if seconds < 60*2 {
+// 		return fmt.Sprintf("%ds", seconds)
+// 	}
+// 	minutes := int(d / time.Minute)
+// 	if minutes < 10 {
+// 		s := int(d/time.Second) % 60
+// 		if s == 0 {
+// 			return fmt.Sprintf("%dm", minutes)
+// 		}
+// 		return fmt.Sprintf("%dm%ds", minutes, s)
+// 	} else if minutes < 60*3 {
+// 		return fmt.Sprintf("%dm", minutes)
+// 	}
+// 	hours := int(d / time.Hour)
+// 	if hours < 8 {
+// 		m := int(d/time.Minute) % 60
+// 		if m == 0 {
+// 			return fmt.Sprintf("%dh", hours)
+// 		}
+// 		return fmt.Sprintf("%dh%dm", hours, m)
+// 	} else if hours < 48 {
+// 		return fmt.Sprintf("%dh", hours)
+// 	} else if hours < 24*8 {
+// 		h := hours % 24
+// 		if h == 0 {
+// 			return fmt.Sprintf("%dd", hours/24)
+// 		}
+// 		return fmt.Sprintf("%dd%dh", hours/24, h)
+// 	} else if hours < 24*365*2 {
+// 		return fmt.Sprintf("%dd", hours/24)
+// 	} else if hours < 24*365*8 {
+// 		dy := int(hours/24) % 365
+// 		if dy == 0 {
+// 			return fmt.Sprintf("%dy", hours/24/365)
+// 		}
+// 		return fmt.Sprintf("%dy%dd", hours/24/365, dy)
+// 	}
+// 	return fmt.Sprintf("%dy", int(hours/24/365))
+// }
 
 func MoCreateOptions() metav1.CreateOptions {
 	return metav1.CreateOptions{
@@ -263,7 +273,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 				punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
 			}
 		} else {
-			log.Warningf("No ClusterIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
+			K8sLogger.Warningf("No ClusterIP for '%s/%s' nfs-server-pod-%s found.", volumeNamespace, volumeName, volumeName)
 		}
 	}()
 }
@@ -303,7 +313,7 @@ func IsLocalClusterSetup() bool {
 func GetCustomDeploymentTemplate() *v1.Deployment {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		log.Error(fmt.Sprintf("GetCustomDeploymentTemplate: %s", err.Error()))
+		K8sLogger.Error(fmt.Sprintf("GetCustomDeploymentTemplate: %s", err.Error()))
 		return nil
 	}
 	client := provider.ClientSet.CoreV1().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
@@ -316,7 +326,7 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 		s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 		_, _, err = s.Decode(yamlBytes, nil, &deployment)
 		if err != nil {
-			log.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
+			K8sLogger.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
 			return nil
 		}
 		return &deployment
@@ -329,12 +339,12 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		log.Errorf("StorageClassForClusterProvider ERR: %s", err.Error())
+		K8sLogger.Errorf("StorageClassForClusterProvider ERR: %s", err.Error())
 		return nfsStorageClassStr
 	}
 	storageClasses, err := provider.ClientSet.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		log.Errorf("StorageClassForClusterProvider List ERR: %s", err.Error())
+		K8sLogger.Errorf("StorageClassForClusterProvider List ERR: %s", err.Error())
 		return nfsStorageClassStr
 	}
 	for _, storageClass := range storageClasses.Items {
@@ -363,7 +373,7 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 	}
 
 	if nfsStorageClassStr == "" {
-		log.Errorf("No default storage class found for cluster provider '%s'.", clusterProvider)
+		K8sLogger.Errorf("No default storage class found for cluster provider '%s'.", clusterProvider)
 	}
 
 	return nfsStorageClassStr
