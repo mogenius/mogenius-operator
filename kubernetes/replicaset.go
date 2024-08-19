@@ -2,10 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/store"
-	"mogenius-k8s-manager/utils"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -47,32 +44,14 @@ func watchReplicaSets(provider *punq.KubeProvider, kindName string) error {
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.ReplicaSet)
 			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
-
-			if utils.IacWorkloadConfigMap[dtos.KindReplicaSets] {
-				castedObj.Kind = "ReplicaSet"
-				castedObj.APIVersion = "apps/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
-			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.ReplicaSet)
 			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
-
-			if utils.IacWorkloadConfigMap[dtos.KindReplicaSets] {
-				castedObj.Kind = "ReplicaSet"
-				castedObj.APIVersion = "apps/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
-			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.ReplicaSet)
 			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
-
-			if utils.IacWorkloadConfigMap[dtos.KindReplicaSets] {
-				castedObj.Kind = "ReplicaSet"
-				castedObj.APIVersion = "apps/v1"
-				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
-			}
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(
