@@ -86,4 +86,4 @@ git:
   add_ignored_file: false
 
 stats:
-  max_data_points: 1000 # history data points
+  max_data_points: 6000 # history data points
