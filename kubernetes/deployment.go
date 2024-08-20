@@ -441,6 +441,22 @@ func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, pr
 	return WorkloadResult(deployments.Items, err)
 }
 
+func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
+	result := []v1.Deployment{}
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return result, err
+	}
+	client := provider.ClientSet.AppsV1().Deployments(namespace)
+
+	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return result, err
+	}
+
+	return deployments.Items, err
+}
+
 func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
 	deployment, err := punq.GetK8sDeployment(namespace, name, nil)
 	if err != nil {
