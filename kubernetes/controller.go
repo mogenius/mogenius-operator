@@ -131,7 +131,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 		specTemplate.Spec.Containers[index].Args = []string{}
 
 		// IMAGE
-		if container.ContainerImage != nil {
+		if container.Type == dtos.CONTAINER_CONTAINER_IMAGE {
 			specTemplate.Spec.Containers[index].Image = *container.ContainerImage
 			if container.ContainerImageCommand != nil {
 				specTemplate.Spec.Containers[index].Command = punqUtils.ParseJsonStringArray(*container.ContainerImageCommand)
@@ -158,6 +158,14 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 				specTemplate.Spec.Containers[index].Image = (*previousSpecTemplate).Spec.Containers[index].Image
 			} else {
 				specTemplate.Spec.Containers[index].Image = utils.IMAGE_PLACEHOLDER
+			}
+
+			// cluster image pull secret
+			if ExistsClusterImagePullSecret(namespace.Name) {
+				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
+				specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{
+					Name: fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name),
+				})
 			}
 
 			if specTemplate.Spec.Containers[index].Image == utils.IMAGE_PLACEHOLDER {
