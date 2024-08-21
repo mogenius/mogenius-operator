@@ -33,16 +33,17 @@ const (
 )
 
 const (
-	PAT_K8SNOTIFICATION          string = "K8sNotification"
-	PAT_CLUSTERSTATUS            string = "ClusterStatus"
-	PAT_CLUSTERRESOURCEINFO      string = "ClusterResourceInfo"
-	PAT_KUBERNETESEVENT          string = "KubernetesEvent"
-	PAT_UPGRADEK8SMANAGER        string = "UpgradeK8sManager"
-	PAT_SERVICE_POD_EXISTS       string = "SERVICE_POD_EXISTS"
-	PAT_SERVICE_PODS             string = "SERVICE_PODS"
-	PAT_CLUSTER_FORCE_RECONNECT  string = "ClusterForceReconnect"
-	PAT_CLUSTER_FORCE_DISCONNECT string = "ClusterForceDisconnect"
-	PAT_SYSTEM_CHECK             string = "SYSTEM_CHECK"
+	PAT_K8SNOTIFICATION             string = "K8sNotification"
+	PAT_CLUSTERSTATUS               string = "ClusterStatus"
+	PAT_CLUSTERRESOURCEINFO         string = "ClusterResourceInfo"
+	PAT_KUBERNETESEVENT             string = "KubernetesEvent"
+	PAT_UPGRADEK8SMANAGER           string = "UpgradeK8sManager"
+	PAT_SERVICE_POD_EXISTS          string = "SERVICE_POD_EXISTS"
+	PAT_SERVICE_PODS                string = "SERVICE_PODS"
+	PAT_CLUSTER_FORCE_RECONNECT     string = "ClusterForceReconnect"
+	PAT_CLUSTER_FORCE_DISCONNECT    string = "ClusterForceDisconnect"
+	PAT_SYSTEM_CHECK                string = "SYSTEM_CHECK"
+	PAT_SYSTEM_PRINT_CURRENT_CONFIG string = "print-current-config"
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS         string = "install-local-dev-components"
 	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
@@ -437,6 +438,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_FORCE_RECONNECT,
 	PAT_CLUSTER_FORCE_DISCONNECT,
 	PAT_SYSTEM_CHECK,
+	PAT_SYSTEM_PRINT_CURRENT_CONFIG,
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS,
 	PAT_INSTALL_TRAFFIC_COLLECTOR,

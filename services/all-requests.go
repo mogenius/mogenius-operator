@@ -72,6 +72,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		time.Sleep(1 * time.Second)
 		os.Exit(0)
 		return nil
+	case structs.PAT_SYSTEM_PRINT_CURRENT_CONFIG:
+		conf, err := utils.PrintCurrentCONFIG()
+		if err != nil {
+			return err
+		}
+		return conf
 
 	case structs.PAT_ENERGY_CONSUMPTION:
 		return EnergyConsumption()

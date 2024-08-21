@@ -2,6 +2,7 @@ package utils
 
 import (
 	_ "embed"
+	"fmt"
 	"io"
 	"mogenius-k8s-manager/version"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	punqDtos "github.com/mogenius/punq/dtos"
+	"gopkg.in/yaml.v2"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"
@@ -254,6 +256,15 @@ func setupLogging() {
 	} else {
 		log.SetFormatter(&log.TextFormatter{})
 	}
+}
+
+func PrintCurrentCONFIG() (string, error) {
+	yamlData, err := yaml.Marshal(&CONFIG)
+	if err != nil {
+		fmt.Printf("Error marshalling to YAML: %v\n", err)
+		return "", err
+	}
+	return string(yamlData), nil
 }
 
 func SetupClusterSecret(clusterSecret ClusterSecret) {
