@@ -3,7 +3,10 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
+	"mogenius-k8s-manager/utils"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -65,21 +68,33 @@ func watchPods(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Pod)
-			castedObj.Kind = "Pod"
-			castedObj.APIVersion = "v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Pod", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindPods] {
+				castedObj.Kind = "Pod"
+				castedObj.APIVersion = "v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.Pod)
-			castedObj.Kind = "Pod"
-			castedObj.APIVersion = "v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Pod", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindPods] {
+				castedObj.Kind = "Pod"
+				castedObj.APIVersion = "v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Pod)
-			castedObj.Kind = "Pod"
-			castedObj.APIVersion = "v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			store.GlobalStore.Delete("Pod", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindPods] {
+				castedObj.Kind = "Pod"
+				castedObj.APIVersion = "v1"
+				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			}
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

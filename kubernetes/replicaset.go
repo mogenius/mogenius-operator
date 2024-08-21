@@ -2,14 +2,11 @@ package kubernetes
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/store"
-	"mogenius-k8s-manager/utils"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	v1job "k8s.io/api/batch/v1"
+	v1 "k8s.io/api/apps/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
@@ -18,7 +15,7 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-func WatchJobs() {
+func WatchReplicaSets() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
@@ -32,56 +29,38 @@ func WatchJobs() {
 		Factor:   2.0,
 		Jitter:   0.1,
 	}, apierrors.IsServiceUnavailable, func() error {
-		return watchJobs(provider, "jobs")
+		return watchReplicaSets(provider, "replicasets")
 	})
 	if err != nil {
-		K8sLogger.Fatalf("Error watching jobs: %s", err.Error())
+		K8sLogger.Fatalf("Error watching replicasets: %s", err.Error())
 	}
 
 	// Wait forever
 	select {}
 }
 
-func watchJobs(provider *punq.KubeProvider, kindName string) error {
+func watchReplicaSets(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			castedObj := obj.(*v1job.Job)
-			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
-
-			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
-				castedObj.Kind = "Job"
-				castedObj.APIVersion = "batch/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
-			}
+			castedObj := obj.(*v1.ReplicaSet)
+			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			castedObj := newObj.(*v1job.Job)
-			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
-
-			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
-				castedObj.Kind = "Job"
-				castedObj.APIVersion = "batch/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
-			}
+			castedObj := newObj.(*v1.ReplicaSet)
+			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
 		},
 		DeleteFunc: func(obj interface{}) {
-			castedObj := obj.(*v1job.Job)
-			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
-
-			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
-				castedObj.Kind = "Job"
-				castedObj.APIVersion = "batch/v1"
-				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
-			}
+			castedObj := obj.(*v1.ReplicaSet)
+			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(
-		provider.ClientSet.BatchV1().RESTClient(),
+		provider.ClientSet.AppsV1().RESTClient(),
 		kindName,
 		v1Core.NamespaceAll,
 		fields.Nothing(),
 	)
-	resourceInformer := cache.NewSharedInformer(listWatch, &v1job.Job{}, 0)
+	resourceInformer := cache.NewSharedInformer(listWatch, &v1.ReplicaSet{}, 0)
 	_, err := resourceInformer.AddEventHandler(handler)
 	if err != nil {
 		return err

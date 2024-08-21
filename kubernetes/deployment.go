@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -440,6 +441,22 @@ func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, pr
 	return WorkloadResult(deployments.Items, err)
 }
 
+func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
+	result := []v1.Deployment{}
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return result, err
+	}
+	client := provider.ClientSet.AppsV1().Deployments(namespace)
+
+	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return result, err
+	}
+
+	return deployments.Items, err
+}
+
 func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
 	deployment, err := punq.GetK8sDeployment(namespace, name, nil)
 	if err != nil {
@@ -476,21 +493,33 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			store.GlobalStore.Delete("Deployment", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			}
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

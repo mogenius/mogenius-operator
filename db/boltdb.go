@@ -354,6 +354,44 @@ func GetLastBuildJobInfosFromDb(data structs.BuildTaskRequest) structs.BuildJobI
 	}
 	return result
 }
+
+func GetLastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
+	result := structs.BuildJobInfo{}
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
+		cursorBuild := bucket.Cursor()
+
+		suffix := structs.GetLastBuildJobInfosFromDbByNamespaceAndControllerName(namespace, controllerName)
+		var lastBuildKey string
+		for k, _ := cursorBuild.Last(); k != nil; k, _ = cursorBuild.Prev() {
+			if strings.Contains(string(k), suffix) {
+				lastBuildKey = string(k)
+				break
+			}
+		}
+
+		if lastBuildKey == "" {
+			return nil
+		}
+
+		parts := strings.Split(lastBuildKey, "___")
+		if len(parts) >= 3 {
+			buildId := parts[0]
+			lastBuildId, err := strconv.ParseUint(buildId, 10, 64)
+			if err != nil {
+				dblogger.Errorf("GetLastBuildJobInfosFromDb: %s", err.Error())
+				return err
+			}
+			result = GetBuildJobInfosFromDb(lastBuildId)
+		}
+		return nil
+	})
+	if err != nil {
+		dblogger.Errorf("GetBuildJobListFromDb: %s", err.Error())
+	}
+	return result
+}
+
 func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
 	result := structs.BuildJobInfo{}
 	err := db.View(func(tx *bolt.Tx) error {

@@ -805,7 +805,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return StatusService(data)
+		return StatusServiceDebounced(data)
 
 	case structs.PAT_SERVICE_LOG_STREAM:
 		data := ServiceLogStreamRequest{}

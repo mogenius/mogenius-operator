@@ -226,14 +226,20 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
-		existingSecret, _ := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
-		if existingSecret != nil {
-			err := secretClient.Delete(context.TODO(), secretName, deleteOptions)
-			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
-			} else {
-				cmd.Success(job, "Deleted Container secret")
-			}
+		_, err := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
+
+		// ignore if not found
+		if apierrors.IsNotFound(err) {
+			cmd.Success(job, "Deleted Container secret")
+			return
+		} else if err != nil {
+			cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+			return
+		}
+
+		err = secretClient.Delete(context.TODO(), secretName, deleteOptions)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
 		} else {
 			cmd.Success(job, "Deleted Container secret")
 		}
@@ -271,9 +277,21 @@ func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespac
 
 		// delete secret if empty
 		if len(secret.StringData) == 0 {
-			existingSecret, _ := secretClient.Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
-			if existingSecret != nil {
-				secretClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+			_, err := secretClient.Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
+
+			// ignore if not found
+			if apierrors.IsNotFound(err) {
+				cmd.Success(job, "Deleted unneeded secret")
+				return
+			} else if err != nil {
+				cmd.Fail(job, fmt.Sprintf("Deleted unneeded secret ERROR: %s", err.Error()))
+				return
+			}
+
+			err = secretClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+			if err != nil {
+				cmd.Fail(job, fmt.Sprintf("Deleted unneeded secret ERROR: %s", err.Error()))
+			} else {
 				cmd.Success(job, "Deleted unneeded secret")
 			}
 			return

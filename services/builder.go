@@ -208,6 +208,9 @@ func BuildJobInfos(buildId uint64) structs.BuildJobInfo {
 func LastBuildInfos(data structs.BuildTaskRequest) structs.BuildJobInfo {
 	return db.GetLastBuildJobInfosFromDb(data)
 }
+func LastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
+	return db.GetLastBuildForNamespaceAndControllerName(namespace, controllerName)
+}
 func BuildInfosList(data structs.BuildTaskRequest) []structs.BuildJobInfo {
 	return db.GetBuildJobInfosListFromDb(data.Namespace, data.Controller, data.Container)
 }
@@ -280,17 +283,18 @@ func ListByProjectId(projectId string) []structs.BuildJob {
 // 	return result
 // }
 
-func ListByServiceByNamespaceAndControllerName(namespace, controllerName string) []structs.BuildJob {
-	result := []structs.BuildJob{}
-
-	list := ListAll()
-	for _, queueEntry := range list {
-		if queueEntry.Service.ControllerName == controllerName && queueEntry.Namespace.Name == namespace {
-			result = append(result, queueEntry)
-		}
-	}
-	return result
-}
+// TODO Remove this code
+//func ListByServiceByNamespaceAndControllerName(namespace, controllerName string) []structs.BuildJob {
+//	result := []structs.BuildJob{}
+//
+//	list := ListAll()
+//	for _, queueEntry := range list {
+//		if queueEntry.Service.ControllerName == controllerName && queueEntry.Namespace.Name == namespace {
+//			result = append(result, queueEntry)
+//		}
+//	}
+//	return result
+//}
 
 // func ListByServiceIds(serviceIds []string) []structs.BuildJob {
 // 	result := []structs.BuildJob{}
@@ -363,21 +367,32 @@ func LastBuildInfosOfServices(data structs.BuildTaskListOfServicesRequest) []str
 // 	return result
 // }
 
-func LastBuildForNamespaceAndControllerName(namespace, controllerName string) structs.BuildJobInfo {
-	result := structs.BuildJobInfo{}
-
-	var lastJob *structs.BuildJob
-	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
-	if len(list) > 0 {
-		lastJob = &list[len(list)-1]
-	}
-
-	if lastJob != nil {
-		result = BuildJobInfos(lastJob.BuildId)
-	}
-
-	return result
-}
+// TODO Remove this code
+//var lastBuildForNamespaceAndControllerNameDebounce = utils.NewDebounce("lastBuildForNamespaceAndControllerNameDebounce", 1000*time.Millisecond)
+// TODO Remove this code
+//func LastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
+//	key := fmt.Sprintf("%s-%s", namespace, controllerName)
+//	result, _ := lastBuildForNamespaceAndControllerNameDebounce.CallFn(key, func() (interface{}, error) {
+//		return LastBuildForNamespaceAndControllerName2(namespace, controllerName), nil
+//	})
+//	return result.(structs.BuildJobInfo)
+//}
+// TODO Remove this code
+//func LastBuildForNamespaceAndControllerName2(namespace string, controllerName string) structs.BuildJobInfo {
+//	result := structs.BuildJobInfo{}
+//
+//	var lastJob *structs.BuildJob
+//	list := ListByServiceByNamespaceAndControllerName(namespace, controllerName)
+//	if len(list) > 0 {
+//		lastJob = &list[len(list)-1]
+//	}
+//
+//	if lastJob != nil {
+//		result = BuildJobInfos(lastJob.BuildId)
+//	}
+//
+//	return result
+//}
 
 func executeCmd(job *structs.Job, reportCmd *structs.Command, prefix structs.BuildPrefixEnum, buildJob *structs.BuildJob, container *dtos.K8sContainerDto, saveLog bool, enableTimestamp bool, timeoutCtx *context.Context, name string, arg ...string) error {
 	startTime := time.Now()

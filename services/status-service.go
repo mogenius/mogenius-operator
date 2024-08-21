@@ -1,19 +1,21 @@
 package services
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	punq "github.com/mogenius/punq/kubernetes"
+	"mogenius-k8s-manager/store"
+	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
+	"reflect"
+	"sort"
+	"strings"
+	"time"
+
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
-	"sort"
-	"strings"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // Due to issues importing the library, the following constants are copied from the library
@@ -70,6 +72,7 @@ type ServiceStatusRequest struct {
 	Namespace      string `json:"namespace" validate:"required"`
 	ControllerName string `json:"controllerName" validate:"required"`
 	Controller     string `json:"controller" validate:"required"`
+	GitRepository  bool   `json:"gitRepository"`
 }
 
 func ServiceStatusRequestExample() ServiceStatusRequest {
@@ -312,17 +315,15 @@ func (r *ResourceItem) ContainerStatus() (*ServiceStatusType, *ServiceStatusObje
 	if r.StatusObject != nil {
 		if containerStatus, ok := r.StatusObject.(corev1.ContainerStatus); ok {
 
-			var statusObject ServiceStatusObject
+			// retsart count & start time
+			statusObject := ServiceStatusObject{
+				ContainerStatus: XContainerStatus{
+					RestartCount: containerStatus.RestartCount,
+				},
+			}
 			if containerStatus.State.Running != nil {
-				// retsart count & start time
 				createdAt := &containerStatus.State.Running.StartedAt
-				restartCount := containerStatus.RestartCount
-				statusObject = ServiceStatusObject{
-					ContainerStatus: XContainerStatus{
-						RestartCount: restartCount,
-						CreatedAt:    createdAt,
-					},
-				}
+				statusObject.ContainerStatus.CreatedAt = createdAt
 			}
 
 			if containerStatus.State.Terminated != nil {
@@ -739,117 +740,121 @@ func NewResourceController(resourceController string) ResourceController {
 //	}
 //}
 
-//func StatusService(r ServiceStatusRequest) interface{} {
-//	//ServiceLogger.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
+//	func StatusService(r ServiceStatusRequest) interface{} {
+//		//ServiceLogger.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
 //
-//	provider, err := punq.NewKubeProvider(nil)
-//	if err != nil {
-//		ServiceLogger.Warningf("Warningf: %s", err.Error())
-//		return nil
-//	}
-//
-//	// Create a channel to receive an array of events
-//	eventsChan := make(chan []corev1.Event, 1)
-//	var wg sync.WaitGroup
-//
-//	// Context with timeout to handle cancellation and timeout
-//	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-//	defer cancel()
-//
-//	wg.Add(1)
-//	// Run a goroutine to fetch k8s events then push them into the channel before timeout
-//	go requestEvents(r.Namespace, ctx, &wg, eventsChan)
-//
-//	go func() {
-//		wg.Wait()         // Wait for all goroutines to finish.
-//		close(eventsChan) // IMPORTANT!: Safely close channel after all sends are done.
-//	}()
-//
-//	resourceItems := []ResourceItem{}
-//	resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
-//	if err != nil {
-//		ServiceLogger.Warningf("Warning statusItems: %v", err)
-//	}
-//
-//	resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
-//	if err != nil {
-//		ServiceLogger.Warningf("Warning buildItem: %v", err)
-//	}
-//
-//	// Wait for the result from the channel or timeout
-//	select {
-//	case events, ok := <-eventsChan:
-//		if !ok {
-//			ServiceLogger.Warningf("Warning event channel closed.")
-//			break
+//		provider, err := punq.NewKubeProvider(nil)
+//		if err != nil {
+//			ServiceLogger.Warningf("Warningf: %s", err.Error())
+//			return nil
 //		}
 //
-//		// Sort events by lastTimestamp from newest to oldest
-//		sort.SliceStable(events, func(i, j int) bool {
-//			return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
-//		})
+//		// Create a channel to receive an array of events
+//		eventsChan := make(chan []corev1.Event, 1)
+//		var wg sync.WaitGroup
 //
-//		// Iterate events and add them to resourceItems
-//	EventLoop:
-//		for _, event := range events {
-//			for i, item := range resourceItems {
-//				if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
-//					resourceItems[i].Events = append(resourceItems[i].Events, event)
-//					continue EventLoop
+//		// Context with timeout to handle cancellation and timeout
+//		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+//		defer cancel()
+//
+//		wg.Add(1)
+//		// Run a goroutine to fetch k8s events then push them into the channel before timeout
+//		go requestEvents(r.Namespace, ctx, &wg, eventsChan)
+//
+//		go func() {
+//			wg.Wait()         // Wait for all goroutines to finish.
+//			close(eventsChan) // IMPORTANT!: Safely close channel after all sends are done.
+//		}()
+//
+//		resourceItems := []ResourceItem{}
+//		resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
+//		if err != nil {
+//			ServiceLogger.Warningf("Warning statusItems: %v", err)
+//		}
+//
+//		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
+//		if err != nil {
+//			ServiceLogger.Warningf("Warning buildItem: %v", err)
+//		}
+//
+//		// Wait for the result from the channel or timeout
+//		select {
+//		case events, ok := <-eventsChan:
+//			if !ok {
+//				ServiceLogger.Warningf("Warning event channel closed.")
+//				break
+//			}
+//
+//			// Sort events by lastTimestamp from newest to oldest
+//			sort.SliceStable(events, func(i, j int) bool {
+//				return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
+//			})
+//
+//			// Iterate events and add them to resourceItems
+//		EventLoop:
+//			for _, event := range events {
+//				for i, item := range resourceItems {
+//					if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
+//						resourceItems[i].Events = append(resourceItems[i].Events, event)
+//						continue EventLoop
+//					}
 //				}
 //			}
+//		case <-ctx.Done():
+//			ServiceLogger.Warningf("Warning timeout waiting for events")
 //		}
-//	case <-ctx.Done():
-//		ServiceLogger.Warningf("Warning timeout waiting for events")
+//
+//		// Debug logs
+//		// jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
+//		// if err != nil {
+//		// 	ServiceLogger.Warningf("Warning marshaling JSON: %v", err)
+//		// 	return nil
+//		// }
+//		// ServiceLogger.Debugf("JSON: %s", jsonData)
+//
+//		// return resourceItems
+//
+//		return ProcessServiceStatusResponse(resourceItems)
 //	}
-//
-//	// Debug logs
-//	// jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
-//	// if err != nil {
-//	// 	ServiceLogger.Warningf("Warning marshaling JSON: %v", err)
-//	// 	return nil
-//	// }
-//	// ServiceLogger.Debugf("JSON: %s", jsonData)
-//
-//	// return resourceItems
-//
-//	return ProcessServiceStatusResponse(resourceItems)
-//}
+var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-func StatusService(r ServiceStatusRequest) interface{} {
-	provider, err := punq.NewKubeProvider(nil)
+func StatusServiceDebounced(r ServiceStatusRequest) interface{} {
+	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
+	result, _ := statusServiceDebounce.CallFn(key, func() (interface{}, error) {
+		return statusService(r), nil
+	})
+	return result
+}
+
+func statusService(r ServiceStatusRequest) interface{} {
+	resultType := reflect.TypeOf(corev1.Event{})
+	events, err := store.GlobalStore.SearchByPrefix(resultType, "Event", r.Namespace)
 	if err != nil {
-		ServiceLogger.Warningf("Warningf: %s", err.Error())
-		return nil
+		ServiceLogger.Warningf("Warning fetching events: %s\n", err)
 	}
 
-	allK8sEvents := punq.AllK8sEvents(r.Namespace, nil)
-
-	var events []corev1.Event
-	if allK8sEvents.Error != nil {
-		ServiceLogger.Warningf("Warning fetching events: %s", allK8sEvents.Error)
-		events = []corev1.Event{}
-	}
-
-	if allK8sEvents.Result != nil {
-		events = allK8sEvents.Result.([]corev1.Event)
-	}
-
-	resourceItems := []ResourceItem{}
-	resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
+	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
 	if err != nil {
 		ServiceLogger.Warningf("Warning statusItems: %v", err)
 	}
 
-	resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
-	if err != nil {
-		ServiceLogger.Warningf("Warning buildItem: %v", err)
+	// buildItem
+	if r.GitRepository {
+		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
+		if err != nil {
+			ServiceLogger.Warningf("Warning buildItem: %v", err)
+		}
 	}
 
-	for _, event := range events {
+	for _, eventRef := range events {
+		event := eventRef.(*corev1.Event)
+		if event == nil {
+			continue
+		}
+
 		for i, item := range resourceItems {
 			if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
-				resourceItems[i].Events = append(resourceItems[i].Events, event)
+				resourceItems[i].Events = append(resourceItems[i].Events, *event)
 			}
 		}
 	}
@@ -857,8 +862,9 @@ func StatusService(r ServiceStatusRequest) interface{} {
 	return ProcessServiceStatusResponse(resourceItems)
 }
 
-func kubernetesItems(namespace string, name string, resourceController ResourceController, clientset *kubernetes.Clientset, resourceItems []ResourceItem) ([]ResourceItem, error) {
-	resourceInterface, err := controller(namespace, name, resourceController, clientset)
+func kubernetesItems(namespace string, name string, resourceController ResourceController) ([]ResourceItem, error) {
+	resourceItems := []ResourceItem{}
+	resourceInterface, err := controller(namespace, name, resourceController)
 	if err != nil {
 		ServiceLogger.Warningf("\nWarning fetching controller: %s\n", err)
 		return resourceItems, err
@@ -867,21 +873,38 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	metaName, metaNamespace, kind, references, labelSelector, object := status(resourceInterface)
 	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
 
-	pods, err := pods(namespace, labelSelector, clientset)
+	// Fetch pods
+	resultType := reflect.TypeOf(corev1.Pod{})
+	pods, err := store.GlobalStore.SearchByPrefix(resultType, "Pod", metaNamespace, metaName)
 	if err != nil {
 		ServiceLogger.Warningf("\nWarning fetching pods: %s\n", err)
 		return resourceItems, err
 	}
+	for _, podRef := range pods {
+		pod := podRef.(*corev1.Pod)
+		if pod == nil {
+			continue
+		}
 
-	for _, pod := range pods.Items {
-		resourceItems = containerItems(pod, resourceItems)
-		resourceItems = podItem(pod, resourceItems)
+		if pod.Status.Phase == corev1.PodSucceeded {
+			continue
+		}
+		// check if labels match
+		if labelSelector != nil {
+			if !labels.SelectorFromSet(labelSelector.MatchLabels).Matches(labels.Set(pod.Labels)) {
+				continue
+			}
+		}
+
+		resourceItems = containerItems(*pod, resourceItems)
+		resourceItems = podItem(*pod, resourceItems)
+
 		// Owner reference kind and name
 		if len(pod.OwnerReferences) > 0 {
 			for _, ownerRef := range pod.OwnerReferences {
 				// only controller parents
 				if *ownerRef.Controller {
-					resourceItems = recursiveOwnerRef(pod.Namespace, ownerRef, clientset, resourceItems)
+					resourceItems = recursiveOwnerRef(pod.Namespace, ownerRef, resourceItems)
 				}
 			}
 		}
@@ -890,56 +913,83 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	return resourceItems, nil
 }
 
-func controller(namespace string, controllerName string, resourceController ResourceController, clientset *kubernetes.Clientset) (interface{}, error) {
-	var err error
+func controller(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
+	// var err error
 	var resourceInterface interface{}
+
+	// provider, err := punq.NewKubeProvider(nil)
+	// if err != nil {
+	// 	ServiceLogger.Warningf("Warningf: %s", err.Error())
+	// 	return nil, nil
+	// }
 
 	switch resourceController {
 	case Deployment:
-		resourceInterface, err = clientset.AppsV1().Deployments(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resultType := reflect.TypeOf(appsv1.Deployment{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
 	case ReplicaSet:
-		resourceInterface, err = clientset.AppsV1().ReplicaSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
-	case StatefulSet:
-		resourceInterface, err = clientset.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
-	case DaemonSet:
-		resourceInterface, err = clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resultType := reflect.TypeOf(appsv1.ReplicaSet{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
+	// case StatefulSet:
+	// 	// ae: not used at the moment, old code
+	// 	resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+	// case DaemonSet:
+	// 	// ae: not used at the moment, old code
+	// 	resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case Job:
-		resourceInterface, err = clientset.BatchV1().Jobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resultType := reflect.TypeOf(batchv1.Job{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
 	case CronJob:
-		resourceInterface, err = clientset.BatchV1().CronJobs(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		resultType := reflect.TypeOf(batchv1.CronJob{})
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
 	}
 
-	if err != nil {
-		ServiceLogger.Warningf("\nWarning fetching resources %s, ns: %s, name: %s, err: %s\n", resourceController.String(), namespace, controllerName, err)
-		return nil, err
+	// if err != nil {
+	// 	ServiceLogger.Warningf("\nWarning fetching resources %s, ns: %s, name: %s, err: %s\n", resourceController.String(), namespace, controllerName, err)
+	// 	return nil, err
+	// }
+
+	if resourceInterface == nil {
+		return nil, fmt.Errorf("\nWarning fetching controller: %s\n", controllerName)
 	}
 
 	return resourceInterface, nil
 }
 
-func pods(namespace string, labelSelector *metav1.LabelSelector, clientset *kubernetes.Clientset) (*corev1.PodList, error) {
-	if labelSelector != nil {
-		selector := metav1.FormatLabelSelector(labelSelector)
-		pods, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
-			LabelSelector: selector,
-			FieldSelector: "status.phase!=Succeeded",
-		})
+// func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
+// 	if labelSelector != nil {
+// 		provider, err := punq.NewKubeProvider(nil)
+// 		if err != nil {
+// 			ServiceLogger.Warningf("Warningf: %s", err.Error())
+// 			return nil, nil
+// 		}
+// 		selector := metav1.FormatLabelSelector(labelSelector)
+// 		pods, err := provider.ClientSet.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+// 			LabelSelector: selector,
+// 			FieldSelector: "status.phase!=Succeeded",
+// 		})
 
-		if err != nil {
-			return nil, err
-		}
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		return pods, nil
-	}
+// 		return pods, nil
+// 	}
 
-	return &corev1.PodList{}, nil
-}
+// 	return &corev1.PodList{}, nil
+// }
 
 func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
 	lastJob := LastBuildForNamespaceAndControllerName(namespace, name)
 	if lastJob.IsEmpty() {
 		return resourceItems, nil
 	}
+
+	// TODO Remove this code
+	//lastJob := LastBuildForNamespaceAndControllerName(namespace, name)
+	//if lastJob.IsEmpty() {
+	//	return resourceItems, nil
+	//}
 
 	item := &ResourceItem{
 		Kind:         "BuildJob",
@@ -1021,7 +1071,7 @@ func podItem(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem {
 	return resourceItems
 }
 
-func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clientset *kubernetes.Clientset, resourceItems []ResourceItem) []ResourceItem {
+func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, resourceItems []ResourceItem) []ResourceItem {
 	// Skip already included resourceItems
 	for _, item := range resourceItems {
 		if item.Kind == ownerRef.Kind {
@@ -1030,7 +1080,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 	}
 
 	// Fetch next k8s controller
-	resourceInterface, err := controller(namespace, ownerRef.Name, NewResourceController(ownerRef.Kind), clientset)
+	resourceInterface, err := controller(namespace, ownerRef.Name, NewResourceController(ownerRef.Kind))
 	if err != nil {
 		ServiceLogger.Warningf("\nWarning fetching resources: %s\n", err)
 		return resourceItems
@@ -1044,7 +1094,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, clients
 	if len(references) > 0 {
 		for _, parentRef := range references {
 			if *parentRef.Controller {
-				return recursiveOwnerRef(namespace, parentRef, clientset, resourceItems)
+				return recursiveOwnerRef(namespace, parentRef, resourceItems)
 			}
 		}
 	}

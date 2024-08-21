@@ -72,7 +72,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	var openFile *os.File
 	bar := progressbar.DefaultSilent(0)
 
-	maxGoroutines := 10
+	maxGoroutines := 100
 	semaphoreChan := make(chan struct{}, maxGoroutines)
 	var wg sync.WaitGroup
 
