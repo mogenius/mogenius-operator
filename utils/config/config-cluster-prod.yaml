@@ -51,7 +51,7 @@ iac:
 
 misc:
   stage: prod
-  log_format: text # json or text
+  log_format: json # json or text
   log_level: info # panic, fatal, error, warn, info, debug, trace
   log_incoming_stats: false
   default_mount_path: /mo-data
@@ -86,4 +86,4 @@ git:
   add_ignored_file: false
 
 stats:
-  max_data_points: 1000 # history data points
+  max_data_points: 6000 # history data points

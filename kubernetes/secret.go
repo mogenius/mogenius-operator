@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"sync"
 	"time"
 
@@ -21,6 +22,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 )
+
+const ClusterImagePullSecretName = "cluster-img-pull-sec"
+const ContainerImagePullSecretName = "container-img-pull-sec"
 
 func CreateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
 	client := getCoreClient()
@@ -61,38 +65,6 @@ func exampleSecret(namespace string) (*v1.Secret, error) {
 
 }
 
-func CreateSecretJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Create Kubernetes secret", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Creating secret")
-
-		secret := punqUtils.InitSecret()
-		secret.ObjectMeta.Name = service.ControllerName
-		secret.ObjectMeta.Namespace = namespace.Name
-		delete(secret.StringData, "exampleData") // delete example data
-
-		for _, container := range service.Containers {
-			for _, envVar := range container.EnvVars {
-				if envVar.Type == dtos.EnvVarKeyVault {
-					//envVar.Type == "PLAINTEXT" ||
-					//envVar.Type == "HOSTNAME" {
-					secret.StringData[envVar.Name] = envVar.Value
-				}
-			}
-		}
-		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, &service)
-
-		_, err := CreateSecret(namespace.Name, &secret)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Created secret")
-		}
-	}(wg)
-}
-
 func GetDecodedSecret(secretName string, namespace string) (map[string]string, error) {
 	client := getCoreClient()
 	secret, err := client.Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
@@ -108,125 +80,101 @@ func GetDecodedSecret(secretName string, namespace string) (map[string]string, e
 	return decodedData, nil
 }
 
-func DeleteSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Delete Kubernetes secret", job)
+// -----------------------------------------------------
+// Cluster Image Pull Secret
+// -----------------------------------------------------
+
+func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
+	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name))
+
+	// delete old secret
+	// TODO: remove this after a while
+	punq.DeleteK8sSecretBy(namespace.Name, "container-secret-"+namespace.Name, nil)
+
+	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
+	if project.ContainerRegistryUser == nil || project.ContainerRegistryPat == nil || project.ContainerRegistryUrl == nil {
+		// delete if exists
+		punq.DeleteK8sSecretBy(namespace.Name, secretName, nil)
+		return
+	}
+
+	cmd := structs.CreateCommand("create", "Create Cluster Image-Pull secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting secret")
+		cmd.Start(job, "Creating Cluster Image-Pull secret")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
-
-		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: punqUtils.Pointer[int64](5),
-		}
-
-		err = secretClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteSecret ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Deleted secret")
-		}
-	}(wg)
-}
-
-func CreateOrUpdateContainerSecret(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Create Container secret", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Creating Container secret")
-
-		secretName := "container-secret-" + namespace.Name
-
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
+		secretClient := getCoreClient().Secrets(namespace.Name)
 
 		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
+		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
+
 		secretStringData := make(map[string]string)
 
-		if project.ContainerRegistryUser != nil && project.ContainerRegistryPat != nil && project.ContainerRegistryUrl != nil {
-			// cmd.Fail(job, "ERROR: ContainerRegistryUser, ContainerRegistryPat & ContainerRegistryUrl cannot be nil.")
-			// return
-			authStr := fmt.Sprintf("%s:%s", *project.ContainerRegistryUser, *project.ContainerRegistryPat)
-			authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
-			jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, *project.ContainerRegistryUrl, *project.ContainerRegistryUser, *project.ContainerRegistryPat, authStrBase64)
-			secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
-		} else {
-			if _, ok := secret.StringData[".dockerconfigjson"]; ok {
-				delete(secret.StringData, ".dockerconfigjson")
-			}
-		}
+		authStr := fmt.Sprintf("%s:%s", *project.ContainerRegistryUser, *project.ContainerRegistryPat)
+		authStrBase64 := base64.StdEncoding.EncodeToString([]byte(authStr))
+		jsonData := fmt.Sprintf(`{"auths":{"%s":{"username":"%s","password":"%s","auth":"%s"}}}`, *project.ContainerRegistryUrl, *project.ContainerRegistryUser, *project.ContainerRegistryPat, authStrBase64)
+		secretStringData[".dockerconfigjson"] = jsonData // base64.StdEncoding.EncodeToString([]byte(jsonData))
 
 		secret.StringData = secretStringData
 
-		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
-
-		if len(secret.StringData) == 0 {
-			existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
-			if existingSecret != nil {
-				err = secretClient.Delete(context.TODO(), secretName, metav1.DeleteOptions{})
-				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
-				} else {
-					cmd.Success(job, "Deleted Container secret")
-				}
-			}
-			return
-		}
-
 		// Check if exists
-		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
-			cmd.Success(job, "Created Container secret")
+			cmd.Success(job, "Created Cluster Image-Pull secret")
 		} else {
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerSecret (create) ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
-					cmd.Success(job, "Created Container secret")
+					cmd.Success(job, "Created Cluster Image-Pull secret")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerSecret ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret ERROR: %s", err.Error()))
 			}
 		}
 	}(wg)
 }
 
-func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func ExistsClusterImagePullSecret(namespace string) bool {
+	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace))
+	secret, err := getCoreClient().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+	return secret != nil
+}
+
+// -----------------------------------------------------
+// Container Image Pull Secret
+// -----------------------------------------------------
+
+func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ContainerImagePullSecretName, service.ControllerName))
+
+	// delete old secret
+	// TODO: remove this after a while
+	punq.DeleteK8sSecretBy(namespace.Name, "container-secret-service-"+service.ControllerName, nil)
+
 	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
 	if service.GetImageRepoSecretDecryptValue() == nil {
+		// delete if exists
+		punq.DeleteK8sSecretBy(namespace.Name, secretName, nil)
 		return
 	}
 
-	cmd := structs.CreateCommand("create", "Create Container secret for service", job)
+	cmd := structs.CreateCommand("create", "Create Container Image-Pull secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Creating Container secret")
+		cmd.Start(job, "Creating Container Image-Pull secret")
 
-		secretName := "container-secret-service-" + service.ControllerName
-
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
+		secretClient := getCoreClient().Secrets(namespace.Name)
 
 		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
@@ -239,57 +187,70 @@ func CreateOrUpdateContainerSecretForService(job *structs.Job, project dtos.K8sP
 		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
 
 		// Check if exists
-		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
-			cmd.Success(job, "Created Container secret")
+			cmd.Success(job, "Created Container Image-Pull secret")
 		} else {
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerSecretForService (create) ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
-					cmd.Success(job, "Created Container secret for service")
+					cmd.Success(job, "Created Container Image-Pull secret")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerSecretForService ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret ERROR: %s", err.Error()))
 			}
 		}
 	}(wg)
 }
 
-func DeleteContainerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
+func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ContainerImagePullSecretName, service.ControllerName))
+
+	// delete old secret
+	// TODO: remove this after a while
+	punq.DeleteK8sSecretBy(namespace.Name, "container-secret-service-"+service.ControllerName, nil)
+
 	cmd := structs.CreateCommand("delete", "Delete Container secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(job, "Deleting Container secret")
 
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		secretClient := provider.ClientSet.CoreV1().Secrets(namespace.Name)
+		secretClient := getCoreClient().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
 		}
 
-		existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
-		if existingSecret != nil {
-			err = secretClient.Delete(context.TODO(), "container-secret-"+namespace.Name, deleteOptions)
-			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
-			} else {
-				cmd.Success(job, "Deleted Container secret")
-			}
+		_, err := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
+
+		// ignore if not found
+		if apierrors.IsNotFound(err) {
+			cmd.Success(job, "Deleted Container secret")
+			return
+		} else if err != nil {
+			cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+			return
+		}
+
+		err = secretClient.Delete(context.TODO(), secretName, deleteOptions)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(job, "Deleted Container secret")
 		}
 	}(wg)
 }
 
-func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+// -----------------------------------------------------
+// Service Secret
+// -----------------------------------------------------
+
+func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("update", "Update Kubernetes secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
@@ -316,9 +277,21 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 
 		// delete secret if empty
 		if len(secret.StringData) == 0 {
-			existingSecret, _ := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
-			if existingSecret != nil {
-				secretClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+			_, err := secretClient.Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
+
+			// ignore if not found
+			if apierrors.IsNotFound(err) {
+				cmd.Success(job, "Deleted unneeded secret")
+				return
+			} else if err != nil {
+				cmd.Fail(job, fmt.Sprintf("Deleted unneeded secret ERROR: %s", err.Error()))
+				return
+			}
+
+			err = secretClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+			if err != nil {
+				cmd.Fail(job, fmt.Sprintf("Deleted unneeded secret ERROR: %s", err.Error()))
+			} else {
 				cmd.Success(job, "Deleted unneeded secret")
 			}
 			return
@@ -329,12 +302,12 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateSecret ERROR: %s", err.Error()))
+					cmd.Fail(job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
 				} else {
 					cmd.Success(job, "Created secret")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("UpdateSecret ERROR: %s", err.Error()))
+				cmd.Fail(job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
 			}
 		} else {
 			cmd.Success(job, "Update secret")
@@ -342,17 +315,9 @@ func UpdateOrCreateSecrete(job *structs.Job, namespace dtos.K8sNamespaceDto, ser
 	}(wg)
 }
 
-func ContainerSecretDoesExistForStage(namespace dtos.K8sNamespaceDto) bool {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		return false
-	}
-	secret, err := provider.ClientSet.CoreV1().Secrets(namespace.Name).Get(context.TODO(), "container-secret-"+namespace.Name, metav1.GetOptions{})
-	if err != nil {
-		return false
-	}
-	return secret != nil
-}
+//-----------------------------------------------------
+// Watch Secrets
+//-----------------------------------------------------
 
 func WatchSecrets() {
 	provider, err := punq.NewKubeProvider(nil)

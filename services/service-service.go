@@ -48,15 +48,10 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		CreateNamespaceCmds(job, nsReq, &wg)
 	}
 
-	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-	mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
-	// }
-	if r.Service.GetImageRepoSecretDecryptValue() != nil {
-		mokubernetes.CreateOrUpdateContainerSecretForService(job, r.Project, r.Namespace, r.Service, &wg)
-	}
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-
-	mokubernetes.UpdateOrCreateSecrete(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
 	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
@@ -71,13 +66,13 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 		updateInfrastructureYaml(job, r.Service, &wg)
 	}
 
-	crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
-		Id:          r.Service.Id,
-		DisplayName: r.Service.DisplayName,
-		CreatedBy:   "MISSING_FIELD",
-		Controller:  r.Service.ControllerName,
-		AppId:       "MISSING_FIELD",
-	}, &wg)
+	// crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
+	// 	Id:          r.Service.Id,
+	// 	DisplayName: r.Service.DisplayName,
+	// 	CreatedBy:   "MISSING_FIELD",
+	// 	Controller:  r.Service.ControllerName,
+	// 	AppId:       "MISSING_FIELD",
+	// }, &wg)
 
 	go func() {
 		wg.Wait()
@@ -92,7 +87,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 	mokubernetes.DeleteService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.DeleteSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
@@ -165,7 +160,17 @@ func PodStatus(r ServiceResourceStatusRequest) interface{} {
 	return punq.PodStatus(r.Namespace, r.Name, r.StatusOnly, nil)
 }
 
+var servicePodStatusDebounce = utils.NewDebounce("servicePodStatusDebounce", 1000*time.Millisecond, 300*time.Millisecond)
+
 func ServicePodStatus(r ServicePodsRequest) interface{} {
+	key := fmt.Sprintf("%s-%s", r.Namespace, r.ControllerName)
+	result, _ := servicePodStatusDebounce.CallFn(key, func() (interface{}, error) {
+		return ServicePodStatus2(r), nil
+	})
+	return result
+}
+
+func ServicePodStatus2(r ServicePodsRequest) interface{} {
 	return punq.ServicePodStatus(r.Namespace, r.ControllerName, nil)
 }
 
@@ -189,9 +194,12 @@ func Restart(r ServiceRestartRequest) interface{} {
 	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
-	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-	mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
-	// }
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
@@ -199,11 +207,6 @@ func Restart(r ServiceRestartRequest) interface{} {
 	case dtos.CRON_JOB:
 		mokubernetes.RestartCronJob(job, r.Namespace, r.Service, &wg)
 	}
-
-	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateOrCreateSecrete(job, r.Namespace, r.Service, &wg)
-	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	go func() {
 		wg.Wait()
@@ -242,12 +245,12 @@ func StartService(r ServiceStartRequest) interface{} {
 	job := structs.CreateJob("Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
 
-	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-	mokubernetes.CreateOrUpdateContainerSecret(job, r.Project, r.Namespace, &wg)
-	// }
-	if r.Service.GetImageRepoSecretDecryptValue() != nil {
-		mokubernetes.CreateOrUpdateContainerSecretForService(job, r.Project, r.Namespace, r.Service, &wg)
-	}
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
@@ -255,18 +258,6 @@ func StartService(r ServiceStartRequest) interface{} {
 	case dtos.CRON_JOB:
 		mokubernetes.StartCronJob(job, r.Namespace, r.Service, &wg)
 	}
-
-	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-
-	// unnecessary
-	// switch r.Service.Controller {
-	// case dtos.DEPLOYMENT:
-	// 	mokubernetes.UpdateDeployment(job, r.Namespace, r.Service, &wg)
-	// case dtos.CRON_JOB:
-	// 	mokubernetes.UpdateCronJob(job, r.Namespace, r.Service, &wg)
-	// }
-
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	go func() {
 		wg.Wait()

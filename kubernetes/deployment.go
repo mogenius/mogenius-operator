@@ -3,9 +3,11 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -24,42 +26,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 )
-
-func CreateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Creating Deployment", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Creating Deployment")
-
-		provider, err := punq.NewKubeProvider(nil)
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
-		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, true, deploymentClient, createDeploymentHandler)
-		if err != nil {
-			K8sLogger.Errorf("error: %s", err.Error())
-			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
-			return
-		}
-
-		// deployment := generateDeployment(namespace, service, false, deploymentClient)
-		deployment := newController.(*v1.Deployment)
-
-		deployment.Labels = MoUpdateLabels(&deployment.Labels, nil, nil, &service)
-
-		_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions())
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Created deployment")
-		}
-
-		HandleHpa(job, namespace.Name, service.ControllerName, service, wg)
-	}(wg)
-}
 
 func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", "Delete Deployment", job)
@@ -329,6 +295,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 		}
 
 		// LivenessProbe
+		log.Infof("LivenessProbe: %v", container.Probes)
 		if !container.Probes.LivenessProbe.ProbesOn {
 			spec.Template.Spec.Containers[index].LivenessProbe = nil
 		} else if container.Probes.LivenessProbe.ProbesOn {
@@ -620,6 +587,22 @@ func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, pr
 	return WorkloadResult(deployments.Items, err)
 }
 
+func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
+	result := []v1.Deployment{}
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return result, err
+	}
+	client := provider.ClientSet.AppsV1().Deployments(namespace)
+
+	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return result, err
+	}
+
+	return deployments.Items, err
+}
+
 func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
 	deployment, err := punq.GetK8sDeployment(namespace, name, nil)
 	if err != nil {
@@ -656,21 +639,33 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			castedObj.Kind = "Deployment"
-			castedObj.APIVersion = "apps/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			store.GlobalStore.Delete("Deployment", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+				castedObj.Kind = "Deployment"
+				castedObj.APIVersion = "apps/v1"
+				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			}
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

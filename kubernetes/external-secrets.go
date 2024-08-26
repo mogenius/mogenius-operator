@@ -49,7 +49,7 @@ func NewExternalSecret(data CreateExternalSecretProps) ExternalSecretProps {
 
 type ExternalSecretListProps struct {
 	NamePrefix      string
-	Project         string
+	ProjectId       string
 	SecretStoreName string
 	MoSharedPath    string
 }
@@ -57,7 +57,7 @@ type ExternalSecretListProps struct {
 func externalSecretListExample() ExternalSecretListProps {
 	return ExternalSecretListProps{
 		NamePrefix:      "team-blue-secrets",
-		Project:         "team-blue",
+		ProjectId:       "e9ff3afc-83bd-4fae-a93e-4eaeea453b",
 		SecretStoreName: "team-blue-secrets-" + utils.SecretStoreSuffix,
 		MoSharedPath:    "mogenius-external-secrets",
 	}
@@ -165,7 +165,7 @@ func DeleteExternalSecret(name string) error {
 }
 
 func renderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretListName(props.NamePrefix, props.Project), -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretListName(props.NamePrefix, props.ProjectId), -1)
 	// the list of all available secrets for a project is only ever read by the operator
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", utils.CONFIG.Kubernetes.OwnNamespace, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)

@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func ListExternalSecretsStores(projectName string) ([]string, error) {
+func ListExternalSecretsStores(projectId string) ([]string, error) {
 	response, err := ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
 		K8sLogger.Info("ListResources failed")
@@ -24,7 +24,7 @@ func ListExternalSecretsStores(projectName string) ([]string, error) {
 	}
 	filteredStores := []string{}
 	for _, store := range stores {
-		if strings.Contains(store, projectName) {
+		if strings.Contains(store, projectId) {
 			filteredStores = append(filteredStores, store)
 		}
 	}

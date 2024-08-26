@@ -3,6 +3,8 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/store"
+	"mogenius-k8s-manager/utils"
 	"sort"
 	"strings"
 	"sync"
@@ -552,7 +554,17 @@ func hasLabel(labels map[string]string, labelKey string, labelValue string) bool
 	return exists && labels[labelKey] == labelValue
 }
 
-func ListCronjobJobs(controllerName, namespaceName, projectId string) ListJobInfoResponse {
+var listCronjobJobsDebounce = utils.NewDebounce("listCronjobJobsDebounce", 1000*time.Millisecond, 300*time.Millisecond)
+
+func ListCronjobJobs(controllerName string, namespaceName string, projectId string) interface{} {
+	key := fmt.Sprintf("%s-%s-%s", controllerName, namespaceName, projectId)
+	result, _ := listCronjobJobsDebounce.CallFn(key, func() (interface{}, error) {
+		return ListCronjobJobs2(controllerName, namespaceName, projectId), nil
+	})
+	return result
+}
+
+func ListCronjobJobs2(controllerName string, namespaceName string, projectId string) ListJobInfoResponse {
 	list := ListJobInfoResponse{
 		ControllerName: controllerName,
 		NamespaceName:  namespaceName,
@@ -709,21 +721,33 @@ func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.CronJob)
-			castedObj.Kind = "CronJob"
-			castedObj.APIVersion = "batch/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "CronJob", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
+				castedObj.Kind = "CronJob"
+				castedObj.APIVersion = "batch/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1job.CronJob)
-			castedObj.Kind = "CronJob"
-			castedObj.APIVersion = "batch/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			store.GlobalStore.Set(castedObj, "CronJob", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
+				castedObj.Kind = "CronJob"
+				castedObj.APIVersion = "batch/v1"
+				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.CronJob)
-			castedObj.Kind = "CronJob"
-			castedObj.APIVersion = "batch/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			store.GlobalStore.Delete("CronJob", castedObj.Namespace, castedObj.Name)
+
+			if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
+				castedObj.Kind = "CronJob"
+				castedObj.APIVersion = "batch/v1"
+				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			}
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

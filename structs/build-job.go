@@ -342,6 +342,10 @@ func BuildJobInfosKeySuffix(namespace string, controller string, container strin
 	return fmt.Sprintf("___%s___%s___%s", namespace, controller, container)
 }
 
+func GetLastBuildJobInfosFromDbByNamespaceAndControllerName(namespace string, controller string) string {
+	return fmt.Sprintf("___%s___%s___", namespace, controller)
+}
+
 func GetBuildJobInfosPrefix(buildId uint64, prefix BuildPrefixEnum, namespace string, controller string) string {
 	return fmt.Sprintf("%s___%s___%s___%s", utils.SequenceToKey(buildId), prefix, namespace, controller)
 }

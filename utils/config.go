@@ -2,6 +2,7 @@ package utils
 
 import (
 	_ "embed"
+	"fmt"
 	"io"
 	"mogenius-k8s-manager/version"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	punqDtos "github.com/mogenius/punq/dtos"
+	"gopkg.in/yaml.v2"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"
@@ -32,7 +34,6 @@ type ClusterSecret struct {
 
 const CONFIGVERSION = 2
 
-const STAGE_PRE_DEV = "pre-dev"
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
@@ -105,15 +106,12 @@ type Config struct {
 		GitAddIgnoredFile string `yaml:"git_add_ignored_file" env:"git_add_ignored_file" env-description:"Gits behaviour when adding ignored files." env-default:"false"`
 	} `yaml:"git"`
 	Stats struct {
-		MaxDataPoints int `yaml:"max_data_points" env:"max_data_points" env-description:"After x data points in bucket will be overwritten LIFO principle." env-default:"1000"`
+		MaxDataPoints int `yaml:"max_data_points" env:"max_data_points" env-description:"After x data points in bucket will be overwritten LIFO principle." env-default:"6000"`
 	} `yaml:"stats"`
 }
 
 //go:embed config/config-local.yaml
 var DefaultConfigLocalFile string
-
-//go:embed config/config-cluster-pre-dev.yaml
-var DefaultConfigClusterFilePreDev string
 
 //go:embed config/config-cluster-dev.yaml
 var DefaultConfigClusterFileDev string
@@ -124,6 +122,9 @@ var DefaultConfigClusterFileProd string
 var CONFIG Config
 var ConfigPath string
 var ClusterProviderCached punqDtos.KubernetesProvider = punqDtos.UNKNOWN
+
+// preconfigure with dtos
+var IacWorkloadConfigMap map[string]bool
 
 func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// try to load stage if not set
@@ -255,6 +256,15 @@ func setupLogging() {
 	} else {
 		log.SetFormatter(&log.TextFormatter{})
 	}
+}
+
+func PrintCurrentCONFIG() (string, error) {
+	yamlData, err := yaml.Marshal(&CONFIG)
+	if err != nil {
+		fmt.Printf("Error marshalling to YAML: %v\n", err)
+		return "", err
+	}
+	return string(yamlData), nil
 }
 
 func SetupClusterSecret(clusterSecret ClusterSecret) {
@@ -408,9 +418,7 @@ func writeDefaultConfig(stage string) {
 		}
 	}
 
-	if stage == STAGE_PRE_DEV {
-		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFilePreDev), 0755)
-	} else if stage == STAGE_DEV {
+	if stage == STAGE_DEV {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileDev), 0755)
 	} else if stage == STAGE_PROD {
 		err = os.WriteFile(configPath, []byte(DefaultConfigClusterFileProd), 0755)

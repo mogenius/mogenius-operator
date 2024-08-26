@@ -132,7 +132,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 		specTemplate.Spec.Containers[index].Args = []string{}
 
 		// IMAGE
-		if container.ContainerImage != nil {
+		if container.Type == dtos.CONTAINER_CONTAINER_IMAGE {
 			specTemplate.Spec.Containers[index].Image = *container.ContainerImage
 			if container.ContainerImageCommand != nil {
 				specTemplate.Spec.Containers[index].Command = punqUtils.ParseJsonStringArray(*container.ContainerImageCommand)
@@ -140,13 +140,18 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 			if container.ContainerImageCommandArgs != nil {
 				specTemplate.Spec.Containers[index].Args = punqUtils.ParseJsonStringArray(*container.ContainerImageCommandArgs)
 			}
-			if container.ContainerImageRepoSecretDecryptValue == nil {
-				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
-			} else {
+			if container.ContainerImageRepoSecretDecryptValue != nil {
 				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
 				specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{
-					Name: fmt.Sprintf("container-secret-service-%s", service.ControllerName),
+					Name: fmt.Sprintf("%s-%s", ContainerImagePullSecretName, service.ControllerName),
 				})
+			} else if ExistsClusterImagePullSecret(namespace.Name) {
+				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
+				specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{
+					Name: fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name),
+				})
+			} else {
+				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
 			}
 		} else {
 			// this will be setup UNTIL the buildserver overwrites the image with the real one.
@@ -154,6 +159,14 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 				specTemplate.Spec.Containers[index].Image = (*previousSpecTemplate).Spec.Containers[index].Image
 			} else {
 				specTemplate.Spec.Containers[index].Image = utils.IMAGE_PLACEHOLDER
+			}
+
+			// cluster image pull secret
+			if ExistsClusterImagePullSecret(namespace.Name) {
+				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
+				specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{
+					Name: fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name),
+				})
 			}
 
 			if specTemplate.Spec.Containers[index].Image == utils.IMAGE_PLACEHOLDER {
@@ -268,11 +281,11 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 
 	// IMAGE PULL SECRET
 	// the second check because otherwise we would overwrite the imagePullSecrets which is only defined for the service
-	if ContainerSecretDoesExistForStage(namespace) && len(specTemplate.Spec.ImagePullSecrets) <= 0 {
-		containerSecretName := "container-secret-" + namespace.Name
-		specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
-		specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{Name: containerSecretName})
-	}
+	//if ContainerSecretDoesExistForStage(namespace) && len(specTemplate.Spec.ImagePullSecrets) <= 0 {
+	//	containerSecretName := "container-secret-" + namespace.Name
+	//	specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}
+	//	specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{Name: containerSecretName})
+	//}
 
 	return controller, nil
 }
