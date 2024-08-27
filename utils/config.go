@@ -162,6 +162,18 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
 	}
 
+	// SET DEFAULTS if missing
+	pwd, _ := os.Getwd()
+	if CONFIG.Kubernetes.BboltDbPath == "" {
+		CONFIG.Kubernetes.BboltDbPath = pwd + "/mogenius.db"
+	}
+	if CONFIG.Kubernetes.BboltDbStatsPath == "" {
+		CONFIG.Kubernetes.BboltDbStatsPath = pwd + "/mogenius-stats.db"
+	}
+	if CONFIG.Misc.DefaultMountPath == "" {
+		CONFIG.Misc.DefaultMountPath = pwd
+	}
+
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
@@ -259,7 +271,25 @@ func setupLogging() {
 }
 
 func PrintCurrentCONFIG() (string, error) {
+	// create a deep copy of the Config instance
+	var configCopy Config
 	yamlData, err := yaml.Marshal(&CONFIG)
+	if err != nil {
+		return "", err
+	}
+	err = yaml.Unmarshal(yamlData, &configCopy)
+	if err != nil {
+		return "", err
+	}
+
+	// reset data for local usage
+	configCopy.Misc.DefaultMountPath = ""
+	configCopy.Kubernetes.BboltDbPath = ""
+	configCopy.Kubernetes.BboltDbStatsPath = ""
+	configCopy.Kubernetes.RunInCluster = false
+
+	// marshal the copy to yaml
+	yamlData, err = yaml.Marshal(&configCopy)
 	if err != nil {
 		fmt.Printf("Error marshalling to YAML: %v\n", err)
 		return "", err
