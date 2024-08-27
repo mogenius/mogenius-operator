@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"mogenius-k8s-manager/utils"
-	"strings"
 	"testing"
 
 	"github.com/mogenius/punq/logger"
@@ -14,8 +13,8 @@ import (
 )
 
 const (
-	NamePrefix   = "customer-blue"
-	ProjectName  = "backend-project"
+	NamePrefix   = "4jdh7e9dk7"
+	ProjectId    = "djsajfh74-23423-234123-32fdsf"
 	MoSharedPath = "mogenius-external-secrets"
 )
 
@@ -34,8 +33,8 @@ func TestSecretStoreRender(t *testing.T) {
 	}
 
 	expectedPath := "secret-mo-ex-secr-test-003"
-	secretStore.MoSharedPath = expectedPath
-	expectedPath = fmt.Sprintf("%s/%s", expectedPath, secretStore.ProjectName) // the rendering adds the project name to the path to reflect the corresponding secret store
+	secretStore.SecretPath = expectedPath
+	expectedPath = fmt.Sprintf("%s/%s", expectedPath, secretStore.ProjectId) // the rendering adds the project name to the path to reflect the corresponding secret store
 	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, secretStore)
 
 	// check if the values are replaced
@@ -59,7 +58,7 @@ func TestSecretStoreCreate(t *testing.T) {
 
 	// assume composed name: team-blue-secrets-vault-secret-store
 	props.NamePrefix = NamePrefix
-	props.ProjectName = ProjectName
+	props.ProjectId = ProjectId
 
 	err := CreateExternalSecretsStore(props)
 	if err != nil {
@@ -74,7 +73,7 @@ func TestSecretStoreList(t *testing.T) {
 	// wait for create to finish
 	time.Sleep(3 * time.Second)
 
-	stores, err := kubernetes.ListExternalSecretsStores(ProjectName)
+	stores, err := kubernetes.ListExternalSecretsStores(ProjectId)
 	if err != nil {
 		t.Errorf("Error listing secret stores: %s", err.Error())
 	}
@@ -84,13 +83,13 @@ func TestSecretStoreList(t *testing.T) {
 	} else {
 		found := false
 		for _, store := range stores {
-			if strings.HasPrefix(store, NamePrefix) {
+			if store.Prefix == NamePrefix && store.ProjectId == ProjectId {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix, ProjectName))
+			t.Errorf("Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix))
 		} else {
 			logger.Log.Info("Secret stores listed ✅")
 		}
@@ -105,7 +104,7 @@ func TestListAvailSecrets(t *testing.T) {
 	} else {
 		logger.Log.Info("Secret list created ✅")
 	}
-	availSecrets := ListAvailableExternalSecrets(NamePrefix, ProjectName)
+	availSecrets := ListAvailableExternalSecrets(NamePrefix, ProjectId)
 
 	if len(availSecrets) == 0 {
 		t.Errorf("Error listing available secrets: No secrets found")
@@ -117,9 +116,9 @@ func TestListAvailSecrets(t *testing.T) {
 func TestSecretStoreDelete(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
-	err := DeleteExternalSecretsStore(NamePrefix, ProjectName, MoSharedPath)
+	err := DeleteExternalSecretsStore(Name)
 	if err != nil {
-		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", utils.GetSecretStoreName(NamePrefix, ProjectName), err.Error())
+		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", utils.GetSecretStoreName(NamePrefix, ProjectId), err.Error())
 	} else {
 		logger.Log.Info("Secret store deletion confirmed ✅")
 	}

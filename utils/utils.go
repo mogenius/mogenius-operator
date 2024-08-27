@@ -276,10 +276,10 @@ const (
 	StoreAnnotationPrefix = "used-by-mogenius/"
 )
 
-func GetServiceAccountName(moSharedPath string) string {
+func GetServiceAccountName(secretPath string) string {
 	return fmt.Sprintf("%s-%s",
 		strings.ToLower(ExternalSecretsSA),
-		strings.ToLower(moSharedPath),
+		strings.ReplaceAll(strings.ToLower(secretPath), "/", "-"),
 	)
 }
 
@@ -287,10 +287,9 @@ func GetMoSharedPath(moSharedPath string, projectName string) string {
 	return fmt.Sprintf("%s/%s", moSharedPath, projectName)
 }
 
-func GetSecretStoreName(namePrefix string, projectName string) string {
-	return fmt.Sprintf("%s-%s-%s",
+func GetSecretStoreName(namePrefix string) string {
+	return fmt.Sprintf("%s-%s",
 		strings.ToLower(namePrefix),
-		strings.ToLower(projectName),
 		strings.ToLower(SecretStoreSuffix),
 	)
 }
@@ -304,10 +303,10 @@ func GetSecretName(namePrefix, project, service, propertyName string) string {
 	)
 }
 
-func GetSecretListName(customerPrefix string, projectName string) string {
+func GetSecretListName(customerPrefix string, projectId string) string {
 	return fmt.Sprintf("%s-%s-%s",
 		strings.ToLower(customerPrefix),
-		strings.ToLower(projectName),
+		strings.ToLower(projectId),
 		strings.ToLower(SecretListSuffix),
 	)
 }

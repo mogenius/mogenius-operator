@@ -7,6 +7,8 @@ import (
 
 	"mogenius-k8s-manager/utils"
 
+	punqUtils "github.com/mogenius/punq/utils"
+
 	"strings"
 
 	"github.com/mogenius/punq/logger"
@@ -14,10 +16,10 @@ import (
 )
 
 type ExternalSecretStoreProps struct {
-	ProjectName    string
+	ProjectId      string
 	Role           string
 	VaultServerUrl string
-	MoSharedPath   string
+	SecretPath     string
 	NamePrefix     string
 	Name           string
 	ServiceAccount string
@@ -25,23 +27,23 @@ type ExternalSecretStoreProps struct {
 
 func externalSecretStorePropsExample() ExternalSecretStoreProps {
 	return ExternalSecretStoreProps{
-		ProjectName:    "phoenix",
+		ProjectId:      "jkhdfjk66-lkj4fdklfj-lkdsjfkl-4rt645-dalksf",
 		Role:           "mogenius-external-secrets",
 		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		MoSharedPath:   "mogenius-external-secrets",
-		Name:           utils.GetSecretStoreName("Integration01", "phoenix"),
-		ServiceAccount: utils.GetServiceAccountName("mogenius-external-secrets"),
+		SecretPath:     "mogenius-external-secrets/data/phoenix",
 	}
 }
 
 func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
-	props.Name = utils.GetSecretStoreName(props.NamePrefix, props.ProjectName)
-	props.ServiceAccount = utils.GetServiceAccountName(props.MoSharedPath)
+	// init some dynamic properties
+	props.NamePrefix = punqUtils.NanoIdSmallLowerCase()
+	props.Name = utils.GetSecretStoreName(props.NamePrefix)
+	props.ServiceAccount = utils.GetServiceAccountName(props.SecretPath)
 
 	// create unique service account tag per project
 	annotations := make(map[string]string)
-	key := fmt.Sprintf("%s%s", utils.StoreAnnotationPrefix, props.ProjectName)
-	annotations[key] = fmt.Sprintf("Used to read secrets from vault path: %s", props.MoSharedPath)
+	key := fmt.Sprintf("%s%s", utils.StoreAnnotationPrefix, props.ProjectId)
+	annotations[key] = fmt.Sprintf("Used to read secrets from vault path: %s", props.SecretPath)
 
 	err := mokubernetes.ApplyServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace, annotations)
 	if err != nil {
@@ -64,9 +66,9 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	// so that we can use them to offer them as UI options before binding them to a mogenius service
 	err = mokubernetes.CreateExternalSecretList(mokubernetes.ExternalSecretListProps{
 		NamePrefix:      props.NamePrefix,
-		Project:         props.ProjectName,
+		Project:         props.ProjectId,
 		SecretStoreName: props.Name,
-		MoSharedPath:    props.MoSharedPath,
+		MoSharedPath:    props.SecretPath,
 	})
 	if err != nil {
 		return err
@@ -123,16 +125,26 @@ func ListAvailableExternalSecrets(namePrefix, projectName string) []string {
 	return result
 }
 
-func DeleteExternalSecretsStore(namePrefix, projectName, moSharedPath string) error {
+func DeleteExternalSecretsStore(name string) error {
 	errors := []error{}
+
+	// get the secret store
+	store, err := mokubernetes.GetExternalSecretsStore(name)
+	errors = append(errors, err)
 	// delete the external secrets list
-	errors = append(errors, mokubernetes.DeleteExternalSecretList(namePrefix, projectName))
+	errors = append(errors, mokubernetes.DeleteExternalSecretList(store.Prefix, store.ProjectId))
 
 	// delete the secret store
-	errors = append(errors, mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", utils.GetSecretStoreName(namePrefix, projectName), "", true))
+	errors = append(errors, mokubernetes.DeleteResource(
+		"external-secrets.io",
+		"v1beta1",
+		"clustersecretstores",
+		utils.GetSecretStoreName(store.Prefix),
+		"",
+		true))
 
 	// delete the service account if it has no annotations from another SecretStore
-	errors = append(errors, deleteUnusedServiceAccount(projectName, moSharedPath))
+	errors = append(errors, deleteUnusedServiceAccount(store.ProjectId, store.SharedPath))
 
 	// if any of the above failed, return an error
 	for _, err := range errors {
@@ -192,7 +204,9 @@ func deleteUnusedServiceAccount(projectName, moSharedPath string) error {
 func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name, -1)
 	// secret stores are currently bound to the project settings
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH_COMBINED>", utils.GetMoSharedPath(props.MoSharedPath, props.ProjectName), -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH_COMBINED>", utils.GetMoSharedPath(props.SecretPath, props.ProjectId), -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<PREFIX>", strings.ToLower(props.NamePrefix), -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROJECT_ID>", strings.ToLower(props.ProjectId), -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<ROLE>", props.Role, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount, -1)

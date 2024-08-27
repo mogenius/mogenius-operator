@@ -3,12 +3,11 @@ package kubernetes
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"gopkg.in/yaml.v2"
 )
 
-func ListExternalSecretsStores(projectName string) ([]string, error) {
+func ListExternalSecretsStores(projectId string) ([]SecretStore, error) {
 	response, err := ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
 		K8sLogger.Info("ListResources failed")
@@ -22,9 +21,9 @@ func ListExternalSecretsStores(projectName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	filteredStores := []string{}
+	filteredStores := []SecretStore{}
 	for _, store := range stores {
-		if strings.Contains(store, projectName) {
+		if store.ProjectId == projectId {
 			filteredStores = append(filteredStores, store)
 		}
 	}
@@ -32,7 +31,7 @@ func ListExternalSecretsStores(projectName string) ([]string, error) {
 	return filteredStores, nil
 }
 
-func GetExternalSecretsStore(name string) (*SecretStoreSchema, error) {
+func GetExternalSecretsStore(name string) (*SecretStore, error) {
 	response, err := GetResource("external-secrets.io", "v1beta1", "clustersecretstores", name, "", true)
 	if err != nil {
 		K8sLogger.Info("GetResource failed for SecretStore: " + name)
@@ -50,7 +49,14 @@ func GetExternalSecretsStore(name string) (*SecretStoreSchema, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &secretStore, err
+	return &SecretStore{
+		Name:       secretStore.Metadata.Name,
+		Prefix:     secretStore.Metadata.Annotations.Prefix,
+		ProjectId:  secretStore.Metadata.Annotations.ProjectId,
+		SharedPath: secretStore.Metadata.Annotations.SharedPath,
+		Role:       secretStore.Spec.Provider.Vault.Auth.Kubernetes.Role,
+		VaultURL:   secretStore.Spec.Provider.Vault.Server,
+	}, err
 }
 
 func ReadSecretPathFromSecretStore(name string) (string, error) {
@@ -58,51 +64,68 @@ func ReadSecretPathFromSecretStore(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return secretStore.Metadata.Annotations.SharedPath, nil
+	return secretStore.SharedPath, nil
 }
 
 type SecretStoreListingSchema struct {
 	Items []struct {
-		Metadata struct {
-			Name string `json:"name"`
-		} `json:"metadata"`
-		Spec struct {
-			Provider struct {
-				Vault struct {
-					Auth struct {
-						Kubernetes struct {
-							Role string `json:"role"`
-						} `json:"kubernetes"`
-					} `json:"auth"`
-				} `json:"vault"`
-			} `json:"provider"`
-		} `json:"spec"`
-		Status struct {
-			Conditions []struct {
-				Message string `json:"message"`
-			} `json:"conditions"`
-		} `json:"status"`
+		SecretStoreSchema
 	} `json:"items"`
 }
+type SecretStoreSchema struct {
+	Metadata struct {
+		Name        string `json:"name"`
+		Annotations struct {
+			Prefix     string `json:"mogenius-external-secrets/prefix"`
+			SharedPath string `json:"mogenius-external-secrets/shared-path"`
+			ProjectId  string `json:"mogenius-external-secrets/project-id"`
+		} `json:"annotations"`
+	} `json:"metadata"`
+	Spec struct {
+		Provider struct {
+			Vault struct {
+				Server string `json:"server"`
+				Auth   struct {
+					Kubernetes struct {
+						Role string `json:"role"`
+					} `json:"kubernetes"`
+				} `json:"auth"`
+			} `json:"vault"`
+		} `json:"provider"`
+	} `json:"spec"`
+	Status struct {
+		Conditions []struct {
+			Message string `json:"message"`
+		} `json:"conditions"`
+	} `json:"status"`
+}
 
-func parseSecretStoresListing(jsonStr string) ([]string, error) {
+func parseSecretStoresListing(jsonStr string) ([]SecretStore, error) {
 	var secretStores SecretStoreListingSchema
 	err := json.Unmarshal([]byte(jsonStr), &secretStores)
 	if err != nil {
 		return nil, err
 	}
 
-	var stores = []string{}
+	var stores = []SecretStore{}
 	for _, item := range secretStores.Items {
-		stores = append(stores, item.Metadata.Name)
+		stores = append(stores, SecretStore{
+			Name:       item.Metadata.Name,
+			Prefix:     item.Metadata.Annotations.Prefix,
+			ProjectId:  item.Metadata.Annotations.ProjectId,
+			SharedPath: item.Metadata.Annotations.SharedPath,
+			Role:       item.Spec.Provider.Vault.Auth.Kubernetes.Role,
+			VaultURL:   item.Spec.Provider.Vault.Server,
+		})
 	}
 	return stores, nil
 }
 
-type SecretStoreSchema struct {
-	Metadata struct {
-		Annotations struct {
-			SharedPath string `yaml:"mogenius-external-secrets/shared-path"`
-		} `yaml:"annotations"`
-	} `yaml:"metadata"`
+type SecretStore struct {
+	Name       string `json:"name"`
+	Prefix     string `json:"prefix"`
+	ProjectId  string `json:"project-id"`
+	SharedPath string `json:"shared-path"`
+	Role       string `json:"role"`
+	VaultURL   string `json:"vault-url"`
 }
