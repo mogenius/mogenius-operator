@@ -204,13 +204,13 @@ func deleteUnusedServiceAccount(projectName, moSharedPath string) error {
 func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name, -1)
 	// secret stores are currently bound to the project settings
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH_COMBINED>", utils.GetMoSharedPath(props.SecretPath, props.ProjectId), -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<PREFIX>", strings.ToLower(props.NamePrefix), -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROJECT_ID>", strings.ToLower(props.ProjectId), -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<ROLE>", props.Role, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_DEFAULT_NS>", utils.CONFIG.Kubernetes.OwnNamespace, -1)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_PATH>", props.SecretPath)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<PREFIX>", strings.ToLower(props.NamePrefix))
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<PROJECT_ID>", strings.ToLower(props.ProjectId))
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<ROLE>", props.Role)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<MO_DEFAULT_NS>", utils.CONFIG.Kubernetes.OwnNamespace)
 
 	return yamlTemplateString
 }

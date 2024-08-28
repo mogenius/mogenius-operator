@@ -18,6 +18,29 @@ const (
 	MoSharedPath = "mogenius-external-secrets"
 )
 
+type SecretStoreSchema struct {
+	Metadata struct {
+		Name        string `yaml:"name"`
+		Annotations struct {
+			Prefix     string `yaml:"mogenius-external-secrets/prefix"`
+			SharedPath string `yaml:"mogenius-external-secrets/shared-path"`
+			ProjectId  string `yaml:"mogenius-external-secrets/project-id"`
+		} `yaml:"annotations"`
+	} `yaml:"metadata"`
+	Spec struct {
+		Provider struct {
+			Vault struct {
+				Server string `yaml:"server"`
+				Auth   struct {
+					Kubernetes struct {
+						Role string `yaml:"role"`
+					} `yaml:"kubernetes"`
+				} `yaml:"auth"`
+			} `yaml:"vault"`
+		} `yaml:"provider"`
+	} `yaml:"spec"`
+}
+
 func TestSecretStoreRender(t *testing.T) {
 
 	yamlTemplate := utils.InitExternalSecretsStoreYaml()
@@ -32,22 +55,21 @@ func TestSecretStoreRender(t *testing.T) {
 		logger.Log.Info("Yaml data updated ✅")
 	}
 
-	expectedPath := "secret-mo-ex-secr-test-003"
+	expectedPath := "secrets/mo-ex-secr-test-003"
 	secretStore.SecretPath = expectedPath
-	expectedPath = fmt.Sprintf("%s/%s", expectedPath, secretStore.ProjectId) // the rendering adds the project name to the path to reflect the corresponding secret store
 	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, secretStore)
 
 	// check if the values are replaced
-	var data kubernetes.SecretStoreSchema
+	var data SecretStoreSchema
 	err := yaml.Unmarshal([]byte(yamlDataUpdated), &data)
 	if err != nil {
 		t.Fatalf("Error parsing YAML: %v", err)
 	}
 
 	if data.Metadata.Annotations.SharedPath != expectedPath {
-		t.Errorf("Error updating MoSharedPath: expected: %s, got: %s", expectedPath, data.Metadata.Annotations.SharedPath)
+		t.Errorf("Error updating SecretPath: expected: %s, got: %s", expectedPath, data.Metadata.Annotations.SharedPath)
 	} else {
-		logger.Log.Info("MoSharedPath updated ✅")
+		logger.Log.Info("SecretPath updated ✅")
 	}
 }
 
@@ -56,7 +78,7 @@ func TestSecretStoreCreate(t *testing.T) {
 
 	props := externalSecretStorePropsExample()
 
-	// assume composed name: team-blue-secrets-vault-secret-store
+	// assume composed name: 4jdh7e9dk7-vault-secret-store
 	props.NamePrefix = NamePrefix
 	props.ProjectId = ProjectId
 
@@ -115,10 +137,11 @@ func TestListAvailSecrets(t *testing.T) {
 
 func TestSecretStoreDelete(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
+	name := utils.GetSecretStoreName(NamePrefix)
 
-	err := DeleteExternalSecretsStore(Name)
+	err := DeleteExternalSecretsStore(name)
 	if err != nil {
-		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", utils.GetSecretStoreName(NamePrefix, ProjectId), err.Error())
+		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", utils.GetSecretStoreName(NamePrefix), err.Error())
 	} else {
 		logger.Log.Info("Secret store deletion confirmed ✅")
 	}

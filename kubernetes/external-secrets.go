@@ -74,7 +74,7 @@ func CreateExternalSecretList(props ExternalSecretListProps) error {
 }
 
 func CreateExternalSecret(data CreateExternalSecretProps) error {
-	responsibleSecStore := utils.GetSecretStoreName(data.SecretStoreNamePrefix, data.ProjectName)
+	responsibleSecStore := utils.GetSecretStoreName(data.SecretStoreNamePrefix)
 
 	secretPath, err := ReadSecretPathFromSecretStore(responsibleSecStore)
 	if err != nil {
