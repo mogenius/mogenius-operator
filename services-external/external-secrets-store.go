@@ -69,7 +69,7 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	err = mokubernetes.CreateExternalSecretList(mokubernetes.ExternalSecretListProps{
 		NamePrefix:      props.NamePrefix,
 		SecretStoreName: props.Name,
-		MoSharedPath:    props.SecretPath,
+		SecretPath:      props.SecretPath,
 	})
 	if err != nil {
 		return err

@@ -51,7 +51,7 @@ type ExternalSecretListProps struct {
 	NamePrefix      string
 	Project         string
 	SecretStoreName string
-	MoSharedPath    string
+	SecretPath      string
 }
 
 func externalSecretListExample() ExternalSecretListProps {
@@ -59,7 +59,7 @@ func externalSecretListExample() ExternalSecretListProps {
 		NamePrefix:      "team-blue-secrets",
 		Project:         "team-blue",
 		SecretStoreName: "team-blue-secrets-" + utils.SecretStoreSuffix,
-		MoSharedPath:    "mogenius-external-secrets",
+		SecretPath:      "mogenius-external-secrets/data/team-blue",
 	}
 }
 
@@ -169,8 +169,16 @@ func renderExternalSecretList(yamlTemplateString string, props ExternalSecretLis
 	// the list of all available secrets for a project is only ever read by the operator
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAMESPACE>", utils.CONFIG.Kubernetes.OwnNamespace)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName)
-	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<MO_SHARED_PATH>", props.MoSharedPath)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_PATH>", props.SecretPath)
 
+	pathParts := strings.Split(props.SecretPath, "/")
+	secretName := pathParts[len(pathParts)-1]
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_NAME>", secretName)
+
+	secretFolder := strings.Join(pathParts[:len(pathParts)-1], "/")
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_FOLDER>", secretFolder)
+
+	// log.Println(yamlTemplateString)
 	return yamlTemplateString
 }
 
