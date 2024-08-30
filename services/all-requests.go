@@ -32,6 +32,13 @@ import (
 
 var ServiceLogger = log.WithField("component", structs.ComponentServices)
 
+type ErrorMessageResponse struct {
+	ErrorMessage string `json:"errorMessage"`
+}
+type MessageResponse struct {
+	Message string `json:"message"`
+}
+
 func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	switch datagram.Pattern {
 	case structs.PAT_K8SNOTIFICATION:
@@ -564,7 +571,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return result
 
-	case structs.PAT_NAMESPACE_HELM_REPO_ADD:
+	case structs.PAT_CLUSTER_HELM_REPO_ADD:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -572,22 +579,32 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		result, err := kubernetes.HelmRepoAdd(data.Repo, data.ChartUrl)
 		if err != nil {
-			return err.Error()
+			return ErrorMessageResponse{
+				ErrorMessage: err.Error(),
+			}
 		}
-		return result
-	case structs.PAT_NAMESPACE_HELM_REPO_UPDATE:
+		return MessageResponse{
+			Message: result,
+		}
+	case structs.PAT_CLUSTER_HELM_REPO_UPDATE:
 		result, err := kubernetes.HelmRepoUpdate()
 		if err != nil {
-			return err
+			return ErrorMessageResponse{
+				ErrorMessage: err.Error(),
+			}
 		}
-		return result
-	case structs.PAT_NAMESPACE_HELM_REPO_LIST:
+		return MessageResponse{
+			Message: result,
+		}
+	case structs.PAT_CLUSTER_HELM_REPO_LIST:
 		result, err := kubernetes.HelmRepoList()
 		if err != nil {
-			return err
+			return ErrorMessageResponse{
+				ErrorMessage: err.Error(),
+			}
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_REPO_REMOVE:
+	case structs.PAT_CLUSTER_HELM_REPO_REMOVE:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -595,10 +612,27 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		result, err := kubernetes.HelmRepoRemove(data.Repo)
 		if err != nil {
-			return err.Error()
+			return ErrorMessageResponse{
+				ErrorMessage: err.Error(),
+			}
+		}
+		return MessageResponse{
+			Message: result,
+		}
+	case structs.PAT_CLUSTER_HELM_REPO_SEARCH:
+		data := HelmDataRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		result, err := kubernetes.HelmRepoSearch(data.Repo)
+		if err != nil {
+			return ErrorMessageResponse{
+				ErrorMessage: err.Error(),
+			}
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_INSTALL:
+	case structs.PAT_CLUSTER_HELM_INSTALL:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -609,7 +643,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err.Error()
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_UPGRADE:
+	case structs.PAT_CLUSTER_HELM_UPGRADE:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -620,7 +654,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err.Error()
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_UNINSTALL:
+	case structs.PAT_CLUSTER_HELM_UNINSTALL:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -631,7 +665,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err.Error()
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_LIST:
+	case structs.PAT_CLUSTER_HELM_LIST:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -642,7 +676,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_STATUS:
+	case structs.PAT_CLUSTER_HELM_STATUS:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -653,7 +687,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_SHOW:
+	case structs.PAT_CLUSTER_HELM_SHOW:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -664,7 +698,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_HISTORY:
+	case structs.PAT_CLUSTER_HELM_HISTORY:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -675,7 +709,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_ROLLBACK:
+	case structs.PAT_CLUSTER_HELM_ROLLBACK:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
@@ -686,7 +720,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return result
-	case structs.PAT_NAMESPACE_HELM_GET:
+	case structs.PAT_CLUSTER_HELM_GET:
 		data := HelmDataRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {

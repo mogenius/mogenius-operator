@@ -1,9 +1,12 @@
 package kubernetes
 
 import (
+	"encoding/json"
 	"fmt"
+	"helm.sh/helm/v3/pkg/repo"
 	"mogenius-k8s-manager/structs"
 	"os"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -15,10 +18,25 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/repo"
 )
 
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
+
+type ChartInfo struct {
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	AppVersion  string `json:"app_version"`
+	Description string `json:"description"`
+}
+
+type HelmReleaseStatusInfo struct {
+	Name         string    `json:"name"`
+	LastDeployed time.Time `json:"lastDeployed"`
+	Namespace    string    `json:"namespace"`
+	Status       string    `json:"status"`
+	Version      int       `json:"version"`
+	Chart        string    `json:"chart"`
+}
 
 func CreateHelmChart(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask structs.HelmTaskEnum, helmChartName string, helmFlags string, successFunc func(), failFunc func(output string, err error)) {
 	structs.CreateShellCommandGoRoutine("Add/Update Helm Repo & Execute chart.", fmt.Sprintf("helm repo add %s %s; helm repo update; helm %s %s %s %s", helmRepoName, helmRepoUrl, helmTask, helmReleaseName, helmChartName, helmFlags), successFunc, failFunc)
@@ -187,6 +205,24 @@ func HelmRepoRemove(helmRepoName string) (string, error) {
 	return fmt.Sprintf("Repo '%s' removed", helmRepoName), nil
 }
 
+// XXX TODO BENE
+func HelmRepoSearch(helmRepoName string) ([]ChartInfo, error) {
+	cmd := exec.Command("helm", "search", "repo", helmRepoName, "--output", "json")
+
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	var charts []ChartInfo
+	err = json.Unmarshal(out, &charts)
+	if err != nil {
+		return nil, err
+	}
+
+	return charts, nil
+}
+
 func HelmInstall(namespace string, chart string, version string, releaseName string, values string, dryRun bool) (string, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
@@ -330,26 +366,36 @@ func HelmReleaseList(namespace string) ([]*release.Release, error) {
 	return releases, nil
 }
 
-func HelmReleaseStatus(namespace string, chartname string) (string, error) {
+func HelmReleaseStatus(namespace string, chartname string) (*HelmReleaseStatusInfo, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), K8sLogger.Infof); err != nil {
 		K8sLogger.Errorf("HelmReleaseStatus Init Error: %s", err.Error())
-		return "", err
+		return nil, err
 	}
 
 	status := action.NewStatus(actionConfig)
 	release, err := status.Run(chartname)
 	if err != nil {
 		K8sLogger.Errorf("HelmReleaseStatus List Error: %s", err.Error())
-		return "", err
+		return nil, err
 	}
 	if release == nil {
-		return "", fmt.Errorf("HelmReleaseStatus Error: Release not found")
+		return nil, fmt.Errorf("HelmReleaseStatus Error: Release not found")
 	}
-	return statusString(*release), nil
+
+	helmReleaseStatusInfo := HelmReleaseStatusInfo{
+		Name:         release.Name,
+		LastDeployed: release.Info.LastDeployed.Time,
+		Namespace:    release.Namespace,
+		Status:       release.Info.Status.String(),
+		Version:      release.Version,
+		Chart:        fmt.Sprintf("%s-%s", release.Chart.Metadata.Name, release.Chart.Metadata.Version),
+	}
+
+	return &helmReleaseStatusInfo, nil
 }
 
 func statusString(rel release.Release) string {
