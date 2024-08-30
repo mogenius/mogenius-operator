@@ -40,11 +40,11 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 		props.NamePrefix = punqUtils.NanoIdSmallLowerCase()
 	}
 	props.Name = utils.GetSecretStoreName(props.NamePrefix)
-	props.ServiceAccount = utils.GetServiceAccountName(props.SecretPath)
+	props.ServiceAccount = utils.GetServiceAccountName(props.Role)
 
-	// create unique service account tag per project
+	// create unique service account tag per role
 	annotations := make(map[string]string)
-	key := fmt.Sprintf("%s%s", utils.StoreAnnotationPrefix, props.ProjectId)
+	key := fmt.Sprintf("%srole-%s", utils.StoreAnnotationPrefix, props.Role)
 	annotations[key] = fmt.Sprintf("Used to read secrets from vault path: %s", props.SecretPath)
 
 	err := mokubernetes.ApplyServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace, annotations)
@@ -68,7 +68,6 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	// so that we can use them to offer them as UI options before binding them to a mogenius service
 	err = mokubernetes.CreateExternalSecretList(mokubernetes.ExternalSecretListProps{
 		NamePrefix:      props.NamePrefix,
-		Project:         props.ProjectId,
 		SecretStoreName: props.Name,
 		MoSharedPath:    props.SecretPath,
 	})

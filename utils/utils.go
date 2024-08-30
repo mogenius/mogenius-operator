@@ -276,10 +276,10 @@ const (
 	StoreAnnotationPrefix = "used-by-mogenius/"
 )
 
-func GetServiceAccountName(secretPath string) string {
+func GetServiceAccountName(role string) string {
 	return fmt.Sprintf("%s-%s",
 		strings.ToLower(ExternalSecretsSA),
-		strings.ReplaceAll(strings.ToLower(secretPath), "/", "-"),
+		strings.ToLower(role),
 	)
 }
 
