@@ -10,7 +10,6 @@ import (
 
 	"github.com/mogenius/punq/logger"
 	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -83,6 +82,7 @@ func TestSecretStoreCreate(t *testing.T) {
 	// assume composed name: 4jdh7e9dk7-vault-secret-store
 	props.NamePrefix = NamePrefix
 	props.SecretPath = SecretPath
+	props.ProjectId = ProjectId
 	props.Role = Role
 
 	err := CreateExternalSecretsStore(props)
@@ -125,16 +125,16 @@ func TestListAvailSecrets(t *testing.T) {
 
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 	// prereq
-	_, err := kubernetes.CreateSecret(utils.CONFIG.Kubernetes.OwnNamespace, &v1.Secret{
-		Data: map[string][]byte{
-			"backend-project": []byte("{\"postgresURL\":\"postgres\",\"postgressPW\":\"fjksdhf7\"}"),
-		},
-	})
-	if err != nil {
-		logger.Log.Info("Secret list already exists.")
-	} else {
-		logger.Log.Info("Secret list created ✅")
-	}
+	// _, err := kubernetes.CreateSecret(utils.CONFIG.Kubernetes.OwnNamespace, &v1.Secret{
+	// 	Data: map[string][]byte{
+	// 		"backend-project": []byte("{\"postgresURL\":\"postgres\",\"postgressPW\":\"fjksdhf7\"}"),
+	// 	},
+	// })
+	// if err != nil {
+	// 	logger.Log.Info("Secret list already exists.")
+	// } else {
+	// 	logger.Log.Info("Secret list created ✅")
+	// }
 	availSecrets := ListAvailableExternalSecrets(NamePrefix)
 
 	if len(availSecrets) == 0 {

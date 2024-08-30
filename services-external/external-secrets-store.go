@@ -144,7 +144,7 @@ func DeleteExternalSecretsStore(name string) error {
 		true))
 
 	// delete the service account if it has no annotations from another SecretStore
-	errors = append(errors, deleteUnusedServiceAccount(store.ProjectId, store.SharedPath))
+	errors = append(errors, deleteUnusedServiceAccount(store.Role, store.ProjectId, store.SharedPath))
 
 	// if any of the above failed, return an error
 	for _, err := range errors {
@@ -155,8 +155,8 @@ func DeleteExternalSecretsStore(name string) error {
 	return nil
 }
 
-func deleteUnusedServiceAccount(projectName, moSharedPath string) error {
-	serviceAccount, err := mokubernetes.GetServiceAccount(utils.GetServiceAccountName(moSharedPath), utils.CONFIG.Kubernetes.OwnNamespace)
+func deleteUnusedServiceAccount(role, projectId, moSharedPath string) error {
+	serviceAccount, err := mokubernetes.GetServiceAccount(utils.GetServiceAccountName(role), utils.CONFIG.Kubernetes.OwnNamespace)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func deleteUnusedServiceAccount(projectName, moSharedPath string) error {
 		// remove current claim of using this service account
 		removeKey := ""
 		for key := range serviceAccount.Annotations {
-			myKey := fmt.Sprintf("%s%s", utils.StoreAnnotationPrefix, projectName)
+			myKey := fmt.Sprintf("%s%s", utils.StoreAnnotationPrefix, projectId)
 			if key == myKey {
 				removeKey = key
 				break // "my" claim found, remove it
