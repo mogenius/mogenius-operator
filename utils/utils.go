@@ -283,10 +283,6 @@ func GetServiceAccountName(secretPath string) string {
 	)
 }
 
-func GetMoSharedPath(moSharedPath string, projectName string) string {
-	return fmt.Sprintf("%s/%s", moSharedPath, projectName)
-}
-
 func GetSecretStoreName(namePrefix string) string {
 	return fmt.Sprintf("%s-%s",
 		strings.ToLower(namePrefix),
@@ -294,19 +290,17 @@ func GetSecretStoreName(namePrefix string) string {
 	)
 }
 
-func GetSecretName(namePrefix, project, service, propertyName string) string {
-	return fmt.Sprintf("%s-%s-%s-%s",
+func GetSecretName(namePrefix, service, propertyName string) string {
+	return fmt.Sprintf("%s-%s-%s",
 		strings.ToLower(namePrefix),
-		strings.ToLower(project),
 		strings.ToLower(service),
 		strings.ToLower(propertyName),
 	)
 }
 
-func GetSecretListName(customerPrefix string, projectId string) string {
-	return fmt.Sprintf("%s-%s-%s",
-		strings.ToLower(customerPrefix),
-		strings.ToLower(projectId),
+func GetSecretListName(namePrefix string) string {
+	return fmt.Sprintf("%s-%s",
+		strings.ToLower(namePrefix),
 		strings.ToLower(SecretListSuffix),
 	)
 }

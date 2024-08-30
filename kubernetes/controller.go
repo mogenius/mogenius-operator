@@ -213,7 +213,6 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 								LocalObjectReference: v1core.LocalObjectReference{
 									Name: utils.GetSecretName(
 										externalSecretStorePrefix,
-										service.EsoSettings.ProjectName,
 										service.ControllerName,
 										envVar.Name,
 									),

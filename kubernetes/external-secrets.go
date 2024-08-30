@@ -101,7 +101,7 @@ func CreateExternalSecret(data CreateExternalSecretProps) error {
 }
 
 func DeleteExternalSecretList(namePrefix string, projectName string) error {
-	return DeleteExternalSecret(utils.GetSecretListName(namePrefix, projectName))
+	return DeleteExternalSecret(utils.GetSecretListName(namePrefix))
 }
 
 func DeleteUnusedSecretsForNamespace(namespace string) error {
@@ -165,7 +165,7 @@ func DeleteExternalSecret(name string) error {
 }
 
 func renderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretListName(props.NamePrefix, props.Project), -1)
+	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretListName(props.NamePrefix), -1)
 	// the list of all available secrets for a project is only ever read by the operator
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", utils.CONFIG.Kubernetes.OwnNamespace, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
@@ -176,7 +176,7 @@ func renderExternalSecretList(yamlTemplateString string, props ExternalSecretLis
 
 func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) string {
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretName(
-		props.SecretStoreNamePrefix, props.ProjectName, props.ServiceName, props.PropertyName,
+		props.SecretStoreNamePrefix, props.ServiceName, props.PropertyName,
 	), -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_NAME>", props.ServiceName, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROPERTY_FROM_SECRET>", props.PropertyName, -1)

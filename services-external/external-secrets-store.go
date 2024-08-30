@@ -36,7 +36,9 @@ func externalSecretStorePropsExample() ExternalSecretStoreProps {
 
 func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	// init some dynamic properties
-	props.NamePrefix = punqUtils.NanoIdSmallLowerCase()
+	if props.NamePrefix == "" {
+		props.NamePrefix = punqUtils.NanoIdSmallLowerCase()
+	}
 	props.Name = utils.GetSecretStoreName(props.NamePrefix)
 	props.ServiceAccount = utils.GetServiceAccountName(props.SecretPath)
 
@@ -97,9 +99,9 @@ func GetExternalSecretsStore(name string) (*mokubernetes.SecretStoreSchema, erro
 	return &secretStore, err
 }
 
-func ListAvailableExternalSecrets(namePrefix, projectName string) []string {
+func ListAvailableExternalSecrets(namePrefix string) []string {
 	response, err := mokubernetes.GetDecodedSecret(
-		utils.GetSecretListName(namePrefix, projectName),
+		utils.GetSecretListName(namePrefix),
 		utils.CONFIG.Kubernetes.OwnNamespace,
 	)
 	if err != nil {
@@ -107,20 +109,19 @@ func ListAvailableExternalSecrets(namePrefix, projectName string) []string {
 	}
 	// Initialize result with an empty slice for SecretsInProject
 	result := []string{}
-	for project, secretValue := range response {
-		if project == projectName {
-			var secretMap map[string]interface{}
-			err := json.Unmarshal([]byte(secretValue), &secretMap)
-			if err != nil {
-				logger.Log.Error(err)
-				return nil
-			}
-
-			for key := range secretMap {
-				result = append(result, key)
-			}
-			break // there should only be one matching project
+	// for the current prefix, there's only one secret list
+	for _, secretValue := range response {
+		var secretMap map[string]interface{}
+		err := json.Unmarshal([]byte(secretValue), &secretMap)
+		if err != nil {
+			logger.Log.Error(err)
+			return nil
 		}
+
+		for key := range secretMap {
+			result = append(result, key)
+		}
+
 	}
 	return result
 }

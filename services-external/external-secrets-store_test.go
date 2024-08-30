@@ -95,7 +95,7 @@ func TestSecretStoreList(t *testing.T) {
 	// wait for create to finish
 	time.Sleep(3 * time.Second)
 
-	stores, err := kubernetes.ListExternalSecretsStores(ProjectId)
+	stores, err := kubernetes.ListExternalSecretsStores(NamePrefix)
 	if err != nil {
 		t.Errorf("Error listing secret stores: %s", err.Error())
 	}
@@ -126,7 +126,7 @@ func TestListAvailSecrets(t *testing.T) {
 	} else {
 		logger.Log.Info("Secret list created ✅")
 	}
-	availSecrets := ListAvailableExternalSecrets(NamePrefix, ProjectId)
+	availSecrets := ListAvailableExternalSecrets(NamePrefix)
 
 	if len(availSecrets) == 0 {
 		t.Errorf("Error listing available secrets: No secrets found")

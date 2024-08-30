@@ -94,7 +94,7 @@ func ListExternalSecretsStores(data ListSecretStoresRequest) ListSecretsStoresRe
 }
 
 func ListAvailableExternalSecrets(data ListSecretsRequest) ListSecretsResponse {
-	availSecrets := servicesExternal.ListAvailableExternalSecrets(data.NamePrefix, data.ProjectName)
+	availSecrets := servicesExternal.ListAvailableExternalSecrets(data.NamePrefix)
 	if availSecrets == nil {
 		logger.Log.Error("Getting available secrets failed")
 		return ListSecretsResponse{}

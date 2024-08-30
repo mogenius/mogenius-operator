@@ -3,11 +3,9 @@ package kubernetes
 import (
 	"encoding/json"
 	"fmt"
-
-	"gopkg.in/yaml.v2"
 )
 
-func ListExternalSecretsStores(projectId string) ([]SecretStore, error) {
+func ListExternalSecretsStores(namePrefix string) ([]SecretStore, error) {
 	response, err := ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
 		K8sLogger.Info("ListResources failed")
@@ -23,7 +21,7 @@ func ListExternalSecretsStores(projectId string) ([]SecretStore, error) {
 	}
 	filteredStores := []SecretStore{}
 	for _, store := range stores {
-		if store.ProjectId == projectId {
+		if store.Prefix == namePrefix {
 			filteredStores = append(filteredStores, store)
 		}
 	}
@@ -40,12 +38,12 @@ func GetExternalSecretsStore(name string) (*SecretStore, error) {
 
 	K8sLogger.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
 
-	yamlOutput, err := yaml.Marshal(response.Object)
+	jsonOutput, err := json.Marshal(response.Object)
 	if err != nil {
 		return nil, err
 	}
 	secretStore := SecretStoreSchema{}
-	err = yaml.Unmarshal([]byte(yamlOutput), &secretStore)
+	err = json.Unmarshal([]byte(jsonOutput), &secretStore)
 	if err != nil {
 		return nil, err
 	}

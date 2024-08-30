@@ -8,6 +8,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	NamePrefix   = "4jdh7e9dk7"
+	ProjectId    = "djsajfh74-23423-234123-32fdsf"
+	MoSharedPath = "mogenius-external-secrets"
+)
+
 func TestSecretListRender(t *testing.T) {
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
@@ -23,8 +29,8 @@ func TestSecretListRender(t *testing.T) {
 	}
 
 	// change values and compare
-	expectedName := "team-yellow-projectmayhem-" + utils.SecretListSuffix // lowercase only
-	secretListProps.NamePrefix = "team-yellow"
+	expectedName := NamePrefix + "-" + utils.SecretListSuffix // lowercase only
+	secretListProps.NamePrefix = NamePrefix
 	secretListProps.Project = "projectMayhem"
 	yamlDataRenderedChanged := renderExternalSecretList(yamlTemplate, secretListProps)
 	if yamlDataRenderedChanged == yamlDataRendered {
