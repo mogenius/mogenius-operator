@@ -83,14 +83,15 @@ func CreateExternalSecretStore(data CreateSecretsStoreRequest) CreateSecretsStor
 	}
 }
 
-func ListExternalSecretsStores(data ListSecretStoresRequest) ListSecretsStoresResponse {
+func ListExternalSecretsStores(data ListSecretStoresRequest) []mokubernetes.SecretStore {
 	stores, err := mokubernetes.ListExternalSecretsStores(data.ProjectId)
 	if err != nil {
 		logger.Log.Error("Getting secret stores failed with error: %v", err)
 	}
-	return ListSecretsStoresResponse{
-		StoresInCluster: stores,
-	}
+	return stores
+	//return ListSecretsStoresResponse{
+	//	StoresInCluster: stores,
+	//}
 }
 
 func ListAvailableExternalSecrets(data ListSecretsRequest) ListSecretsResponse {

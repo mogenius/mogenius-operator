@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func ListExternalSecretsStores(namePrefix string) ([]SecretStore, error) {
+func ListExternalSecretsStores(ProjectId string) ([]SecretStore, error) {
 	response, err := ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
 		K8sLogger.Info("ListResources failed")
@@ -21,7 +21,7 @@ func ListExternalSecretsStores(namePrefix string) ([]SecretStore, error) {
 	}
 	filteredStores := []SecretStore{}
 	for _, store := range stores {
-		if store.Prefix == namePrefix {
+		if store.ProjectId == ProjectId {
 			filteredStores = append(filteredStores, store)
 		}
 	}
