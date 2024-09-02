@@ -8,25 +8,21 @@ import (
 	"github.com/mogenius/punq/logger"
 )
 
-// curl --header "X-Vault-Token: root" --request GET http://vault.vault:8200/v1/sys/mounts
 type CreateSecretsStoreRequest struct {
 	// Secrets stores are bound to a projects,
 	// so that customers can decide which team controls which secrets
-	ProjectId string `json:"projectId" validate:"required"` // api
-	// customers might want to create multiple stores	and should have IDs to differentiate
-	NamePrefix     string `json:"namePrefix" validate:"required"`
+	ProjectId      string `json:"projectId" validate:"required"`
 	Role           string `json:"role" validate:"required"`
 	VaultServerUrl string `json:"vaultServerUrl" validate:"required"`
-	MoSharedPath   string `json:"moSharedPath" validate:"required"`
+	SecretPath     string `json:"secretPath" validate:"required"`
 }
 
 func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
 	return CreateSecretsStoreRequest{
-		ProjectId:      "e9ff3afc-83bd-4fae-a93e-4eaeea453b",
-		NamePrefix:     "mo-test",
+		ProjectId:      "234jhkl-lklj-234lkj-234lkj",
 		Role:           "mogenius-external-secrets",
 		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		MoSharedPath:   "mogenius-external-secrets",
+		SecretPath:     "mogenius-external-secrets/data/phoenix",
 	}
 }
 
@@ -36,32 +32,26 @@ type CreateSecretsStoreResponse struct {
 }
 
 type ListSecretsStoresResponse struct {
-	Stores []string `json:"stores"`
+	StoresInCluster []mokubernetes.SecretStore `json:"storesInCluster"`
 }
 type ListSecretStoresRequest struct {
 	ProjectId string `json:"projectId" validate:"required"`
 }
 
 type ListSecretsRequest struct {
-	Name string `json:"name" validate:"required"`
-	//NamePrefix  string `json:"namePrefix" validate:"required"`
-	//ProjectName string `json:"projectName" validate:"required"`
+	NamePrefix  string `json:"namePrefix" validate:"required"`
+	ProjectName string `json:"projectName" validate:"required"`
 }
 type ListSecretsResponse struct {
 	SecretsInProject []string `json:"secretsInProject"`
 }
 type DeleteSecretsStoreRequest struct {
 	Name string `json:"name" validate:"required"`
-	//NamePrefix   string `json:"namePrefix" validate:"required"`
-	//ProjectName  string `json:"projectName" validate:"required"`
-	//MoSharedPath string `json:"moSharedPath" validate:"required"`
 }
 
 func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
 	return DeleteSecretsStoreRequest{
-		Name: "mo-test-e9ff3afc-83bd-4fae-a93e-4eaeea453b-vault-secret-list",
-		//NamePrefix:  "mo-test",
-		//ProjectName: "phoenix",
+		Name: "s78fdsf78a-vault-secret-store",
 	}
 }
 
@@ -75,10 +65,8 @@ func newExternalSecretStoreProps(data CreateSecretsStoreRequest) servicesExterna
 		ProjectId:      data.ProjectId,
 		Role:           data.Role,
 		VaultServerUrl: data.VaultServerUrl,
-		MoSharedPath:   data.MoSharedPath,
-		NamePrefix:     data.NamePrefix,
-		Name:           utils.GetSecretStoreName(data.NamePrefix, data.ProjectId),
-		ServiceAccount: utils.GetServiceAccountName(data.MoSharedPath),
+		SecretPath:     data.SecretPath,
+		ServiceAccount: utils.GetServiceAccountName(data.SecretPath),
 	}
 }
 
@@ -95,18 +83,19 @@ func CreateExternalSecretStore(data CreateSecretsStoreRequest) CreateSecretsStor
 	}
 }
 
-func ListExternalSecretsStores(data ListSecretStoresRequest) ListSecretsStoresResponse {
+func ListExternalSecretsStores(data ListSecretStoresRequest) []mokubernetes.SecretStore {
 	stores, err := mokubernetes.ListExternalSecretsStores(data.ProjectId)
 	if err != nil {
 		logger.Log.Error("Getting secret stores failed with error: %v", err)
 	}
-	return ListSecretsStoresResponse{
-		Stores: stores,
-	}
+	return stores
+	//return ListSecretsStoresResponse{
+	//	StoresInCluster: stores,
+	//}
 }
 
 func ListAvailableExternalSecrets(data ListSecretsRequest) ListSecretsResponse {
-	availSecrets := servicesExternal.ListAvailableExternalSecrets(data.Name)
+	availSecrets := servicesExternal.ListAvailableExternalSecrets(data.NamePrefix)
 	if availSecrets == nil {
 		logger.Log.Error("Getting available secrets failed")
 		return ListSecretsResponse{}
@@ -117,8 +106,6 @@ func ListAvailableExternalSecrets(data ListSecretsRequest) ListSecretsResponse {
 }
 
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
-	// err := servicesExternal.DeleteExternalSecretsStore(data.NamePrefix, data.ProjectName, data.MoSharedPath)
-	// TODO
 	err := servicesExternal.DeleteExternalSecretsStore(data.Name)
 	if err != nil {
 		logger.Log.Error("Deleting secret store failed with error: %v", err)
