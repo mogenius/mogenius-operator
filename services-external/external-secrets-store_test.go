@@ -98,7 +98,7 @@ func TestSecretStoreList(t *testing.T) {
 	// wait for create to finish
 	time.Sleep(3 * time.Second)
 
-	stores, err := kubernetes.ListExternalSecretsStores(NamePrefix)
+	stores, err := kubernetes.ListExternalSecretsStores(ProjectId)
 	if err != nil {
 		t.Errorf("Error listing secret stores: %s", err.Error())
 	}
