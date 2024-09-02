@@ -704,7 +704,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		result, err := kubernetes.HelmChartShow(data.Chart, data.ShowFormat)
+		result, err := kubernetes.HelmHistory(data.Namespace, data.Release)
 		if err != nil {
 			return err
 		}
