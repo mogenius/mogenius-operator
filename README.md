@@ -26,6 +26,11 @@
 <br />
 <br />
 
+# run build locally
+```bash
+go build .
+```
+
 # local docker image in docker-desktop kubernetes
 RUN:
 ```

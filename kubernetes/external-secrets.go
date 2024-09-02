@@ -51,7 +51,7 @@ type ExternalSecretListProps struct {
 	NamePrefix      string
 	Project         string
 	SecretStoreName string
-	MoSharedPath    string
+	SecretPath      string
 }
 
 func externalSecretListExample() ExternalSecretListProps {
@@ -59,7 +59,7 @@ func externalSecretListExample() ExternalSecretListProps {
 		NamePrefix:      "team-blue-secrets",
 		Project:         "team-blue",
 		SecretStoreName: "team-blue-secrets-" + utils.SecretStoreSuffix,
-		MoSharedPath:    "mogenius-external-secrets",
+		SecretPath:      "mogenius-external-secrets/data/team-blue",
 	}
 }
 
@@ -74,7 +74,7 @@ func CreateExternalSecretList(props ExternalSecretListProps) error {
 }
 
 func CreateExternalSecret(data CreateExternalSecretProps) error {
-	responsibleSecStore := utils.GetSecretStoreName(data.SecretStoreNamePrefix, data.ProjectName)
+	responsibleSecStore := utils.GetSecretStoreName(data.SecretStoreNamePrefix)
 
 	secretPath, err := ReadSecretPathFromSecretStore(responsibleSecStore)
 	if err != nil {
@@ -101,7 +101,7 @@ func CreateExternalSecret(data CreateExternalSecretProps) error {
 }
 
 func DeleteExternalSecretList(namePrefix string, projectName string) error {
-	return DeleteExternalSecret(utils.GetSecretListName(namePrefix, projectName))
+	return DeleteExternalSecret(utils.GetSecretListName(namePrefix))
 }
 
 func DeleteUnusedSecretsForNamespace(namespace string) error {
@@ -165,18 +165,26 @@ func DeleteExternalSecret(name string) error {
 }
 
 func renderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretListName(props.NamePrefix, props.Project), -1)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAME>", utils.GetSecretListName(props.NamePrefix))
 	// the list of all available secrets for a project is only ever read by the operator
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", utils.CONFIG.Kubernetes.OwnNamespace, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH>", props.MoSharedPath, -1)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAMESPACE>", utils.CONFIG.Kubernetes.OwnNamespace)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_PATH>", props.SecretPath)
 
+	pathParts := strings.Split(props.SecretPath, "/")
+	secretName := pathParts[len(pathParts)-1]
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_NAME>", secretName)
+
+	secretFolder := strings.Join(pathParts[:len(pathParts)-1], "/")
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_FOLDER>", secretFolder)
+
+	// log.Println(yamlTemplateString)
 	return yamlTemplateString
 }
 
 func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) string {
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretName(
-		props.SecretStoreNamePrefix, props.ProjectName, props.ServiceName, props.PropertyName,
+		props.SecretStoreNamePrefix, props.ServiceName, props.PropertyName,
 	), -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_NAME>", props.ServiceName, -1)
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROPERTY_FROM_SECRET>", props.PropertyName, -1)
