@@ -39,8 +39,7 @@ type ListSecretStoresRequest struct {
 }
 
 type ListSecretsRequest struct {
-	NamePrefix  string `json:"namePrefix" validate:"required"`
-	ProjectName string `json:"projectName" validate:"required"`
+	NamePrefix string `json:"namePrefix" validate:"required"`
 }
 type ListSecretsResponse struct {
 	SecretsInProject []string `json:"secretsInProject"`
