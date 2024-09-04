@@ -121,7 +121,7 @@ func TestSecretStoreList(t *testing.T) {
 	}
 }
 func TestListAvailSecrets(t *testing.T) {
-	t.Skip("Skipping TestListAvailSecrets temporarily")
+	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
 
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 	// prereq
