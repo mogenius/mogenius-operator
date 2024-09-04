@@ -220,7 +220,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 							Name: envVar.Name,
 							ValueFrom: &v1core.EnvVarSource{
 								SecretKeyRef: &v1core.SecretKeySelector{
-									Key: envVar.Name,
+									Key: propertyName,
 									LocalObjectReference: v1core.LocalObjectReference{
 										Name: SecretName,
 									},
