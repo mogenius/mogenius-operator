@@ -48,7 +48,7 @@ const (
 	EnvVarPlainText       K8sEnvVarDtoEnum = "PLAINTEXT"
 	EnvVarKeyVault        K8sEnvVarDtoEnum = "KEY_VAULT"
 	EnvVarVolumeMount     K8sEnvVarDtoEnum = "VOLUME_MOUNT"
-	EnvVarExternalSecret  K8sEnvVarDtoEnum = "ESO_SECRET"
+	EnvVarExternalSecret  K8sEnvVarDtoEnum = "EXTERNAL_SECRET_STORE"
 	EnvVarVolumeMountSeed K8sEnvVarDtoEnum = "VOLUME_MOUNT_SEED"
 	EnvVarChangeOwner     K8sEnvVarDtoEnum = "CHANGE_OWNER"
 	EnvVarHostname        K8sEnvVarDtoEnum = "HOSTNAME"
