@@ -41,9 +41,10 @@ type ListSecretStoresRequest struct {
 type ListSecretsRequest struct {
 	NamePrefix string `json:"namePrefix" validate:"required"`
 }
-type ListSecretsResponse struct {
-	SecretsInProject []string `json:"secretsInProject"`
-}
+
+//	type ListSecretsResponse struct {
+//		SecretsInProject []string `json:"secretsInProject"`
+//	}
 type DeleteSecretsStoreRequest struct {
 	Name string `json:"name" validate:"required"`
 }
@@ -93,15 +94,17 @@ func ListExternalSecretsStores(data ListSecretStoresRequest) []mokubernetes.Secr
 	//}
 }
 
-func ListAvailableExternalSecrets(data ListSecretsRequest) ListSecretsResponse {
+func ListAvailableExternalSecrets(data ListSecretsRequest) []string {
 	availSecrets := servicesExternal.ListAvailableExternalSecrets(data.NamePrefix)
 	if availSecrets == nil {
 		logger.Log.Error("Getting available secrets failed")
-		return ListSecretsResponse{}
+		return []string{}
+		// return ListSecretsResponse{}
 	}
-	return ListSecretsResponse{
-		SecretsInProject: availSecrets,
-	}
+	return availSecrets
+	//return ListSecretsResponse{
+	//	SecretsInProject: availSecrets,
+	//}
 }
 
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
