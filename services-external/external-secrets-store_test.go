@@ -80,10 +80,11 @@ func TestSecretStoreCreate(t *testing.T) {
 	props := externalSecretStorePropsExample()
 
 	// assume composed name: 4jdh7e9dk7-vault-secret-store
-	props.NamePrefix = NamePrefix
+	props.NamePrefix = "1111111aaaa"
 	props.SecretPath = SecretPath
 	props.ProjectId = ProjectId
 	props.Role = Role
+	props.VaultServerUrl = "https://vault.mogenius.com"
 
 	err := CreateExternalSecretsStore(props)
 	if err != nil {

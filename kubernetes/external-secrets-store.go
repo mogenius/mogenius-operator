@@ -47,14 +47,7 @@ func GetExternalSecretsStore(name string) (*SecretStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SecretStore{
-		Name:       secretStore.Metadata.Name,
-		Prefix:     secretStore.Metadata.Annotations.Prefix,
-		ProjectId:  secretStore.Metadata.Annotations.ProjectId,
-		SharedPath: secretStore.Metadata.Annotations.SharedPath,
-		Role:       secretStore.Spec.Provider.Vault.Auth.Kubernetes.Role,
-		VaultURL:   secretStore.Spec.Provider.Vault.Server,
-	}, err
+	return processSecretStoreItem(secretStore), err
 }
 
 func ReadSecretPathFromSecretStore(name string) (string, error) {
@@ -94,6 +87,8 @@ type SecretStoreSchema struct {
 	Status struct {
 		Conditions []struct {
 			Message string `json:"message"`
+			Reason  string `json:"reason"`
+			Status  string `json:"status"`
 		} `json:"conditions"`
 	} `json:"status"`
 }
@@ -107,23 +102,37 @@ func parseSecretStoresListing(jsonStr string) ([]SecretStore, error) {
 
 	var stores = []SecretStore{}
 	for _, item := range secretStores.Items {
-		stores = append(stores, SecretStore{
-			Name:       item.Metadata.Name,
-			Prefix:     item.Metadata.Annotations.Prefix,
-			ProjectId:  item.Metadata.Annotations.ProjectId,
-			SharedPath: item.Metadata.Annotations.SharedPath,
-			Role:       item.Spec.Provider.Vault.Auth.Kubernetes.Role,
-			VaultURL:   item.Spec.Provider.Vault.Server,
-		})
+		stores = append(stores, *processSecretStoreItem(item.SecretStoreSchema))
 	}
 	return stores, nil
 }
 
+func processSecretStoreItem(item SecretStoreSchema) *SecretStore {
+	var storeStatus string
+	var storeStatusMessage string
+	if len(item.Status.Conditions) == 1 {
+		storeStatus = "Ready: " + item.Status.Conditions[0].Status
+		storeStatusMessage = item.Status.Conditions[0].Message + "; " + item.Status.Conditions[0].Reason
+	}
+	return &SecretStore{
+		Name:          item.Metadata.Name,
+		Prefix:        item.Metadata.Annotations.Prefix,
+		ProjectId:     item.Metadata.Annotations.ProjectId,
+		SharedPath:    item.Metadata.Annotations.SharedPath,
+		Role:          item.Spec.Provider.Vault.Auth.Kubernetes.Role,
+		VaultURL:      item.Spec.Provider.Vault.Server,
+		Status:        storeStatus,
+		StatusMessage: storeStatusMessage,
+	}
+}
+
 type SecretStore struct {
-	Name       string `json:"name"`
-	Prefix     string `json:"prefix"`
-	ProjectId  string `json:"project-id"`
-	SharedPath string `json:"shared-path"`
-	Role       string `json:"role"`
-	VaultURL   string `json:"vault-url"`
+	Name          string `json:"name"`
+	Prefix        string `json:"prefix"`
+	ProjectId     string `json:"project-id"`
+	SharedPath    string `json:"shared-path"`
+	Role          string `json:"role"`
+	VaultURL      string `json:"vault-url"`
+	Status        string `json:"status"`
+	StatusMessage string `json:"message"`
 }
