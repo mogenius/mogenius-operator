@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"encoding/json"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func ListExternalSecretsStores(ProjectId string) ([]SecretStore, error) {
@@ -65,8 +66,9 @@ type SecretStoreListingSchema struct {
 }
 type SecretStoreSchema struct {
 	Metadata struct {
-		Name        string `json:"name"`
-		Annotations struct {
+		Name              string `json:"name"`
+		CreationTimestamp string `json:"creationTimestamp"`
+		Annotations       struct {
 			Prefix     string `json:"mogenius-external-secrets/prefix"`
 			SharedPath string `json:"mogenius-external-secrets/shared-path"`
 			ProjectId  string `json:"mogenius-external-secrets/project-id"`
@@ -86,9 +88,10 @@ type SecretStoreSchema struct {
 	} `json:"spec"`
 	Status struct {
 		Conditions []struct {
-			Message string `json:"message"`
-			Reason  string `json:"reason"`
-			Status  string `json:"status"`
+			Message string                 `json:"message"`
+			Reason  string                 `json:"reason"`
+			Status  corev1.ConditionStatus `json:"status"`
+			Type    string                 `json:"type"`
 		} `json:"conditions"`
 	} `json:"status"`
 }
@@ -108,31 +111,41 @@ func parseSecretStoresListing(jsonStr string) ([]SecretStore, error) {
 }
 
 func processSecretStoreItem(item SecretStoreSchema) *SecretStore {
-	var storeStatus string
+	var storeStatus corev1.ConditionStatus
 	var storeStatusMessage string
+	var storeStatusReason string
+	var storeStatusType string
 	if len(item.Status.Conditions) == 1 {
-		storeStatus = "Ready: " + item.Status.Conditions[0].Status
-		storeStatusMessage = item.Status.Conditions[0].Message + "; " + item.Status.Conditions[0].Reason
+		storeStatus = item.Status.Conditions[0].Status
+		storeStatusMessage = item.Status.Conditions[0].Message
+		storeStatusReason = item.Status.Conditions[0].Reason
+		storeStatusType = item.Status.Conditions[0].Type
 	}
 	return &SecretStore{
-		Name:          item.Metadata.Name,
-		Prefix:        item.Metadata.Annotations.Prefix,
-		ProjectId:     item.Metadata.Annotations.ProjectId,
-		SharedPath:    item.Metadata.Annotations.SharedPath,
-		Role:          item.Spec.Provider.Vault.Auth.Kubernetes.Role,
-		VaultURL:      item.Spec.Provider.Vault.Server,
-		Status:        storeStatus,
-		StatusMessage: storeStatusMessage,
+		CreatedAt:  item.Metadata.CreationTimestamp,
+		Name:       item.Metadata.Name,
+		Prefix:     item.Metadata.Annotations.Prefix,
+		ProjectId:  item.Metadata.Annotations.ProjectId,
+		SharedPath: item.Metadata.Annotations.SharedPath,
+		Role:       item.Spec.Provider.Vault.Auth.Kubernetes.Role,
+		VaultURL:   item.Spec.Provider.Vault.Server,
+		Status:     storeStatus,
+		Message:    storeStatusMessage,
+		Reason:     storeStatusReason,
+		Type:       storeStatusType,
 	}
 }
 
 type SecretStore struct {
-	Name          string `json:"name"`
-	Prefix        string `json:"prefix"`
-	ProjectId     string `json:"project-id"`
-	SharedPath    string `json:"shared-path"`
-	Role          string `json:"role"`
-	VaultURL      string `json:"vault-url"`
-	Status        string `json:"status"`
-	StatusMessage string `json:"message"`
+	CreatedAt  string                 `json:"createdAt"`
+	Name       string                 `json:"name"`
+	Prefix     string                 `json:"prefix"`
+	ProjectId  string                 `json:"project-id"`
+	SharedPath string                 `json:"shared-path"`
+	Role       string                 `json:"role"`
+	VaultURL   string                 `json:"vault-url"`
+	Status     corev1.ConditionStatus `json:"status"`
+	Message    string                 `json:"message"`
+	Reason     string                 `json:"reason"`
+	Type       string                 `json:"type"`
 }
