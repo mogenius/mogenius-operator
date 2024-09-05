@@ -40,7 +40,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// PULL
-	err = Pull(localPath)
+	err = Pull(localPath, "origin", mainBranch)
 	if err != nil {
 		t.Errorf("Error pulling repo: %s", err.Error())
 	} else {
@@ -169,5 +169,21 @@ func TestGitManager(t *testing.T) {
 		t.Errorf("Error checking has remotes")
 	} else {
 		t.Logf("Repo %s should have 2 remotes ✅", repoUrl)
+	}
+
+	// GET LAST MODIFIED AND UPDATED FILES
+	files, err := GetLastUpdatedAndModifiedFiles(localPath)
+	if err != nil {
+		t.Errorf("Error getting last modified and updated files: %s", err.Error())
+	} else {
+		t.Logf("Repo %s successfully got last modified and updated files ✅ (%v)", repoUrl, files)
+	}
+
+	// GET LAST DELETED FILES
+	deletedFiles, err := GetLastDeletedFiles(localPath)
+	if err != nil {
+		t.Errorf("Error getting last deleted files: %s", err.Error())
+	} else {
+		t.Logf("Repo %s successfully got last deleted files ✅ (%v)", repoUrl, deletedFiles)
 	}
 }

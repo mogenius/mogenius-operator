@@ -42,7 +42,7 @@ func CloneFast(url, path, branch string) error {
 	return nil
 }
 
-func Pull(path string) error {
+func Pull(path string, remote string, branchNane string) error {
 	// We instantiate a new repository targeting the given path
 	r, err := git.PlainOpen(path)
 	if err != nil {
@@ -56,7 +56,10 @@ func Pull(path string) error {
 	}
 
 	// Pull the latest changes from the origin remote and merge into the current branch
-	err = w.Pull(&git.PullOptions{RemoteName: "origin"})
+	err = w.Pull(&git.PullOptions{
+		RemoteName:    remote,
+		ReferenceName: plumbing.NewBranchReferenceName(branchNane),
+	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
 	}
@@ -64,12 +67,14 @@ func Pull(path string) error {
 	return nil
 }
 
-func Push(path string) error {
+func Push(path string, remote string) error {
 	r, err := git.PlainOpen(path)
 	if err != nil {
 		return err
 	}
-	err = r.Push(&git.PushOptions{})
+	err = r.Push(&git.PushOptions{
+		RemoteName: remote,
+	})
 	if err != nil {
 		return err
 	}
@@ -338,6 +343,104 @@ func LastLogDecorate(path string) (string, error) {
 	result += fmt.Sprintf("    %s\n", commit.Message)
 
 	return result, nil
+}
+
+// git diff HEAD@{1} HEAD --name-only --diff-filter=AM
+func GetLastUpdatedAndModifiedFiles(path string) ([]string, error) {
+	result := []string{}
+
+	repo, err := git.PlainOpen(path)
+	if err != nil {
+		return result, err
+	}
+
+	headRef, err := repo.Head()
+	if err != nil {
+		return result, err
+	}
+
+	headCommit, err := repo.CommitObject(headRef.Hash())
+	if err != nil {
+		return result, err
+	}
+
+	prevHeadCommit, err := headCommit.Parent(0)
+	if err != nil {
+		return result, err
+	}
+
+	// Compute the diff between the current HEAD and the previous HEAD state
+	patch, err := headCommit.Patch(prevHeadCommit)
+	if err != nil {
+		return result, err
+	}
+
+	result = getAddedOrModifiedFiles(patch)
+
+	return result, nil
+}
+
+// git diff HEAD@{1} HEAD --name-only --diff-filter=D
+func GetLastDeletedFiles(path string) ([]string, error) {
+	result := []string{}
+
+	repo, err := git.PlainOpen(path)
+	if err != nil {
+		return result, err
+	}
+
+	headRef, err := repo.Head()
+	if err != nil {
+		return result, err
+	}
+
+	headCommit, err := repo.CommitObject(headRef.Hash())
+	if err != nil {
+		return result, err
+	}
+
+	prevHeadCommit, err := headCommit.Parent(0)
+	if err != nil {
+		return result, err
+	}
+
+	// Compute the diff between the current HEAD and the previous HEAD state
+	patch, err := headCommit.Patch(prevHeadCommit)
+	if err != nil {
+		return result, err
+	}
+
+	result = getDeletedFiles(patch)
+
+	return result, nil
+}
+
+func getAddedOrModifiedFiles(patch *object.Patch) []string {
+	var updatedFiles []string
+
+	for _, stat := range patch.Stats() {
+		// Filter for added (A) or modified (M) files
+		if stat.Addition > 0 && stat.Deletion == 0 {
+			updatedFiles = append(updatedFiles, stat.Name)
+		} else if stat.Addition > 0 || stat.Deletion > 0 {
+			updatedFiles = append(updatedFiles, stat.Name)
+		}
+	}
+
+	return updatedFiles
+}
+
+func getDeletedFiles(patch *object.Patch) []string {
+	var deletedFiles []string
+
+	for _, filePatch := range patch.FilePatches() {
+		from, to := filePatch.Files()
+		if to == nil && from != nil {
+			deletedFiles = append(deletedFiles, from.Path())
+		}
+	}
+
+	return deletedFiles
 }
 
 func findDecorations(repo *git.Repository, hash plumbing.Hash) []string {
