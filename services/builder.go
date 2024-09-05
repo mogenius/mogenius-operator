@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -120,22 +122,22 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// CLONE
 	cloneCmd := structs.CreateCommand(string(structs.PrefixGitClone), "Clone repository", job)
-	err := executeCmd(job, cloneCmd, structs.PrefixGitClone, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("git clone --progress -b %s --single-branch %s %s", *container.GitBranch, *container.GitRepository, workingDir))
+	err := gitmanager.CloneFast(*container.GitRepository, workingDir, *container.GitBranch)
+	cloneCmd.Success(job, cloneCmd.Message)
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixGitClone, err.Error())
+		cloneCmd.Fail(job, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
 
 	// TAG
-	getGitTagCmd := exec.Command("/bin/sh", "-c", "git tag --contains HEAD")
-	getGitTagCmd.Dir = workingDir
-	gitTagData, _ := getGitTagCmd.CombinedOutput()
+	gitTagData, _ := gitmanager.GetHeadTag(workingDir)
 	// in this case we dont care if the tag retrieval fails
 
 	// LS
 	lsCmd := structs.CreateCommand(string(structs.PrefixLs), "List contents", job)
-	err = executeCmd(job, lsCmd, structs.PrefixLs, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; echo 'ℹ️  Current directory contents:'; ls -lisa; echo '\nℹ️  Git Log: '; git log -1 --decorate; echo '\nℹ️  Following ARGs are available for Docker build:'; echo '%s'", workingDir, container.AvailableDockerBuildArgs(job.BuildId, string(gitTagData))))
+	err = executeCmd(job, lsCmd, structs.PrefixLs, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; echo 'ℹ️  Current directory contents:'; ls -lisa; echo '\nℹ️  Following ARGs are available for Docker build:'; echo '%s'", workingDir, container.AvailableDockerBuildArgs(job.BuildId, string(gitTagData))))
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixLs, err.Error())
 		done <- structs.JobStateFailed

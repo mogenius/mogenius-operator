@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/crds"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/gitmanager"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -275,35 +276,6 @@ func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 	}
 }
 
-// func initDocker(service dtos.K8sServiceDto) []*structs.Command {
-// 	tempDir := "/temp"
-// 	gitDir := fmt.Sprintf("%s/%s", tempDir, service.Id)
-
-// 	for _, container := range service.Containers {
-// 		if container.GitRepository == nil {
-// 			ServiceLogger.Errorf("%s: GitRepository cannot be nil", container.Name)
-// 			continue
-// 		}
-// 		if container.GitBranch == nil {
-// 			ServiceLogger.Errorf("%s: GitBranch cannot be nil", container.Name)
-// 			continue
-// 		}
-// 		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
-// 		punqStructs.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
-// 		if container.AppSetupCommands != nil {
-// 			punqStructs.ExecuteShellCommandSilent("Run Setup Commands", fmt.Sprintf("cd %s; %s", gitDir, *container.AppSetupCommands))
-// 		}
-// 		if container.AppGitRepositoryCloneUrl != nil {
-// 			punqStructs.ExecuteShellCommandSilent("Clone files from template", fmt.Sprintf("git clone %s %s/__TEMPLATE__; rm -rf %s/__TEMPLATE__/.git; cp -rf %s/__TEMPLATE__/. %s/.; rm -rf %s/__TEMPLATE__/", *container.AppGitRepositoryCloneUrl, gitDir, gitDir, gitDir, gitDir, gitDir))
-// 		}
-// 		punqStructs.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add . ; git commit -m "[skip ci]: Add initial files."`, gitDir))
-// 		punqStructs.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
-// 		punqStructs.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
-// 		punqStructs.ExecuteShellCommandSilent("Wait", "sleep 5")
-// 	}
-// 	return []*structs.Command{}
-// }
-
 func serviceHasYamlSettings(service dtos.K8sServiceDto) bool {
 	for _, container := range service.Containers {
 		if container.SettingsYaml != nil {
@@ -349,7 +321,7 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 					cmd.Fail(job, fmt.Sprintf("Error cleaning up before: %s", err.Error()))
 					return
 				}
-				err = utils.ExecuteShellCommandSilent("Clone", fmt.Sprintf("cd %s; git clone %s %s; cd %s; git switch %s", tempDir, *container.GitRepository, gitDir, gitDir, *container.GitBranch))
+				err = gitmanager.CloneFast(*container.GitRepository, gitDir, *container.GitBranch)
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("Error cloning: %s", err.Error()))
 					return
@@ -361,12 +333,12 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 					return
 				}
 
-				err = utils.ExecuteShellCommandSilent("Commit", fmt.Sprintf(`cd %s; git add .mogenius/%s.yaml ; git commit -m "[skip ci]: Update infrastructure yaml."`, gitDir, *container.GitBranch))
+				err = gitmanager.Commit(gitDir, []string{fmt.Sprintf(".mogenius/%s.yaml", *container.GitBranch)}, "[skip ci]: Update infrastructure yaml.", utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("Error commiting: %s", err.Error()))
 					return
 				}
-				err = utils.ExecuteShellCommandSilent("Push", fmt.Sprintf("cd %s; git push --set-upstream origin %s", gitDir, *container.GitBranch))
+				err = gitmanager.Push(gitDir, "origin")
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("Error pushing: %s", err.Error()))
 					return

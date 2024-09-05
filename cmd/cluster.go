@@ -17,7 +17,6 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
-	punq "github.com/mogenius/punq/structs"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
@@ -80,14 +79,6 @@ var clusterCmd = &cobra.Command{
 		go mokubernetes.EventWatcher()
 		go mokubernetes.ResourceWatcher()
 		go mokubernetes.WatchPersistentVolumes()
-
-		if utils.CONFIG.Misc.Stage != "local" {
-			punq.ExecuteShellCommandSilent("Git setup (1/5)", fmt.Sprintf(`git config --global user.email "%s"`, utils.CONFIG.Git.GitUserEmail))
-			punq.ExecuteShellCommandSilent("Git setup (2/5)", fmt.Sprintf(`git config --global user.name "%s"`, utils.CONFIG.Git.GitUserName))
-			punq.ExecuteShellCommandSilent("Git setup (3/5)", fmt.Sprintf(`git config --global init.defaultBranch %s`, utils.CONFIG.Git.GitDefaultBranch))
-			punq.ExecuteShellCommandSilent("Git setup (4/5)", fmt.Sprintf(`git config --global advice.addIgnoredFile %s`, utils.CONFIG.Git.GitAddIgnoredFile))
-			punq.ExecuteShellCommandSilent("Git setup (5/5)", `git config --global pull.rebase false`)
-		}
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 

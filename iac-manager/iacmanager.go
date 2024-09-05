@@ -1,18 +1,18 @@
 package iacmanager
 
 import (
-	"bytes"
 	"fmt"
+	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
 	"sigs.k8s.io/yaml"
 
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/kylelemons/godebug/pretty"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,14 +24,70 @@ import (
 // 5. commit changes
 // 6. pull/push changes periodically
 
+type IacManagerStatus struct {
+	RepoError      error                              `json:"repoError"`
+	RemoteError    error                              `json:"remoteError"`
+	PullError      error                              `json:"pullError"`
+	PushError      error                              `json:"pushError"`
+	SyncError      error                              `json:"syncError"`
+	LastPull       GitActionStatus                    `json:"lastPull"`
+	LastPush       GitActionStatus                    `json:"lastPush"`
+	ResourceStates map[string]IacManagerResourceState `json:"resourceStates"`
+}
+
+type GitActionStatus struct {
+	CommitMsg    string `json:"CommitMsg"`
+	CommitAuthor string `json:"CommitAuthor"`
+	CommitHash   string `json:"CommitHash"`
+	CommitDate   string `json:"CommitDate"`
+}
+
+type IacManagerResourceState struct {
+	Kind       string        `json:"kind"`
+	Namespace  string        `json:"namespace"`
+	Name       string        `json:"name"`
+	LastUpdate string        `json:"lastUpdate"`
+	Diff       string        `json:"diff"`
+	Error      error         `json:"error"`
+	State      SyncStateEnum `json:"state"`
+}
+
+type ChangedFile struct {
+	Name        string `json:"name"`
+	Path        string `json:"path"`
+	AuthorName  string `json:"authorName"`
+	AutgorEmail string `json:"authorEmail"`
+	Message     string `json:"message"`
+}
+
+type SyncStateEnum string
+
+const (
+	SyncStateUnknown     SyncStateEnum = "Unknown"
+	SyncStateInitialized SyncStateEnum = "Initialized" // Initial state. When the resource is read from the cluster.
+	SyncStatePendingPush SyncStateEnum = "PendingPush" // When the resource is updated in the cluster but not yet synced.
+	SyncStateSynced      SyncStateEnum = "Synced"      // When the resource is synced with the repository.
+	SyncStateDeleted     SyncStateEnum = "Deleted"     // When the resource is deleted from the cluster.
+	SyncStateReverted    SyncStateEnum = "Reverted"    // When the resource is reverted because Pull=true and yaml != repo.
+	SyncStateSyncError   SyncStateEnum = "SyncError"
+)
+
+type SyncTriggerEnum string
+
 const (
 	GIT_VAULT_FOLDER    = "git-vault"
 	DELETE_DATA_RETRIES = 5
 )
 
-var commitMutex sync.Mutex
+var IacManagerStatusInstance = IacManagerStatus{
+	RepoError:      nil,
+	ResourceStates: map[string]IacManagerResourceState{},
+}
 
-var changedFiles []string
+var commitMutex sync.Mutex
+var statusMutex sync.Mutex
+
+var changedFiles []ChangedFile
 
 var syncInProcess = false
 var SetupInProcess = false
@@ -60,11 +116,11 @@ func isIgnoredNamespaceInFile(file string) (result bool, namespace *string) {
 }
 
 func Init() {
-	gitInitRepo()
+	IacManagerStatusInstance.RepoError = gitInitRepo()
 
 	// Set up the remote repository
 	if !gitHasRemotes() {
-		addRemote()
+		IacManagerStatusInstance.RemoteError = addRemote()
 	}
 
 	// START SYNCING CHANGES
@@ -86,14 +142,13 @@ func gitInitRepo() error {
 		}
 	}
 
-	err := utils.ExecuteShellCommandSilent("git init", fmt.Sprintf("cd %s; git init", folder))
+	err := gitmanager.InitGit(folder)
 	if err != nil {
 		iaclogger.Errorf("Error creating git repository: %s", err.Error())
 		return err
 	}
 
-	branchCmdStr := fmt.Sprintf("cd %s; git branch -M %s", folder, utils.CONFIG.Iac.RepoBranch)
-	err = utils.ExecuteShellCommandSilent(branchCmdStr, branchCmdStr)
+	err = gitmanager.CheckoutBranch(folder, utils.CONFIG.Iac.RepoBranch)
 	if err != nil {
 		iaclogger.Errorf("Error setting up branch: %s", err.Error())
 		return err
@@ -107,8 +162,7 @@ func addRemote() error {
 		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
 	}
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	remoteCmdStr := fmt.Sprintf("cd %s; git remote add origin %s", folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat))
-	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
+	err := gitmanager.AddRemote(folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), "origin")
 	if err != nil {
 		// skip already exists error
 		if !strings.Contains(err.Error(), "remote origin already exists") {
@@ -116,8 +170,7 @@ func addRemote() error {
 			return err
 		}
 	}
-	branchCmdStr := fmt.Sprintf("cd %s; git branch -M %s", folder, utils.CONFIG.Iac.RepoBranch)
-	err = utils.ExecuteShellCommandSilent(branchCmdStr, branchCmdStr)
+	err = gitmanager.CheckoutBranch(folder, utils.CONFIG.Iac.RepoBranch)
 	if err != nil {
 		iaclogger.Errorf("Error setting up branch: %s", err.Error())
 	}
@@ -125,19 +178,8 @@ func addRemote() error {
 	return nil
 }
 
-// func RemoveRemote() error {
-// 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-// 	remoteCmdStr := fmt.Sprintf("cd %s; git remote remove origin", folder)
-// 	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
-// 	if err != nil {
-// 		iaclogger.Errorf("Error setting up remote: %s", err.Error())
-// 		return err
-// 	}
-// 	return nil
-// }
-
 func ResetCurrentRepoData(tries int) error {
-	changedFiles = []string{}
+	changedFiles = []ChangedFile{}
 
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	err := os.RemoveAll(folder)
@@ -150,11 +192,13 @@ func ResetCurrentRepoData(tries int) error {
 	}
 
 	err = gitInitRepo()
+	IacManagerStatusInstance.RepoError = err
 	if err != nil {
 		return err
 	}
 
 	err = addRemote()
+	IacManagerStatusInstance.RemoteError = err
 
 	return err
 }
@@ -173,13 +217,8 @@ func CheckRepoAccess() error {
 	// Insert the PAT into the repository URL
 	repoURLWithPAT := insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat)
 
-	// Prepare the `git ls-remote` command
-	cmd := exec.Command("git", "ls-remote", repoURLWithPAT)
-
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	return nil
+	_, err := gitmanager.LsRemotes(repoURLWithPAT)
+	return err
 }
 
 func IsIacEnabled() bool {
@@ -244,7 +283,14 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 	if utils.CONFIG.Iac.LogChanges {
 		iaclogger.Infof("🧹 Detected %s change. Updated %s/%s.", kind, namespace, resourceName)
 	}
-	commitChanges("", fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName), []string{filename})
+
+	changedFiles = append(changedFiles, ChangedFile{
+		AuthorName:  utils.CONFIG.Git.GitUserName,
+		AutgorEmail: utils.CONFIG.Git.GitUserEmail,
+		Name:        resourceName,
+		Path:        filename,
+		Message:     fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName),
+	})
 }
 
 func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) {
@@ -263,8 +309,8 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 		return
 	}
 
+	diff := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
 	if utils.CONFIG.Iac.ShowDiffInLog {
-		diff := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
 		if diff != "" {
 			iaclogger.Warnf("Diff: \n%s", diff)
 		}
@@ -295,11 +341,21 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	if utils.CONFIG.Iac.LogChanges {
 		iaclogger.Infof("Detected %s deletion. Removed %s/%s. ♻️", kind, namespace, resourceName)
 	}
-	commitChanges("", fmt.Sprintf("Deleted [%s] %s/%s", kind, namespace, resourceName), []string{filename})
+	changedFiles = append(changedFiles, ChangedFile{
+		AuthorName:  utils.CONFIG.Git.GitUserName,
+		AutgorEmail: utils.CONFIG.Git.GitUserEmail,
+		Name:        resourceName,
+		Path:        filename,
+		Message:     fmt.Sprintf("Deleted [%s] %s/%s", kind, namespace, resourceName),
+	})
 }
 
 func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) string {
 	filename := fileNameForRaw(kind, namespace, resourceName)
+	return createDiffFromFile(filename, dataInf)
+}
+
+func createDiffFromFile(filename string, dataInf interface{}) string {
 	yamlData1, _ := os.ReadFile(filename)
 	if yamlData1 == nil {
 		yamlData1 = []byte{}
@@ -418,35 +474,51 @@ func ApplyRepoStateToCluster() {
 	allFiles = applyPriotityToChangesForUpdates(allFiles)
 
 	for _, file := range allFiles {
-		kubernetesReplaceResource(file)
+		kubernetesReplaceResource(file, true)
 	}
 }
 
 func SyncChanges() {
-	if gitHasRemotes() && !SetupInProcess {
-		if !syncInProcess {
-			syncInProcess = true
-			updatedFiles, deletedFiles, err := pullChanges()
-			if err != nil {
-				iaclogger.Errorf("Error pulling changes: %s", err.Error())
-			} else if !initialRepoApplied {
-				ApplyRepoStateToCluster()
+	var err error
+	if gitHasRemotes() {
+		if !SetupInProcess {
+			if !syncInProcess {
+				syncInProcess = true
+				updatedFiles, deletedFiles, err := pullChanges()
+				IacManagerStatusInstance.PullError = err
+				if err != nil {
+					iaclogger.Errorf("Error pulling changes: %s", err.Error())
+				} else if !initialRepoApplied {
+					ApplyRepoStateToCluster()
+				}
+				updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
+				for _, v := range updatedFiles {
+					kubernetesReplaceResource(v, false)
+				}
+				deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
+				for _, v := range deletedFiles {
+					kubernetesDeleteResource(v)
+				}
+				err = pushChanges()
+				IacManagerStatusInstance.PushError = err
+				if err != nil {
+					iaclogger.Errorf("Error pushing changes: %s", err.Error())
+				}
+				syncInProcess = false
+				IacManagerStatusInstance.SyncError = nil
+			} else {
+				err = fmt.Errorf("Sync in process. Skipping sync.")
 			}
-			updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
-			for _, v := range updatedFiles {
-				kubernetesReplaceResource(v)
-			}
-			deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
-			for _, v := range deletedFiles {
-				kubernetesDeleteResource(v)
-			}
-			err = pushChanges()
-			if err != nil {
-				iaclogger.Errorf("Error pushing changes: %s", err.Error())
-			}
-			syncInProcess = false
+		} else {
+			err = fmt.Errorf("Setup in process. Skipping sync.")
 		}
+	} else {
+		err = fmt.Errorf("No remotes found. Skipping sync.")
 	}
+	if err != nil {
+		iaclogger.Warnf(err.Error())
+	}
+	IacManagerStatusInstance.SyncError = err
 }
 
 func fileNameForRaw(kind string, namespace string, resourceName string) string {
@@ -473,27 +545,10 @@ func createFolderForResource(resource string) error {
 
 func gitHasRemotes() bool {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	cmd := exec.Command("git", "remote", "-v")
-	cmd.Dir = folder
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		if strings.Contains(stderr.String(), "No such file or directory") {
-			return false
-		}
-		iaclogger.Errorf("Error checking git remotes: %s %s %s", err.Error(), out.String(), stderr.String())
-		return false
-	}
-	if len(out.String()) > 0 {
-		return true
-	}
-	return false
+	return gitmanager.HasRemotes(folder)
 }
 
-func commitChanges(author string, message string, filePaths []string) {
+func commitChanges(authorName string, authorEmail string, message string, files []string) {
 	commitMutex.Lock()
 	defer commitMutex.Unlock()
 
@@ -501,32 +556,16 @@ func commitChanges(author string, message string, filePaths []string) {
 		return
 	}
 
-	if author == "" {
-		author = fmt.Sprintf("%s <%s>", utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+	if authorName == "" {
+		authorName = utils.CONFIG.Git.GitUserName
+	}
+	if authorEmail == "" {
+		authorEmail = utils.CONFIG.Git.GitUserEmail
 	}
 
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 
-	for _, v := range filePaths {
-		addCmd := fmt.Sprintf("cd %s; git add %s", folder, v)
-		err := utils.ExecuteShellCommandRealySilent(addCmd, addCmd)
-		changedFiles = append(changedFiles, v)
-		if err != nil {
-			iaclogger.Errorf("Error adding files to git repository: %s", err.Error())
-			return
-		}
-	}
-
-	commitCmd := fmt.Sprintf("cd %s; git commit -m '%s' --author '%s'", folder, message, author)
-	err := utils.ExecuteShellCommandRealySilent(commitCmd, commitCmd)
-	if err != nil {
-		if !strings.Contains(err.Error(), "nothing to commit") &&
-			!strings.Contains(err.Error(), "nothing added to commit") &&
-			!strings.Contains(err.Error(), "no changes added to commit") {
-			iaclogger.Errorf("Error committing files to git repository: %s", err.Error())
-			return
-		}
-	}
+	gitmanager.Commit(folder, files, message, authorName, authorEmail)
 }
 
 func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
@@ -535,48 +574,38 @@ func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 	}
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 
+	defer func() {
+		IacManagerStatusInstance.LastPull = time.Now()
+	}()
+
 	// Pull changes from the remote repository
-	cmd := exec.Command("git", "pull", "origin", utils.CONFIG.Iac.RepoBranch)
-	cmd.Dir = folder
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if out.String() == "Already up to date.\n" {
-		iaclogger.Infof("🔄 Pulled changes from the remote repository (Modified: %d / Deleted: %d).", len(updatedFiles), len(deletedFiles))
-		return updatedFiles, deletedFiles, nil
-	}
+	err := gitmanager.Pull(folder, "origin", utils.CONFIG.Iac.RepoBranch)
 	if err != nil {
-		if !strings.Contains(stderr.String(), "Your local changes to the following files would be overwritten by merge") {
-			iaclogger.Errorf("Error running git pull origin %s (%s): %s %s %s", utils.CONFIG.Iac.RepoBranch, utils.CONFIG.Iac.RepoUrl, err.Error(), out.String(), stderr.String())
-		}
-		if strings.Contains(stderr.String(), "fatal: refusing to merge unrelated histories") {
-			iaclogger.Warnf("Unrelated histories. Deleting current repository data and reinitializing.")
-			ResetCurrentRepoData(DELETE_DATA_RETRIES)
-		}
 		return updatedFiles, deletedFiles, err
 	}
-
-	// Wait for the changes to be pulled
-	time.Sleep(1 * time.Second)
+	// if err != nil {
+	// 	if !strings.Contains(stderr.String(), "Your local changes to the following files would be overwritten by merge") {
+	// 		iaclogger.Errorf("Error running git pull origin %s (%s): %s %s %s", utils.CONFIG.Iac.RepoBranch, utils.CONFIG.Iac.RepoUrl, err.Error(), out.String(), stderr.String())
+	// 	}
+	// 	if strings.Contains(stderr.String(), "fatal: refusing to merge unrelated histories") {
+	// 		iaclogger.Warnf("Unrelated histories. Deleting current repository data and reinitializing.")
+	// 		ResetCurrentRepoData(DELETE_DATA_RETRIES)
+	// 	}
+	// 	return updatedFiles, deletedFiles, err
+	// }
 
 	//Get the list of updated or newly added files since the last pull
-	updatedFiles, err = getGitFiles(folder, "HEAD@{1}", "HEAD", "--name-only", "--diff-filter=AM")
+	updatedFiles, err = gitmanager.GetLastUpdatedAndModifiedFiles(folder)
 	if err != nil {
-		if !strings.Contains(err.Error(), "fatal: log for 'HEAD' only has 1 entries") {
-			iaclogger.Errorf("Error getting added/updated files: %s", err.Error())
-			return updatedFiles, deletedFiles, err
-		}
+		iaclogger.Errorf("Error getting updated files: %s", err.Error())
+		return
 	}
 
 	// Get the list of deleted files since the last pull
-	deletedFiles, err = getGitFiles(folder, "HEAD@{1}", "HEAD", "--name-only", "--diff-filter=D")
+	deletedFiles, err = gitmanager.GetLastDeletedFiles(folder)
 	if err != nil {
-		if !strings.Contains(err.Error(), "fatal: log for 'HEAD' only has 1 entries") {
-			iaclogger.Errorf("Error getting deleted files: %s", err.Error())
-			return
-		}
+		iaclogger.Errorf("Error getting deleted files: %s", err.Error())
+		return
 	}
 
 	iaclogger.Infof("🔄 Pulled changes from the remote repository (Modified: %d / Deleted: %d).", len(updatedFiles), len(deletedFiles))
@@ -602,28 +631,24 @@ func pushChanges() error {
 		return nil
 	}
 
+	defer func() {
+		IacManagerStatusInstance.LastPush = time.Now()
+	}()
+
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 
 	// Push changes to the remote repository
-	cmd := exec.Command("git", "push", "origin", utils.CONFIG.Iac.RepoBranch)
-	cmd.Dir = folder
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if stderr.String() != "Everything up-to-date\n" {
-		iaclogger.Infof("🔄 Pushed %d changes to remote repository.", len(changedFiles))
-		if utils.CONFIG.Misc.Debug {
-			for _, file := range changedFiles {
-				iaclogger.Info(file)
-			}
+	err := gitmanager.Push(folder, "origin")
+	if err != nil {
+		return fmt.Errorf("Error running git push: %s", err.Error())
+	}
+	iaclogger.Infof("🔄 Pushed %d changes to remote repository.", len(changedFiles))
+	if utils.CONFIG.Misc.Debug {
+		for _, file := range changedFiles {
+			iaclogger.Info(file)
 		}
 	}
-	if err != nil {
-		return fmt.Errorf("Error running git push: %s %s %s", err.Error(), out.String(), stderr.String())
-	}
-	changedFiles = []string{}
+	changedFiles = []ChangedFile{}
 	return nil
 }
 
@@ -661,32 +686,13 @@ func applyPriotityToChangesForDeletes(resources []string) []string {
 	return result
 }
 
-func getGitFiles(workDir string, ref string, options ...string) ([]string, error) {
-	args := []string{"diff", ref}
-	args = append(args, options...)
-	cmd := exec.Command("git", args...)
-	cmd.Dir = workDir
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		return nil, fmt.Errorf("Error running git %s (%s): %s %s %s", strings.Join(args, " "), utils.CONFIG.Iac.RepoUrl, err.Error(), out.String(), stderr.String())
-	}
-
-	output := strings.TrimSpace(out.String())
-	if output == "" {
-		return []string{}, nil
-	}
-
-	return strings.Split(output, "\n"), nil
-}
-
 func kubernetesDeleteResource(file string) {
 	if shouldSkipResource(file) {
 		return
 	}
+
+	diff := createDiffFromFile(file, "")
+
 	parts := strings.Split(file, "/")
 	filename := strings.Replace(parts[len(parts)-1], ".yaml", "", -1)
 	partsName := strings.Split(filename, "_")
@@ -699,7 +705,7 @@ func kubernetesDeleteResource(file string) {
 	}
 
 	if kind == "" {
-		iaclogger.Errorf("Kind cannot be empty. File: %s", file)
+		UpdateResourceStatus(kind, namespace, name, diff, SyncStateDeleted, fmt.Errorf("Kind cannot be empty. File: %s", file))
 		return
 	}
 	if name == "" {
@@ -707,56 +713,64 @@ func kubernetesDeleteResource(file string) {
 		if len(partsName) > 0 {
 			name = partsName[0]
 		} else {
-			iaclogger.Errorf("Name cannot be empty. File: %s", file)
+			UpdateResourceStatus(kind, namespace, name, diff, SyncStateDeleted, fmt.Errorf("Name cannot be empty. File: %s", file))
 			return
 		}
 	}
 
 	delCmd := fmt.Sprintf("kubectl delete %s %s%s", kind, namespace, name)
 	err := utils.ExecuteShellCommandRealySilent(delCmd, delCmd)
-	if err != nil {
-		iaclogger.Errorf("Error deleting resource: %s", err.Error())
-	} else {
-		iaclogger.Infof("✅ Deleted resource %s%s%s", kind, namespace, name)
-	}
+
+	UpdateResourceStatus(kind, namespace, name, diff, SyncStateDeleted, err)
 }
 
-func kubernetesReplaceResource(file string) {
-	fileName := fmt.Sprintf("%s/%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, file)
-	if shouldSkipResource(fileName) {
+func kubernetesReplaceResource(file string, isInit bool) {
+	filePath := fmt.Sprintf("%s/%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, file)
+	if shouldSkipResource(filePath) {
 		return
 	}
 
-	replaceCmd := fmt.Sprintf("kubectl replace -f %s", fileName)
+	diff := createDiffFromFile(filePath, "")
+
+	syncType := SyncStateSynced
+	if isInit {
+		syncType = SyncStateInitialized
+	}
+
+	replaceCmd := fmt.Sprintf("kubectl replace -f %s", filePath)
 	err := utils.ExecuteShellCommandRealySilent(replaceCmd, replaceCmd)
 	if err != nil {
 		if strings.Contains(err.Error(), "Error from server (NotFound):") {
-			createCmd := fmt.Sprintf("kubectl create -f %s", fileName)
+			createCmd := fmt.Sprintf("kubectl create -f %s", filePath)
 			err = utils.ExecuteShellCommandRealySilent(createCmd, createCmd)
 			if err != nil {
-				iaclogger.Errorf("Error creating kubernetes resource file %s: %s", file, err.Error())
+				UpdateResourceStatusByFile(file, diff, syncType, fmt.Errorf("Error creating kubernetes resource file %s: %s", file, err.Error()))
+				return
 			}
 		} else {
-			iaclogger.Errorf("Error replacing kubernetes resource file %s: %s", file, err.Error())
+			UpdateResourceStatusByFile(file, diff, syncType, fmt.Errorf("Error replacing kubernetes resource file %s: %s", file, err.Error()))
+			return
 		}
-	} else {
-		iaclogger.Infof("✅ Applied file: %s", file)
 	}
+	UpdateResourceStatusByFile(file, diff, syncType, nil)
 }
 
-func kubernetesRevertFromPath(path string) error {
-	if shouldSkipResource(path) {
+func kubernetesRevertFromPath(filePath string) error {
+	if shouldSkipResource(filePath) {
 		return nil
 	}
 
-	applyCmd := fmt.Sprintf("kubectl replace -f %s", path)
+	diff := createDiffFromFile(filePath, "")
+
+	applyCmd := fmt.Sprintf("kubectl replace -f %s", filePath)
 	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 	if err != nil {
-		iaclogger.Errorf("Error applying revert file %s: %s", path, err.Error())
-	} else {
-		iaclogger.Infof("🚓 Applied revert file: %s", path)
+		UpdateResourceStatusByFile(filePath, diff, SyncStateReverted, fmt.Errorf("Error applying revert file %s: %s", filePath, err.Error()))
+		return err
 	}
-	return err
+
+	UpdateResourceStatusByFile(filePath, diff, SyncStateReverted, err)
+	return nil
 }
 
 func shouldSkipResource(path string) bool {
@@ -832,4 +846,67 @@ func isEmptyValue(value interface{}) bool {
 	default:
 		return false
 	}
+}
+
+func UpdateResourceStatus(kind string, namespace string, name string, diff string, state SyncStateEnum, err error) {
+	statusMutex.Lock()
+
+	key := fmt.Sprintf("%s/%s/%s", kind, namespace, name)
+
+	newStatus := IacManagerResourceState{
+		Kind:       kind,
+		Namespace:  namespace,
+		Name:       name,
+		Diff:       diff,
+		LastUpdate: time.Now().String(),
+		State:      state,
+		Error:      err,
+	}
+
+	IacManagerStatusInstance.ResourceStates[key] = newStatus
+
+	statusMutex.Unlock()
+
+	if err != nil {
+		iaclogger.Errorf("Error with %s resource (%s): %s", state, key, err.Error())
+	} else {
+		iaclogger.Infof("✅ %s resource '%s'.", state, key)
+	}
+}
+
+func UpdateResourceStatusByFile(file string, diff string, state SyncStateEnum, err error) {
+	parts := strings.Split(file, "/")
+	filename := strings.Replace(parts[len(parts)-1], ".yaml", "", -1)
+	partsName := strings.Split(filename, "_")
+	kind := parts[0]
+	namespace := ""
+	name := ""
+	if len(partsName) > 1 {
+		namespace = partsName[0]
+		name = partsName[1]
+	}
+
+	UpdateResourceStatus(kind, namespace, name, diff, state, err)
+}
+
+func PrintIacStatus() string {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"Name", "Namespace", "Kind", "State", "Age", "Error"})
+	for _, entry := range IacManagerStatusInstance.ResourceStates {
+		errmsg := "-"
+		if entry.Error != nil {
+			errmsg = entry.Error.Error()
+		}
+		t.AppendRow(
+			table.Row{entry.Name, entry.Namespace, entry.Kind, entry.State, entry.LastUpdate, errmsg},
+		)
+	}
+
+	// t.SetColumnConfigs([]table.ColumnConfig{
+	// 	{Number: 2, Align: text.AlignCenter},
+	// 	{Number: 3, Align: text.AlignCenter},
+	// })
+
+	return t.Render()
 }
