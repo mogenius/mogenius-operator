@@ -16,6 +16,7 @@ import (
 )
 
 type ExternalSecretStoreProps struct {
+	DisplayName    string
 	ProjectId      string
 	Role           string
 	VaultServerUrl string
@@ -27,6 +28,7 @@ type ExternalSecretStoreProps struct {
 
 func externalSecretStorePropsExample() ExternalSecretStoreProps {
 	return ExternalSecretStoreProps{
+		DisplayName:    "Vault Secret Store 1",
 		ProjectId:      "jkhdfjk66-lkj4fdklfj-lkdsjfkl-4rt645-dalksf",
 		Role:           "mogenius-external-secrets",
 		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
@@ -38,6 +40,9 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	// init some dynamic properties
 	if props.NamePrefix == "" {
 		props.NamePrefix = punqUtils.NanoIdSmallLowerCase()
+	}
+	if strings.Contains(props.SecretPath, "/v1/") {
+		props.SecretPath = strings.ReplaceAll(props.SecretPath, "/v1/", "")
 	}
 	props.Name = utils.GetSecretStoreName(props.NamePrefix)
 	props.ServiceAccount = utils.GetServiceAccountName(props.Role)
@@ -205,6 +210,7 @@ func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretSto
 	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name, -1)
 	// secret stores are currently bound to the project settings
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_PATH>", props.SecretPath)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<DISPLAY_NAME>", props.DisplayName)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<PREFIX>", strings.ToLower(props.NamePrefix))
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<PROJECT_ID>", strings.ToLower(props.ProjectId))
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl)
