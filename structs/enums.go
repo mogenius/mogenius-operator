@@ -32,6 +32,16 @@ const (
 	JobStateTimeout   JobStateEnum = "TIMEOUT"
 )
 
+type HelmGetEnum string
+
+const (
+	HelmGetAll      HelmGetEnum = "all"
+	HelmGetHooks    HelmGetEnum = "hooks"
+	HelmGetManifest HelmGetEnum = "manifest"
+	HelmGetNotes    HelmGetEnum = "notes"
+	HelmGetValues   HelmGetEnum = "values"
+)
+
 const (
 	PAT_K8SNOTIFICATION             string = "K8sNotification"
 	PAT_CLUSTERSTATUS               string = "ClusterStatus"
@@ -142,6 +152,21 @@ const (
 	PAT_NAMESPACE_BACKUP                string = "namespace/backup"
 	PAT_NAMESPACE_RESTORE               string = "namespace/restore"
 	PAT_NAMESPACE_RESOURCE_YAML         string = "namespace/resource-yaml"
+
+	PAT_CLUSTER_HELM_REPO_ADD    string = "cluster/helm-repo-add"    // e.g. helm repo add mogenius https://helm.mogenius.com/public
+	PAT_CLUSTER_HELM_REPO_UPDATE string = "cluster/helm-repo-update" // e.g. helm repo update
+	PAT_CLUSTER_HELM_REPO_LIST   string = "cluster/helm-repo-list"   // e.g. helm repo list
+	PAT_CLUSTER_HELM_REPO_REMOVE string = "cluster/helm-repo-remove" // e.g. helm repo remove mogenius
+	PAT_CLUSTER_HELM_REPO_SEARCH string = "cluster/helm-repo-search" // e.g. helm search repo <name>
+	PAT_CLUSTER_HELM_INSTALL     string = "cluster/helm-install"     // e.g. helm install mogenius-traffic-collector mogenius/mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_UPGRADE     string = "cluster/helm-upgrade"     // e.g. helm upgrade mogenius-traffic-collector mogenius/mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_UNINSTALL   string = "cluster/helm-uninstall"   // e.g. helm uninstall mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_LIST        string = "cluster/helm-list"        // e.g. helm list -n mogenius
+	PAT_CLUSTER_HELM_STATUS      string = "cluster/helm-status"      // e.g. helm status mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_SHOW        string = "cluster/helm-show"        // e.g. helm show all mogenius/mogenius-traffic-collector
+	PAT_CLUSTER_HELM_HISTORY     string = "cluster/helm-history"     // e.g. helm history mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_ROLLBACK    string = "cluster/helm-rollback"    // e.g. helm rollback mogenius-traffic-collector 1 -n mogenius
+	PAT_CLUSTER_HELM_GET         string = "cluster/helm-get"         // e.g. helm get values mogenius-traffic-collector -n mogenius
 
 	PAT_SERVICE_CREATE  string = "service/create"
 	PAT_SERVICE_DELETE  string = "service/delete"
@@ -534,6 +559,21 @@ var COMMAND_REQUESTS = []string{
 	PAT_NAMESPACE_BACKUP,
 	PAT_NAMESPACE_RESTORE,
 	PAT_NAMESPACE_RESOURCE_YAML,
+
+	PAT_CLUSTER_HELM_REPO_ADD,
+	PAT_CLUSTER_HELM_REPO_UPDATE,
+	PAT_CLUSTER_HELM_REPO_LIST,
+	PAT_CLUSTER_HELM_REPO_REMOVE,
+	PAT_CLUSTER_HELM_REPO_SEARCH,
+	PAT_CLUSTER_HELM_INSTALL,
+	PAT_CLUSTER_HELM_UPGRADE,
+	PAT_CLUSTER_HELM_UNINSTALL,
+	PAT_CLUSTER_HELM_LIST,
+	PAT_CLUSTER_HELM_STATUS,
+	PAT_CLUSTER_HELM_SHOW,
+	PAT_CLUSTER_HELM_HISTORY,
+	PAT_CLUSTER_HELM_ROLLBACK,
+	PAT_CLUSTER_HELM_GET,
 
 	PAT_SERVICE_CREATE,
 	PAT_SERVICE_DELETE,
