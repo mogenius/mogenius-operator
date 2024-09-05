@@ -10,6 +10,7 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
+	"helm.sh/helm/v3/pkg/action"
 )
 
 func CreateNamespace(r NamespaceCreateRequest) *structs.Job {
@@ -287,5 +288,31 @@ func NamespaceResourceYamlRequestExample() NamespaceResourceYamlRequest {
 	return NamespaceResourceYamlRequest{
 		NamespaceName: "default",
 		Resources:     []string{"pod", "service", "deployment", "daemonset", "ingress", "secret", "configmap"},
+	}
+}
+
+type HelmDataRequest struct {
+	Namespace  string                  `json:"namespace,omitempty"`
+	Repo       string                  `json:"repo,omitempty"`
+	ChartUrl   string                  `json:"chartUrl,omitempty"`
+	Chart      string                  `json:"chart,omitempty"`
+	Version    string                  `json:"version,omitempty"`
+	Release    string                  `json:"release,omitempty"`
+	Values     string                  `json:"values,omitempty"`
+	DryRun     bool                    `json:"dryRun,omitempty"`
+	ShowFormat action.ShowOutputFormat `json:"format,omitempty"`    // "all" "chart" "values" "readme" "crds"
+	GetFormat  structs.HelmGetEnum     `json:"getFormat,omitempty"` // "all" "hooks" "manifest" "notes" "values"
+	Revision   int                     `json:"revision,omitempty"`
+}
+
+func HelmDataRequestExample() HelmDataRequest {
+	return HelmDataRequest{
+		Namespace: "default",
+		Repo:      "bitnami",
+		ChartUrl:  "https://charts.bitnami.com/bitnami",
+		Chart:     "bitnami/nginx",
+		Release:   "nginx-test",
+		Values:    "#values_yaml",
+		DryRun:    false,
 	}
 }
