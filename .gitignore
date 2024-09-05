@@ -16,3 +16,4 @@ kubeconfig.tmpl
 kubeconfig.yaml
 mogenius-k8s-manager
 git-vault
+logs
