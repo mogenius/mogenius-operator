@@ -39,6 +39,9 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	if props.NamePrefix == "" {
 		props.NamePrefix = punqUtils.NanoIdSmallLowerCase()
 	}
+	if strings.Contains(props.SecretPath, "/v1/") {
+		props.SecretPath = strings.ReplaceAll(props.SecretPath, "/v1/", "")
+	}
 	props.Name = utils.GetSecretStoreName(props.NamePrefix)
 	props.ServiceAccount = utils.GetServiceAccountName(props.Role)
 
