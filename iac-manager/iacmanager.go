@@ -575,7 +575,15 @@ func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 
 	defer func() {
-		IacManagerStatusInstance.LastPull = time.Now()
+		commit, err := gitmanager.GetLastCommit(folder)
+		if err != nil {
+			iaclogger.Errorf("Error getting last commit: %s", err.Error())
+			return
+		}
+		IacManagerStatusInstance.LastPull.CommitMsg = commit.Message
+		IacManagerStatusInstance.LastPull.CommitAuthor = commit.Author.Name
+		IacManagerStatusInstance.LastPull.CommitHash = commit.Hash.String()
+		IacManagerStatusInstance.LastPull.CommitDate = commit.Author.When.String()
 	}()
 
 	// Pull changes from the remote repository
@@ -631,11 +639,19 @@ func pushChanges() error {
 		return nil
 	}
 
-	defer func() {
-		IacManagerStatusInstance.LastPush = time.Now()
-	}()
-
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+
+	defer func() {
+		commit, err := gitmanager.GetLastCommit(folder)
+		if err != nil {
+			iaclogger.Errorf("Error getting last commit: %s", err.Error())
+			return
+		}
+		IacManagerStatusInstance.LastPush.CommitMsg = commit.Message
+		IacManagerStatusInstance.LastPush.CommitAuthor = commit.Author.Name
+		IacManagerStatusInstance.LastPush.CommitHash = commit.Hash.String()
+		IacManagerStatusInstance.LastPush.CommitDate = commit.Author.When.String()
+	}()
 
 	// Push changes to the remote repository
 	err := gitmanager.Push(folder, "origin")
