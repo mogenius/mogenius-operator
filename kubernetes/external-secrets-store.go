@@ -69,9 +69,10 @@ type SecretStoreSchema struct {
 		Name              string `json:"name"`
 		CreationTimestamp string `json:"creationTimestamp"`
 		Annotations       struct {
-			Prefix     string `json:"mogenius-external-secrets/prefix"`
-			SharedPath string `json:"mogenius-external-secrets/shared-path"`
-			ProjectId  string `json:"mogenius-external-secrets/project-id"`
+			DisplayName string `json:"mogenius-external-secrets/display-name"`
+			Prefix      string `json:"mogenius-external-secrets/prefix"`
+			SharedPath  string `json:"mogenius-external-secrets/shared-path"`
+			ProjectId   string `json:"mogenius-external-secrets/project-id"`
 		} `json:"annotations"`
 	} `json:"metadata"`
 	Spec struct {
@@ -122,30 +123,32 @@ func processSecretStoreItem(item SecretStoreSchema) *SecretStore {
 		storeStatusType = item.Status.Conditions[0].Type
 	}
 	return &SecretStore{
-		CreatedAt:  item.Metadata.CreationTimestamp,
-		Name:       item.Metadata.Name,
-		Prefix:     item.Metadata.Annotations.Prefix,
-		ProjectId:  item.Metadata.Annotations.ProjectId,
-		SharedPath: item.Metadata.Annotations.SharedPath,
-		Role:       item.Spec.Provider.Vault.Auth.Kubernetes.Role,
-		VaultURL:   item.Spec.Provider.Vault.Server,
-		Status:     storeStatus,
-		Message:    storeStatusMessage,
-		Reason:     storeStatusReason,
-		Type:       storeStatusType,
+		CreatedAt:   item.Metadata.CreationTimestamp,
+		Name:        item.Metadata.Name,
+		DisplayName: item.Metadata.Annotations.DisplayName,
+		Prefix:      item.Metadata.Annotations.Prefix,
+		ProjectId:   item.Metadata.Annotations.ProjectId,
+		SharedPath:  item.Metadata.Annotations.SharedPath,
+		Role:        item.Spec.Provider.Vault.Auth.Kubernetes.Role,
+		VaultURL:    item.Spec.Provider.Vault.Server,
+		Status:      storeStatus,
+		Message:     storeStatusMessage,
+		Reason:      storeStatusReason,
+		Type:        storeStatusType,
 	}
 }
 
 type SecretStore struct {
-	CreatedAt  string                 `json:"createdAt"`
-	Name       string                 `json:"name"`
-	Prefix     string                 `json:"prefix"`
-	ProjectId  string                 `json:"project-id"`
-	SharedPath string                 `json:"shared-path"`
-	Role       string                 `json:"role"`
-	VaultURL   string                 `json:"vault-url"`
-	Status     corev1.ConditionStatus `json:"status"`
-	Message    string                 `json:"message"`
-	Reason     string                 `json:"reason"`
-	Type       string                 `json:"type"`
+	CreatedAt   string                 `json:"createdAt"`
+	Name        string                 `json:"name"`
+	DisplayName string                 `json:"displayName"`
+	Prefix      string                 `json:"prefix"`
+	ProjectId   string                 `json:"project-id"`
+	SharedPath  string                 `json:"shared-path"`
+	Role        string                 `json:"role"`
+	VaultURL    string                 `json:"vault-url"`
+	Status      corev1.ConditionStatus `json:"status"`
+	Message     string                 `json:"message"`
+	Reason      string                 `json:"reason"`
+	Type        string                 `json:"type"`
 }

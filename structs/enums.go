@@ -413,12 +413,10 @@ const (
 
 	PAT_FILES_UPLOAD string = "files/upload"
 
-	PAT_EXTERNAL_SECRET_STORE_CREATE                 string = "external-secret-store/create"
-	PAT_EXTERNAL_SECRET_STORE_LIST                   string = "external-secret-store/list"
-	PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS string = "external-secret-store/list-available-secrets"
-	PAT_EXTERNAL_SECRET_STORE_DELETE                 string = "external-secret/delete"
-	PAT_EXTERNAL_SECRET_CREATE                       string = "external-secret/create"
-	PAT_EXTERNAL_SECRET_DELETE                       string = "external-secret/delete"
+	PAT_EXTERNAL_SECRET_STORE_CREATE           string = "external-secret-store/create"
+	PAT_EXTERNAL_SECRET_STORE_LIST             string = "external-secret-store/list"
+	PAT_EXTERNAL_SECRET_STORE_DELETE           string = "external-secret-store/delete"
+	PAT_EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS string = "external-secret/list-available-secrets"
 
 	PAT_LIST_CRONJOB_JOBS string = "list/cronjob-jobs"
 )
@@ -807,10 +805,8 @@ var COMMAND_REQUESTS = []string{
 
 	PAT_EXTERNAL_SECRET_STORE_CREATE,
 	PAT_EXTERNAL_SECRET_STORE_LIST,
-	PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS,
 	PAT_EXTERNAL_SECRET_STORE_DELETE,
-	PAT_EXTERNAL_SECRET_CREATE,
-	PAT_EXTERNAL_SECRET_DELETE,
+	PAT_EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS,
 
 	PAT_LIST_CRONJOB_JOBS,
 }

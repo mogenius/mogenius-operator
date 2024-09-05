@@ -11,6 +11,7 @@ import (
 type CreateSecretsStoreRequest struct {
 	// Secrets stores are bound to a projects,
 	// so that customers can decide which team controls which secrets
+	DisplayName    string `json:"displayName" validate:"required"`
 	ProjectId      string `json:"projectId" validate:"required"`
 	Role           string `json:"role" validate:"required"`
 	VaultServerUrl string `json:"vaultServerUrl" validate:"required"`
@@ -19,6 +20,7 @@ type CreateSecretsStoreRequest struct {
 
 func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
 	return CreateSecretsStoreRequest{
+		DisplayName:    "Vault Secret Store 1",
 		ProjectId:      "234jhkl-lklj-234lkj-234lkj",
 		Role:           "mogenius-external-secrets",
 		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
@@ -56,6 +58,7 @@ type DeleteSecretsStoreResponse struct {
 
 func newExternalSecretStoreProps(data CreateSecretsStoreRequest) servicesExternal.ExternalSecretStoreProps {
 	return servicesExternal.ExternalSecretStoreProps{
+		DisplayName:    data.DisplayName,
 		ProjectId:      data.ProjectId,
 		Role:           data.Role,
 		VaultServerUrl: data.VaultServerUrl,
