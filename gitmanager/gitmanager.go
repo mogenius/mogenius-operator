@@ -2,9 +2,11 @@ package gitmanager
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -13,7 +15,7 @@ import (
 
 func InitGit(path string) error {
 	_, err := git.PlainInit(path, false)
-	if err != nil {
+	if err != nil && err != git.ErrRepositoryAlreadyExists {
 		return err
 	}
 	return nil
@@ -36,6 +38,14 @@ func CloneFast(url, path, branch string) error {
 		SingleBranch:  true,
 		ReferenceName: plumbing.NewBranchReferenceName(branch),
 	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeletePath(path string) error {
+	err := os.RemoveAll(path)
 	if err != nil {
 		return err
 	}
@@ -254,16 +264,26 @@ func AddRemote(path string, remoteUrl string, remoteName string) error {
 		return err
 	}
 
-	_, err = repo.Remote(remoteName)
+	remote, err := repo.Remote(remoteName)
 	if err == nil {
-		return fmt.Errorf("remote '%s' already exists", remoteName)
+		// remote already exists in the repo
+		if remote.Config().URLs[0] == remoteUrl && remote.Config().Name == remoteName {
+			// remote already exists with the same URL
+			return nil
+		} else {
+			// remote already exists with a different URL so we delete it
+			err = repo.DeleteRemote(remoteName)
+			if err != nil {
+				return fmt.Errorf("failed to delete remote: %v", err)
+			}
+		}
 	}
 
 	_, err = repo.CreateRemote(&config.RemoteConfig{
 		Name: remoteName,
 		URLs: []string{remoteUrl},
 	})
-	if err != nil {
+	if err != nil && err != git.ErrRemoteExists {
 		return fmt.Errorf("failed to create remote: %v", err)
 	}
 
@@ -336,9 +356,14 @@ func LastLogDecorate(path string) (string, error) {
 		return "", err
 	}
 
+	green := color.New(color.FgGreen).SprintFunc()
+	blue := color.New(color.FgBlue).SprintFunc()
+	yellow := color.New(color.FgYellow).SprintFunc()
+
 	decorations := findDecorations(repo, headRef.Hash())
-	result := fmt.Sprintf("commit %s %s\n", commit.Hash, strings.Join(decorations, ", "))
-	result += fmt.Sprintf("Author: %s <%s>\n", commit.Author.Name, commit.Author.Email)
+	shortHash := commit.Hash.String()[:7]
+	result := fmt.Sprintf("commit %s %s\n", green(shortHash), blue(strings.Join(decorations, ", ")))
+	result += fmt.Sprintf("Author: %s <%s>\n", yellow(commit.Author.Name), commit.Author.Email)
 	result += fmt.Sprintf("Date:   %s\n\n", commit.Author.When.Format("Mon Jan 2 15:04:05 2006 -0700"))
 	result += fmt.Sprintf("    %s\n", commit.Message)
 
@@ -365,12 +390,16 @@ func GetLastUpdatedAndModifiedFiles(path string) ([]string, error) {
 	}
 
 	prevHeadCommit, err := headCommit.Parent(0)
-	if err != nil {
+	if err != nil && err != object.ErrParentNotFound {
 		return result, err
 	}
 
+	if prevHeadCommit == nil {
+		return result, nil
+	}
+
 	// Compute the diff between the current HEAD and the previous HEAD state
-	patch, err := headCommit.Patch(prevHeadCommit)
+	patch, err := prevHeadCommit.Patch(headCommit)
 	if err != nil {
 		return result, err
 	}
@@ -400,12 +429,16 @@ func GetLastDeletedFiles(path string) ([]string, error) {
 	}
 
 	prevHeadCommit, err := headCommit.Parent(0)
-	if err != nil {
+	if err != nil && err != object.ErrParentNotFound {
 		return result, err
 	}
 
+	if prevHeadCommit == nil {
+		return result, nil
+	}
+
 	// Compute the diff between the current HEAD and the previous HEAD state
-	patch, err := headCommit.Patch(prevHeadCommit)
+	patch, err := prevHeadCommit.Patch(headCommit)
 	if err != nil {
 		return result, err
 	}
@@ -422,7 +455,7 @@ func getAddedOrModifiedFiles(patch *object.Patch) []string {
 		// Filter for added (A) or modified (M) files
 		if stat.Addition > 0 && stat.Deletion == 0 {
 			updatedFiles = append(updatedFiles, stat.Name)
-		} else if stat.Addition > 0 || stat.Deletion > 0 {
+		} else if stat.Addition > 0 {
 			updatedFiles = append(updatedFiles, stat.Name)
 		}
 	}

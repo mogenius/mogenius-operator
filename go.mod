@@ -16,7 +16,6 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/ivanpirog/coloredcobra v1.0.1
-	github.com/jedib0t/go-pretty v4.3.0+incompatible
 	github.com/jedib0t/go-pretty/v6 v6.5.4
 	github.com/json-iterator/go v1.1.12
 	github.com/kylelemons/godebug v1.1.0
@@ -108,6 +107,7 @@ require (
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/jaevor/go-nanoid v1.3.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
+	github.com/jedib0t/go-pretty v4.3.0+incompatible // indirect
 	github.com/jmespath/go-jmespath v0.4.1-0.20220621161143-b0104c826a24 // indirect
 	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/karrick/godirwalk v1.17.0 // indirect

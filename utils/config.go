@@ -126,6 +126,20 @@ var ClusterProviderCached punqDtos.KubernetesProvider = punqDtos.UNKNOWN
 // preconfigure with dtos
 var IacWorkloadConfigMap map[string]bool
 
+func InitConfigSimple(stage string) {
+	path := os.TempDir() + "/config.yaml"
+
+	switch stage {
+	case STAGE_DEV:
+		os.WriteFile(path, []byte(DefaultConfigClusterFileDev), 0755)
+	case STAGE_LOCAL:
+		os.WriteFile(path, []byte(DefaultConfigLocalFile), 0755)
+	case STAGE_PROD:
+		os.WriteFile(path, []byte(DefaultConfigClusterFileProd), 0755)
+	}
+	cleanenv.ReadConfig(path, &CONFIG)
+}
+
 func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// try to load stage if not set
 	if stage == "" {

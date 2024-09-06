@@ -17,15 +17,15 @@ func TestGitManager(t *testing.T) {
 
 	// CLEANUP
 	defer func() {
-		err := os.RemoveAll(localPath)
+		err := DeletePath(localPath)
 		if err != nil {
 			t.Errorf("Error removing repo: %s", err.Error())
 		}
-		err = os.RemoveAll(localPathInit)
+		err = DeletePath(localPathInit)
 		if err != nil {
 			t.Errorf("Error removing init-repo: %s", err.Error())
 		}
-		err = os.RemoveAll(localPathFast)
+		err = DeletePath(localPathFast)
 		if err != nil {
 			t.Errorf("Error removing fast-repo: %s", err.Error())
 		}
@@ -48,7 +48,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// PUSH
-	err = Push(localPath)
+	err = Push(localPath, "origin")
 	if err != nil && err != transport.ErrAuthenticationRequired {
 		t.Errorf("Error pushing repo: %s", err.Error())
 	} else {
