@@ -12,7 +12,6 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/jedib0t/go-pretty/table"
 	"github.com/kylelemons/godebug/pretty"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,68 +23,12 @@ import (
 // 5. commit changes
 // 6. pull/push changes periodically
 
-type IacManagerStatus struct {
-	RepoError      error                              `json:"repoError"`
-	RemoteError    error                              `json:"remoteError"`
-	PullError      error                              `json:"pullError"`
-	PushError      error                              `json:"pushError"`
-	SyncError      error                              `json:"syncError"`
-	LastPull       GitActionStatus                    `json:"lastPull"`
-	LastPush       GitActionStatus                    `json:"lastPush"`
-	ResourceStates map[string]IacManagerResourceState `json:"resourceStates"`
-}
-
-type GitActionStatus struct {
-	CommitMsg    string `json:"CommitMsg"`
-	CommitAuthor string `json:"CommitAuthor"`
-	CommitHash   string `json:"CommitHash"`
-	CommitDate   string `json:"CommitDate"`
-}
-
-type IacManagerResourceState struct {
-	Kind       string        `json:"kind"`
-	Namespace  string        `json:"namespace"`
-	Name       string        `json:"name"`
-	LastUpdate string        `json:"lastUpdate"`
-	Diff       string        `json:"diff"`
-	Error      error         `json:"error"`
-	State      SyncStateEnum `json:"state"`
-}
-
-type ChangedFile struct {
-	Name        string `json:"name"`
-	Path        string `json:"path"`
-	AuthorName  string `json:"authorName"`
-	AutgorEmail string `json:"authorEmail"`
-	Message     string `json:"message"`
-}
-
-type SyncStateEnum string
-
-const (
-	SyncStateUnknown     SyncStateEnum = "Unknown"
-	SyncStateInitialized SyncStateEnum = "Initialized" // Initial state. When the resource is read from the cluster.
-	SyncStatePendingPush SyncStateEnum = "PendingPush" // When the resource is updated in the cluster but not yet synced.
-	SyncStateSynced      SyncStateEnum = "Synced"      // When the resource is synced with the repository.
-	SyncStateDeleted     SyncStateEnum = "Deleted"     // When the resource is deleted from the cluster.
-	SyncStateReverted    SyncStateEnum = "Reverted"    // When the resource is reverted because Pull=true and yaml != repo.
-	SyncStateSyncError   SyncStateEnum = "SyncError"
-)
-
-type SyncTriggerEnum string
-
 const (
 	GIT_VAULT_FOLDER    = "git-vault"
 	DELETE_DATA_RETRIES = 5
 )
 
-var IacManagerStatusInstance = IacManagerStatus{
-	RepoError:      nil,
-	ResourceStates: map[string]IacManagerResourceState{},
-}
-
 var commitMutex sync.Mutex
-var statusMutex sync.Mutex
 
 var changedFiles []ChangedFile
 
@@ -116,11 +59,13 @@ func isIgnoredNamespaceInFile(file string) (result bool, namespace *string) {
 }
 
 func Init() {
-	IacManagerStatusInstance.RepoError = gitInitRepo()
+	InitDataModel()
+
+	SetRepoError(gitInitRepo())
 
 	// Set up the remote repository
 	if !gitHasRemotes() {
-		IacManagerStatusInstance.RemoteError = addRemote()
+		SetRemoteError(addRemote())
 	}
 
 	// START SYNCING CHANGES
@@ -164,11 +109,7 @@ func addRemote() error {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	err := gitmanager.AddRemote(folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), "origin")
 	if err != nil {
-		// skip already exists error
-		if !strings.Contains(err.Error(), "remote origin already exists") {
-			iaclogger.Errorf("Error setting up remote: %s", err.Error())
-			return err
-		}
+		return err
 	}
 	err = gitmanager.CheckoutBranch(folder, utils.CONFIG.Iac.RepoBranch)
 	if err != nil {
@@ -192,13 +133,13 @@ func ResetCurrentRepoData(tries int) error {
 	}
 
 	err = gitInitRepo()
-	IacManagerStatusInstance.RepoError = err
+	SetRepoError(err)
 	if err != nil {
 		return err
 	}
 
 	err = addRemote()
-	IacManagerStatusInstance.RemoteError = err
+	SetRemoteError(err)
 
 	return err
 }
@@ -478,14 +419,14 @@ func ApplyRepoStateToCluster() {
 	}
 }
 
-func SyncChanges() {
+func SyncChanges() error {
 	var err error
 	if gitHasRemotes() {
 		if !SetupInProcess {
 			if !syncInProcess {
 				syncInProcess = true
 				updatedFiles, deletedFiles, err := pullChanges()
-				IacManagerStatusInstance.PullError = err
+				SetPullError(err)
 				if err != nil {
 					iaclogger.Errorf("Error pulling changes: %s", err.Error())
 				} else if !initialRepoApplied {
@@ -500,12 +441,12 @@ func SyncChanges() {
 					kubernetesDeleteResource(v)
 				}
 				err = pushChanges()
-				IacManagerStatusInstance.PushError = err
+				SetPushError(err)
 				if err != nil {
 					iaclogger.Errorf("Error pushing changes: %s", err.Error())
 				}
 				syncInProcess = false
-				IacManagerStatusInstance.SyncError = nil
+				SetSyncError(nil)
 			} else {
 				err = fmt.Errorf("Sync in process. Skipping sync.")
 			}
@@ -518,7 +459,8 @@ func SyncChanges() {
 	if err != nil {
 		iaclogger.Warnf(err.Error())
 	}
-	IacManagerStatusInstance.SyncError = err
+	SetSyncError(err)
+	return err
 }
 
 func fileNameForRaw(kind string, namespace string, resourceName string) string {
@@ -580,10 +522,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 			iaclogger.Errorf("Error getting last commit: %s", err.Error())
 			return
 		}
-		IacManagerStatusInstance.LastPull.CommitMsg = commit.Message
-		IacManagerStatusInstance.LastPull.CommitAuthor = commit.Author.Name
-		IacManagerStatusInstance.LastPull.CommitHash = commit.Hash.String()
-		IacManagerStatusInstance.LastPull.CommitDate = commit.Author.When.String()
+		SetLastPull(commit)
 	}()
 
 	// Pull changes from the remote repository
@@ -628,6 +567,11 @@ func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 			iaclogger.Info(file)
 		}
 	}
+
+	// clean files
+	updatedFiles = cleanFileListFromNonYamls(updatedFiles)
+	deletedFiles = cleanFileListFromNonYamls(deletedFiles)
+
 	return updatedFiles, deletedFiles, nil
 }
 
@@ -647,10 +591,7 @@ func pushChanges() error {
 			iaclogger.Errorf("Error getting last commit: %s", err.Error())
 			return
 		}
-		IacManagerStatusInstance.LastPush.CommitMsg = commit.Message
-		IacManagerStatusInstance.LastPush.CommitAuthor = commit.Author.Name
-		IacManagerStatusInstance.LastPush.CommitHash = commit.Hash.String()
-		IacManagerStatusInstance.LastPush.CommitDate = commit.Author.When.String()
+		SetLastPush(commit)
 	}()
 
 	// Push changes to the remote repository
@@ -698,6 +639,16 @@ func applyPriotityToChangesForDeletes(resources []string) []string {
 			result = append([]string{v}, result...)
 		}
 
+	}
+	return result
+}
+
+func cleanFileListFromNonYamls(files []string) []string {
+	result := []string{}
+	for _, file := range files {
+		if strings.HasSuffix(file, ".yaml") {
+			result = append(result, file)
+		}
 	}
 	return result
 }
@@ -862,67 +813,4 @@ func isEmptyValue(value interface{}) bool {
 	default:
 		return false
 	}
-}
-
-func UpdateResourceStatus(kind string, namespace string, name string, diff string, state SyncStateEnum, err error) {
-	statusMutex.Lock()
-
-	key := fmt.Sprintf("%s/%s/%s", kind, namespace, name)
-
-	newStatus := IacManagerResourceState{
-		Kind:       kind,
-		Namespace:  namespace,
-		Name:       name,
-		Diff:       diff,
-		LastUpdate: time.Now().String(),
-		State:      state,
-		Error:      err,
-	}
-
-	IacManagerStatusInstance.ResourceStates[key] = newStatus
-
-	statusMutex.Unlock()
-
-	if err != nil {
-		iaclogger.Errorf("Error with %s resource (%s): %s", state, key, err.Error())
-	} else {
-		iaclogger.Infof("✅ %s resource '%s'.", state, key)
-	}
-}
-
-func UpdateResourceStatusByFile(file string, diff string, state SyncStateEnum, err error) {
-	parts := strings.Split(file, "/")
-	filename := strings.Replace(parts[len(parts)-1], ".yaml", "", -1)
-	partsName := strings.Split(filename, "_")
-	kind := parts[0]
-	namespace := ""
-	name := ""
-	if len(partsName) > 1 {
-		namespace = partsName[0]
-		name = partsName[1]
-	}
-
-	UpdateResourceStatus(kind, namespace, name, diff, state, err)
-}
-
-func PrintIacStatus() string {
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Name", "Namespace", "Kind", "State", "Age", "Error"})
-	for _, entry := range IacManagerStatusInstance.ResourceStates {
-		errmsg := "-"
-		if entry.Error != nil {
-			errmsg = entry.Error.Error()
-		}
-		t.AppendRow(
-			table.Row{entry.Name, entry.Namespace, entry.Kind, entry.State, entry.LastUpdate, errmsg},
-		)
-	}
-
-	// t.SetColumnConfigs([]table.ColumnConfig{
-	// 	{Number: 2, Align: text.AlignCenter},
-	// 	{Number: 3, Align: text.AlignCenter},
-	// })
-
-	return t.Render()
 }
