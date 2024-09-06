@@ -64,16 +64,16 @@ type Config struct {
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
 	} `yaml:"event_server"`
 	Iac struct {
-		RepoUrl            string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url." env-default:""`
-		RepoPat            string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat." env-default:""`
-		RepoBranch         string   `yaml:"repo_pat_branch" env:"sync_repo_branch" env-description:"Sync repo branch." env-default:"main"`
+		RepoUrl            string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url."`
+		RepoPat            string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat."`
+		RepoBranch         string   `yaml:"repo_pat_branch" env:"sync_repo_branch" env-description:"Sync repo branch."`
 		SyncFrequencyInSec int      `yaml:"sync_requency_secs" env:"sync_requency_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
-		AllowPush          bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo." env-default:"true"`
-		AllowPull          bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo." env-default:"true"`
-		SyncWorkloads      []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync." env-default:""`
+		AllowPush          bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo."`
+		AllowPull          bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo."`
+		SyncWorkloads      []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync."`
 		ShowDiffInLog      bool     `yaml:"show_diff_in_log" env:"sync_show_diff_in_log" env-description:"Show all changes of resources as diff in operator log."`
-		IgnoredNamespaces  []string `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces." env-default:""`
-		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry." env-default:"true"`
+		IgnoredNamespaces  []string `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces."`
+		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
 		Stage                  string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`

@@ -38,7 +38,7 @@ func CloneFast(url, path, branch string) error {
 		SingleBranch:  true,
 		ReferenceName: plumbing.NewBranchReferenceName(branch),
 	})
-	if err != nil {
+	if err != nil && err != git.ErrRepositoryAlreadyExists {
 		return err
 	}
 	return nil
@@ -120,6 +120,11 @@ func Commit(repoPath string, changedfilePaths []string, message, authorName, aut
 	w, err := r.Worktree()
 	if err != nil {
 		return err
+	}
+
+	// clean file path to make them relative
+	for index, filePath := range changedfilePaths {
+		changedfilePaths[index] = strings.TrimPrefix(filePath, repoPath+"/")
 	}
 
 	for _, filePath := range changedfilePaths {

@@ -30,8 +30,6 @@ const (
 
 var commitMutex sync.Mutex
 
-var changedFiles []ChangedFile
-
 var syncInProcess = false
 var SetupInProcess = false
 var initialRepoApplied = false
@@ -77,9 +75,11 @@ func ShouldWatchResources() bool {
 }
 
 func gitInitRepo() error {
+	var err error
+
 	// Create a git repository
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	if _, err := os.Stat(folder); os.IsNotExist(err) {
+	if _, err = os.Stat(folder); os.IsNotExist(err) {
 		err := os.MkdirAll(folder, 0755)
 		if err != nil {
 			iaclogger.Errorf("Error creating folder for git repository (in %s): %s", folder, err.Error())
@@ -87,16 +87,20 @@ func gitInitRepo() error {
 		}
 	}
 
-	err := gitmanager.InitGit(folder)
-	if err != nil {
-		iaclogger.Errorf("Error creating git repository: %s", err.Error())
-		return err
+	if utils.CONFIG.Iac.RepoUrl == "" {
+		err = gitmanager.InitGit(folder)
+		if err != nil {
+			iaclogger.Errorf("Error creating git repository: %s", err.Error())
+			return err
+		}
 	}
 
-	err = gitmanager.CheckoutBranch(folder, utils.CONFIG.Iac.RepoBranch)
-	if err != nil {
-		iaclogger.Errorf("Error setting up branch: %s", err.Error())
-		return err
+	if utils.CONFIG.Iac.RepoUrl != "" {
+		err = gitmanager.CloneFast(insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), folder, utils.CONFIG.Iac.RepoBranch)
+		if err != nil {
+			iaclogger.Errorf("Error setting up branch: %s", err.Error())
+			return err
+		}
 	}
 
 	return err
@@ -120,7 +124,7 @@ func addRemote() error {
 }
 
 func ResetCurrentRepoData(tries int) error {
-	changedFiles = []ChangedFile{}
+	ClearChangedFiles()
 
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	err := os.RemoveAll(folder)
@@ -163,7 +167,13 @@ func CheckRepoAccess() error {
 }
 
 func IsIacEnabled() bool {
-	return utils.CONFIG.Iac.AllowPull || utils.CONFIG.Iac.AllowPush
+	if utils.CONFIG.Iac.AllowPull {
+		return true
+	}
+	if utils.CONFIG.Iac.AllowPush {
+		return true
+	}
+	return false
 }
 
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
@@ -225,13 +235,16 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		iaclogger.Infof("🧹 Detected %s change. Updated %s/%s.", kind, namespace, resourceName)
 	}
 
-	changedFiles = append(changedFiles, ChangedFile{
-		AuthorName:  utils.CONFIG.Git.GitUserName,
-		AutgorEmail: utils.CONFIG.Git.GitUserEmail,
-		Name:        resourceName,
-		Path:        filename,
-		Message:     fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName),
-	})
+	if diff != "" {
+		AddChangedFile(ChangedFile{
+			AuthorName:  utils.CONFIG.Git.GitUserName,
+			AutgorEmail: utils.CONFIG.Git.GitUserEmail,
+			Kind:        kind,
+			Name:        resourceName,
+			Path:        filename,
+			Message:     fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName),
+		})
+	}
 }
 
 func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) {
@@ -282,13 +295,17 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	if utils.CONFIG.Iac.LogChanges {
 		iaclogger.Infof("Detected %s deletion. Removed %s/%s. ♻️", kind, namespace, resourceName)
 	}
-	changedFiles = append(changedFiles, ChangedFile{
-		AuthorName:  utils.CONFIG.Git.GitUserName,
-		AutgorEmail: utils.CONFIG.Git.GitUserEmail,
-		Name:        resourceName,
-		Path:        filename,
-		Message:     fmt.Sprintf("Deleted [%s] %s/%s", kind, namespace, resourceName),
-	})
+
+	if diff != "" {
+		AddChangedFile(ChangedFile{
+			AuthorName:  utils.CONFIG.Git.GitUserName,
+			AutgorEmail: utils.CONFIG.Git.GitUserEmail,
+			Name:        resourceName,
+			Kind:        kind,
+			Path:        filename,
+			Message:     fmt.Sprintf("Deleted [%s] %s/%s", kind, namespace, resourceName),
+		})
+	}
 }
 
 func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) string {
@@ -490,26 +507,6 @@ func gitHasRemotes() bool {
 	return gitmanager.HasRemotes(folder)
 }
 
-func commitChanges(authorName string, authorEmail string, message string, files []string) {
-	commitMutex.Lock()
-	defer commitMutex.Unlock()
-
-	if !utils.CONFIG.Iac.AllowPush {
-		return
-	}
-
-	if authorName == "" {
-		authorName = utils.CONFIG.Git.GitUserName
-	}
-	if authorEmail == "" {
-		authorEmail = utils.CONFIG.Git.GitUserEmail
-	}
-
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-
-	gitmanager.Commit(folder, files, message, authorName, authorEmail)
-}
-
 func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 	if !utils.CONFIG.Iac.AllowPull {
 		return
@@ -579,7 +576,7 @@ func pushChanges() error {
 	if !utils.CONFIG.Iac.AllowPush {
 		return nil
 	}
-	if len(changedFiles) <= 0 {
+	if ChangedFilesEmpty() {
 		return nil
 	}
 
@@ -594,18 +591,30 @@ func pushChanges() error {
 		SetLastPush(commit)
 	}()
 
+	// Commit changes
+	fileList := []string{}
+	commitMsg := ""
+	for _, file := range GetChangedFiles() {
+		fileList = append(fileList, file.Path)
+		commitMsg += file.Message + "\n"
+	}
+	err := gitmanager.Commit(folder, fileList, commitMsg, utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+	if err != nil {
+		return fmt.Errorf("Error running git commit: %s", err.Error())
+	}
+
 	// Push changes to the remote repository
-	err := gitmanager.Push(folder, "origin")
+	err = gitmanager.Push(folder, "origin")
 	if err != nil {
 		return fmt.Errorf("Error running git push: %s", err.Error())
 	}
-	iaclogger.Infof("🔄 Pushed %d changes to remote repository.", len(changedFiles))
+	iaclogger.Infof("🔄 Pushed %d changes to remote repository.", ChangedFilesLen())
 	if utils.CONFIG.Misc.Debug {
-		for _, file := range changedFiles {
+		for _, file := range GetChangedFiles() {
 			iaclogger.Info(file)
 		}
 	}
-	changedFiles = []ChangedFile{}
+	ClearChangedFiles()
 	return nil
 }
 
@@ -750,7 +759,7 @@ func shouldSkipResource(path string) bool {
 		iaclogger.Debugf("😑 Skipping (because pods won't by synced): %s", path)
 		return true
 	}
-	if utils.CONFIG.Misc.Stage != "local" {
+	if utils.CONFIG.Kubernetes.RunInCluster != false {
 		if strings.Contains(path, "/mogenius-k8s-manager") {
 			iaclogger.Debugf("😑 Skipping (because contains keyword mogenius-k8s-manager): %s", path)
 			return true

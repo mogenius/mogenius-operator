@@ -23,16 +23,22 @@ func TestIacManager(t *testing.T) {
 	err := gitInitRepo()
 	if err != nil {
 		t.Errorf("Error initializing git repo: %v", err)
+	} else {
+		t.Log("Repo initialized ✅")
 	}
 
 	err = addRemote()
 	if err != nil {
 		t.Errorf("Error adding remote: %v", err)
+	} else {
+		t.Log("Remote added ✅")
 	}
 
 	err = SyncChanges()
 	if err != nil {
 		t.Errorf("Error syncing changes: %v", err)
+	} else {
+		t.Log("Changes synced ✅")
 	}
 
 	data := PrintIacStatus()

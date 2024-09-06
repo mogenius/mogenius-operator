@@ -41,6 +41,7 @@ type IacManagerResourceState struct {
 
 type ChangedFile struct {
 	Name        string `json:"name"`
+	Kind        string `json:"kind"`
 	Path        string `json:"path"`
 	AuthorName  string `json:"authorName"`
 	AutgorEmail string `json:"authorEmail"`
@@ -59,6 +60,22 @@ const (
 	SyncStateSyncError   SyncStateEnum = "SyncError"
 )
 
+type IacChangeTypeEnum string
+
+const (
+	IacChangeTypeUnknown         IacChangeTypeEnum = "Unknown"
+	IacChangeTypeRepoError       IacChangeTypeEnum = "RepoError"
+	IacChangeTypeRemoteError     IacChangeTypeEnum = "RemoteError"
+	IacChangeTypePullError       IacChangeTypeEnum = "PullError"
+	IacChangeTypePushError       IacChangeTypeEnum = "PushError"
+	IacChangeTypeSyncError       IacChangeTypeEnum = "SyncError"
+	IacChangeTypeResourceUpdated IacChangeTypeEnum = "ResourceUpdated"
+	IacChangeTypeLastPullUpdated IacChangeTypeEnum = "LastPullUpdated"
+	IacChangeTypeLastPushUpdated IacChangeTypeEnum = "LastPushUpdated"
+)
+
+var changedFiles []ChangedFile
+
 var dataModel IacManagerStatus
 var dataModelMutex sync.Mutex
 
@@ -76,54 +93,74 @@ func InitDataModel() {
 	}
 }
 
-func NotifyChange() {
-	fmt.Println("Change detected")
+func NotifyChange(change IacChangeTypeEnum) {
+	fmt.Printf("Change detected %s\n", change)
 }
 
 // SETTERS
 func SetRepoError(err error) {
+	updatedString := ""
 	if err == nil {
-		dataModel.RepoError = ""
+		updatedString = ""
 	} else {
-		dataModel.RepoError = err.Error()
+		updatedString = err.Error()
 	}
-	NotifyChange()
+	if dataModel.RepoError != updatedString {
+		dataModel.RepoError = updatedString
+		NotifyChange(IacChangeTypeRepoError)
+	}
 }
 
 func SetRemoteError(err error) {
+	updatedString := ""
 	if err == nil {
-		dataModel.RemoteError = ""
+		updatedString = ""
 	} else {
-		dataModel.RemoteError = err.Error()
+		updatedString = err.Error()
 	}
-	NotifyChange()
+	if dataModel.RemoteError != updatedString {
+		dataModel.RemoteError = updatedString
+		NotifyChange(IacChangeTypeRemoteError)
+	}
 }
 
 func SetPullError(err error) {
+	updatedString := ""
 	if err == nil {
-		dataModel.PullError = ""
+		updatedString = ""
 	} else {
-		dataModel.PullError = err.Error()
+		updatedString = err.Error()
 	}
-	NotifyChange()
+	if dataModel.PullError != updatedString {
+		dataModel.PullError = updatedString
+		NotifyChange(IacChangeTypePullError)
+	}
 }
 
 func SetPushError(err error) {
+	updatedString := ""
 	if err == nil {
-		dataModel.PushError = ""
+		updatedString = ""
 	} else {
-		dataModel.PushError = err.Error()
+		updatedString = err.Error()
 	}
-	NotifyChange()
+	if dataModel.PushError != updatedString {
+		dataModel.PushError = updatedString
+		NotifyChange(IacChangeTypePushError)
+	}
 }
 
 func SetSyncError(err error) {
+	updatedString := ""
 	if err == nil {
-		dataModel.SyncError = ""
+		updatedString = ""
 	} else {
-		dataModel.SyncError = err.Error()
+		updatedString = err.Error()
 	}
-	NotifyChange()
+	if dataModel.SyncError != updatedString {
+		dataModel.SyncError = updatedString
+		NotifyChange(IacChangeTypeSyncError)
+	}
 }
 
 func SetLastPull(commit *object.Commit) {
@@ -133,7 +170,7 @@ func SetLastPull(commit *object.Commit) {
 	dataModel.LastPull.CommitHash = commit.Hash.String()
 	dataModel.LastPull.CommitMsg = commit.Message
 	dataModelMutex.Unlock()
-	NotifyChange()
+	NotifyChange(IacChangeTypeLastPullUpdated)
 }
 
 func SetLastPush(commit *object.Commit) {
@@ -143,14 +180,14 @@ func SetLastPush(commit *object.Commit) {
 	dataModel.LastPush.CommitHash = commit.Hash.String()
 	dataModel.LastPush.CommitMsg = commit.Message
 	dataModelMutex.Unlock()
-	NotifyChange()
+	NotifyChange(IacChangeTypeLastPushUpdated)
 }
 
 func SetResourceState(key string, state IacManagerResourceState) {
 	dataModelMutex.Lock()
 	dataModel.ResourceStates[key] = state
 	dataModelMutex.Unlock()
-	NotifyChange()
+	NotifyChange(IacChangeTypeResourceUpdated)
 }
 
 // GETTERS
@@ -168,8 +205,6 @@ func GetResourceState() map[string]IacManagerResourceState {
 }
 
 func UpdateResourceStatus(kind string, namespace string, name string, diff string, state SyncStateEnum, err error) {
-	dataModelMutex.Lock()
-
 	key := fmt.Sprintf("%s/%s/%s", kind, namespace, name)
 
 	newStatus := IacManagerResourceState{
@@ -182,9 +217,7 @@ func UpdateResourceStatus(kind string, namespace string, name string, diff strin
 		Error:      err,
 	}
 
-	dataModel.ResourceStates[key] = newStatus
-
-	dataModelMutex.Unlock()
+	SetResourceState(key, newStatus)
 
 	if err != nil {
 		iaclogger.Errorf("Error with %s resource (%s): %s", state, key, err.Error())
@@ -213,4 +246,31 @@ func PrintIacStatus() string {
 	result := utils.PrettyPrintInterface(dataModel)
 	dataModelMutex.Unlock()
 	return result
+}
+
+// CHANGED FILES
+func AddChangedFile(file ChangedFile) {
+	// skip if already exists
+	for _, v := range changedFiles {
+		if v.Name == file.Name && v.Kind == file.Kind {
+			return
+		}
+	}
+	changedFiles = append(changedFiles, file)
+}
+
+func GetChangedFiles() []ChangedFile {
+	return changedFiles
+}
+
+func ClearChangedFiles() {
+	changedFiles = []ChangedFile{}
+}
+
+func ChangedFilesEmpty() bool {
+	return len(changedFiles) <= 0
+}
+
+func ChangedFilesLen() int {
+	return len(changedFiles)
 }
