@@ -91,6 +91,11 @@ var clusterCmd = &cobra.Command{
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 
+		// Init Helm Config
+		if err := mokubernetes.InitHelmConfig(); err != nil {
+			log.Errorf("Error initializing Helm Config: %s", err.Error())
+		}
+
 		socketclient.StartK8sManager()
 	},
 }

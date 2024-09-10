@@ -1,14 +1,12 @@
 package kubernetes
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/repo"
-	"io/ioutil"
 	"mogenius-k8s-manager/structs"
-	"net/http"
+	"mogenius-k8s-manager/utils"
 	"os"
 	"os/exec"
 	"sync"
@@ -24,11 +22,32 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 )
 
+const (
+	HELM_DATA_HOME   = "helm"
+	HELM_CONFIG_HOME = "helm"
+
+	HELM_REGISTRY_CONFIG_FILE = "helm/config.json"
+
+	HELM_CACHE_HOME              = "helm/cache"
+	HELM_REPOSITORY_CACHE_FOLDER = "helm/cache/repository"
+
+	HELM_REPOSITORY_CONFIG_FILE = "helm/repositories.yaml"
+
+	HELM_PLUGINS = "helm/plugins"
+)
+
+var (
+	registryConfig   string
+	repositoryConfig string
+	repositoryCache  string
+)
+
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
 
 type HelmRepoAddRequest struct {
-	Name                  string `json:"name" validate:"required"`
-	Url                   string `json:"url" validate:"required"`
+	Name string `json:"name" validate:"required"`
+	Url  string `json:"url" validate:"required"`
+	// Optional fields
 	Username              string `json:"username,omitempty"`
 	Password              string `json:"password,omitempty"`
 	InsecureSkipTLSverify bool   `json:"insecureSkipTLSverify,omitempty"`
@@ -36,9 +55,10 @@ type HelmRepoAddRequest struct {
 }
 
 type HelmRepoPatchRequest struct {
-	Name                  string `json:"name" validate:"required"`
-	NewName               string `json:"newName" validate:"required"`
-	Url                   string `json:"url" validate:"required"`
+	Name    string `json:"name" validate:"required"`
+	NewName string `json:"newName" validate:"required"`
+	Url     string `json:"url" validate:"required"`
+	// Optional fields
 	Username              string `json:"username,omitempty"`
 	Password              string `json:"password,omitempty"`
 	InsecureSkipTLSverify bool   `json:"insecureSkipTLSverify,omitempty"`
@@ -56,10 +76,11 @@ type HelmChartSearchRequest struct {
 type HelmChartInstallRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Chart     string `json:"chart" validate:"required"`
-	Release   string `json:"release" `
-	Version   string `json:"version,omitempty"`
-	Values    string `json:"values,omitempty"`
-	DryRun    bool   `json:"dryRun,omitempty"`
+	Release   string `json:"release" validate:"required"`
+	// Optional fields
+	Version string `json:"version,omitempty"`
+	Values  string `json:"values,omitempty"`
+	DryRun  bool   `json:"dryRun,omitempty"`
 }
 
 type HelmChartShowRequest struct {
@@ -72,22 +93,24 @@ type HelmChartVersionRequest struct {
 }
 
 type HelmReleaseUpgradeRequest struct {
-	Namespace string `json:"namespace,omitempty"`
-	Chart     string `json:"chart,omitempty"`
-	Version   string `json:"version,omitempty"`
-	Release   string `json:"release,omitempty"`
-	Values    string `json:"values,omitempty"`
-	DryRun    bool   `json:"dryRun,omitempty"`
+	Namespace string `json:"namespace" validate:"required"`
+	Chart     string `json:"chart" validate:"required"`
+	Release   string `json:"release" validate:"required"`
+	// Optional fields
+	Version string `json:"version,omitempty"`
+	Values  string `json:"values,omitempty"`
+	DryRun  bool   `json:"dryRun,omitempty"`
 }
 
 type HelmReleaseUninstallRequest struct {
-	Namespace string `json:"namespace,omitempty"`
-	Release   string `json:"release,omitempty"`
-	DryRun    bool   `json:"dryRun,omitempty"`
+	Namespace string `json:"namespace" validate:"required"`
+	Release   string `json:"release" validate:"required"`
+	// Optional fields
+	DryRun bool `json:"dryRun,omitempty"`
 }
 
 type HelmReleaseListRequest struct {
-	Namespace string `json:"namespace" validate:"required"`
+	Namespace string `json:"namespace"`
 }
 
 type HelmReleaseStatusRequest struct {
@@ -101,9 +124,9 @@ type HelmReleaseHistoryRequest struct {
 }
 
 type HelmReleaseRollbackRequest struct {
-	Namespace string `json:"namespace,omitempty"`
-	Release   string `json:"release,omitempty"`
-	Revision  int    `json:"revision,omitempty"`
+	Namespace string `json:"namespace" validate:"required"`
+	Release   string `json:"release" validate:"required"`
+	Revision  int    `json:"revision" validate:"required"`
 }
 
 type HelmReleaseGetRequest struct {
@@ -149,50 +172,50 @@ func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGrou
 	structs.CreateShellCommand("helm uninstall", "Uninstall chart", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
 }
 
-func CheckHelmRepoExists(repoURL string, username string, password string) error {
-	indexURL := fmt.Sprintf("%s/index.yaml", repoURL)
-
-	client := http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	req, err := http.NewRequest("GET", indexURL, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	if username != "" && password != "" {
-		auth := fmt.Sprintf("%s:%s", username, password)
-		encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
-		req.Header.Add("Authorization", "Basic "+encodedAuth)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to fetch index.yaml: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("repository index.yaml not found, status code: %d", resp.StatusCode)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	var indexFile IndexFile
-	if err := yaml.Unmarshal(body, &indexFile); err != nil {
-		return fmt.Errorf("invalid YAML format in index.yaml: %w", err)
-	}
-
-	if indexFile.APIVersion == "" || indexFile.Entries == nil {
-		return fmt.Errorf("invalid Helm repository index format")
-	}
-
-	return nil
-}
+//func CheckHelmRepoExists(repoURL string, username string, password string) error {
+//	indexURL := fmt.Sprintf("%s/index.yaml", repoURL)
+//
+//	client := http.Client{
+//		Timeout: 10 * time.Second,
+//	}
+//
+//	req, err := http.NewRequest("GET", indexURL, nil)
+//	if err != nil {
+//		return fmt.Errorf("failed to create request: %w", err)
+//	}
+//
+//	if username != "" && password != "" {
+//		auth := fmt.Sprintf("%s:%s", username, password)
+//		encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
+//		req.Header.Add("Authorization", "Basic "+encodedAuth)
+//	}
+//
+//	resp, err := client.Do(req)
+//	if err != nil {
+//		return fmt.Errorf("failed to fetch index.yaml: %w", err)
+//	}
+//	defer resp.Body.Close()
+//
+//	if resp.StatusCode != http.StatusOK {
+//		return fmt.Errorf("repository index.yaml not found, status code: %d", resp.StatusCode)
+//	}
+//
+//	body, err := ioutil.ReadAll(resp.Body)
+//	if err != nil {
+//		return fmt.Errorf("failed to read response body: %w", err)
+//	}
+//
+//	var indexFile IndexFile
+//	if err := yaml.Unmarshal(body, &indexFile); err != nil {
+//		return fmt.Errorf("invalid YAML format in index.yaml: %w", err)
+//	}
+//
+//	if indexFile.APIVersion == "" || indexFile.Entries == nil {
+//		return fmt.Errorf("invalid Helm repository index format")
+//	}
+//
+//	return nil
+//}
 
 func HelmStatus(namespace string, chartname string) release.Status {
 	cacheKey := namespace + "/" + chartname
@@ -252,8 +275,98 @@ func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 	}
 }
 
-func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
+func InitHelmConfig() error {
+	// Set the registryConfig, repositoryConfig and repositoryCache variables
+	registryConfig = fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, HELM_REGISTRY_CONFIG_FILE)
+	repositoryConfig = fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, HELM_REPOSITORY_CONFIG_FILE)
+	repositoryCache = fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, HELM_REPOSITORY_CACHE_FOLDER)
+
+	// Set the HELM_HOME environment variable
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, HELM_DATA_HOME)
+
+	// create helm home directory if it does not exist
+	if _, err := os.Stat(folder); os.IsNotExist(err) {
+		err := os.MkdirAll(folder, 0755)
+		if err != nil {
+			K8sLogger.Errorf("Error creating directory: %s", err.Error())
+			return err
+		}
+		K8sLogger.Infof("Helm home directory created successfully: %s", folder)
+
+		// create cache directory if it does not exist
+		if _, err := os.Stat(repositoryCache); os.IsNotExist(err) {
+			err := os.MkdirAll(repositoryCache, 0755)
+			if err != nil {
+				K8sLogger.Errorf("Error creating directory: %s", err.Error())
+				return err
+			}
+			K8sLogger.Infof("Helm cache directory created successfully: %s", repositoryCache)
+		}
+
+		// create plugins directory if it does not exist
+		pluginsFolder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, HELM_PLUGINS)
+		if _, err := os.Stat(pluginsFolder); os.IsNotExist(err) {
+			err := os.MkdirAll(pluginsFolder, 0755)
+			if err != nil {
+				K8sLogger.Errorf("Error creating directory: %s", err.Error())
+				return err
+			}
+			K8sLogger.Infof("Helm plugins directory created successfully: %s", pluginsFolder)
+		}
+	}
+	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, HELM_CACHE_HOME))
+	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, HELM_CONFIG_HOME))
+	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, HELM_DATA_HOME))
+	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, HELM_PLUGINS))
+	os.Setenv("HELM_REGISTRY_CONFIG", registryConfig)
+	os.Setenv("HELM_REPOSITORY_CACHE", repositoryCache)
+	os.Setenv("HELM_REPOSITORY_CONFIG", repositoryConfig)
+
+	if _, err := os.Stat(repositoryConfig); os.IsNotExist(err) {
+		destFile, err := os.Create(repositoryConfig)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
+		defer destFile.Close()
+
+		// add default repository
+		data := HelmRepoAddRequest{
+			Name: "mogenius-operator",
+			Url:  "https://helm.mogenius.com/public",
+		}
+		if _, err := HelmRepoAdd(data); err != nil {
+			K8sLogger.Errorf("Failed to add default repository: %s", err.Error())
+		}
+	}
+
+	if _, err := HelmRepoUpdate(); err != nil {
+		K8sLogger.Errorf("Failed to update repositories: %s", err.Error())
+	}
+
+	return nil
+}
+
+func NewCli() *cli.EnvSettings {
 	settings := cli.New()
+	settings.RegistryConfig = registryConfig
+	settings.RepositoryConfig = repositoryConfig
+	settings.RepositoryCache = repositoryCache
+	return settings
+}
+
+func NewCliConfArgs() []string {
+	return []string{
+		"--registry-config",
+		registryConfig,
+		"--repository-config",
+		repositoryConfig,
+		"--repository-cache",
+		repositoryCache,
+	}
+}
+
+func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
+	settings := NewCli()
 
 	// Create a new Helm repository entry
 	entry := &repo.Entry{
@@ -299,7 +412,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 }
 
 func HelmRepoPatch(data HelmRepoPatchRequest) (string, error) {
-	settings := cli.New()
+	settings := NewCli()
 
 	// Initialize the file where repositories are stored
 	file := settings.RepositoryConfig
@@ -345,8 +458,9 @@ func HelmRepoPatch(data HelmRepoPatchRequest) (string, error) {
 }
 
 func HelmRepoUpdate() ([]HelmEntryStatus, error) {
+	settings := NewCli()
+
 	results := []HelmEntryStatus{}
-	settings := cli.New()
 
 	// Initialize the file where repositories are stored
 	file := settings.RepositoryConfig
@@ -376,7 +490,7 @@ func HelmRepoUpdate() ([]HelmEntryStatus, error) {
 }
 
 func HelmRepoList() ([]*HelmEntryWithoutPassword, error) {
-	settings := cli.New()
+	settings := NewCli()
 
 	// Initialize the file where repositories are stored
 	file := settings.RepositoryConfig
@@ -396,7 +510,7 @@ func HelmRepoList() ([]*HelmEntryWithoutPassword, error) {
 }
 
 func HelmRepoRemove(data HelmRepoRemoveRequest) (string, error) {
-	settings := cli.New()
+	settings := NewCli()
 
 	// Initialize the file where repositories are stored
 	file := settings.RepositoryConfig
@@ -424,7 +538,10 @@ func HelmRepoRemove(data HelmRepoRemoveRequest) (string, error) {
 }
 
 func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
-	cmd := exec.Command("helm", "search", "repo", data.Name, "--versions", "--output", "json")
+	args := []string{}
+	args = append(args, "search", "repo", data.Name, "--output", "json")
+	args = append(args, NewCliConfArgs()...)
+	cmd := exec.Command("helm", args...)
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -441,7 +558,7 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 }
 
 func HelmChartShow(data HelmChartShowRequest) (string, error) {
-	settings := cli.New()
+	settings := NewCli()
 
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), "", os.Getenv("HELM_DRIVER"), K8sLogger.Infof); err != nil {
@@ -477,7 +594,10 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 		return nil, err
 	}
 
-	cmd := exec.Command("helm", "search", "repo", data.Chart, "--versions", "--output", "json")
+	args := []string{}
+	args = append(args, "search", "repo", data.Chart, "--versions", "--output", "json")
+	args = append(args, NewCliConfArgs()...)
+	cmd := exec.Command("helm", args...)
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -494,8 +614,8 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 }
 
 func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
-	settings := cli.New()
-	// settings.SetNamespace(data.Namespace)
+	settings := NewCli()
+	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), K8sLogger.Infof); err != nil {
@@ -546,7 +666,7 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 }
 
 func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
-	settings := cli.New()
+	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
@@ -593,7 +713,7 @@ func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
 }
 
 func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
-	settings := cli.New()
+	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
@@ -622,7 +742,7 @@ func installStatus(rel release.Release) string {
 }
 
 func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
-	settings := cli.New()
+	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
@@ -641,7 +761,7 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
 }
 
 func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, error) {
-	settings := cli.New()
+	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
@@ -684,7 +804,7 @@ func statusString(rel release.Release) string {
 }
 
 func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, error) {
-	settings := cli.New()
+	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
@@ -704,7 +824,7 @@ func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, err
 }
 
 func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
-	settings := cli.New()
+	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
@@ -725,7 +845,7 @@ func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
 }
 
 func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
-	settings := cli.New()
+	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
