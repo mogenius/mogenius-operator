@@ -19,14 +19,22 @@ func TestHelm(t *testing.T) {
 	defer func() {
 		// PAT_NAMESPACE_HELM_UNINSTALL - remove repo is purposely placed at the end
 		// no futher testing needed no error is sufficient
-		_, err := HelmUninstall(testNamespace, testRelease, testDryRun)
+		releaseUninstallData := HelmReleaseUninstallRequest{
+			Namespace: testNamespace,
+			Release:   testRelease,
+			DryRun:    testDryRun,
+		}
+		_, err := HelmReleaseUninstall(releaseUninstallData)
 		if err != nil {
 			t.Error(err)
 		}
 
 		// PAT_NAMESPACE_HELM_REPO_REMOVE - remove repo is purposely placed at the end
 		// no futher testing needed no error is sufficient
-		_, err = HelmRepoRemove(testRepo)
+		repoRemoveData := HelmRepoRemoveRequest{
+			Name: testRepo,
+		}
+		_, err = HelmRepoRemove(repoRemoveData)
 		if err != nil {
 			t.Error(err)
 		}
@@ -34,7 +42,11 @@ func TestHelm(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_REPO_ADD
 	// no futher testing needed no error is sufficient
-	_, err := HelmRepoAdd(testRepo, testChartUrl)
+	repoAddData := HelmRepoAddRequest{
+		Name: testRepo,
+		Url:  testChartUrl,
+	}
+	_, err := HelmRepoAdd(repoAddData)
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,21 +77,38 @@ func TestHelm(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_INSTALL
 	// no futher testing needed no error is sufficient
-	_, err = HelmInstall(testNamespace, testChart, "", testRelease, testValues, testDryRun)
+	helmInstallData := HelmChartInstallRequest{
+		Namespace: testNamespace,
+		Chart:     testChart,
+		Release:   "",
+		Values:    testValues,
+		DryRun:    testDryRun,
+	}
+	_, err = HelmChartInstall(helmInstallData)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// PAT_NAMESPACE_HELM_UPGRADE
 	// no futher testing needed no error is sufficient
-	_, err = HelmUpgrade(testNamespace, testChart, "", testRelease, testValues, testDryRun)
+	releaseUpgradeData := HelmReleaseUpgradeRequest{
+		Namespace: testNamespace,
+		Chart:     testChart,
+		Release:   "",
+		Values:    testValues,
+		DryRun:    testDryRun,
+	}
+	_, err = HelmReleaseUpgrade(releaseUpgradeData)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// PAT_NAMESPACE_HELM_LIST
 	// check if release is added
-	releaseList, err := HelmReleaseList("")
+	releaseListData := HelmReleaseListRequest{
+		Namespace: "",
+	}
+	releaseList, err := HelmReleaseList(releaseListData)
 	if err != nil {
 		t.Error(err)
 	}
@@ -96,28 +125,45 @@ func TestHelm(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_STATUS
 	// no futher testing needed no error is sufficient
-	_, err = HelmReleaseStatus(testNamespace, testRelease)
+	releaseStatusData := HelmReleaseStatusRequest{
+		Namespace: testNamespace,
+		Release:   testRelease,
+	}
+	_, err = HelmReleaseStatus(releaseStatusData)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// PAT_NAMESPACE_HELM_SHOW
 	// no futher testing needed no error is sufficient
-	_, err = HelmChartShow(testChart, action.ShowAll)
+	chartShowData := HelmChartShowRequest{
+		Chart:      testChart,
+		ShowFormat: action.ShowAll,
+	}
+	_, err = HelmChartShow(chartShowData)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// PAT_NAMESPACE_HELM_GET
 	// no futher testing needed no error is sufficient
-	_, err = HelmGet(testNamespace, testRelease, structs.HelmGetAll)
+	releaseGet := HelmReleaseGetRequest{
+		Namespace: testNamespace,
+		Release:   testRelease,
+		GetFormat: structs.HelmGetAll,
+	}
+	_, err = HelmReleaseGet(releaseGet)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// PAT_NAMESPACE_HELM_HISTORY
 	// history should have at least 1 entry
-	historyList, err := HelmHistory(testNamespace, testRelease)
+	releaseHistoryData := HelmReleaseHistoryRequest{
+		Namespace: testNamespace,
+		Release:   testRelease,
+	}
+	historyList, err := HelmReleaseHistory(releaseHistoryData)
 	if err != nil {
 		t.Error(err)
 	}
@@ -127,7 +173,12 @@ func TestHelm(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_ROLLBACK
 	// no futher testing needed no error is sufficient
-	_, err = HelmRollback(testNamespace, testRelease, 1)
+	releaseRollbackData := HelmReleaseRollbackRequest{
+		Namespace: testNamespace,
+		Release:   testRelease,
+		Revision:  1,
+	}
+	_, err = HelmReleaseRollback(releaseRollbackData)
 	if err != nil {
 		t.Error(err)
 	}
