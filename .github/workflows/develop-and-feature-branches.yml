@@ -15,7 +15,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: self-hosted
+    runs-on: self-hosted-ansible
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -92,7 +92,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, X64, builder]
+    runs-on: [self-hosted-ansible, X64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -126,7 +126,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64, builder]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -159,7 +159,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64, builder]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -192,7 +192,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64, builder]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -225,7 +225,7 @@ jobs:
   merge-images:
     if: github.ref == 'refs/heads/develop'
     needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
-    runs-on: self-hosted
+    runs-on: self-hosted-ansible
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -258,7 +258,7 @@ jobs:
   helm-chart:
     if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-ansible
     steps:
       - name: Check out code
         uses: actions/checkout@v4
