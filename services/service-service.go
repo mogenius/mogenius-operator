@@ -96,6 +96,11 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 		mokubernetes.DeleteCronJob(job, r.Namespace, r.Service, &wg)
 	}
 
+	// EXTERNAL SECRETS OPERATOR - cleanup unused secrets
+	if utils.CONFIG.Misc.ExternalSecretsEnabled {
+		mokubernetes.DeleteUnusedSecretsForNamespace(job, r.Namespace, r.Service, &wg)
+	}
+
 	mokubernetes.DeleteNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.DeleteIngress(job, r.Namespace, r.Service, &wg)
 
