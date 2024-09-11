@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -488,7 +487,7 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
 				castedObj.Kind = "Deployment"
 				castedObj.APIVersion = "apps/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+				IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
@@ -498,7 +497,7 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
 				castedObj.Kind = "Deployment"
 				castedObj.APIVersion = "apps/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+				IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -508,7 +507,7 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
 				castedObj.Kind = "Deployment"
 				castedObj.APIVersion = "apps/v1"
-				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+				IacManagerDeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 			}
 		},
 	}

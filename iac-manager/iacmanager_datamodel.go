@@ -2,8 +2,8 @@ package iacmanager
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/utils"
-	"strings"
 	"sync"
 	"time"
 
@@ -11,22 +11,24 @@ import (
 )
 
 type IacManagerStatus struct {
-	RepoError        string                             `json:"repoError"`
-	RemoteError      string                             `json:"remoteError"`
-	PullError        string                             `json:"pullError"`
-	PushError        string                             `json:"pushError"`
-	SyncError        string                             `json:"syncError"`
-	LastPull         GitActionStatus                    `json:"lastPull"`
-	LastPush         GitActionStatus                    `json:"lastPush"`
-	IacConfiguration interface{}                        `json:"iacConfiguration"`
-	ResourceStates   map[string]IacManagerResourceState `json:"resourceStates"`
+	RepoError                     string                             `json:"repoError"`
+	RemoteError                   string                             `json:"remoteError"`
+	PullError                     string                             `json:"pullError"`
+	PushError                     string                             `json:"pushError"`
+	SyncError                     string                             `json:"syncError"`
+	CommitHistory                 []GitActionStatus                  `json:"commitHistory"`
+	LastSuccessfullyAppliedCommit GitActionStatus                    `json:"lastSuccessfullyAppliedCommit"`
+	IacConfiguration              interface{}                        `json:"iacConfiguration"`
+	ResourceStates                map[string]IacManagerResourceState `json:"resourceStates"`
 }
 
 type GitActionStatus struct {
-	CommitMsg    string `json:"CommitMsg"`
-	CommitAuthor string `json:"CommitAuthor"`
-	CommitHash   string `json:"CommitHash"`
-	CommitDate   string `json:"CommitDate"`
+	CommitMsg     string `json:"commitMsg"`
+	CommitAuthor  string `json:"commitAuthor"`
+	CommitHash    string `json:"commitHash"`
+	CommitDate    string `json:"commitDate"`
+	Diff          string `json:"diff,omitempty"`
+	LastExecution string `json:"lastExecution"`
 }
 
 type IacManagerResourceState struct {
@@ -35,18 +37,30 @@ type IacManagerResourceState struct {
 	Name       string        `json:"name"`
 	LastUpdate string        `json:"lastUpdate"`
 	Diff       string        `json:"diff"`
+	Author     string        `json:"author"`
 	Error      error         `json:"error"`
 	State      SyncStateEnum `json:"state"`
 }
 
 type ChangedFile struct {
-	Name        string `json:"name"`
-	Kind        string `json:"kind"`
-	Path        string `json:"path"`
-	AuthorName  string `json:"authorName"`
-	AutgorEmail string `json:"authorEmail"`
-	Message     string `json:"message"`
+	Name       string         `json:"name"`
+	Kind       string         `json:"kind"`
+	Path       string         `json:"path"`
+	Author     string         `json:"author"`
+	Diff       string         `json:"Diff"`
+	Message    string         `json:"message"`
+	Timestamp  string         `json:"timestamp"`
+	ChangeType SyncChangeType `json:"changeType"`
 }
+
+type SyncChangeType string
+
+const (
+	SyncChangeTypeUnknown SyncChangeType = "Unknown"
+	SyncChangeTypeAdd     SyncChangeType = "Add"
+	SyncChangeTypeDelete  SyncChangeType = "Delete"
+	SyncChangeTypeModify  SyncChangeType = "Modify"
+)
 
 type SyncStateEnum string
 
@@ -86,8 +100,7 @@ func InitDataModel() {
 		PullError:        "",
 		PushError:        "",
 		SyncError:        "",
-		LastPull:         GitActionStatus{},
-		LastPush:         GitActionStatus{},
+		CommitHistory:    []GitActionStatus{},
 		IacConfiguration: utils.CONFIG.Iac,
 		ResourceStates:   make(map[string]IacManagerResourceState),
 	}
@@ -163,24 +176,37 @@ func SetSyncError(err error) {
 	}
 }
 
-func SetLastPull(commit *object.Commit) {
+func SetCommitHistory(commits []*object.Commit) {
 	dataModelMutex.Lock()
-	dataModel.LastPull.CommitAuthor = commit.Author.Name
-	dataModel.LastPull.CommitDate = commit.Author.When.String()
-	dataModel.LastPull.CommitHash = commit.Hash.String()
-	dataModel.LastPull.CommitMsg = commit.Message
+	objects := []GitActionStatus{}
+	for _, commit := range commits {
+		objects = append(objects, GitActionStatus{
+			CommitAuthor:  commit.Author.Name,
+			CommitDate:    commit.Author.When.Format(time.RFC3339),
+			CommitHash:    commit.Hash.String(),
+			CommitMsg:     commit.Message,
+			LastExecution: time.Now().Format(time.RFC3339),
+		})
+	}
+	dataModel.CommitHistory = objects
 	dataModelMutex.Unlock()
 	NotifyChange(IacChangeTypeLastPullUpdated)
 }
 
-func SetLastPush(commit *object.Commit) {
+func SetLastSuccessfullyAppliedCommit(commit *object.Commit) {
+	if commit == nil {
+		return
+	}
 	dataModelMutex.Lock()
-	dataModel.LastPush.CommitAuthor = commit.Author.Name
-	dataModel.LastPush.CommitDate = commit.Author.When.String()
-	dataModel.LastPush.CommitHash = commit.Hash.String()
-	dataModel.LastPush.CommitMsg = commit.Message
+	dataModel.LastSuccessfullyAppliedCommit = GitActionStatus{
+		CommitAuthor:  commit.Author.Name,
+		CommitDate:    commit.Author.When.Format(time.RFC3339),
+		CommitHash:    commit.Hash.String(),
+		CommitMsg:     commit.Message,
+		LastExecution: time.Now().Format(time.RFC3339),
+	}
 	dataModelMutex.Unlock()
-	NotifyChange(IacChangeTypeLastPushUpdated)
+	NotifyChange(IacChangeTypeLastPullUpdated)
 }
 
 func SetResourceState(key string, state IacManagerResourceState) {
@@ -197,6 +223,14 @@ func GetDataModel() IacManagerStatus {
 	return dataModel
 }
 
+func GetLastAppliedCommit() GitActionStatus {
+	return dataModel.LastSuccessfullyAppliedCommit
+}
+
+func GetDataModelJson() string {
+	return utils.PrettyPrintInterface(GetDataModel())
+}
+
 func GetResourceState() map[string]IacManagerResourceState {
 	dataModelMutex.Lock()
 	result := dataModel.ResourceStates
@@ -204,17 +238,24 @@ func GetResourceState() map[string]IacManagerResourceState {
 	return result
 }
 
-func UpdateResourceStatus(kind string, namespace string, name string, diff string, state SyncStateEnum, err error) {
+func UpdateResourceStatus(kind string, namespace string, name string, state SyncStateEnum, err error) {
 	key := fmt.Sprintf("%s/%s/%s", kind, namespace, name)
 
 	newStatus := IacManagerResourceState{
-		Kind:       kind,
-		Namespace:  namespace,
-		Name:       name,
-		Diff:       diff,
-		LastUpdate: time.Now().String(),
-		State:      state,
-		Error:      err,
+		Kind:      kind,
+		Namespace: namespace,
+		Name:      name,
+		State:     state,
+		Error:     err,
+	}
+
+	gitPath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	filePath := GitFilePathForRaw(kind, namespace, name)
+	diff, updateTime, author, err := gitmanager.LastDiff(gitPath, filePath)
+	if err == nil {
+		newStatus.Diff = diff
+		newStatus.LastUpdate = updateTime.Format(time.RFC3339)
+		newStatus.Author = author
 	}
 
 	SetResourceState(key, newStatus)
@@ -226,19 +267,9 @@ func UpdateResourceStatus(kind string, namespace string, name string, diff strin
 	}
 }
 
-func UpdateResourceStatusByFile(file string, diff string, state SyncStateEnum, err error) {
-	parts := strings.Split(file, "/")
-	filename := strings.Replace(parts[len(parts)-1], ".yaml", "", -1)
-	partsName := strings.Split(filename, "_")
-	kind := parts[0]
-	namespace := ""
-	name := ""
-	if len(partsName) > 1 {
-		namespace = partsName[0]
-		name = partsName[1]
-	}
-
-	UpdateResourceStatus(kind, namespace, name, diff, state, err)
+func UpdateResourceStatusByFile(file string, state SyncStateEnum, err error) {
+	kind, namespace, name := parseFileToK8sParts(file)
+	UpdateResourceStatus(kind, namespace, name, state, err)
 }
 
 func PrintIacStatus() string {
@@ -250,11 +281,20 @@ func PrintIacStatus() string {
 
 // CHANGED FILES
 func AddChangedFile(file ChangedFile) {
+	file.Author = utils.CONFIG.Git.GitUserName + "<" + utils.CONFIG.Git.GitUserEmail + ">"
+	file.Timestamp = time.Now().Format(time.RFC3339)
 	// skip if already exists
 	for _, v := range changedFiles {
 		if v.Name == file.Name && v.Kind == file.Kind {
 			return
 		}
+	}
+	gitPath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	diff, lastUpdate, author, err := gitmanager.LastDiff(gitPath, file.Path)
+	if err == nil {
+		file.Diff = diff
+		file.Timestamp = lastUpdate.Format(time.RFC3339)
+		file.Author = author
 	}
 	changedFiles = append(changedFiles, file)
 }

@@ -1,6 +1,7 @@
 package gitmanager
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -10,8 +11,15 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/format/diff"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
+
+const (
+	Max_Commit_History = 10
+)
+
+var DiffFound = errors.New("diff found")
 
 func InitGit(path string) error {
 	_, err := git.PlainInit(path, false)
@@ -52,29 +60,36 @@ func DeletePath(path string) error {
 	return nil
 }
 
-func Pull(path string, remote string, branchNane string) error {
+func Pull(path string, remote string, branchNane string) (lastCommit *object.Commit, error error) {
 	// We instantiate a new repository targeting the given path
 	r, err := git.PlainOpen(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Get the working directory for the repository
 	w, err := r.Worktree()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Pull the latest changes from the origin remote and merge into the current branch
 	err = w.Pull(&git.PullOptions{
+		SingleBranch:  true,
 		RemoteName:    remote,
 		ReferenceName: plumbing.NewBranchReferenceName(branchNane),
+		Force:         true,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
-		return err
+		return nil, err
 	}
 
-	return nil
+	ref, err := r.Head()
+	if err != nil {
+		return nil, err
+	}
+
+	return r.CommitObject(ref.Hash())
 }
 
 func Push(path string, remote string) error {
@@ -84,6 +99,7 @@ func Push(path string, remote string) error {
 	}
 	err = r.Push(&git.PushOptions{
 		RemoteName: remote,
+		Force:      true,
 	})
 	if err != nil {
 		return err
@@ -91,7 +107,7 @@ func Push(path string, remote string) error {
 	return nil
 }
 
-func GetLastCommit(path string) (*object.Commit, error) {
+func GetLastCommits(path string, maxNoOfEntries int) ([]*object.Commit, error) {
 	// We instantiate a new repository targeting the given path
 	r, err := git.PlainOpen(path)
 	if err != nil {
@@ -103,15 +119,28 @@ func GetLastCommit(path string) (*object.Commit, error) {
 	if err != nil {
 		return nil, err
 	}
-	commit, err := r.CommitObject(ref.Hash())
+	// Get the commit history starting from the latest commit
+	commitIter, err := r.Log(&git.LogOptions{From: ref.Hash()})
 	if err != nil {
 		return nil, err
 	}
 
-	return commit, nil
+	// Collect the last n commits
+	var commits []*object.Commit
+	count := 0
+	err = commitIter.ForEach(func(c *object.Commit) error {
+		if count >= maxNoOfEntries {
+			return nil // stop iteration once we have n commits
+		}
+		commits = append(commits, c)
+		count++
+		return nil
+	})
+
+	return commits, nil
 }
 
-func Commit(repoPath string, changedfilePaths []string, message, authorName, authorEmail string) error {
+func Commit(repoPath string, addedAndUpdatedFils []string, deletedFiles []string, message, authorName, authorEmail string) error {
 	r, err := git.PlainOpen(repoPath)
 	if err != nil {
 		return err
@@ -123,14 +152,26 @@ func Commit(repoPath string, changedfilePaths []string, message, authorName, aut
 	}
 
 	// clean file path to make them relative
-	for index, filePath := range changedfilePaths {
-		changedfilePaths[index] = strings.TrimPrefix(filePath, repoPath+"/")
+	for index, filePath := range addedAndUpdatedFils {
+		addedAndUpdatedFils[index] = strings.TrimPrefix(filePath, repoPath+"/")
+	}
+	// clean file path to make them relative
+	for index, filePath := range deletedFiles {
+		deletedFiles[index] = strings.TrimPrefix(filePath, repoPath+"/")
 	}
 
-	for _, filePath := range changedfilePaths {
+	// ADD
+	for _, filePath := range addedAndUpdatedFils {
 		_, err = w.Add(filePath)
 		if err != nil {
 			return fmt.Errorf("Error adding file %s: %s", filePath, err.Error())
+		}
+	}
+	// REMOVE
+	for _, filePath := range deletedFiles {
+		_, err = w.Remove(filePath)
+		if err != nil {
+			return fmt.Errorf("Error removing file %s: %s", filePath, err.Error())
 		}
 	}
 
@@ -140,6 +181,7 @@ func Commit(repoPath string, changedfilePaths []string, message, authorName, aut
 	}
 
 	commit, err := w.Commit(message, &git.CommitOptions{
+		All: true,
 		Author: &object.Signature{
 			Name:  authorName,
 			Email: authorEmail,
@@ -294,6 +336,166 @@ func AddRemote(path string, remoteUrl string, remoteName string) error {
 
 	return nil
 }
+
+// LastDiff returns the last diff for a specific file in a given repository
+func LastDiff(repoPath string, filePath string) (diffStr string, updateTime time.Time, author string, err error) {
+	var diffOutput strings.Builder
+
+	// Open the Git repository at the given path
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return "", updateTime, author, fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	// Get the HEAD reference
+	ref, err := repo.Head()
+	if err != nil {
+		return "", updateTime, author, fmt.Errorf("failed to get HEAD reference: %w", err)
+	}
+
+	// Start iterating over the commit history starting from HEAD
+	commitIter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
+	if err != nil {
+		return "", updateTime, author, fmt.Errorf("failed to retrieve commit history: %w", err)
+	}
+
+	err = commitIter.ForEach(func(commit *object.Commit) error {
+		// If the commit has a parent, compare it with the parent commit
+		if commit.NumParents() == 0 {
+			// No parent means it's the first commit, so stop
+			return nil
+		}
+
+		parentCommit, err := commit.Parent(0)
+		if err != nil {
+			return fmt.Errorf("failed to get parent commit: %w", err)
+		}
+
+		// Get the tree objects for the current commit and its parent
+		commitTree, err := commit.Tree()
+		if err != nil {
+			return fmt.Errorf("failed to get tree for commit: %w", err)
+		}
+
+		parentTree, err := parentCommit.Tree()
+		if err != nil {
+			return fmt.Errorf("failed to get tree for parent commit: %w", err)
+		}
+
+		// Get the patch/diff between the two trees
+		patch, err := parentTree.Patch(commitTree)
+		if err != nil {
+			return fmt.Errorf("failed to get diff: %w", err)
+		}
+
+		// Iterate through the patches and look for the specific file
+		for _, filePatch := range patch.FilePatches() {
+			from, to := filePatch.Files()
+			// Ensure the diff is for the correct file
+			if (from != nil && from.Path() == filePath) || (to != nil && to.Path() == filePath) {
+				for _, chunk := range filePatch.Chunks() {
+					if chunk.Type() == diff.Add {
+						diffOutput.WriteString(prefixLinesWith("+ ", chunk.Content()))
+					} else if chunk.Type() == diff.Delete {
+						diffOutput.WriteString(prefixLinesWith("- ", chunk.Content()))
+					} else {
+						// diffOutput.WriteString(prefixLinesWith("  ", chunk.Content()))
+					}
+				}
+				updateTime = commit.Committer.When
+				author = commit.Author.Name + " <" + commit.Author.Email + ">"
+				// Stop once we find the diff for the specified file
+				return DiffFound
+			}
+		}
+		// stop iteration if we found the diff
+		if err == DiffFound {
+			return err
+		}
+		return nil
+	})
+	if err != DiffFound {
+		return "", updateTime, author, fmt.Errorf("failed to iterate through commit history: %w", err)
+	}
+
+	// If no diff found for the file, return an error
+	if diffOutput.Len() == 0 {
+		return "", updateTime, author, fmt.Errorf("no changes found for the file: %s", filePath)
+	}
+
+	return diffOutput.String(), updateTime, author, nil
+}
+
+func prefixLinesWith(prefix, text string) string {
+	lines := strings.Split(text, "\n")
+
+	for i := 0; i < len(lines)-1; i++ {
+		lines[i] = prefix + lines[i]
+	}
+	return strings.Join(lines, "\n")
+}
+
+// func LastDiff(path string, filePath string, comitHash string) (string, error) {
+// 	repo, err := git.PlainOpen(path)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	head, err := repo.Head()
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	commit1, err := repo.CommitObject(head.Hash())
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	commit2, err := repo.CommitObject(plumbing.NewHash(comitHash))
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	// Get the trees for the two commits
+// 	tree1, err := commit1.Tree()
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	tree2, err := commit2.Tree()
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	// Get the TreeEntry for the specific file
+// 	file1, err := tree1.File(filePath)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	file2, err := tree2.File(filePath)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	// Get the contents of the file in each commit
+// 	content1, err := file1.Contents()
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	content2, err := file2.Contents()
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	// Use diffmatchpatch to create a unified diff
+// 	dmp := diffmatchpatch.New()
+// 	diffs := dmp.DiffMain(content1, content2, true)
+// 	unifiedDiff := dmp.DiffPrettyText(diffs)
+
+// 	return unifiedDiff, nil
+// }
 
 func LsRemotes(url string) ([]string, error) {
 	result := []string{}

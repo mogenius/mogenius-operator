@@ -26,9 +26,23 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/scheme"
+	"sigs.k8s.io/yaml"
 )
 
 var K8sLogger = log.WithField("component", structs.ComponentKubernetes)
+
+var IacManagerWriteResourceYaml func(string, string, string, interface{})
+var IacManagerDeleteResourceYaml func(string, string, string, interface{})
+var IacManagerShouldWatchResources func() bool
+var IacManagerSetupInProcess bool
+var IacManagerResetCurrentRepoData func(int) error
+var IacManagerSyncChanges func() error
+var IacManagerApplyRepoStateToCluster func()
+var IacManagerDeleteDataRetries int
+
+// var IacManager
+// var IacManager
+// var IacManager
 
 var (
 	NAMESPACE       = utils.CONFIG.Kubernetes.OwnNamespace
@@ -53,12 +67,6 @@ const (
 type K8sWorkloadResult struct {
 	Result interface{} `json:"result"`
 	Error  interface{} `json:"error"`
-}
-
-type K8sNewWorkload struct {
-	Name        string `json:"name"`
-	YamlString  string `json:"yamlString"`
-	Description string `json:"description"`
 }
 
 type MogeniusNfsInstallationStatus struct {
@@ -94,14 +102,6 @@ func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
 		Error:  error,
 	}
 }
-
-// func NewWorkload(name string, yaml string, description string) K8sNewWorkload {
-// 	return K8sNewWorkload{
-// 		Name:        name,
-// 		YamlString:  yaml,
-// 		Description: description,
-// 	}
-// }
 
 func CurrentContextName() string {
 	if utils.CONFIG.Kubernetes.RunInCluster {
@@ -437,4 +437,100 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 
 	_, ok := labels[key]
 	return ok
+}
+
+func DeleteResourceYaml(kind, namespace, name string, obj interface{}) {
+	if IacManagerDeleteResourceYaml != nil {
+		IacManagerDeleteResourceYaml(kind, namespace, name, obj)
+	}
+}
+
+func WriteResourceYaml(kind, namespace, name string, obj interface{}) {
+	if IacManagerWriteResourceYaml != nil {
+		IacManagerWriteResourceYaml(kind, namespace, name, obj)
+	}
+}
+
+func YamlFor(kind, namespace, name string) (string, error) {
+	var data interface{}
+	var err error
+
+	switch kind {
+	case dtos.KindConfigMaps:
+		data, err = punq.GetK8sConfigmap(namespace, name, nil)
+	case dtos.KindDeployments:
+		data, err = punq.GetK8sDeployment(namespace, name, nil)
+	case dtos.KindPods:
+		data, err = punq.GetPodBy(namespace, name, nil)
+	case dtos.KindIngresses:
+		data, err = punq.GetK8sIngress(namespace, name, nil)
+	case dtos.KindSecrets:
+		data, err = punq.GetSecret(namespace, name, nil)
+	case dtos.KindServices:
+		data, err = punq.GetService(namespace, name, nil)
+	case dtos.KindNamespaces:
+		data, err = punq.GetNamespace(name, nil)
+	case dtos.KindNetworkPolicies:
+		data, err = punq.GetNetworkPolicy(namespace, name, nil)
+	case dtos.KindJobs:
+		data, err = punq.GetJob(namespace, name, nil)
+	case dtos.KindCronJobs:
+		data, err = punq.GetCronjob(namespace, name, nil)
+	case dtos.KindDaemonSets:
+		data, err = punq.GetK8sDaemonset(namespace, name, nil)
+	case dtos.KindStatefulSets:
+		data, err = punq.GetStatefulSet(namespace, name, nil)
+	case dtos.KindHorizontalPodAutoscalers:
+		data, err = punq.GetHpa(namespace, name, nil)
+	default:
+		err = fmt.Errorf("🚫 Unknown resource type in YamlFor() for kind: %s", kind)
+		K8sLogger.Error(err.Error())
+		return "", err
+	}
+
+	// marshal the data to yaml
+	yamlStrRaw, err := yaml.Marshal(data)
+	yamlStr := utils.CleanYaml(string(yamlStrRaw))
+
+	return yamlStr, err
+}
+
+func ObjectFor(kind, namespace, name string) (interface{}, error) {
+	var data interface{}
+	var err error
+
+	switch kind {
+	case dtos.KindConfigMaps:
+		data, err = punq.GetK8sConfigmap(namespace, name, nil)
+	case dtos.KindDeployments:
+		data, err = punq.GetK8sDeployment(namespace, name, nil)
+	case dtos.KindPods:
+		data, err = punq.GetPodBy(namespace, name, nil)
+	case dtos.KindIngresses:
+		data, err = punq.GetK8sIngress(namespace, name, nil)
+	case dtos.KindSecrets:
+		data, err = punq.GetSecret(namespace, name, nil)
+	case dtos.KindServices:
+		data, err = punq.GetService(namespace, name, nil)
+	case dtos.KindNamespaces:
+		data, err = punq.GetNamespace(name, nil)
+	case dtos.KindNetworkPolicies:
+		data, err = punq.GetNetworkPolicy(namespace, name, nil)
+	case dtos.KindJobs:
+		data, err = punq.GetJob(namespace, name, nil)
+	case dtos.KindCronJobs:
+		data, err = punq.GetCronjob(namespace, name, nil)
+	case dtos.KindDaemonSets:
+		data, err = punq.GetK8sDaemonset(namespace, name, nil)
+	case dtos.KindStatefulSets:
+		data, err = punq.GetStatefulSet(namespace, name, nil)
+	case dtos.KindHorizontalPodAutoscalers:
+		data, err = punq.GetHpa(namespace, name, nil)
+	default:
+		err = fmt.Errorf("🚫 Unknown resource type in ObjectFor() for kind: %s", kind)
+		K8sLogger.Error(err.Error())
+		return "", err
+	}
+
+	return data, err
 }

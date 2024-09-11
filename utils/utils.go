@@ -16,7 +16,7 @@ import (
 	punqStructs "github.com/mogenius/punq/structs"
 	"github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 
 	"github.com/patrickmn/go-cache"
 )
@@ -310,4 +310,91 @@ func ParseK8sName(name string) string {
 		name = name[:MAX_NAME_LENGTH]
 	}
 	return strings.ToLower(name)
+}
+
+func CleanYaml(data string) string {
+	var dataMap map[string]interface{}
+	err := yaml.Unmarshal([]byte(data), &dataMap)
+	if err != nil {
+		log.Errorf("Error CleanYaml unmarshalling yaml: %s", err.Error())
+	}
+
+	dataMap = CleanObject(dataMap)
+
+	cleanedYaml, err := yaml.Marshal(dataMap)
+	if err != nil {
+		log.Errorf("Error marshalling yaml: %s", err.Error())
+	}
+	return string(cleanedYaml)
+}
+
+func CleanObjectInterface(data interface{}) interface{} {
+	dataInf := data.(map[string]interface{})
+	dataInf = CleanObject(dataInf)
+	return dataInf
+}
+
+func CleanObject(data map[string]interface{}) map[string]interface{} {
+	removeFieldAtPath(data, "uid", []string{"metadata"}, []string{})
+	removeFieldAtPath(data, "selfLink", []string{"metadata"}, []string{})
+	removeFieldAtPath(data, "generation", []string{"metadata"}, []string{})
+	removeFieldAtPath(data, "managedFields", []string{"metadata"}, []string{})
+	removeFieldAtPath(data, "deployment.kubernetes.io/revision", []string{"annotations"}, []string{})
+	removeFieldAtPath(data, "kubectl.kubernetes.io/last-applied-configuration", []string{"annotations"}, []string{})
+
+	removeFieldAtPath(data, "creationTimestamp", []string{}, []string{})
+	removeFieldAtPath(data, "resourceVersion", []string{}, []string{})
+	removeFieldAtPath(data, "status", []string{}, []string{})
+	return data
+}
+
+func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
+	// Check if the current path matches the target path for removal.
+	if len(currentPath) >= len(targetPath) && strings.Join(currentPath[len(currentPath)-len(targetPath):], "/") == strings.Join(targetPath, "/") {
+		delete(data, field)
+	}
+	// Continue searching within the map.
+	for key, value := range data {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			removeFieldAtPath(v, field, targetPath, append(currentPath, key))
+			// After processing the nested map, check if it's empty and remove it if so.
+			if len(v) == 0 {
+				delete(data, key)
+			}
+		case []interface{}:
+			for i, item := range v {
+				if itemMap, ok := item.(map[string]interface{}); ok {
+					// Construct a new path for each item in the list.
+					newPath := append(currentPath, fmt.Sprintf("%s[%d]", key, i))
+					removeFieldAtPath(itemMap, field, targetPath, newPath)
+				}
+			}
+			// Clean up the slice if it becomes empty after deletion.
+			if len(v) == 0 {
+				delete(data, key)
+			}
+		default:
+			// Check and delete empty values here.
+			if isEmptyValue(value) {
+				delete(data, key)
+			}
+		}
+	}
+}
+
+// Helper function to determine if a value is "empty" for our purposes.
+func isEmptyValue(value interface{}) bool {
+	switch v := value.(type) {
+	case string:
+		return v == ""
+	case []interface{}:
+		return len(v) == 0
+	case map[string]interface{}:
+		return len(v) == 0
+	case nil:
+		return true
+	default:
+		return false
+	}
 }

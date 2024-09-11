@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -142,44 +141,44 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		previousData.AllowPull != syncRepoReq.AllowPull ||
 		previousData.AllowPush != syncRepoReq.AllowPush {
 		K8sLogger.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
-		iacmanager.SetupInProcess = true
+		IacManagerSetupInProcess = true
 		defer func() {
-			iacmanager.SetupInProcess = false
+			IacManagerSetupInProcess = false
 		}()
 		// Push/Pull
 		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
-			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			err = IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
 			if err != nil {
 				return err
 			}
-			iacmanager.SetupInProcess = false
+			IacManagerSetupInProcess = false
 			InitAllWorkloads()
-			iacmanager.SyncChanges()
-			iacmanager.ApplyRepoStateToCluster()
+			IacManagerSyncChanges()
+			IacManagerApplyRepoStateToCluster()
 		}
 		// Push
 		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
-			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			err = IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
 			if err != nil {
 				return err
 			}
-			iacmanager.SetupInProcess = false
+			IacManagerSetupInProcess = false
 			InitAllWorkloads()
 		}
 		// Pull
 		if syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
-			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			err = IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
 			if err != nil {
 				return err
 			}
-			iacmanager.SetupInProcess = false
+			IacManagerSetupInProcess = false
 			InitAllWorkloads()
-			iacmanager.SyncChanges()
-			iacmanager.ApplyRepoStateToCluster()
+			IacManagerSyncChanges()
+			IacManagerApplyRepoStateToCluster()
 		}
 		// None
 		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
-			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			err = IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
 			if err != nil {
 				return err
 			}

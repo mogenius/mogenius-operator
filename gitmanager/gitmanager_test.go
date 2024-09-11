@@ -1,6 +1,7 @@
 package gitmanager
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -40,7 +41,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// PULL
-	err = Pull(localPath, "origin", mainBranch)
+	_, err = Pull(localPath, "origin", mainBranch)
 	if err != nil {
 		t.Errorf("Error pulling repo: %s", err.Error())
 	} else {
@@ -60,7 +61,7 @@ func TestGitManager(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error writing commit-test-file: %s", err.Error())
 	}
-	err = Commit(localPath, []string{"testfile.yaml"}, "Test commit", "testuser", "testuseremail@mogenius.com")
+	err = Commit(localPath, []string{"testfile.yaml"}, []string{}, "Test commit", "testuser", "testuseremail@mogenius.com")
 	if err != nil {
 		t.Errorf("Error committing repo: %s", err.Error())
 	} else {
@@ -68,11 +69,11 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// GET LAST COMMIT
-	commit, err := GetLastCommit(localPath)
+	commits, err := GetLastCommits(localPath, 3)
 	if err != nil {
 		t.Errorf("Error getting last commit: %s", err.Error())
 	} else {
-		t.Logf("Repo %s read last commit ✅. (%s)", repoUrl, commit.Message)
+		t.Logf("Repo %s read last commit ✅. (%s)", repoUrl, commits[0].Message)
 	}
 
 	// INIT
@@ -185,5 +186,14 @@ func TestGitManager(t *testing.T) {
 		t.Errorf("Error getting last deleted files: %s", err.Error())
 	} else {
 		t.Logf("Repo %s successfully got last deleted files ✅ (%v)", repoUrl, deletedFiles)
+	}
+
+	// DIFF
+	diff, err := LastDiff(localPath, "grype.yaml")
+	fmt.Println(diff)
+	if err != nil {
+		t.Errorf("Error getting last diff: %s", err.Error())
+	} else {
+		t.Logf("Repo %s successfully got last diff ✅\n%s", repoUrl, diff)
 	}
 }
