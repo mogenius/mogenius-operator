@@ -50,10 +50,6 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		} else {
 			cmd.Success(job, "Deleted Deployment")
 		}
-		// EXTERNAL SECRETS OPERATOR - cleanup unused secrets
-		if utils.CONFIG.Misc.ExternalSecretsEnabled {
-			DeleteUnusedSecretsForNamespace(namespace.Name)
-		}
 	}(wg)
 }
 
