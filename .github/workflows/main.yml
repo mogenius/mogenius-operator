@@ -40,7 +40,7 @@ jobs:
 
   build-amd64:
     needs: prepare
-    runs-on: [self-hosted, X64]
+    runs-on: [self-hosted-ansible, X64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -66,7 +66,7 @@ jobs:
 
   build-arm64-linux:
     needs: prepare
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -92,7 +92,7 @@ jobs:
 
   build-arm64:
     needs: prepare
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -118,7 +118,7 @@ jobs:
 
   build-armv7:
     needs: prepare
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -144,7 +144,7 @@ jobs:
 
   merge-images:
     needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
-    runs-on: self-hosted
+    runs-on: self-hosted-ansible
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -177,7 +177,7 @@ jobs:
   helm-chart:
     # needs: [prepare]
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-ansible
 
     steps:
       - name: Check out code

@@ -13,19 +13,21 @@ import (
 )
 
 const (
-	NamePrefix = "4jdh7e9dk7"
-	ProjectId  = "djsajfh74-23423-234123-32fdsf"
-	SecretPath = "mogenius-external-secrets/data/backend-project"
-	Role       = "db-access-role"
+	DisplayName = "Vault Secret Store 1"
+	NamePrefix  = "4jdh7e9dk7"
+	ProjectId   = "djsajfh74-23423-234123-32fdsf"
+	SecretPath  = "mogenius-external-secrets/data/backend-project"
+	Role        = "db-access-role"
 )
 
 type SecretStoreSchema struct {
 	Metadata struct {
 		Name        string `yaml:"name"`
 		Annotations struct {
-			Prefix     string `yaml:"mogenius-external-secrets/prefix"`
-			SharedPath string `yaml:"mogenius-external-secrets/shared-path"`
-			ProjectId  string `yaml:"mogenius-external-secrets/project-id"`
+			DisplayName string `yaml:"mogenius-external-secrets/display-name"`
+			Prefix      string `yaml:"mogenius-external-secrets/prefix"`
+			SharedPath  string `yaml:"mogenius-external-secrets/shared-path"`
+			ProjectId   string `yaml:"mogenius-external-secrets/project-id"`
 		} `yaml:"annotations"`
 	} `yaml:"metadata"`
 	Spec struct {
@@ -80,6 +82,7 @@ func TestSecretStoreCreate(t *testing.T) {
 	props := externalSecretStorePropsExample()
 
 	// assume composed name: 4jdh7e9dk7-vault-secret-store
+	props.DisplayName = DisplayName
 	props.NamePrefix = NamePrefix
 	props.SecretPath = SecretPath
 	props.ProjectId = ProjectId
@@ -121,7 +124,7 @@ func TestSecretStoreList(t *testing.T) {
 	}
 }
 func TestListAvailSecrets(t *testing.T) {
-	t.Skip("Skipping TestListAvailSecrets temporarily")
+	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
 
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 	// prereq

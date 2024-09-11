@@ -1,7 +1,11 @@
 package kubernetes
 
 import (
+	"fmt"
+	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"sync"
 
 	"strings"
 
@@ -13,25 +17,24 @@ import (
 )
 
 type CreateExternalSecretProps struct {
-	ServiceName           string `json:"serviceName" validate:"required"`
-	Namespace             string `json:"namespace" validate:"required"`
-	ProjectName           string `json:"projectName" validate:"required"`
-	SecretStoreNamePrefix string `json:"namePrefix" validate:"required"`
-	PropertyName          string `json:"propertyName" validate:"required"`
+	Namespace    string `json:"namespace" validate:"required"`
+	PropertyName string `json:"propertyName" validate:"required"`
+	NamePrefix   string `json:"namePrefix" validate:"required"`
+	ServiceName  string `json:"serviceName" validate:"required"`
 }
 
 func CreateExternalSecretPropsExample() CreateExternalSecretProps {
 	return CreateExternalSecretProps{
-		ServiceName:           "customer-app01",
-		Namespace:             "customer-app-namespace",
-		ProjectName:           "phoenix",
-		SecretStoreNamePrefix: "mo-test",
-		PropertyName:          "postgresURL",
+		Namespace:    "mogenius",
+		PropertyName: "postgresURL",
+		NamePrefix:   "3241lkjltg243",
+		ServiceName:  "fe-mo-service",
 	}
 }
 
 type ExternalSecretProps struct {
 	CreateExternalSecretProps
+	SecretName      string
 	SecretStoreName string
 	secretPath      string
 }
@@ -49,16 +52,16 @@ func NewExternalSecret(data CreateExternalSecretProps) ExternalSecretProps {
 
 type ExternalSecretListProps struct {
 	NamePrefix      string
-	Project         string
+	SecretName      string
 	SecretStoreName string
 	SecretPath      string
 }
 
 func externalSecretListExample() ExternalSecretListProps {
 	return ExternalSecretListProps{
-		NamePrefix:      "team-blue-secrets",
-		Project:         "team-blue",
-		SecretStoreName: "team-blue-secrets-" + utils.SecretStoreSuffix,
+		NamePrefix:      "fsd87fdh",
+		SecretName:      "database-credentials",
+		SecretStoreName: "fsd87fdh" + utils.SecretStoreSuffix,
 		SecretPath:      "mogenius-external-secrets/data/team-blue",
 	}
 }
@@ -73,18 +76,21 @@ func CreateExternalSecretList(props ExternalSecretListProps) error {
 	)
 }
 
-func CreateExternalSecret(data CreateExternalSecretProps) error {
-	responsibleSecStore := utils.GetSecretStoreName(data.SecretStoreNamePrefix)
+func CreateExternalSecret(data CreateExternalSecretProps) (string, error) {
+	responsibleSecStore := utils.GetSecretStoreName(data.NamePrefix)
 
 	secretPath, err := ReadSecretPathFromSecretStore(responsibleSecStore)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	props := ExternalSecretProps{
 		CreateExternalSecretProps: data,
-		SecretStoreName:           responsibleSecStore,
-		secretPath:                secretPath,
+		SecretName: utils.GetSecretName(
+			data.NamePrefix, data.ServiceName, data.PropertyName,
+		),
+		SecretStoreName: responsibleSecStore,
+		secretPath:      secretPath,
 	}
 
 	err = ApplyResource(
@@ -95,62 +101,73 @@ func CreateExternalSecret(data CreateExternalSecretProps) error {
 		false,
 	)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return props.SecretName, nil
 }
 
 func DeleteExternalSecretList(namePrefix string, projectName string) error {
 	return DeleteExternalSecret(utils.GetSecretListName(namePrefix))
 }
 
-func DeleteUnusedSecretsForNamespace(namespace string) error {
-	// DEPLOYMENTs
-	deployments := punq.AllDeployments(namespace, nil)
+func DeleteUnusedSecretsForNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand("delete", "Delete Unused Secrets", job)
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(job, "Deleting unused secrets")
 
-	mountedSecretNames := []string{}
-	for _, deployment := range deployments {
-		for _, volume := range deployment.Spec.Template.Spec.Volumes {
-			if volume.Secret != nil {
-				mountedSecretNames = append(mountedSecretNames, volume.Secret.SecretName)
-			}
-		}
-	}
+		deployments := punq.AllDeployments(namespace.Name, nil)
 
-	// LIST ns secrets
-	secrets, err := ListResources("external-secrets.io", "v1beta1", "externalsecrets", "", true)
-	if err != nil {
-		K8sLogger.Errorf("Error listing resources: %s", err.Error())
-	}
-
-	existingSecrets, err := parseExternalSecretsListing(secrets)
-	if err != nil {
-		return err
-	}
-	for _, secret := range existingSecrets {
-		isMoExternalSecret := false
-		for key := range secret.Labels {
-			if key == "used-by-mo-service" {
-				isMoExternalSecret = true
-				break
-			}
-		}
-		isUsedByDeployment := false
-		for _, mountedSecretName := range mountedSecretNames {
-			if mountedSecretName == secret.Name {
-				isUsedByDeployment = true
-				break
+		mountedSecretNames := []string{}
+		for _, deployment := range deployments {
+			for _, volume := range deployment.Spec.Template.Spec.Volumes {
+				if volume.Secret != nil {
+					mountedSecretNames = append(mountedSecretNames, volume.Secret.SecretName)
+				}
 			}
 		}
 
-		if isMoExternalSecret && !isUsedByDeployment {
-			err = DeleteExternalSecret(secret.Name)
-			if err != nil {
-				return err
+		// LIST ns secrets
+		secrets, err := ListResources("external-secrets.io", "v1beta1", "externalsecrets", "", true)
+		if err != nil {
+			K8sLogger.Errorf("Error listing resources: %s", err.Error())
+		}
+		if secrets == nil {
+			cmd.Success(job, "Deleted unused secrets")
+			return
+		}
+		existingSecrets, err := parseExternalSecretsListing(secrets)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("DeleteUnusedSecretsForNamespace ERROR: %s", err.Error()))
+			return
+		}
+		for _, secret := range existingSecrets {
+			isMoExternalSecret := false
+			for key := range secret.Labels {
+				if key == "used-by-mo-service" {
+					isMoExternalSecret = true
+					break
+				}
+			}
+			isUsedByDeployment := false
+			for _, mountedSecretName := range mountedSecretNames {
+				if mountedSecretName == secret.Name {
+					isUsedByDeployment = true
+					break
+				}
+			}
+
+			if isMoExternalSecret && !isUsedByDeployment {
+				err = DeleteExternalSecret(secret.Name)
+				if err != nil {
+					K8sLogger.Errorf("Error deleting unsed secret %s: %s", secret.Name, err.Error())
+					break
+				}
 			}
 		}
-	}
-	return nil
+		cmd.Success(job, "Deleted unused secrets")
+	}(wg)
 }
 
 func DeleteExternalSecret(name string) error {
@@ -183,15 +200,12 @@ func renderExternalSecretList(yamlTemplateString string, props ExternalSecretLis
 }
 
 func renderExternalSecret(yamlTemplateString string, props ExternalSecretProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAME>", utils.GetSecretName(
-		props.SecretStoreNamePrefix, props.ServiceName, props.PropertyName,
-	), -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_NAME>", props.ServiceName, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROPERTY_FROM_SECRET>", props.PropertyName, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<NAMESPACE>", props.Namespace, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<SECRET_PATH>", props.secretPath, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<PROJECT>", props.ProjectName, -1)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAME>", props.SecretName)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SERVICE_NAME>", props.ServiceName)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<PROPERTY_FROM_SECRET>", props.PropertyName)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAMESPACE>", props.Namespace)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_PATH>", props.secretPath)
 
 	return yamlTemplateString
 }

@@ -51,10 +51,6 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		} else {
 			cmd.Success(job, "Deleted Deployment")
 		}
-		// EXTERNAL SECRETS OPERATOR - cleanup unused secrets
-		if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
-			DeleteUnusedSecretsForNamespace(namespace.Name)
-		}
 	}(wg)
 }
 
@@ -72,16 +68,6 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("UpdateDeployment ERROR: %s", err.Error()))
 			return
-		}
-		// add resource creation for external secrets
-		if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
-			CreateExternalSecret(CreateExternalSecretProps{
-				Namespace:             namespace.Name,
-				ServiceName:           service.ControllerName,
-				ProjectName:           service.EsoSettings.ProjectName,
-				SecretStoreNamePrefix: service.EsoSettings.SecretStoreNamePrefix,
-			})
-			DeleteUnusedSecretsForNamespace(namespace.Name)
 		}
 
 		deployment := newController.(*v1.Deployment)
