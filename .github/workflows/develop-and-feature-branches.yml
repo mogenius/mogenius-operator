@@ -223,7 +223,7 @@ jobs:
 
 
   merge-images:
-    # if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop'
     needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
     runs-on: self-hosted-ansible
     steps:
@@ -256,7 +256,7 @@ jobs:
           docker manifest push ${{ env.IMAGE_NAME }}:latest
 
   helm-chart:
-    # if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
     runs-on: self-hosted-ansible
     steps:
