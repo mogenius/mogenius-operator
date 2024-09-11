@@ -192,7 +192,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted, ARM64, builder]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -225,7 +225,7 @@ jobs:
   merge-images:
     if: github.ref == 'refs/heads/develop'
     needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-ansible
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -258,7 +258,7 @@ jobs:
   helm-chart:
     if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-ansible
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -276,6 +276,10 @@ jobs:
           token: ${{ secrets.MO_K8s_TOKEN }}
           repository: ${{ env.HELMREPO }}
           path: 'helm'        
+      
+      - name: Install Helm
+        uses: azure/setup-helm@v4.2.0
+        id: install
 
       - name: package and push
         run: |
