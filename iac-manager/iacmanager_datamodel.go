@@ -11,15 +11,24 @@ import (
 )
 
 type IacManagerStatus struct {
-	RepoError                     string                             `json:"repoError"`
-	RemoteError                   string                             `json:"remoteError"`
-	PullError                     string                             `json:"pullError"`
-	PushError                     string                             `json:"pushError"`
-	SyncError                     string                             `json:"syncError"`
+	SyncInfo                      IacManagerSyncInfo                 `json:"syncInfo"`
 	CommitHistory                 []GitActionStatus                  `json:"commitHistory"`
 	LastSuccessfullyAppliedCommit GitActionStatus                    `json:"lastSuccessfullyAppliedCommit"`
 	IacConfiguration              interface{}                        `json:"iacConfiguration"`
 	ResourceStates                map[string]IacManagerResourceState `json:"resourceStates"`
+}
+
+type IacManagerSyncInfo struct {
+	ExecutionTimeInMs           int64         `json:"executionTimeInMs"`
+	NumberOfFiles               int           `json:"numberOfFiles"`
+	Contributors                []Contributor `json:"contributors"`
+	RecentlyAddedOrUpdatedFiles []string      `json:"recentlyAddedOrUpdatedFiles"`
+	RecentlyDeletedFiles        []string      `json:"recentlyDeletedFiles"`
+	RepoError                   string        `json:"repoError"`
+	RemoteError                 string        `json:"remoteError"`
+	PullError                   string        `json:"pullError"`
+	PushError                   string        `json:"pushError"`
+	SyncError                   string        `json:"syncError"`
 }
 
 type GitActionStatus struct {
@@ -29,6 +38,12 @@ type GitActionStatus struct {
 	CommitDate    string `json:"commitDate"`
 	Diff          string `json:"diff,omitempty"`
 	LastExecution string `json:"lastExecution"`
+}
+
+type Contributor struct {
+	Name             string `json:"name"`
+	Email            string `json:"email"`
+	LastActivityTime string `json:"lastActivityTime"`
 }
 
 type IacManagerResourceState struct {
@@ -95,14 +110,19 @@ var dataModelMutex sync.Mutex
 
 func InitDataModel() {
 	dataModel = IacManagerStatus{
-		RepoError:        "",
-		RemoteError:      "",
-		PullError:        "",
-		PushError:        "",
-		SyncError:        "",
+		SyncInfo:         IacManagerSyncInfo{},
 		CommitHistory:    []GitActionStatus{},
 		IacConfiguration: utils.CONFIG.Iac,
 		ResourceStates:   make(map[string]IacManagerResourceState),
+	}
+	path := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	addedFiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(path)
+	if err == nil {
+		dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = addedFiles
+	}
+	deletedFiles, err := gitmanager.GetLastDeletedFiles(path)
+	if err == nil {
+		dataModel.SyncInfo.RecentlyDeletedFiles = deletedFiles
 	}
 }
 
@@ -118,8 +138,8 @@ func SetRepoError(err error) {
 	} else {
 		updatedString = err.Error()
 	}
-	if dataModel.RepoError != updatedString {
-		dataModel.RepoError = updatedString
+	if dataModel.SyncInfo.RepoError != updatedString {
+		dataModel.SyncInfo.RepoError = updatedString
 		NotifyChange(IacChangeTypeRepoError)
 	}
 }
@@ -131,8 +151,8 @@ func SetRemoteError(err error) {
 	} else {
 		updatedString = err.Error()
 	}
-	if dataModel.RemoteError != updatedString {
-		dataModel.RemoteError = updatedString
+	if dataModel.SyncInfo.RemoteError != updatedString {
+		dataModel.SyncInfo.RemoteError = updatedString
 		NotifyChange(IacChangeTypeRemoteError)
 	}
 }
@@ -144,8 +164,8 @@ func SetPullError(err error) {
 	} else {
 		updatedString = err.Error()
 	}
-	if dataModel.PullError != updatedString {
-		dataModel.PullError = updatedString
+	if dataModel.SyncInfo.PullError != updatedString {
+		dataModel.SyncInfo.PullError = updatedString
 		NotifyChange(IacChangeTypePullError)
 	}
 }
@@ -157,8 +177,8 @@ func SetPushError(err error) {
 	} else {
 		updatedString = err.Error()
 	}
-	if dataModel.PushError != updatedString {
-		dataModel.PushError = updatedString
+	if dataModel.SyncInfo.PushError != updatedString {
+		dataModel.SyncInfo.PushError = updatedString
 		NotifyChange(IacChangeTypePushError)
 	}
 }
@@ -170,8 +190,8 @@ func SetSyncError(err error) {
 	} else {
 		updatedString = err.Error()
 	}
-	if dataModel.SyncError != updatedString {
-		dataModel.SyncError = updatedString
+	if dataModel.SyncInfo.SyncError != updatedString {
+		dataModel.SyncInfo.SyncError = updatedString
 		NotifyChange(IacChangeTypeSyncError)
 	}
 }
@@ -220,10 +240,37 @@ func SetResourceState(key string, state IacManagerResourceState) {
 	NotifyChange(IacChangeTypeResourceUpdated)
 }
 
+func SetSyncInfo(timeInMs int64) {
+	dataModel.SyncInfo.ExecutionTimeInMs = timeInMs
+
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	addedOrUpdatedfiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(folder)
+	if err == nil && len(addedOrUpdatedfiles) > 0 {
+		dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = addedOrUpdatedfiles
+	}
+	deletedFiles, err := gitmanager.GetLastDeletedFiles(folder)
+	if err == nil && len(deletedFiles) > 0 {
+		dataModel.SyncInfo.RecentlyDeletedFiles = deletedFiles
+	}
+}
+
+func SetContributors(signatures []object.Signature) {
+	contributors := []Contributor{}
+	for _, sig := range signatures {
+		contributors = append(contributors, Contributor{
+			Name:             sig.Name,
+			Email:            sig.Email,
+			LastActivityTime: sig.When.Format(time.RFC3339),
+		})
+	}
+	dataModel.SyncInfo.Contributors = contributors
+}
+
 // GETTERS
 func GetDataModel() IacManagerStatus {
 	// allways get the current configuration state
 	dataModel.IacConfiguration = utils.CONFIG.Iac
+	dataModel.SyncInfo.NumberOfFiles = len(dataModel.ResourceStates)
 	return dataModel
 }
 

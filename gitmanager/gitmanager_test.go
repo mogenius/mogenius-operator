@@ -196,4 +196,13 @@ func TestGitManager(t *testing.T) {
 	} else {
 		t.Logf("Repo %s successfully got last diff ✅\n%s", repoUrl, diff)
 	}
+
+	// GET CONTRIBUTORS
+	contributors, err := GetContributors(localPath)
+	if err != nil {
+		t.Errorf("Error getting contributors: %s", err.Error())
+	} else {
+		t.Logf("Repo %s successfully got contributors ✅ (%v)", repoUrl, contributors)
+	}
+
 }

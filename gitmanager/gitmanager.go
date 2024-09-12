@@ -440,67 +440,41 @@ func prefixLinesWith(prefix, text string) string {
 	return strings.Join(lines, "\n")
 }
 
-// func LastDiff(path string, filePath string, comitHash string) (string, error) {
-// 	repo, err := git.PlainOpen(path)
-// 	if err != nil {
-// 		return "", err
-// 	}
+// Get a list of all contributors (unique authors)
+func GetContributors(path string) ([]object.Signature, error) {
+	contributorSet := make(map[string]object.Signature)
 
-// 	head, err := repo.Head()
-// 	if err != nil {
-// 		return "", err
-// 	}
+	repo, err := git.PlainOpen(path)
+	if err != nil {
+		return nil, err
+	}
 
-// 	commit1, err := repo.CommitObject(head.Hash())
-// 	if err != nil {
-// 		return "", err
-// 	}
+	ref, err := repo.Head()
+	if err != nil {
+		return nil, err
+	}
 
-// 	commit2, err := repo.CommitObject(plumbing.NewHash(comitHash))
-// 	if err != nil {
-// 		return "", err
-// 	}
+	iter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
+	if err != nil {
+		return nil, err
+	}
 
-// 	// Get the trees for the two commits
-// 	tree1, err := commit1.Tree()
-// 	if err != nil {
-// 		return "", err
-// 	}
+	err = iter.ForEach(func(c *object.Commit) error {
+		contributorSet[c.Author.Name] = c.Author
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
-// 	tree2, err := commit2.Tree()
-// 	if err != nil {
-// 		return "", err
-// 	}
+	// Convert the map to a list
+	contributors := make([]object.Signature, 0, len(contributorSet))
+	for _, contributor := range contributorSet {
+		contributors = append(contributors, contributor)
+	}
 
-// 	// Get the TreeEntry for the specific file
-// 	file1, err := tree1.File(filePath)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	file2, err := tree2.File(filePath)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	// Get the contents of the file in each commit
-// 	content1, err := file1.Contents()
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	content2, err := file2.Contents()
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	// Use diffmatchpatch to create a unified diff
-// 	dmp := diffmatchpatch.New()
-// 	diffs := dmp.DiffMain(content1, content2, true)
-// 	unifiedDiff := dmp.DiffPrettyText(diffs)
-
-// 	return unifiedDiff, nil
-// }
+	return contributors, nil
+}
 
 func LsRemotes(url string) ([]string, error) {
 	result := []string{}

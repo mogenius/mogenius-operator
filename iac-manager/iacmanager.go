@@ -257,6 +257,8 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 			Message:    fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName),
 			ChangeType: SyncChangeTypeModify,
 		})
+	} else {
+		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSynced, nil)
 	}
 }
 
@@ -432,6 +434,8 @@ func SyncChanges() error {
 		syncInProcess = false
 	}()
 
+	startTime := time.Now()
+
 	var err error
 	if gitHasRemotes() {
 		if !SetupInProcess {
@@ -467,6 +471,7 @@ func SyncChanges() error {
 					return err
 				}
 				SetSyncError(nil)
+				SetSyncInfo(time.Since(startTime).Milliseconds())
 			} else {
 				err = fmt.Errorf("Sync in process. Skipping sync.")
 			}
@@ -480,7 +485,6 @@ func SyncChanges() error {
 		iaclogger.Warnf(err.Error())
 	}
 	SetSyncError(err)
-
 	return err
 }
 
@@ -567,6 +571,12 @@ func pullChanges(lastAppliedCommit GitActionStatus) (lastCommit *object.Commit, 
 		for _, file := range deletedFiles {
 			iaclogger.Info(file)
 		}
+	}
+
+	// Get the list of contributors
+	contributor, contributorErr := gitmanager.GetContributors(folder)
+	if contributorErr == nil {
+		SetContributors(contributor)
 	}
 
 	// clean files
