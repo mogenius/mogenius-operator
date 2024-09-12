@@ -423,7 +423,12 @@ func LastDiff(repoPath string, filePath string) (diffStr string, updateTime time
 		return "", updateTime, author, fmt.Errorf("no changes found for the file: %s", filePath)
 	}
 
-	return diffOutput.String(), updateTime, author, nil
+	// shorten the diff output if it's too long
+	resultDif := diffOutput.String()
+	if len(diffOutput.String()) > 5000 {
+		resultDif = diffOutput.String()[:5000] + "..."
+	}
+	return resultDif, updateTime, author, nil
 }
 
 func prefixLinesWith(prefix, text string) string {

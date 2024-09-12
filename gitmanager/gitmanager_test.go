@@ -189,7 +189,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// DIFF
-	diff, err := LastDiff(localPath, "grype.yaml")
+	diff, _, _, err := LastDiff(localPath, "grype.yaml")
 	fmt.Println(diff)
 	if err != nil {
 		t.Errorf("Error getting last diff: %s", err.Error())

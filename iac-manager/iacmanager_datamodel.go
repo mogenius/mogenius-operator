@@ -38,7 +38,7 @@ type IacManagerResourceState struct {
 	LastUpdate string        `json:"lastUpdate"`
 	Diff       string        `json:"diff"`
 	Author     string        `json:"author"`
-	Error      error         `json:"error"`
+	Error      string        `json:"error"`
 	State      SyncStateEnum `json:"state"`
 }
 
@@ -67,7 +67,7 @@ type SyncStateEnum string
 const (
 	SyncStateUnknown     SyncStateEnum = "Unknown"
 	SyncStateInitialized SyncStateEnum = "Initialized" // Initial state. When the resource is read from the cluster.
-	SyncStatePendingPush SyncStateEnum = "PendingPush" // When the resource is updated in the cluster but not yet synced.
+	SyncStatePendingSync SyncStateEnum = "PendingSync" // When the resource is updated in the cluster but not yet synced.
 	SyncStateSynced      SyncStateEnum = "Synced"      // When the resource is synced with the repository.
 	SyncStateDeleted     SyncStateEnum = "Deleted"     // When the resource is deleted from the cluster.
 	SyncStateReverted    SyncStateEnum = "Reverted"    // When the resource is reverted because Pull=true and yaml != repo.
@@ -211,7 +211,11 @@ func SetLastSuccessfullyAppliedCommit(commit *object.Commit) {
 
 func SetResourceState(key string, state IacManagerResourceState) {
 	dataModelMutex.Lock()
-	dataModel.ResourceStates[key] = state
+	if state.State == SyncStateDeleted {
+		delete(dataModel.ResourceStates, key)
+	} else {
+		dataModel.ResourceStates[key] = state
+	}
 	dataModelMutex.Unlock()
 	NotifyChange(IacChangeTypeResourceUpdated)
 }
@@ -238,7 +242,7 @@ func GetResourceState() map[string]IacManagerResourceState {
 	return result
 }
 
-func UpdateResourceStatus(kind string, namespace string, name string, state SyncStateEnum, err error) {
+func UpdateResourceStatus(kind string, namespace string, name string, state SyncStateEnum, errMsg error) {
 	key := fmt.Sprintf("%s/%s/%s", kind, namespace, name)
 
 	newStatus := IacManagerResourceState{
@@ -246,7 +250,10 @@ func UpdateResourceStatus(kind string, namespace string, name string, state Sync
 		Namespace: namespace,
 		Name:      name,
 		State:     state,
-		Error:     err,
+	}
+
+	if errMsg != nil {
+		newStatus.Error = errMsg.Error()
 	}
 
 	gitPath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)

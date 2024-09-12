@@ -37,7 +37,7 @@ var IacManagerShouldWatchResources func() bool
 var IacManagerSetupInProcess bool
 var IacManagerResetCurrentRepoData func(int) error
 var IacManagerSyncChanges func() error
-var IacManagerApplyRepoStateToCluster func()
+var IacManagerApplyRepoStateToCluster func() error
 var IacManagerDeleteDataRetries int
 
 // var IacManager

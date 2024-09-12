@@ -55,6 +55,9 @@ const (
 	PAT_SYSTEM_CHECK                string = "SYSTEM_CHECK"
 	PAT_SYSTEM_PRINT_CURRENT_CONFIG string = "print-current-config"
 
+	PAT_IAC_FORCE_SYNC string = "iac/force-sync"
+	PAT_IAC_GET_STATUS string = "iac/get-status"
+
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS         string = "install-local-dev-components"
 	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
 	PAT_INSTALL_POD_STATS_COLLECTOR          string = "install-pod-stats-collector"
@@ -464,6 +467,9 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_FORCE_DISCONNECT,
 	PAT_SYSTEM_CHECK,
 	PAT_SYSTEM_PRINT_CURRENT_CONFIG,
+
+	PAT_IAC_FORCE_SYNC,
+	PAT_IAC_GET_STATUS,
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS,
 	PAT_INSTALL_TRAFFIC_COLLECTOR,

@@ -111,6 +111,11 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return conf
 
+	case structs.PAT_IAC_FORCE_SYNC:
+		return iacmanager.SyncChanges()
+	case structs.PAT_IAC_GET_STATUS:
+		return iacmanager.GetDataModel()
+
 	case structs.PAT_ENERGY_CONSUMPTION:
 		return EnergyConsumption()
 

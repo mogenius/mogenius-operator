@@ -246,6 +246,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 	if utils.CONFIG.Iac.LogChanges {
 		iaclogger.Infof("🧹 Detected %s change. Updated %s/%s.", kind, namespace, resourceName)
 	}
+	UpdateResourceStatus(kind, namespace, resourceName, SyncStatePendingSync, nil)
 
 	if diff != "" {
 		AddChangedFile(ChangedFile{
@@ -307,6 +308,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	if utils.CONFIG.Iac.LogChanges {
 		iaclogger.Infof("Detected %s deletion. Removed %s/%s. ♻️", kind, namespace, resourceName)
 	}
+	UpdateResourceStatus(kind, namespace, resourceName, SyncStateDeleted, nil)
 
 	if diff != "" {
 		AddChangedFile(ChangedFile{
@@ -388,11 +390,11 @@ func syncChangesTimer() {
 	}()
 }
 
-func ApplyRepoStateToCluster() {
+func ApplyRepoStateToCluster() error {
 	initialRepoApplied = true
 
 	if !utils.CONFIG.Iac.AllowPull {
-		return
+		return nil
 	}
 
 	allFiles := []string{}
@@ -401,7 +403,7 @@ func ApplyRepoStateToCluster() {
 	folders, err := os.ReadDir(rootFolder)
 	if err != nil {
 		iaclogger.Errorf("Error reading directory: %s", err.Error())
-		return
+		return nil
 	}
 	for _, folder := range folders {
 		if folder.IsDir() && !strings.HasPrefix(folder.Name(), ".") {
@@ -418,11 +420,18 @@ func ApplyRepoStateToCluster() {
 	allFiles = applyPriotityToChangesForUpdates(allFiles)
 
 	for _, file := range allFiles {
-		kubernetesReplaceResource(file, true)
+		err = kubernetesReplaceResource(file, true)
+		return err
 	}
+
+	return nil
 }
 
 func SyncChanges() error {
+	defer func() {
+		syncInProcess = false
+	}()
+
 	var err error
 	if gitHasRemotes() {
 		if !SetupInProcess {
@@ -432,24 +441,31 @@ func SyncChanges() error {
 				SetPullError(err)
 				if err != nil {
 					iaclogger.Errorf("Error pulling changes: %s", err.Error())
+					return err
 				} else if !initialRepoApplied {
-					ApplyRepoStateToCluster()
+					err = ApplyRepoStateToCluster()
+					SetSyncError(err)
+					return err
 				}
 				updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
 				for _, v := range updatedFiles {
-					kubernetesReplaceResource(v, false)
+					err = kubernetesReplaceResource(v, false)
+					SetSyncError(err)
+					return err
 				}
 				deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
 				for _, v := range deletedFiles {
-					kubernetesDeleteResource(v)
+					err = kubernetesDeleteResource(v)
+					SetSyncError(err)
+					return err
 				}
 				SetLastSuccessfullyAppliedCommit(lastCommit)
 				err = pushChanges()
 				SetPushError(err)
 				if err != nil {
 					iaclogger.Errorf("Error pushing changes: %s", err.Error())
+					return err
 				}
-				syncInProcess = false
 				SetSyncError(nil)
 			} else {
 				err = fmt.Errorf("Sync in process. Skipping sync.")
@@ -464,6 +480,7 @@ func SyncChanges() error {
 		iaclogger.Warnf(err.Error())
 	}
 	SetSyncError(err)
+
 	return err
 }
 
@@ -647,20 +664,20 @@ func cleanFileListFromNonYamls(files []string) []string {
 	return result
 }
 
-func kubernetesDeleteResource(file string) {
+func kubernetesDeleteResource(file string) error {
 	if shouldSkipResource(file) {
-		return
+		return nil
 	}
 
 	kind, namespace, name := parseFileToK8sParts(file)
 
 	if kind == "" {
 		UpdateResourceStatus(kind, namespace, name, SyncStateDeleted, fmt.Errorf("Kind cannot be empty. File: %s", file))
-		return
+		return nil
 	}
 	if name == "" {
 		UpdateResourceStatus(kind, namespace, name, SyncStateDeleted, fmt.Errorf("Name cannot be empty. File: %s", file))
-		return
+		return nil
 	}
 
 	if namespace != "" {
@@ -670,6 +687,8 @@ func kubernetesDeleteResource(file string) {
 	err := utils.ExecuteShellCommandRealySilent(delCmd, delCmd)
 
 	UpdateResourceStatus(kind, namespace, name, SyncStateDeleted, err)
+
+	return err
 }
 
 func parseFileToK8sParts(file string) (kind string, namespace string, name string) {
@@ -691,23 +710,23 @@ func parseFileToK8sParts(file string) (kind string, namespace string, name strin
 	return kind, namespace, name
 }
 
-func kubernetesReplaceResource(file string, isInit bool) {
+func kubernetesReplaceResource(file string, isInit bool) error {
 	filePath := fmt.Sprintf("%s/%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, file)
 	if shouldSkipResource(filePath) {
-		return
+		return nil
 	}
 
 	kind, namespace, name := parseFileToK8sParts(file)
 	existingResource, err := kubernetes.ObjectFor(kind, namespace, name)
 	if err != nil {
 		UpdateResourceStatusByFile(file, SyncStateSynced, fmt.Errorf("Error getting existing kubernetes resource %s: %s", file, err.Error()))
-		return
+		return nil
 	}
 
 	diff := createDiff(kind, namespace, name, existingResource)
 	if diff == "" {
 		UpdateResourceStatusByFile(file, SyncStateSynced, nil)
-		return
+		return nil
 	}
 
 	syncType := SyncStateSynced
@@ -722,15 +741,16 @@ func kubernetesReplaceResource(file string, isInit bool) {
 			createCmd := fmt.Sprintf("kubectl create -f %s", filePath)
 			err = utils.ExecuteShellCommandRealySilent(createCmd, createCmd)
 			if err != nil {
-				UpdateResourceStatusByFile(file, syncType, fmt.Errorf("Error creating kubernetes resource file %s: %s", file, err.Error()))
-				return
+				UpdateResourceStatusByFile(file, SyncStateSyncError, err)
+				return err
 			}
 		} else {
-			UpdateResourceStatusByFile(file, syncType, fmt.Errorf("Error replacing kubernetes resource file %s: %s", file, err.Error()))
-			return
+			UpdateResourceStatusByFile(file, SyncStateSyncError, err)
+			return err
 		}
 	}
 	UpdateResourceStatusByFile(file, syncType, nil)
+	return nil
 }
 
 func kubernetesRevertFromPath(filePath string) error {
