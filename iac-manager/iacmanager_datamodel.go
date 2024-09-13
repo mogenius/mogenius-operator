@@ -47,25 +47,25 @@ type Contributor struct {
 }
 
 type IacManagerResourceState struct {
-	Kind       string        `json:"kind"`
-	Namespace  string        `json:"namespace"`
-	Name       string        `json:"name"`
-	LastUpdate string        `json:"lastUpdate"`
-	Diff       string        `json:"diff"`
-	Author     string        `json:"author"`
-	Error      string        `json:"error"`
-	State      SyncStateEnum `json:"state"`
+	Kind       string                      `json:"kind"`
+	Namespace  string                      `json:"namespace"`
+	Name       string                      `json:"name"`
+	LastUpdate string                      `json:"lastUpdate"`
+	Revisions  []gitmanager.CommitRevision `json:"revisions"`
+	Author     string                      `json:"author"`
+	Error      string                      `json:"error"`
+	State      SyncStateEnum               `json:"state"`
 }
 
 type ChangedFile struct {
-	Name       string         `json:"name"`
-	Kind       string         `json:"kind"`
-	Path       string         `json:"path"`
-	Author     string         `json:"author"`
-	Diff       string         `json:"Diff"`
-	Message    string         `json:"message"`
-	Timestamp  string         `json:"timestamp"`
-	ChangeType SyncChangeType `json:"changeType"`
+	Name       string                      `json:"name"`
+	Kind       string                      `json:"kind"`
+	Path       string                      `json:"path"`
+	Author     string                      `json:"author"`
+	Revisions  []gitmanager.CommitRevision `json:"revisions"`
+	Message    string                      `json:"message"`
+	Timestamp  string                      `json:"timestamp"`
+	ChangeType SyncChangeType              `json:"changeType"`
 }
 
 type SyncChangeType string
@@ -290,13 +290,17 @@ func GetResourceState() map[string]IacManagerResourceState {
 }
 
 func UpdateResourceStatus(kind string, namespace string, name string, state SyncStateEnum, errMsg error) {
-	key := fmt.Sprintf("%s/%s/%s", kind, namespace, name)
+	key := fmt.Sprintf("%s/%s_%s.yaml", kind, namespace, name)
+	if namespace == "" {
+		key = fmt.Sprintf("%s/%s.yaml", kind, name)
+	}
 
 	newStatus := IacManagerResourceState{
 		Kind:      kind,
 		Namespace: namespace,
 		Name:      name,
 		State:     state,
+		Revisions: []gitmanager.CommitRevision{},
 	}
 
 	if errMsg != nil {
@@ -304,18 +308,20 @@ func UpdateResourceStatus(kind string, namespace string, name string, state Sync
 	}
 
 	gitPath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	filePath := GitFilePathForRaw(kind, namespace, name)
-	diff, updateTime, author, err := gitmanager.LastDiff(gitPath, filePath)
-	if err == nil {
-		newStatus.Diff = diff
-		newStatus.LastUpdate = updateTime.Format(time.RFC3339)
-		newStatus.Author = author
+	revisions, _ := gitmanager.ListFileRevisions(gitPath, key)
+	for index, rev := range revisions {
+		// latest revision
+		if index == 0 {
+			newStatus.LastUpdate = rev.Date
+			newStatus.Author = rev.Author
+		}
+		newStatus.Revisions = append(newStatus.Revisions, rev)
 	}
 
 	SetResourceState(key, newStatus)
 
-	if err != nil {
-		iaclogger.Errorf("Error with %s resource (%s): %s", state, key, err.Error())
+	if errMsg != nil {
+		iaclogger.Errorf("Error with %s resource (%s): %s", state, key, errMsg.Error())
 	} else {
 		iaclogger.Infof("✅ %s resource '%s'.", state, key)
 	}
@@ -344,11 +350,14 @@ func AddChangedFile(file ChangedFile) {
 		}
 	}
 	gitPath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	diff, lastUpdate, author, err := gitmanager.LastDiff(gitPath, file.Path)
-	if err == nil {
-		file.Diff = diff
-		file.Timestamp = lastUpdate.Format(time.RFC3339)
-		file.Author = author
+	revisions, _ := gitmanager.ListFileRevisions(gitPath, file.Path)
+	for index, rev := range revisions {
+		// latest revision
+		if index == 0 {
+			file.Timestamp = rev.Date
+			file.Author = rev.Author
+		}
+		file.Revisions = append(file.Revisions, rev)
 	}
 	changedFiles = append(changedFiles, file)
 }

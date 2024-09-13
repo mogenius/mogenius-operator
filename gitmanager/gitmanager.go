@@ -15,11 +15,21 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
+type CommitRevision struct {
+	Hash                string `json:"hash"`
+	Author              string `json:"author"`
+	Date                string `json:"date"`
+	DiffToPreviosCommit string `json:"diff"`
+}
+
 const (
 	Max_Commit_History = 10
+	Max_Diff_Lines     = 5000
+	Max_Diff_Count     = 10
 )
 
 var DiffFound = errors.New("diff found")
+var MaxDiffsFound = errors.New("Max_Diff_Count hit")
 
 func InitGit(path string) error {
 	_, err := git.PlainInit(path, false)
@@ -114,13 +124,10 @@ func GetLastCommits(path string, maxNoOfEntries int) ([]*object.Commit, error) {
 		return nil, err
 	}
 
-	// the latest commit
-	ref, err := r.Head()
-	if err != nil {
-		return nil, err
-	}
 	// Get the commit history starting from the latest commit
-	commitIter, err := r.Log(&git.LogOptions{From: ref.Hash()})
+	commitIter, err := r.Log(&git.LogOptions{
+		Order: git.LogOrderCommitterTime,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +292,7 @@ func GetHeadTag(path string) (string, error) {
 
 	tagName := ""
 	err = tags.ForEach(func(tagRef *plumbing.Reference) error {
-		commitIter, err := repo.Log(&git.LogOptions{From: tagRef.Hash()})
+		commitIter, err := repo.Log(&git.LogOptions{Order: git.LogOrderCommitterTime, From: tagRef.Hash()})
 		if err != nil {
 			return err
 		}
@@ -338,25 +345,24 @@ func AddRemote(path string, remoteUrl string, remoteName string) error {
 }
 
 // LastDiff returns the last diff for a specific file in a given repository
-func LastDiff(repoPath string, filePath string) (diffStr string, updateTime time.Time, author string, err error) {
+func LastDiff(repoPath string, filePath string) (hash string, diffStr string, updateTime time.Time, author string, err error) {
 	var diffOutput strings.Builder
 
 	// Open the Git repository at the given path
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
-		return "", updateTime, author, fmt.Errorf("failed to open repository: %w", err)
-	}
-
-	// Get the HEAD reference
-	ref, err := repo.Head()
-	if err != nil {
-		return "", updateTime, author, fmt.Errorf("failed to get HEAD reference: %w", err)
+		return "", "", updateTime, author, fmt.Errorf("failed to open repository: %w", err)
 	}
 
 	// Start iterating over the commit history starting from HEAD
-	commitIter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
+	commitIter, err := repo.Log(
+		&git.LogOptions{
+			FileName: &filePath,
+			Order:    git.LogOrderCommitterTime,
+		},
+	)
 	if err != nil {
-		return "", updateTime, author, fmt.Errorf("failed to retrieve commit history: %w", err)
+		return "", "", updateTime, author, fmt.Errorf("failed to retrieve commit history: %w", err)
 	}
 
 	err = commitIter.ForEach(func(commit *object.Commit) error {
@@ -403,6 +409,7 @@ func LastDiff(repoPath string, filePath string) (diffStr string, updateTime time
 					}
 				}
 				updateTime = commit.Committer.When
+				hash = commit.Hash.String()
 				author = commit.Author.Name + " <" + commit.Author.Email + ">"
 				// Stop once we find the diff for the specified file
 				return DiffFound
@@ -415,20 +422,109 @@ func LastDiff(repoPath string, filePath string) (diffStr string, updateTime time
 		return nil
 	})
 	if err != DiffFound {
-		return "", updateTime, author, fmt.Errorf("failed to iterate through commit history: %w", err)
+		return "", "", updateTime, author, fmt.Errorf("failed to iterate through commit history: %w", err)
 	}
 
 	// If no diff found for the file, return an error
 	if diffOutput.Len() == 0 {
-		return "", updateTime, author, fmt.Errorf("no changes found for the file: %s", filePath)
+		return "", "", updateTime, author, fmt.Errorf("no changes found for the file: %s", filePath)
 	}
 
 	// shorten the diff output if it's too long
 	resultDif := diffOutput.String()
-	if len(diffOutput.String()) > 5000 {
-		resultDif = diffOutput.String()[:5000] + "..."
+	if len(diffOutput.String()) > Max_Diff_Lines {
+		resultDif = diffOutput.String()[:Max_Diff_Lines] + "..."
 	}
-	return resultDif, updateTime, author, nil
+	return hash, resultDif, updateTime, author, nil
+}
+
+func DiffForCommit(path string, commitHash string, filePath string) (string, error) {
+	var diffOutput strings.Builder
+
+	repo, err := git.PlainOpen(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	commitIter, err := repo.Log(
+		&git.LogOptions{
+			From:     plumbing.NewHash(commitHash),
+			Order:    git.LogOrderCommitterTime,
+			FileName: &filePath,
+		},
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to retrieve commit history: %w", err)
+	}
+
+	err = commitIter.ForEach(func(commit *object.Commit) error {
+		// If the commit has a parent, compare it with the parent commit
+		if commit.NumParents() == 0 {
+			// No parent means it's the first commit, so stop
+			return nil
+		}
+
+		parentCommit, err := commit.Parent(0)
+		if err != nil {
+			return fmt.Errorf("failed to get parent commit: %w", err)
+		}
+
+		// Get the tree objects for the current commit and its parent
+		commitTree, err := commit.Tree()
+		if err != nil {
+			return fmt.Errorf("failed to get tree for commit: %w", err)
+		}
+
+		parentTree, err := parentCommit.Tree()
+		if err != nil {
+			return fmt.Errorf("failed to get tree for parent commit: %w", err)
+		}
+
+		// Get the patch/diff between the two trees
+		patch, err := parentTree.Patch(commitTree)
+		if err != nil {
+			return fmt.Errorf("failed to get diff: %w", err)
+		}
+
+		// Iterate through the patches and look for the specific file
+		for _, filePatch := range patch.FilePatches() {
+			from, to := filePatch.Files()
+			// Ensure the diff is for the correct file
+			if (from != nil && from.Path() == filePath) || (to != nil && to.Path() == filePath) {
+				for _, chunk := range filePatch.Chunks() {
+					if chunk.Type() == diff.Add {
+						diffOutput.WriteString(prefixLinesWith("+ ", chunk.Content()))
+					} else if chunk.Type() == diff.Delete {
+						diffOutput.WriteString(prefixLinesWith("- ", chunk.Content()))
+					} else {
+						// diffOutput.WriteString(prefixLinesWith("  ", chunk.Content()))
+					}
+				}
+				// Stop once we find the diff for the specified file
+				return DiffFound
+			}
+		}
+		// stop iteration if we found the diff
+		if err == DiffFound {
+			return err
+		}
+		return nil
+	})
+	if err != DiffFound {
+		return "", fmt.Errorf("failed to iterate through commit history: %w", err)
+	}
+
+	// If no diff found for the file, return an error
+	if diffOutput.Len() == 0 {
+		return "", fmt.Errorf("no changes found for the file: %s", filePath)
+	}
+
+	// shorten the diff output if it's too long
+	resultDif := diffOutput.String()
+	if len(diffOutput.String()) > Max_Diff_Lines {
+		resultDif = diffOutput.String()[:Max_Diff_Lines] + "..."
+	}
+	return resultDif, nil
 }
 
 func prefixLinesWith(prefix, text string) string {
@@ -440,6 +536,61 @@ func prefixLinesWith(prefix, text string) string {
 	return strings.Join(lines, "\n")
 }
 
+func ListFileRevisions(repoPath string, filePath string) ([]CommitRevision, error) {
+	revisions := []CommitRevision{}
+
+	// Open the repository
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return revisions, err
+	}
+
+	// Get the commit history of the specific file
+	iter, err := repo.Log(&git.LogOptions{
+		FileName: &filePath,
+		Order:    git.LogOrderCommitterTime,
+	})
+	if err != nil {
+		return revisions, err
+	}
+
+	err = iter.ForEach(func(c *object.Commit) error {
+		diff, _ := DiffForCommit(repoPath, c.Hash.String(), filePath)
+		if diff != "" {
+			revisions = append(revisions, CommitRevision{
+				Hash:                c.Hash.String(),
+				Author:              c.Author.Name,
+				Date:                c.Author.When.Format(time.RFC3339),
+				DiffToPreviosCommit: diff,
+			})
+		}
+		if len(revisions) >= Max_Diff_Count {
+			return MaxDiffsFound
+		}
+		return nil
+	})
+
+	// no revisions found, get the last diff
+	if len(revisions) == 0 {
+		hash, diffStr, updateTime, author, err := LastDiff(repoPath, filePath)
+		if err != nil {
+			return nil, err
+		}
+		revisions = append(revisions, CommitRevision{
+			Hash:                hash,
+			Author:              author,
+			Date:                updateTime.Format(time.RFC3339),
+			DiffToPreviosCommit: diffStr,
+		})
+	}
+
+	if err != nil && err != MaxDiffsFound {
+		return nil, err
+	}
+
+	return revisions, nil
+}
+
 // Get a list of all contributors (unique authors)
 func GetContributors(path string) ([]object.Signature, error) {
 	contributorSet := make(map[string]object.Signature)
@@ -449,12 +600,7 @@ func GetContributors(path string) ([]object.Signature, error) {
 		return nil, err
 	}
 
-	ref, err := repo.Head()
-	if err != nil {
-		return nil, err
-	}
-
-	iter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
+	iter, err := repo.Log(&git.LogOptions{Order: git.LogOrderCommitterTime})
 	if err != nil {
 		return nil, err
 	}
@@ -635,7 +781,7 @@ func GetLastDeletedFiles(path string) ([]string, error) {
 }
 
 func getAddedOrModifiedFiles(patch *object.Patch) []string {
-	var updatedFiles []string
+	updatedFiles := []string{}
 
 	for _, stat := range patch.Stats() {
 		// Filter for added (A) or modified (M) files
@@ -650,7 +796,7 @@ func getAddedOrModifiedFiles(patch *object.Patch) []string {
 }
 
 func getDeletedFiles(patch *object.Patch) []string {
-	var deletedFiles []string
+	deletedFiles := []string{}
 
 	for _, filePatch := range patch.FilePatches() {
 		from, to := filePatch.Files()
@@ -663,7 +809,7 @@ func getDeletedFiles(patch *object.Patch) []string {
 }
 
 func findDecorations(repo *git.Repository, hash plumbing.Hash) []string {
-	var decorations []string
+	decorations := []string{}
 
 	refs, err := repo.References()
 	if err != nil {

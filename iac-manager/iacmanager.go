@@ -288,7 +288,10 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	// all changes will be reversed if PULL only is allowed
 	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush {
 		filename := fileNameForRaw(kind, namespace, resourceName)
-		if _, err := os.Stat(filename); os.IsExist(err) {
+		_, err := os.Stat(filename)
+		if os.IsNotExist(err) {
+			return
+		} else {
 			err = kubernetesRevertFromPath(filename)
 			if err == nil {
 				iaclogger.Warnf("🧹 Detected %s deletion. Reverting %s/%s.", kind, namespace, resourceName)
@@ -451,19 +454,25 @@ func SyncChanges() error {
 				} else if !initialRepoApplied {
 					err = ApplyRepoStateToCluster()
 					SetSyncError(err)
-					return err
+					if err != nil {
+						return err
+					}
 				}
 				updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
 				for _, v := range updatedFiles {
 					err = kubernetesReplaceResource(v, false)
 					SetSyncError(err)
-					return err
+					if err != nil {
+						return err
+					}
 				}
 				deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
 				for _, v := range deletedFiles {
 					err = kubernetesDeleteResource(v)
 					SetSyncError(err)
-					return err
+					if err != nil {
+						return err
+					}
 				}
 				SetLastSuccessfullyAppliedCommit(lastCommit)
 				err = pushChanges()

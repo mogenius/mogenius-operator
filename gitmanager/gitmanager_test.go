@@ -189,7 +189,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// DIFF
-	diff, _, _, err := LastDiff(localPath, "grype.yaml")
+	_, diff, _, _, err := LastDiff(localPath, "grype.yaml")
 	fmt.Println(diff)
 	if err != nil {
 		t.Errorf("Error getting last diff: %s", err.Error())
@@ -203,6 +203,22 @@ func TestGitManager(t *testing.T) {
 		t.Errorf("Error getting contributors: %s", err.Error())
 	} else {
 		t.Logf("Repo %s successfully got contributors ✅ (%v)", repoUrl, contributors)
+	}
+
+	// GET FILEREVISIONS
+	fileRevisions, err := ListFileRevisions(localPath, "mogenius/docs/cluster-management/troubleshooting-clusters.md")
+	if err != nil {
+		t.Errorf("Error getting file revisions: %s", err.Error())
+	} else {
+		t.Logf("Repo %s successfully got file revisions ✅ (%v)", repoUrl, fileRevisions)
+	}
+
+	// DIFF FOR COMMIT
+	specificDiff, err := DiffForCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", "mogenius/docs/cluster-management/troubleshooting-clusters.md")
+	if err != nil {
+		t.Errorf("Error getting diff for commit: %s", err.Error())
+	} else {
+		t.Logf("Repo %s successfully got diff for commit ✅ (%s)", repoUrl, specificDiff)
 	}
 
 }
