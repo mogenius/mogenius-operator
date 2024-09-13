@@ -14,6 +14,11 @@ type Commit struct {
 	FilePaths []string `json:"filePaths"`
 }
 
+type ResetFileRequest struct {
+	FilePath   string `json:"filePath"`
+	CommitHash string `json:"commitHash"`
+}
+
 type SyncRepoData struct {
 	Repo                   string   `json:"repo"`
 	Pat                    string   `json:"pat"`

@@ -117,6 +117,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return NewMessageResponse(iacmanager.GetDataModel(), nil)
 	case structs.PAT_IAC_RESET_LOCAL_REPO:
 		return NewMessageResponse(nil, kubernetes.ResetLocalRepo())
+	case structs.PAT_IAC_RESET_FILE:
+		data := dtos.ResetFileRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return NewMessageResponse(nil, iacmanager.ResetFile(data.FilePath, data.CommitHash))
 
 	case structs.PAT_ENERGY_CONSUMPTION:
 		return EnergyConsumption()

@@ -58,6 +58,7 @@ const (
 	PAT_IAC_FORCE_SYNC       string = "iac/force-sync"
 	PAT_IAC_GET_STATUS       string = "iac/get-status"
 	PAT_IAC_RESET_LOCAL_REPO string = "iac/reset-local-repo"
+	PAT_IAC_RESET_FILE       string = "iac/reset-file"
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS         string = "install-local-dev-components"
 	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
@@ -472,6 +473,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_IAC_FORCE_SYNC,
 	PAT_IAC_GET_STATUS,
 	PAT_IAC_RESET_LOCAL_REPO,
+	PAT_IAC_RESET_FILE,
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS,
 	PAT_INSTALL_TRAFFIC_COLLECTOR,

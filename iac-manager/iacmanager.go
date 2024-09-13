@@ -526,6 +526,25 @@ func createFolderForResource(resource string) error {
 	return nil
 }
 
+func ResetFile(filePath, commitHash string) error {
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	kind, _, name := parseFileToK8sParts(filePath)
+
+	err := gitmanager.ResetFileToCommit(folder, filePath, commitHash)
+	if err != nil {
+		iaclogger.Errorf("Error resetting file: %s", err.Error())
+		return err
+	}
+
+	err = gitmanager.Commit(folder, []string{filePath}, []string{}, fmt.Sprintf("Reset [%s] %s to %s.", kind, name, commitHash), utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+	if err != nil {
+		iaclogger.Errorf("Error committing reset: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
+
 func gitHasRemotes() bool {
 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	return gitmanager.HasRemotes(folder)
