@@ -10,9 +10,9 @@ import (
 
 func TestGitManager(t *testing.T) {
 	repoUrl := "https://github.com/mogenius/docs.git"
-	localPath := "test-repo"
-	localPathInit := "test-repo-init"
-	localPathFast := "test-repo-fast"
+	localPath := os.TempDir() + "test-repo"
+	localPathInit := os.TempDir() + "test-repo-init"
+	localPathFast := os.TempDir() + "test-repo-fast"
 	mainBranch := "main"
 	switchBranch := "dev"
 
@@ -219,6 +219,14 @@ func TestGitManager(t *testing.T) {
 		t.Errorf("Error getting diff for commit: %s", err.Error())
 	} else {
 		t.Logf("Repo %s successfully got diff for commit ✅ (%s)", repoUrl, specificDiff)
+	}
+
+	// RESET FILE
+	err = ResetFileToCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", "mogenius/docs/cluster-management/troubleshooting-clusters.md")
+	if err != nil {
+		t.Errorf("Error resetting file to commit: %s", err.Error())
+	} else {
+		t.Logf("Repo %s successfully reset file to commit ✅", repoUrl)
 	}
 
 }

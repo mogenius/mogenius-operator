@@ -780,6 +780,42 @@ func GetLastDeletedFiles(path string) ([]string, error) {
 	return result, nil
 }
 
+func ResetFileToCommit(repoPath, commitHash, filePath string) error {
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	hash := plumbing.NewHash(commitHash)
+	commit, err := repo.CommitObject(hash)
+	if err != nil {
+		return fmt.Errorf("failed to find commit: %w", err)
+	}
+
+	tree, err := commit.Tree()
+	if err != nil {
+		return fmt.Errorf("failed to get tree: %w", err)
+	}
+
+	file, err := tree.File(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to find file (%s) in tree: %w", filePath, err)
+	}
+
+	content, err := file.Contents()
+	if err != nil {
+		return fmt.Errorf("failed to read file content: %w", err)
+	}
+
+	completePath := repoPath + "/" + filePath
+	err = os.WriteFile(completePath, []byte(content), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to overwrite local file (%s): %w", completePath, err)
+	}
+
+	return nil
+}
+
 func getAddedOrModifiedFiles(patch *object.Patch) []string {
 	updatedFiles := []string{}
 
