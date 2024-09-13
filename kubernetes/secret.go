@@ -27,7 +27,7 @@ const ClusterImagePullSecretName = "cluster-img-pull-sec"
 const ContainerImagePullSecretName = "container-img-pull-sec"
 
 func CreateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
-	client := getCoreClient()
+	client := GetCoreClient()
 	if secret == nil {
 		var err error
 		secret, err = exampleSecret(namespace)
@@ -66,7 +66,7 @@ func exampleSecret(namespace string) (*v1.Secret, error) {
 }
 
 func GetDecodedSecret(secretName string, namespace string) (map[string]string, error) {
-	client := getCoreClient()
+	client := GetCoreClient()
 	secret, err := client.Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get secret %s in namespace %s: %w", secretName, namespace, err)
@@ -104,7 +104,7 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 		defer wg.Done()
 		cmd.Start(job, "Creating Cluster Image-Pull secret")
 
-		secretClient := getCoreClient().Secrets(namespace.Name)
+		secretClient := GetCoreClient().Secrets(namespace.Name)
 
 		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
@@ -143,7 +143,7 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 
 func ExistsClusterImagePullSecret(namespace string) bool {
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace))
-	secret, err := getCoreClient().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	secret, err := GetCoreClient().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return false
 	}
@@ -174,7 +174,7 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 		defer wg.Done()
 		cmd.Start(job, "Creating Container Image-Pull secret")
 
-		secretClient := getCoreClient().Secrets(namespace.Name)
+		secretClient := GetCoreClient().Secrets(namespace.Name)
 
 		secret := punqUtils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
@@ -220,7 +220,7 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 		defer wg.Done()
 		cmd.Start(job, "Deleting Container secret")
 
-		secretClient := getCoreClient().Secrets(namespace.Name)
+		secretClient := GetCoreClient().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
@@ -257,7 +257,7 @@ func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespac
 		defer wg.Done()
 		cmd.Start(job, "Updating secret")
 
-		secretClient := getCoreClient().Secrets(namespace.Name)
+		secretClient := GetCoreClient().Secrets(namespace.Name)
 		secret := punqUtils.InitSecret()
 		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
@@ -265,11 +265,15 @@ func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespac
 
 		for _, container := range service.Containers {
 			for _, envVar := range container.EnvVars {
-				if envVar.Type == dtos.EnvVarKeyVault {
+				if envVar.Type == dtos.EnvVarKeyVault && envVar.Data.VaultType == dtos.EnvVarVaultTypeMogeniusVault {
 					secret.StringData[envVar.Name] = envVar.Value
+					secret.Labels = make(map[string]string)
+					secret.Labels[envVar.Name] = envVar.Data.Value
 				}
 				if envVar.Type == dtos.EnvVarPlainText ||
-					envVar.Type == dtos.EnvVarHostname {
+					envVar.Type == dtos.EnvVarHostname ||
+					envVar.Type == dtos.EnvVarVolumeMount ||
+					(envVar.Type == dtos.EnvVarKeyVault && envVar.Data.VaultType == dtos.EnvVarVaultTypeHashicorpExternalVault) {
 					delete(secret.StringData, envVar.Name)
 				}
 			}
