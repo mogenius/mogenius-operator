@@ -22,13 +22,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -93,6 +86,9 @@ jobs:
       - prepare
       - passing-tests
     runs-on: [self-hosted-ansible, X64]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -103,8 +99,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build AMD64 image
         run: |
@@ -127,6 +123,9 @@ jobs:
       - prepare
       - passing-tests
     runs-on: [self-hosted-ansible, ARM64]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -137,8 +136,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push ARM64-linux image
         run: |
@@ -170,8 +169,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build ARM64 image
         run: |
@@ -203,9 +202,9 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
-
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
       - name: Build and push ARMv7 image
         run: |
           GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
@@ -232,12 +231,13 @@ jobs:
         with:
           fetch-depth: 0
 
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Merge images into a multi-arch manifest
         run: |
@@ -272,7 +272,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: develop
-          # token: ${{ secrets.DOCKERHUB_TOKEN }}
           token: ${{ secrets.MO_K8s_TOKEN }}
           repository: ${{ env.HELMREPO }}
           path: 'helm'        
