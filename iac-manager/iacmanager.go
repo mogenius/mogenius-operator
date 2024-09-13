@@ -382,7 +382,10 @@ func syncChangesTimer() {
 			select {
 			case <-ticker.C:
 				if IsIacEnabled() {
-					SyncChanges()
+					err := SyncChanges()
+					if err != nil {
+						iaclogger.Errorf("Error syncing changes: %s", err.Error())
+					}
 				}
 			case <-quit:
 				ticker.Stop()
@@ -422,8 +425,7 @@ func ApplyRepoStateToCluster() error {
 	allFiles = applyPriotityToChangesForUpdates(allFiles)
 
 	for _, file := range allFiles {
-		err = kubernetesReplaceResource(file, true)
-		return err
+		kubernetesReplaceResource(file, true)
 	}
 
 	return nil
@@ -690,11 +692,19 @@ func kubernetesDeleteResource(file string) error {
 		return nil
 	}
 
+	namespaceflag := ""
 	if namespace != "" {
-		namespace = fmt.Sprintf("--namespace=%s ", namespace)
+		namespaceflag = fmt.Sprintf("--namespace=%s ", namespace)
 	}
-	delCmd := fmt.Sprintf("kubectl delete %s %s%s", kind, namespace, name)
+	delCmd := fmt.Sprintf("kubectl delete %s %s%s", kind, namespaceflag, name)
 	err := utils.ExecuteShellCommandRealySilent(delCmd, delCmd)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "Error from server (NotFound):") {
+			UpdateResourceStatus(kind, namespace, name, SyncStateDeleted, nil)
+			return nil
+		}
+	}
 
 	UpdateResourceStatus(kind, namespace, name, SyncStateDeleted, err)
 

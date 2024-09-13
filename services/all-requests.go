@@ -115,6 +115,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return NewMessageResponse(nil, iacmanager.SyncChanges())
 	case structs.PAT_IAC_GET_STATUS:
 		return NewMessageResponse(iacmanager.GetDataModel(), nil)
+	case structs.PAT_IAC_RESET_LOCAL_REPO:
+		return NewMessageResponse(nil, kubernetes.ResetLocalRepo())
 
 	case structs.PAT_ENERGY_CONSUMPTION:
 		return EnergyConsumption()
