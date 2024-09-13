@@ -157,7 +157,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// BUILD
 	buildCmd := structs.CreateCommand(string(structs.PrefixBuild), "Building container", job)
-	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build --network host -f %s %s -t %s -t %s %s", workingDir, *container.DockerfileName, container.GetInjectDockerEnvVars(job.BuildId, string(gitTagData)), tagName, latestTagName, *container.DockerContext))
+	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build --network host -f %s %s -t %s -t %s %s", workingDir, *container.DockerfileName, container.GetInjectDockerEnvVars(job.NamespaceName, job.BuildId, string(gitTagData)), tagName, latestTagName, *container.DockerContext))
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixBuild, err.Error())
 		done <- structs.JobStateFailed
@@ -558,7 +558,7 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 	}
 	for _, container := range job.Service.Containers {
 		for _, v := range container.EnvVars {
-			if v.Type == dtos.EnvVarKeyVault {
+			if v.Type == dtos.EnvVarKeyVault && v.Data.VaultType == dtos.EnvVarVaultTypeMogeniusVault {
 				line = strings.ReplaceAll(line, v.Value, "****")
 			}
 		}

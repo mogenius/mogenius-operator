@@ -62,7 +62,7 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			existingService = nil
 		}
 
-		serviceClient := getCoreClient().Services(namespace.Name)
+		serviceClient := GetCoreClient().Services(namespace.Name)
 		updateService := generateService(existingService, namespace, service)
 
 		updateOptions := metav1.UpdateOptions{

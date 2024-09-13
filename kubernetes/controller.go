@@ -186,7 +186,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 		specTemplate.Spec.Volumes = []v1core.Volume{}
 
 		for _, envVar := range container.EnvVars {
-			if envVar.Type == dtos.EnvVarKeyVault {
+			if envVar.Type == dtos.EnvVarKeyVault && envVar.Data.VaultType == dtos.EnvVarVaultTypeMogeniusVault {
 				//envVar.Type == "PLAINTEXT" ||
 				//envVar.Type == "HOSTNAME" {
 				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
@@ -203,7 +203,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 			}
 			// EXTERNAL SECRETS OPERATOR
 			if utils.CONFIG.Misc.ExternalSecretsEnabled {
-				if envVar.Type == dtos.EnvVarExternalSecret {
+				if envVar.Type == dtos.EnvVarKeyVault && envVar.Data.VaultType == dtos.EnvVarVaultTypeHashicorpExternalVault {
 					// create secret
 					namePrefix, propertyName := dtos.SplitEsoEnvVarValues(envVar)
 					SecretName, err := CreateExternalSecret(CreateExternalSecretProps{
@@ -239,11 +239,15 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 			if envVar.Type == dtos.EnvVarVolumeMount {
 				// VOLUMEMOUNT
 				// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
-				components := strings.Split(envVar.Value, ":")
-				if len(components) == 3 {
-					volumeName := components[0]    // e.g. MY_COOL_NAME
-					srcPath := components[1]       // e.g. subpath/to/heaven
-					containerPath := components[2] // e.g. /mo-data
+				// components := strings.Split(envVar.Value, ":")
+				// if len(components) == 3 {
+				//volumeName := components[0]    // e.g. MY_COOL_NAME
+				//srcPath := components[1]       // e.g. subpath/to/heaven
+				//containerPath := components[2] // e.g. /mo-data
+				if envVar.Data.VolumeName != "" && envVar.Data.VolumeSource != "" && envVar.Data.VolumeDestination != "" {
+					volumeName := envVar.Data.VolumeName           // e.g. MY_COOL_NAME
+					srcPath := envVar.Data.VolumeSource            // e.g. subpath/to/heaven
+					containerPath := envVar.Data.VolumeDestination // e.g. /mo-data
 
 					// subPath must be relative
 					if strings.HasPrefix(srcPath, "/") {
@@ -279,8 +283,11 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 						K8sLogger.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
 					}
 				} else {
-					K8sLogger.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
+					K8sLogger.Errorf("SKIPPING ENVVAR '%s' because data is missing", envVar.Name)
 				}
+				//} else {
+				//	K8sLogger.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
+				//}
 			}
 		}
 	}

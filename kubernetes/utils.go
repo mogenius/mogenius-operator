@@ -79,8 +79,11 @@ func init() {
 	if NAMESPACE == "" {
 		NAMESPACE = "mogenius"
 	}
+
+	dtos.KubernetesGetSecretValueByPrefixControllerNameAndKey = GetSecretValueByPrefixControllerNameAndKey
+	dtos.KubernetesK8sLogger = K8sLogger
 }
-func getCoreClient() coreV1.CoreV1Interface {
+func GetCoreClient() coreV1.CoreV1Interface {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		K8sLogger.Fatal("Error creating kubeprovider")
