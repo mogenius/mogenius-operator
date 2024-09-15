@@ -816,6 +816,45 @@ func ResetFileToCommit(repoPath, commitHash, filePath string) error {
 	return nil
 }
 
+func DiscardUnstagedChanges(repoPath, filePath string) error {
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repo: %w", err)
+	}
+
+	head, err := repo.Head()
+	if err != nil {
+		return fmt.Errorf("failed to get HEAD: %w", err)
+	}
+
+	commit, err := repo.CommitObject(head.Hash())
+	if err != nil {
+		return fmt.Errorf("failed to get commit: %w", err)
+	}
+
+	tree, err := commit.Tree()
+	if err != nil {
+		return fmt.Errorf("failed to get tree: %w", err)
+	}
+
+	file, err := tree.File(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to find file in tree: %w", err)
+	}
+
+	content, err := file.Contents()
+	if err != nil {
+		return fmt.Errorf("failed to read file content from HEAD: %w", err)
+	}
+
+	completePath := repoPath + "/" + filePath
+	err = os.WriteFile(completePath, []byte(content), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to discard changes: %w", err)
+	}
+	return nil
+}
+
 func getAddedOrModifiedFiles(patch *object.Patch) []string {
 	updatedFiles := []string{}
 

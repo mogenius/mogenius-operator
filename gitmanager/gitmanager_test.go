@@ -15,6 +15,7 @@ func TestGitManager(t *testing.T) {
 	localPathFast := os.TempDir() + "test-repo-fast"
 	mainBranch := "main"
 	switchBranch := "dev"
+	testFileInRepo := "mogenius/docs/cluster-management/troubleshooting-clusters.md"
 
 	// CLEANUP
 	defer func() {
@@ -206,7 +207,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// GET FILEREVISIONS
-	fileRevisions, err := ListFileRevisions(localPath, "mogenius/docs/cluster-management/troubleshooting-clusters.md")
+	fileRevisions, err := ListFileRevisions(localPath, testFileInRepo)
 	if err != nil {
 		t.Errorf("Error getting file revisions: %s", err.Error())
 	} else {
@@ -214,19 +215,27 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// DIFF FOR COMMIT
-	specificDiff, err := DiffForCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", "mogenius/docs/cluster-management/troubleshooting-clusters.md")
+	specificDiff, err := DiffForCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", testFileInRepo)
 	if err != nil {
 		t.Errorf("Error getting diff for commit: %s", err.Error())
 	} else {
 		t.Logf("Repo %s successfully got diff for commit ✅ (%s)", repoUrl, specificDiff)
 	}
 
-	// RESET FILE
-	err = ResetFileToCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", "mogenius/docs/cluster-management/troubleshooting-clusters.md")
+	// RESET FILE TO COMMIT
+	err = ResetFileToCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", testFileInRepo)
 	if err != nil {
 		t.Errorf("Error resetting file to commit: %s", err.Error())
 	} else {
 		t.Logf("Repo %s successfully reset file to commit ✅", repoUrl)
+	}
+
+	// DISCARD UNSTAGED CHANGES
+	err = DiscardUnstagedChanges(localPath, testFileInRepo)
+	if err != nil {
+		t.Errorf("Error resetting file to commit: %s", err.Error())
+	} else {
+		t.Logf("Repo %s successfully discarded unstaged changes in file %s ✅", repoUrl, testFileInRepo)
 	}
 
 }
