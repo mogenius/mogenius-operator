@@ -3,6 +3,8 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
@@ -10,8 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -279,47 +279,193 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 			spec.Template.Spec.Containers[index].ImagePullPolicy = v1Core.PullAlways
 		}
 
-		// PORTS
-		var internalHttpPort *int
-		if len(container.Ports) > 0 {
-			for _, port := range container.Ports {
-				if port.PortType == dtos.PortTypeHTTPS {
-					tmp := int(port.InternalPort)
-					internalHttpPort = &tmp
-				}
-			}
-		}
-
-		// PROBES
-		if !container.KubernetesLimits.ProbesOn {
-			spec.Template.Spec.Containers[index].StartupProbe = nil
+		// LivenessProbe
+		log.Infof("LivenessProbe: %v", container.Probes)
+		if !container.Probes.LivenessProbe.ProbesOn {
 			spec.Template.Spec.Containers[index].LivenessProbe = nil
-			spec.Template.Spec.Containers[index].ReadinessProbe = nil
-		} else if internalHttpPort != nil {
-			// StartupProbe
-			if spec.Template.Spec.Containers[index].StartupProbe == nil {
-				spec.Template.Spec.Containers[index].StartupProbe = &v1Core.Probe{}
-				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
-			}
-			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
-			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Path = "/healthz"
-
-			// LivenessProbe
+		} else if container.Probes.LivenessProbe.ProbesOn {
 			if spec.Template.Spec.Containers[index].LivenessProbe == nil {
 				spec.Template.Spec.Containers[index].LivenessProbe = &v1Core.Probe{}
 				spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &v1Core.HTTPGetAction{}
 			}
-			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
-			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Path = "/healthz"
+			spec.Template.Spec.Containers[index].LivenessProbe.InitialDelaySeconds = int32(container.Probes.LivenessProbe.InitialDelaySeconds)
+			spec.Template.Spec.Containers[index].LivenessProbe.PeriodSeconds = int32(container.Probes.LivenessProbe.PeriodSeconds)
+			spec.Template.Spec.Containers[index].LivenessProbe.TimeoutSeconds = int32(container.Probes.LivenessProbe.TimeoutSeconds)
+			spec.Template.Spec.Containers[index].LivenessProbe.SuccessThreshold = int32(container.Probes.LivenessProbe.SuccessThreshold)
+			spec.Template.Spec.Containers[index].LivenessProbe.FailureThreshold = int32(container.Probes.LivenessProbe.FailureThreshold)
 
-			// ReadinessProbe
+			if container.Probes.LivenessProbe.HTTPGet != nil {
+				spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Path = container.Probes.LivenessProbe.HTTPGet.Path
+				spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(container.Probes.LivenessProbe.HTTPGet.Port))
+				if container.Probes.LivenessProbe.HTTPGet.Host != nil {
+					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Host = *container.Probes.LivenessProbe.HTTPGet.Host
+				} else {
+					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Host = ""
+				}
+				if container.Probes.LivenessProbe.HTTPGet.Scheme != nil {
+					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Scheme = *container.Probes.LivenessProbe.HTTPGet.Scheme
+				} else {
+					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Scheme = ""
+				}
+				spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.HTTPHeaders = []v1Core.HTTPHeader{}
+				if container.Probes.LivenessProbe.HTTPGet.HTTPHeaders != nil {
+					for _, header := range *container.Probes.LivenessProbe.HTTPGet.HTTPHeaders {
+						spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.HTTPHeaders = append(spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.HTTPHeaders, v1Core.HTTPHeader{
+							Name:  header.Name,
+							Value: header.Value,
+						})
+					}
+				} else if container.Probes.LivenessProbe.TCPSocket != nil {
+					spec.Template.Spec.Containers[index].LivenessProbe.TCPSocket = &v1Core.TCPSocketAction{}
+					spec.Template.Spec.Containers[index].LivenessProbe.TCPSocket.Port = intstr.FromInt32(int32(container.Probes.LivenessProbe.TCPSocket.Port))
+				} else if container.Probes.LivenessProbe.Exec != nil {
+					spec.Template.Spec.Containers[index].LivenessProbe.Exec = &v1Core.ExecAction{}
+					spec.Template.Spec.Containers[index].LivenessProbe.Exec.Command = container.Probes.LivenessProbe.Exec.Command
+				} else if container.Probes.LivenessProbe.GRPC != nil {
+					spec.Template.Spec.Containers[index].LivenessProbe.GRPC = &v1Core.GRPCAction{}
+					spec.Template.Spec.Containers[index].LivenessProbe.GRPC.Port = int32(container.Probes.LivenessProbe.GRPC.Port)
+					spec.Template.Spec.Containers[index].LivenessProbe.GRPC.Service = container.Probes.LivenessProbe.GRPC.Service
+				}
+			}
+		}
+
+		// ReadinessProbe
+		if !container.Probes.ReadinessProbe.ProbesOn {
+			spec.Template.Spec.Containers[index].ReadinessProbe = nil
+		} else if container.Probes.ReadinessProbe.ProbesOn {
 			if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
 				spec.Template.Spec.Containers[index].ReadinessProbe = &v1Core.Probe{}
 				spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &v1Core.HTTPGetAction{}
 			}
-			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
-			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Path = "/healthz"
+			spec.Template.Spec.Containers[index].ReadinessProbe.InitialDelaySeconds = int32(container.Probes.ReadinessProbe.InitialDelaySeconds)
+			spec.Template.Spec.Containers[index].ReadinessProbe.PeriodSeconds = int32(container.Probes.ReadinessProbe.PeriodSeconds)
+			spec.Template.Spec.Containers[index].ReadinessProbe.TimeoutSeconds = int32(container.Probes.ReadinessProbe.TimeoutSeconds)
+			spec.Template.Spec.Containers[index].ReadinessProbe.SuccessThreshold = int32(container.Probes.ReadinessProbe.SuccessThreshold)
+			spec.Template.Spec.Containers[index].ReadinessProbe.FailureThreshold = int32(container.Probes.ReadinessProbe.FailureThreshold)
+
+			if container.Probes.ReadinessProbe.HTTPGet != nil {
+				spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Path = container.Probes.ReadinessProbe.HTTPGet.Path
+				spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(container.Probes.ReadinessProbe.HTTPGet.Port))
+				if container.Probes.ReadinessProbe.HTTPGet.Host != nil {
+					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Host = *container.Probes.ReadinessProbe.HTTPGet.Host
+				} else {
+					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Host = ""
+				}
+				if container.Probes.ReadinessProbe.HTTPGet.Scheme != nil {
+					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Scheme = *container.Probes.ReadinessProbe.HTTPGet.Scheme
+				} else {
+					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Scheme = ""
+				}
+				spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.HTTPHeaders = []v1Core.HTTPHeader{}
+				if container.Probes.ReadinessProbe.HTTPGet.HTTPHeaders != nil {
+					for _, header := range *container.Probes.ReadinessProbe.HTTPGet.HTTPHeaders {
+						spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.HTTPHeaders = append(spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.HTTPHeaders, v1Core.HTTPHeader{
+							Name:  header.Name,
+							Value: header.Value,
+						})
+					}
+				} else if container.Probes.ReadinessProbe.TCPSocket != nil {
+					spec.Template.Spec.Containers[index].ReadinessProbe.TCPSocket = &v1Core.TCPSocketAction{}
+					spec.Template.Spec.Containers[index].ReadinessProbe.TCPSocket.Port = intstr.FromInt32(int32(container.Probes.ReadinessProbe.TCPSocket.Port))
+				} else if container.Probes.ReadinessProbe.Exec != nil {
+					spec.Template.Spec.Containers[index].ReadinessProbe.Exec = &v1Core.ExecAction{}
+					spec.Template.Spec.Containers[index].ReadinessProbe.Exec.Command = container.Probes.ReadinessProbe.Exec.Command
+				} else if container.Probes.ReadinessProbe.GRPC != nil {
+					spec.Template.Spec.Containers[index].ReadinessProbe.GRPC = &v1Core.GRPCAction{}
+					spec.Template.Spec.Containers[index].ReadinessProbe.GRPC.Port = int32(container.Probes.ReadinessProbe.GRPC.Port)
+					spec.Template.Spec.Containers[index].ReadinessProbe.GRPC.Service = container.Probes.ReadinessProbe.GRPC.Service
+				}
+			}
 		}
+
+		// StartupProbe
+		if !container.Probes.StartupProbe.ProbesOn {
+			spec.Template.Spec.Containers[index].StartupProbe = nil
+		} else if container.Probes.StartupProbe.ProbesOn {
+			if spec.Template.Spec.Containers[index].StartupProbe == nil {
+				spec.Template.Spec.Containers[index].StartupProbe = &v1Core.Probe{}
+				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
+			}
+			spec.Template.Spec.Containers[index].StartupProbe.InitialDelaySeconds = int32(container.Probes.StartupProbe.InitialDelaySeconds)
+			spec.Template.Spec.Containers[index].StartupProbe.PeriodSeconds = int32(container.Probes.StartupProbe.PeriodSeconds)
+			spec.Template.Spec.Containers[index].StartupProbe.TimeoutSeconds = int32(container.Probes.StartupProbe.TimeoutSeconds)
+			spec.Template.Spec.Containers[index].StartupProbe.SuccessThreshold = int32(container.Probes.StartupProbe.SuccessThreshold)
+			spec.Template.Spec.Containers[index].StartupProbe.FailureThreshold = int32(container.Probes.StartupProbe.FailureThreshold)
+
+			if container.Probes.StartupProbe.HTTPGet != nil {
+				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Path = container.Probes.StartupProbe.HTTPGet.Path
+				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(container.Probes.StartupProbe.HTTPGet.Port))
+				if container.Probes.StartupProbe.HTTPGet.Host != nil {
+					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Host = *container.Probes.StartupProbe.HTTPGet.Host
+				} else {
+					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Host = ""
+				}
+				if container.Probes.StartupProbe.HTTPGet.Scheme != nil {
+					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Scheme = *container.Probes.StartupProbe.HTTPGet.Scheme
+				} else {
+					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Scheme = ""
+				}
+				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.HTTPHeaders = []v1Core.HTTPHeader{}
+				if container.Probes.StartupProbe.HTTPGet.HTTPHeaders != nil {
+					for _, header := range *container.Probes.StartupProbe.HTTPGet.HTTPHeaders {
+						spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.HTTPHeaders = append(spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.HTTPHeaders, v1Core.HTTPHeader{
+							Name:  header.Name,
+							Value: header.Value,
+						})
+					}
+				} else if container.Probes.StartupProbe.TCPSocket != nil {
+					spec.Template.Spec.Containers[index].StartupProbe.TCPSocket = &v1Core.TCPSocketAction{}
+					spec.Template.Spec.Containers[index].StartupProbe.TCPSocket.Port = intstr.FromInt32(int32(container.Probes.StartupProbe.TCPSocket.Port))
+				} else if container.Probes.StartupProbe.Exec != nil {
+					spec.Template.Spec.Containers[index].StartupProbe.Exec = &v1Core.ExecAction{}
+					spec.Template.Spec.Containers[index].StartupProbe.Exec.Command = container.Probes.StartupProbe.Exec.Command
+				} else if container.Probes.StartupProbe.GRPC != nil {
+					spec.Template.Spec.Containers[index].StartupProbe.GRPC = &v1Core.GRPCAction{}
+					spec.Template.Spec.Containers[index].StartupProbe.GRPC.Port = int32(container.Probes.StartupProbe.GRPC.Port)
+					spec.Template.Spec.Containers[index].StartupProbe.GRPC.Service = container.Probes.StartupProbe.GRPC.Service
+				}
+			}
+		}
+
+		// TODO REMOVE
+		// PORTS
+		//var internalHttpPort *int
+		//if len(container.Ports) > 0 {
+		//	for _, port := range container.Ports {
+		//		if port.PortType == dtos.PortTypeHTTPS {
+		//			tmp := int(port.InternalPort)
+		//			internalHttpPort = &tmp
+		//		}
+		//	}
+		//}
+		//
+		//// PROBES
+		//if !container.KubernetesLimits.ProbesOn {
+		//	spec.Template.Spec.Containers[index].StartupProbe = nil
+		//	spec.Template.Spec.Containers[index].LivenessProbe = nil
+		//	spec.Template.Spec.Containers[index].ReadinessProbe = nil
+		//} else if internalHttpPort != nil {
+		//	// StartupProbe
+		//	if spec.Template.Spec.Containers[index].StartupProbe == nil {
+		//		spec.Template.Spec.Containers[index].StartupProbe = &v1Core.Probe{}
+		//		spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
+		//	}
+		//	spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+		//
+		//	// LivenessProbe
+		//	if spec.Template.Spec.Containers[index].LivenessProbe == nil {
+		//		spec.Template.Spec.Containers[index].LivenessProbe = &v1Core.Probe{}
+		//		spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &v1Core.HTTPGetAction{}
+		//	}
+		//	spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+		//
+		//	// ReadinessProbe
+		//	if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
+		//		spec.Template.Spec.Containers[index].ReadinessProbe = &v1Core.Probe{}
+		//		spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &v1Core.HTTPGetAction{}
+		//	}
+		//	spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+		//}
 	}
 
 	return objectMeta, &SpecDeployment{spec, previousSpec}, &newDeployment, nil

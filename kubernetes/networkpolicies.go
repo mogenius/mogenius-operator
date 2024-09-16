@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
 	"sync"
@@ -15,7 +16,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
@@ -93,20 +93,34 @@ func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sName
 		netpol.ObjectMeta.Namespace = namespace.Name
 		netpol.Spec.Ingress[0].Ports = []v1.NetworkPolicyPort{} //reset before using
 
-		for _, container := range service.Containers {
-			for _, aPort := range container.Ports {
-				if aPort.Expose {
-					port := intstr.FromInt(aPort.InternalPort)
-					proto := v1Core.ProtocolTCP // default
-					if aPort.PortType == dtos.PortTypeUDP {
-						proto = v1Core.ProtocolUDP
-					}
-					netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
-						Port: &port, Protocol: &proto,
-					})
+		for _, aPort := range service.Ports {
+			if aPort.Expose {
+				port := intstr.FromInt32(int32(aPort.InternalPort))
+				proto := v1Core.ProtocolTCP // default
+				if aPort.PortType == dtos.PortTypeUDP {
+					proto = v1Core.ProtocolUDP
 				}
+				netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
+					Port: &port, Protocol: &proto,
+				})
 			}
 		}
+
+		// TODO REMOVE
+		//for _, container := range service.Containers {
+		//	for _, aPort := range container.Ports {
+		//		if aPort.Expose {
+		//			port := intstr.FromInt(aPort.InternalPort)
+		//			proto := v1Core.ProtocolTCP // default
+		//			if aPort.PortType == dtos.PortTypeUDP {
+		//				proto = v1Core.ProtocolUDP
+		//			}
+		//			netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
+		//				Port: &port, Protocol: &proto,
+		//			})
+		//		}
+		//	}
+		//}
 		netpol.Spec.PodSelector.MatchLabels["app"] = service.ControllerName
 
 		netpol.Labels = MoUpdateLabels(&netpol.Labels, nil, nil, &service)
