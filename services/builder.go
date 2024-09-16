@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/xterm"
@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -177,15 +179,17 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		return
 	}
 
+	r := ServiceUpdateRequest{
+		Project:   buildJob.Project,
+		Namespace: buildJob.Namespace,
+		Service:   buildJob.Service,
+	}
+
 	// create
 	if buildJob.CreateAndStart {
-		r := ServiceUpdateRequest{
-			Project:   buildJob.Project,
-			Namespace: buildJob.Namespace,
-			Service:   buildJob.Service,
-		}
 		UpdateService(r)
 	} else {
+		updateSecrets(job, r)
 		// UPDATE IMAGE
 		setImageCmd := structs.CreateCommand("setImage", "Deploying image", job)
 		err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
@@ -562,6 +566,18 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 		}
 	}
 	return line
+}
+
+func updateSecrets(job *structs.Job, r ServiceUpdateRequest) {
+	var wg sync.WaitGroup
+
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+
+	go func() {
+		wg.Wait()
+	}()
 }
 
 func updateContainerImage(job *structs.Job, reportCmd *structs.Command, buildJob *structs.BuildJob, containerName string, imageName string) error {
