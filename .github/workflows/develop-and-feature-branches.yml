@@ -92,7 +92,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted-ansible, X64]
+    runs-on: [self-hosted, X64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -126,7 +126,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted-ansible, ARM64]
+    runs-on: [self-hosted, ARM64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -159,7 +159,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted-ansible, ARM64]
+    runs-on: [self-hosted, ARM64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -192,7 +192,7 @@ jobs:
     needs: 
       - prepare
       - passing-tests
-    runs-on: [self-hosted-ansible, ARM64]
+    runs-on: [self-hosted, ARM64, builder]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
