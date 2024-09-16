@@ -281,9 +281,9 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 
 		if container.Probes != nil {
 			// LivenessProbe
-			if !container.Probes.LivenessProbe.ProbesOn {
+			if !container.Probes.LivenessProbe.IsActive {
 				spec.Template.Spec.Containers[index].LivenessProbe = nil
-			} else if container.Probes.LivenessProbe.ProbesOn {
+			} else if container.Probes.LivenessProbe.IsActive {
 				if spec.Template.Spec.Containers[index].LivenessProbe == nil {
 					spec.Template.Spec.Containers[index].LivenessProbe = &v1Core.Probe{}
 					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &v1Core.HTTPGetAction{}
@@ -330,9 +330,9 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 			}
 
 			// ReadinessProbe
-			if !container.Probes.ReadinessProbe.ProbesOn {
+			if !container.Probes.ReadinessProbe.IsActive {
 				spec.Template.Spec.Containers[index].ReadinessProbe = nil
-			} else if container.Probes.ReadinessProbe.ProbesOn {
+			} else if container.Probes.ReadinessProbe.IsActive {
 				if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
 					spec.Template.Spec.Containers[index].ReadinessProbe = &v1Core.Probe{}
 					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &v1Core.HTTPGetAction{}
@@ -379,9 +379,9 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 			}
 
 			// StartupProbe
-			if !container.Probes.StartupProbe.ProbesOn {
+			if !container.Probes.StartupProbe.IsActive {
 				spec.Template.Spec.Containers[index].StartupProbe = nil
-			} else if container.Probes.StartupProbe.ProbesOn {
+			} else if container.Probes.StartupProbe.IsActive {
 				if spec.Template.Spec.Containers[index].StartupProbe == nil {
 					spec.Template.Spec.Containers[index].StartupProbe = &v1Core.Probe{}
 					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
