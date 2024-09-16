@@ -111,7 +111,7 @@ func Push(path string, remote string) error {
 		RemoteName: remote,
 		Force:      true,
 	})
-	if err != nil {
+	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
 	}
 	return nil

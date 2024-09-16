@@ -237,7 +237,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		iaclogger.Errorf("Error marshaling to YAML: %s\n", err.Error())
 		return
 	}
-	createFolderForResource(kind)
+	createFolderForResource(kind, namespace)
 	data := utils.CleanYaml(string(yamlData))
 	filename := fileNameForRaw(kind, namespace, resourceName)
 	err = os.WriteFile(filename, []byte(data), 0755)
@@ -308,7 +308,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 
 	filename := fileNameForRaw(kind, namespace, resourceName)
 	err := os.Remove(filename)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		iaclogger.Errorf("Error deleting resource %s:%s/%s file: %s", kind, namespace, resourceName, err.Error())
 		return
 	}
@@ -421,7 +421,19 @@ func ApplyRepoStateToCluster() error {
 			files, err := os.ReadDir(nextFolder)
 			if err == nil {
 				for _, f := range files {
-					allFiles = append(allFiles, fmt.Sprintf("%s/%s", folder.Name(), f.Name()))
+					if f.IsDir() && !strings.HasPrefix(folder.Name(), ".") {
+						nextFolder := fmt.Sprintf("%s/%s", nextFolder, f.Name())
+						namespacedFiles, err := os.ReadDir(nextFolder)
+						if err == nil {
+							for _, namespacedFile := range namespacedFiles {
+								if !strings.HasPrefix(namespacedFile.Name(), ".") {
+									allFiles = append(allFiles, fmt.Sprintf("%s/%s", nextFolder, namespacedFile.Name()))
+								}
+							}
+						}
+					} else if !strings.HasPrefix(f.Name(), ".") {
+						allFiles = append(allFiles, fmt.Sprintf("%s/%s", folder.Name(), f.Name()))
+					}
 				}
 			}
 		}
@@ -502,7 +514,7 @@ func SyncChanges() error {
 }
 
 func fileNameForRaw(kind string, namespace string, resourceName string) string {
-	name := fmt.Sprintf("%s/%s/%s/%s_%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, namespace, resourceName)
+	name := fmt.Sprintf("%s/%s/%s/%s/%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, namespace, resourceName)
 	if namespace == "" {
 		name = fmt.Sprintf("%s/%s/%s/%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, resourceName)
 	}
@@ -514,12 +526,14 @@ func GitFilePathForRaw(kind string, namespace string, resourceName string) strin
 	return strings.Replace(file, fmt.Sprintf("%s/%s/", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER), "", 1)
 }
 
-func createFolderForResource(resource string) error {
+func createFolderForResource(resource string, namespace string) error {
 	basePath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	resourceFolder := fmt.Sprintf("%s/%s", basePath, resource)
-
+	if namespace != "" {
+		resourceFolder = fmt.Sprintf("%s/%s/%s", basePath, resource, namespace)
+	}
 	if _, err := os.Stat(resourceFolder); os.IsNotExist(err) {
-		err := os.Mkdir(resourceFolder, 0755)
+		err := os.MkdirAll(resourceFolder, 0755)
 		if err != nil {
 			iaclogger.Errorf("Error creating folder for resource: %s", err.Error())
 			return err
@@ -742,19 +756,15 @@ func kubernetesDeleteResource(file string) error {
 }
 
 func parseFileToK8sParts(file string) (kind string, namespace string, name string) {
+	file = strings.Replace(file, fmt.Sprintf("%s/%s/", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER), "", 1)
 	parts := strings.Split(file, "/")
 	filename := strings.Replace(parts[len(parts)-1], ".yaml", "", -1)
-	partsName := strings.Split(filename, "_")
 	kind = parts[0]
 	namespace = ""
-	name = ""
+	name = filename
 
-	if len(partsName) > 1 {
-		namespace = partsName[0]
-		name = partsName[1]
-	}
-	if len(partsName) == 1 {
-		name = partsName[0]
+	if len(parts) == 3 {
+		namespace = parts[1]
 	}
 
 	return kind, namespace, name
