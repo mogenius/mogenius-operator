@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -428,7 +430,7 @@ func ApplyRepoStateToCluster() error {
 	allFiles = applyPriotityToChangesForUpdates(allFiles)
 
 	for _, file := range allFiles {
-		kubernetesReplaceResource(file, true)
+		kubernetesReplaceResource(file)
 	}
 
 	return nil
@@ -460,7 +462,7 @@ func SyncChanges() error {
 				}
 				updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
 				for _, v := range updatedFiles {
-					err = kubernetesReplaceResource(v, false)
+					err = kubernetesReplaceResource(v)
 					SetSyncError(err)
 					if err != nil {
 						return err
@@ -758,7 +760,7 @@ func parseFileToK8sParts(file string) (kind string, namespace string, name strin
 	return kind, namespace, name
 }
 
-func kubernetesReplaceResource(file string, isInit bool) error {
+func kubernetesReplaceResource(file string) error {
 	filePath := fmt.Sprintf("%s/%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, file)
 	if shouldSkipResource(filePath) {
 		return nil
@@ -766,7 +768,7 @@ func kubernetesReplaceResource(file string, isInit bool) error {
 
 	kind, namespace, name := parseFileToK8sParts(file)
 	existingResource, err := kubernetes.ObjectFor(kind, namespace, name)
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		UpdateResourceStatusByFile(file, SyncStateSynced, fmt.Errorf("Error getting existing kubernetes resource %s: %s", file, err.Error()))
 		return nil
 	}
@@ -778,12 +780,16 @@ func kubernetesReplaceResource(file string, isInit bool) error {
 	}
 
 	syncType := SyncStateSynced
-	if isInit {
-		syncType = SyncStateInitialized
+
+	// if the resource is not found, create it
+	if apierrors.IsNotFound(err) {
+		createCmd := fmt.Sprintf("kubectl create -f %s", filePath)
+		err = utils.ExecuteShellCommandRealySilent(createCmd, createCmd)
+	} else {
+		replaceCmd := fmt.Sprintf("kubectl replace -f %s", filePath)
+		err = utils.ExecuteShellCommandRealySilent(replaceCmd, replaceCmd)
 	}
 
-	replaceCmd := fmt.Sprintf("kubectl replace -f %s", filePath)
-	err = utils.ExecuteShellCommandRealySilent(replaceCmd, replaceCmd)
 	if err != nil {
 		if strings.Contains(err.Error(), "Error from server (NotFound):") {
 			createCmd := fmt.Sprintf("kubectl create -f %s", filePath)
@@ -809,11 +815,16 @@ func kubernetesRevertFromPath(filePath string) error {
 	applyCmd := fmt.Sprintf("kubectl replace -f %s", filePath)
 	err := utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 	if err != nil {
+		// not found means the resource was already deleted. this is fine for us
+		if strings.Contains(err.Error(), "Error from server (NotFound):") {
+			UpdateResourceStatusByFile(filePath, SyncStateSynced, nil)
+			return err
+		}
 		UpdateResourceStatusByFile(filePath, SyncStateReverted, fmt.Errorf("Error applying revert file %s: %s", filePath, err.Error()))
 		return err
 	}
 
-	UpdateResourceStatusByFile(filePath, SyncStateReverted, err)
+	UpdateResourceStatusByFile(filePath, SyncStateReverted, nil)
 	return nil
 }
 

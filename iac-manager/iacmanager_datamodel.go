@@ -81,7 +81,6 @@ type SyncStateEnum string
 
 const (
 	SyncStateUnknown     SyncStateEnum = "Unknown"
-	SyncStateInitialized SyncStateEnum = "Initialized" // Initial state. When the resource is read from the cluster.
 	SyncStatePendingSync SyncStateEnum = "PendingSync" // When the resource is updated in the cluster but not yet synced.
 	SyncStateSynced      SyncStateEnum = "Synced"      // When the resource is synced with the repository.
 	SyncStateDeleted     SyncStateEnum = "Deleted"     // When the resource is deleted from the cluster.
@@ -127,7 +126,7 @@ func InitDataModel() {
 }
 
 func NotifyChange(change IacChangeTypeEnum) {
-	fmt.Printf("Change detected %s\n", change)
+	// fmt.Printf("Change detected %s\n", change)
 }
 
 // SETTERS

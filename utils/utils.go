@@ -345,6 +345,14 @@ func CleanObject(data map[string]interface{}) map[string]interface{} {
 	removeFieldAtPath(data, "creationTimestamp", []string{}, []string{})
 	removeFieldAtPath(data, "resourceVersion", []string{}, []string{})
 	removeFieldAtPath(data, "status", []string{}, []string{})
+
+	// Remove Workload Specific Fields Which make no sens to be in the yaml for gitops
+	switch expression := data["kind"]; expression {
+	case "Service":
+		removeFieldAtPath(data, "clusterIP", []string{"spec"}, []string{})
+		removeFieldAtPath(data, "clusterIPs", []string{"spec"}, []string{})
+	}
+
 	return data
 }
 

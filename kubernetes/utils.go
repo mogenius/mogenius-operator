@@ -499,8 +499,8 @@ func YamlFor(kind, namespace, name string) (string, error) {
 }
 
 func ObjectFor(kind, namespace, name string) (interface{}, error) {
-	var data interface{}
-	var err error
+	var data interface{} = nil
+	var err error = nil
 
 	switch kind {
 	case dtos.KindConfigMaps:
