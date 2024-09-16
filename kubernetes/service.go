@@ -141,30 +141,53 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 
 	// 3. Add all entries for this servive
 	if additive {
-		for _, container := range service.Containers {
-			for _, port := range container.Ports {
-				if port.Expose {
-					updated := false
-					if port.PortType == dtos.PortTypeTCP {
-						tcpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
-						updated = true
-					}
-					if port.PortType == dtos.PortTypeUDP {
-						udpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
-						updated = true
-					}
+		for _, port := range service.Ports {
+			if port.Expose {
+				updated := false
+				if port.PortType == dtos.PortTypeTCP {
+					tcpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+					updated = true
+				}
+				if port.PortType == dtos.PortTypeUDP {
+					udpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+					updated = true
+				}
 
-					if updated {
-						ingControllerService.Spec.Ports = append(ingControllerService.Spec.Ports, v1.ServicePort{
-							Name:       fmt.Sprintf("%s-%d", k8sNameIngresss, port.ExternalPort),
-							Protocol:   v1.Protocol(port.PortType),
-							Port:       int32(port.ExternalPort),
-							TargetPort: intstr.FromInt(port.ExternalPort),
-						})
-					}
+				if updated {
+					ingControllerService.Spec.Ports = append(ingControllerService.Spec.Ports, v1.ServicePort{
+						Name:       fmt.Sprintf("%s-%d", k8sNameIngresss, port.ExternalPort),
+						Protocol:   v1.Protocol(port.PortType),
+						Port:       int32(port.ExternalPort),
+						TargetPort: intstr.FromInt32(int32(port.ExternalPort)),
+					})
 				}
 			}
 		}
+
+		//for _, container := range service.Containers {
+		//	for _, port := range container.Ports {
+		//		if port.Expose {
+		//			updated := false
+		//			if port.PortType == dtos.PortTypeTCP {
+		//				tcpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+		//				updated = true
+		//			}
+		//			if port.PortType == dtos.PortTypeUDP {
+		//				udpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+		//				updated = true
+		//			}
+		//
+		//			if updated {
+		//				ingControllerService.Spec.Ports = append(ingControllerService.Spec.Ports, v1.ServicePort{
+		//					Name:       fmt.Sprintf("%s-%d", k8sNameIngresss, port.ExternalPort),
+		//					Protocol:   v1.Protocol(port.PortType),
+		//					Port:       int32(port.ExternalPort),
+		//					TargetPort: intstr.FromInt(port.ExternalPort),
+		//				})
+		//			}
+		//		}
+		//	}
+		//}
 	}
 
 	// 4. write results to k8s
@@ -270,29 +293,51 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 		newService.Spec.Selector["app"] = service.ControllerName
 	}
 	newService.Spec.Ports = []v1.ServicePort{} // reset before using
-	for _, container := range service.Containers {
-		for _, port := range container.Ports {
-			if port.PortType == dtos.PortTypeHTTPS {
+	for _, port := range service.Ports {
+		if port.PortType == dtos.PortTypeHTTPS {
+			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
+				Port: int32(port.InternalPort),
+				Name: fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
+			})
+		} else {
+			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
+				Port:     int32(port.InternalPort),
+				Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
+				Protocol: v1.Protocol(port.PortType),
+			})
+			if port.ExternalPort != 0 {
 				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-					Port: int32(port.InternalPort),
-					Name: fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
-				})
-			} else {
-				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-					Port:     int32(port.InternalPort),
-					Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
+					Port:     int32(port.ExternalPort),
+					Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.ControllerName),
 					Protocol: v1.Protocol(port.PortType),
 				})
-				if port.ExternalPort != 0 {
-					newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-						Port:     int32(port.ExternalPort),
-						Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.ControllerName),
-						Protocol: v1.Protocol(port.PortType),
-					})
-				}
 			}
 		}
 	}
+
+	//for _, container := range service.Containers {
+	//	for _, port := range container.Ports {
+	//		if port.PortType == dtos.PortTypeHTTPS {
+	//			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
+	//				Port: int32(port.InternalPort),
+	//				Name: fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
+	//			})
+	//		} else {
+	//			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
+	//				Port:     int32(port.InternalPort),
+	//				Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
+	//				Protocol: v1.Protocol(port.PortType),
+	//			})
+	//			if port.ExternalPort != 0 {
+	//				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
+	//					Port:     int32(port.ExternalPort),
+	//					Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.ControllerName),
+	//					Protocol: v1.Protocol(port.PortType),
+	//				})
+	//			}
+	//		}
+	//	}
+	//}
 
 	return *newService
 }
