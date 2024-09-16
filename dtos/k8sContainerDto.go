@@ -30,7 +30,7 @@ type K8sContainerDto struct {
 	AppGitRepositoryCloneUrl             *string               `json:"appGitRepositoryCloneUrl"`
 	AppSetupCommands                     *string               `json:"appSetupCommands"`
 	KubernetesLimits                     K8sServiceSettingsDto `json:"KubernetesLimits"`
-	Probes                               K8sProbes             `json:"probes"`
+	Probes                               *K8sProbes            `json:"probes,omitempty"`
 	EnvVars                              []K8sEnvVarDto        `json:"envVars"`
 	SettingsYaml                         *string               `json:"settingsYaml,omitempty"`
 }

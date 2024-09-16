@@ -29,7 +29,7 @@ type K8sProbeGRPC struct {
 }
 
 type K8sProbe struct {
-	ProbesOn            bool               `json:"probesOn"`
+	IsActive            bool               `json:"isActive"`
 	InitialDelaySeconds int                `json:"initialDelaySeconds,omitempty"`
 	PeriodSeconds       int                `json:"periodSeconds,omitempty"`
 	TimeoutSeconds      int                `json:"timeoutSeconds,omitempty"`
@@ -42,6 +42,7 @@ type K8sProbe struct {
 }
 
 type K8sProbes struct {
+	IsActive       bool      `json:"isActive"`
 	LivenessProbe  *K8sProbe `json:"livenessProbe,omitempty"`
 	ReadinessProbe *K8sProbe `json:"readinessProbe,omitempty"`
 	StartupProbe   *K8sProbe `json:"startupProbe,omitempty"`
