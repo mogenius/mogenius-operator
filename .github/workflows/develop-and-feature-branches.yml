@@ -47,7 +47,6 @@ jobs:
           npx semantic-release
 
   passing-tests:
-    
     needs: prepare
     runs-on: [self-hosted, ARM64, k3s-installed]
     continue-on-error: true # tests are not stable yet
@@ -293,8 +292,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: develop
-          # token: ${{ secrets.DOCKERHUB_TOKEN }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.MO_K8s_TOKEN }}
           repository: ${{ env.HELMREPO }}
           path: 'helm'        
       
