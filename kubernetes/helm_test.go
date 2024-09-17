@@ -4,6 +4,7 @@ import (
 	"log"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
+	"os"
 	"testing"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -17,6 +18,7 @@ const (
 	testRelease   = "nginx-test"
 	testValues    = "#values_yaml"
 	testDryRun    = false
+	helmConfPath  = "/tmp/registryConfigPath"
 )
 
 func cleanupRepo() {
@@ -45,9 +47,19 @@ func cleanupInstall() {
 	}
 }
 
+func deleteFolder(folderPath string) error {
+	err := os.RemoveAll(folderPath)
+	if err != nil {
+		log.Printf("Error deleting folder %s: %v", folderPath, err)
+		return err
+	}
+	log.Printf("Successfully deleted folder %s", folderPath)
+	return nil
+}
+
 func createRepoForTest(t *testing.T) error {
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = "/tmp/registryConfigPath"
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
 	InitHelmConfig()
 
 	repoAddData := HelmRepoAddRequest{
@@ -60,11 +72,31 @@ func createRepoForTest(t *testing.T) error {
 	}
 	return err
 }
+
+func installForTests(t *testing.T) error {
+	helmInstallData := HelmChartInstallRequest{
+		Namespace: testNamespace,
+		Chart:     testChart,
+		Release:   testRelease,
+		Values:    testValues,
+		DryRun:    testDryRun,
+	}
+	_, err := HelmChartInstall(helmInstallData)
+	if err != nil {
+		t.Log(err)
+		return err
+	}
+	return nil
+}
+
 func TestHelmRepoAdd(t *testing.T) {
+	// clean config folder before test
+	deleteFolder(helmConfPath)
+
 	cleanupRepo() // cleanup if it existed before
 
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = "/tmp/registryConfigPath"
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
 	InitHelmConfig()
 
 	// test with
@@ -80,7 +112,7 @@ func TestHelmRepoAdd(t *testing.T) {
 
 func TestHelmRepoUpdate(t *testing.T) {
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = "/tmp/registryConfigPath"
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
 	InitHelmConfig()
 
 	// PAT_NAMESPACE_HELM_REPO_UPDATE
@@ -93,7 +125,7 @@ func TestHelmRepoUpdate(t *testing.T) {
 
 func TestHelmRepoList(t *testing.T) {
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = "/tmp/registryConfigPath"
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
 	InitHelmConfig()
 
 	createRepoForTest(t)
@@ -120,33 +152,34 @@ func TestHelmRepoList(t *testing.T) {
 
 func TestHelmInstallRequest(t *testing.T) {
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = "/tmp/registryConfigPath"
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
 	InitHelmConfig()
 
 	createRepoForTest(t)
-	// t.Cleanup(cleanupRepo) // this prevents the following test from running
+	t.Cleanup(cleanupRepo)
 
 	cleanupInstall() // cleanup if it existed before
 
 	// PAT_NAMESPACE_HELM_INSTALL
 	// no futher testing needed no error is sufficient
-	helmInstallData := HelmChartInstallRequest{
-		Namespace: testNamespace,
-		Chart:     testChart,
-		Release:   testRelease,
-		Values:    testValues,
-		DryRun:    testDryRun,
-	}
-	_, err := HelmChartInstall(helmInstallData)
+	err := installForTests(t)
 	if err != nil {
 		t.Error(err)
 	}
+	t.Cleanup(cleanupInstall)
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = "/tmp/registryConfigPath"
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
 	InitHelmConfig()
+
+	createRepoForTest(t)
+	t.Cleanup(cleanupRepo)
+
+	installForTests(t)
+	t.Cleanup(cleanupInstall)
+
 	// PAT_NAMESPACE_HELM_UPGRADE
 	// no futher testing needed no error is sufficient
 	releaseUpgradeData := HelmReleaseUpgradeRequest{
@@ -164,13 +197,19 @@ func TestHelmUpgradeRequest(t *testing.T) {
 
 func TestHelmListRequest(t *testing.T) {
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = "/tmp/registryConfigPath"
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
 	InitHelmConfig()
+
+	createRepoForTest(t)
+	t.Cleanup(cleanupRepo)
+
+	installForTests(t)
+	t.Cleanup(cleanupInstall)
 
 	// PAT_NAMESPACE_HELM_LIST
 	// check if release is added
 	releaseListData := HelmReleaseListRequest{
-		Namespace: "",
+		Namespace: testNamespace,
 	}
 	releaseList, err := HelmReleaseList(releaseListData)
 	if err != nil {
@@ -191,8 +230,15 @@ func TestHelmListRequest(t *testing.T) {
 
 func TestHelmReleases(t *testing.T) {
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = "/tmp/registryConfigPath"
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
 	InitHelmConfig()
+
+	createRepoForTest(t)
+	t.Cleanup(cleanupRepo)
+
+	installForTests(t)
+	t.Cleanup(cleanupInstall)
+
 	// PAT_NAMESPACE_HELM_STATUS
 	// no futher testing needed no error is sufficient
 	releaseStatusData := HelmReleaseStatusRequest{
