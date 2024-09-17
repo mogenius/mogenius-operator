@@ -77,7 +77,7 @@ func ShouldWatchResources() bool {
 
 func gitInitRepo() error {
 	// Create a git repository
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 	if _, err := os.Stat(folder); os.IsNotExist(err) {
 		err := os.MkdirAll(folder, 0755)
 		if err != nil {
@@ -106,7 +106,7 @@ func addRemote() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
 		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
 	}
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 	remoteCmdStr := fmt.Sprintf("cd %s; git remote add origin %s", folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat))
 	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
 	if err != nil {
@@ -126,7 +126,7 @@ func addRemote() error {
 }
 
 // func RemoveRemote() error {
-// 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+// 	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 // 	remoteCmdStr := fmt.Sprintf("cd %s; git remote remove origin", folder)
 // 	err := utils.ExecuteShellCommandSilent(remoteCmdStr, remoteCmdStr)
 // 	if err != nil {
@@ -139,7 +139,7 @@ func addRemote() error {
 func ResetCurrentRepoData(tries int) error {
 	changedFiles = []string{}
 
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 	err := os.RemoveAll(folder)
 	if err != nil {
 		iaclogger.Errorf("Error deleting current repository data: %s", err.Error())
@@ -341,6 +341,7 @@ func insertPATIntoURL(gitRepoURL, pat string) string {
 	if !strings.HasPrefix(gitRepoURL, "https://") {
 		return gitRepoURL // Non-HTTPS URLs are not handled here
 	}
+	utils.AddSecret(&utils.CONFIG.Iac.RepoPat)
 	return strings.Replace(gitRepoURL, "https://", "https://"+pat+"@", 1)
 }
 
@@ -397,7 +398,7 @@ func ApplyRepoStateToCluster() {
 
 	allFiles := []string{}
 
-	rootFolder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	rootFolder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 	folders, err := os.ReadDir(rootFolder)
 	if err != nil {
 		iaclogger.Errorf("Error reading directory: %s", err.Error())
@@ -450,15 +451,15 @@ func SyncChanges() {
 }
 
 func fileNameForRaw(kind string, namespace string, resourceName string) string {
-	name := fmt.Sprintf("%s/%s/%s/%s_%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, namespace, resourceName)
+	name := fmt.Sprintf("%s/%s/%s/%s_%s.yaml", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER, kind, namespace, resourceName)
 	if namespace == "" {
-		name = fmt.Sprintf("%s/%s/%s/%s.yaml", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, kind, resourceName)
+		name = fmt.Sprintf("%s/%s/%s/%s.yaml", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER, kind, resourceName)
 	}
 	return name
 }
 
 func createFolderForResource(resource string) error {
-	basePath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	basePath := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 	resourceFolder := fmt.Sprintf("%s/%s", basePath, resource)
 
 	if _, err := os.Stat(resourceFolder); os.IsNotExist(err) {
@@ -472,7 +473,7 @@ func createFolderForResource(resource string) error {
 }
 
 func gitHasRemotes() bool {
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 	cmd := exec.Command("git", "remote", "-v")
 	cmd.Dir = folder
 	var out bytes.Buffer
@@ -505,7 +506,7 @@ func commitChanges(author string, message string, filePaths []string) {
 		author = fmt.Sprintf("%s <%s>", utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
 	}
 
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 
 	for _, v := range filePaths {
 		addCmd := fmt.Sprintf("cd %s; git add %s", folder, v)
@@ -533,7 +534,7 @@ func pullChanges() (updatedFiles []string, deletedFiles []string, error error) {
 	if !utils.CONFIG.Iac.AllowPull {
 		return
 	}
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 
 	// Pull changes from the remote repository
 	cmd := exec.Command("git", "pull", "origin", utils.CONFIG.Iac.RepoBranch)
@@ -602,7 +603,7 @@ func pushChanges() error {
 		return nil
 	}
 
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 
 	// Push changes to the remote repository
 	cmd := exec.Command("git", "push", "origin", utils.CONFIG.Iac.RepoBranch)
@@ -722,7 +723,7 @@ func kubernetesDeleteResource(file string) {
 }
 
 func kubernetesReplaceResource(file string) {
-	fileName := fmt.Sprintf("%s/%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, file)
+	fileName := fmt.Sprintf("%s/%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER, file)
 	if shouldSkipResource(fileName) {
 		return
 	}

@@ -99,4 +99,12 @@ COPY --from=builder ["/usr/local/bin/helm", "/usr/local/bin/helm"]
 
 ENV GIN_MODE=release
 
+ENV HELM_CACHE_HOME="/db/helm-data/helm/cache"
+ENV HELM_CONFIG_HOME="/db/helm-data/helm"
+ENV HELM_DATA_HOME="/db/helm-data/helm"
+ENV HELM_PLUGINS="/db/helm-data/helm/plugins"
+ENV HELM_REGISTRY_CONFIG="/db/helm-data/helm/config.json"
+ENV HELM_REPOSITORY_CACHE="/db/helm-data/helm/cache/repository"
+ENV HELM_REPOSITORY_CONFIG="/db/helm-data/helm/repositories.yaml"
+
 ENTRYPOINT /usr/local/bin/dockerd --iptables=false --dns 1.1.1.1 > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster
