@@ -860,9 +860,7 @@ func getAddedOrModifiedFiles(patch *object.Patch) []string {
 
 	for _, stat := range patch.Stats() {
 		// Filter for added (A) or modified (M) files
-		if stat.Addition > 0 && stat.Deletion == 0 {
-			updatedFiles = append(updatedFiles, stat.Name)
-		} else if stat.Addition > 0 {
+		if stat.Addition > 0 || stat.Deletion > 0 {
 			updatedFiles = append(updatedFiles, stat.Name)
 		}
 	}
