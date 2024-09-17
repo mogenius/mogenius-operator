@@ -184,16 +184,16 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		CONFIG.Kubernetes.BboltDbPath = pwd + "/mogenius.db"
 	}
 	if CONFIG.Kubernetes.HelmDataPath == "" {
-		CONFIG.Kubernetes.HelmDataPath = "/db/helm-data"
+		CONFIG.Kubernetes.HelmDataPath = pwd + "/helm-data"
 	}
 	if CONFIG.Kubernetes.GitVaultDataPath == "" {
-		CONFIG.Kubernetes.GitVaultDataPath = "/db/git-vault-data"
+		CONFIG.Kubernetes.GitVaultDataPath = pwd + "/git-vault-data"
 	}
 	if CONFIG.Kubernetes.BboltDbStatsPath == "" {
 		CONFIG.Kubernetes.BboltDbStatsPath = pwd + "/mogenius-stats.db"
 	}
 	if CONFIG.Misc.DefaultMountPath == "" {
-		CONFIG.Misc.DefaultMountPath = pwd
+		CONFIG.Misc.DefaultMountPath = pwd + "/mo-data"
 	}
 
 	// CHECKS FOR CLUSTER

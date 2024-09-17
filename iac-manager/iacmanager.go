@@ -28,7 +28,6 @@ import (
 // 6. pull/push changes periodically
 
 const (
-	GIT_VAULT_FOLDER    = "git-vault"
 	DELETE_DATA_RETRIES = 5
 )
 
@@ -92,17 +91,16 @@ func gitInitRepo() error {
 	var err error
 
 	// Create a git repository
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
-	if _, err := os.Stat(folder); os.IsNotExist(err) {
-		err := os.MkdirAll(folder, 0755)
+	if _, err := os.Stat(utils.CONFIG.Kubernetes.GitVaultDataPath); os.IsNotExist(err) {
+		err := os.MkdirAll(utils.CONFIG.Kubernetes.GitVaultDataPath, 0755)
 		if err != nil {
-			iaclogger.Errorf("Error creating folder for git repository (in %s): %s", folder, err.Error())
+			iaclogger.Errorf("Error creating folder for git repository (in %s): %s", utils.CONFIG.Kubernetes.GitVaultDataPath, err.Error())
 			return err
 		}
 	}
 
 	if utils.CONFIG.Iac.RepoUrl == "" {
-		err = gitmanager.InitGit(folder)
+		err = gitmanager.InitGit(utils.CONFIG.Kubernetes.GitVaultDataPath)
 		if err != nil {
 			iaclogger.Errorf("Error creating git repository: %s", err.Error())
 			return err
@@ -110,7 +108,7 @@ func gitInitRepo() error {
 	}
 
 	if utils.CONFIG.Iac.RepoUrl != "" {
-		err = gitmanager.CloneFast(insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), folder, utils.CONFIG.Iac.RepoBranch)
+		err = gitmanager.CloneFast(insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
 		if err != nil {
 			iaclogger.Errorf("Error setting up branch: %s", err.Error())
 			return err
@@ -124,12 +122,11 @@ func addRemote() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
 		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
 	}
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
-	err := gitmanager.AddRemote(folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), "origin")
+	err := gitmanager.AddRemote(utils.CONFIG.Kubernetes.GitVaultDataPath, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), "origin")
 	if err != nil {
 		return err
 	}
-	err = gitmanager.CheckoutBranch(folder, utils.CONFIG.Iac.RepoBranch)
+	err = gitmanager.CheckoutBranch(utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
 	if err != nil {
 		iaclogger.Errorf("Error setting up branch: %s", err.Error())
 	}
@@ -140,8 +137,7 @@ func addRemote() error {
 func ResetCurrentRepoData(tries int) error {
 	ClearChangedFiles()
 
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
-	err := os.RemoveAll(folder)
+	err := os.RemoveAll(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err != nil {
 		iaclogger.Errorf("Error deleting current repository data: %s", err.Error())
 		if tries > 0 {
@@ -437,15 +433,14 @@ func ApplyRepoStateToCluster() error {
 
 	allFiles := []string{}
 
-	rootFolder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
-	folders, err := os.ReadDir(rootFolder)
+	folders, err := os.ReadDir(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err != nil {
 		iaclogger.Errorf("Error reading directory: %s", err.Error())
 		return nil
 	}
 	for _, folder := range folders {
 		if folder.IsDir() && !strings.HasPrefix(folder.Name(), ".") {
-			nextFolder := fmt.Sprintf("%s/%s", rootFolder, folder.Name())
+			nextFolder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, folder.Name())
 			files, err := os.ReadDir(nextFolder)
 			if err == nil {
 				for _, f := range files {
@@ -540,23 +535,22 @@ func SyncChanges() error {
 }
 
 func fileNameForRaw(kind string, namespace string, resourceName string) string {
-	name := fmt.Sprintf("%s/%s/%s/%s/%s.yaml", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER, kind, namespace, resourceName)
+	name := fmt.Sprintf("%s/%s/%s/%s.yaml", utils.CONFIG.Kubernetes.GitVaultDataPath, kind, namespace, resourceName)
 	if namespace == "" {
-		name = fmt.Sprintf("%s/%s/%s/%s.yaml", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER, kind, resourceName)
+		name = fmt.Sprintf("%s/%s/%s.yaml", utils.CONFIG.Kubernetes.GitVaultDataPath, kind, resourceName)
 	}
 	return name
 }
 
 func GitFilePathForRaw(kind string, namespace string, resourceName string) string {
 	file := fileNameForRaw(kind, namespace, resourceName)
-	return strings.Replace(file, fmt.Sprintf("%s/%s/", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER), "", 1)
+	return strings.Replace(file, fmt.Sprintf("%s/", utils.CONFIG.Kubernetes.GitVaultDataPath), "", 1)
 }
 
 func createFolderForResource(resource string, namespace string) error {
-	basePath := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
-	resourceFolder := fmt.Sprintf("%s/%s", basePath, resource)
+	resourceFolder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, resource)
 	if namespace != "" {
-		resourceFolder = fmt.Sprintf("%s/%s/%s", basePath, resource, namespace)
+		resourceFolder = fmt.Sprintf("%s/%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, resource, namespace)
 	}
 	if _, err := os.Stat(resourceFolder); os.IsNotExist(err) {
 		err := os.MkdirAll(resourceFolder, 0755)
@@ -569,16 +563,15 @@ func createFolderForResource(resource string, namespace string) error {
 }
 
 func ResetFile(filePath, commitHash string) error {
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
 	kind, _, name := parseFileToK8sParts(filePath)
 
-	err := gitmanager.ResetFileToCommit(folder, filePath, commitHash)
+	err := gitmanager.ResetFileToCommit(utils.CONFIG.Kubernetes.GitVaultDataPath, filePath, commitHash)
 	if err != nil {
 		iaclogger.Errorf("Error resetting file: %s", err.Error())
 		return err
 	}
 
-	err = gitmanager.Commit(folder, []string{filePath}, []string{}, fmt.Sprintf("Reset [%s] %s to %s.", kind, name, commitHash), utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+	err = gitmanager.Commit(utils.CONFIG.Kubernetes.GitVaultDataPath, []string{filePath}, []string{}, fmt.Sprintf("Reset [%s] %s to %s.", kind, name, commitHash), utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
 	if err != nil {
 		iaclogger.Errorf("Error committing reset: %s", err.Error())
 		return err
@@ -588,18 +581,16 @@ func ResetFile(filePath, commitHash string) error {
 }
 
 func gitHasRemotes() bool {
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
-	return gitmanager.HasRemotes(folder)
+	return gitmanager.HasRemotes(utils.CONFIG.Kubernetes.GitVaultDataPath)
 }
 
 func pullChanges(lastAppliedCommit GitActionStatus) (lastCommit *object.Commit, updatedFiles []string, deletedFiles []string, error error) {
 	if !utils.CONFIG.Iac.AllowPull {
 		return
 	}
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 
 	defer func() {
-		commits, err := gitmanager.GetLastCommits(folder, gitmanager.Max_Commit_History)
+		commits, err := gitmanager.GetLastCommits(utils.CONFIG.Kubernetes.GitVaultDataPath, gitmanager.Max_Commit_History)
 		if err != nil {
 			iaclogger.Errorf("Error getting last commit: %s", err.Error())
 			return
@@ -608,7 +599,7 @@ func pullChanges(lastAppliedCommit GitActionStatus) (lastCommit *object.Commit, 
 	}()
 
 	// Pull changes from the remote repository
-	lastCommit, err := gitmanager.Pull(folder, "origin", utils.CONFIG.Iac.RepoBranch)
+	lastCommit, err := gitmanager.Pull(utils.CONFIG.Kubernetes.GitVaultDataPath, "origin", utils.CONFIG.Iac.RepoBranch)
 	if err != nil {
 		return lastCommit, updatedFiles, deletedFiles, err
 	}
@@ -619,14 +610,14 @@ func pullChanges(lastAppliedCommit GitActionStatus) (lastCommit *object.Commit, 
 	}
 
 	//Get the list of updated or newly added files since the last pull
-	updatedFiles, err = gitmanager.GetLastUpdatedAndModifiedFiles(folder)
+	updatedFiles, err = gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err != nil {
 		iaclogger.Errorf("Error getting updated files: %s", err.Error())
 		return
 	}
 
 	// Get the list of deleted files since the last pull
-	deletedFiles, err = gitmanager.GetLastDeletedFiles(folder)
+	deletedFiles, err = gitmanager.GetLastDeletedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err != nil {
 		iaclogger.Errorf("Error getting deleted files: %s", err.Error())
 		return
@@ -646,7 +637,7 @@ func pullChanges(lastAppliedCommit GitActionStatus) (lastCommit *object.Commit, 
 	}
 
 	// Get the list of contributors
-	contributor, contributorErr := gitmanager.GetContributors(folder)
+	contributor, contributorErr := gitmanager.GetContributors(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if contributorErr == nil {
 		SetContributors(contributor)
 	}
@@ -666,8 +657,6 @@ func pushChanges() error {
 		return nil
 	}
 
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
-
 	// Commit changes
 	deletedFiles := []string{}
 	updatedOrAddedFiles := []string{}
@@ -682,13 +671,13 @@ func pushChanges() error {
 		}
 		commitMsg += file.Message + "\n"
 	}
-	err := gitmanager.Commit(folder, updatedOrAddedFiles, deletedFiles, commitMsg, utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+	err := gitmanager.Commit(utils.CONFIG.Kubernetes.GitVaultDataPath, updatedOrAddedFiles, deletedFiles, commitMsg, utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
 	if err != nil {
 		return fmt.Errorf("Error running git commit: %s", err.Error())
 	}
 
 	// Push changes to the remote repository
-	err = gitmanager.Push(folder, "origin")
+	err = gitmanager.Push(utils.CONFIG.Kubernetes.GitVaultDataPath, "origin")
 	if err != nil {
 		return fmt.Errorf("Error running git push: %s", err.Error())
 	}
@@ -782,7 +771,7 @@ func kubernetesDeleteResource(file string) error {
 }
 
 func parseFileToK8sParts(file string) (kind string, namespace string, name string) {
-	file = strings.Replace(file, fmt.Sprintf("%s/%s/", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER), "", 1)
+	file = strings.Replace(file, fmt.Sprintf("%s/", utils.CONFIG.Kubernetes.GitVaultDataPath), "", 1)
 	parts := strings.Split(file, "/")
 	filename := strings.Replace(parts[len(parts)-1], ".yaml", "", -1)
 	kind = parts[0]
@@ -797,7 +786,7 @@ func parseFileToK8sParts(file string) (kind string, namespace string, name strin
 }
 
 func kubernetesReplaceResource(file string, treatment utils.IacSecurity) error {
-	filePath := fmt.Sprintf("%s/%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, file)
+	filePath := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, file)
 	if shouldSkipResource(filePath) {
 		return nil
 	}

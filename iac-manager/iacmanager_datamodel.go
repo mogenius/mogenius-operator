@@ -127,12 +127,11 @@ func InitDataModel() {
 		IacConfiguration: iacConfigurationFromYamlConfig(),
 		ResourceStates:   make(map[string]IacManagerResourceState),
 	}
-	path := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	addedFiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(path)
+	addedFiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil {
 		dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = addedFiles
 	}
-	deletedFiles, err := gitmanager.GetLastDeletedFiles(path)
+	deletedFiles, err := gitmanager.GetLastDeletedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil {
 		dataModel.SyncInfo.RecentlyDeletedFiles = deletedFiles
 	}
@@ -255,12 +254,11 @@ func SetResourceState(key string, state IacManagerResourceState) {
 func SetSyncInfo(timeInMs int64) {
 	dataModel.SyncInfo.ExecutionTimeInMs = timeInMs
 
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	addedOrUpdatedfiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(folder)
+	addedOrUpdatedfiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil && len(addedOrUpdatedfiles) > 0 {
 		dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = addedOrUpdatedfiles
 	}
-	deletedFiles, err := gitmanager.GetLastDeletedFiles(folder)
+	deletedFiles, err := gitmanager.GetLastDeletedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil && len(deletedFiles) > 0 {
 		dataModel.SyncInfo.RecentlyDeletedFiles = deletedFiles
 	}
@@ -319,8 +317,7 @@ func UpdateResourceStatus(kind string, namespace string, name string, state Sync
 		newStatus.Error = errMsg.Error()
 	}
 
-	gitPath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	revisions, _ := gitmanager.ListFileRevisions(gitPath, key)
+	revisions, _ := gitmanager.ListFileRevisions(utils.CONFIG.Kubernetes.GitVaultDataPath, key)
 	for index, rev := range revisions {
 		// latest revision
 		if index == 0 {
@@ -361,8 +358,7 @@ func AddChangedFile(file ChangedFile) {
 			return
 		}
 	}
-	gitPath := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
-	revisions, _ := gitmanager.ListFileRevisions(gitPath, file.Path)
+	revisions, _ := gitmanager.ListFileRevisions(utils.CONFIG.Kubernetes.GitVaultDataPath, file.Path)
 	for index, rev := range revisions {
 		// latest revision
 		if index == 0 {
