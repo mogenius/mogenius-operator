@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/kubernetes"
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/xterm"
@@ -157,13 +158,16 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// BUILD
 	buildCmd := structs.CreateCommand(string(structs.PrefixBuild), "Building container", job)
-	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build --network host -f %s %s -t %s -t %s %s", workingDir, *container.DockerfileName, container.GetInjectDockerEnvVars(job.NamespaceName, job.BuildId, string(gitTagData)), tagName, latestTagName, *container.DockerContext))
+	// add dynamic mo-... labels to image metadata
+	labels := fmt.Sprintf("--label \"mo-app=%s\" --label \"mo-ns=%s\" --label \"mo-service-id=%s\" --label \"mo-project-id=%s\"", buildJob.Service.ControllerName, buildJob.Namespace.Name, buildJob.Service.Id, buildJob.Project.Id)
+	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build %s --network host -f %s %s -t %s -t %s %s", workingDir, labels, *container.DockerfileName, container.GetInjectDockerEnvVars(job.NamespaceName, job.BuildId, string(gitTagData)), tagName, latestTagName, *container.DockerContext))
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixBuild, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
 
+	//
 	// PUSH
 	pushCmd := structs.CreateCommand(string(structs.PrefixPush), "Pushing container", job)
 	err = executeCmd(job, pushCmd, structs.PrefixPush, buildJob, container, false, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
@@ -179,15 +183,17 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		return
 	}
 
+	r := ServiceUpdateRequest{
+		Project:   buildJob.Project,
+		Namespace: buildJob.Namespace,
+		Service:   buildJob.Service,
+	}
+
 	// create
 	if buildJob.CreateAndStart {
-		r := ServiceUpdateRequest{
-			Project:   buildJob.Project,
-			Namespace: buildJob.Namespace,
-			Service:   buildJob.Service,
-		}
 		UpdateService(r)
 	} else {
+		updateSecrets(job, r)
 		// UPDATE IMAGE
 		setImageCmd := structs.CreateCommand("setImage", "Deploying image", job)
 		err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
@@ -564,6 +570,18 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 		}
 	}
 	return line
+}
+
+func updateSecrets(job *structs.Job, r ServiceUpdateRequest) {
+	var wg sync.WaitGroup
+
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+
+	go func() {
+		wg.Wait()
+	}()
 }
 
 func updateContainerImage(job *structs.Job, reportCmd *structs.Command, buildJob *structs.BuildJob, containerName string, imageName string) error {

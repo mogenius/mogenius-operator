@@ -48,6 +48,8 @@ type Config struct {
 		OwnNamespace               string `yaml:"own_namespace" env:"OWN_NAMESPACE" env-description:"The Namespace of mogenius platform"`
 		ClusterMfaId               string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"NanoId of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
+		HelmDataPath               string `yaml:"helm_data_path" env:"helm_data_path" env-description:"Path to the Helm data."`
+		GitVaultDataPath           string `yaml:"git_vault_data_path" env:"git_vault_data_path" env-description:"Path to the Git Vault data."`
 		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
 		BboltDbStatsPath           string `yaml:"bbolt_db_stats_path" env:"bbolt_db_stats_path" env-description:"Path to the bbolt database. This db stores stats-related information."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
@@ -181,6 +183,12 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if CONFIG.Kubernetes.BboltDbPath == "" {
 		CONFIG.Kubernetes.BboltDbPath = pwd + "/mogenius.db"
 	}
+	if CONFIG.Kubernetes.HelmDataPath == "" {
+		CONFIG.Kubernetes.HelmDataPath = "/db/helm-data"
+	}
+	if CONFIG.Kubernetes.GitVaultDataPath == "" {
+		CONFIG.Kubernetes.GitVaultDataPath = "/db/git-vault-data"
+	}
 	if CONFIG.Kubernetes.BboltDbStatsPath == "" {
 		CONFIG.Kubernetes.BboltDbStatsPath = pwd + "/mogenius-stats.db"
 	}
@@ -298,6 +306,8 @@ func PrintCurrentCONFIG() (string, error) {
 
 	// reset data for local usage
 	configCopy.Misc.DefaultMountPath = ""
+	configCopy.Kubernetes.HelmDataPath = ""
+	configCopy.Kubernetes.GitVaultDataPath = ""
 	configCopy.Kubernetes.BboltDbPath = ""
 	configCopy.Kubernetes.BboltDbStatsPath = ""
 	configCopy.Kubernetes.RunInCluster = false
@@ -342,6 +352,8 @@ func PrintSettings() {
 	log.Infof("ClusterMfaId:              %s", CONFIG.Kubernetes.ClusterMfaId)
 	log.Infof("RunInCluster:              %t", CONFIG.Kubernetes.RunInCluster)
 	log.Infof("ApiKey:                    %s", CONFIG.Kubernetes.ApiKey)
+	log.Infof("HelmDataPath:              %s", CONFIG.Kubernetes.HelmDataPath)
+	log.Infof("GitVaultDataPath:          %s", CONFIG.Kubernetes.GitVaultDataPath)
 	log.Infof("BboltDbPath:               %s", CONFIG.Kubernetes.BboltDbPath)
 	log.Infof("BboltDbStatsPath:          %s", CONFIG.Kubernetes.BboltDbStatsPath)
 	log.Infof("LocalContainerRegistry:    %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)

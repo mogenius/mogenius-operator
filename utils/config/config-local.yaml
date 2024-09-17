@@ -7,6 +7,8 @@ kubernetes:
   own_namespace: mogenius
   cluster_mfa_id:
   run_in_cluster: false
+  helm_data_path: /db/helm-data
+  git_vault_data_path: /db/git-vault-data
   bbolt_db_path: mogenius.db
   bbolt_db_stats_path: mogenius-stats.db
   local_registry_host: mocr.local.mogenius.io
