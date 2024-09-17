@@ -1,7 +1,6 @@
 package iacmanager
 
 import (
-	"fmt"
 	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/utils"
 	"sync"
@@ -300,10 +299,7 @@ func GetResourceState() map[string]IacManagerResourceState {
 }
 
 func UpdateResourceStatus(kind string, namespace string, name string, state SyncStateEnum, errMsg error) {
-	key := fmt.Sprintf("%s/%s_%s.yaml", kind, namespace, name)
-	if namespace == "" {
-		key = fmt.Sprintf("%s/%s.yaml", kind, name)
-	}
+	key := GitFilePathForRaw(kind, namespace, name)
 
 	newStatus := IacManagerResourceState{
 		Kind:      kind,
