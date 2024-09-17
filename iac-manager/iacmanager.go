@@ -360,7 +360,7 @@ func createDiffFromFile(filename string, dataInf interface{}) (string, error) {
 	}
 	yamlData1Str, err := utils.CleanYaml(string(yamlData1), utils.IacSecurityNeedsDecryption)
 	if err != nil {
-		return "", fmt.Errorf("Error cleaning YAML: %s", err.Error())
+		return "", err
 	}
 
 	yamlRawData2, err := yaml.Marshal(dataInf)
