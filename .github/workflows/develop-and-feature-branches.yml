@@ -121,7 +121,7 @@ jobs:
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=amd64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-amd64 -t ${{ env.IMAGE_NAME }}:latest-amd64 .
           
       - name: Push AMD64-linux image
-        #if: github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
@@ -158,7 +158,7 @@ jobs:
           docker build --platform=linux/arm64 -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux -t ${{ env.IMAGE_NAME }}:latest-arm64-linux .
 
       - name: Push AMD64-linux image
-        #if: github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
@@ -194,7 +194,7 @@ jobs:
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
 
       - name: Push ARM64 image
-        #if: github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
@@ -230,14 +230,14 @@ jobs:
           docker build -f ${{ env.DOCKERFILE }} --platform=linux/arm/v7 --build-arg GOOS=linux --build-arg GOARCH=arm --build-arg GOARM=7 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm7 -t ${{ env.IMAGE_NAME }}:latest-arm7 .
 
       - name: Push ARMv7 image
-        #if: github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
 
 
   merge-images:
-    #if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop'
     needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
     runs-on: self-hosted-ansible
     permissions:
@@ -273,7 +273,7 @@ jobs:
           docker manifest push ${{ env.IMAGE_NAME }}:latest
 
   helm-chart:
-    #if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
     runs-on: self-hosted-ansible
     permissions:
