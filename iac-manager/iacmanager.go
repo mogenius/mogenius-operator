@@ -204,7 +204,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		return
 	}
 
-	diff, err := createDiff(kind, namespace, resourceName, dataInf, utils.IacSecurityNeedsNothing)
+	diff, err := createDiff(kind, namespace, resourceName, dataInf)
 	if err != nil {
 		UpdateResourceStatus(kind, namespace, resourceName, SyncStatePendingSync, fmt.Errorf("Error creating diff: %s", err.Error()))
 		return
@@ -296,7 +296,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 		return
 	}
 
-	diff, err := createDiff(kind, namespace, resourceName, make(map[string]interface{}), utils.IacSecurityNeedsNothing)
+	diff, err := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
 	if err != nil {
 		UpdateResourceStatus(kind, namespace, resourceName, SyncStateDeleted, fmt.Errorf("Error creating diff: %s", err.Error()))
 		return
@@ -348,12 +348,12 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	}
 }
 
-func createDiff(kind string, namespace string, resourceName string, dataInf interface{}, treatment utils.IacSecurity) (string, error) {
+func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) (string, error) {
 	filename := fileNameForRaw(kind, namespace, resourceName)
-	return createDiffFromFile(filename, dataInf, treatment)
+	return createDiffFromFile(filename, dataInf)
 }
 
-func createDiffFromFile(filename string, dataInf interface{}, treatment utils.IacSecurity) (string, error) {
+func createDiffFromFile(filename string, dataInf interface{}) (string, error) {
 	yamlData1, err := os.ReadFile(filename)
 	if yamlData1 == nil {
 		yamlData1 = []byte{}
@@ -465,7 +465,7 @@ func ApplyRepoStateToCluster() error {
 	allFiles = applyPriotityToChangesForUpdates(allFiles)
 
 	for _, file := range allFiles {
-		kubernetesReplaceResource(file, utils.IacSecurityNeedsDecryption)
+		kubernetesReplaceResource(file)
 	}
 
 	return nil
@@ -497,7 +497,7 @@ func SyncChanges() error {
 				}
 				updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
 				for _, v := range updatedFiles {
-					err = kubernetesReplaceResource(v, utils.IacSecurityNeedsDecryption)
+					err = kubernetesReplaceResource(v)
 					if err != nil {
 						iaclogger.Warnf("Error replacing resource: %s", err.Error())
 					}
@@ -785,7 +785,7 @@ func parseFileToK8sParts(file string) (kind string, namespace string, name strin
 	return kind, namespace, name
 }
 
-func kubernetesReplaceResource(file string, treatment utils.IacSecurity) error {
+func kubernetesReplaceResource(file string) error {
 	filePath := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, file)
 	if shouldSkipResource(filePath) {
 		return nil
@@ -798,7 +798,7 @@ func kubernetesReplaceResource(file string, treatment utils.IacSecurity) error {
 		return nil
 	}
 
-	diff, err := createDiff(kind, namespace, name, existingResource, treatment)
+	diff, err := createDiff(kind, namespace, name, existingResource)
 	if err != nil {
 		UpdateResourceStatusByFile(file, SyncStateSyncError, fmt.Errorf("Error creating diff for %s: %s", file, err.Error()))
 		return nil
@@ -808,31 +808,51 @@ func kubernetesReplaceResource(file string, treatment utils.IacSecurity) error {
 		return nil
 	}
 
-	syncType := SyncStateSynced
-
-	// if the resource is not found, create it
-	if apierrors.IsNotFound(err) {
-		createCmd := fmt.Sprintf("kubectl create -f %s", filePath)
-		err = utils.ExecuteShellCommandRealySilent(createCmd, createCmd)
+	if kind == "secrets" {
+		// load yaml file, decrypt, apply
+		yamlData, err := os.ReadFile(filePath)
+		if err != nil {
+			iaclogger.Errorf("Error reading file %s: %s", filePath, err.Error())
+			return err
+		}
+		decryptedYaml, err := utils.CleanYaml(string(yamlData), utils.IacSecurityNeedsDecryption)
+		if err != nil {
+			iaclogger.Errorf("Error decrypting YAML: %s", err.Error())
+			return err
+		}
+		applyCmd := fmt.Sprintf(`kubectl apply -f -<<EOF
+%s
+EOF`, decryptedYaml)
+		err = utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
+		if err != nil {
+			iaclogger.Errorf("Error applying secret: %s", err.Error())
+		}
 	} else {
-		replaceCmd := fmt.Sprintf("kubectl replace -f %s", filePath)
-		err = utils.ExecuteShellCommandRealySilent(replaceCmd, replaceCmd)
-	}
-
-	if err != nil {
-		if strings.Contains(err.Error(), "Error from server (NotFound):") {
+		// if the resource is not found, create it
+		if apierrors.IsNotFound(err) {
 			createCmd := fmt.Sprintf("kubectl create -f %s", filePath)
 			err = utils.ExecuteShellCommandRealySilent(createCmd, createCmd)
-			if err != nil {
+		} else {
+			replaceCmd := fmt.Sprintf("kubectl replace -f %s", filePath)
+			err = utils.ExecuteShellCommandRealySilent(replaceCmd, replaceCmd)
+		}
+
+		if err != nil {
+			if strings.Contains(err.Error(), "Error from server (NotFound):") {
+				createCmd := fmt.Sprintf("kubectl create -f %s", filePath)
+				err = utils.ExecuteShellCommandRealySilent(createCmd, createCmd)
+				if err != nil {
+					UpdateResourceStatusByFile(file, SyncStateSyncError, err)
+					return err
+				}
+			} else {
 				UpdateResourceStatusByFile(file, SyncStateSyncError, err)
 				return err
 			}
-		} else {
-			UpdateResourceStatusByFile(file, SyncStateSyncError, err)
-			return err
 		}
 	}
-	UpdateResourceStatusByFile(file, syncType, nil)
+
+	UpdateResourceStatusByFile(file, SyncStateSynced, nil)
 	return nil
 }
 
