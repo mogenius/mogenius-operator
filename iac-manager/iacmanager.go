@@ -191,6 +191,8 @@ func IsIacEnabled() bool {
 }
 
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
+	var err error
+
 	if SetupInProcess {
 		return
 	}
@@ -206,7 +208,16 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		return
 	}
 
-	diff := createDiff(kind, namespace, resourceName, dataInf)
+	diff, err := createDiff(kind, namespace, resourceName, dataInf, utils.IacSecurityNeedsNothing)
+	if err != nil {
+		UpdateResourceStatus(kind, namespace, resourceName, SyncStatePendingSync, fmt.Errorf("Error creating diff: %s", err.Error()))
+		return
+	}
+	if diff == "" {
+		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSynced, nil)
+		return
+	}
+
 	if utils.CONFIG.Iac.ShowDiffInLog {
 		if diff != "" {
 			iaclogger.Warnf("Diff: \n%s", diff)
@@ -229,26 +240,35 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		return
 	}
 	if kind == "" {
-		iaclogger.Errorf("Kind is empty for resource %s:%s/%s", kind, namespace, resourceName)
+		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSyncError, fmt.Errorf("Kind is empty for resource %s:%s/%s", kind, namespace, resourceName))
 		return
 	}
 	yamlData, err := yaml.Marshal(dataInf)
 	if err != nil {
-		iaclogger.Errorf("Error marshaling to YAML: %s\n", err.Error())
+		err = fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
+		iaclogger.Error(err.Error())
 		return
 	}
-	createFolderForResource(kind, namespace)
-	data := utils.CleanYaml(string(yamlData))
+	err = createFolderForResource(kind, namespace)
+	if err != nil {
+		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSyncError, fmt.Errorf("Error creating folder for resource: %s", err.Error()))
+		return
+	}
+	data, err := utils.CleanYaml(string(yamlData), utils.IacSecurityNeedsEncryption)
+	if err != nil {
+		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSyncError, fmt.Errorf("Error cleaning YAML: %s", err.Error()))
+		return
+	}
 	filename := fileNameForRaw(kind, namespace, resourceName)
 	err = os.WriteFile(filename, []byte(data), 0755)
 	if err != nil {
-		iaclogger.Errorf("Error writing resource %s:%s/%s file: %s", kind, namespace, resourceName, err.Error())
+		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSyncError, fmt.Errorf("Error writing file: %s", err.Error()))
 		return
 	}
 	if utils.CONFIG.Iac.LogChanges {
 		iaclogger.Infof("🧹 Detected %s change. Updated %s/%s.", kind, namespace, resourceName)
 	}
-	UpdateResourceStatus(kind, namespace, resourceName, SyncStatePendingSync, nil)
+	UpdateResourceStatus(kind, namespace, resourceName, SyncStatePendingSync, err)
 
 	if diff != "" {
 		AddChangedFile(ChangedFile{
@@ -260,7 +280,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 			ChangeType: SyncChangeTypeModify,
 		})
 	} else {
-		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSynced, nil)
+		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSynced, err)
 	}
 }
 
@@ -280,7 +300,11 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 		return
 	}
 
-	diff := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
+	diff, err := createDiff(kind, namespace, resourceName, make(map[string]interface{}), utils.IacSecurityNeedsNothing)
+	if err != nil {
+		UpdateResourceStatus(kind, namespace, resourceName, SyncStateDeleted, fmt.Errorf("Error creating diff: %s", err.Error()))
+		return
+	}
 	if utils.CONFIG.Iac.ShowDiffInLog {
 		if diff != "" {
 			iaclogger.Warnf("Diff: \n%s", diff)
@@ -307,7 +331,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	}
 
 	filename := fileNameForRaw(kind, namespace, resourceName)
-	err := os.Remove(filename)
+	err = os.Remove(filename)
 	if err != nil && !os.IsNotExist(err) {
 		iaclogger.Errorf("Error deleting resource %s:%s/%s file: %s", kind, namespace, resourceName, err.Error())
 		return
@@ -328,44 +352,47 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	}
 }
 
-func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) string {
+func createDiff(kind string, namespace string, resourceName string, dataInf interface{}, treatment utils.IacSecurity) (string, error) {
 	filename := fileNameForRaw(kind, namespace, resourceName)
-	return createDiffFromFile(filename, dataInf)
+	return createDiffFromFile(filename, dataInf, treatment)
 }
 
-func createDiffFromFile(filename string, dataInf interface{}) string {
-	yamlData1, _ := os.ReadFile(filename)
+func createDiffFromFile(filename string, dataInf interface{}, treatment utils.IacSecurity) (string, error) {
+	yamlData1, err := os.ReadFile(filename)
 	if yamlData1 == nil {
 		yamlData1 = []byte{}
 	}
-	yamlData1 = []byte(utils.CleanYaml(string(yamlData1)))
+	yamlData1Str, err := utils.CleanYaml(string(yamlData1), utils.IacSecurityNeedsDecryption)
+	if err != nil {
+		return "", fmt.Errorf("Error cleaning YAML: %s", err.Error())
+	}
 
 	yamlRawData2, err := yaml.Marshal(dataInf)
-	yamlData2 := utils.CleanYaml(string(yamlRawData2))
 	if err != nil {
-		iaclogger.Errorf("Error marshaling to YAML: %s\n", err.Error())
-		return ""
+		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
+	}
+	yamlData2Str, err := utils.CleanYaml(string(yamlRawData2), utils.IacSecurityNeedsNothing)
+	if err != nil {
+		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
 	}
 
 	var obj1, obj2 interface{}
 
-	err = yaml.Unmarshal(yamlData1, &obj1)
+	err = yaml.Unmarshal([]byte(yamlData1Str), &obj1)
 	if err != nil {
-		iaclogger.Errorf("Error unmarshalling yaml1 for diff: %s", err.Error())
-		return ""
+		return "", fmt.Errorf("Error unmarshalling yaml1 for diff: %s", err.Error())
 	}
 	if obj1 == nil {
 		obj1 = make(map[string]interface{})
 	}
 
-	err = yaml.Unmarshal([]byte(yamlData2), &obj2)
+	err = yaml.Unmarshal([]byte(yamlData2Str), &obj2)
 	if err != nil {
-		iaclogger.Errorf("Error unmarshalling yaml2 for diff: %s", err.Error())
-		return ""
+		return "", fmt.Errorf("Error unmarshalling yaml2 for diff: %s", err.Error())
 	}
 
 	diffRaw := pretty.Compare(obj1, obj2)
-	return diffRaw
+	return diffRaw, nil
 }
 
 func insertPATIntoURL(gitRepoURL, pat string) string {
@@ -442,7 +469,7 @@ func ApplyRepoStateToCluster() error {
 	allFiles = applyPriotityToChangesForUpdates(allFiles)
 
 	for _, file := range allFiles {
-		kubernetesReplaceResource(file)
+		kubernetesReplaceResource(file, utils.IacSecurityNeedsDecryption)
 	}
 
 	return nil
@@ -474,18 +501,16 @@ func SyncChanges() error {
 				}
 				updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
 				for _, v := range updatedFiles {
-					err = kubernetesReplaceResource(v)
-					SetSyncError(err)
+					err = kubernetesReplaceResource(v, utils.IacSecurityNeedsDecryption)
 					if err != nil {
-						return err
+						iaclogger.Warnf("Error replacing resource: %s", err.Error())
 					}
 				}
 				deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
 				for _, v := range deletedFiles {
 					err = kubernetesDeleteResource(v)
-					SetSyncError(err)
 					if err != nil {
-						return err
+						iaclogger.Warnf("Error deleting resource: %s", err.Error())
 					}
 				}
 				SetLastSuccessfullyAppliedCommit(lastCommit)
@@ -770,7 +795,7 @@ func parseFileToK8sParts(file string) (kind string, namespace string, name strin
 	return kind, namespace, name
 }
 
-func kubernetesReplaceResource(file string) error {
+func kubernetesReplaceResource(file string, treatment utils.IacSecurity) error {
 	filePath := fmt.Sprintf("%s/%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER, file)
 	if shouldSkipResource(filePath) {
 		return nil
@@ -783,7 +808,11 @@ func kubernetesReplaceResource(file string) error {
 		return nil
 	}
 
-	diff := createDiff(kind, namespace, name, existingResource)
+	diff, err := createDiff(kind, namespace, name, existingResource, treatment)
+	if err != nil {
+		UpdateResourceStatusByFile(file, SyncStateSyncError, fmt.Errorf("Error creating diff for %s: %s", file, err.Error()))
+		return nil
+	}
 	if diff == "" {
 		UpdateResourceStatusByFile(file, SyncStateSynced, nil)
 		return nil

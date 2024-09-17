@@ -105,7 +105,7 @@ func ResourceWatcher() {
 		case dtos.KindHorizontalPodAutoscalers:
 			go WatchHpas()
 		default:
-			K8sLogger.Fatalf("🚫 Unknown resource type: %s", workload)
+			K8sLogger.Errorf("🚫 Unknown resource type for watcher: %s", workload)
 		}
 		K8sLogger.Infof("Started watching %s 🚀.", workload)
 	}

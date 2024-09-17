@@ -1,7 +1,12 @@
 package utils
 
 import (
+	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"embed"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/version"
@@ -40,6 +45,15 @@ const (
 	HelmReleaseNameExternalSecrets      = "external-secrets"
 	HelmReleaseNameMetalLb              = "metallb"
 	HelmReleaseNameKepler               = "kepler"
+)
+
+// IacSecurity is an enum type for the different security treatments that can be applied to IaC data.
+type IacSecurity string
+
+const (
+	IacSecurityNeedsNothing    IacSecurity = "Nothing" // No encryption or decryption needed
+	IacSecurityNeedsDecryption IacSecurity = "Decrypt" // Decrypt the data field values
+	IacSecurityNeedsEncryption IacSecurity = "Encrypt" // Encrypt the data field values
 )
 
 // this includes the yaml-templates folder into the binary
@@ -312,29 +326,35 @@ func ParseK8sName(name string) string {
 	return strings.ToLower(name)
 }
 
-func CleanYaml(data string) string {
+func CleanYaml(data string, treatment IacSecurity) (string, error) {
+	if data == "" {
+		return "", nil
+	}
 	var dataMap map[string]interface{}
 	err := yaml.Unmarshal([]byte(data), &dataMap)
 	if err != nil {
-		log.Errorf("Error CleanYaml unmarshalling yaml: %s", err.Error())
+		return "", fmt.Errorf("Error CleanYaml unmarshalling yaml: %s", err.Error())
 	}
 
-	dataMap = CleanObject(dataMap)
+	dataMap, err = CleanObject(dataMap, treatment)
+	if err != nil {
+		return "", fmt.Errorf("Error cleaning yaml: %s", err.Error())
+	}
 
 	cleanedYaml, err := yaml.Marshal(dataMap)
 	if err != nil {
-		log.Errorf("Error marshalling yaml: %s", err.Error())
+		return "", fmt.Errorf("Error marshalling yaml: %s", err.Error())
 	}
-	return string(cleanedYaml)
+	return string(cleanedYaml), nil
 }
 
-func CleanObjectInterface(data interface{}) interface{} {
+func CleanObjectInterface(data interface{}, treatment IacSecurity) (interface{}, error) {
 	dataInf := data.(map[string]interface{})
-	dataInf = CleanObject(dataInf)
-	return dataInf
+	dataInf, err := CleanObject(dataInf, treatment)
+	return dataInf, err
 }
 
-func CleanObject(data map[string]interface{}) map[string]interface{} {
+func CleanObject(data map[string]interface{}, treatment IacSecurity) (map[string]interface{}, error) {
 	removeFieldAtPath(data, "uid", []string{"metadata"}, []string{})
 	removeFieldAtPath(data, "selfLink", []string{"metadata"}, []string{})
 	removeFieldAtPath(data, "generation", []string{"metadata"}, []string{})
@@ -351,9 +371,30 @@ func CleanObject(data map[string]interface{}) map[string]interface{} {
 	case "Service":
 		removeFieldAtPath(data, "clusterIP", []string{"spec"}, []string{})
 		removeFieldAtPath(data, "clusterIPs", []string{"spec"}, []string{})
+	case "Secret":
+		if treatment == IacSecurityNeedsEncryption {
+			// Encrypt the data field values
+			for k, v := range data["data"].(map[string]interface{}) {
+				encryptStr, err := EncryptString(CONFIG.Kubernetes.ApiKey, v.(string))
+				if err != nil {
+					return nil, err
+				}
+				data["data"].(map[string]interface{})[k] = encryptStr
+			}
+		}
+		if treatment == IacSecurityNeedsDecryption {
+			// Encrypt the data field values
+			for k, v := range data["data"].(map[string]interface{}) {
+				decryptStr, err := DecryptString(CONFIG.Kubernetes.ApiKey, v.(string))
+				if err != nil {
+					return nil, err
+				}
+				data["data"].(map[string]interface{})[k] = decryptStr
+			}
+		}
 	}
 
-	return data
+	return data, nil
 }
 
 func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
@@ -405,4 +446,117 @@ func isEmptyValue(value interface{}) bool {
 	default:
 		return false
 	}
+}
+func EncryptString(password string, plaintext string) (string, error) {
+	key := []byte(password)
+	// Ensure the key length is 16, 24, or 32 bytes
+	key = adjustKeyLength(key)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", fmt.Errorf("error creating cipher block: %v", err)
+	}
+
+	// Generate a random IV
+	iv := make([]byte, aes.BlockSize)
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+
+		return "", fmt.Errorf("error generating IV: %v", err)
+	}
+
+	// Pad plaintext to a multiple of block size
+	paddedPlaintext := pad([]byte(plaintext), aes.BlockSize)
+
+	// Encrypt using CBC mode
+	mode := cipher.NewCBCEncrypter(block, iv)
+	ciphertext := make([]byte, len(paddedPlaintext))
+	mode.CryptBlocks(ciphertext, paddedPlaintext)
+
+	// Prepend IV to ciphertext
+	ciphertext = append(iv, ciphertext...)
+
+	// Encode to base64 for safe transport/storage
+	encodedCiphertext := base64.StdEncoding.EncodeToString(ciphertext)
+
+	return encodedCiphertext, nil
+}
+
+func DecryptString(password string, encryptedString string) (string, error) {
+	key := []byte(password)
+	key = adjustKeyLength(key)
+
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedString)
+	if err != nil {
+		return "", fmt.Errorf("error decoding base64: %v", err)
+	}
+
+	if len(ciphertext) < aes.BlockSize {
+		return "", fmt.Errorf("ciphertext too short")
+	}
+
+	// Extract IV from ciphertext
+	iv := ciphertext[:aes.BlockSize]
+	ciphertext = ciphertext[aes.BlockSize:]
+
+	if len(ciphertext)%aes.BlockSize != 0 {
+		return "", fmt.Errorf("ciphertext is not a multiple of the block size")
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", fmt.Errorf("error creating cipher block: %v", err)
+	}
+
+	// Decrypt using CBC mode
+	mode := cipher.NewCBCDecrypter(block, iv)
+	plaintext := make([]byte, len(ciphertext))
+	mode.CryptBlocks(plaintext, ciphertext)
+
+	// Unpad plaintext
+	unpaddedPlaintext, err := unpad(plaintext, aes.BlockSize)
+	if err != nil {
+		return "", fmt.Errorf("error unpadding plaintext: %v", err)
+	}
+
+	return string(unpaddedPlaintext), nil
+}
+
+func pad(src []byte, blockSize int) []byte {
+	padding := blockSize - len(src)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(src, padtext...)
+}
+
+func unpad(src []byte, blockSize int) ([]byte, error) {
+	length := len(src)
+	if length == 0 || length%blockSize != 0 {
+		return nil, fmt.Errorf("invalid padded plaintext")
+	}
+
+	padding := int(src[length-1])
+	if padding > blockSize || padding == 0 {
+		return nil, fmt.Errorf("invalid padding")
+	}
+
+	for i := length - padding; i < length; i++ {
+		if src[i] != byte(padding) {
+			return nil, fmt.Errorf("invalid padding")
+		}
+	}
+
+	return src[:length-padding], nil
+}
+
+func adjustKeyLength(key []byte) []byte {
+	// AES key lengths can be 16, 24, or 32 bytes
+	if len(key) < 16 {
+		key = append(key, bytes.Repeat([]byte{0}, 16-len(key))...)
+	} else if len(key) > 16 && len(key) < 24 {
+		key = append(key, bytes.Repeat([]byte{0}, 24-len(key))...)
+	} else if len(key) > 24 && len(key) < 32 {
+		key = append(key, bytes.Repeat([]byte{0}, 32-len(key))...)
+	} else if len(key) > 32 {
+		key = key[:32]
+	}
+	return key
 }

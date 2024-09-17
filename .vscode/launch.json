@@ -59,7 +59,7 @@
       "program": "gitmanager/gitmanager_test.go",
       "args": [],
       "asRoot": false,
-      "console": "integratedTerminal",
+      "console": "integratedTerminal"
     },
     {
       "name": "system check",

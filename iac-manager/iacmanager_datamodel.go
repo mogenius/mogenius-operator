@@ -14,8 +14,21 @@ type IacManagerStatus struct {
 	SyncInfo                      IacManagerSyncInfo                 `json:"syncInfo"`
 	CommitHistory                 []GitActionStatus                  `json:"commitHistory"`
 	LastSuccessfullyAppliedCommit GitActionStatus                    `json:"lastSuccessfullyAppliedCommit"`
-	IacConfiguration              interface{}                        `json:"iacConfiguration"`
+	IacConfiguration              IacConfiguration                   `json:"iacConfiguration"`
 	ResourceStates                map[string]IacManagerResourceState `json:"resourceStates"`
+}
+
+type IacConfiguration struct {
+	RepoUrl            string   `json:"repoUrl"`
+	RepoPat            string   `json:"repoPat"`
+	RepoBranch         string   `json:"repoBranch"`
+	SyncFrequencyInSec int      `json:"syncFrequencyInSec" `
+	AllowPush          bool     `json:"allowPush" `
+	AllowPull          bool     `json:"allowPull" `
+	SyncWorkloads      []string `json:"syncWorkloads" `
+	ShowDiffInLog      bool     `json:"showDiffInLog" `
+	IgnoredNamespaces  []string `json:"ignoredNamespaces" `
+	LogChanges         bool     `json:"logChanges" `
 }
 
 type IacManagerSyncInfo struct {
@@ -111,7 +124,7 @@ func InitDataModel() {
 	dataModel = IacManagerStatus{
 		SyncInfo:         IacManagerSyncInfo{},
 		CommitHistory:    []GitActionStatus{},
-		IacConfiguration: utils.CONFIG.Iac,
+		IacConfiguration: iacConfigurationFromYamlConfig(),
 		ResourceStates:   make(map[string]IacManagerResourceState),
 	}
 	path := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.DefaultMountPath, GIT_VAULT_FOLDER)
@@ -268,7 +281,7 @@ func SetContributors(signatures []object.Signature) {
 // GETTERS
 func GetDataModel() IacManagerStatus {
 	// allways get the current configuration state
-	dataModel.IacConfiguration = utils.CONFIG.Iac
+	dataModel.IacConfiguration = iacConfigurationFromYamlConfig()
 	dataModel.SyncInfo.NumberOfFiles = len(dataModel.ResourceStates)
 	return dataModel
 }
@@ -375,4 +388,21 @@ func ChangedFilesEmpty() bool {
 
 func ChangedFilesLen() int {
 	return len(changedFiles)
+}
+
+// HELPERS
+
+func iacConfigurationFromYamlConfig() IacConfiguration {
+	return IacConfiguration{
+		RepoUrl:            utils.CONFIG.Iac.RepoUrl,
+		RepoPat:            utils.REDACTED,
+		RepoBranch:         utils.CONFIG.Iac.RepoBranch,
+		SyncFrequencyInSec: utils.CONFIG.Iac.SyncFrequencyInSec,
+		AllowPush:          utils.CONFIG.Iac.AllowPush,
+		AllowPull:          utils.CONFIG.Iac.AllowPull,
+		SyncWorkloads:      utils.CONFIG.Iac.SyncWorkloads,
+		ShowDiffInLog:      utils.CONFIG.Iac.ShowDiffInLog,
+		IgnoredNamespaces:  utils.CONFIG.Iac.IgnoredNamespaces,
+		LogChanges:         utils.CONFIG.Iac.LogChanges,
+	}
 }
