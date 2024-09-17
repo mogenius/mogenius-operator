@@ -9,7 +9,7 @@ on:
 
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
-  DOCKERFILE: Dockerfile-dev
+  DOCKERFILE: Dockerfile
   HELMNAME: "mogenius-k8s-manager-dev"
   HELMREPO: "mogenius/helm-k8s-manager"
 
