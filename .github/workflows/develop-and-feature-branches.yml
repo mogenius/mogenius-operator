@@ -10,6 +10,7 @@ on:
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
   DOCKERFILE: Dockerfile
+  DOCKER_CONFIG: ./.docker
   HELMNAME: "mogenius-k8s-manager-dev"
   HELMREPO: "mogenius/helm-k8s-manager"
 
@@ -26,8 +27,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,7 +47,6 @@ jobs:
           npx semantic-release
 
   passing-tests:
-    
     needs: prepare
     runs-on: [self-hosted, ARM64, k3s-installed]
     continue-on-error: true # tests are not stable yet
@@ -63,8 +63,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       # TODO: this should be part of the build / local test logic in some way
       - name: Prepare CRDs
         run: |
@@ -93,6 +93,10 @@ jobs:
       - prepare
       - passing-tests
     runs-on: [self-hosted, X64, XL]
+    permissions:
+      contents: read
+      packages: write
+    
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -103,8 +107,9 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
 
       - name: Build AMD64 image
         run: |
@@ -127,6 +132,9 @@ jobs:
       - prepare
       - passing-tests
     runs-on: [self-hosted, ARM64, XL]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -137,8 +145,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push ARM64-linux image
         run: |
@@ -160,6 +168,9 @@ jobs:
       - prepare
       - passing-tests
     runs-on: [self-hosted, ARM64, XL]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -170,8 +181,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build ARM64 image
         run: |
@@ -193,6 +204,9 @@ jobs:
       - prepare
       - passing-tests
     runs-on: [self-hosted, ARM64, XL]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -203,8 +217,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push ARMv7 image
         run: |
@@ -226,6 +240,9 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
     runs-on: self-hosted-ansible
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -236,8 +253,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Merge images into a multi-arch manifest
         run: |
@@ -259,6 +276,9 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
     runs-on: self-hosted-ansible
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -272,7 +292,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: develop
-          # token: ${{ secrets.DOCKERHUB_TOKEN }}
           token: ${{ secrets.MO_K8s_TOKEN }}
           repository: ${{ env.HELMREPO }}
           path: 'helm'        
