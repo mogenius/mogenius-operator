@@ -160,6 +160,9 @@ jobs:
       - prepare
       - passing-tests
     runs-on: [self-hosted, ARM64, XL]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -171,7 +174,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build ARM64 image
         run: |
@@ -183,16 +186,19 @@ jobs:
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
 
       - name: Push ARM64 image
-        if: github.ref == 'refs/heads/develop'
+        # if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
+          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-test
   
   build-armv7:
     needs: 
       - prepare
       - passing-tests
     runs-on: [self-hosted, ARM64, XL]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -204,7 +210,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.MO_K8s_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push ARMv7 image
         run: |
@@ -216,10 +222,10 @@ jobs:
           docker build -f ${{ env.DOCKERFILE }} --platform=linux/arm/v7 --build-arg GOOS=linux --build-arg GOARCH=arm --build-arg GOARM=7 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm7 -t ${{ env.IMAGE_NAME }}:latest-arm7 .
 
       - name: Push ARMv7 image
-        if: github.ref == 'refs/heads/develop'
+        # if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
+          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7-test
 
 
   merge-images:
