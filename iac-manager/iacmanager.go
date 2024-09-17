@@ -124,7 +124,7 @@ func addRemote() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
 		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
 	}
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Misc.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
+	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, GIT_VAULT_FOLDER)
 	err := gitmanager.AddRemote(folder, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), "origin")
 	if err != nil {
 		return err
