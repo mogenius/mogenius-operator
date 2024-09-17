@@ -1,62 +1,135 @@
 package kubernetes
 
 import (
+	"log"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
+	"os"
 	"testing"
 
 	"helm.sh/helm/v3/pkg/action"
 )
 
-func TestHelm(t *testing.T) {
-	testNamespace := "default"
-	testRepo := "bitnami"
-	testChartUrl := "https://charts.bitnami.com/bitnami"
-	testChart := "bitnami/nginx"
-	testRelease := "nginx-test"
-	testValues := "#values_yaml"
-	testDryRun := false
+const (
+	testNamespace = "default"
+	testRepo      = "bitnami"
+	testChartUrl  = "https://charts.bitnami.com/bitnami"
+	testChart     = "bitnami/nginx"
+	testRelease   = "nginx-test"
+	testValues    = "#values_yaml"
+	testDryRun    = false
+	helmConfPath  = "/tmp/registryConfigPath"
+)
 
-	defer func() {
-		// PAT_NAMESPACE_HELM_UNINSTALL - remove repo is purposely placed at the end
-		// no futher testing needed no error is sufficient
-		releaseUninstallData := HelmReleaseUninstallRequest{
-			Namespace: testNamespace,
-			Release:   testRelease,
-			DryRun:    testDryRun,
-		}
-		_, err := HelmReleaseUninstall(releaseUninstallData)
-		if err != nil {
-			t.Error(err)
-		}
-
-		// PAT_NAMESPACE_HELM_REPO_REMOVE - remove repo is purposely placed at the end
-		// no futher testing needed no error is sufficient
-		repoRemoveData := HelmRepoRemoveRequest{
-			Name: testRepo,
-		}
-		_, err = HelmRepoRemove(repoRemoveData)
-		if err != nil {
-			t.Error(err)
-		}
-	}()
-
-	// PAT_NAMESPACE_HELM_REPO_ADD
+func cleanupRepo() {
+	// PAT_NAMESPACE_HELM_REPO_REMOVE - remove repo is purposely placed at the end
 	// no futher testing needed no error is sufficient
+	repoRemoveData := HelmRepoRemoveRequest{
+		Name: testRepo,
+	}
+	_, err := HelmRepoRemove(repoRemoveData)
+	if err != nil {
+		log.Printf("%v", err)
+	}
+}
+
+func cleanupInstall() {
+	// PAT_NAMESPACE_HELM_UNINSTALL - remove repo is purposely placed at the end
+	// no futher testing needed no error is sufficient
+	releaseUninstallData := HelmReleaseUninstallRequest{
+		Namespace: testNamespace,
+		Release:   testRelease,
+		DryRun:    testDryRun,
+	}
+	_, err := HelmReleaseUninstall(releaseUninstallData)
+	if err != nil {
+		log.Printf("%v", err)
+	}
+}
+
+func deleteFolder(folderPath string) error {
+	err := os.RemoveAll(folderPath)
+	if err != nil {
+		log.Printf("Error deleting folder %s: %v", folderPath, err)
+		return err
+	}
+	log.Printf("Successfully deleted folder %s", folderPath)
+	return nil
+}
+
+func createRepoForTest(t *testing.T) error {
+	// prerequisite configs
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
+	InitHelmConfig()
+
 	repoAddData := HelmRepoAddRequest{
 		Name: testRepo,
 		Url:  testChartUrl,
 	}
 	_, err := HelmRepoAdd(repoAddData)
 	if err != nil {
-		t.Error(err)
+		t.Log(err)
 	}
+	return err
+}
 
-	// PAT_NAMESPACE_HELM_REPO_UPDATE
+func installForTests(t *testing.T) error {
+	helmInstallData := HelmChartInstallRequest{
+		Namespace: testNamespace,
+		Chart:     testChart,
+		Release:   testRelease,
+		Values:    testValues,
+		DryRun:    testDryRun,
+	}
+	_, err := HelmChartInstall(helmInstallData)
+	if err != nil {
+		t.Log(err)
+		return err
+	}
+	return nil
+}
+
+func TestHelmRepoAdd(t *testing.T) {
+	// clean config folder before test
+	deleteFolder(helmConfPath)
+
+	cleanupRepo() // cleanup if it existed before
+
+	// prerequisite configs
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
+	InitHelmConfig()
+
+	// test with
+	// helm --repository-config /tmp/registryConfigPath/helm/repositories.yaml repo list
 	// no futher testing needed no error is sufficient
-	_, err = HelmRepoUpdate()
+	// PAT_NAMESPACE_HELM_REPO_ADD
+	err := createRepoForTest(t)
 	if err != nil {
 		t.Error(err)
 	}
+	t.Cleanup(cleanupRepo)
+}
+
+func TestHelmRepoUpdate(t *testing.T) {
+	// prerequisite configs
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
+	InitHelmConfig()
+
+	// PAT_NAMESPACE_HELM_REPO_UPDATE
+	// no futher testing needed no error is sufficient
+	_, err := HelmRepoUpdate()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestHelmRepoList(t *testing.T) {
+	// prerequisite configs
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
+	InitHelmConfig()
+
+	createRepoForTest(t)
+	t.Cleanup(cleanupRepo)
 
 	// PAT_NAMESPACE_HELM_REPO_LIST
 	// check if repo is added
@@ -66,6 +139,7 @@ func TestHelm(t *testing.T) {
 	}
 	listSuccess := false
 	for _, v := range listRepoData {
+		t.Logf("Release found: %s", v.Name)
 		if v.Name == testRepo {
 			listSuccess = true
 			break
@@ -74,39 +148,68 @@ func TestHelm(t *testing.T) {
 	if !listSuccess {
 		t.Errorf("Repo '%s' not found but it should be", testRepo)
 	}
+}
+
+func TestHelmInstallRequest(t *testing.T) {
+	// prerequisite configs
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
+	InitHelmConfig()
+
+	createRepoForTest(t)
+	t.Cleanup(cleanupRepo)
+
+	cleanupInstall() // cleanup if it existed before
 
 	// PAT_NAMESPACE_HELM_INSTALL
 	// no futher testing needed no error is sufficient
-	helmInstallData := HelmChartInstallRequest{
-		Namespace: testNamespace,
-		Chart:     testChart,
-		Release:   "",
-		Values:    testValues,
-		DryRun:    testDryRun,
-	}
-	_, err = HelmChartInstall(helmInstallData)
+	err := installForTests(t)
 	if err != nil {
 		t.Error(err)
 	}
+	t.Cleanup(cleanupInstall)
+}
+
+func TestHelmUpgradeRequest(t *testing.T) {
+	// prerequisite configs
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
+	InitHelmConfig()
+
+	createRepoForTest(t)
+	t.Cleanup(cleanupRepo)
+
+	installForTests(t)
+	t.Cleanup(cleanupInstall)
 
 	// PAT_NAMESPACE_HELM_UPGRADE
 	// no futher testing needed no error is sufficient
 	releaseUpgradeData := HelmReleaseUpgradeRequest{
 		Namespace: testNamespace,
 		Chart:     testChart,
-		Release:   "",
+		Release:   testRelease,
 		Values:    testValues,
 		DryRun:    testDryRun,
 	}
-	_, err = HelmReleaseUpgrade(releaseUpgradeData)
+	_, err := HelmReleaseUpgrade(releaseUpgradeData)
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestHelmListRequest(t *testing.T) {
+	// prerequisite configs
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
+	InitHelmConfig()
+
+	createRepoForTest(t)
+	t.Cleanup(cleanupRepo)
+
+	installForTests(t)
+	t.Cleanup(cleanupInstall)
 
 	// PAT_NAMESPACE_HELM_LIST
 	// check if release is added
 	releaseListData := HelmReleaseListRequest{
-		Namespace: "",
+		Namespace: testNamespace,
 	}
 	releaseList, err := HelmReleaseList(releaseListData)
 	if err != nil {
@@ -114,6 +217,7 @@ func TestHelm(t *testing.T) {
 	}
 	listReleasesSuccess := false
 	for _, v := range releaseList {
+		t.Logf("Release found: %s", v.Name)
 		if v.Name == testRelease {
 			listReleasesSuccess = true
 			break
@@ -122,6 +226,18 @@ func TestHelm(t *testing.T) {
 	if !listReleasesSuccess {
 		t.Errorf("Release '%s' not found but it should be", testRelease)
 	}
+}
+
+func TestHelmReleases(t *testing.T) {
+	// prerequisite configs
+	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
+	InitHelmConfig()
+
+	createRepoForTest(t)
+	t.Cleanup(cleanupRepo)
+
+	installForTests(t)
+	t.Cleanup(cleanupInstall)
 
 	// PAT_NAMESPACE_HELM_STATUS
 	// no futher testing needed no error is sufficient
@@ -129,7 +245,7 @@ func TestHelm(t *testing.T) {
 		Namespace: testNamespace,
 		Release:   testRelease,
 	}
-	_, err = HelmReleaseStatus(releaseStatusData)
+	_, err := HelmReleaseStatus(releaseStatusData)
 	if err != nil {
 		t.Error(err)
 	}
