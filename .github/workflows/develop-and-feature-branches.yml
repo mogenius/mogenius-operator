@@ -10,6 +10,7 @@ on:
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
   DOCKERFILE: Dockerfile
+  DOCKER_CONFIG: ./docker-config.json
   HELMNAME: "mogenius-k8s-manager-dev"
   HELMREPO: "mogenius/helm-k8s-manager"
 
@@ -96,6 +97,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+    
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -108,6 +110,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          
 
       - name: Build AMD64 image
         run: |
