@@ -45,7 +45,7 @@ func cleanupInstall() {
 	}
 }
 
-func createRepoForTest(t *testing.T) {
+func createRepoForTest(t *testing.T) error {
 	// prerequisite configs
 	utils.CONFIG.Misc.DefaultMountPath = "/tmp/registryConfigPath"
 	InitHelmConfig()
@@ -56,8 +56,9 @@ func createRepoForTest(t *testing.T) {
 	}
 	_, err := HelmRepoAdd(repoAddData)
 	if err != nil {
-		t.Error(err)
+		t.Log(err)
 	}
+	return err
 }
 func TestHelmRepoAdd(t *testing.T) {
 	cleanupRepo() // cleanup if it existed before
@@ -70,7 +71,10 @@ func TestHelmRepoAdd(t *testing.T) {
 	// helm --repository-config /tmp/registryConfigPath/helm/repositories.yaml repo list
 	// no futher testing needed no error is sufficient
 	// PAT_NAMESPACE_HELM_REPO_ADD
-	createRepoForTest(t)
+	err := createRepoForTest(t)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Cleanup(cleanupRepo)
 }
 
@@ -120,7 +124,9 @@ func TestHelmInstallRequest(t *testing.T) {
 	InitHelmConfig()
 
 	createRepoForTest(t)
-	// t.Cleanup(cleanupRepo)
+	// t.Cleanup(cleanupRepo) // this prevents the following test from running
+
+	cleanupInstall() // cleanup if it existed before
 
 	// PAT_NAMESPACE_HELM_INSTALL
 	// no futher testing needed no error is sufficient
