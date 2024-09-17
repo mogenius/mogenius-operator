@@ -189,7 +189,7 @@ jobs:
         # if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-test
+          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
   
   build-armv7:
     needs: 
@@ -225,7 +225,7 @@ jobs:
         # if: github.ref == 'refs/heads/develop'
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7-test
+          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
 
 
   merge-images:
