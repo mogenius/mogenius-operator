@@ -207,7 +207,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// GET FILEREVISIONS
-	fileRevisions, err := ListFileRevisions(localPath, testFileInRepo)
+	fileRevisions, err := ListFileRevisions(localPath, testFileInRepo, "bla.yaml")
 	if err != nil {
 		t.Errorf("Error getting file revisions: %s", err.Error())
 	} else {
@@ -215,7 +215,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// DIFF FOR COMMIT
-	specificDiff, err := DiffForCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", testFileInRepo)
+	specificDiff, err := DiffForCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", testFileInRepo, "bla.yaml")
 	if err != nil {
 		t.Errorf("Error getting diff for commit: %s", err.Error())
 	} else {
