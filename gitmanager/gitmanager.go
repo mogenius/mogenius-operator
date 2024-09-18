@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/format/diff"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -344,102 +344,27 @@ func AddRemote(path string, remoteUrl string, remoteName string) error {
 	return nil
 }
 
-// LastDiff returns the last diff for a specific file in a given repository
-func LastDiff(repoPath string, filePath string) (hash string, diffStr string, updateTime time.Time, author string, err error) {
-	var diffOutput strings.Builder
+func unifiedDiff(filePath1 string, filePath2 string) (string, error) {
+	cmd := exec.Command("diff", "-u", "-N", filePath1, filePath2)
+	out, err := cmd.CombinedOutput()
 
-	// Open the Git repository at the given path
-	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
-		return "", "", updateTime, author, fmt.Errorf("failed to open repository: %w", err)
-	}
-
-	// Start iterating over the commit history starting from HEAD
-	commitIter, err := repo.Log(
-		&git.LogOptions{
-			FileName: &filePath,
-			Order:    git.LogOrderCommitterTime,
-		},
-	)
-	if err != nil {
-		return "", "", updateTime, author, fmt.Errorf("failed to retrieve commit history: %w", err)
-	}
-
-	err = commitIter.ForEach(func(commit *object.Commit) error {
-		// If the commit has a parent, compare it with the parent commit
-		if commit.NumParents() == 0 {
-			// No parent means it's the first commit, so stop
-			return nil
-		}
-
-		parentCommit, err := commit.Parent(0)
-		if err != nil {
-			return fmt.Errorf("failed to get parent commit: %w", err)
-		}
-
-		// Get the tree objects for the current commit and its parent
-		commitTree, err := commit.Tree()
-		if err != nil {
-			return fmt.Errorf("failed to get tree for commit: %w", err)
-		}
-
-		parentTree, err := parentCommit.Tree()
-		if err != nil {
-			return fmt.Errorf("failed to get tree for parent commit: %w", err)
-		}
-
-		// Get the patch/diff between the two trees
-		patch, err := parentTree.Patch(commitTree)
-		if err != nil {
-			return fmt.Errorf("failed to get diff: %w", err)
-		}
-
-		// Iterate through the patches and look for the specific file
-		for _, filePatch := range patch.FilePatches() {
-			from, to := filePatch.Files()
-			// Ensure the diff is for the correct file
-			if (from != nil && from.Path() == filePath) || (to != nil && to.Path() == filePath) {
-				for _, chunk := range filePatch.Chunks() {
-					if chunk.Type() == diff.Add {
-						diffOutput.WriteString(prefixLinesWith("+ ", chunk.Content()))
-					} else if chunk.Type() == diff.Delete {
-						diffOutput.WriteString(prefixLinesWith("- ", chunk.Content()))
-					} else {
-						// diffOutput.WriteString(prefixLinesWith("  ", chunk.Content()))
-					}
-				}
-				updateTime = commit.Committer.When
-				hash = commit.Hash.String()
-				author = commit.Author.Name + " <" + commit.Author.Email + ">"
-				// Stop once we find the diff for the specified file
-				return DiffFound
+		// diff returns exit code 1 if files differ
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if exitError.ExitCode() == 1 {
+				return string(out), nil
+			} else {
+				return "", fmt.Errorf("Error running diff: %s\n%s\n", err.Error(), string(out))
 			}
+		} else {
+			return "", err
 		}
-		// stop iteration if we found the diff
-		if err == DiffFound {
-			return err
-		}
-		return nil
-	})
-	if err != DiffFound {
-		return "", "", updateTime, author, fmt.Errorf("failed to iterate through commit history: %w", err)
 	}
-
-	// If no diff found for the file, return an error
-	if diffOutput.Len() == 0 {
-		return "", "", updateTime, author, fmt.Errorf("no changes found for the file: %s", filePath)
-	}
-
-	// shorten the diff output if it's too long
-	resultDif := diffOutput.String()
-	if len(diffOutput.String()) > Max_Diff_Lines {
-		resultDif = diffOutput.String()[:Max_Diff_Lines] + "..."
-	}
-	return hash, resultDif, updateTime, author, nil
+	return "", nil
 }
 
 func DiffForCommit(path string, commitHash string, filePath string) (string, error) {
-	var diffOutput strings.Builder
+	diffOutput := ""
 
 	repo, err := git.PlainOpen(path)
 	if err != nil {
@@ -480,34 +405,52 @@ func DiffForCommit(path string, commitHash string, filePath string) (string, err
 			return fmt.Errorf("failed to get tree for parent commit: %w", err)
 		}
 
-		// Get the patch/diff between the two trees
-		patch, err := parentTree.Patch(commitTree)
-		if err != nil {
-			return fmt.Errorf("failed to get diff: %w", err)
-		}
-
-		// Iterate through the patches and look for the specific file
-		for _, filePatch := range patch.FilePatches() {
-			from, to := filePatch.Files()
-			// Ensure the diff is for the correct file
-			if (from != nil && from.Path() == filePath) || (to != nil && to.Path() == filePath) {
-				for _, chunk := range filePatch.Chunks() {
-					if chunk.Type() == diff.Add {
-						diffOutput.WriteString(prefixLinesWith("+ ", chunk.Content()))
-					} else if chunk.Type() == diff.Delete {
-						diffOutput.WriteString(prefixLinesWith("- ", chunk.Content()))
-					} else {
-						// diffOutput.WriteString(prefixLinesWith("  ", chunk.Content()))
-					}
-				}
-				// Stop once we find the diff for the specified file
-				return DiffFound
+		// Get the file content at 'filePath' in current commit
+		fileEntryCurrent, err := commitTree.File(filePath)
+		var contentCurrent string
+		if err == nil {
+			contentCurrent, err = fileEntryCurrent.Contents()
+			if err != nil {
+				return fmt.Errorf("failed to get content of file in current commit: %w", err)
 			}
 		}
-		// stop iteration if we found the diff
-		if err == DiffFound {
-			return err
+
+		// Get the file content at 'filePath' in parent commit
+		fileEntryParent, err := parentTree.File(filePath)
+		var contentParent string
+		if err == nil {
+			contentParent, err = fileEntryParent.Contents()
+			if err != nil {
+				return fmt.Errorf("failed to get content of file in parent commit: %w", err)
+			}
 		}
+
+		// Write contents to temp files
+		tempFileCurrent, err := os.CreateTemp("", "current-*")
+		if err != nil {
+			return fmt.Errorf("failed to create temp file: %w", err)
+		}
+		defer os.Remove(tempFileCurrent.Name())
+		if _, err := tempFileCurrent.WriteString(contentCurrent); err != nil {
+			return fmt.Errorf("failed to write to temp file: %w", err)
+		}
+		tempFileCurrent.Close()
+
+		tempFileParent, err := os.CreateTemp("", "parent-*")
+		if err != nil {
+			return fmt.Errorf("failed to create temp file: %w", err)
+		}
+		defer os.Remove(tempFileParent.Name())
+		if _, err := tempFileParent.WriteString(contentParent); err != nil {
+			return fmt.Errorf("failed to write to temp file: %w", err)
+		}
+		tempFileParent.Close()
+
+		diffOutput, _ = unifiedDiff(tempFileParent.Name(), tempFileCurrent.Name())
+		if diffOutput != "" {
+			return DiffFound
+		}
+
 		return nil
 	})
 	if err != DiffFound {
@@ -515,16 +458,15 @@ func DiffForCommit(path string, commitHash string, filePath string) (string, err
 	}
 
 	// If no diff found for the file, return an error
-	if diffOutput.Len() == 0 {
+	if len(diffOutput) == 0 {
 		return "", fmt.Errorf("no changes found for the file: %s", filePath)
 	}
 
 	// shorten the diff output if it's too long
-	resultDif := diffOutput.String()
-	if len(diffOutput.String()) > Max_Diff_Lines {
-		resultDif = diffOutput.String()[:Max_Diff_Lines] + "..."
+	if len(diffOutput) > Max_Diff_Lines {
+		diffOutput = diffOutput[:Max_Diff_Lines] + "..."
 	}
-	return resultDif, nil
+	return diffOutput, nil
 }
 
 func prefixLinesWith(prefix, text string) string {
@@ -569,20 +511,6 @@ func ListFileRevisions(repoPath string, filePath string) ([]CommitRevision, erro
 		}
 		return nil
 	})
-
-	// no revisions found, get the last diff
-	if len(revisions) == 0 {
-		hash, diffStr, updateTime, author, err := LastDiff(repoPath, filePath)
-		if err != nil {
-			return nil, err
-		}
-		revisions = append(revisions, CommitRevision{
-			Hash:                hash,
-			Author:              author,
-			Date:                updateTime.Format(time.RFC3339),
-			DiffToPreviosCommit: diffStr,
-		})
-	}
 
 	if err != nil && err != MaxDiffsFound {
 		return nil, err

@@ -13,12 +13,12 @@ func TestIacManager(t *testing.T) {
 	InitDataModel()
 
 	// SETUP TEST REPO
-	utils.CONFIG.Iac.RepoUrl = "https://github.com/beneiltis/iac.git"
-	utils.CONFIG.Iac.RepoPat = "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" // testtoken only for test repo (not crtical) expires 2025-09-05
+	utils.CONFIG.Iac.RepoUrl = "https://github.com/mogenius/docs.git"
+	utils.CONFIG.Iac.RepoPat = ""
 	utils.CONFIG.Iac.RepoBranch = "main"
 	utils.CONFIG.Iac.AllowPull = true
 	utils.CONFIG.Iac.SyncFrequencyInSec = 10
-	utils.CONFIG.Misc.DefaultMountPath = os.TempDir()
+	utils.CONFIG.Kubernetes.GitVaultDataPath = os.TempDir()
 
 	err := gitInitRepo()
 	if err != nil {
@@ -27,25 +27,25 @@ func TestIacManager(t *testing.T) {
 		t.Log("Repo initialized ✅")
 	}
 
-	err = addRemote()
-	if err != nil {
-		t.Errorf("Error adding remote: %v", err)
-	} else {
-		t.Log("Remote added ✅")
-	}
-
-	err = SyncChanges()
-	if err != nil {
-		t.Errorf("Error syncing changes: %v", err)
-	} else {
-		t.Log("Changes synced ✅")
-	}
-
 	data := PrintIacStatus()
 	if len(data) < 100 {
 		t.Errorf("Error getting IAC status")
 	} else {
 		fmt.Print(data)
 		t.Log("IAC status retrieved ✅")
+	}
+
+	// NEW DIFF
+	utils.InitMogeniusContainerRegistryIngress()
+	exampleConfigmap := utils.InitUpgradeConfigMap()
+	exampleConfigmapYaml := utils.InitUpgradeConfigMapYaml()
+	tempPath := os.TempDir() + "/example-configmap.yaml"
+	os.WriteFile(tempPath, []byte(exampleConfigmapYaml), 0644)
+	diff, err := createDiffNewFromObject(exampleConfigmap, tempPath)
+	if err != nil {
+		t.Errorf("Error creating diff: %v", err)
+	} else {
+		fmt.Print(diff)
+		t.Log("Diff created ✅")
 	}
 }

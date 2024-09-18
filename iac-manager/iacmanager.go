@@ -1,12 +1,14 @@
 package iacmanager
 
 import (
+	"bytes"
 	"fmt"
 	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -204,7 +206,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		return
 	}
 
-	diff, err := createDiff(kind, namespace, resourceName, dataInf)
+	diff, err := createDiffNew(kind, namespace, resourceName, dataInf)
 	if err != nil {
 		UpdateResourceStatus(kind, namespace, resourceName, SyncStatePendingSync, fmt.Errorf("Error creating diff: %s", err.Error()))
 		return
@@ -220,13 +222,15 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		}
 	}
 
+	filename := fileNameForRaw(kind, namespace, resourceName)
+	gitFilePath := GitFilePathForRaw(kind, namespace, resourceName)
+
 	// all changes will be reversed if PULL only is allowed
 	if utils.CONFIG.Iac.AllowPull && !utils.CONFIG.Iac.AllowPush && diff != "" {
-		filename := fileNameForRaw(kind, namespace, resourceName)
 		if _, err := os.Stat(filename); err == nil {
 			err = kubernetesRevertFromPath(filename)
 			if err == nil {
-				iaclogger.Warnf("🧹 Detected %s change. Reverting %s/%s.", kind, namespace, resourceName)
+				iaclogger.Warnf("🧹 Detected %s change. Reverting %s", kind, gitFilePath)
 			}
 		}
 		return
@@ -255,7 +259,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSyncError, fmt.Errorf("Error cleaning YAML: %s", err.Error()))
 		return
 	}
-	filename := fileNameForRaw(kind, namespace, resourceName)
+
 	err = os.WriteFile(filename, []byte(data), 0755)
 	if err != nil {
 		UpdateResourceStatus(kind, namespace, resourceName, SyncStateSyncError, fmt.Errorf("Error writing file: %s", err.Error()))
@@ -271,7 +275,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 			Author:     utils.CONFIG.Git.GitUserName + " <" + utils.CONFIG.Git.GitUserEmail + ">",
 			Kind:       kind,
 			Name:       resourceName,
-			Path:       filename,
+			Path:       gitFilePath,
 			Message:    fmt.Sprintf("Updated [%s] %s/%s", kind, namespace, resourceName),
 			ChangeType: SyncChangeTypeModify,
 		})
@@ -296,7 +300,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 		return
 	}
 
-	diff, err := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
+	diff, err := createDiffNew(kind, namespace, resourceName, make(map[string]interface{}))
 	if err != nil {
 		UpdateResourceStatus(kind, namespace, resourceName, SyncStateDeleted, fmt.Errorf("Error creating diff: %s", err.Error()))
 		return
@@ -346,6 +350,54 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 			ChangeType: SyncChangeTypeDelete,
 		})
 	}
+}
+
+func createDiffNew(kind string, namespace string, resourceName string, dataInf interface{}) (string, error) {
+	filePath1 := fileNameForRaw(kind, namespace, resourceName)
+
+	yamlRawData2, err := yaml.Marshal(dataInf)
+	if err != nil {
+		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
+	}
+	yamlData2Str, err := utils.CleanYaml(string(yamlRawData2), utils.IacSecurityNeedsNothing)
+	if err != nil {
+		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
+	}
+
+	return createDiffNewFromFile(yamlData2Str, filePath1)
+}
+
+func createDiffNewFromObject(dataInf interface{}, filePath string) (string, error) {
+	yamlRawData, err := yaml.Marshal(dataInf)
+	if err != nil {
+		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
+	}
+	yamlDataStr, err := utils.CleanYaml(string(yamlRawData), utils.IacSecurityNeedsNothing)
+	if err != nil {
+		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
+	}
+
+	return createDiffNewFromFile(yamlDataStr, filePath)
+}
+
+func createDiffNewFromFile(yaml string, filePath string) (string, error) {
+	cmd := exec.Command("diff", "-u", "-N", filePath, "-")
+	cmd.Stdin = bytes.NewBufferString(yaml)
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		// diff returns exit code 1 if files differ
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if exitError.ExitCode() == 1 {
+				return string(out), nil
+			} else {
+				return "", fmt.Errorf("Error running diff: %s\n%s\n", err.Error(), string(out))
+			}
+		} else {
+			return "", err
+		}
+	}
+	return "", nil
 }
 
 func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) (string, error) {
@@ -565,7 +617,7 @@ func createFolderForResource(resource string, namespace string) error {
 func ResetFile(filePath, commitHash string) error {
 	kind, _, name := parseFileToK8sParts(filePath)
 
-	err := gitmanager.ResetFileToCommit(utils.CONFIG.Kubernetes.GitVaultDataPath, filePath, commitHash)
+	err := gitmanager.ResetFileToCommit(utils.CONFIG.Kubernetes.GitVaultDataPath, commitHash, filePath)
 	if err != nil {
 		iaclogger.Errorf("Error resetting file: %s", err.Error())
 		return err
@@ -811,7 +863,7 @@ func kubernetesReplaceResource(file string) error {
 		}
 	}
 
-	diff, err := createDiff(kind, namespace, name, existingResource)
+	diff, err := createDiffNew(kind, namespace, name, existingResource)
 	if err != nil {
 		UpdateResourceStatusByFile(file, SyncStateSyncError, fmt.Errorf("Error creating diff for %s: %s", file, err.Error()))
 		return nil
