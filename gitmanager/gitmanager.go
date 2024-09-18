@@ -346,6 +346,7 @@ func AddRemote(path string, remoteUrl string, remoteName string) error {
 
 func unifiedDiff(filePath1 string, filePath2 string) (string, error) {
 	cmd := exec.Command("diff", "-u", "-N", filePath1, filePath2)
+	cmd.Dir = os.TempDir()
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -363,7 +364,7 @@ func unifiedDiff(filePath1 string, filePath2 string) (string, error) {
 	return "", nil
 }
 
-func DiffForCommit(path string, commitHash string, filePath string) (string, error) {
+func DiffForCommit(path string, commitHash string, filePath string, resourceName string) (string, error) {
 	diffOutput := ""
 
 	repo, err := git.PlainOpen(path)
@@ -426,27 +427,21 @@ func DiffForCommit(path string, commitHash string, filePath string) (string, err
 		}
 
 		// Write contents to temp files
-		tempFileCurrent, err := os.CreateTemp("", "current-*")
+		current := resourceName
+		parent := "_" + resourceName
+		err = os.WriteFile(os.TempDir()+"/"+current, []byte(contentCurrent), 0644)
 		if err != nil {
-			return fmt.Errorf("failed to create temp file: %w", err)
+			return fmt.Errorf("failed to write to temp file (%s): %w", current, err)
 		}
-		defer os.Remove(tempFileCurrent.Name())
-		if _, err := tempFileCurrent.WriteString(contentCurrent); err != nil {
-			return fmt.Errorf("failed to write to temp file: %w", err)
-		}
-		tempFileCurrent.Close()
+		defer os.Remove(os.TempDir() + "/" + current)
 
-		tempFileParent, err := os.CreateTemp("", "parent-*")
+		err = os.WriteFile(os.TempDir()+"/"+parent, []byte(contentParent), 0644)
 		if err != nil {
-			return fmt.Errorf("failed to create temp file: %w", err)
+			return fmt.Errorf("failed to write to temp file (%s): %w", parent, err)
 		}
-		defer os.Remove(tempFileParent.Name())
-		if _, err := tempFileParent.WriteString(contentParent); err != nil {
-			return fmt.Errorf("failed to write to temp file: %w", err)
-		}
-		tempFileParent.Close()
+		defer os.Remove(os.TempDir() + "/" + parent)
 
-		diffOutput, _ = unifiedDiff(tempFileParent.Name(), tempFileCurrent.Name())
+		diffOutput, _ = unifiedDiff(parent, current)
 		if diffOutput != "" {
 			return DiffFound
 		}
@@ -478,7 +473,7 @@ func prefixLinesWith(prefix, text string) string {
 	return strings.Join(lines, "\n")
 }
 
-func ListFileRevisions(repoPath string, filePath string) ([]CommitRevision, error) {
+func ListFileRevisions(repoPath string, filePath string, resourceName string) ([]CommitRevision, error) {
 	revisions := []CommitRevision{}
 
 	// Open the repository
@@ -497,7 +492,7 @@ func ListFileRevisions(repoPath string, filePath string) ([]CommitRevision, erro
 	}
 
 	err = iter.ForEach(func(c *object.Commit) error {
-		diff, _ := DiffForCommit(repoPath, c.Hash.String(), filePath)
+		diff, _ := DiffForCommit(repoPath, c.Hash.String(), filePath, resourceName)
 		if diff != "" {
 			revisions = append(revisions, CommitRevision{
 				Hash:                c.Hash.String(),

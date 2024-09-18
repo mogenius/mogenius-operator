@@ -313,7 +313,7 @@ func UpdateResourceStatus(kind string, namespace string, name string, state Sync
 		newStatus.Error = errMsg.Error()
 	}
 
-	revisions, _ := gitmanager.ListFileRevisions(utils.CONFIG.Kubernetes.GitVaultDataPath, key)
+	revisions, _ := gitmanager.ListFileRevisions(utils.CONFIG.Kubernetes.GitVaultDataPath, key, name+".yaml")
 	for index, rev := range revisions {
 		// latest revision
 		if index == 0 {
@@ -354,7 +354,7 @@ func AddChangedFile(file ChangedFile) {
 			return
 		}
 	}
-	revisions, _ := gitmanager.ListFileRevisions(utils.CONFIG.Kubernetes.GitVaultDataPath, file.Path)
+	revisions, _ := gitmanager.ListFileRevisions(utils.CONFIG.Kubernetes.GitVaultDataPath, file.Path, file.Name+".yaml")
 	for index, rev := range revisions {
 		// latest revision
 		if index == 0 {
