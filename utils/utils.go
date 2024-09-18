@@ -51,9 +51,10 @@ const (
 type IacSecurity string
 
 const (
-	IacSecurityNeedsNothing    IacSecurity = "Nothing" // No encryption or decryption needed
-	IacSecurityNeedsDecryption IacSecurity = "Decrypt" // Decrypt the data field values
-	IacSecurityNeedsEncryption IacSecurity = "Encrypt" // Encrypt the data field values
+	IacSecurityNeedsNothing                     IacSecurity = "Nothing"                  // No encryption or decryption needed
+	IacSecurityNeedsDecryption                  IacSecurity = "Decrypt"                  // Decrypt the data field values
+	IacSecurityNeedsEncryption                  IacSecurity = "Encrypt"                  // Encrypt the data field values
+	IacSecurityNeedsEncryptionButStateIsUnknown IacSecurity = "EncryptButStateIsUnknown" // Encrypt the data field values
 )
 
 // this includes the yaml-templates folder into the binary
@@ -372,7 +373,8 @@ func CleanObject(data map[string]interface{}, treatment IacSecurity) (map[string
 		removeFieldAtPath(data, "clusterIP", []string{"spec"}, []string{})
 		removeFieldAtPath(data, "clusterIPs", []string{"spec"}, []string{})
 	case "Secret":
-		if treatment == IacSecurityNeedsEncryption {
+		switch treatment {
+		case IacSecurityNeedsEncryption:
 			// Encrypt the data field values
 			for k, v := range data["data"].(map[string]interface{}) {
 				encryptStr, err := EncryptString(CONFIG.Kubernetes.ApiKey, v.(string))
@@ -381,8 +383,7 @@ func CleanObject(data map[string]interface{}, treatment IacSecurity) (map[string
 				}
 				data["data"].(map[string]interface{})[k] = encryptStr
 			}
-		}
-		if treatment == IacSecurityNeedsDecryption {
+		case IacSecurityNeedsDecryption:
 			// Encrypt the data field values
 			for k, v := range data["data"].(map[string]interface{}) {
 				decryptStr, err := DecryptString(CONFIG.Kubernetes.ApiKey, v.(string))
@@ -395,6 +396,46 @@ func CleanObject(data map[string]interface{}, treatment IacSecurity) (map[string
 	}
 
 	return data, nil
+}
+
+func EncryptSecretIfNecessary(filePath string) (changedFile bool, error error) {
+	yamlData, err := os.ReadFile(filePath)
+	if err != nil {
+		return changedFile, err
+	}
+
+	var dataMap map[string]interface{}
+	err = yaml.Unmarshal([]byte(yamlData), &dataMap)
+	if err != nil {
+		return changedFile, fmt.Errorf("Error CleanYaml unmarshalling yaml: %s", err.Error())
+	}
+
+	// Encrypt the data field values
+	for k, v := range dataMap["data"].(map[string]interface{}) {
+		isEncrypted := IsEncrypted(v.(string))
+		if !isEncrypted {
+			encryptStr, err := EncryptString(CONFIG.Kubernetes.ApiKey, v.(string))
+			if err != nil {
+				return false, err
+			}
+			dataMap["data"].(map[string]interface{})[k] = encryptStr
+			changedFile = true
+		}
+		// do nothing if it is already encrypted
+	}
+	if !changedFile {
+		return changedFile, nil
+	}
+
+	cleanedYaml, err := yaml.Marshal(dataMap)
+	if err != nil {
+		return false, fmt.Errorf("Error marshalling yaml: %s", err.Error())
+	}
+
+	// Write the cleaned yaml back to the file
+	err = os.WriteFile(filePath, cleanedYaml, 0644)
+
+	return changedFile, err
 }
 
 func removeFieldAtPath(data map[string]interface{}, field string, targetPath []string, currentPath []string) {
@@ -447,6 +488,12 @@ func isEmptyValue(value interface{}) bool {
 		return false
 	}
 }
+
+func IsEncrypted(stringTocheck string) bool {
+	_, err := DecryptString(CONFIG.Kubernetes.ApiKey, stringTocheck)
+	return err == nil
+}
+
 func EncryptString(password string, plaintext string) (string, error) {
 	key := []byte(password)
 	// Ensure the key length is 16, 24, or 32 bytes

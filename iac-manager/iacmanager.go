@@ -786,7 +786,11 @@ func parseFileToK8sParts(file string) (kind string, namespace string, name strin
 }
 
 func kubernetesReplaceResource(file string) error {
-	filePath := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, file)
+	filePath := file
+	if !strings.HasPrefix(file, "/") {
+		filePath = fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.GitVaultDataPath, file)
+	}
+
 	if shouldSkipResource(filePath) {
 		return nil
 	}
@@ -796,6 +800,15 @@ func kubernetesReplaceResource(file string) error {
 	if err != nil && !apierrors.IsNotFound(err) {
 		UpdateResourceStatusByFile(file, SyncStateSynced, fmt.Errorf("Error getting existing kubernetes resource %s: %s", file, err.Error()))
 		return nil
+	}
+
+	// make sure secrets are encrypted
+	if kind == "secrets" {
+		err := EncryptUnencryptedSecrets(filePath)
+		if err != nil {
+			UpdateResourceStatusByFile(file, SyncStateSyncError, fmt.Errorf("Error encrypting unencrypted secrets: %s", err.Error()))
+			return err
+		}
 	}
 
 	diff, err := createDiff(kind, namespace, name, existingResource)
@@ -853,6 +866,28 @@ EOF`, decryptedYaml)
 	}
 
 	UpdateResourceStatusByFile(file, SyncStateSynced, nil)
+	return nil
+}
+
+func EncryptUnencryptedSecrets(filePath string) error {
+	// encrypt if needed
+	fileChanged, err := utils.EncryptSecretIfNecessary(filePath)
+	if err != nil {
+		return err
+	}
+
+	if fileChanged {
+		// push it back to the repo
+		kind, namespace, resourceName := parseFileToK8sParts(filePath)
+		AddChangedFile(ChangedFile{
+			Name:       resourceName,
+			Kind:       kind,
+			Path:       filePath,
+			Message:    fmt.Sprintf("Encrypted [%s] %s/%s", kind, namespace, resourceName),
+			ChangeType: SyncChangeTypeModify,
+		})
+	}
+
 	return nil
 }
 
