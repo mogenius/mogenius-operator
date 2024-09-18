@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/netip"
-	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -571,7 +570,6 @@ func GenerateSystemCheckResponse(entries []SystemCheckEntry) SystemCheckResponse
 
 func SystemCheckTerminalString(entries []SystemCheckEntry) string {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Check", "HelmStatus", "IsRunning", "Required", "ExecTime", "Message"})
 	for index, entry := range entries {
 		reqStr := "yes"

@@ -18,7 +18,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/kylelemons/godebug/pretty"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -206,7 +205,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		return
 	}
 
-	diff, err := createDiffNew(kind, namespace, resourceName, dataInf)
+	diff, err := createDiff(kind, namespace, resourceName, dataInf)
 	if err != nil {
 		UpdateResourceStatus(kind, namespace, resourceName, SyncStatePendingSync, fmt.Errorf("Error creating diff: %s", err.Error()))
 		return
@@ -300,7 +299,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 		return
 	}
 
-	diff, err := createDiffNew(kind, namespace, resourceName, make(map[string]interface{}))
+	diff, err := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
 	if err != nil {
 		UpdateResourceStatus(kind, namespace, resourceName, SyncStateDeleted, fmt.Errorf("Error creating diff: %s", err.Error()))
 		return
@@ -352,7 +351,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	}
 }
 
-func createDiffNew(kind string, namespace string, resourceName string, dataInf interface{}) (string, error) {
+func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) (string, error) {
 	filePath1 := fileNameForRaw(kind, namespace, resourceName)
 
 	yamlRawData2, err := yaml.Marshal(dataInf)
@@ -364,23 +363,10 @@ func createDiffNew(kind string, namespace string, resourceName string, dataInf i
 		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
 	}
 
-	return createDiffNewFromFile(yamlData2Str, filePath1)
+	return createDiffFromFile(yamlData2Str, filePath1)
 }
 
-func createDiffNewFromObject(dataInf interface{}, filePath string) (string, error) {
-	yamlRawData, err := yaml.Marshal(dataInf)
-	if err != nil {
-		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
-	}
-	yamlDataStr, err := utils.CleanYaml(string(yamlRawData), utils.IacSecurityNeedsNothing)
-	if err != nil {
-		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
-	}
-
-	return createDiffNewFromFile(yamlDataStr, filePath)
-}
-
-func createDiffNewFromFile(yaml string, filePath string) (string, error) {
+func createDiffFromFile(yaml string, filePath string) (string, error) {
 	cmd := exec.Command("diff", "-u", "-N", filePath, "-")
 	cmd.Stdin = bytes.NewBufferString(yaml)
 	out, err := cmd.CombinedOutput()
@@ -398,49 +384,6 @@ func createDiffNewFromFile(yaml string, filePath string) (string, error) {
 		}
 	}
 	return "", nil
-}
-
-func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) (string, error) {
-	filename := fileNameForRaw(kind, namespace, resourceName)
-	return createDiffFromFile(filename, dataInf)
-}
-
-func createDiffFromFile(filename string, dataInf interface{}) (string, error) {
-	yamlData1, err := os.ReadFile(filename)
-	if yamlData1 == nil {
-		yamlData1 = []byte{}
-	}
-	yamlData1Str, err := utils.CleanYaml(string(yamlData1), utils.IacSecurityNeedsDecryption)
-	if err != nil {
-		return "", err
-	}
-
-	yamlRawData2, err := yaml.Marshal(dataInf)
-	if err != nil {
-		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
-	}
-	yamlData2Str, err := utils.CleanYaml(string(yamlRawData2), utils.IacSecurityNeedsNothing)
-	if err != nil {
-		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
-	}
-
-	var obj1, obj2 interface{}
-
-	err = yaml.Unmarshal([]byte(yamlData1Str), &obj1)
-	if err != nil {
-		return "", fmt.Errorf("Error unmarshalling yaml1 for diff: %s", err.Error())
-	}
-	if obj1 == nil {
-		obj1 = make(map[string]interface{})
-	}
-
-	err = yaml.Unmarshal([]byte(yamlData2Str), &obj2)
-	if err != nil {
-		return "", fmt.Errorf("Error unmarshalling yaml2 for diff: %s", err.Error())
-	}
-
-	diffRaw := pretty.Compare(obj1, obj2)
-	return diffRaw, nil
 }
 
 func insertPATIntoURL(gitRepoURL, pat string) string {
@@ -736,7 +679,7 @@ func pushChanges() error {
 	iaclogger.Infof("🔄 Pushed %d changes to remote repository.", ChangedFilesLen())
 	if utils.CONFIG.Misc.Debug {
 		for _, file := range GetChangedFiles() {
-			iaclogger.Info(file)
+			iaclogger.Info(file.Name)
 		}
 	}
 	ClearChangedFiles()
@@ -863,7 +806,7 @@ func kubernetesReplaceResource(file string) error {
 		}
 	}
 
-	diff, err := createDiffNew(kind, namespace, name, existingResource)
+	diff, err := createDiff(kind, namespace, name, existingResource)
 	if err != nil {
 		UpdateResourceStatusByFile(file, SyncStateSyncError, fmt.Errorf("Error creating diff for %s: %s", file, err.Error()))
 		return nil

@@ -37,11 +37,10 @@ func TestIacManager(t *testing.T) {
 
 	// NEW DIFF
 	utils.InitMogeniusContainerRegistryIngress()
-	exampleConfigmap := utils.InitUpgradeConfigMap()
 	exampleConfigmapYaml := utils.InitUpgradeConfigMapYaml()
 	tempPath := os.TempDir() + "/example-configmap.yaml"
 	os.WriteFile(tempPath, []byte(exampleConfigmapYaml), 0644)
-	diff, err := createDiffNewFromObject(exampleConfigmap, tempPath)
+	diff, err := createDiffFromFile(exampleConfigmapYaml, tempPath)
 	if err != nil {
 		t.Errorf("Error creating diff: %v", err)
 	} else {
