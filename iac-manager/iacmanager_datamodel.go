@@ -11,7 +11,6 @@ import (
 
 type IacManagerStatus struct {
 	SyncInfo                      IacManagerSyncInfo                 `json:"syncInfo"`
-	CommitHistory                 []GitActionStatus                  `json:"commitHistory"`
 	LastSuccessfullyAppliedCommit GitActionStatus                    `json:"lastSuccessfullyAppliedCommit"`
 	IacConfiguration              IacConfiguration                   `json:"iacConfiguration"`
 	ResourceStates                map[string]IacManagerResourceState `json:"resourceStates"`
@@ -122,7 +121,6 @@ var dataModelMutex sync.Mutex
 func InitDataModel() {
 	dataModel = IacManagerStatus{
 		SyncInfo:         IacManagerSyncInfo{},
-		CommitHistory:    []GitActionStatus{},
 		IacConfiguration: iacConfigurationFromYamlConfig(),
 		ResourceStates:   make(map[string]IacManagerResourceState),
 	}
@@ -204,23 +202,6 @@ func SetSyncError(err error) {
 		dataModel.SyncInfo.SyncError = updatedString
 		NotifyChange(IacChangeTypeSyncError)
 	}
-}
-
-func SetCommitHistory(commits []*object.Commit) {
-	dataModelMutex.Lock()
-	objects := []GitActionStatus{}
-	for _, commit := range commits {
-		objects = append(objects, GitActionStatus{
-			CommitAuthor:  commit.Author.Name,
-			CommitDate:    commit.Author.When.Format(time.RFC3339),
-			CommitHash:    commit.Hash.String(),
-			CommitMsg:     commit.Message,
-			LastExecution: time.Now().Format(time.RFC3339),
-		})
-	}
-	dataModel.CommitHistory = objects
-	dataModelMutex.Unlock()
-	NotifyChange(IacChangeTypeLastPullUpdated)
 }
 
 func SetLastSuccessfullyAppliedCommit(commit *object.Commit) {

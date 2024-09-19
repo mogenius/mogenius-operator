@@ -584,15 +584,6 @@ func pullChanges(lastAppliedCommit GitActionStatus) (lastCommit *object.Commit, 
 		return
 	}
 
-	defer func() {
-		commits, err := gitmanager.GetLastCommits(utils.CONFIG.Kubernetes.GitVaultDataPath, gitmanager.Max_Commit_History)
-		if err != nil {
-			iaclogger.Errorf("Error getting last commit: %s", err.Error())
-			return
-		}
-		SetCommitHistory(commits)
-	}()
-
 	// Pull changes from the remote repository
 	lastCommit, err := gitmanager.Pull(utils.CONFIG.Kubernetes.GitVaultDataPath, "origin", utils.CONFIG.Iac.RepoBranch)
 	if err != nil {
