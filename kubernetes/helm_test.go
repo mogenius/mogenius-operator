@@ -18,7 +18,7 @@ const (
 	testRelease   = "nginx-test"
 	testValues    = "#values_yaml"
 	testDryRun    = false
-	helmConfPath  = "/tmp/registryConfigPath"
+	helmConfPath  = "./testData/registryConfigPath"
 )
 
 func cleanupRepo() {
@@ -59,7 +59,7 @@ func deleteFolder(folderPath string) error {
 
 func createRepoForTest(t *testing.T) error {
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
+	utils.CONFIG.Kubernetes.HelmDataPath = helmConfPath
 	InitHelmConfig()
 
 	repoAddData := HelmRepoAddRequest{
@@ -74,6 +74,10 @@ func createRepoForTest(t *testing.T) error {
 }
 
 func installForTests(t *testing.T) error {
+	// prerequisite configs
+	utils.CONFIG.Kubernetes.HelmDataPath = helmConfPath
+	InitHelmConfig()
+
 	helmInstallData := HelmChartInstallRequest{
 		Namespace: testNamespace,
 		Chart:     testChart,
@@ -89,6 +93,10 @@ func installForTests(t *testing.T) error {
 	return nil
 }
 
+func testSetup() {
+	utils.CONFIG.Kubernetes.HelmDataPath = helmConfPath
+	InitHelmConfig()
+}
 func TestHelmRepoAdd(t *testing.T) {
 	// clean config folder before test
 	deleteFolder(helmConfPath)
@@ -96,8 +104,7 @@ func TestHelmRepoAdd(t *testing.T) {
 	cleanupRepo() // cleanup if it existed before
 
 	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
-	InitHelmConfig()
+	testSetup()
 
 	// test with
 	// helm --repository-config /tmp/registryConfigPath/helm/repositories.yaml repo list
@@ -111,9 +118,7 @@ func TestHelmRepoAdd(t *testing.T) {
 }
 
 func TestHelmRepoUpdate(t *testing.T) {
-	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
-	InitHelmConfig()
+	testSetup()
 
 	// PAT_NAMESPACE_HELM_REPO_UPDATE
 	// no futher testing needed no error is sufficient
@@ -124,9 +129,7 @@ func TestHelmRepoUpdate(t *testing.T) {
 }
 
 func TestHelmRepoList(t *testing.T) {
-	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
-	InitHelmConfig()
+	testSetup()
 
 	createRepoForTest(t)
 	t.Cleanup(cleanupRepo)
@@ -151,9 +154,7 @@ func TestHelmRepoList(t *testing.T) {
 }
 
 func TestHelmInstallRequest(t *testing.T) {
-	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
-	InitHelmConfig()
+	testSetup()
 
 	createRepoForTest(t)
 	t.Cleanup(cleanupRepo)
@@ -170,10 +171,7 @@ func TestHelmInstallRequest(t *testing.T) {
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
-	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
-	InitHelmConfig()
-
+	testSetup()
 	createRepoForTest(t)
 	t.Cleanup(cleanupRepo)
 
@@ -196,10 +194,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 }
 
 func TestHelmListRequest(t *testing.T) {
-	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
-	InitHelmConfig()
-
+	testSetup()
 	createRepoForTest(t)
 	t.Cleanup(cleanupRepo)
 
@@ -229,9 +224,7 @@ func TestHelmListRequest(t *testing.T) {
 }
 
 func TestHelmReleases(t *testing.T) {
-	// prerequisite configs
-	utils.CONFIG.Misc.DefaultMountPath = helmConfPath
-	InitHelmConfig()
+	testSetup()
 
 	createRepoForTest(t)
 	t.Cleanup(cleanupRepo)
