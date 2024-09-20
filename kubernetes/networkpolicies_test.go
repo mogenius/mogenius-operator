@@ -3,9 +3,13 @@ package kubernetes
 import (
 	"mogenius-k8s-manager/dtos"
 	"testing"
+
+	coreV1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func CreateNetworkPolicyServiceWithLabelTest(t *testing.T) {
+func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	var namespace = dtos.K8sNamespaceDto{
 		Name:        "mogenius",
 		Id:          "mogenius-123",
@@ -26,17 +30,16 @@ func CreateNetworkPolicyServiceWithLabelTest(t *testing.T) {
 	}
 	var labelPolicy = dtos.LabeledNetworkPolicyParams{
 		Name: "mogenius-policy-123",
-		Type: dtos.Egress,
-		Ports: []dtos.Port{
+		Type: dtos.Ingress,
+		Ports: []v1.NetworkPolicyPort{
 			{
-				Protocol: "TCP",
-				Port:     80,
-			},
-			{
-				Protocol: "UDP",
-				Port:     12345,
+				Protocol: coreV1.ProtocolTCP,
+				Port:     intstr.FromInt(80),
 			},
 		},
 	}
-	CreateNetworkPolicyServiceWithLabel(namespace, service, labelPolicy)
+	err := CreateNetworkPolicyServiceWithLabel(namespace, service, labelPolicy)
+	if err != nil {
+		t.Errorf("Error creating network policy: %s", err.Error())
+	}
 }

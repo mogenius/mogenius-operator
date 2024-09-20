@@ -50,7 +50,7 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 	}(wg)
 }
 
-func CreateNetworkPolicyServiceWithLabel(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, labelPolicy dtos.LabeledNetworkPolicyParams) {
+func CreateNetworkPolicyServiceWithLabel(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, labelPolicy dtos.LabeledNetworkPolicyParams) error {
 	netpol := punqUtils.InitNetPolService()
 
 	netpol.ObjectMeta.Name = labelPolicy.Name
@@ -64,12 +64,32 @@ func CreateNetworkPolicyServiceWithLabel(namespace dtos.K8sNamespaceDto, service
 		if aPort.Protocol == "UDP" {
 			proto = v1Core.ProtocolUDP
 		}
+
 		if labelPolicy.Type == dtos.Ingress {
-			netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
+			if len(netpol.Spec.Ingress) == 0 {
+				netpol.Spec.Ingress = append(netpol.Spec.Ingress, v1.NetworkPolicyIngressRule{})
+			}
+			var rule v1.NetworkPolicyIngressRule = netpol.Spec.Ingress[0]
+			rule.From = append(rule.From, v1.NetworkPolicyPeer{
+				IPBlock: &v1.IPBlock{
+					CIDR: "0.0.0.0/0",
+				},
+			})
+
+			rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
 				Port: &port, Protocol: &proto,
 			})
 		} else {
-			netpol.Spec.Egress[0].Ports = append(netpol.Spec.Egress[0].Ports, v1.NetworkPolicyPort{
+			if len(netpol.Spec.Egress) == 0 {
+				netpol.Spec.Egress = append(netpol.Spec.Egress, v1.NetworkPolicyEgressRule{})
+			}
+			var rule v1.NetworkPolicyEgressRule = netpol.Spec.Egress[0]
+			rule.To = append(rule.To, v1.NetworkPolicyPeer{
+				IPBlock: &v1.IPBlock{
+					CIDR: "0.0.0.0/0",
+				},
+			})
+			rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
 				Port: &port, Protocol: &proto,
 			})
 		}
@@ -79,7 +99,9 @@ func CreateNetworkPolicyServiceWithLabel(namespace dtos.K8sNamespaceDto, service
 	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 	if err != nil {
 		K8sLogger.Errorf("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
+		return err
 	}
+	return nil
 }
 
 // func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
