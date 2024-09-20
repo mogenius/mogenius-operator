@@ -376,21 +376,25 @@ func CleanObject(data map[string]interface{}, treatment IacSecurity) (map[string
 		switch treatment {
 		case IacSecurityNeedsEncryption:
 			// Encrypt the data field values
-			for k, v := range data["data"].(map[string]interface{}) {
-				encryptStr, err := EncryptString(CONFIG.Kubernetes.ApiKey, v.(string))
-				if err != nil {
-					return nil, err
+			if data["data"] != nil {
+				for k, v := range data["data"].(map[string]interface{}) {
+					encryptStr, err := EncryptString(CONFIG.Kubernetes.ApiKey, v.(string))
+					if err != nil {
+						return nil, err
+					}
+					data["data"].(map[string]interface{})[k] = encryptStr
 				}
-				data["data"].(map[string]interface{})[k] = encryptStr
 			}
 		case IacSecurityNeedsDecryption:
 			// Encrypt the data field values
-			for k, v := range data["data"].(map[string]interface{}) {
-				decryptStr, err := DecryptString(CONFIG.Kubernetes.ApiKey, v.(string))
-				if err != nil {
-					return nil, err
+			if data["data"] != nil {
+				for k, v := range data["data"].(map[string]interface{}) {
+					decryptStr, err := DecryptString(CONFIG.Kubernetes.ApiKey, v.(string))
+					if err != nil {
+						return nil, err
+					}
+					data["data"].(map[string]interface{})[k] = decryptStr
 				}
-				data["data"].(map[string]interface{})[k] = decryptStr
 			}
 		}
 	}

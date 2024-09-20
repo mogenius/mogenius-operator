@@ -355,7 +355,7 @@ func ClearChangedFiles() {
 	changedFiles = []ChangedFile{}
 }
 
-func ChangedFilesEmpty() bool {
+func IsChangedFilesEmpty() bool {
 	return len(changedFiles) <= 0
 }
 

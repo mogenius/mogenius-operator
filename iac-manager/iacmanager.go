@@ -1,7 +1,6 @@
 package iacmanager
 
 import (
-	"bytes"
 	"fmt"
 	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/kubernetes"
@@ -17,6 +16,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
+	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	log "github.com/sirupsen/logrus"
 )
@@ -360,15 +360,47 @@ func createDiff(kind string, namespace string, resourceName string, dataInf inte
 	}
 	yamlData2Str, err := utils.CleanYaml(string(yamlRawData2), utils.IacSecurityNeedsNothing)
 	if err != nil {
-		return "", fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
+		return "", fmt.Errorf("Error cleaning yaml: %s\n", err.Error())
 	}
 
-	return createDiffFromFile(yamlData2Str, filePath1)
+	return createDiffFromFile(yamlData2Str, filePath1, resourceName)
 }
 
-func createDiffFromFile(yaml string, filePath string) (string, error) {
-	cmd := exec.Command("diff", "-u", "-N", filePath, "-")
-	cmd.Stdin = bytes.NewBufferString(yaml)
+func createDiffFromFile(yaml string, filePath string, resourceName string) (string, error) {
+	yamlData, err := os.ReadFile(filePath)
+	if err != nil {
+		// this happens if the file has not been created yet
+		yamlData = []byte("")
+	}
+	yamlDataCleaned, err := utils.CleanYaml(string(yamlData), utils.IacSecurityNeedsDecryption)
+	if err != nil {
+		iaclogger.Errorf("Error cleaning YAML: %s", err.Error())
+		return "", err
+	}
+	file1, err := os.CreateTemp("", "temp1*")
+	if err != nil {
+		iaclogger.Errorf("Error creating temp file: %s", err.Error())
+		return "", err
+	}
+	defer os.Remove(file1.Name())
+	file2, err := os.CreateTemp("", "temp2*")
+	if err != nil {
+		iaclogger.Errorf("Error creating temp file: %s", err.Error())
+		return "", err
+	}
+	defer os.Remove(file2.Name())
+	_, err = file1.WriteString(yamlDataCleaned)
+	if err != nil {
+		iaclogger.Errorf("Error writing to temp file1: %s", err.Error())
+		return "", err
+	}
+	_, err = file2.WriteString(yaml)
+	if err != nil {
+		iaclogger.Errorf("Error writing to temp file2: %s", err.Error())
+		return "", err
+	}
+
+	cmd := exec.Command("diff", "-u", "-N", "-u", "--label", resourceName, "--label", resourceName, file1.Name(), file2.Name())
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -482,6 +514,11 @@ func SyncChanges() error {
 				SetPullError(err)
 				if err != nil {
 					iaclogger.Errorf("Error pulling changes: %s", err.Error())
+					if err == git.ErrNonFastForwardUpdate {
+						iaclogger.Warnf("Non-fast-forward update detected. Deleting local repository. Changes will not be lost because they will be synced again in the next run.")
+						ResetCurrentRepoData(3)
+						return err
+					}
 					return err
 				} else if !initialRepoApplied {
 					err = ApplyRepoStateToCluster()
@@ -589,6 +626,9 @@ func pullChanges(lastAppliedCommit GitActionStatus) (lastCommit *object.Commit, 
 	if err != nil {
 		return lastCommit, updatedFiles, deletedFiles, err
 	}
+	if lastCommit == nil {
+		return lastCommit, updatedFiles, deletedFiles, fmt.Errorf("Last commit cannot be empty.")
+	}
 
 	// nothing changed
 	if lastCommit.Hash.String() == lastAppliedCommit.CommitHash {
@@ -639,7 +679,7 @@ func pushChanges() error {
 	if !utils.CONFIG.Iac.AllowPush {
 		return nil
 	}
-	if ChangedFilesEmpty() {
+	if IsChangedFilesEmpty() {
 		return nil
 	}
 

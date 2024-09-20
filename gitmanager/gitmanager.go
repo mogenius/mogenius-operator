@@ -88,7 +88,6 @@ func Pull(path string, remote string, branchNane string) (lastCommit *object.Com
 		SingleBranch:  true,
 		RemoteName:    remote,
 		ReferenceName: plumbing.NewBranchReferenceName(branchNane),
-		Force:         true,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return nil, err
@@ -223,10 +222,23 @@ func CheckoutBranch(path, branchName string) error {
 		return err
 	}
 
-	err = w.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.NewRemoteReferenceName("origin", branchName),
-		Force:  true,
-	})
+	// Check if the branch exists locally
+	branchRef := plumbing.NewBranchReferenceName(branchName)
+	_, err = r.Reference(branchRef, true)
+	if err == plumbing.ErrReferenceNotFound {
+		// Branch doesn't exist locally, create and track the remote branch
+		err = w.Checkout(&git.CheckoutOptions{
+			Branch: plumbing.NewRemoteReferenceName("origin", branchName),
+			Create: true,
+			Force:  true,
+			Keep:   false,
+		})
+	} else if err == nil {
+		// Branch exists locally, check it out
+		err = w.Checkout(&git.CheckoutOptions{
+			Branch: branchRef,
+		})
+	}
 	if err != nil {
 		return err
 	}
@@ -739,6 +751,27 @@ func ResetFileToCommit(repoPath, commitHash, filePath string) error {
 	return nil
 }
 
+func ResetHard(path string) error {
+	repo, err := git.PlainOpen(path)
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %v", err)
+	}
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %v", err)
+	}
+
+	err = worktree.Reset(&git.ResetOptions{
+		Mode:   git.HardReset,
+		Commit: plumbing.ZeroHash, // Reset to the current HEAD
+	})
+	if err != nil {
+		return fmt.Errorf("failed to reset hard: %v", err)
+	}
+	return nil
+}
+
 func DiscardUnstagedChanges(repoPath, filePath string) error {
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
@@ -776,6 +809,33 @@ func DiscardUnstagedChanges(repoPath, filePath string) error {
 		return fmt.Errorf("failed to discard changes: %w", err)
 	}
 	return nil
+}
+
+func ListUnstagedFiles(repoPath string) ([]string, error) {
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	status, err := worktree.Status()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	var unstagedFiles []string
+	// Loop over the status to collect unstaged files
+	for filePath, fileStatus := range status {
+		if fileStatus.Worktree != git.Unmodified {
+			unstagedFiles = append(unstagedFiles, filePath)
+		}
+	}
+
+	return unstagedFiles, nil
 }
 
 func getAddedOrModifiedFiles(patch *object.Patch) []string {
