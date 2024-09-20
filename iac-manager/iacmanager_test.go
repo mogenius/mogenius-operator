@@ -40,7 +40,7 @@ func TestIacManager(t *testing.T) {
 	exampleConfigmapYaml := utils.InitUpgradeConfigMapYaml()
 	tempPath := os.TempDir() + "/example-configmap.yaml"
 	os.WriteFile(tempPath, []byte(exampleConfigmapYaml), 0644)
-	diff, err := createDiffFromFile(exampleConfigmapYaml, tempPath)
+	diff, err := createDiffNewFromFile(exampleConfigmapYaml, tempPath, "bla")
 	if err != nil {
 		t.Errorf("Error creating diff: %v", err)
 	} else {
