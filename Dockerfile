@@ -83,9 +83,9 @@ RUN apk add --no-cache curl git nfs-utils ca-certificates jq
 # RUN rm popeye.tar.gz
 
 # Install kubectl
-RUN VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt) curl -LO "https://dl.k8s.io/release/${VERSION}/bin/linux/${GOARCH}/kubectl"
-RUN chmod +x kubectl
-RUN mv kubectl /usr/local/bin/kubectl
+# RUN VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt) curl -LO "https://dl.k8s.io/release/${VERSION}/bin/linux/${GOARCH}/kubectl"
+# RUN chmod +x kubectl
+# RUN mv kubectl /usr/local/bin/kubectl
 
 # Install grype
 # RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
