@@ -896,6 +896,10 @@ EOF`, decryptedYaml)
 }
 
 func EncryptUnencryptedSecrets(filePath string) error {
+	if !utils.CONFIG.Iac.AllowPush {
+		return nil
+	}
+
 	// encrypt if needed
 	fileChanged, err := utils.EncryptSecretIfNecessary(filePath)
 	if err != nil {
