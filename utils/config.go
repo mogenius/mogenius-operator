@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	punqDtos "github.com/mogenius/punq/dtos"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"

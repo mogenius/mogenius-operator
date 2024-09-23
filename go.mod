@@ -26,7 +26,6 @@ require (
 	github.com/spf13/cobra v1.8.0
 	go.etcd.io/bbolt v1.3.8
 	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
-	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.14.0
 	k8s.io/api v0.30.1
 	k8s.io/apimachinery v0.30.1
@@ -174,6 +173,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/grpc v1.64.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiextensions-apiserver v0.30.1 // indirect
 	k8s.io/apiserver v0.30.1 // indirect
 	k8s.io/cli-runtime v0.29.2 // indirect
