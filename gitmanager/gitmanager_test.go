@@ -10,9 +10,9 @@ import (
 
 func TestGitManager(t *testing.T) {
 	repoUrl := "https://github.com/mogenius/docs.git"
-	localPath := os.TempDir() + "test-repo"
-	localPathInit := os.TempDir() + "test-repo-init"
-	localPathFast := os.TempDir() + "test-repo-fast"
+	localPath := os.TempDir() + "/test-repo"
+	localPathInit := os.TempDir() + "/test-repo-init"
+	localPathFast := os.TempDir() + "/test-repo-fast"
 	mainBranch := "main"
 	devBranch := "dev"
 	switchBranch := "dev-test-branch"
