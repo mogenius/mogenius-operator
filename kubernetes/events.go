@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -106,7 +105,7 @@ func ResourceWatcher() {
 		case dtos.KindHorizontalPodAutoscalers:
 			go WatchHpas()
 		default:
-			K8sLogger.Fatalf("🚫 Unknown resource type: %s", workload)
+			K8sLogger.Errorf("🚫 Unknown resource type for watcher: %s", workload)
 		}
 		K8sLogger.Infof("Started watching %s 🚀.", workload)
 	}
@@ -129,8 +128,8 @@ func InitAllWorkloads() {
 
 	deployments := punq.AllDeployments("", nil)
 	for _, res := range deployments {
-		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindDeployments] {
-			iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
+		if IacManagerShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindDeployments] {
+			IacManagerWriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
 		}
 
 		store.GlobalStore.Set(res, "Deployment", res.Namespace, res.Name)
@@ -143,8 +142,8 @@ func InitAllWorkloads() {
 
 	cronjobs := punq.AllCronjobs("", nil)
 	for _, res := range cronjobs {
-		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
-			iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
+		if IacManagerShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
+			IacManagerWriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
 		}
 
 		store.GlobalStore.Set(res, "CronJob", res.Namespace, res.Name)
@@ -152,8 +151,8 @@ func InitAllWorkloads() {
 
 	jobs := punq.AllJobs("", nil)
 	for _, res := range jobs {
-		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindJobs] {
-			iacmanager.WriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
+		if IacManagerShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindJobs] {
+			IacManagerWriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
 		}
 
 		store.GlobalStore.Set(res, "Job", res.Namespace, res.Name)
@@ -161,14 +160,14 @@ func InitAllWorkloads() {
 
 	pods := punq.AllPods("", nil)
 	for _, res := range pods {
-		if iacmanager.ShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindPods] {
-			iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
+		if IacManagerShouldWatchResources() && utils.IacWorkloadConfigMap[dtos.KindPods] {
+			IacManagerWriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
 		}
 
 		store.GlobalStore.Set(res, "Pod", res.Namespace, res.Name)
 	}
 
-	if !iacmanager.ShouldWatchResources() {
+	if !IacManagerShouldWatchResources() {
 		return
 	}
 
@@ -177,67 +176,67 @@ func InitAllWorkloads() {
 		case dtos.KindConfigMaps:
 			ressources := punq.AllConfigmaps("", nil)
 			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindConfigMaps, res.Namespace, res.Name, res)
+				IacManagerWriteResourceYaml(dtos.KindConfigMaps, res.Namespace, res.Name, res)
 			}
 		case dtos.KindDeployments:
 			// ressources := punq.AllDeployments("", nil)
 			// for _, res := range ressources {
-			// 	iacmanager.WriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
+			// 	IacManagerWriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
 			// }
 		case dtos.KindPods:
 			// ressources := punq.AllPods("", nil)
 			// for _, res := range ressources {
-			// 	iacmanager.WriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
+			// 	IacManagerWriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
 			// }
 		case dtos.KindIngresses:
 			ressources := punq.AllIngresses("", nil)
 			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindIngresses, res.Namespace, res.Name, res)
+				IacManagerWriteResourceYaml(dtos.KindIngresses, res.Namespace, res.Name, res)
 			}
 		case dtos.KindSecrets:
 			ressources := punq.AllSecrets("", nil)
 			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindSecrets, res.Namespace, res.Name, res)
+				IacManagerWriteResourceYaml(dtos.KindSecrets, res.Namespace, res.Name, res)
 			}
 		case dtos.KindServices:
 			ressources := punq.AllServices("", nil)
 			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindServices, res.Namespace, res.Name, res)
+				IacManagerWriteResourceYaml(dtos.KindServices, res.Namespace, res.Name, res)
 			}
 		case dtos.KindNamespaces:
 			ressources := punq.ListAllNamespace(nil)
 			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindNamespaces, res.Namespace, res.Name, res)
+				IacManagerWriteResourceYaml(dtos.KindNamespaces, res.Namespace, res.Name, res)
 			}
 		case dtos.KindNetworkPolicies:
 			ressources := punq.AllNetworkPolicies("", nil)
 			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindNetworkPolicies, res.Namespace, res.Name, res)
+				IacManagerWriteResourceYaml(dtos.KindNetworkPolicies, res.Namespace, res.Name, res)
 			}
 		case dtos.KindJobs:
 			// ressources := punq.AllJobs("", nil)
 			// for _, res := range ressources {
-			// 	iacmanager.WriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
+			// 	IacManagerWriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
 			// }
 		case dtos.KindCronJobs:
 			// ressources := punq.AllCronjobs("", nil)
 			// for _, res := range ressources {
-			// 	iacmanager.WriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
+			// 	IacManagerWriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
 			// }
 		case dtos.KindDaemonSets:
 			ressources := punq.AllDaemonsets("", nil)
 			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindDaemonSets, res.Namespace, res.Name, res)
+				IacManagerWriteResourceYaml(dtos.KindDaemonSets, res.Namespace, res.Name, res)
 			}
 		case dtos.KindStatefulSets:
 			ressources := punq.AllStatefulSets("", nil)
 			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindStatefulSets, res.Namespace, res.Name, res)
+				IacManagerWriteResourceYaml(dtos.KindStatefulSets, res.Namespace, res.Name, res)
 			}
 		case dtos.KindHorizontalPodAutoscalers:
 			ressources := punq.AllHpas("", nil)
 			for _, res := range ressources {
-				iacmanager.WriteResourceYaml(dtos.KindHorizontalPodAutoscalers, res.Namespace, res.Name, res)
+				IacManagerWriteResourceYaml(dtos.KindHorizontalPodAutoscalers, res.Namespace, res.Name, res)
 			}
 		default:
 			K8sLogger.Fatalf("🚫 Unknown resource type: %s", workload)

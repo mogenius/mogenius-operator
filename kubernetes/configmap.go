@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"strings"
 	"time"
 
@@ -217,19 +216,19 @@ func watchConfigmaps(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v1Core.ConfigMap)
 			castedObj.Kind = "ConfigMap"
 			castedObj.APIVersion = "v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1Core.ConfigMap)
 			castedObj.Kind = "ConfigMap"
 			castedObj.APIVersion = "v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1Core.ConfigMap)
 			castedObj.Kind = "ConfigMap"
 			castedObj.APIVersion = "v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			IacManagerDeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

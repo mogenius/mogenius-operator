@@ -3,9 +3,6 @@ package kubernetes
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"helm.sh/helm/v3/pkg/registry"
-	"helm.sh/helm/v3/pkg/repo"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
@@ -13,8 +10,12 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+	"helm.sh/helm/v3/pkg/registry"
+	"helm.sh/helm/v3/pkg/repo"
+
 	"github.com/patrickmn/go-cache"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
