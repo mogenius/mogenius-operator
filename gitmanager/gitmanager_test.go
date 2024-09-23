@@ -14,7 +14,8 @@ func TestGitManager(t *testing.T) {
 	localPathInit := os.TempDir() + "test-repo-init"
 	localPathFast := os.TempDir() + "test-repo-fast"
 	mainBranch := "main"
-	switchBranch := "dev"
+	devBranch := "dev"
+	switchBranch := "dev-test-branch"
 	testFileInRepo := "mogenius/docs/cluster-management/troubleshooting-clusters.md"
 
 	// CLEANUP
@@ -126,11 +127,11 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// CLONE FAST
-	err = CloneFast(repoUrl, localPathFast, switchBranch)
+	err = CloneFast(repoUrl, localPathFast, devBranch)
 	if err != nil {
 		t.Errorf("Error fast cloning repo: %s", err.Error())
 	} else {
-		t.Logf("Repo %s successfully fast_cloned ✅ (%s)", repoUrl, switchBranch)
+		t.Logf("Repo %s successfully fast_cloned ✅ (%s)", repoUrl, devBranch)
 	}
 
 	// LOG DECORATED

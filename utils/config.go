@@ -102,10 +102,8 @@ type Config struct {
 		MaxConcurrentBuilds int `yaml:"max_concurrent_builds" env:"max_concurrent_builds" env-description:"Number of concurrent builds." env-default:"1"`
 	} `yaml:"builder"`
 	Git struct {
-		GitUserEmail      string `yaml:"git_user_email" env:"git_user_email" env-description:"Email address which is used when interacting with git." env-default:"git@mogenius.com"`
-		GitUserName       string `yaml:"git_user_name" env:"git_user_name" env-description:"User name which is used when interacting with git." env-default:"mogenius git-user"`
-		GitDefaultBranch  string `yaml:"git_default_branch" env:"git_default_branch" env-description:"Default branch name which is used when creating a repository." env-default:"main"`
-		GitAddIgnoredFile string `yaml:"git_add_ignored_file" env:"git_add_ignored_file" env-description:"Gits behaviour when adding ignored files." env-default:"false"`
+		GitUserEmail string `yaml:"git_user_email" env:"git_user_email" env-description:"Email address which is used when interacting with git." env-default:"git@mogenius.com"`
+		GitUserName  string `yaml:"git_user_name" env:"git_user_name" env-description:"User name which is used when interacting with git." env-default:"mogenius git-user"`
 	} `yaml:"git"`
 	Stats struct {
 		MaxDataPoints int `yaml:"max_data_points" env:"max_data_points" env-description:"After x data points in bucket will be overwritten LIFO principle." env-default:"6000"`
@@ -406,8 +404,6 @@ func PrintSettings() {
 	log.Infof("GIT")
 	log.Infof("GitUserEmail:              %s", CONFIG.Git.GitUserEmail)
 	log.Infof("GitUserName:               %s", CONFIG.Git.GitUserName)
-	log.Infof("GitDefaultBranch:          %s", CONFIG.Git.GitDefaultBranch)
-	log.Infof("GitAddIgnoredFile:         %s\n\n", CONFIG.Git.GitAddIgnoredFile)
 
 	log.Infof("STATS")
 	log.Infof("MaxDataPoints:             %d\n\n", CONFIG.Stats.MaxDataPoints)
