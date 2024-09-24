@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	appsV1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	netV1 "k8s.io/client-go/kubernetes/typed/networking/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/scheme"
@@ -82,12 +83,21 @@ func init() {
 	dtos.KubernetesGetSecretValueByPrefixControllerNameAndKey = GetSecretValueByPrefixControllerNameAndKey
 	dtos.KubernetesK8sLogger = K8sLogger
 }
+
 func GetCoreClient() coreV1.CoreV1Interface {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		K8sLogger.Fatal("Error creating kubeprovider")
 	}
 	return provider.ClientSet.CoreV1()
+}
+
+func GetNetworkingClient() netV1.NetworkingV1Interface {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Fatal("Error creating kubeprovider")
+	}
+	return provider.ClientSet.NetworkingV1()
 }
 
 func GetAppClient() appsV1.AppsV1Interface {
