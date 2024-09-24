@@ -683,11 +683,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		result, err := kubernetes.HelmReleaseList(data)
-		if err != nil {
-			return err
-		}
-		return result
+		return NewMessageResponse(kubernetes.HelmReleaseList(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_STATUS:
 		data := kubernetes.HelmReleaseStatusRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
