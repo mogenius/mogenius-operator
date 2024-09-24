@@ -50,8 +50,11 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 	}(wg)
 }
 
-func CreateNetworkPolicyServiceWithLabel(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, labelPolicy dtos.LabeledNetworkPolicyParams) error {
+func CreateNetworkPolicyWithLabel(namespace dtos.K8sNamespaceDto, labelPolicy dtos.K8sLabeledNetworkPolicyParams) error {
 	netpol := punqUtils.InitNetPolService()
+	// clean traffic rules
+	netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
+	netpol.Spec.Egress = []v1.NetworkPolicyEgressRule{}
 
 	netpol.ObjectMeta.Name = labelPolicy.Name
 	netpol.ObjectMeta.Namespace = namespace.Name
@@ -59,31 +62,31 @@ func CreateNetworkPolicyServiceWithLabel(namespace dtos.K8sNamespaceDto, service
 	netpol.Spec.PodSelector.MatchLabels[label] = "true"
 
 	for _, aPort := range labelPolicy.Ports {
-		port := intstr.FromInt32(int32(aPort.Port))
-		proto := v1Core.ProtocolTCP // default
-		if aPort.Protocol == "UDP" {
+		port := intstr.FromInt32(int32(aPort.ExternalPort))
+		var proto v1Core.Protocol
+
+		switch aPort.PortType {
+		case "UDP":
 			proto = v1Core.ProtocolUDP
+		case "SCTP":
+			proto = v1Core.ProtocolSCTP
+		default:
+			proto = v1Core.ProtocolTCP
 		}
 
 		if labelPolicy.Type == dtos.Ingress {
-			if len(netpol.Spec.Ingress) == 0 {
-				netpol.Spec.Ingress = append(netpol.Spec.Ingress, v1.NetworkPolicyIngressRule{})
-			}
-			var rule v1.NetworkPolicyIngressRule = netpol.Spec.Ingress[0]
+			var rule v1.NetworkPolicyIngressRule = v1.NetworkPolicyIngressRule{}
 			rule.From = append(rule.From, v1.NetworkPolicyPeer{
 				IPBlock: &v1.IPBlock{
 					CIDR: "0.0.0.0/0",
 				},
 			})
-
 			rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
 				Port: &port, Protocol: &proto,
 			})
+			netpol.Spec.Ingress = append(netpol.Spec.Ingress, rule)
 		} else {
-			if len(netpol.Spec.Egress) == 0 {
-				netpol.Spec.Egress = append(netpol.Spec.Egress, v1.NetworkPolicyEgressRule{})
-			}
-			var rule v1.NetworkPolicyEgressRule = netpol.Spec.Egress[0]
+			var rule v1.NetworkPolicyEgressRule = v1.NetworkPolicyEgressRule{}
 			rule.To = append(rule.To, v1.NetworkPolicyPeer{
 				IPBlock: &v1.IPBlock{
 					CIDR: "0.0.0.0/0",
@@ -92,6 +95,7 @@ func CreateNetworkPolicyServiceWithLabel(namespace dtos.K8sNamespaceDto, service
 			rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
 				Port: &port, Protocol: &proto,
 			})
+			netpol.Spec.Egress = append(netpol.Spec.Egress, rule)
 		}
 	}
 
@@ -101,6 +105,20 @@ func CreateNetworkPolicyServiceWithLabel(namespace dtos.K8sNamespaceDto, service
 		K8sLogger.Errorf("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
 		return err
 	}
+	return nil
+}
+
+func DeleteNetworkPolicy(namespace dtos.K8sNamespaceDto, name string) error {
+	client := GetNetworkingClient()
+	netPolClient := client.NetworkPolicies(namespace.Name)
+
+	err := netPolClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		K8sLogger.Errorf("DeleteNetworkPolicy ERROR: %s", err)
+		return err
+	}
+
+	K8sLogger.Printf("Deleted NetworkPolicy: %s", name)
 	return nil
 }
 

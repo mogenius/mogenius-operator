@@ -1,22 +1,15 @@
 package dtos
 
-import v1 "k8s.io/api/networking/v1"
-
-// type Port struct {
-// 	Protocol string `json:"protocol" validate:"required"`
-// 	Port     int    `json:"port" validate:"required"`
-// }
-
 // type of ingress or egress constant, literal
-type NetworkPolicyType string
+type K8sNetworkPolicyType string
 
 const (
-	Egress  NetworkPolicyType = "egress"
-	Ingress NetworkPolicyType = "ingress"
+	Egress  K8sNetworkPolicyType = "egress"
+	Ingress K8sNetworkPolicyType = "ingress"
 )
 
-type LabeledNetworkPolicyParams struct {
-	Name  string                 `json:"name" validate:"required"`
-	Type  NetworkPolicyType      `json:"type" validate:"required"`
-	Ports []v1.NetworkPolicyPort `json:"ports" validate:"required"`
+type K8sLabeledNetworkPolicyParams struct {
+	Name  string               `json:"name" validate:"required"`
+	Type  K8sNetworkPolicyType `json:"type" validate:"required"`
+	Ports []K8sPortsDto        `json:"ports" validate:"required"`
 }

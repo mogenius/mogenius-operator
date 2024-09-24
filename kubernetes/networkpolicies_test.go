@@ -3,10 +3,11 @@ package kubernetes
 import (
 	"mogenius-k8s-manager/dtos"
 	"testing"
+)
 
-	coreV1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
+const (
+	PolicyName1 = "mogenius-policy-123"
+	PolicyName2 = "mogenius-policy-098"
 )
 
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
@@ -16,30 +17,48 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		DisplayName: "Mogenius 123",
 	}
 
-	var service = dtos.K8sServiceDto{
-		Id:                 "mogenius-service-123",
-		DisplayName:        "Mogenius Service 123",
-		ControllerName:     "mo-123",
-		Controller:         dtos.DEPLOYMENT,
-		ReplicaCount:       1,
-		DeploymentStrategy: "recreate",
-		Ports: []dtos.K8sPortsDto{
-			dtos.K8sPortsDtoExampleData(),
-			dtos.K8sPortsDtoExternalExampleData(),
-		},
+	var ports = []dtos.K8sPortsDto{
+		dtos.K8sPortsDtoExampleData(),
+		dtos.K8sPortsDtoExternalExampleData(),
 	}
-	var labelPolicy = dtos.LabeledNetworkPolicyParams{
-		Name: "mogenius-policy-123",
-		Type: dtos.Ingress,
-		Ports: []v1.NetworkPolicyPort{
-			{
-				Protocol: coreV1.ProtocolTCP,
-				Port:     intstr.FromInt(80),
-			},
-		},
+
+	var labelPolicy1 = dtos.K8sLabeledNetworkPolicyParams{
+		Name:  PolicyName1,
+		Type:  dtos.Ingress,
+		Ports: ports,
 	}
-	err := CreateNetworkPolicyServiceWithLabel(namespace, service, labelPolicy)
+
+	ports[0].PortType = dtos.PortTypeUDP
+	ports[1].PortType = dtos.PortTypeSCTP
+
+	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyParams{
+		Name:  PolicyName2,
+		Type:  dtos.Egress,
+		Ports: ports,
+	}
+	err := CreateNetworkPolicyWithLabel(namespace, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
+	}
+	err = CreateNetworkPolicyWithLabel(namespace, labelPolicy2)
+	if err != nil {
+		t.Errorf("Error creating network policy: %s", err.Error())
+	}
+}
+
+func TestDeleteNetworkPolicy(t *testing.T) {
+	var namespace = dtos.K8sNamespaceDto{
+		Name:        "mogenius",
+		Id:          "mogenius-123",
+		DisplayName: "Mogenius 123",
+	}
+
+	err := DeleteNetworkPolicy(namespace, PolicyName1)
+	if err != nil {
+		t.Errorf("Error deleting network policy: %s. %s", PolicyName1, err.Error())
+	}
+	err = DeleteNetworkPolicy(namespace, PolicyName2)
+	if err != nil {
+		t.Errorf("Error deleting network policy: %s. %s", PolicyName2, err.Error())
 	}
 }
