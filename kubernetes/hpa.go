@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/structs"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -161,19 +160,19 @@ func watchHpas(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v2.HorizontalPodAutoscaler)
 			castedObj.Kind = "HorizontalPodAutoscaler"
 			castedObj.APIVersion = "autoscaling/v2"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v2.HorizontalPodAutoscaler)
 			castedObj.Kind = "HorizontalPodAutoscaler"
 			castedObj.APIVersion = "autoscaling/v2"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v2.HorizontalPodAutoscaler)
 			castedObj.Kind = "HorizontalPodAutoscaler"
 			castedObj.APIVersion = "autoscaling/v2"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			IacManagerDeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

@@ -160,7 +160,6 @@ golangci-lint run '--fast=false' --sort-results '--max-same-issues=0' '--timeout
 slim build --http-probe=false --exec "curl mogenius.com; git; docker info; helm" \
 --include-path-file /usr/local/bin/dockerd \
 --include-path-file /usr/local/bin/docker \
---include-path-file /usr/bin/git \
 --include-path-file /usr/local/bin/helm \
 --include-path-file /usr/bin/curl \
 ghcr.io/mogenius/mogenius-k8s-manager-dev:v1.18.19-develop.92

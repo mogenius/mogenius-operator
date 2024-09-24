@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/mogenius/punq/logger"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 )
 
 type ExternalSecretStoreProps struct {

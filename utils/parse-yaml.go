@@ -25,6 +25,14 @@ func InitUpgradeConfigMap() corev1.ConfigMap {
 	return app
 }
 
+func InitUpgradeConfigMapYaml() string {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/upgrade-configmap.yaml")
+	if err != nil {
+		return ""
+	}
+	return string(yaml)
+}
+
 func InitUpgradeJob() v1job.Job {
 	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/upgrade-job.yaml")
 	if err != nil {

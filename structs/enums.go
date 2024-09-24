@@ -55,6 +55,11 @@ const (
 	PAT_SYSTEM_CHECK                string = "SYSTEM_CHECK"
 	PAT_SYSTEM_PRINT_CURRENT_CONFIG string = "print-current-config"
 
+	PAT_IAC_FORCE_SYNC       string = "iac/force-sync"
+	PAT_IAC_GET_STATUS       string = "iac/get-status"
+	PAT_IAC_RESET_LOCAL_REPO string = "iac/reset-local-repo"
+	PAT_IAC_RESET_FILE       string = "iac/reset-file"
+
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS         string = "install-local-dev-components"
 	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
 	PAT_INSTALL_POD_STATS_COLLECTOR          string = "install-pod-stats-collector"
@@ -465,6 +470,11 @@ var COMMAND_REQUESTS = []string{
 	PAT_SYSTEM_CHECK,
 	PAT_SYSTEM_PRINT_CURRENT_CONFIG,
 
+	PAT_IAC_FORCE_SYNC,
+	PAT_IAC_GET_STATUS,
+	PAT_IAC_RESET_LOCAL_REPO,
+	PAT_IAC_RESET_FILE,
+
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS,
 	PAT_INSTALL_TRAFFIC_COLLECTOR,
 	PAT_INSTALL_POD_STATS_COLLECTOR,
@@ -868,5 +878,6 @@ var SUPPRESSED_OUTPUT_PATTERN = []string{
 	PAT_CLUSTER_UPDATE_LOCAL_TLS_SECRET,
 	// PAT_BUILD_LAST_JOB_OF_SERVICES,
 	// PAT_BUILD_SCAN,
+	PAT_SYSTEM_CHECK,
 	PAT_LIST_CRONJOB_JOBS,
 }

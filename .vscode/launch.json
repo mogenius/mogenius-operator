@@ -56,10 +56,10 @@
       "type": "go",
       "request": "launch",
       "mode": "test",
-      "program": "kubernetes/helm_test.go",
+      "program": "iac-manager/iacmanager_test.go",
       "args": [],
       "asRoot": false,
-      "console": "integratedTerminal",
+      "console": "integratedTerminal"
     },
     {
       "name": "system check",

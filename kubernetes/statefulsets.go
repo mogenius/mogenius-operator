@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -45,19 +44,19 @@ func watchStatefulSets(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v1.StatefulSet)
 			castedObj.Kind = "StatefulSet"
 			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.StatefulSet)
 			castedObj.Kind = "StatefulSet"
 			castedObj.APIVersion = "apps/v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.StatefulSet)
 			castedObj.Kind = "StatefulSet"
 			castedObj.APIVersion = "apps/v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			IacManagerDeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(
