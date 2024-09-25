@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
+	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -36,6 +37,7 @@ func InitApi() {
 		router.GET("/debug/last-ns", debugGetLastNs)
 		router.GET("/debug/ns", debugGetNs)
 		router.GET("/debug/chart", debugChart)
+		router.GET("/debug/iac", debugIac)
 	}
 
 	srv := &http.Server{
@@ -188,4 +190,9 @@ func debugChart(c *gin.Context) {
 	podname := c.Query("podname")
 	html := services.RenderPodNetworkTreePageHtml(ns, podname)
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+}
+
+func debugIac(c *gin.Context) {
+	json := iacmanager.GetDataModelJson()
+	c.Data(http.StatusOK, "application/json; charset=utf-8", []byte(json))
 }

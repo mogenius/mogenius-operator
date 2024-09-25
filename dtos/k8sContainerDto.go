@@ -3,6 +3,7 @@ package dtos
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 
@@ -29,19 +30,29 @@ type K8sContainerDto struct {
 	AppGitRepositoryCloneUrl             *string               `json:"appGitRepositoryCloneUrl"`
 	AppSetupCommands                     *string               `json:"appSetupCommands"`
 	KubernetesLimits                     K8sServiceSettingsDto `json:"KubernetesLimits"`
-	CNames                               []K8sCnameDto         `json:"cNames"`
+	Probes                               *K8sProbes            `json:"probes,omitempty"`
 	EnvVars                              []K8sEnvVarDto        `json:"envVars"`
-	Ports                                []K8sPortsDto         `json:"ports"`
 	SettingsYaml                         *string               `json:"settingsYaml,omitempty"`
 }
 
-func (k *K8sContainerDto) GetInjectDockerEnvVars(buildId uint64, gitTag string) string {
+var KubernetesGetSecretValueByPrefixControllerNameAndKey func(string, string, string, string) (string, error)
+var KubernetesK8sLogger *logrus.Entry
+
+func (k *K8sContainerDto) GetInjectDockerEnvVars(namespaceName string, buildId uint64, gitTag string) string {
 	buildIdStr := strconv.FormatUint(buildId, 10)
 	gitTag = strings.ReplaceAll(gitTag, "\n", "")
 	result := ""
 	for _, v := range k.EnvVars {
-		if v.Type == EnvVarPlainText || v.Type == EnvVarKeyVault {
+		if v.Type == EnvVarPlainText || v.Type == EnvVarKeyVault && v.Data.VaultType == EnvVarVaultTypeMogeniusVault {
 			result += fmt.Sprintf("--build-arg %s=\"$(echo \"%s\" | base64 -d)\" ", v.Name, base64.StdEncoding.EncodeToString([]byte(v.Value)))
+		}
+		if v.Type == EnvVarKeyVault && v.Data.VaultType == EnvVarVaultTypeHashicorpExternalVault {
+			// get value from secret hashicorp vault
+			value, err := KubernetesGetSecretValueByPrefixControllerNameAndKey(namespaceName, k.Name, v.Data.VaultStore, v.Data.VaultKey)
+			if err != nil {
+				KubernetesK8sLogger.Errorf("Error getting secret value by prefix, controller name and key: %v", err)
+			}
+			result += fmt.Sprintf("--build-arg %s=\"$(echo \"%s\" | base64 -d)\" ", v.Name, base64.StdEncoding.EncodeToString([]byte(value)))
 		}
 	}
 	result += fmt.Sprintf("--build-arg MO_BUILD_ID=\"$(echo \"%s\" | base64 -d)\" ", base64.StdEncoding.EncodeToString([]byte(buildIdStr)))
@@ -84,9 +95,7 @@ func K8sContainerDtoExampleData() K8sContainerDto {
 		DockerContext:                        utils.Pointer("."),
 		AppGitRepositoryCloneUrl:             utils.Pointer("YYY_git_clone_url"),
 		KubernetesLimits:                     K8sServiceSettingsDtoExampleData(),
-		CNames:                               []K8sCnameDto{K8sCnameDtoExampleData()},
 		EnvVars:                              []K8sEnvVarDto{K8sEnvVarDtoExampleData(), K8sEnvVarVolumeMountDtoExampleData()},
-		Ports:                                []K8sPortsDto{K8sPortsDtoExampleData(), K8sPortsDtoExternalExampleData()},
 		SettingsYaml:                         utils.Pointer("settingsYaml"),
 	}
 }

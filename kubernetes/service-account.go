@@ -16,7 +16,7 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 			Annotations: annotations,
 		},
 	}
-	client := getCoreClient().ServiceAccounts(namespace)
+	client := GetCoreClient().ServiceAccounts(namespace)
 
 	_, err := client.Create(context.TODO(), serviceAccount, MoCreateOptions())
 	if err == nil {
@@ -44,7 +44,7 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 }
 
 func UpdateServiceAccount(serviceAccount *core.ServiceAccount) error {
-	client := getCoreClient().ServiceAccounts(serviceAccount.GetNamespace())
+	client := GetCoreClient().ServiceAccounts(serviceAccount.GetNamespace())
 
 	_, err := client.Update(context.TODO(), serviceAccount, metav1.UpdateOptions{})
 	if err != nil {
@@ -55,12 +55,12 @@ func UpdateServiceAccount(serviceAccount *core.ServiceAccount) error {
 }
 
 func GetServiceAccount(serviceAccountName string, namespace string) (*core.ServiceAccount, error) {
-	client := getCoreClient().ServiceAccounts(namespace)
+	client := GetCoreClient().ServiceAccounts(namespace)
 	return client.Get(context.TODO(), serviceAccountName, metav1.GetOptions{})
 }
 
 func DeleteServiceAccount(serviceAccountName string, namespace string) error {
-	client := getCoreClient().ServiceAccounts(namespace)
+	client := GetCoreClient().ServiceAccounts(namespace)
 	err := client.Delete(context.TODO(), serviceAccountName, metav1.DeleteOptions{})
 	if err != nil {
 		return err

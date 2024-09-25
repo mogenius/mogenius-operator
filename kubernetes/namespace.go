@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/structs"
 	"sync"
 	"time"
@@ -100,19 +99,19 @@ func watchNamespaces(provider *punq.KubeProvider, kindName string) error {
 			castedObj := obj.(*v1.Namespace)
 			castedObj.Kind = "Namespace"
 			castedObj.APIVersion = "v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.Namespace)
 			castedObj.Kind = "Namespace"
 			castedObj.APIVersion = "v1"
-			iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+			IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Namespace)
 			castedObj.Kind = "Namespace"
 			castedObj.APIVersion = "v1"
-			iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+			IacManagerDeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

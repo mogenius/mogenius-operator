@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/netip"
-	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -25,7 +24,7 @@ type SystemCheckEntry struct {
 	HelmStatus         release.Status `json:"helmStatus"`
 	IsRunning          bool           `json:"isRunning"`
 	SuccessMessage     string         `json:"successMessage"`
-	ErrorMessage       *string        `json:"errorMessage"`
+	ErrorMessage       *string        `json:"errorMessage,omitempty"`
 	SolutionMessage    string         `json:"solutionMessage"`
 	Description        string         `json:"description"`
 	InstallPattern     string         `json:"installPattern"`
@@ -303,7 +302,13 @@ func SystemCheck() SystemCheckResponse {
 	// check for cert-manager
 	wg.Add(1)
 	go SysCheckExec("CheckCertManager", &wg, &entries, func() SystemCheckEntry {
-		certManagerVersion, certManagerInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
+		certMangerResultArray, certManagerInstalledErr := kubernetes.GetDeploymentsWithFieldSelector("", "app=cert-manager")
+		certManagerVersion := "not installed"
+		if len(certMangerResultArray) > 0 {
+			certManagerVersion = certMangerResultArray[0].Labels["app.kubernetes.io/version"]
+		} else {
+			certManagerInstalledErr = fmt.Errorf("Cert-Manager not installed.")
+		}
 		certManagerMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNameCertManager, certManagerVersion)
 		currentCertManagerVersion := getMostCurrentHelmChartVersion(CertManagerHelmIndex, utils.HelmReleaseNameCertManager)
 		certMgrEntry := CreateSystemCheckEntry(
@@ -565,7 +570,6 @@ func GenerateSystemCheckResponse(entries []SystemCheckEntry) SystemCheckResponse
 
 func SystemCheckTerminalString(entries []SystemCheckEntry) string {
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Check", "HelmStatus", "IsRunning", "Required", "ExecTime", "Message"})
 	for index, entry := range entries {
 		reqStr := "yes"
@@ -578,7 +582,7 @@ func SystemCheckTerminalString(entries []SystemCheckEntry) string {
 		}
 		if entry.ErrorMessage != nil {
 			t.AppendRow(
-				table.Row{entry.CheckName, StatusEmoji(entry.HelmStatus), isRunningStr, reqStr, entry.ProcessTimeInMs, entry.ErrorMessage},
+				table.Row{entry.CheckName, StatusEmoji(entry.HelmStatus), isRunningStr, reqStr, entry.ProcessTimeInMs, string(*entry.ErrorMessage)},
 			)
 		} else {
 			t.AppendRow(

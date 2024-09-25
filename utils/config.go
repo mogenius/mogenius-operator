@@ -2,6 +2,7 @@ package utils
 
 import (
 	_ "embed"
+	"fmt"
 	"io"
 	"mogenius-k8s-manager/version"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	punqDtos "github.com/mogenius/punq/dtos"
+	"sigs.k8s.io/yaml"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"
@@ -46,6 +48,8 @@ type Config struct {
 		OwnNamespace               string `yaml:"own_namespace" env:"OWN_NAMESPACE" env-description:"The Namespace of mogenius platform"`
 		ClusterMfaId               string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"NanoId of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
+		HelmDataPath               string `yaml:"helm_data_path" env:"helm_data_path" env-description:"Path to the Helm data."`
+		GitVaultDataPath           string `yaml:"git_vault_data_path" env:"git_vault_data_path" env-description:"Path to the Git Vault data."`
 		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
 		BboltDbStatsPath           string `yaml:"bbolt_db_stats_path" env:"bbolt_db_stats_path" env-description:"Path to the bbolt database. This db stores stats-related information."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
@@ -62,20 +66,20 @@ type Config struct {
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
 	} `yaml:"event_server"`
 	Iac struct {
-		RepoUrl            string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url." env-default:""`
-		RepoPat            string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat." env-default:""`
-		RepoBranch         string   `yaml:"repo_pat_branch" env:"sync_repo_branch" env-description:"Sync repo branch." env-default:"main"`
+		RepoUrl            string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url."`
+		RepoPat            string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat."`
+		RepoBranch         string   `yaml:"repo_pat_branch" env:"sync_repo_branch" env-description:"Sync repo branch."`
 		SyncFrequencyInSec int      `yaml:"sync_requency_secs" env:"sync_requency_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
-		AllowPush          bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo." env-default:"true"`
-		AllowPull          bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo." env-default:"true"`
-		SyncWorkloads      []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync." env-default:""`
+		AllowPush          bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo."`
+		AllowPull          bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo."`
+		SyncWorkloads      []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync."`
 		ShowDiffInLog      bool     `yaml:"show_diff_in_log" env:"sync_show_diff_in_log" env-description:"Show all changes of resources as diff in operator log."`
-		IgnoredNamespaces  []string `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces." env-default:""`
-		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry." env-default:"true"`
+		IgnoredNamespaces  []string `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces."`
+		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
 		Stage                  string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
-		LogFormat              string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"text"`
+		LogFormat              string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"json"`
 		LogLevel               string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: panic, fatal, error, warn, info, debug, trace" env-default:"info"`
 		LogIncomingStats       bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
 		Debug                  bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
@@ -98,10 +102,8 @@ type Config struct {
 		MaxConcurrentBuilds int `yaml:"max_concurrent_builds" env:"max_concurrent_builds" env-description:"Number of concurrent builds." env-default:"1"`
 	} `yaml:"builder"`
 	Git struct {
-		GitUserEmail      string `yaml:"git_user_email" env:"git_user_email" env-description:"Email address which is used when interacting with git." env-default:"git@mogenius.com"`
-		GitUserName       string `yaml:"git_user_name" env:"git_user_name" env-description:"User name which is used when interacting with git." env-default:"mogenius git-user"`
-		GitDefaultBranch  string `yaml:"git_default_branch" env:"git_default_branch" env-description:"Default branch name which is used when creating a repository." env-default:"main"`
-		GitAddIgnoredFile string `yaml:"git_add_ignored_file" env:"git_add_ignored_file" env-description:"Gits behaviour when adding ignored files." env-default:"false"`
+		GitUserEmail string `yaml:"git_user_email" env:"git_user_email" env-description:"Email address which is used when interacting with git." env-default:"git@mogenius.com"`
+		GitUserName  string `yaml:"git_user_name" env:"git_user_name" env-description:"User name which is used when interacting with git." env-default:"mogenius git-user"`
 	} `yaml:"git"`
 	Stats struct {
 		MaxDataPoints int `yaml:"max_data_points" env:"max_data_points" env-description:"After x data points in bucket will be overwritten LIFO principle." env-default:"6000"`
@@ -123,6 +125,20 @@ var ClusterProviderCached punqDtos.KubernetesProvider = punqDtos.UNKNOWN
 
 // preconfigure with dtos
 var IacWorkloadConfigMap map[string]bool
+
+func InitConfigSimple(stage string) {
+	path := os.TempDir() + "/config.yaml"
+
+	switch stage {
+	case STAGE_DEV:
+		os.WriteFile(path, []byte(DefaultConfigClusterFileDev), 0755)
+	case STAGE_LOCAL:
+		os.WriteFile(path, []byte(DefaultConfigLocalFile), 0755)
+	case STAGE_PROD:
+		os.WriteFile(path, []byte(DefaultConfigClusterFileProd), 0755)
+	}
+	cleanenv.ReadConfig(path, &CONFIG)
+}
 
 func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// try to load stage if not set
@@ -158,6 +174,24 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 
 	if CONFIG.Kubernetes.RunInCluster {
 		ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
+	}
+
+	// SET DEFAULTS if missing
+	pwd, _ := os.Getwd()
+	if CONFIG.Kubernetes.BboltDbPath == "" {
+		CONFIG.Kubernetes.BboltDbPath = pwd + "/mogenius.db"
+	}
+	if CONFIG.Kubernetes.HelmDataPath == "" {
+		CONFIG.Kubernetes.HelmDataPath = pwd + "/helm-data"
+	}
+	if CONFIG.Kubernetes.GitVaultDataPath == "" {
+		CONFIG.Kubernetes.GitVaultDataPath = pwd + "/git-vault-data"
+	}
+	if CONFIG.Kubernetes.BboltDbStatsPath == "" {
+		CONFIG.Kubernetes.BboltDbStatsPath = pwd + "/mogenius-stats.db"
+	}
+	if CONFIG.Misc.DefaultMountPath == "" {
+		CONFIG.Misc.DefaultMountPath = pwd + "/mo-data"
 	}
 
 	// CHECKS FOR CLUSTER
@@ -256,6 +290,35 @@ func setupLogging() {
 	}
 }
 
+func PrintCurrentCONFIG() (string, error) {
+	// create a deep copy of the Config instance
+	var configCopy Config
+	yamlData, err := yaml.Marshal(&CONFIG)
+	if err != nil {
+		return "", err
+	}
+	err = yaml.Unmarshal(yamlData, &configCopy)
+	if err != nil {
+		return "", err
+	}
+
+	// reset data for local usage
+	configCopy.Misc.DefaultMountPath = ""
+	configCopy.Kubernetes.HelmDataPath = ""
+	configCopy.Kubernetes.GitVaultDataPath = ""
+	configCopy.Kubernetes.BboltDbPath = ""
+	configCopy.Kubernetes.BboltDbStatsPath = ""
+	configCopy.Kubernetes.RunInCluster = false
+
+	// marshal the copy to yaml
+	yamlData, err = yaml.Marshal(&configCopy)
+	if err != nil {
+		fmt.Printf("Error marshalling to YAML: %v\n", err)
+		return "", err
+	}
+	return string(yamlData), nil
+}
+
 func SetupClusterSecret(clusterSecret ClusterSecret) {
 	if clusterSecret.ClusterMfaId != "" {
 		CONFIG.Kubernetes.ClusterMfaId = clusterSecret.ClusterMfaId
@@ -287,6 +350,8 @@ func PrintSettings() {
 	log.Infof("ClusterMfaId:              %s", CONFIG.Kubernetes.ClusterMfaId)
 	log.Infof("RunInCluster:              %t", CONFIG.Kubernetes.RunInCluster)
 	log.Infof("ApiKey:                    %s", CONFIG.Kubernetes.ApiKey)
+	log.Infof("HelmDataPath:              %s", CONFIG.Kubernetes.HelmDataPath)
+	log.Infof("GitVaultDataPath:          %s", CONFIG.Kubernetes.GitVaultDataPath)
 	log.Infof("BboltDbPath:               %s", CONFIG.Kubernetes.BboltDbPath)
 	log.Infof("BboltDbStatsPath:          %s", CONFIG.Kubernetes.BboltDbStatsPath)
 	log.Infof("LocalContainerRegistry:    %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
@@ -339,8 +404,6 @@ func PrintSettings() {
 	log.Infof("GIT")
 	log.Infof("GitUserEmail:              %s", CONFIG.Git.GitUserEmail)
 	log.Infof("GitUserName:               %s", CONFIG.Git.GitUserName)
-	log.Infof("GitDefaultBranch:          %s", CONFIG.Git.GitDefaultBranch)
-	log.Infof("GitAddIgnoredFile:         %s\n\n", CONFIG.Git.GitAddIgnoredFile)
 
 	log.Infof("STATS")
 	log.Infof("MaxDataPoints:             %d\n\n", CONFIG.Stats.MaxDataPoints)

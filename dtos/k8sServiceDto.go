@@ -9,9 +9,9 @@ type K8sServiceDto struct {
 	Controller         K8sServiceControllerEnum `json:"controller"`
 	ReplicaCount       int                      `json:"replicaCount"`
 	DeploymentStrategy DeploymentStrategyEnum   `json:"deploymentStrategy"`
+	Ports              []K8sPortsDto            `json:"ports"`
 	CronJobSettings    *K8sCronJobSettingsDto   `json:"cronJobSettings"`
 	HpaSettings        *K8sHpaSettingsDto       `json:"hpaSettings,omitempty"`
-	EsoSettings        *K8sEsoSettingsDto       `json:"esoSettings,omitempty"`
 	Containers         []K8sContainerDto        `json:"containers"`
 }
 
@@ -20,7 +20,7 @@ func (s *K8sServiceDto) AddSecretsToRedaction() {
 		utils.AddSecret(container.ContainerImageRepoSecretDecryptValue)
 		utils.AddSecret(container.ContainerImageRepoSecretId)
 		for _, envVar := range container.EnvVars {
-			if envVar.Type == EnvVarKeyVault {
+			if envVar.Type == EnvVarKeyVault && envVar.Data.VaultType == EnvVarVaultTypeMogeniusVault {
 				utils.AddSecret(&envVar.Value)
 			}
 		}
@@ -46,20 +46,20 @@ func (k *K8sServiceDto) HasSeedRepo() bool {
 }
 
 func (k *K8sServiceDto) HasPorts() bool {
-	for _, v := range k.Containers {
-		if len(v.Ports) > 0 {
-			return true
-		}
+	// TODO REMOVE
+	//for _, v := range k.Containers {
+	//	if len(v.Ports) > 0 {
+	//		return true
+	//	}
+	//}
+	if len(k.Ports) > 0 {
+		return true
 	}
 	return false
 }
 
 func (k *K8sServiceDto) HpaEnabled() bool {
 	return k.HpaSettings != nil
-}
-
-func (k *K8sServiceDto) ExternalSecretsEnabled() bool {
-	return k.EsoSettings != nil
 }
 
 func (k *K8sServiceDto) GetImageRepoSecretDecryptValue() *string {
@@ -79,6 +79,7 @@ func K8sServiceDtoExampleData() K8sServiceDto {
 		Controller:         DEPLOYMENT,
 		ReplicaCount:       1,
 		DeploymentStrategy: StrategyRecreate,
+		Ports:              []K8sPortsDto{K8sPortsDtoExampleData(), K8sPortsDtoExternalExampleData()},
 		CronJobSettings:    nil,
 		Containers:         []K8sContainerDto{K8sContainerDtoExampleData()},
 	}
@@ -92,6 +93,7 @@ func K8sServiceContainerImageDtoExampleData() K8sServiceDto {
 		Controller:         DEPLOYMENT,
 		ReplicaCount:       1,
 		DeploymentStrategy: StrategyRecreate,
+		Ports:              []K8sPortsDto{K8sPortsDtoExampleData(), K8sPortsDtoExternalExampleData()},
 		CronJobSettings:    nil,
 		Containers:         []K8sContainerDto{K8sContainerDtoExampleData()},
 	}

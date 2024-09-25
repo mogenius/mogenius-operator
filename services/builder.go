@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/kubernetes"
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/xterm"
@@ -16,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -120,22 +123,22 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// CLONE
 	cloneCmd := structs.CreateCommand(string(structs.PrefixGitClone), "Clone repository", job)
-	err := executeCmd(job, cloneCmd, structs.PrefixGitClone, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("git clone --progress -b %s --single-branch %s %s", *container.GitBranch, *container.GitRepository, workingDir))
+	err := gitmanager.CloneFast(*container.GitRepository, workingDir, *container.GitBranch)
+	cloneCmd.Success(job, cloneCmd.Message)
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixGitClone, err.Error())
+		cloneCmd.Fail(job, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
 
 	// TAG
-	getGitTagCmd := exec.Command("/bin/sh", "-c", "git tag --contains HEAD")
-	getGitTagCmd.Dir = workingDir
-	gitTagData, _ := getGitTagCmd.CombinedOutput()
+	gitTagData, _ := gitmanager.GetHeadTag(workingDir)
 	// in this case we dont care if the tag retrieval fails
 
 	// LS
 	lsCmd := structs.CreateCommand(string(structs.PrefixLs), "List contents", job)
-	err = executeCmd(job, lsCmd, structs.PrefixLs, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; echo 'ℹ️  Current directory contents:'; ls -lisa; echo '\nℹ️  Git Log: '; git log -1 --decorate; echo '\nℹ️  Following ARGs are available for Docker build:'; echo '%s'", workingDir, container.AvailableDockerBuildArgs(job.BuildId, string(gitTagData))))
+	err = executeCmd(job, lsCmd, structs.PrefixLs, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; echo 'ℹ️  Current directory contents:'; ls -lisa; echo '\nℹ️  Following ARGs are available for Docker build:'; echo '%s'", workingDir, container.AvailableDockerBuildArgs(job.BuildId, string(gitTagData))))
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixLs, err.Error())
 		done <- structs.JobStateFailed
@@ -155,13 +158,16 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// BUILD
 	buildCmd := structs.CreateCommand(string(structs.PrefixBuild), "Building container", job)
-	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build --network host -f %s %s -t %s -t %s %s", workingDir, *container.DockerfileName, container.GetInjectDockerEnvVars(job.BuildId, string(gitTagData)), tagName, latestTagName, *container.DockerContext))
+	// add dynamic mo-... labels to image metadata
+	labels := fmt.Sprintf("--label \"mo-app=%s\" --label \"mo-ns=%s\" --label \"mo-service-id=%s\" --label \"mo-project-id=%s\"", buildJob.Service.ControllerName, buildJob.Namespace.Name, buildJob.Service.Id, buildJob.Project.Id)
+	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build %s --network host -f %s %s -t %s -t %s %s", workingDir, labels, *container.DockerfileName, container.GetInjectDockerEnvVars(job.NamespaceName, job.BuildId, string(gitTagData)), tagName, latestTagName, *container.DockerContext))
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixBuild, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
 
+	//
 	// PUSH
 	pushCmd := structs.CreateCommand(string(structs.PrefixPush), "Pushing container", job)
 	err = executeCmd(job, pushCmd, structs.PrefixPush, buildJob, container, false, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
@@ -177,15 +183,17 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		return
 	}
 
+	r := ServiceUpdateRequest{
+		Project:   buildJob.Project,
+		Namespace: buildJob.Namespace,
+		Service:   buildJob.Service,
+	}
+
 	// create
 	if buildJob.CreateAndStart {
-		r := ServiceUpdateRequest{
-			Project:   buildJob.Project,
-			Namespace: buildJob.Namespace,
-			Service:   buildJob.Service,
-		}
 		UpdateService(r)
 	} else {
+		updateSecrets(job, r)
 		// UPDATE IMAGE
 		setImageCmd := structs.CreateCommand("setImage", "Deploying image", job)
 		err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
@@ -556,12 +564,24 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 	}
 	for _, container := range job.Service.Containers {
 		for _, v := range container.EnvVars {
-			if v.Type == dtos.EnvVarKeyVault {
+			if v.Type == dtos.EnvVarKeyVault && v.Data.VaultType == dtos.EnvVarVaultTypeMogeniusVault {
 				line = strings.ReplaceAll(line, v.Value, "****")
 			}
 		}
 	}
 	return line
+}
+
+func updateSecrets(job *structs.Job, r ServiceUpdateRequest) {
+	var wg sync.WaitGroup
+
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+
+	go func() {
+		wg.Wait()
+	}()
 }
 
 func updateContainerImage(job *structs.Job, reportCmd *structs.Command, buildJob *structs.BuildJob, containerName string, imageName string) error {

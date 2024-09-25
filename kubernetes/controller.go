@@ -89,19 +89,20 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 	specTemplate.ObjectMeta.Labels["mo-project-id"] = projectId
 
 	for index, container := range service.Containers {
+		// TODO REMOVE
 		// PORTS
-		if len(container.Ports) > 0 {
-			specTemplate.Spec.Containers[index].Ports = []v1core.ContainerPort{}
-			for _, port := range container.Ports {
-				if port.Expose {
-					specTemplate.Spec.Containers[index].Ports = append(specTemplate.Spec.Containers[index].Ports, v1core.ContainerPort{
-						ContainerPort: int32(port.InternalPort),
-					})
-				}
-			}
-		} else {
-			specTemplate.Spec.Containers[index].Ports = nil
-		}
+		//if len(container.Ports) > 0 {
+		//	specTemplate.Spec.Containers[index].Ports = []v1core.ContainerPort{}
+		//	for _, port := range container.Ports {
+		//		if port.Expose {
+		//			specTemplate.Spec.Containers[index].Ports = append(specTemplate.Spec.Containers[index].Ports, v1core.ContainerPort{
+		//				ContainerPort: int32(port.InternalPort),
+		//			})
+		//		}
+		//	}
+		//} else {
+		//	specTemplate.Spec.Containers[index].Ports = nil
+		//}
 
 		// RESOURCES
 		if container.KubernetesLimits.IsLimitSetup() {
@@ -186,7 +187,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 		specTemplate.Spec.Volumes = []v1core.Volume{}
 
 		for _, envVar := range container.EnvVars {
-			if envVar.Type == dtos.EnvVarKeyVault {
+			if envVar.Type == dtos.EnvVarKeyVault && envVar.Data.VaultType == dtos.EnvVarVaultTypeMogeniusVault {
 				//envVar.Type == "PLAINTEXT" ||
 				//envVar.Type == "HOSTNAME" {
 				specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
@@ -202,25 +203,32 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 				})
 			}
 			// EXTERNAL SECRETS OPERATOR
-			if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
-				externalSecretStorePrefix := service.EsoSettings.SecretStoreNamePrefix
-				if envVar.Type == dtos.EnvVarKeyEsoHashiVault {
-					specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
-						Name: envVar.Name,
-						ValueFrom: &v1core.EnvVarSource{
-							SecretKeyRef: &v1core.SecretKeySelector{
-								Key: envVar.Name,
-								LocalObjectReference: v1core.LocalObjectReference{
-									Name: utils.GetSecretName(
-										externalSecretStorePrefix,
-										service.EsoSettings.ProjectName,
-										service.ControllerName,
-										envVar.Name,
-									),
+			if utils.CONFIG.Misc.ExternalSecretsEnabled {
+				if envVar.Type == dtos.EnvVarKeyVault && envVar.Data.VaultType == dtos.EnvVarVaultTypeHashicorpExternalVault {
+					// create secret
+					namePrefix, propertyName := dtos.SplitEsoEnvVarValues(envVar)
+					SecretName, err := CreateExternalSecret(CreateExternalSecretProps{
+						namespace.Name,
+						propertyName,
+						namePrefix,
+						service.ControllerName,
+					})
+					if err != nil {
+						K8sLogger.Errorf("Error creating external secret: %s, Secret %s will not be set for service %s", err.Error(), envVar.Name, service.ControllerName)
+					} else {
+						// link created secret to container env
+						specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
+							Name: envVar.Name,
+							ValueFrom: &v1core.EnvVarSource{
+								SecretKeyRef: &v1core.SecretKeySelector{
+									Key: propertyName,
+									LocalObjectReference: v1core.LocalObjectReference{
+										Name: SecretName,
+									},
 								},
 							},
-						},
-					})
+						})
+					}
 				}
 			}
 			if envVar.Type == dtos.EnvVarPlainText || envVar.Type == dtos.EnvVarHostname {
@@ -232,11 +240,15 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 			if envVar.Type == dtos.EnvVarVolumeMount {
 				// VOLUMEMOUNT
 				// EXAMPLE FOR value CONTENTS: VOLUME_NAME:/LOCATION_CONTAINER_DIR
-				components := strings.Split(envVar.Value, ":")
-				if len(components) == 3 {
-					volumeName := components[0]    // e.g. MY_COOL_NAME
-					srcPath := components[1]       // e.g. subpath/to/heaven
-					containerPath := components[2] // e.g. /mo-data
+				// components := strings.Split(envVar.Value, ":")
+				// if len(components) == 3 {
+				//volumeName := components[0]    // e.g. MY_COOL_NAME
+				//srcPath := components[1]       // e.g. subpath/to/heaven
+				//containerPath := components[2] // e.g. /mo-data
+				if envVar.Data.VolumeName != "" && envVar.Data.VolumeSource != "" && envVar.Data.VolumeDestination != "" {
+					volumeName := envVar.Data.VolumeName           // e.g. MY_COOL_NAME
+					srcPath := envVar.Data.VolumeSource            // e.g. subpath/to/heaven
+					containerPath := envVar.Data.VolumeDestination // e.g. /mo-data
 
 					// subPath must be relative
 					if strings.HasPrefix(srcPath, "/") {
@@ -272,8 +284,11 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 						K8sLogger.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
 					}
 				} else {
-					K8sLogger.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
+					K8sLogger.Errorf("SKIPPING ENVVAR '%s' because data is missing", envVar.Name)
 				}
+				//} else {
+				//	K8sLogger.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)
+				//}
 			}
 		}
 	}

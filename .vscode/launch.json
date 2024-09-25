@@ -56,10 +56,10 @@
       "type": "go",
       "request": "launch",
       "mode": "test",
-      "program": "store/store_test.go",
+      "program": "iac-manager/iacmanager_test.go",
       "args": [],
       "asRoot": false,
-      "console": "integratedTerminal",
+      "console": "integratedTerminal"
     },
     {
       "name": "system check",
