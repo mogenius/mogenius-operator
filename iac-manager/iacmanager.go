@@ -632,7 +632,7 @@ func gitHasRemotes() bool {
 	return gitmanager.HasRemotes(utils.CONFIG.Kubernetes.GitVaultDataPath)
 }
 
-func pullChanges(lastAppliedCommit GitActionStatus) (lastCommit *object.Commit, updatedFiles []string, deletedFiles []string, error error) {
+func pullChanges(lastAppliedCommit *GitActionStatus) (lastCommit *object.Commit, updatedFiles []string, deletedFiles []string, error error) {
 	if !utils.CONFIG.Iac.AllowPull {
 		return
 	}
@@ -647,8 +647,10 @@ func pullChanges(lastAppliedCommit GitActionStatus) (lastCommit *object.Commit, 
 	}
 
 	// nothing changed
-	if lastCommit.Hash.String() == lastAppliedCommit.CommitHash {
-		return lastCommit, []string{}, []string{}, nil
+	if lastAppliedCommit != nil {
+		if lastCommit.Hash.String() == lastAppliedCommit.CommitHash {
+			return lastCommit, []string{}, []string{}, nil
+		}
 	}
 
 	//Get the list of updated or newly added files since the last pull

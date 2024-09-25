@@ -11,7 +11,7 @@ import (
 
 type IacManagerStatus struct {
 	SyncInfo                      IacManagerSyncInfo                 `json:"syncInfo"`
-	LastSuccessfullyAppliedCommit GitActionStatus                    `json:"lastSuccessfullyAppliedCommit"`
+	LastSuccessfullyAppliedCommit *GitActionStatus                   `json:"lastSuccessfullyAppliedCommit"`
 	IacConfiguration              IacConfiguration                   `json:"iacConfiguration"`
 	ResourceStates                map[string]IacManagerResourceState `json:"resourceStates"`
 	RepoPulse                     map[string]int                     `json:"repoPulse"`
@@ -130,6 +130,7 @@ func InitDataModel() {
 	dataModel.SyncInfo.Contributors = []Contributor{}
 	dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = []string{}
 	dataModel.SyncInfo.RecentlyDeletedFiles = []string{}
+	dataModel.LastSuccessfullyAppliedCommit = nil
 
 	addedFiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil {
@@ -220,7 +221,7 @@ func SetLastSuccessfullyAppliedCommit(commit *object.Commit) {
 		return
 	}
 	dataModelMutex.Lock()
-	dataModel.LastSuccessfullyAppliedCommit = GitActionStatus{
+	dataModel.LastSuccessfullyAppliedCommit = &GitActionStatus{
 		CommitAuthor:  commit.Author.Name,
 		CommitDate:    commit.Author.When.Format(time.RFC3339),
 		CommitHash:    commit.Hash.String(),
@@ -279,7 +280,7 @@ func GetDataModel() IacManagerStatus {
 	return dataModel
 }
 
-func GetLastAppliedCommit() GitActionStatus {
+func GetLastAppliedCommit() *GitActionStatus {
 	return dataModel.LastSuccessfullyAppliedCommit
 }
 
