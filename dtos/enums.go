@@ -67,6 +67,7 @@ const (
 	PortTypeHTTPS PortTypeEnum = "HTTPS"
 	PortTypeTCP   PortTypeEnum = "TCP"
 	PortTypeUDP   PortTypeEnum = "UDP"
+	PortTypeSCTP  PortTypeEnum = "SCTP"
 )
 
 type K8sServiceControllerEnum string

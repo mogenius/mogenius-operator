@@ -683,11 +683,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		result, err := kubernetes.HelmReleaseList(data)
-		if err != nil {
-			return err
-		}
-		return result
+		return NewMessageResponse(kubernetes.HelmReleaseList(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_STATUS:
 		data := kubernetes.HelmReleaseStatusRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2108,6 +2104,22 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		getResult, _ := punq.GetVolumeAttachment(data.ResourceName, nil)
 		return getResult
+	case structs.PAT_CREATE_NETWORK_POLICY_WITH_LABEL:
+		data := controllers.CreateLabeledNetworkPolicyRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		err := kubernetes.CreateNetworkPolicyWithLabel(data.Namespace, data.LabeledNetworkPolicyParams)
+		if err != nil {
+			return controllers.CreateLabeledNetworkPolicyResponse{
+				Status:       "Failed to create network policy",
+				ErrorMessage: err.Error(),
+			}
+		}
+		return controllers.CreateLabeledNetworkPolicyResponse{
+			Status: fmt.Sprintf("%s was created successfully", data.LabeledNetworkPolicyParams.Name),
+		}
 	case structs.PAT_GET_NETWORK_POLICY:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
