@@ -127,6 +127,10 @@ func InitDataModel() {
 		ResourceStates:   make(map[string]IacManagerResourceState),
 		RepoPulse:        make(map[string]int),
 	}
+	dataModel.SyncInfo.Contributors = []Contributor{}
+	dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = []string{}
+	dataModel.SyncInfo.RecentlyDeletedFiles = []string{}
+
 	addedFiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil {
 		dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = addedFiles
@@ -377,9 +381,13 @@ func ChangedFilesLen() int {
 // HELPERS
 
 func iacConfigurationFromYamlConfig() IacConfiguration {
+	repoPat := ""
+	if utils.CONFIG.Iac.RepoPat != "" {
+		repoPat = utils.REDACTED
+	}
 	return IacConfiguration{
 		RepoUrl:            utils.CONFIG.Iac.RepoUrl,
-		RepoPat:            utils.REDACTED,
+		RepoPat:            repoPat,
 		RepoBranch:         utils.CONFIG.Iac.RepoBranch,
 		SyncFrequencyInSec: utils.CONFIG.Iac.SyncFrequencyInSec,
 		AllowPush:          utils.CONFIG.Iac.AllowPush,

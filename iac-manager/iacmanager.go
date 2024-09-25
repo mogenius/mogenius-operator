@@ -74,6 +74,12 @@ func Init() {
 
 	InitDataModel()
 
+	if !IsIacEnabled() {
+		ResetCurrentRepoData(3)
+		InitDataModel()
+		return
+	}
+
 	SetRepoError(gitInitRepo())
 
 	// Set up the remote repository
@@ -156,6 +162,8 @@ func ResetCurrentRepoData(tries int) error {
 
 	err = addRemote()
 	SetRemoteError(err)
+
+	InitDataModel()
 
 	return err
 }
