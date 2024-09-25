@@ -341,7 +341,7 @@ func InitHelmConfig() error {
 
 		// add default repository
 		data := HelmRepoAddRequest{
-			Name: "mogenius-operator",
+			Name: "mogenius",
 			Url:  "https://helm.mogenius.com/public",
 		}
 		if _, err := HelmRepoAdd(data); err != nil {
