@@ -14,19 +14,21 @@ type IacManagerStatus struct {
 	LastSuccessfullyAppliedCommit GitActionStatus                    `json:"lastSuccessfullyAppliedCommit"`
 	IacConfiguration              IacConfiguration                   `json:"iacConfiguration"`
 	ResourceStates                map[string]IacManagerResourceState `json:"resourceStates"`
+	RepoPulse                     map[string]int                     `json:"repoPulse"`
 }
 
 type IacConfiguration struct {
 	RepoUrl            string   `json:"repoUrl"`
 	RepoPat            string   `json:"repoPat"`
 	RepoBranch         string   `json:"repoBranch"`
-	SyncFrequencyInSec int      `json:"syncFrequencyInSec" `
-	AllowPush          bool     `json:"allowPush" `
-	AllowPull          bool     `json:"allowPull" `
-	SyncWorkloads      []string `json:"syncWorkloads" `
-	ShowDiffInLog      bool     `json:"showDiffInLog" `
-	IgnoredNamespaces  []string `json:"ignoredNamespaces" `
-	LogChanges         bool     `json:"logChanges" `
+	SyncFrequencyInSec int      `json:"syncFrequencyInSec"`
+	AllowPush          bool     `json:"allowPush"`
+	AllowPull          bool     `json:"allowPull"`
+	SyncWorkloads      []string `json:"syncWorkloads"`
+	ShowDiffInLog      bool     `json:"showDiffInLog"`
+	IgnoredNamespaces  []string `json:"ignoredNamespaces"`
+	IgnoredNames       []string `json:"ignoredNames"`
+	LogChanges         bool     `json:"logChanges"`
 }
 
 type IacManagerSyncInfo struct {
@@ -123,6 +125,7 @@ func InitDataModel() {
 		SyncInfo:         IacManagerSyncInfo{},
 		IacConfiguration: iacConfigurationFromYamlConfig(),
 		ResourceStates:   make(map[string]IacManagerResourceState),
+		RepoPulse:        make(map[string]int),
 	}
 	addedFiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil {
@@ -131,6 +134,10 @@ func InitDataModel() {
 	deletedFiles, err := gitmanager.GetLastDeletedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil {
 		dataModel.SyncInfo.RecentlyDeletedFiles = deletedFiles
+	}
+	pulse, err := gitmanager.GeneratePulseDiagramData(utils.CONFIG.Kubernetes.GitVaultDataPath)
+	if err == nil {
+		dataModel.RepoPulse = pulse
 	}
 }
 
@@ -256,6 +263,10 @@ func SetContributors(signatures []object.Signature) {
 	dataModel.SyncInfo.Contributors = contributors
 }
 
+func SetPulseDiagramData(pulse map[string]int) {
+	dataModel.RepoPulse = pulse
+}
+
 // GETTERS
 func GetDataModel() IacManagerStatus {
 	// allways get the current configuration state
@@ -375,6 +386,7 @@ func iacConfigurationFromYamlConfig() IacConfiguration {
 		AllowPull:          utils.CONFIG.Iac.AllowPull,
 		SyncWorkloads:      utils.CONFIG.Iac.SyncWorkloads,
 		ShowDiffInLog:      utils.CONFIG.Iac.ShowDiffInLog,
+		IgnoredNames:       utils.CONFIG.Iac.IgnoredNames,
 		IgnoredNamespaces:  utils.CONFIG.Iac.IgnoredNamespaces,
 		LogChanges:         utils.CONFIG.Iac.LogChanges,
 	}

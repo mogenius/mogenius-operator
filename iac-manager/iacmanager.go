@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/utils"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -511,6 +512,13 @@ func SyncChanges() error {
 			if !syncInProcess {
 				syncInProcess = true
 				lastCommit, updatedFiles, deletedFiles, err := pullChanges(GetLastAppliedCommit())
+				// update Pulse
+				if len(updatedFiles) > 0 || len(deletedFiles) > 0 {
+					pulse, err := gitmanager.GeneratePulseDiagramData(utils.CONFIG.Kubernetes.GitVaultDataPath)
+					if err == nil {
+						SetPulseDiagramData(pulse)
+					}
+				}
 				SetPullError(err)
 				if err != nil {
 					iaclogger.Errorf("Error pulling changes: %s", err.Error())
@@ -952,16 +960,18 @@ func shouldSkipResource(path string) bool {
 		iaclogger.Debugf("😑 Skipping (because pods won't by synced): %s", path)
 		return true
 	}
-	if utils.CONFIG.Kubernetes.RunInCluster {
-		if strings.Contains(path, "/mogenius-k8s-manager") {
-			iaclogger.Debugf("😑 Skipping (because contains keyword mogenius-k8s-manager): %s", path)
-			return true
-		}
-	}
 	hasIgnoredNs, nsName := isIgnoredNamespaceInFile(path)
 	if hasIgnoredNs {
 		iaclogger.Debugf("😑 Skipping (because contains ignored namespace '%s'): %s", *nsName, path)
 		return true
 	}
+
+	for _, pattern := range utils.CONFIG.Iac.IgnoredNames {
+		match, _ := regexp.MatchString(pattern, path)
+		if match {
+			return true
+		}
+	}
+
 	return false
 }

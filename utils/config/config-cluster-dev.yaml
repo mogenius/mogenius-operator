@@ -48,6 +48,7 @@ iac:
       "horizontalpodautoscalers",
     ]
   ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
+  ignored_names: ["acme-*", "mogenius-k8s-manager"]
   show_diff_in_log: false
   log_changes: true
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/mogenius/punq/structs"
 )
 
 func TestGitManager(t *testing.T) {
@@ -239,4 +240,12 @@ func TestGitManager(t *testing.T) {
 		t.Logf("Repo %s successfully discarded unstaged changes in file %s ✅", repoUrl, testFileInRepo)
 	}
 
+	// PULSE DIAGRAM
+	commitsPerWeek, err := GeneratePulseDiagramData(localPath)
+	if err != nil {
+		t.Errorf("Error generating pulse diagram data: %s", err.Error())
+	} else {
+		structs.PrettyPrint(commitsPerWeek)
+		t.Logf("Repo %s successfully generated pulse diagram data ✅", repoUrl)
+	}
 }
