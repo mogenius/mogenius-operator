@@ -19,7 +19,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.5.9
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-tty v0.0.7
-	github.com/mogenius/punq v1.5.0-develop.75
+	github.com/mogenius/punq v1.5.8
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/sirupsen/logrus v1.9.3
