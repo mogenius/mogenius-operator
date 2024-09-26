@@ -63,6 +63,9 @@ cp /db/mogenius-1.db mogenius1.db
 # Testing
 ```
 go test -v ./...
+
+# clean cache
+go clean -testcache
 ```
 
 # Helm Install

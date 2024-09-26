@@ -207,8 +207,7 @@ func deleteUnusedServiceAccount(role, projectId, moSharedPath string) error {
 }
 
 func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name, -1)
-	// secret stores are currently bound to the project settings
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_PATH>", props.SecretPath)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<DISPLAY_NAME>", props.DisplayName)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<PREFIX>", strings.ToLower(props.NamePrefix))

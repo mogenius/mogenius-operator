@@ -10,22 +10,23 @@ require (
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/fatih/color v1.17.0
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-echarts/go-echarts/v2 v2.4.0-rc1
+	github.com/go-echarts/go-echarts/v2 v2.4.2
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/go-playground/validator v9.31.0+incompatible
-	github.com/gorilla/websocket v1.5.1
+	github.com/gorilla/websocket v1.5.3
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/ivanpirog/coloredcobra v1.0.1
-	github.com/jedib0t/go-pretty/v6 v6.5.4
+	github.com/jedib0t/go-pretty/v6 v6.5.9
 	github.com/json-iterator/go v1.1.12
-	github.com/mattn/go-tty v0.0.5
+	github.com/mattn/go-tty v0.0.7
 	github.com/mogenius/punq v1.5.0-develop.75
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	go.etcd.io/bbolt v1.3.8
-	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
+	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.14.0
 	k8s.io/api v0.30.1
 	k8s.io/apimachinery v0.30.1
@@ -173,7 +174,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/grpc v1.64.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiextensions-apiserver v0.30.1 // indirect
 	k8s.io/apiserver v0.30.1 // indirect
 	k8s.io/cli-runtime v0.29.2 // indirect
@@ -209,7 +209,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
