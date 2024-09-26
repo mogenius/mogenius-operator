@@ -75,6 +75,7 @@ type Config struct {
 		SyncWorkloads      []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync."`
 		ShowDiffInLog      bool     `yaml:"show_diff_in_log" env:"sync_show_diff_in_log" env-description:"Show all changes of resources as diff in operator log."`
 		IgnoredNamespaces  []string `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces."`
+		IgnoredNames       []string `yaml:"ignored_names" env:"sync_ignored_names" env-description:"List of strings which are ignored when for sync. This list may include regex."`
 		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
@@ -376,6 +377,7 @@ func PrintSettings() {
 	log.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
 	log.Infof("SyncWorkloads:             %s", strings.Join(CONFIG.Iac.SyncWorkloads, ","))
 	log.Infof("IgnoredNamespaces:         %s", strings.Join(CONFIG.Iac.IgnoredNamespaces, ","))
+	log.Infof("IgnoredNames:              %s", strings.Join(CONFIG.Iac.IgnoredNames, ","))
 	log.Infof("LogChanges:                %t", CONFIG.Iac.LogChanges)
 	log.Infof("ShowDiffInLog:             %t\n\n", CONFIG.Iac.ShowDiffInLog)
 

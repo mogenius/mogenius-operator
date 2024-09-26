@@ -11,22 +11,24 @@ import (
 
 type IacManagerStatus struct {
 	SyncInfo                      IacManagerSyncInfo                 `json:"syncInfo"`
-	LastSuccessfullyAppliedCommit GitActionStatus                    `json:"lastSuccessfullyAppliedCommit"`
+	LastSuccessfullyAppliedCommit *GitActionStatus                   `json:"lastSuccessfullyAppliedCommit"`
 	IacConfiguration              IacConfiguration                   `json:"iacConfiguration"`
 	ResourceStates                map[string]IacManagerResourceState `json:"resourceStates"`
+	RepoPulse                     map[string]int                     `json:"repoPulse"`
 }
 
 type IacConfiguration struct {
 	RepoUrl            string   `json:"repoUrl"`
 	RepoPat            string   `json:"repoPat"`
 	RepoBranch         string   `json:"repoBranch"`
-	SyncFrequencyInSec int      `json:"syncFrequencyInSec" `
-	AllowPush          bool     `json:"allowPush" `
-	AllowPull          bool     `json:"allowPull" `
-	SyncWorkloads      []string `json:"syncWorkloads" `
-	ShowDiffInLog      bool     `json:"showDiffInLog" `
-	IgnoredNamespaces  []string `json:"ignoredNamespaces" `
-	LogChanges         bool     `json:"logChanges" `
+	SyncFrequencyInSec int      `json:"syncFrequencyInSec"`
+	AllowPush          bool     `json:"allowPush"`
+	AllowPull          bool     `json:"allowPull"`
+	SyncWorkloads      []string `json:"syncWorkloads"`
+	ShowDiffInLog      bool     `json:"showDiffInLog"`
+	IgnoredNamespaces  []string `json:"ignoredNamespaces"`
+	IgnoredNames       []string `json:"ignoredNames"`
+	LogChanges         bool     `json:"logChanges"`
 }
 
 type IacManagerSyncInfo struct {
@@ -123,7 +125,13 @@ func InitDataModel() {
 		SyncInfo:         IacManagerSyncInfo{},
 		IacConfiguration: iacConfigurationFromYamlConfig(),
 		ResourceStates:   make(map[string]IacManagerResourceState),
+		RepoPulse:        make(map[string]int),
 	}
+	dataModel.SyncInfo.Contributors = []Contributor{}
+	dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = []string{}
+	dataModel.SyncInfo.RecentlyDeletedFiles = []string{}
+	dataModel.LastSuccessfullyAppliedCommit = nil
+
 	addedFiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil {
 		dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = addedFiles
@@ -131,6 +139,10 @@ func InitDataModel() {
 	deletedFiles, err := gitmanager.GetLastDeletedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err == nil {
 		dataModel.SyncInfo.RecentlyDeletedFiles = deletedFiles
+	}
+	pulse, err := gitmanager.GeneratePulseDiagramData(utils.CONFIG.Kubernetes.GitVaultDataPath)
+	if err == nil {
+		dataModel.RepoPulse = pulse
 	}
 }
 
@@ -209,7 +221,7 @@ func SetLastSuccessfullyAppliedCommit(commit *object.Commit) {
 		return
 	}
 	dataModelMutex.Lock()
-	dataModel.LastSuccessfullyAppliedCommit = GitActionStatus{
+	dataModel.LastSuccessfullyAppliedCommit = &GitActionStatus{
 		CommitAuthor:  commit.Author.Name,
 		CommitDate:    commit.Author.When.Format(time.RFC3339),
 		CommitHash:    commit.Hash.String(),
@@ -256,6 +268,10 @@ func SetContributors(signatures []object.Signature) {
 	dataModel.SyncInfo.Contributors = contributors
 }
 
+func SetPulseDiagramData(pulse map[string]int) {
+	dataModel.RepoPulse = pulse
+}
+
 // GETTERS
 func GetDataModel() IacManagerStatus {
 	// allways get the current configuration state
@@ -264,7 +280,7 @@ func GetDataModel() IacManagerStatus {
 	return dataModel
 }
 
-func GetLastAppliedCommit() GitActionStatus {
+func GetLastAppliedCommit() *GitActionStatus {
 	return dataModel.LastSuccessfullyAppliedCommit
 }
 
@@ -366,15 +382,20 @@ func ChangedFilesLen() int {
 // HELPERS
 
 func iacConfigurationFromYamlConfig() IacConfiguration {
+	repoPat := ""
+	if utils.CONFIG.Iac.RepoPat != "" {
+		repoPat = utils.REDACTED
+	}
 	return IacConfiguration{
 		RepoUrl:            utils.CONFIG.Iac.RepoUrl,
-		RepoPat:            utils.REDACTED,
+		RepoPat:            repoPat,
 		RepoBranch:         utils.CONFIG.Iac.RepoBranch,
 		SyncFrequencyInSec: utils.CONFIG.Iac.SyncFrequencyInSec,
 		AllowPush:          utils.CONFIG.Iac.AllowPush,
 		AllowPull:          utils.CONFIG.Iac.AllowPull,
 		SyncWorkloads:      utils.CONFIG.Iac.SyncWorkloads,
 		ShowDiffInLog:      utils.CONFIG.Iac.ShowDiffInLog,
+		IgnoredNames:       utils.CONFIG.Iac.IgnoredNames,
 		IgnoredNamespaces:  utils.CONFIG.Iac.IgnoredNamespaces,
 		LogChanges:         utils.CONFIG.Iac.LogChanges,
 	}

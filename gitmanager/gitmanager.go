@@ -557,6 +557,42 @@ func GetContributors(path string) ([]object.Signature, error) {
 	return contributors, nil
 }
 
+func GeneratePulseDiagramData(repoPath string) (map[string]int, error) {
+	commitsPerDay := make(map[string]int)
+
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return commitsPerDay, err
+	}
+
+	ref, err := repo.Head()
+	if err != nil {
+		return commitsPerDay, err
+	}
+
+	commitIter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
+	if err != nil {
+		return commitsPerDay, err
+	}
+
+	moreThan90Error := errors.New("more than 90 days found")
+
+	err = commitIter.ForEach(func(c *object.Commit) error {
+		week := c.Author.When.UTC().Format("2006-01-02") // YYYY-MM-DD
+		commitsPerDay[week]++
+
+		if len(commitsPerDay) > 90 {
+			return moreThan90Error
+		}
+		return nil
+	})
+	if err != nil && err != moreThan90Error {
+		return commitsPerDay, err
+	}
+
+	return commitsPerDay, nil
+}
+
 func LsRemotes(url string) ([]string, error) {
 	result := []string{}
 
