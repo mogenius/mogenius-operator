@@ -52,6 +52,7 @@ type Config struct {
 		GitVaultDataPath           string `yaml:"git_vault_data_path" env:"git_vault_data_path" env-description:"Path to the Git Vault data."`
 		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
 		BboltDbStatsPath           string `yaml:"bbolt_db_stats_path" env:"bbolt_db_stats_path" env-description:"Path to the bbolt database. This db stores stats-related information."`
+		LogDataPath                string `yaml:"log_data_path" env:"log_data_path" env-description:"Path to the log data."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
@@ -194,6 +195,9 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if CONFIG.Misc.DefaultMountPath == "" {
 		CONFIG.Misc.DefaultMountPath = pwd + "/mo-data"
 	}
+	if CONFIG.Kubernetes.LogDataPath == "" {
+		CONFIG.Kubernetes.LogDataPath = pwd + "/logs"
+	}
 
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
@@ -247,7 +251,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 
 func setupLogging() {
 	// Create a log file
-	err := os.MkdirAll(MainLogFolder(), os.ModePerm)
+	err := os.MkdirAll(CONFIG.Kubernetes.LogDataPath, os.ModePerm)
 	if err != nil {
 		log.Fatalf("Failed to create parent directories: %v", err)
 	}
@@ -355,6 +359,7 @@ func PrintSettings() {
 	log.Infof("GitVaultDataPath:          %s", CONFIG.Kubernetes.GitVaultDataPath)
 	log.Infof("BboltDbPath:               %s", CONFIG.Kubernetes.BboltDbPath)
 	log.Infof("BboltDbStatsPath:          %s", CONFIG.Kubernetes.BboltDbStatsPath)
+	log.Infof("LogDataPath:               %s", CONFIG.Kubernetes.LogDataPath)
 	log.Infof("LocalContainerRegistry:    %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
 
 	log.Infof("API")
