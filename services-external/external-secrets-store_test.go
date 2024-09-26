@@ -22,13 +22,8 @@ const (
 
 type SecretStoreSchema struct {
 	Metadata struct {
-		Name        string `yaml:"name"`
-		Annotations struct {
-			DisplayName string `yaml:"mogenius-external-secrets/display-name"`
-			Prefix      string `yaml:"mogenius-external-secrets/prefix"`
-			SharedPath  string `yaml:"mogenius-external-secrets/shared-path"`
-			ProjectId   string `yaml:"mogenius-external-secrets/project-id"`
-		} `yaml:"annotations"`
+		Name        string            `yaml:"name"`
+		Annotations map[string]string `yaml:"annotations"`
 	} `yaml:"metadata"`
 	Spec struct {
 		Provider struct {
@@ -49,6 +44,9 @@ func TestSecretStoreRender(t *testing.T) {
 	yamlTemplate := utils.InitExternalSecretsStoreYaml()
 
 	secretStore := externalSecretStorePropsExample()
+	secretStore.Name = "mo-ex-secr-test-003"
+	secretStore.NamePrefix = "4jdh7e9dk7"
+	secretStore.ProjectId = "djsajfh74-23423-234123-32fdsf"
 	secretStore.Role = "mo-external-secrets-002"
 	yamlDataUpdated := renderClusterSecretStore(yamlTemplate, secretStore)
 
@@ -58,7 +56,7 @@ func TestSecretStoreRender(t *testing.T) {
 		logger.Log.Info("Yaml data updated ✅")
 	}
 
-	expectedPath := "secrets/mo-ex-secr-test-003"
+	expectedPath := "secrets/data/mo-ex-secr-test-003"
 	secretStore.SecretPath = expectedPath
 	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, secretStore)
 
@@ -69,8 +67,9 @@ func TestSecretStoreRender(t *testing.T) {
 		t.Fatalf("Error parsing YAML: %v", err)
 	}
 
-	if data.Metadata.Annotations.SharedPath != expectedPath {
-		t.Errorf("Error updating SecretPath: expected: %s, got: %s", expectedPath, data.Metadata.Annotations.SharedPath)
+	parsedPath := data.Metadata.Annotations["mogenius-external-secrets/shared-path"]
+	if parsedPath != expectedPath {
+		t.Errorf("Error updating SecretPath: expected: %s, got: %s", expectedPath, parsedPath)
 	} else {
 		logger.Log.Info("SecretPath updated ✅")
 	}
