@@ -3,7 +3,6 @@ package socketserver
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
@@ -21,7 +20,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/mattn/go-tty"
 	punqUtils "github.com/mogenius/punq/utils"
-	"github.com/schollz/progressbar/v3"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -655,21 +653,11 @@ func sendFile() {
 	reader := bufio.NewReader(file)
 	if reader != nil && totalSize > 0 {
 		buf := make([]byte, 512)
-		bar := progressbar.DefaultBytes(totalSize)
 
 		serverSendMutex.Lock()
 		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######START_UPLOAD######;"))
 		for {
-			chunk, err := reader.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					log.Errorf("reading bytes error: %s", err.Error())
-				}
-				bar.Finish()
-				break
-			}
 			cluster.Connection.WriteMessage(websocket.BinaryMessage, buf)
-			bar.Add(chunk)
 		}
 		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######END_UPLOAD######;"))
 		serverSendMutex.Unlock()
