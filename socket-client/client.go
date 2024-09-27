@@ -15,7 +15,6 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/schollz/progressbar/v3"
 
 	"github.com/gorilla/websocket"
 
@@ -70,7 +69,6 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	var preparedFileName *string
 	var preparedFileRequest *services.FilesUploadRequest
 	var openFile *os.File
-	bar := progressbar.DefaultSilent(0)
 
 	maxGoroutines := 100
 	semaphoreChan := make(chan struct{}, maxGoroutines)
@@ -96,18 +94,12 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				if err != nil {
 					log.Errorf("Cannot open uploadfile: '%s'.", err.Error())
 				}
-				if preparedFileRequest != nil {
-					bar = progressbar.DefaultBytes(preparedFileRequest.SizeInBytes)
-				} else {
-					progressbar.DefaultBytes(0)
-				}
 			}
 			if strings.HasPrefix(rawDataStr, "######END_UPLOAD######;") {
 				openFile.Close()
 				if preparedFileName != nil && preparedFileRequest != nil {
 					services.Uploaded(*preparedFileName, *preparedFileRequest)
 				}
-				bar.Finish()
 				os.Remove(*preparedFileName)
 
 				var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
@@ -120,7 +112,6 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 			}
 			if preparedFileName != nil {
 				openFile.Write([]byte(rawDataStr))
-				bar.Add(len(rawDataStr))
 			} else {
 				datagram := structs.CreateEmptyDatagram()
 
