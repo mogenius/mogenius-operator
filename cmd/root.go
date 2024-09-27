@@ -4,6 +4,7 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	"os"
 
@@ -29,6 +30,8 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 			utils.DeleteCurrentConfig()
 		}
 		utils.InitConfigYaml(debug, customConfig, stage)
+		// SET LOGGING
+		logging.SetupLogging()
 		punq.InitKubernetes(utils.CONFIG.Kubernetes.RunInCluster)
 
 		if utils.ClusterProviderCached == punqDtos.UNKNOWN {

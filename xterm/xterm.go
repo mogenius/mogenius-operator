@@ -65,6 +65,8 @@ type OperatorLogConnectionRequest struct {
 type ComponentLogConnectionRequest struct {
 	WsConnection WsConnectionRequest   `json:"wsConnectionRequest" validate:"required"`
 	Component    structs.ComponentEnum `json:"component" validate:"required"`
+	Namespace    *string               `json:"namespace,omitempty"`
+	Release      *string               `json:"release,omitempty"`
 }
 
 type PodEventConnectionRequest struct {
@@ -91,6 +93,7 @@ type LogEntry struct {
 	ControllerName string                `json:"controllerName"`
 	Level          string                `json:"level"`
 	Namespace      string                `json:"namespace"`
+	ReleaseName    string                `json:"releaseName"`
 	Component      structs.ComponentEnum `json:"component"`
 	Message        string                `json:"msg"`
 	Time           string                `json:"time"`
@@ -425,7 +428,7 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 	}
 }
 
-func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, component structs.ComponentEnum) {
+func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, component structs.ComponentEnum, namespace *string, release *string) {
 	if injectPreContent != nil {
 		injectContent(injectPreContent, conn)
 	}
@@ -449,8 +452,22 @@ func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc,
 					continue
 				}
 
-				if component != structs.ComponentAll {
-					if entry.Component != component {
+				//if component != structs.ComponentAll {
+				//	if entry.Component != component {
+				//		continue
+				//	}
+				//}
+
+				if namespace != nil {
+					log.Infof("namespace: %s", *namespace)
+					if entry.Namespace != *namespace {
+						continue
+					}
+				}
+
+				if release != nil {
+					log.Infof("release: %s", *release)
+					if entry.ReleaseName != *release {
 						continue
 					}
 				}

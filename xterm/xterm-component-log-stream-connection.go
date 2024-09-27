@@ -18,10 +18,17 @@ import (
 func XTermComponentStreamConnection(
 	wsConnectionRequest WsConnectionRequest,
 	component structs.ComponentEnum,
+	namespace *string,
+	release *string,
 ) {
 	cmdType := "log"
 
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("tail -F -n %s %s", MAX_TAIL_LINES, utils.MainLogPath()))
+	filename := utils.MainLogPath()
+	if component != structs.ComponentAll {
+		filename = fmt.Sprintf("%s/%s.log", utils.CONFIG.Kubernetes.LogDataPath, component)
+	}
+
+	cmd := exec.Command("bash", "-c", fmt.Sprintf("tail -F -n %s %s", MAX_TAIL_LINES, filename))
 
 	if wsConnectionRequest.WebsocketScheme == "" {
 		log.Error("WebsocketScheme is empty")
@@ -84,7 +91,7 @@ func XTermComponentStreamConnection(
 	go cmdWait(cmd, conn, tty)
 
 	// cmd output to websocket
-	go cmdOutputScannerToWebsocket(ctx, cancel, conn, tty, nil, component)
+	go cmdOutputScannerToWebsocket(ctx, cancel, conn, tty, nil, component, namespace, release)
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)
