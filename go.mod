@@ -3,7 +3,7 @@ module mogenius-k8s-manager
 go 1.22.3
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.1
+	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/cert-manager/cert-manager v1.15.3
 	github.com/creack/pty v1.1.21
