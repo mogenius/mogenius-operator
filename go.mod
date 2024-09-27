@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/cert-manager/cert-manager v1.15.3
-	github.com/creack/pty v1.1.21
+	github.com/creack/pty v1.1.23
 	github.com/dgraph-io/badger/v4 v4.3.0
 	github.com/fatih/color v1.17.0
 	github.com/gin-gonic/gin v1.10.0
