@@ -2563,6 +2563,8 @@ func componentLogStreamConnection(componentLogConnectionRequest xterm.ComponentL
 	xterm.XTermComponentStreamConnection(
 		componentLogConnectionRequest.WsConnection,
 		componentLogConnectionRequest.Component,
+		componentLogConnectionRequest.Namespace,
+		componentLogConnectionRequest.Release,
 	)
 }
 
