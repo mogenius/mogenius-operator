@@ -27,7 +27,7 @@ func NewFileHook(components []structs.ComponentEnum) error {
 	for _, component := range components {
 		filename := fmt.Sprintf("%s/%s.log", utils.CONFIG.Kubernetes.LogDataPath, component)
 
-		file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0755)
+		file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			return err
 		}
