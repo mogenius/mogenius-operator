@@ -22,6 +22,11 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
+const (
+	DenyAllNetPolName string = "deny-all"
+	MarkerLabel              = "using-" + DenyAllNetPolName
+)
+
 func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("create", "Create NetworkPolicy namespace", job)
 	wg.Add(1)
@@ -59,6 +64,9 @@ func CreateNetworkPolicyWithLabel(namespace dtos.K8sNamespaceDto, labelPolicy dt
 	netpol.ObjectMeta.Namespace = namespace.Name
 	label := fmt.Sprintf("mo-netpol-%s-%s", labelPolicy.Name, labelPolicy.Type)
 	netpol.Spec.PodSelector.MatchLabels[label] = "true"
+
+	// this label is marking all netpols that "need" a deny-all rule
+	netpol.ObjectMeta.Labels = map[string]string{MarkerLabel: "true"}
 
 	for _, aPort := range labelPolicy.Ports {
 		port := intstr.FromInt32(int32(aPort.ExternalPort))
@@ -99,9 +107,36 @@ func CreateNetworkPolicyWithLabel(namespace dtos.K8sNamespaceDto, labelPolicy dt
 	}
 
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespace.Name)
-	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+
+	_, err := netPolClient.Get(context.TODO(), DenyAllNetPolName, metav1.GetOptions{})
+	if err != nil {
+		K8sLogger.Infof("%s not found, it will be created.", DenyAllNetPolName)
+
+		err = CreateDenyAllNetworkPolicy(namespace)
+		if err != nil {
+			K8sLogger.Errorf("ERROR creating: %s:  %v , abort NetPol creation!", DenyAllNetPolName, err.Error())
+			return err
+		}
+	}
+	_, err = netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 	if err != nil {
 		K8sLogger.Errorf("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
+		return err
+	}
+	return nil
+}
+
+func CreateDenyAllNetworkPolicy(namespace dtos.K8sNamespaceDto) error {
+	netpol := punqUtils.InitNetPolService()
+	netpol.ObjectMeta.Name = DenyAllNetPolName
+	netpol.ObjectMeta.Namespace = namespace.Name
+	netpol.Spec.PodSelector = metav1.LabelSelector{} // An empty podSelector matches all pods in this namespace.
+	netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
+
+	netPolClient := GetNetworkingClient().NetworkPolicies(namespace.Name)
+	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+	if err != nil {
+		K8sLogger.Errorf("CreateDenyAllNetworkPolicy ERROR: %s", err)
 		return err
 	}
 	return nil
@@ -118,7 +153,30 @@ func DeleteNetworkPolicy(namespace dtos.K8sNamespaceDto, name string) error {
 	}
 
 	K8sLogger.Printf("Deleted NetworkPolicy: %s", name)
+
+	cleanupNetworkPolicies(namespace)
 	return nil
+}
+
+func cleanupNetworkPolicies(namespace dtos.K8sNamespaceDto) {
+	client := GetNetworkingClient()
+	netPolClient := client.NetworkPolicies(namespace.Name)
+
+	// list all network policies and find all that have the marker label
+	netpols, err := netPolClient.List(context.TODO(), metav1.ListOptions{
+		LabelSelector: MarkerLabel + "=true",
+	})
+	if err != nil {
+		K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
+		return
+	}
+
+	if len(netpols.Items) == 0 {
+		err = netPolClient.Delete(context.TODO(), DenyAllNetPolName, metav1.DeleteOptions{})
+		if err != nil {
+			K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
+		}
+	}
 }
 
 // func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
