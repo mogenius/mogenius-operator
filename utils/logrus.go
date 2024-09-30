@@ -76,25 +76,26 @@ func (hook *LogRotationHook) Levels() []logrus.Level {
 }
 
 func (hook *LogRotationHook) Fire(entry *logrus.Entry) error {
+
 	logbytesCounter += uint64(len(entry.Message))
 
 	if logbytesCounter > uint64(CONFIG.Misc.LogRotationSizeInBytes) {
-		rotateLog()
+		RotateLog(MainLogPath(), "main")
 	}
 
 	return nil
 }
 
-func rotateLog() {
+func RotateLog(sourceFilePath string, component string) {
 	logbytesCounter = 0
 
-	rotatedLogfilePath := fmt.Sprintf("%s/logs/%s.log", CONFIG.Misc.DefaultMountPath, time.Now().Format("2006-01-02-15-04-05.000"))
-	err := os.MkdirAll(MainLogFolder(), os.ModePerm)
+	rotatedLogfilePath := fmt.Sprintf("%s/%s-%s.log", CONFIG.Kubernetes.LogDataPath, component, time.Now().Format("2006-01-02-15-04-05.000"))
+	err := os.MkdirAll(CONFIG.Kubernetes.LogDataPath, os.ModePerm)
 	if err != nil {
 		logrus.Errorf("Failed to create parent directories for rotation: %v", err)
 	}
 
-	sourceFile, err := os.OpenFile(MainLogPath(), os.O_RDWR|os.O_CREATE, 0666)
+	sourceFile, err := os.OpenFile(sourceFilePath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		logrus.Errorf("Failed to open main log file: %v", err)
 	}
@@ -111,7 +112,7 @@ func rotateLog() {
 		logrus.Errorf("Failed to copy log file: %v", err)
 	}
 
-	err = os.Truncate(MainLogPath(), 0)
+	err = os.Truncate(sourceFilePath, 0)
 	if err != nil {
 		logrus.Errorf("Failed to truncate log file: %v", err)
 	}
@@ -120,8 +121,9 @@ func rotateLog() {
 }
 
 func deleteFilesOlderThanLogRetention() {
-	fileDir := fmt.Sprintf("%s/logs", CONFIG.Misc.DefaultMountPath)
-	files, err := os.ReadDir(fileDir)
+	searchPattern := fmt.Sprintf("%s.log", time.Now().Format("2006-01-02-15-04-05.000"))
+
+	files, err := os.ReadDir(CONFIG.Kubernetes.LogDataPath)
 	if err != nil {
 		logrus.Errorf("Failed to read directory: %v", err)
 	}
@@ -130,6 +132,12 @@ func deleteFilesOlderThanLogRetention() {
 		if file.IsDir() {
 			continue
 		}
+
+		// Skip files that don't match the search pattern
+		if !strings.HasSuffix(file.Name(), searchPattern) {
+			continue
+		}
+
 		if strings.HasPrefix(file.Name(), "main.log") {
 			continue
 		}
@@ -141,7 +149,7 @@ func deleteFilesOlderThanLogRetention() {
 		}
 
 		if time.Since(fileInfo.ModTime()).Hours() > float64(CONFIG.Misc.LogRetentionDays*24) {
-			err := os.Remove(fmt.Sprintf("%s/%s", fileDir, file.Name()))
+			err := os.Remove(fmt.Sprintf("%s/%s", CONFIG.Kubernetes.LogDataPath, file.Name()))
 			if err != nil {
 				logrus.Errorf("Failed to delete file: %v", err)
 			}
@@ -150,12 +158,6 @@ func deleteFilesOlderThanLogRetention() {
 }
 
 func MainLogPath() string {
-	fileDir := fmt.Sprintf("%s/logs", CONFIG.Misc.DefaultMountPath)
-	logFilePath := fmt.Sprintf("%s/main.log", fileDir)
+	logFilePath := fmt.Sprintf("%s/main.log", CONFIG.Kubernetes.LogDataPath)
 	return logFilePath
-}
-
-func MainLogFolder() string {
-	fileDir := fmt.Sprintf("%s/logs", CONFIG.Misc.DefaultMountPath)
-	return fileDir
 }
