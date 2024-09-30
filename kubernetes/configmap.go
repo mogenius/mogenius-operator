@@ -7,10 +7,12 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	v1 "k8s.io/api/core/v1"
+
 	v1Core "k8s.io/api/core/v1"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -111,6 +113,27 @@ import (
 // 	}(wg)
 // }
 
+// only create the configmap if it does not exist
+func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
+	client := GetCoreClient().ConfigMaps(namespace)
+
+	// check if the configmap already exists
+	_, err := client.Get(context.TODO(), configMap.Name, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			_, err = client.Create(context.TODO(), &configMap, MoCreateOptions())
+			if err != nil {
+				K8sLogger.Errorf("InitNetworkPolicyConfigMap creation ERROR: %s", err)
+				return err
+			}
+		} else {
+			K8sLogger.Errorf("InitNetworkPolicyConfigMap get ERROR: %s", err)
+			return err
+		}
+	}
+	return nil
+}
+
 func WriteConfigMap(namespace string, name string, data string, labels map[string]string) error {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
@@ -120,7 +143,7 @@ func WriteConfigMap(namespace string, name string, data string, labels map[strin
 
 	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		newConfigMap := v1.ConfigMap{}
+		newConfigMap := v1Core.ConfigMap{}
 		newConfigMap.Data = make(map[string]string)
 		newConfigMap.Name = name
 		newConfigMap.Namespace = namespace

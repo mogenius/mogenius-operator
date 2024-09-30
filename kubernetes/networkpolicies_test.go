@@ -62,3 +62,10 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 		t.Errorf("Error deleting network policy: %s. %s", PolicyName2, err.Error())
 	}
 }
+
+func TestInitNetworkPolicyConfigMap(t *testing.T) {
+	err := InitNetworkPolicyConfigMap()
+	if err != nil {
+		t.Errorf("Error initializing network policy config map: %s", err.Error())
+	}
+}

@@ -18,8 +18,10 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	appsV1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -84,28 +86,59 @@ func init() {
 	dtos.KubernetesK8sLogger = K8sLogger
 }
 
-func GetCoreClient() coreV1.CoreV1Interface {
+func getProvider() *punq.KubeProvider {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		K8sLogger.Fatal("Error creating kubeprovider")
 	}
-	return provider.ClientSet.CoreV1()
+	return provider
+}
+
+func GetCoreClient() coreV1.CoreV1Interface {
+	return getProvider().ClientSet.CoreV1()
 }
 
 func GetNetworkingClient() netV1.NetworkingV1Interface {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		K8sLogger.Fatal("Error creating kubeprovider")
-	}
-	return provider.ClientSet.NetworkingV1()
+	return getProvider().ClientSet.NetworkingV1()
 }
 
 func GetAppClient() appsV1.AppsV1Interface {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		K8sLogger.Fatal("Error creating kubeprovider")
+
+	return getProvider().ClientSet.AppsV1()
+}
+
+func PrintClientPermissions(namespace, resourceType string) {
+	// Create the SelfSubjectRulesReview client
+	authClient := getProvider().ClientSet.AuthorizationV1().SelfSubjectRulesReviews()
+
+	// Define the SelfSubjectRulesReview request
+	ssrr := &authorizationv1.SelfSubjectRulesReview{
+		Spec: authorizationv1.SelfSubjectRulesReviewSpec{
+			Namespace: namespace,
+		},
 	}
-	return provider.ClientSet.AppsV1()
+
+	// Send the request
+	response, err := authClient.Create(context.TODO(), ssrr, MoCreateOptions())
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// Print the permissions for the specified resource type
+	fmt.Printf("Permissions for resource type '%s' in namespace '%s':\n", resourceType, ssrr.Spec.Namespace)
+	for _, rule := range response.Status.ResourceRules {
+		for _, resource := range rule.Resources {
+			if resource == resourceType {
+				fmt.Printf("Verbs: %v\n", rule.Verbs)
+				if len(rule.APIGroups) > 0 {
+					fmt.Printf("API Groups: %v\n", rule.APIGroups)
+				}
+				if len(rule.ResourceNames) > 0 {
+					fmt.Printf("Resource Names: %v\n", rule.ResourceNames)
+				}
+			}
+		}
+	}
 }
 
 func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {

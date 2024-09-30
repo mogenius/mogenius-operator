@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: network-ports-config
-  namespace: default # Change the namespace if needed
+  namespace: mogenius
 data:
   egress: |
     - name: dns

@@ -87,6 +87,11 @@ var clusterCmd = &cobra.Command{
 			log.Errorf("Error initializing Helm Config: %s", err.Error())
 		}
 
+		// Init Network Policy Configmap
+		if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
+			log.Errorf("Error initializing Network Policy Configmap: %s", err.Error())
+		}
+
 		socketclient.StartK8sManager()
 	},
 }

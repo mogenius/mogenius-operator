@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/yaml"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -179,28 +181,19 @@ func cleanupNetworkPolicies(namespace dtos.K8sNamespaceDto) {
 	}
 }
 
-// func DeleteNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
-// 	cmd := structs.CreateCommand("delete", "Delete NetworkPolicy.", job)
-// 	wg.Add(1)
-// 	go func(wg *sync.WaitGroup) {
-// 		defer wg.Done()
-// 		cmd.Start(job, "Delete NetworkPolicy")
+func InitNetworkPolicyConfigMap() error {
+	yamlString := utils.InitNetworkPolicyDefaultsYaml()
 
-// 		provider, err := punq.NewKubeProvider(nil)
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-// 			return
-// 		}
-// 		netPolClient := provider.ClientSet.NetworkingV1().NetworkPolicies(namespace.Name)
-
-// 		err = netPolClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyNamespace ERROR: %s", err.Error()))
-// 		} else {
-// 			cmd.Success(job, "Delete NetworkPolicy")
-// 		}
-// 	}(wg)
-// }
+	// marshal yaml to struct
+	var configMap v1Core.ConfigMap
+	err := yaml.Unmarshal([]byte(yamlString), &configMap)
+	if err != nil {
+		K8sLogger.Errorf("InitNetworkPolicyConfigMap ERROR: %s", err)
+		return err
+	}
+	return EnsureConfigMapExists(configMap.Namespace, configMap)
+	// return WriteConfigMap(configMap.Namespace, configMap.Name, yamlString, configMap.Labels)
+}
 
 func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("create", "Create NetworkPolicy Service", job)
