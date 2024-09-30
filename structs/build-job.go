@@ -362,51 +362,76 @@ func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoE
 func CreateBuildJobInfo(image string, clone []byte, ls []byte, login []byte, build []byte, push []byte) BuildJobInfo {
 	result := BuildJobInfo{}
 
+	var projectId *string = nil
+
 	cloneEntity := CreateBuildJobEntryFromData(clone)
-	if cloneEntity.Prefix == "" {
-		cloneEntity.Prefix = PrefixGitClone
-		cloneEntity.State = JobStatePending
+	if !cloneEntity.IsEmpty() {
+		if cloneEntity.Prefix == "" {
+			cloneEntity.Prefix = PrefixGitClone
+			cloneEntity.State = JobStatePending
+		}
+		projectId = &cloneEntity.ProjectId
 	}
 
 	lsEntity := CreateBuildJobEntryFromData(ls)
-	if lsEntity.Prefix == "" {
-		lsEntity.Prefix = PrefixLs
-		lsEntity.State = JobStatePending
+	if !lsEntity.IsEmpty() {
+		if lsEntity.Prefix == "" {
+			lsEntity.Prefix = PrefixLs
+			lsEntity.State = JobStatePending
+		}
+		projectId = &lsEntity.ProjectId
 	}
 
 	loginEntity := CreateBuildJobEntryFromData(login)
 	if !loginEntity.IsEmpty() {
 		loginEntity.Prefix = PrefixLogin
+		projectId = &loginEntity.ProjectId
 	}
 
 	buildEntity := CreateBuildJobEntryFromData(build)
-	if buildEntity.Prefix == "" {
-		buildEntity.Prefix = PrefixBuild
-		buildEntity.State = JobStatePending
+	if !buildEntity.IsEmpty() {
+		if buildEntity.Prefix == "" {
+			buildEntity.Prefix = PrefixBuild
+			buildEntity.State = JobStatePending
+		}
+		projectId = &buildEntity.ProjectId
 	}
 
 	pushEntity := CreateBuildJobEntryFromData(push)
-	if pushEntity.Prefix == "" {
-		pushEntity.Prefix = PrefixPush
-		pushEntity.State = JobStatePending
+	if !pushEntity.IsEmpty() {
+		if pushEntity.Prefix == "" {
+			pushEntity.Prefix = PrefixPush
+			pushEntity.State = JobStatePending
+		}
+		projectId = &pushEntity.ProjectId
 	}
 
-	result.BuildId = cloneEntity.BuildId
-	result.ProjectId = cloneEntity.ProjectId
-	result.Namespace = cloneEntity.Namespace
-	result.Controller = cloneEntity.Controller
-	result.Container = cloneEntity.Container
+	if projectId != nil {
+		result.ProjectId = *projectId
+	}
+	
+	if !cloneEntity.IsEmpty() {
+		result.StartTime = cloneEntity.StartTime
+	}
+	if !pushEntity.IsEmpty() {
+		result.FinishTime = pushEntity.FinishTime
+	}
+
 	result.Image = image
 
-	result.StartTime = cloneEntity.StartTime
-	result.FinishTime = pushEntity.FinishTime
-
 	result.Tasks = []BuildJobInfoEntry{}
-	result.Tasks = append(result.Tasks, cloneEntity)
-	result.Tasks = append(result.Tasks, lsEntity)
-	result.Tasks = append(result.Tasks, buildEntity)
-	result.Tasks = append(result.Tasks, pushEntity)
-
+	if !cloneEntity.IsEmpty() {
+		result.Tasks = append(result.Tasks, cloneEntity)
+	}
+	if !lsEntity.IsEmpty() {
+		result.Tasks = append(result.Tasks, lsEntity)
+	}
+	if !buildEntity.IsEmpty() {
+		result.Tasks = append(result.Tasks, buildEntity)
+	}
+	if !pushEntity.IsEmpty() {
+		result.Tasks = append(result.Tasks, pushEntity)
+	}
 	if !loginEntity.IsEmpty() {
 		result.Tasks = append(result.Tasks, loginEntity)
 	}
