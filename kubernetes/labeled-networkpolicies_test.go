@@ -16,30 +16,44 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Id:          "mogenius-123",
 		DisplayName: "Mogenius 123",
 	}
-
-	var ports = []dtos.K8sPortsDto{
-		dtos.K8sPortsDtoExampleData(),
-		dtos.K8sPortsDtoExternalExampleData(),
+	var ports1 = []dtos.K8sLabeledPortDto{
+		{
+			Port:     80,
+			PortType: dtos.PortTypeHTTPS,
+		},
+		{
+			Port:     443,
+			PortType: dtos.PortTypeTCP,
+		},
 	}
 
 	var labelPolicy1 = dtos.K8sLabeledNetworkPolicyParams{
 		Name:  PolicyName1,
 		Type:  dtos.Ingress,
-		Ports: ports,
-	}
-
-	ports[0].PortType = dtos.PortTypeUDP
-	ports[1].PortType = dtos.PortTypeSCTP
-
-	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyParams{
-		Name:  PolicyName2,
-		Type:  dtos.Egress,
-		Ports: ports,
+		Ports: ports1,
 	}
 	err := CreateNetworkPolicyWithLabel(namespace, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
+
+	var ports2 = []dtos.K8sLabeledPortDto{
+		{
+			Port:     13333,
+			PortType: dtos.PortTypeSCTP,
+		},
+		{
+			Port:     59999,
+			PortType: dtos.PortTypeUDP,
+		},
+	}
+
+	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyParams{
+		Name:  PolicyName2,
+		Type:  dtos.Egress,
+		Ports: ports2,
+	}
+
 	err = CreateNetworkPolicyWithLabel(namespace, labelPolicy2)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())

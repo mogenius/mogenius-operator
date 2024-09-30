@@ -11,3 +11,6 @@ type CreateLabeledNetworkPolicyResponse struct {
 	Status       string `json:"status"`
 	ErrorMessage string `json:"errorMessage"`
 }
+
+type ListLabeledNetworkPolicyPortsResponse struct {
+	Ports []dtos.K8sPortsDto `json:"ports"`
