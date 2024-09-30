@@ -18,6 +18,7 @@ const (
 	ComponentDbStats    ComponentEnum = "db-stats"
 	ComponentCrds       ComponentEnum = "crds"
 	ComponentKubernetes ComponentEnum = "kubernetes"
+	ComponentHelm       ComponentEnum = "helm"
 	ComponentServices   ComponentEnum = "services"
 )
 

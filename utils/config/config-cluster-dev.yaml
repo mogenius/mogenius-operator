@@ -10,6 +10,7 @@ kubernetes:
   helm_data_path: /db/helm-data
   git_vault_data_path: /db/git-vault-data
   bbolt_db_path: /db/mogenius.db
+  log_data_path: /db/logs
   bbolt_db_stats_path: /db/mogenius-stats.db
   local_registry_host: mocr.local.mogenius.io
 

@@ -3,9 +3,7 @@ package utils
 import (
 	_ "embed"
 	"fmt"
-	"io"
 	"mogenius-k8s-manager/version"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,6 +50,7 @@ type Config struct {
 		GitVaultDataPath           string `yaml:"git_vault_data_path" env:"git_vault_data_path" env-description:"Path to the Git Vault data."`
 		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
 		BboltDbStatsPath           string `yaml:"bbolt_db_stats_path" env:"bbolt_db_stats_path" env-description:"Path to the bbolt database. This db stores stats-related information."`
+		LogDataPath                string `yaml:"log_data_path" env:"log_data_path" env-description:"Path to the log data."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
@@ -194,6 +193,9 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if CONFIG.Misc.DefaultMountPath == "" {
 		CONFIG.Misc.DefaultMountPath = pwd + "/mo-data"
 	}
+	if CONFIG.Kubernetes.LogDataPath == "" {
+		CONFIG.Kubernetes.LogDataPath = pwd + "/logs"
+	}
 
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
@@ -220,76 +222,76 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	}
 
 	// SET LOGGING
-	setupLogging()
+	// setupLogging()
 
-	if CONFIG.Misc.Debug {
-		log.Info("Starting serice for pprof in localhost:6060")
-		go func() {
-			log.Info(http.ListenAndServe("localhost:6060", nil))
-			log.Info("1. Portforward mogenius-k8s-manager to 6060")
-			log.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
-			log.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
-			log.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
-			log.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
-			log.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
-			log.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
-			log.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
-			log.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
-			log.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
-			log.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
-			log.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
-			log.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
-			log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
-			log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
-		}()
-	}
+	//if CONFIG.Misc.Debug {
+	//	log.Info("Starting service for pprof in localhost:6060")
+	//	go func() {
+	//		log.Info(http.ListenAndServe("localhost:6060", nil))
+	//		log.Info("1. Portforward mogenius-k8s-manager to 6060")
+	//		log.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
+	//		log.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
+	//		log.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
+	//		log.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
+	//		log.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
+	//		log.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
+	//		log.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
+	//		log.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
+	//		log.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
+	//		log.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
+	//		log.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
+	//		log.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
+	//		log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
+	//		log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
+	//	}()
+	//}
 }
 
-func setupLogging() {
-	// Create a log file
-	err := os.MkdirAll(MainLogFolder(), os.ModePerm)
-	if err != nil {
-		log.Fatalf("Failed to create parent directories: %v", err)
-	}
-	file, err := os.OpenFile(MainLogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("Failed to open log file: %v", err)
-	}
-
-	mw := io.MultiWriter(os.Stdout, file)
-
-	log.SetOutput(mw)
-	log.SetLevel(log.TraceLevel)
-
-	log.AddHook(&SecretRedactionHook{})
-	log.AddHook(&LogRotationHook{})
-
-	log.SetFormatter(&log.TextFormatter{
-		ForceColors:      true,
-		DisableTimestamp: false,
-		DisableQuote:     true,
-	})
-
-	log.SetReportCaller(CONFIG.Misc.DebugLogCaller)
-	logLevel, err := log.ParseLevel(CONFIG.Misc.LogLevel)
-	if err != nil {
-		logLevel = log.InfoLevel
-		log.Error("Error parsing log level. Using default log level: info")
-	}
-	log.SetLevel(logLevel)
-
-	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
-		log.SetFormatter(&log.JSONFormatter{})
-	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
-		log.SetFormatter(&log.TextFormatter{
-			ForceColors:      true,
-			DisableTimestamp: false,
-			DisableQuote:     true,
-		})
-	} else {
-		log.SetFormatter(&log.TextFormatter{})
-	}
-}
+//func setupLogging() {
+//	// Create a log file
+//	err := os.MkdirAll(CONFIG.Kubernetes.LogDataPath, os.ModePerm)
+//	if err != nil {
+//		log.Fatalf("Failed to create parent directories: %v", err)
+//	}
+//	file, err := os.OpenFile(MainLogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+//	if err != nil {
+//		log.Fatalf("Failed to open log file: %v", err)
+//	}
+//
+//	mw := io.MultiWriter(os.Stdout, file)
+//
+//	log.SetOutput(mw)
+//	log.SetLevel(log.TraceLevel)
+//
+//	log.AddHook(&SecretRedactionHook{})
+//	log.AddHook(&LogRotationHook{})
+//
+//	log.SetFormatter(&log.TextFormatter{
+//		ForceColors:      true,
+//		DisableTimestamp: false,
+//		DisableQuote:     true,
+//	})
+//
+//	log.SetReportCaller(CONFIG.Misc.DebugLogCaller)
+//	logLevel, err := log.ParseLevel(CONFIG.Misc.LogLevel)
+//	if err != nil {
+//		logLevel = log.InfoLevel
+//		log.Error("Error parsing log level. Using default log level: info")
+//	}
+//	log.SetLevel(logLevel)
+//
+//	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
+//		log.SetFormatter(&log.JSONFormatter{})
+//	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
+//		log.SetFormatter(&log.TextFormatter{
+//			ForceColors:      true,
+//			DisableTimestamp: false,
+//			DisableQuote:     true,
+//		})
+//	} else {
+//		log.SetFormatter(&log.TextFormatter{})
+//	}
+//}
 
 func PrintCurrentCONFIG() (string, error) {
 	// create a deep copy of the Config instance
@@ -355,6 +357,7 @@ func PrintSettings() {
 	log.Infof("GitVaultDataPath:          %s", CONFIG.Kubernetes.GitVaultDataPath)
 	log.Infof("BboltDbPath:               %s", CONFIG.Kubernetes.BboltDbPath)
 	log.Infof("BboltDbStatsPath:          %s", CONFIG.Kubernetes.BboltDbStatsPath)
+	log.Infof("LogDataPath:               %s", CONFIG.Kubernetes.LogDataPath)
 	log.Infof("LocalContainerRegistry:    %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
 
 	log.Infof("API")

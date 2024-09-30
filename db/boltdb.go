@@ -435,6 +435,11 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
 		push := bucket.Get([]byte(structs.BuildJobInfoEntryKey(buildId, structs.PrefixPush, namespace, controller, container)))
 		result = structs.CreateBuildJobInfo(job.Image, clone, ls, login, build, push)
 
+		result.BuildId = buildId
+		result.Namespace = namespace
+		result.Controller = controller
+		result.Container = container
+
 		if containerObj.GitCommitHash != nil {
 			result.CommitHash = *containerObj.GitCommitHash
 		}
