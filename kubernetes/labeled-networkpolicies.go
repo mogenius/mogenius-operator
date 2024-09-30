@@ -20,7 +20,7 @@ const (
 	MarkerLabel              = "using-" + DenyAllNetPolName
 )
 
-func CreateNetworkPolicyWithLabel(namespace dtos.K8sNamespaceDto, labelPolicy dtos.K8sLabeledNetworkPolicyParams) error {
+func CreateNetworkPolicyWithLabel(namespace dtos.K8sNamespaceDto, labelPolicy dtos.K8sLabeledNetworkPolicies) error {
 	netpol := punqUtils.InitNetPolService()
 	// clean traffic rules
 	netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
@@ -130,6 +130,13 @@ func cleanupNetworkPolicies(namespace dtos.K8sNamespaceDto) {
 }
 
 func InitNetworkPolicyConfigMap() error {
+	configMap := readDefaultConfigMap()
+
+	return EnsureConfigMapExists(configMap.Namespace, *configMap)
+	// return WriteConfigMap(configMap.Namespace, configMap.Name, yamlString, configMap.Labels)
+}
+
+func readDefaultConfigMap() *v1Core.ConfigMap {
 	yamlString := utils.InitNetworkPolicyDefaultsYaml()
 
 	// marshal yaml to struct
@@ -137,8 +144,48 @@ func InitNetworkPolicyConfigMap() error {
 	err := yaml.Unmarshal([]byte(yamlString), &configMap)
 	if err != nil {
 		K8sLogger.Errorf("InitNetworkPolicyConfigMap ERROR: %s", err)
-		return err
+		return nil
 	}
-	return EnsureConfigMapExists(configMap.Namespace, configMap)
-	// return WriteConfigMap(configMap.Namespace, configMap.Name, yamlString, configMap.Labels)
+	return &configMap
+}
+
+type Port struct {
+	Protocol string `yaml:"protocol"`
+	Port     int    `yaml:"port"`
+}
+
+type NetworkPolicy struct {
+	Name  string `yaml:"name"`
+	Ports []Port `yaml:"ports"`
+}
+
+func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicies {
+	configMap := readDefaultConfigMap()
+
+	ClusterConfigMap := GetConfigMap(configMap.Namespace, configMap.Name)
+
+	var result []dtos.K8sLabeledNetworkPolicies
+	for key, valueYaml := range ClusterConfigMap.Data {
+		var policies []NetworkPolicy
+		err := yaml.Unmarshal([]byte(valueYaml), &policies)
+		if err != nil {
+			fmt.Printf("Error unmarshalling YAML: %s\n", err)
+		}
+		for _, policy := range policies {
+			for _, port := range policy.Ports {
+				result = append(result, dtos.K8sLabeledNetworkPolicies{
+					Name: policy.Name,
+					Type: dtos.K8sNetworkPolicyType(key),
+					Ports: []dtos.K8sLabeledPortDto{
+						{
+							Port:     int32(port.Port),
+							PortType: dtos.PortTypeEnum(port.Protocol),
+						},
+					},
+				})
+			}
+		}
+	}
+
+	return result
 }

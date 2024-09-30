@@ -13,7 +13,7 @@ type K8sLabeledPortDto struct {
 	PortType PortTypeEnum `json:"portType" validate:"required"`
 }
 
-type K8sLabeledNetworkPolicyParams struct {
+type K8sLabeledNetworkPolicies struct {
 	Name  string               `json:"name" validate:"required"`
 	Type  K8sNetworkPolicyType `json:"type" validate:"required"`
 	Ports []K8sLabeledPortDto  `json:"ports" validate:"required"`

@@ -1,10 +1,13 @@
 package controllers
 
-import "mogenius-k8s-manager/dtos"
+import (
+	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/kubernetes"
+)
 
 type CreateLabeledNetworkPolicyRequest struct {
-	Namespace                  dtos.K8sNamespaceDto               `json:"namespace" validate:"required"`
-	LabeledNetworkPolicyParams dtos.K8sLabeledNetworkPolicyParams `json:"labeledNetworkPolicyParams" validate:"required"`
+	Namespace              dtos.K8sNamespaceDto           `json:"namespace" validate:"required"`
+	LabeledNetworkPolicies dtos.K8sLabeledNetworkPolicies `json:"labeledNetworkPolicies" validate:"required"`
 }
 
 type CreateLabeledNetworkPolicyResponse struct {
@@ -12,5 +15,37 @@ type CreateLabeledNetworkPolicyResponse struct {
 	ErrorMessage string `json:"errorMessage"`
 }
 
-type ListLabeledNetworkPolicyPortsResponse struct {
-	Ports []dtos.K8sPortsDto `json:"ports"`
+type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicies
+
+func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
+	return []dtos.K8sLabeledNetworkPolicies{
+		{
+			Name: "mogenius-policy-123",
+			Type: dtos.Ingress,
+			Ports: []dtos.K8sLabeledPortDto{
+				{
+					Port:     80,
+					PortType: dtos.PortTypeHTTPS,
+				},
+				{
+					Port:     443,
+					PortType: dtos.PortTypeTCP,
+				},
+			},
+		},
+		{
+			Name: "mogenius-policy-098",
+			Type: dtos.Egress,
+			Ports: []dtos.K8sLabeledPortDto{
+				{
+					Port:     13333,
+					PortType: dtos.PortTypeSCTP,
+				},
+			},
+		},
+	}
+}
+
+func ListLabeledNetworkPolicyPortsRequest() LabeledNetworkPoliciesListResponse {
+	return kubernetes.ReadNetworkPolicyPorts()
+}

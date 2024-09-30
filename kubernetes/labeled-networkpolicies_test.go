@@ -27,7 +27,7 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		},
 	}
 
-	var labelPolicy1 = dtos.K8sLabeledNetworkPolicyParams{
+	var labelPolicy1 = dtos.K8sLabeledNetworkPolicies{
 		Name:  PolicyName1,
 		Type:  dtos.Ingress,
 		Ports: ports1,
@@ -48,7 +48,7 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		},
 	}
 
-	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyParams{
+	var labelPolicy2 = dtos.K8sLabeledNetworkPolicies{
 		Name:  PolicyName2,
 		Type:  dtos.Egress,
 		Ports: ports2,
@@ -82,4 +82,12 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error initializing network policy config map: %s", err.Error())
 	}
+}
+
+func TestReadNetworkPolicyPorts(t *testing.T) {
+	ports := ReadNetworkPolicyPorts()
+	if len(ports) == 0 {
+		t.Errorf("Error reading network policy ports")
+	}
+	// t.Logf("Ports: %v\n", ports)
 }

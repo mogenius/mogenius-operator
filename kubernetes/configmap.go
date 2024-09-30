@@ -134,6 +134,30 @@ func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
 	return nil
 }
 
+func GetConfigMap(namespace string, name string) v1Core.ConfigMap {
+	client := GetCoreClient().ConfigMaps(namespace)
+
+	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return v1Core.ConfigMap{}
+	}
+	return *cfgMap
+}
+
+func GetConfigMapWR(namespace string, name string) K8sWorkloadResult {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	client := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+
+	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return WorkloadResult(nil, err)
+	}
+	return WorkloadResult(cfgMap.Data["data"], err)
+}
+
 func WriteConfigMap(namespace string, name string, data string, labels map[string]string) error {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
@@ -169,20 +193,6 @@ func WriteConfigMap(namespace string, name string, data string, labels map[strin
 		return err
 	}
 	return nil
-}
-
-func GetConfigMap(namespace string, name string) K8sWorkloadResult {
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	client := provider.ClientSet.CoreV1().ConfigMaps(namespace)
-
-	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	return WorkloadResult(cfgMap.Data["data"], err)
 }
 
 func ListConfigMapWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
