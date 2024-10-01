@@ -108,7 +108,7 @@ func CreateDenyAllNetworkPolicy(namespace dtos.K8sNamespaceDto) error {
 	return nil
 }
 
-func cleanupNetworkPolicies(namespace dtos.K8sNamespaceDto) {
+func cleanupUnusedDenyAll(namespace dtos.K8sNamespaceDto) {
 	client := GetNetworkingClient()
 	netPolClient := client.NetworkPolicies(namespace.Name)
 

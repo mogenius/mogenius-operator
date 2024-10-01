@@ -61,7 +61,7 @@ func DeleteNetworkPolicy(namespace dtos.K8sNamespaceDto, name string) error {
 
 	K8sLogger.Printf("Deleted NetworkPolicy: %s", name)
 
-	cleanupNetworkPolicies(namespace)
+	cleanupUnusedDenyAll(namespace)
 	return nil
 }
 
