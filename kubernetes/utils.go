@@ -18,7 +18,6 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -105,40 +104,6 @@ func GetNetworkingClient() netV1.NetworkingV1Interface {
 func GetAppClient() appsV1.AppsV1Interface {
 
 	return getProvider().ClientSet.AppsV1()
-}
-
-func PrintClientPermissions(namespace, resourceType string) {
-	// Create the SelfSubjectRulesReview client
-	authClient := getProvider().ClientSet.AuthorizationV1().SelfSubjectRulesReviews()
-
-	// Define the SelfSubjectRulesReview request
-	ssrr := &authorizationv1.SelfSubjectRulesReview{
-		Spec: authorizationv1.SelfSubjectRulesReviewSpec{
-			Namespace: namespace,
-		},
-	}
-
-	// Send the request
-	response, err := authClient.Create(context.TODO(), ssrr, MoCreateOptions())
-	if err != nil {
-		panic(err.Error())
-	}
-
-	// Print the permissions for the specified resource type
-	fmt.Printf("Permissions for resource type '%s' in namespace '%s':\n", resourceType, ssrr.Spec.Namespace)
-	for _, rule := range response.Status.ResourceRules {
-		for _, resource := range rule.Resources {
-			if resource == resourceType {
-				fmt.Printf("Verbs: %v\n", rule.Verbs)
-				if len(rule.APIGroups) > 0 {
-					fmt.Printf("API Groups: %v\n", rule.APIGroups)
-				}
-				if len(rule.ResourceNames) > 0 {
-					fmt.Printf("Resource Names: %v\n", rule.ResourceNames)
-				}
-			}
-		}
-	}
 }
 
 func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {

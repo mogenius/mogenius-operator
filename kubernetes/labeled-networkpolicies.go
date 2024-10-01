@@ -169,7 +169,7 @@ func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicies {
 		var policies []NetworkPolicy
 		err := yaml.Unmarshal([]byte(valueYaml), &policies)
 		if err != nil {
-			fmt.Printf("Error unmarshalling YAML: %s\n", err)
+			K8sLogger.Errorf("Error unmarshalling YAML: %s\n", err)
 		}
 		for _, policy := range policies {
 			for _, port := range policy.Ports {
