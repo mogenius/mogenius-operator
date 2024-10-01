@@ -2120,7 +2120,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return controllers.CreateLabeledNetworkPolicyResponse{
 			Status: fmt.Sprintf("%s was created successfully", data.LabeledNetworkPolicies.Name),
 		}
-	case structs.PAT_LIST_NETWORK_POLICY_PORTS:
+	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
 		return controllers.ListLabeledNetworkPolicyPortsRequest()
 	case structs.PAT_GET_NETWORK_POLICY:
 		data := K8sDescribeRequest{}
