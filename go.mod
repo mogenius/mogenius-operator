@@ -22,7 +22,7 @@ require (
 	github.com/mogenius/punq v1.5.0-develop.75
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/shirou/gopsutil/v4 v4.24.8
+	github.com/shirou/gopsutil/v4 v4.24.9
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	go.etcd.io/bbolt v1.3.11
