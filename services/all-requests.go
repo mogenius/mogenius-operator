@@ -2104,7 +2104,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		getResult, _ := punq.GetVolumeAttachment(data.ResourceName, nil)
 		return getResult
-	case structs.PAT_CREATE_NETWORK_POLICY_WITH_LABEL:
+	case structs.PAT_CREATE_LABELED_NETWORK_POLICY:
 		data := controllers.CreateLabeledNetworkPolicyRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
