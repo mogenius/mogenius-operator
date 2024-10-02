@@ -20,7 +20,7 @@ const (
 	MarkerLabel              = "using-" + DenyAllNetPolName
 )
 
-func CreateNetworkPolicyWithLabel(namespace dtos.K8sNamespaceDto, labelPolicy dtos.K8sLabeledNetworkPolicies) error {
+func CreateLabeledNetworkPolicy(namespace dtos.K8sNamespaceDto, labelPolicy dtos.K8sLabeledNetworkPolicy) error {
 	netpol := punqUtils.InitNetPolService()
 	// clean traffic rules
 	netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
@@ -159,12 +159,12 @@ type NetworkPolicy struct {
 	Ports []Port `yaml:"ports"`
 }
 
-func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicies {
+func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicy {
 	configMap := readDefaultConfigMap()
 
 	ClusterConfigMap := GetConfigMap(configMap.Namespace, configMap.Name)
 
-	var result []dtos.K8sLabeledNetworkPolicies
+	var result []dtos.K8sLabeledNetworkPolicy
 	for key, valueYaml := range ClusterConfigMap.Data {
 		var policies []NetworkPolicy
 		err := yaml.Unmarshal([]byte(valueYaml), &policies)
@@ -173,7 +173,7 @@ func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicies {
 		}
 		for _, policy := range policies {
 			for _, port := range policy.Ports {
-				result = append(result, dtos.K8sLabeledNetworkPolicies{
+				result = append(result, dtos.K8sLabeledNetworkPolicy{
 					Name: policy.Name,
 					Type: dtos.K8sNetworkPolicyType(key),
 					Ports: []dtos.K8sLabeledPortDto{

@@ -27,12 +27,12 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		},
 	}
 
-	var labelPolicy1 = dtos.K8sLabeledNetworkPolicies{
+	var labelPolicy1 = dtos.K8sLabeledNetworkPolicy{
 		Name:  PolicyName1,
 		Type:  dtos.Ingress,
 		Ports: ports1,
 	}
-	err := CreateNetworkPolicyWithLabel(namespace, labelPolicy1)
+	err := CreateLabeledNetworkPolicy(namespace, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
@@ -48,13 +48,13 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		},
 	}
 
-	var labelPolicy2 = dtos.K8sLabeledNetworkPolicies{
+	var labelPolicy2 = dtos.K8sLabeledNetworkPolicy{
 		Name:  PolicyName2,
 		Type:  dtos.Egress,
 		Ports: ports2,
 	}
 
-	err = CreateNetworkPolicyWithLabel(namespace, labelPolicy2)
+	err = CreateLabeledNetworkPolicy(namespace, labelPolicy2)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}

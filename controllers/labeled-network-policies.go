@@ -6,8 +6,8 @@ import (
 )
 
 type CreateLabeledNetworkPolicyRequest struct {
-	Namespace              dtos.K8sNamespaceDto           `json:"namespace" validate:"required"`
-	LabeledNetworkPolicies dtos.K8sLabeledNetworkPolicies `json:"labeledNetworkPolicies" validate:"required"`
+	Namespace            dtos.K8sNamespaceDto         `json:"namespace" validate:"required"`
+	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicy `json:"labeledNetworkPolicy" validate:"required"`
 }
 
 type CreateLabeledNetworkPolicyResponse struct {
@@ -15,10 +15,10 @@ type CreateLabeledNetworkPolicyResponse struct {
 	ErrorMessage string `json:"errorMessage"`
 }
 
-type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicies
+type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicy
 
 func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
-	return []dtos.K8sLabeledNetworkPolicies{
+	return []dtos.K8sLabeledNetworkPolicy{
 		{
 			Name: "mogenius-policy-123",
 			Type: dtos.Ingress,
