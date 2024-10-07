@@ -429,7 +429,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return kubernetes.GetConfigMap(data.Namespace, data.Name)
+		return kubernetes.GetConfigMapWR(data.Namespace, data.Name)
 	case structs.PAT_CLUSTER_WRITE_CONFIGMAP:
 		data := ClusterWriteConfigMap{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2104,13 +2104,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		getResult, _ := punq.GetVolumeAttachment(data.ResourceName, nil)
 		return getResult
-	case structs.PAT_CREATE_NETWORK_POLICY_WITH_LABEL:
+	case structs.PAT_CREATE_LABELED_NETWORK_POLICY:
 		data := controllers.CreateLabeledNetworkPolicyRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		err := kubernetes.CreateNetworkPolicyWithLabel(data.Namespace, data.LabeledNetworkPolicyParams)
+		err := kubernetes.CreateLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
 		if err != nil {
 			return controllers.CreateLabeledNetworkPolicyResponse{
 				Status:       "Failed to create network policy",
@@ -2118,8 +2118,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			}
 		}
 		return controllers.CreateLabeledNetworkPolicyResponse{
-			Status: fmt.Sprintf("%s was created successfully", data.LabeledNetworkPolicyParams.Name),
+			Status: fmt.Sprintf("%s was created successfully", data.LabeledNetworkPolicy.Name),
 		}
+	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
+		return controllers.ListLabeledNetworkPolicyPortsRequest()
 	case structs.PAT_GET_NETWORK_POLICY:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

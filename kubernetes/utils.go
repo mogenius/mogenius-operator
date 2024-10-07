@@ -20,6 +20,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	appsV1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -84,28 +85,25 @@ func init() {
 	dtos.KubernetesK8sLogger = K8sLogger
 }
 
-func GetCoreClient() coreV1.CoreV1Interface {
+func getProvider() *punq.KubeProvider {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		K8sLogger.Fatal("Error creating kubeprovider")
 	}
-	return provider.ClientSet.CoreV1()
+	return provider
+}
+
+func GetCoreClient() coreV1.CoreV1Interface {
+	return getProvider().ClientSet.CoreV1()
 }
 
 func GetNetworkingClient() netV1.NetworkingV1Interface {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		K8sLogger.Fatal("Error creating kubeprovider")
-	}
-	return provider.ClientSet.NetworkingV1()
+	return getProvider().ClientSet.NetworkingV1()
 }
 
 func GetAppClient() appsV1.AppsV1Interface {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		K8sLogger.Fatal("Error creating kubeprovider")
-	}
-	return provider.ClientSet.AppsV1()
+
+	return getProvider().ClientSet.AppsV1()
 }
 
 func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {

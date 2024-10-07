@@ -31,6 +31,18 @@
 go build .
 ```
 
+# run local instance with go 
+Adjust the config `~/.mogenius-k8s-manager/config.yaml` (might need to be copied there from [here](utils/config/config-local.yaml))
+Assuming you already have a [prod operator running](https://docs.mogenius.com/cluster-management/installing-mogenius#mogenius-cli), you can adjust the deployment of the operator with e.g.:
+`kubectl edit deployments -n mogenius mogenius-k8s-manager`
+
+Get the api-key, mfa-id and cluster-name from the operator secret `mogenius/mogenius` and adjust the config.yaml accordingly.
+
+change the replicas to 0, then you can run the local instance with:
+```bash
+go run main.go cluster
+```
+
 # local docker image in docker-desktop kubernetes
 RUN:
 ```

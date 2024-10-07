@@ -10,15 +10,12 @@ import (
 )
 
 func InitUpgradeConfigMap() corev1.ConfigMap {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/upgrade-configmap.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+	yaml := readYaml("yaml-templates/upgrade-configmap.yaml")
 
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var app corev1.ConfigMap
-	_, _, err = s.Decode(yaml, nil, &app)
+	_, _, err := s.Decode([]byte(yaml), nil, &app)
 	if err != nil {
 		panic(err)
 	}
@@ -26,23 +23,16 @@ func InitUpgradeConfigMap() corev1.ConfigMap {
 }
 
 func InitUpgradeConfigMapYaml() string {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/upgrade-configmap.yaml")
-	if err != nil {
-		return ""
-	}
-	return string(yaml)
+	return readYaml("yaml-templates/upgrade-configmap.yaml")
 }
 
 func InitUpgradeJob() v1job.Job {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/upgrade-job.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+	yaml := readYaml("yaml-templates/upgrade-job.yaml")
 
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var app v1job.Job
-	_, _, err = s.Decode(yaml, nil, &app)
+	_, _, err := s.Decode([]byte(yaml), nil, &app)
 	if err != nil {
 		panic(err)
 	}
@@ -50,15 +40,12 @@ func InitUpgradeJob() v1job.Job {
 }
 
 func InitMogeniusNfsPersistentVolumeClaim() corev1.PersistentVolumeClaim {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-nfs-pvc.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+	yaml := readYaml("yaml-templates/mo-storage-nfs-pvc.yaml")
 
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var app corev1.PersistentVolumeClaim
-	_, _, err = s.Decode(yaml, nil, &app)
+	_, _, err := s.Decode([]byte(yaml), nil, &app)
 	if err != nil {
 		panic(err)
 	}
@@ -66,15 +53,12 @@ func InitMogeniusNfsPersistentVolumeClaim() corev1.PersistentVolumeClaim {
 }
 
 func InitMogeniusNfsPersistentVolumeClaimForService() corev1.PersistentVolumeClaim {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-service-pvc.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+	yaml := readYaml("yaml-templates/mo-storage-service-pvc.yaml")
 
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var app corev1.PersistentVolumeClaim
-	_, _, err = s.Decode(yaml, nil, &app)
+	_, _, err := s.Decode([]byte(yaml), nil, &app)
 	if err != nil {
 		panic(err)
 	}
@@ -82,15 +66,12 @@ func InitMogeniusNfsPersistentVolumeClaimForService() corev1.PersistentVolumeCla
 }
 
 func InitMogeniusNfsPersistentVolumeForService() corev1.PersistentVolume {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-service-pv.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+	yaml := readYaml("yaml-templates/mo-storage-service-pv.yaml")
 
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var app corev1.PersistentVolume
-	_, _, err = s.Decode(yaml, nil, &app)
+	_, _, err := s.Decode([]byte(yaml), nil, &app)
 	if err != nil {
 		panic(err)
 	}
@@ -98,15 +79,12 @@ func InitMogeniusNfsPersistentVolumeForService() corev1.PersistentVolume {
 }
 
 func InitMogeniusNfsDeployment() v1.Deployment {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-nfs-deployment.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+	yaml := readYaml("yaml-templates/mo-storage-nfs-deployment.yaml")
 
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var app v1.Deployment
-	_, _, err = s.Decode(yaml, nil, &app)
+	_, _, err := s.Decode([]byte(yaml), nil, &app)
 	if err != nil {
 		panic(err)
 	}
@@ -114,15 +92,12 @@ func InitMogeniusNfsDeployment() v1.Deployment {
 }
 
 func InitMogeniusNfsService() corev1.Service {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-storage-nfs-service.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+	yaml := readYaml("yaml-templates/mo-storage-nfs-service.yaml")
 
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var service corev1.Service
-	_, _, err = s.Decode(yaml, nil, &service)
+	_, _, err := s.Decode([]byte(yaml), nil, &service)
 	if err != nil {
 		panic(err)
 	}
@@ -130,15 +105,12 @@ func InitMogeniusNfsService() corev1.Service {
 }
 
 func InitMogeniusContainerRegistryIngress() netv1.Ingress {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-container-registry-ingress.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+	yaml := readYaml("yaml-templates/mo-container-registry-ingress.yaml")
 
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var ingress netv1.Ingress
-	_, _, err = s.Decode(yaml, nil, &ingress)
+	_, _, err := s.Decode([]byte(yaml), nil, &ingress)
 	if err != nil {
 		panic(err)
 	}
@@ -146,15 +118,12 @@ func InitMogeniusContainerRegistryIngress() netv1.Ingress {
 }
 
 func InitMogeniusContainerRegistrySecret(crt string, key string) corev1.Secret {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/mo-container-registry-tls-secret.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
+	yaml := readYaml("yaml-templates/mo-container-registry-tls-secret.yaml")
 
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var secret corev1.Secret
-	_, _, err = s.Decode(yaml, nil, &secret)
+	_, _, err := s.Decode([]byte(yaml), nil, &secret)
 	if err != nil {
 		panic(err)
 	}
@@ -168,50 +137,35 @@ func InitMogeniusContainerRegistrySecret(crt string, key string) corev1.Secret {
 }
 
 func InitMogeniusCrdProjectsYaml() string {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/crds-projects.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return string(yaml)
+	return readYaml("yaml-templates/crds-projects.yaml")
 }
 
 func InitMogeniusCrdEnvironmentsYaml() string {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/crds-environments.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return string(yaml)
+	return readYaml("yaml-templates/crds-environments.yaml")
 }
 
 func InitMogeniusCrdApplicationKitYaml() string {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/crds-applicationkit.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return string(yaml)
+	return readYaml("yaml-templates/crds-applicationkit.yaml")
 }
 
 func InitExternalSecretsStoreYaml() string {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secrets-store-vault.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
-	return string(yaml)
+	return readYaml("yaml-templates/external-secrets-store-vault.yaml")
 }
 
 func InitExternalSecretListYaml() string {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secret-list-available-kvs.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
-	return string(yaml)
+	return readYaml("yaml-templates/external-secret-list-available-kvs.yaml")
 }
 
 func InitExternalSecretYaml() string {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/external-secret.yaml")
+	return readYaml("yaml-templates/external-secret.yaml")
+}
+
+func InitNetworkPolicyDefaultsYaml() string {
+	return readYaml("yaml-templates/networkpolicies-default-ports.yaml")
+}
+
+func readYaml(filePath string) string {
+	yaml, err := YamlTemplatesFolder.ReadFile(filePath)
 	if err != nil {
 		panic(err.Error())
 	}
