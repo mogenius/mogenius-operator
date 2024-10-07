@@ -49,9 +49,9 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 	}(wg)
 }
 
-func DeleteNetworkPolicy(namespace dtos.K8sNamespaceDto, name string) error {
+func DeleteNetworkPolicy(namespaceName, name string) error {
 	client := GetNetworkingClient()
-	netPolClient := client.NetworkPolicies(namespace.Name)
+	netPolClient := client.NetworkPolicies(namespaceName)
 
 	err := netPolClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
@@ -61,7 +61,7 @@ func DeleteNetworkPolicy(namespace dtos.K8sNamespaceDto, name string) error {
 
 	K8sLogger.Printf("Deleted NetworkPolicy: %s", name)
 
-	cleanupUnusedDenyAll(namespace)
+	cleanupUnusedDenyAll(namespaceName)
 	return nil
 }
 

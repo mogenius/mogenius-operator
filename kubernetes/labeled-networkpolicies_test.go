@@ -11,11 +11,8 @@ const (
 )
 
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
-	var namespace = dtos.K8sNamespaceDto{
-		Name:        "mogenius",
-		Id:          "mogenius-123",
-		DisplayName: "Mogenius 123",
-	}
+	var namespaceName = "mogenius"
+
 	var ports1 = []dtos.K8sLabeledPortDto{
 		{
 			Port:     80,
@@ -32,7 +29,7 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Type:  dtos.Ingress,
 		Ports: ports1,
 	}
-	err := CreateLabeledNetworkPolicy(namespace, labelPolicy1)
+	err := CreateLabeledNetworkPolicy(namespaceName, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
@@ -54,24 +51,20 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Ports: ports2,
 	}
 
-	err = CreateLabeledNetworkPolicy(namespace, labelPolicy2)
+	err = CreateLabeledNetworkPolicy(namespaceName, labelPolicy2)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
 }
 
 func TestDeleteNetworkPolicy(t *testing.T) {
-	var namespace = dtos.K8sNamespaceDto{
-		Name:        "mogenius",
-		Id:          "mogenius-123",
-		DisplayName: "Mogenius 123",
-	}
+	var namespaceName = "mogenius"
 
-	err := DeleteNetworkPolicy(namespace, PolicyName1)
+	err := DeleteNetworkPolicy(namespaceName, PolicyName1)
 	if err != nil {
 		t.Errorf("Error deleting network policy: %s. %s", PolicyName1, err.Error())
 	}
-	err = DeleteNetworkPolicy(namespace, PolicyName2)
+	err = DeleteNetworkPolicy(namespaceName, PolicyName2)
 	if err != nil {
 		t.Errorf("Error deleting network policy: %s. %s", PolicyName2, err.Error())
 	}

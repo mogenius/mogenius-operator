@@ -6,7 +6,7 @@ import (
 )
 
 type CreateLabeledNetworkPolicyRequest struct {
-	Namespace            dtos.K8sNamespaceDto         `json:"namespace" validate:"required"`
+	NamespaceName        string                       `json:"namespaceName" validate:"required"`
 	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicy `json:"labeledNetworkPolicy" validate:"required"`
 }
 

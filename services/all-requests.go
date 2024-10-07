@@ -2110,7 +2110,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		err := kubernetes.CreateLabeledNetworkPolicy(data.Namespace, data.LabeledNetworkPolicy)
+		err := kubernetes.CreateLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
 		if err != nil {
 			return controllers.CreateLabeledNetworkPolicyResponse{
 				Status:       "Failed to create network policy",
