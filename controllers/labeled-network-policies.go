@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 )
@@ -16,6 +17,19 @@ type CreateLabeledNetworkPolicyResponse struct {
 }
 
 type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicy
+
+func CreateLabeledNetworkPolicy(data CreateLabeledNetworkPolicyRequest) CreateLabeledNetworkPolicyResponse {
+	err := kubernetes.CreateLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
+	if err != nil {
+		return CreateLabeledNetworkPolicyResponse{
+			Status:       "Failed to create network policy",
+			ErrorMessage: err.Error(),
+		}
+	}
+	return CreateLabeledNetworkPolicyResponse{
+		Status: fmt.Sprintf("%s was created successfully", data.LabeledNetworkPolicy.Name),
+	}
+}
 
 func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
 	return []dtos.K8sLabeledNetworkPolicy{
@@ -46,6 +60,6 @@ func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
 	}
 }
 
-func ListLabeledNetworkPolicyPortsRequest() LabeledNetworkPoliciesListResponse {
+func ListLabeledNetworkPolicyPorts() LabeledNetworkPoliciesListResponse {
 	return kubernetes.ReadNetworkPolicyPorts()
 }
