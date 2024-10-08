@@ -17,23 +17,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # https://github.com/snok/container-retention-policy/blob/91bd2ee9cc67107fef8914da6651984a38326208/README.md?plain=1#L494-L506
-      - name: Fetch multi-platform package version SHAs
-        id: multi-arch-digests
-        run: |
-          set -eu
-          digests=$(docker manifest inspect ghcr.io/package1 | jq -r '.manifests.[] | .digest' | paste -s -d ' ' -)
-          echo "multi-arch-digests=$digests" | tee $GITHUB_OUTPUT
-
-      ## Deletion speed
+      ## # Deletion speed
+      ##
       ## Because of GitHub's secondary rate limit, we're at most able to delete 180 package versions per minute (source and source). This means that a run which deletes 180 package versions might finish in a few seconds, while a run that deletes 181 package versions might take just over a minute.
+      ##
+      ## # multi-arch images
+      ##
+      ## The action has documented issues with multi-architecture images as Githubs API does not provide enough information to correctly map tags to all corresponding variants.
+      ## However: Since we are using this action based on **age** of images this is should not be relevant for us.
       - uses: snok/container-retention-policy@v3.0.0
         with:
           account: mogenius
           token: ${{ secrets.GITHUB_TOKEN }}
-          image-names: ghcr.io/mogenius/mogenius-k8s-manager-dev
+          image-names: mogenius/mogenius-k8s-manager-dev
           image-tags: "*"
           keep-n-most-recent: 50 # always keep the last 50 images
           cut-off: 3w # delete images older than 3 weeks
-          skip-shas: ${{ steps.multi-arch-digests.outputs.multi-arch-digests }} # https://github.com/snok/container-retention-policy/blob/91bd2ee9cc67107fef8914da6651984a38326208/README.md?plain=1#L510
           rust-log: debug
