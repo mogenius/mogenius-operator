@@ -6,8 +6,8 @@ on:
     - cron: "0 7 * * *"
 
 jobs:
-  clean:
-    runs-on: ubuntu-latest
+  mogenius-k8s-manager-dev:
+    runs-on: self-hosted
     name: Delete old `-dev` images
     steps:
       ## # Deletion speed
