@@ -10,14 +10,27 @@ jobs:
     runs-on: self-hosted
     name: Delete old `-dev` images
     steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      ## Deletion speed
+      ## # Deletion speed
+      ##
       ## Because of GitHub's secondary rate limit, we're at most able to delete 180 package versions per minute (source and source). This means that a run which deletes 180 package versions might finish in a few seconds, while a run that deletes 181 package versions might take just over a minute.
+      ##
+      ## # multi-arch images
+      ##
+      ## The action has documented issues with multi-architecture images as Githubs API does not provide enough information to correctly map tags to all corresponding variants.
+      ## However: Since we are using this action based on **age** of images this is should not be relevant for us.
       - uses: snok/container-retention-policy@v3.0.0
         with:
           account: mogenius
           token: ${{ secrets.GITHUB_TOKEN }}
-          image-names: ghcr.io/mogenius/mogenius-k8s-manager-dev
+          image-names: mogenius/mogenius-k8s-manager-dev
           image-tags: "*"
           keep-n-most-recent: 50 # always keep the last 50 images
           cut-off: 3w # delete images older than 3 weeks
+          rust-log: debug
