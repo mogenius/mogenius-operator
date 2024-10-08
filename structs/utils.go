@@ -12,17 +12,17 @@ import (
 	"sync"
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 
+	json "github.com/goccy/go-json"
 	"github.com/gorilla/websocket"
-	jsoniter "github.com/json-iterator/go"
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
 const PingSeconds = 3
 
 func MarshalUnmarshal(datagram *Datagram, data interface{}) {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(datagram.Payload)
 	if err != nil {
 		datagram.Err = err.Error()
@@ -42,15 +42,6 @@ func UnmarshalJob(dst *BuildJob, data []byte) error {
 	}
 	return nil
 }
-
-// func UnmarshalBuildJobInfoEntry(dst *BuildJobInfoEntry, data []byte) error {
-// 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-// 	err := json.Unmarshal(data, dst)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
 
 func UnmarshalBuildScanImageEntry(dst *BuildScanImageEntry, data []byte) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary

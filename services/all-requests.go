@@ -2110,7 +2110,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return controllers.CreateLabeledNetworkPolicyRequest(data)
+		return controllers.CreateLabeledNetworkPolicy(data)
 	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
 		return controllers.ListLabeledNetworkPolicyPorts()
 	case structs.PAT_GET_NETWORK_POLICY:
