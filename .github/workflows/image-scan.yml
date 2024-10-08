@@ -1,0 +1,36 @@
+name: Scan release images
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * *"
+
+jobs:
+  vulnerability_scan:
+    name: Vulnerability Scan
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - "ghcr.io/mogenius/mogenius-k8s-manager:latest"
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Pull image ${{ matrix.image }}
+        run: docker pull ${{ matrix.image }}
+      - name: Scan image ${{ matrix.image }}
+        uses: anchore/scan-action@v4
+        with:
+          image: ${{ matrix.image }}
+          output-format: table
+          severity-cutoff: critical
+          only-fixed: true
