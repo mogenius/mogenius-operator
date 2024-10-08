@@ -1,0 +1,23 @@
+name: Registry Cleanup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"
+
+jobs:
+  clean:
+    runs-on: self-hosted
+    name: Delete old `-dev` images
+    steps:
+
+      ## Deletion speed
+      ## Because of GitHub's secondary rate limit, we're at most able to delete 180 package versions per minute (source and source). This means that a run which deletes 180 package versions might finish in a few seconds, while a run that deletes 181 package versions might take just over a minute.
+      - uses: snok/container-retention-policy@v3.0.0
+        with:
+          account: mogenius
+          token: ${{ secrets.GITHUB_TOKEN }}
+          image-names: ghcr.io/mogenius/mogenius-k8s-manager-dev
+          image-tags: "*"
+          keep-n-most-recent: 50 # always keep the last 50 images
+          cut-off: 3w # delete images older than 3 weeks
