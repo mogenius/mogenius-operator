@@ -5,6 +5,7 @@ on:
     branches:
       - feat**
       - fix**
+      - chore**
       - renovate/**
       - develop
 
