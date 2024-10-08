@@ -11,9 +11,16 @@ type CreateLabeledNetworkPolicyRequest struct {
 	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
 }
 
+type status string
+
+const (
+	success status = "success"
+	failure status = "failure"
+)
+
 type CreateLabeledNetworkPolicyResponse struct {
-	Status       string `json:"status"`
-	ErrorMessage string `json:"errorMessage"`
+	Status  status `json:"status"`
+	Message string `json:"message"`
 }
 
 type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
@@ -22,12 +29,12 @@ func CreateLabeledNetworkPolicy(data CreateLabeledNetworkPolicyRequest) CreateLa
 	err := kubernetes.CreateLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
 	if err != nil {
 		return CreateLabeledNetworkPolicyResponse{
-			Status:       "FAILURE",
-			ErrorMessage: fmt.Sprintf("Failed to create network policy, err: %v", err.Error()),
+			Status:  failure,
+			Message: fmt.Sprintf("Failed to create network policy, err: %v", err.Error()),
 		}
 	}
 	return CreateLabeledNetworkPolicyResponse{
-		Status: "SUCCESS",
+		Status: success,
 	}
 }
 
