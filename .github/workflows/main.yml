@@ -27,16 +27,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.MO_K8s_TOKEN }}
 
-      - name: Create Sematic Release Version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          export HOME=/root
-          git config --system http.sslVerify false
-          git config --global user.email "mok8s@mogenius.com"
-          git config --global user.name "mok8s"
-          git config --global credential.helper cache
-          npx semantic-release
 
   build-amd64:
     needs: prepare
