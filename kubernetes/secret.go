@@ -318,6 +318,41 @@ func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespac
 	}(wg)
 }
 
+func DeleteControllerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	secretName := service.ControllerName
+
+	cmd := structs.CreateCommand("delete", "Delete Controller secret", job)
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		cmd.Start(job, "Deleting Controller secret")
+
+		secretClient := GetCoreClient().Secrets(namespace.Name)
+
+		deleteOptions := metav1.DeleteOptions{
+			GracePeriodSeconds: punqUtils.Pointer[int64](5),
+		}
+
+		_, err := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
+
+		// ignore if not found
+		if apierrors.IsNotFound(err) {
+			cmd.Success(job, "Deleted controller secret")
+			return
+		} else if err != nil {
+			cmd.Fail(job, fmt.Sprintf("DeleteControllerSecret ERROR: %s", err.Error()))
+			return
+		}
+
+		err = secretClient.Delete(context.TODO(), secretName, deleteOptions)
+		if err != nil {
+			cmd.Fail(job, fmt.Sprintf("DeleteControllerSecret ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(job, "Deleted Controller secret")
+		}
+	}(wg)
+}
+
 //-----------------------------------------------------
 // Watch Secrets
 //-----------------------------------------------------

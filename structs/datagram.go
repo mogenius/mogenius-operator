@@ -24,6 +24,7 @@ func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
 }
 
 func CreateDatagramNotificationFromJob(data *Job) Datagram {
+	time.Sleep(100 * time.Millisecond)
 	datagram := Datagram{
 		Id:        punqUtils.NanoId(),
 		Pattern:   "K8sNotificationDto",

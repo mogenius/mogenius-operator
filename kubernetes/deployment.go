@@ -52,6 +52,15 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 	}(wg)
 }
 
+func GetDeployment(namespaceName string, controllerName string) (*v1.Deployment, error) {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return nil, err
+	}
+	client := provider.ClientSet.AppsV1().Deployments(namespaceName)
+	return client.Get(context.TODO(), controllerName, metav1.GetOptions{})
+}
+
 func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("update", "Update Deployment", job)
 	wg.Add(1)
@@ -524,7 +533,7 @@ func UpdateDeploymentImage(namespaceName string, controllerName string, containe
 			deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
 		}
 	}
-	deploymentToUpdate.Spec.Paused = false
+	// deploymentToUpdate.Spec.Paused = false
 
 	_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 	return err
