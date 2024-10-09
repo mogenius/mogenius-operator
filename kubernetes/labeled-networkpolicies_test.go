@@ -24,7 +24,7 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		},
 	}
 
-	var labelPolicy1 = dtos.K8sLabeledNetworkPolicy{
+	var labelPolicy1 = dtos.K8sLabeledNetworkPolicyDto{
 		Name:  PolicyName1,
 		Type:  dtos.Ingress,
 		Ports: ports1,
@@ -45,7 +45,7 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		},
 	}
 
-	var labelPolicy2 = dtos.K8sLabeledNetworkPolicy{
+	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
 		Name:  PolicyName2,
 		Type:  dtos.Egress,
 		Ports: ports2,
