@@ -24,6 +24,8 @@ func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
 }
 
 func CreateDatagramNotificationFromJob(data *Job) Datagram {
+	// delay for timing issue caused by events being triggered too closely together
+	time.Sleep(100 * time.Millisecond)
 	datagram := Datagram{
 		Id:        punqUtils.NanoId(),
 		Pattern:   "K8sNotificationDto",

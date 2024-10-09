@@ -51,8 +51,8 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 
 	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
 	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
@@ -89,6 +89,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	job.Start()
 	mokubernetes.DeleteService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.DeleteContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteControllerSecret(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
@@ -116,6 +117,23 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 			ServiceLogger.Infof("Deleting build data for %s %s %s", r.Namespace.Name, r.Service.ControllerName, container.Name)
 			db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
 		}
+	}()
+
+	return job
+}
+
+func UpdateSecrets(r ServiceUpdateRequest) interface{} {
+	var wg sync.WaitGroup
+	job := structs.CreateJob("Update Secrets "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job.Start()
+
+	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+
+	go func() {
+		wg.Wait()
+		job.Finish()
 	}()
 
 	return job
