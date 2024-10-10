@@ -9,7 +9,7 @@ require (
 	github.com/dgraph-io/badger/v4 v4.3.1
 	github.com/fatih/color v1.17.0
 	github.com/gin-gonic/gin v1.10.0
-	github.com/go-echarts/go-echarts/v2 v2.4.2
+	github.com/go-echarts/go-echarts/v2 v2.4.3
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/gorilla/websocket v1.5.3
