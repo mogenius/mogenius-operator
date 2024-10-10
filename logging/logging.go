@@ -32,11 +32,19 @@ func NewFileHook(components []structs.ComponentEnum) error {
 			return err
 		}
 
+		logBytesCounter := uint64(0)
+		fileInfo, err := file.Stat()
+		if err != nil {
+			log.Errorf("Failed to get file info: %v", err)
+		} else {
+			logBytesCounter = uint64(fileInfo.Size())
+		}
+
 		fileHookComponents = append(fileHookComponents, FileHookComponent{
 			Component:       component,
 			Filename:        filename,
 			Logfile:         file,
-			logBytesCounter: 0,
+			logBytesCounter: logBytesCounter,
 		})
 
 	}
@@ -96,6 +104,12 @@ func SetupLogging() {
 	}
 
 	mw := io.MultiWriter(os.Stdout, file)
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		log.Fatalf("Failed to get file info: %v", err)
+	}
+	utils.MainLogBytesCounter = uint64(fileInfo.Size())
 
 	log.SetOutput(mw)
 	log.SetLevel(log.TraceLevel)
