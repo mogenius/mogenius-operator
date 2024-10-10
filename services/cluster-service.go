@@ -1,8 +1,6 @@
 package services
 
 import (
-	"archive/zip"
-	"bytes"
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/db"
@@ -20,20 +18,10 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/shirou/gopsutil/v3/disk"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
-
-const BUCKETNAME = "mogenius-backup"
-const DEBUG_AWS_ACCESS_KEY_ID = "ASIAZNXZOUKFCEK3TPOL"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         // TEMP Credentials. Not security relevant
-const DEBUG_AWS_SECRET_KEY = "xTsv35O30o87m6DuWOscHpKbxbXJeo0vS9iFkGwY"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // TEMP Credentials. Not security relevant
-const DEBUG_AWS_TOKEN = "IQoJb3JpZ2luX2VjELz//////////wEaDGV1LWNlbnRyYWwtMSJHMEUCIQCdZPuNWJCNJOSbMBhRtQb8W/0ylEV/ge1fiWFWgmD8ywIgEy/X2IAopx69LIGQQS+c2pRo4cSRFSslylRs8J7eUawq3AEIpf//////////ARABGgw2NDc5ODk0Njk4MzQiDPCjbP1jO5NAL96r2yqwAa3cCaeF8s1x2Zs8vAU+gRfK/tUZac8XjnJsjIxbmikiDPLuyPonsymuAd9D4ISK4fLeUU+BUU899fLHjIa2bWXRx1OrmGPIK3d/qBZF3pUPRid5AV8IRMiiP2sMI5RZzKpJfuWHH5WLknw0P7HYvusUlgAR4AgqPabHAE0c2Q1qaplJQrBXGeXCtMzs386OSPBQGogeBGn9Eu/l8QpySaA6RE3KgwvRELcvacMtmcdxMJ2H1aEGOpgBFNijTvMHK7D1pSOmvDfx9p9wSHZT/Red/G1CFWjUtV2H9+H4N+qrZTX2A4I9UGVEc+UlAQlIOAXPli2WTSPOdB7txbKsozU1YPVbi/gSZFXmGy8EFJml3bkg4HqSlozHLB/f1Ib81n9eWoUPOXp5SMwn6izW4ZZB3g8QSV6btOx2+s+Pm4BsLHICMhg3Rr0KI6ThnNhXcj8=" // TEMP Credentials. Not security relevant
 
 const (
 	NameMetricsServer             = "Metrics Server"
@@ -246,214 +234,172 @@ func sumAllBytesOfFolder(root string) uint64 {
 	return total
 }
 
-func BackupMogeniusNfsVolume(r NfsVolumeBackupRequest) NfsVolumeBackupResponse {
-	result := NfsVolumeBackupResponse{
-		VolumeName:  r.VolumeName,
-		DownloadUrl: "",
-	}
+// func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey string, result NfsVolumeRestoreResponse, accessKeyId string, secretAccessKey string, token string) NfsVolumeRestoreResponse {
+// 	// Set up an AWS session
+// 	sess := session.Must(session.NewSession(&aws.Config{
+// 		Region:      aws.String("eu-central-1"),
+// 		Credentials: credentials.NewStaticCredentials(accessKeyId, secretAccessKey, token),
+// 	}))
 
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Create nfs-volume backup.", r.NamespaceId, "", "")
-	job.Start()
+// 	// Download the zip file from S3
+// 	downloader := s3manager.NewDownloader(sess)
+// 	buffer := &aws.WriteAtBuffer{}
+// 	downloadedBytes, err := downloader.Download(buffer, &s3.GetObjectInput{
+// 		Bucket: aws.String(BUCKETNAME),
+// 		Key:    aws.String(BackupKey),
+// 	})
+// 	if err != nil {
+// 		ServiceLogger.Errorf("s3 Download error: %s", err.Error())
+// 		result.Error = err.Error()
+// 		return result
+// 	}
 
-	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "")
+// 	// Replace files with downloaded data
+// 	r, err := zip.NewReader(bytes.NewReader(buffer.Bytes()), int64(len(buffer.Bytes())))
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	result = ZipDirAndUploadToS3(mountPath, fmt.Sprintf("backup_%s_%s.zip", r.VolumeName, time.Now().Format(time.RFC3339)), result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
-	if result.Error != "" {
-		job.State = structs.JobStateFailed
-	}
+// 	mountPath := utils.MountPath(namespaceName, volumeName, "")
+// 	mountPath = fmt.Sprintf("%s/restore", mountPath)
+// 	err = os.MkdirAll(mountPath, 0755)
+// 	if err != nil {
+// 		ServiceLogger.Fatal(err)
+// 	}
 
-	wg.Wait()
-	job.Finish()
-	return result
-}
+// 	for _, f := range r.File {
+// 		rc, err := f.Open()
+// 		if err != nil {
+// 			ServiceLogger.Error(err)
+// 		}
+// 		defer rc.Close()
 
-func RestoreMogeniusNfsVolume(r NfsVolumeRestoreRequest) NfsVolumeRestoreResponse {
-	result := NfsVolumeRestoreResponse{
-		VolumeName: r.VolumeName,
-		Message:    "",
-	}
+// 		// Create the destination file
+// 		destFilepath := fmt.Sprintf("%s/%s", mountPath, f.Name)
+// 		destFile, err := os.Create(destFilepath)
+// 		if err != nil {
+// 			ServiceLogger.Error(err)
+// 		}
+// 		defer destFile.Close()
 
-	var wg sync.WaitGroup
-	job := structs.CreateJob("Restore nfs-volume backup.", r.NamespaceId, "", "")
-	job.Start()
+// 		// Copy the contents of the source file to the destination file
+// 		_, err = io.Copy(destFile, rc)
+// 		if err != nil {
+// 			ServiceLogger.Error(err)
+// 		}
 
-	result = UnzipAndReplaceFromS3(r.NamespaceName, r.VolumeName, r.BackupKey, result, r.AwsAccessKeyId, r.AwsSecretAccessKey, r.AwsSessionToken)
-	if result.Error != "" {
-		job.State = structs.JobStateFailed
-	}
+// 		// Print the name of the unzipped file
+// 		if utils.CONFIG.Misc.Debug {
+// 			ServiceLogger.Infof("Unzipped file: %s\n", destFilepath)
+// 		}
+// 	}
 
-	wg.Wait()
-	job.Finish()
-	return result
-}
+// 	msg := fmt.Sprintf("Successfully restored volume (%s) from S3!\n", punqUtils.BytesToHumanReadable(downloadedBytes))
+// 	ServiceLogger.Info(msg)
+// 	result.Message = msg
 
-func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey string, result NfsVolumeRestoreResponse, accessKeyId string, secretAccessKey string, token string) NfsVolumeRestoreResponse {
-	// Set up an AWS session
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region:      aws.String("eu-central-1"),
-		Credentials: credentials.NewStaticCredentials(accessKeyId, secretAccessKey, token),
-	}))
+// 	return result
+// }
 
-	// Download the zip file from S3
-	downloader := s3manager.NewDownloader(sess)
-	buffer := &aws.WriteAtBuffer{}
-	downloadedBytes, err := downloader.Download(buffer, &s3.GetObjectInput{
-		Bucket: aws.String(BUCKETNAME),
-		Key:    aws.String(BackupKey),
-	})
-	if err != nil {
-		ServiceLogger.Errorf("s3 Download error: %s", err.Error())
-		result.Error = err.Error()
-		return result
-	}
+// func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result NfsVolumeBackupResponse, accessKeyId string, secretAccessKey string, token string) NfsVolumeBackupResponse {
+// 	// Set up an AWS session
+// 	sess := session.Must(session.NewSession(&aws.Config{
+// 		Region:      aws.String("eu-central-1"),
+// 		Credentials: credentials.NewStaticCredentials(accessKeyId, secretAccessKey, token),
+// 	}))
 
-	// Replace files with downloaded data
-	r, err := zip.NewReader(bytes.NewReader(buffer.Bytes()), int64(len(buffer.Bytes())))
-	if err != nil {
-		panic(err)
-	}
+// 	// Create a zip archive buffer
+// 	buf := new(bytes.Buffer)
+// 	zipWriter := zip.NewWriter(buf)
 
-	mountPath := utils.MountPath(namespaceName, volumeName, "")
-	mountPath = fmt.Sprintf("%s/restore", mountPath)
-	err = os.MkdirAll(mountPath, 0755)
-	if err != nil {
-		ServiceLogger.Fatal(err)
-	}
+// 	// Add all files in a directory to the archive
+// 	err := filepath.Walk(directoryToZip, func(path string, info os.FileInfo, err error) error {
+// 		if err != nil {
+// 			return err
+// 		}
+// 		if info.IsDir() {
+// 			return nil
+// 		}
 
-	for _, f := range r.File {
-		rc, err := f.Open()
-		if err != nil {
-			ServiceLogger.Error(err)
-		}
-		defer rc.Close()
+// 		fileBytes, err := os.ReadFile(path)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		// Create the destination file
-		destFilepath := fmt.Sprintf("%s/%s", mountPath, f.Name)
-		destFile, err := os.Create(destFilepath)
-		if err != nil {
-			ServiceLogger.Error(err)
-		}
-		defer destFile.Close()
+// 		relPath, err := filepath.Rel(directoryToZip, path)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		// Copy the contents of the source file to the destination file
-		_, err = io.Copy(destFile, rc)
-		if err != nil {
-			ServiceLogger.Error(err)
-		}
+// 		zipFile, err := zipWriter.Create(relPath)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		// Print the name of the unzipped file
-		if utils.CONFIG.Misc.Debug {
-			ServiceLogger.Infof("Unzipped file: %s\n", destFilepath)
-		}
-	}
+// 		_, err = io.Copy(zipFile, bytes.NewReader(fileBytes))
+// 		if err != nil {
+// 			return err
+// 		}
 
-	msg := fmt.Sprintf("Successfully restored volume (%s) from S3!\n", punqUtils.BytesToHumanReadable(downloadedBytes))
-	ServiceLogger.Info(msg)
-	result.Message = msg
+// 		return nil
+// 	})
+// 	if err != nil {
+// 		ServiceLogger.Errorf("s3 walk files error: %s", err.Error())
+// 		result.Error = err.Error()
+// 		return result
+// 	}
 
-	return result
-}
+// 	// Close the zip archive
+// 	err = zipWriter.Close()
+// 	if err != nil {
+// 		ServiceLogger.Errorf("s3 zip error: %s", err.Error())
+// 		result.Error = err.Error()
+// 		return result
+// 	}
 
-func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result NfsVolumeBackupResponse, accessKeyId string, secretAccessKey string, token string) NfsVolumeBackupResponse {
-	// Set up an AWS session
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region:      aws.String("eu-central-1"),
-		Credentials: credentials.NewStaticCredentials(accessKeyId, secretAccessKey, token),
-	}))
+// 	// Upload the zip file to S3
+// 	s3svc := s3.New(sess)
+// 	_, err = s3svc.PutObject(&s3.PutObjectInput{
+// 		Bucket: aws.String(BUCKETNAME),     // Replace with your S3 bucket name
+// 		Key:    aws.String(targetFileName), // Replace with the name you want to give the zip file in S3
+// 		Body:   bytes.NewReader(buf.Bytes()),
+// 	})
+// 	if err != nil {
+// 		ServiceLogger.Errorf("s3 Send error: %s", err.Error())
+// 		result.Error = err.Error()
+// 		return result
+// 	}
 
-	// Create a zip archive buffer
-	buf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(buf)
+// 	// Get the uploaded object and presign it.
+// 	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
+// 		Bucket: aws.String(BUCKETNAME),
+// 		Key:    aws.String(targetFileName),
+// 	})
+// 	url, err := req.Presign(15 * time.Minute)
+// 	if err != nil {
+// 		ServiceLogger.Errorf("s3 presign error: %s", err.Error())
+// 		result.Error = err.Error()
+// 		return result
+// 	}
+// 	headObj, err := s3svc.HeadObject(&s3.HeadObjectInput{
+// 		Bucket: aws.String(BUCKETNAME),
+// 		Key:    aws.String(targetFileName),
+// 	})
+// 	if err != nil {
+// 		ServiceLogger.Errorf("s3 headobject error: %s", err.Error())
+// 		result.Error = err.Error()
+// 		return result
+// 	}
 
-	// Add all files in a directory to the archive
-	err := filepath.Walk(directoryToZip, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
+// 	result.DownloadUrl = url
+// 	if headObj != nil {
+// 		result.Bytes = *headObj.ContentLength
+// 	}
 
-		fileBytes, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
+// 	ServiceLogger.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", punqUtils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
 
-		relPath, err := filepath.Rel(directoryToZip, path)
-		if err != nil {
-			return err
-		}
-
-		zipFile, err := zipWriter.Create(relPath)
-		if err != nil {
-			return err
-		}
-
-		_, err = io.Copy(zipFile, bytes.NewReader(fileBytes))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		ServiceLogger.Errorf("s3 walk files error: %s", err.Error())
-		result.Error = err.Error()
-		return result
-	}
-
-	// Close the zip archive
-	err = zipWriter.Close()
-	if err != nil {
-		ServiceLogger.Errorf("s3 zip error: %s", err.Error())
-		result.Error = err.Error()
-		return result
-	}
-
-	// Upload the zip file to S3
-	s3svc := s3.New(sess)
-	_, err = s3svc.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(BUCKETNAME),     // Replace with your S3 bucket name
-		Key:    aws.String(targetFileName), // Replace with the name you want to give the zip file in S3
-		Body:   bytes.NewReader(buf.Bytes()),
-	})
-	if err != nil {
-		ServiceLogger.Errorf("s3 Send error: %s", err.Error())
-		result.Error = err.Error()
-		return result
-	}
-
-	// Get the uploaded object and presign it.
-	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(BUCKETNAME),
-		Key:    aws.String(targetFileName),
-	})
-	url, err := req.Presign(15 * time.Minute)
-	if err != nil {
-		ServiceLogger.Errorf("s3 presign error: %s", err.Error())
-		result.Error = err.Error()
-		return result
-	}
-	headObj, err := s3svc.HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(BUCKETNAME),
-		Key:    aws.String(targetFileName),
-	})
-	if err != nil {
-		ServiceLogger.Errorf("s3 headobject error: %s", err.Error())
-		result.Error = err.Error()
-		return result
-	}
-
-	result.DownloadUrl = url
-	if headObj != nil {
-		result.Bytes = *headObj.ContentLength
-	}
-
-	ServiceLogger.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", punqUtils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
-
-	return result
-}
+// 	return result
+// }
 
 type K8sManagerUpgradeRequest struct {
 	Command string `json:"command" validate:"required"` // complete helm command from platform ui
@@ -650,73 +596,73 @@ type NfsVolumeStatsResponse struct {
 }
 
 // token/accesskey/accesssecret can be generated using aws sts get-session-token | jq
-type NfsVolumeBackupRequest struct {
-	NamespaceId        string `json:"namespaceId" validate:"required"`
-	NamespaceName      string `json:"namespaceName" validate:"required"`
-	VolumeName         string `json:"volumeName" validate:"required"`
-	AwsAccessKeyId     string `json:"awsAccessKeyId"`     // TEMP Credentials. Not security relevant
-	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // TEMP Credentials. Not security relevant
-	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
-}
+// type NfsVolumeBackupRequest struct {
+// 	NamespaceId        string `json:"namespaceId" validate:"required"`
+// 	NamespaceName      string `json:"namespaceName" validate:"required"`
+// 	VolumeName         string `json:"volumeName" validate:"required"`
+// 	AwsAccessKeyId     string `json:"awsAccessKeyId"`     // TEMP Credentials. Not security relevant
+// 	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // TEMP Credentials. Not security relevant
+// 	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
+// }
 
-func (s *NfsVolumeBackupRequest) AddSecretsToRedaction() {
-	utils.AddSecret(&s.AwsAccessKeyId)
-	utils.AddSecret(&s.AwsSecretAccessKey)
-	utils.AddSecret(&s.AwsSessionToken)
-}
+// func (s *NfsVolumeBackupRequest) AddSecretsToRedaction() {
+// 	utils.AddSecret(&s.AwsAccessKeyId)
+// 	utils.AddSecret(&s.AwsSecretAccessKey)
+// 	utils.AddSecret(&s.AwsSessionToken)
+// }
 
-func NfsVolumeBackupRequestExample() NfsVolumeBackupRequest {
-	return NfsVolumeBackupRequest{
-		NamespaceId:        "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceName:      "mogenius",
-		VolumeName:         "my-fancy-volume-name",
-		AwsAccessKeyId:     DEBUG_AWS_ACCESS_KEY_ID, // TEMP Credentials. Not security relevant
-		AwsSecretAccessKey: DEBUG_AWS_SECRET_KEY,    // TEMP Credentials. Not security relevant
-		AwsSessionToken:    DEBUG_AWS_TOKEN,         // TEMP Credentials. Not security relevant
-	}
-}
+// func NfsVolumeBackupRequestExample() NfsVolumeBackupRequest {
+// 	return NfsVolumeBackupRequest{
+// 		NamespaceId:        "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+// 		NamespaceName:      "mogenius",
+// 		VolumeName:         "my-fancy-volume-name",
+// 		AwsAccessKeyId:     DEBUG_AWS_ACCESS_KEY_ID, // TEMP Credentials. Not security relevant
+// 		AwsSecretAccessKey: DEBUG_AWS_SECRET_KEY,    // TEMP Credentials. Not security relevant
+// 		AwsSessionToken:    DEBUG_AWS_TOKEN,         // TEMP Credentials. Not security relevant
+// 	}
+// }
 
-// token/accesskey/accesssecret can be generated using aws sts get-session-token | jq
-type NfsVolumeRestoreRequest struct {
-	NamespaceId        string `json:"namespaceId" validate:"required"`
-	NamespaceName      string `json:"namespaceName" validate:"required"`
-	VolumeName         string `json:"volumeName" validate:"required"`
-	BackupKey          string `json:"backupKey" validate:"required"`
-	AwsAccessKeyId     string `json:"awsAccessKeyId"`     // TEMP Credentials. Not security relevant
-	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // TEMP Credentials. Not security relevant
-	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
-}
+// // token/accesskey/accesssecret can be generated using aws sts get-session-token | jq
+// type NfsVolumeRestoreRequest struct {
+// 	NamespaceId        string `json:"namespaceId" validate:"required"`
+// 	NamespaceName      string `json:"namespaceName" validate:"required"`
+// 	VolumeName         string `json:"volumeName" validate:"required"`
+// 	BackupKey          string `json:"backupKey" validate:"required"`
+// 	AwsAccessKeyId     string `json:"awsAccessKeyId"`     // TEMP Credentials. Not security relevant
+// 	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // TEMP Credentials. Not security relevant
+// 	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
+// }
 
-func (s *NfsVolumeRestoreRequest) AddSecretsToRedaction() {
-	utils.AddSecret(&s.AwsAccessKeyId)
-	utils.AddSecret(&s.AwsSecretAccessKey)
-	utils.AddSecret(&s.AwsSessionToken)
-}
+// func (s *NfsVolumeRestoreRequest) AddSecretsToRedaction() {
+// 	utils.AddSecret(&s.AwsAccessKeyId)
+// 	utils.AddSecret(&s.AwsSecretAccessKey)
+// 	utils.AddSecret(&s.AwsSessionToken)
+// }
 
-func NfsVolumeRestoreRequestExample() NfsVolumeRestoreRequest {
-	return NfsVolumeRestoreRequest{
-		NamespaceId:        "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceName:      "mogenius",
-		VolumeName:         "my-fancy-volume-name",
-		BackupKey:          "backup_my-fancy-volume-name_2023-04-11T13:45:00+02:00.zip",
-		AwsAccessKeyId:     DEBUG_AWS_ACCESS_KEY_ID, // TEMP Credentials. Not security relevant
-		AwsSecretAccessKey: DEBUG_AWS_SECRET_KEY,    // TEMP Credentials. Not security relevant
-		AwsSessionToken:    DEBUG_AWS_TOKEN,         // TEMP Credentials. Not security relevant
-	}
-}
+// func NfsVolumeRestoreRequestExample() NfsVolumeRestoreRequest {
+// 	return NfsVolumeRestoreRequest{
+// 		NamespaceId:        "B0919ACB-92DD-416C-AF67-E59AD4B25265",
+// 		NamespaceName:      "mogenius",
+// 		VolumeName:         "my-fancy-volume-name",
+// 		BackupKey:          "backup_my-fancy-volume-name_2023-04-11T13:45:00+02:00.zip",
+// 		AwsAccessKeyId:     DEBUG_AWS_ACCESS_KEY_ID, // TEMP Credentials. Not security relevant
+// 		AwsSecretAccessKey: DEBUG_AWS_SECRET_KEY,    // TEMP Credentials. Not security relevant
+// 		AwsSessionToken:    DEBUG_AWS_TOKEN,         // TEMP Credentials. Not security relevant
+// 	}
+// }
 
-type NfsVolumeBackupResponse struct {
-	VolumeName  string `json:"volumeName"`
-	DownloadUrl string `json:"downloadUrl"`
-	Bytes       int64  `json:"bytes"`
-	Error       string `json:"error,omitempty"`
-}
+// type NfsVolumeBackupResponse struct {
+// 	VolumeName  string `json:"volumeName"`
+// 	DownloadUrl string `json:"downloadUrl"`
+// 	Bytes       int64  `json:"bytes"`
+// 	Error       string `json:"error,omitempty"`
+// }
 
-type NfsVolumeRestoreResponse struct {
-	VolumeName string `json:"volumeName"`
-	Message    string `json:"message"`
-	Error      string `json:"error,omitempty"`
-}
+// type NfsVolumeRestoreResponse struct {
+// 	VolumeName string `json:"volumeName"`
+// 	Message    string `json:"message"`
+// 	Error      string `json:"error,omitempty"`
+// }
 
 // @TODO: add request/respionse example for nfs status
 type NfsStatusRequest struct {

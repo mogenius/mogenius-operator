@@ -78,24 +78,23 @@ type Config struct {
 		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
-		Stage                     string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
-		LogFormat                 string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"json"`
-		LogLevel                  string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: panic, fatal, error, warn, info, debug, trace" env-default:"info"`
-		LogIncomingStats          bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
-		Debug                     bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
-		DebugLogCaller            bool     `yaml:"debug_log_caller" env:"debug_log_caller" env-description:"If set to true, the calling function will be logged." env-default:"false"`
-		LogKubernetesEvents       bool     `yaml:"log_kubernetes_events" env:"log_kubernetes_events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
-		DefaultMountPath          string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
-		IgnoreNamespaces          []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
-		LogRotationSizeInBytes    int      `yaml:"log_rotation_size_in_bytes" env:"log_rotation_size_in_bytes" env-description:"Size of the logfile when it is rotated." env-default:"5242880"`
-		LogRotationMaxSizeInBytes int      `yaml:"log_rotation_max_size_in_bytes" env:"log_rotation_max_size_in_bytes" env-description:"Size of the max logfile when it is rotated." env-default:"314572800"`
-		LogRetentionDays          int      `yaml:"log_retention_days" env:"log_retention_days" env-description:"Number of days to keep log files." env-default:"7"`
-		AutoMountNfs              bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
-		IgnoreResourcesBackup     []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
-		CheckForUpdates           int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
-		HelmIndex                 string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
-		NfsPodPrefix              string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
-		ExternalSecretsEnabled    bool     `yaml:"external_secrets_enabled" env:"external_secrets_enabled" env-description:"If set to true, external secrets will be enabled." env-default:"false"`
+		Stage                  string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
+		LogFormat              string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"json"`
+		LogLevel               string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: panic, fatal, error, warn, info, debug, trace" env-default:"info"`
+		LogIncomingStats       bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
+		Debug                  bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
+		DebugLogCaller         bool     `yaml:"debug_log_caller" env:"debug_log_caller" env-description:"If set to true, the calling function will be logged." env-default:"false"`
+		LogKubernetesEvents    bool     `yaml:"log_kubernetes_events" env:"log_kubernetes_events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
+		DefaultMountPath       string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
+		IgnoreNamespaces       []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
+		LogRotationSizeInBytes int      `yaml:"log_rotation_size_in_bytes" env:"log_rotation_size_in_bytes" env-description:"Size of the logfile when it is rotated." env-default:"5242880"`
+		LogRetentionDays       int      `yaml:"log_retention_days" env:"log_retention_days" env-description:"Number of days to keep log files." env-default:"7"`
+		AutoMountNfs           bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
+		IgnoreResourcesBackup  []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
+		CheckForUpdates        int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
+		HelmIndex              string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
+		NfsPodPrefix           string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
+		ExternalSecretsEnabled bool     `yaml:"external_secrets_enabled" env:"external_secrets_enabled" env-description:"If set to true, external secrets will be enabled." env-default:"false"`
 	} `yaml:"misc"`
 	Builder struct {
 		BuildTimeout        int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
@@ -397,7 +396,6 @@ func PrintSettings() {
 	log.Infof("IgnoreResourcesBackup:     %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
 	log.Infof("IgnoreNamespaces:          %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
 	log.Infof("LogRotationSizeInBytes:    %d", CONFIG.Misc.LogRotationSizeInBytes)
-	log.Infof("LogRotationMaxSizeInBytes: %d", CONFIG.Misc.LogRotationMaxSizeInBytes)
 	log.Infof("LogRetentionDays:          %d", CONFIG.Misc.LogRetentionDays)
 	log.Infof("CheckForUpdates:           %d", CONFIG.Misc.CheckForUpdates)
 	log.Infof("HelmIndex:                 %s", CONFIG.Misc.HelmIndex)
