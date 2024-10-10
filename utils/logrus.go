@@ -82,8 +82,12 @@ func (hook *LogRotationHook) Fire(entry *logrus.Entry) error {
 
 	MainLogBytesCounter += uint64(len(entry.Message))
 
+	component := "main"
+
 	if MainLogBytesCounter > uint64(CONFIG.Misc.LogRotationSizeInBytes) {
-		RotateLog(MainLogPath(), "main")
+		RotateLog(MainLogPath(), component)
+	} else {
+		DeleteFilesLogRetention(component)
 	}
 
 	return nil
@@ -121,7 +125,7 @@ func RotateLog(sourceFilePath string, component string) {
 	}
 
 	deleteFilesOlderThanLogRetention(component)
-	deleteFilesLogRetention(component)
+	DeleteFilesLogRetention(component)
 }
 
 func deleteFilesOlderThanLogRetention(component string) {
@@ -170,7 +174,7 @@ func deleteFilesOlderThanLogRetention(component string) {
 	}
 }
 
-func deleteFilesLogRetention(component string) {
+func DeleteFilesLogRetention(component string) {
 	pattern := fmt.Sprintf("%s-\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2}\\.\\d{3}", component)
 	regex, err := regexp.Compile(pattern)
 	if err != nil {

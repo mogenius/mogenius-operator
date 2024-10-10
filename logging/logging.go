@@ -71,6 +71,8 @@ func (hook *FileHook) Fire(entry *log.Entry) error {
 
 		if fileHookComponent.logBytesCounter > uint64(utils.CONFIG.Misc.LogRotationSizeInBytes) {
 			utils.RotateLog(fileHookComponent.Filename, string(component))
+		} else {
+			utils.DeleteFilesLogRetention(string(component))
 		}
 
 		_, err = fileHookComponent.Logfile.Write([]byte(line))
