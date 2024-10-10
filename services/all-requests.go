@@ -2264,22 +2264,22 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return DeleteMogeniusNfsVolume(data)
-	case structs.PAT_STORAGE_BACKUP_VOLUME:
-		data := NfsVolumeBackupRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		data.AddSecretsToRedaction()
-		return BackupMogeniusNfsVolume(data)
-	case structs.PAT_STORAGE_RESTORE_VOLUME:
-		data := NfsVolumeRestoreRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		data.AddSecretsToRedaction()
-		return RestoreMogeniusNfsVolume(data)
+	// case structs.PAT_STORAGE_BACKUP_VOLUME:
+	// 	data := NfsVolumeBackupRequest{}
+	// 	structs.MarshalUnmarshal(&datagram, &data)
+	// 	if err := utils.ValidateJSON(data); err != nil {
+	// 		return err
+	// 	}
+	// 	data.AddSecretsToRedaction()
+	// 	return BackupMogeniusNfsVolume(data)
+	// case structs.PAT_STORAGE_RESTORE_VOLUME:
+	// 	data := NfsVolumeRestoreRequest{}
+	// 	structs.MarshalUnmarshal(&datagram, &data)
+	// 	if err := utils.ValidateJSON(data); err != nil {
+	// 		return err
+	// 	}
+	// 	data.AddSecretsToRedaction()
+	// 	return RestoreMogeniusNfsVolume(data)
 	case structs.PAT_STORAGE_STATS:
 		data := NfsVolumeStatsRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

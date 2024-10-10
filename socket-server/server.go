@@ -570,10 +570,10 @@ func requestCmdFromCluster(pattern string) *structs.Datagram {
 			payload = services.NfsVolumeRequestExample()
 		case structs.PAT_STORAGE_DELETE_VOLUME:
 			payload = services.NfsVolumeRequestExample()
-		case structs.PAT_STORAGE_BACKUP_VOLUME:
-			payload = services.NfsVolumeBackupRequestExample()
-		case structs.PAT_STORAGE_RESTORE_VOLUME:
-			payload = services.NfsVolumeRestoreRequestExample()
+		// case structs.PAT_STORAGE_BACKUP_VOLUME:
+		// 	payload = services.NfsVolumeBackupRequestExample()
+		// case structs.PAT_STORAGE_RESTORE_VOLUME:
+		// 	payload = services.NfsVolumeRestoreRequestExample()
 		case structs.PAT_STORAGE_STATS:
 			payload = services.NfsVolumeRequestExample()
 		case structs.PAT_STORAGE_NAMESPACE_STATS:
