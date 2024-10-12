@@ -41,10 +41,6 @@ type ExternalSecretProps struct {
 	secretPath      string
 }
 
-func externalExternalSecretExample() ExternalSecretProps {
-	return NewExternalSecret(CreateExternalSecretPropsExample())
-}
-
 // NewExternalSecret creates a new NewExternalSecret with default values.
 func NewExternalSecret(data CreateExternalSecretProps) ExternalSecretProps {
 	return ExternalSecretProps{

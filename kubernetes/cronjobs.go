@@ -332,9 +332,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
 	var previousSpec *v1job.CronJobSpec
 	previousCronjob, err := client.(batchv1.CronJobInterface).Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
-	if err != nil {
-		previousCronjob = nil
-	} else {
+	if err == nil {
 		previousSpec = &(*previousCronjob).Spec
 	}
 

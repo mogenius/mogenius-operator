@@ -506,8 +506,8 @@ func WriteResourceYaml(kind, namespace, name string, obj interface{}) {
 // }
 
 func ObjectFor(kind, namespace, name string) (interface{}, error) {
-	var data interface{} = nil
-	var err error = nil
+	var data interface{}
+	var err error
 
 	switch kind {
 	case dtos.KindConfigMaps:
