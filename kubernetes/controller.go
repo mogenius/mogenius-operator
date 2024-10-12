@@ -160,7 +160,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					specTemplate.Spec.Containers[index].Image = imgName
 				} else {
 					imgErr := fmt.Errorf("No image found for '%s/%s'. Maybe the build failed or is still running.", namespace.Name, container.Name)
-					K8sLogger.Errorf(imgErr.Error())
+					K8sLogger.Error(imgErr.Error())
 					return nil, imgErr
 				}
 			}

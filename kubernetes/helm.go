@@ -684,7 +684,7 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 		return "", fmt.Errorf("HelmInstall Error: Release not found")
 	}
 
-	HelmInstallLogger.Infof(installStatus(*re))
+	HelmInstallLogger.Info(installStatus(*re))
 
 	return installStatus(*re), nil
 }
@@ -840,17 +840,6 @@ func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, e
 	}
 
 	return &helmReleaseStatusInfo, nil
-}
-
-func statusString(rel release.Release) string {
-	result := ""
-	result += fmt.Sprintf("NAME: %s\n", rel.Name)
-	result += fmt.Sprintf("LAST DEPLOYED: %s\n", rel.Info.LastDeployed)
-	result += fmt.Sprintf("NAMESPACE: %s\n", rel.Namespace)
-	result += fmt.Sprintf("STATUS: %s\n", rel.Info.Status)
-	result += fmt.Sprintf("REVISION:%d\n", rel.Version)
-	result += fmt.Sprintf("CHART: %s-%s\n", rel.Chart.Metadata.Name, rel.Chart.Metadata.Version)
-	return result
 }
 
 func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, error) {
