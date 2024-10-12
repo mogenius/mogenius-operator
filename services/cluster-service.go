@@ -209,7 +209,7 @@ func sumAllBytesOfFolder(root string) uint64 {
 	}()
 
 	// Walk the file tree concurrently.
-	filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -226,6 +226,9 @@ func sumAllBytesOfFolder(root string) uint64 {
 		}
 		return nil
 	})
+	if err != nil {
+		ServiceLogger.Error(err)
+	}
 
 	wg.Wait()
 	close(fileSizes) // Close channel to finish summing
