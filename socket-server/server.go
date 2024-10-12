@@ -655,11 +655,22 @@ func sendFile() {
 		buf := make([]byte, 512)
 
 		serverSendMutex.Lock()
-		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######START_UPLOAD######;"))
-		for {
-			cluster.Connection.WriteMessage(websocket.BinaryMessage, buf)
+		err := cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######START_UPLOAD######;"))
+		if err != nil {
+			log.Error(err)
 		}
-		cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######END_UPLOAD######;"))
+		for {
+			err := cluster.Connection.WriteMessage(websocket.BinaryMessage, buf)
+			if err != nil {
+				log.Error(err)
+			}
+		}
+		// TODO: This code is unreachable. The serverSendMutex.Unlock() is also never called within this branch.
+		//       I hesitate to delete this as this bug being unnoticed probably leads to a bigger story.
+		err = cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######END_UPLOAD######;"))
+		if err != nil {
+			log.Error(err)
+		}
 		serverSendMutex.Unlock()
 	} else {
 		log.Error("reader cannot be nil")
