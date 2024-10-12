@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"math"
 	"mime/multipart"
 	"mogenius-k8s-manager/dtos"
@@ -28,7 +27,6 @@ func List(r FilesListRequest) []dtos.PersistentFileDto {
 	if err != nil {
 		return result
 	}
-	// result, err = listFiles(pathToFile, 0)
 	result, err = ListDirWithTimeout(pathToFile, 250*time.Millisecond)
 	if err != nil {
 		ServiceLogger.Errorf("Files List Error: %s", err.Error())
@@ -424,22 +422,6 @@ func FilesDeleteRequestExampleData() FilesDeleteRequest {
 	}
 }
 
-// deprecated: use ListDirWithTimeout instead
-func listFiles(rootDir string, maxDepth int) ([]dtos.PersistentFileDto, error) {
-	result := []dtos.PersistentFileDto{}
-	err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		relPath, _ := filepath.Rel(rootDir, path)
-		if strings.Count(relPath, string(os.PathSeparator)) > maxDepth {
-			return fs.SkipDir
-		}
-		result = append(result, dtos.PersistentFileDtoFrom(rootDir, path))
-		return nil
-	})
-	return result, err
-}
 
 func ListDirWithTimeout(root string, timeout time.Duration) ([]dtos.PersistentFileDto, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
