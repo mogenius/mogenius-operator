@@ -111,7 +111,10 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				continue
 			}
 			if preparedFileName != nil {
-				openFile.Write([]byte(rawDataStr))
+				_, err := openFile.Write([]byte(rawDataStr))
+				if err != nil {
+					log.Error(err)
+				}
 			} else {
 				datagram := structs.CreateEmptyDatagram()
 
