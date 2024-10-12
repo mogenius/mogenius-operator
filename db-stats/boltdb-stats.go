@@ -130,7 +130,10 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		if controllerBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()
-			controllerBucket.Delete(k)
+			err := controllerBucket.Delete(k)
+			if err != nil {
+				return err
+			}
 		}
 
 		// save socketConnections to separate bucket and remove from stats
@@ -142,7 +145,10 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		stats.SocketConnections = nil
 
 		// add new Entry
-		id, _ := controllerBucket.NextSequence() // auto increment
+		id, err := controllerBucket.NextSequence() // auto increment
+		if err != nil {
+			return fmt.Errorf("Cant create next id: %s", err.Error())
+		}
 		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
@@ -198,11 +204,17 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 		if nodeBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
 			c := nodeBucket.Cursor()
 			k, _ := c.First()
-			nodeBucket.Delete(k)
+			err := nodeBucket.Delete(k)
+			if err != nil {
+				return err
+			}
 		}
 
 		// add new Entry
-		id, _ := nodeBucket.NextSequence() // auto increment
+		id, err := nodeBucket.NextSequence() // auto increment
+		if err != nil {
+			return fmt.Errorf("Cant create next id: %s", err.Error())
+		}
 		return nodeBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
@@ -239,11 +251,17 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		if controllerBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()
-			controllerBucket.Delete(k)
+			err := controllerBucket.Delete(k)
+			if err != nil {
+				return err
+			}
 		}
 
 		// add new Entry
-		id, _ := controllerBucket.NextSequence() // auto increment
+		id, err := controllerBucket.NextSequence() // auto increment
+		if err != nil {
+			return fmt.Errorf("Cant create next id: %s", err.Error())
+		}
 		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
@@ -470,11 +488,11 @@ func cleanupStats() {
 	err := dbStats.Update(func(tx *bolt.Tx) error {
 		// TRAFFIC
 		bucketTraffic := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
-		bucketTraffic.ForEach(func(k, v []byte) error {
+		err := bucketTraffic.ForEach(func(k, v []byte) error {
 			namespaceBucket := bucketTraffic.Bucket(k)
-			namespaceBucket.ForEach(func(k, v []byte) error {
+			err := namespaceBucket.ForEach(func(k, v []byte) error {
 				controllerBucket := namespaceBucket.Bucket(k)
-				controllerBucket.ForEach(func(k, v []byte) error {
+				err := controllerBucket.ForEach(func(k, v []byte) error {
 					entry := structs.InterfaceStats{}
 					err := structs.UnmarshalInterfaceStats(&entry, v)
 					if err != nil {
@@ -488,17 +506,26 @@ func cleanupStats() {
 					}
 					return nil
 				})
+				if err != nil {
+					return err
+				}
 				return nil
 			})
+			if err != nil {
+				return err
+			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		// PODS
 		bucketPods := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
-		bucketPods.ForEach(func(k, v []byte) error {
+		err = bucketPods.ForEach(func(k, v []byte) error {
 			namespaceBucket := bucketPods.Bucket(k)
-			namespaceBucket.ForEach(func(k, v []byte) error {
+			err := namespaceBucket.ForEach(func(k, v []byte) error {
 				controllerBucket := namespaceBucket.Bucket(k)
-				controllerBucket.ForEach(func(k, v []byte) error {
+				err := controllerBucket.ForEach(func(k, v []byte) error {
 					entry := structs.PodStats{}
 					err := structs.UnmarshalPodStats(&entry, v)
 					if err != nil {
@@ -512,10 +539,19 @@ func cleanupStats() {
 					}
 					return nil
 				})
+				if err != nil {
+					return err
+				}
 				return nil
 			})
+			if err != nil {
+				return err
+			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		// Nodes
 		bucketNodes := tx.Bucket([]byte(NODE_STATS_BUCKET_NAME))
 		c := bucketNodes.Cursor()
@@ -537,7 +573,7 @@ func cleanupStats() {
 		}
 		// SOCKETS
 		bucketSockets := tx.Bucket([]byte(SOCKET_STATS_BUCKET))
-		bucketSockets.ForEach(func(k, v []byte) error {
+		err = bucketSockets.ForEach(func(k, v []byte) error {
 			entry := structs.SocketConnections{}
 			err := structs.UnmarshalSocketConnections(&entry, v)
 			if err != nil {
@@ -551,6 +587,9 @@ func cleanupStats() {
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {

@@ -38,7 +38,10 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	if !bucketExists(tx, stat.Namespace) {
 		log.Printf("Bucket for namespace %s does not exist and should be created once the stat is added", stat.Namespace)
 	}
-	tx.Rollback()
+	err = tx.Rollback()
+	if err != nil {
+		t.Error(err)
+	}
 	AddInterfaceStatsToDb(stat)
 
 	tx, err = dbStats.Begin(false)
@@ -48,7 +51,10 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	if !bucketExists(tx, stat.Namespace) {
 		t.Errorf("Bucket for namespace %s does not exist but should have been created!", stat.Namespace)
 	}
-	tx.Rollback()
+	err = tx.Rollback()
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
@@ -74,7 +80,12 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error beginning transaction: %v", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		err := tx.Rollback()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	//check if the data points are limited to 3
 	bucket := getNestedBucket(tx, []string{"TESTNS", "TESTCONTROLLER"})
