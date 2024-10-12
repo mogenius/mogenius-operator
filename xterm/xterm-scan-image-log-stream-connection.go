@@ -60,7 +60,7 @@ func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.Cancel
 				if conn != nil {
 
 					// loading
-					if streamBeginning == false {
+					if !streamBeginning {
 						if len(string(buf[:read])) > 0 {
 							re := regexp.MustCompile(`Vulnerability`)
 							matches := re.FindAllString(string(buf[:read]), -1)
@@ -125,7 +125,7 @@ func XTermScanImageLogStreamConnection(
 	}
 
 	cmdPull := fmt.Sprintf("docker pull %s", containerImage)
-	cmdScanType := fmt.Sprintf("grype %s", containerImage)
+	var cmdScanType string
 	switch scanImageType {
 	case "grype":
 		cmdScanType = fmt.Sprintf("grype %s", containerImage)
@@ -165,7 +165,7 @@ func XTermScanImageLogStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				// log.Error("write close:", err)
+				log.Debug("write close:", err)
 			}
 		}
 		err := cmd.Process.Kill()

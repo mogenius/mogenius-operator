@@ -104,7 +104,7 @@ func XTermCommandStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				// log.Error("write close:", err)
+				log.Debug("write close:", err)
 			}
 		}
 		log.Errorf("Pod %s does not exist, closing connection.", podName)
@@ -149,7 +149,7 @@ func XTermCommandStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				// log.Error("write close:", err)
+				log.Debug("write close:", err)
 			}
 		}
 		err := cmd.Process.Kill()
