@@ -83,7 +83,10 @@ func connectEvent(ctx context.Context) {
 		log.Infof("Connected to EventServer: %s  (%s)\n", EventConnectionUrl.String(), connection.LocalAddr().String())
 		EventQueueConnection = connection
 		EventConnectionStatus <- true
-		Ping(EventQueueConnection, &eventSendMutex)
+		err := Ping(EventQueueConnection, &eventSendMutex)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 
 	defer func() {
