@@ -69,12 +69,21 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				// log.Error("write close:", err)
+				log.Debug(err)
 			}
 		}
-		cmd.Process.Kill()
-		cmd.Process.Wait()
-		tty.Close()
+		err := cmd.Process.Kill()
+		if err != nil {
+			log.Error(err)
+		}
+		_, err = cmd.Process.Wait()
+		if err != nil {
+			log.Error(err)
+		}
+		err = tty.Close()
+		if err != nil {
+			log.Error(err)
+		}
 	}()
 
 	go cmdWait(cmd, conn, tty)
