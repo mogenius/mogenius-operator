@@ -72,7 +72,7 @@ func XTermOperatorStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				// log.Error("write close:", err)
+				log.Debug("write close:", err)
 			}
 		}
 		err := cmd.Process.Kill()
