@@ -605,6 +605,7 @@ func GetSubBuckets(bucket *bolt.Bucket, bucketNames []string) (*bolt.Bucket, err
 		if subBucket == nil {
 			return nil, fmt.Errorf("Bucket '%s' not found.", path)
 		}
+		// TODO: This ain't looping dawg. What to do?
 		return GetSubBuckets(subBucket, bucketNames[1:])
 
 	}

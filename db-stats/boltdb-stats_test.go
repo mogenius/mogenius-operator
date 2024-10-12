@@ -99,24 +99,6 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 
 }
 
-func readSubBucketContents(tx *bolt.Tx, bucketChain []string) {
-	bucket := getNestedBucket(tx, bucketChain)
-	if bucket == nil {
-		log.Printf("Bucket %v does not exist", bucketChain)
-		// return nil
-	}
-
-	err := bucket.ForEach(func(k, v []byte) error {
-		log.Printf("Key: %s, Value: %s", k, v)
-		return nil
-	})
-	if err != nil {
-		log.Printf("Error reading bucket contents: %v", err)
-		// return err
-	}
-	// return nil
-}
-
 func getNestedBucket(tx *bolt.Tx, bucketChain []string) *bolt.Bucket {
 
 	mainBucket := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
@@ -135,10 +117,7 @@ func getNestedBucket(tx *bolt.Tx, bucketChain []string) *bolt.Bucket {
 
 func bucketExists(tx *bolt.Tx, bucketName string) bool {
 	bucket := getNestedBucket(tx, []string{bucketName})
-	if bucket == nil {
-		return false
-	}
-	return true
+	return bucket != nil
 }
 
 func generateRandomInterfaceStats() structs.InterfaceStats {
