@@ -75,7 +75,10 @@ func Init() {
 	InitDataModel()
 
 	if !IsIacEnabled() {
-		ResetCurrentRepoData(3)
+		err := ResetCurrentRepoData(3)
+		if err != nil {
+			log.Error(err)
+		}
 		InitDataModel()
 		return
 	}
@@ -501,7 +504,10 @@ func ApplyRepoStateToCluster() error {
 	allFiles = applyPriotityToChangesForUpdates(allFiles)
 
 	for _, file := range allFiles {
-		kubernetesReplaceResource(file)
+		err := kubernetesReplaceResource(file)
+		if err != nil {
+			iaclogger.Errorf("Error replacing resource: %s", err.Error())
+		}
 	}
 
 	return nil
@@ -532,7 +538,10 @@ func SyncChanges() error {
 					iaclogger.Errorf("Error pulling changes: %s", err.Error())
 					if err == git.ErrNonFastForwardUpdate {
 						iaclogger.Warnf("Non-fast-forward update detected. Deleting local repository. Changes will not be lost because they will be synced again in the next run.")
-						ResetCurrentRepoData(3)
+						err2 := ResetCurrentRepoData(3)
+						if err2 != nil {
+							iaclogger.Errorf("Error resetting repo data: %s", err.Error())
+						}
 						return err
 					}
 					return err
