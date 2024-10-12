@@ -132,13 +132,25 @@ func InitConfigSimple(stage string) {
 
 	switch stage {
 	case STAGE_DEV:
-		os.WriteFile(path, []byte(DefaultConfigClusterFileDev), 0755)
+		err := os.WriteFile(path, []byte(DefaultConfigClusterFileDev), 0755)
+		if err != nil {
+			log.Error(err)
+		}
 	case STAGE_LOCAL:
-		os.WriteFile(path, []byte(DefaultConfigLocalFile), 0755)
+		err := os.WriteFile(path, []byte(DefaultConfigLocalFile), 0755)
+		if err != nil {
+			log.Error(err)
+		}
 	case STAGE_PROD:
-		os.WriteFile(path, []byte(DefaultConfigClusterFileProd), 0755)
+		err := os.WriteFile(path, []byte(DefaultConfigClusterFileProd), 0755)
+		if err != nil {
+			log.Error(err)
+		}
 	}
-	cleanenv.ReadConfig(path, &CONFIG)
+	err := cleanenv.ReadConfig(path, &CONFIG)
+	if err != nil {
+		log.Error(err)
+	}
 }
 
 func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
