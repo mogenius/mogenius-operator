@@ -32,7 +32,10 @@ func TestStore(t *testing.T) {
 	}
 
 	// GetByKeyParts
-	store.Set("value1", "key1___key2")
+	err = store.Set("value1", "key1___key2")
+	if err != nil {
+		t.Error(err)
+	}
 	value = store.GetByKeyParts(resultType, "key1", "key2")
 	if value == nil {
 		t.Errorf("Error getting GetByKeyParts")
