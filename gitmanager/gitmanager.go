@@ -311,13 +311,16 @@ func GetHeadTag(path string) (string, error) {
 
 		defer commitIter.Close()
 
-		commitIter.ForEach(func(commit *object.Commit) error {
+		err = commitIter.ForEach(func(commit *object.Commit) error {
 			if commit.Hash == headCommitHash {
 				tagName = tagRef.Name().Short()
 				return nil
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -908,7 +911,7 @@ func findDecorations(repo *git.Repository, hash plumbing.Hash) []string {
 		fmt.Printf("Error getting references %s\n", err)
 	}
 
-	refs.ForEach(func(ref *plumbing.Reference) error {
+	err = refs.ForEach(func(ref *plumbing.Reference) error {
 		if ref.Type() == plumbing.HashReference && ref.Hash() == hash {
 			if ref.Name().IsBranch() || ref.Name().IsTag() {
 				decorations = append(decorations, ref.Name().String())
@@ -916,6 +919,9 @@ func findDecorations(repo *git.Repository, hash plumbing.Hash) []string {
 		}
 		return nil
 	})
+	if err != nil {
+		fmt.Printf("Failed iterating over references: %s\n", err.Error())
+	}
 
 	return decorations
 }
