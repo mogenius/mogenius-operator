@@ -142,6 +142,9 @@ func GetLastCommits(path string, maxNoOfEntries int) ([]*object.Commit, error) {
 		count++
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return commits, nil
 }
@@ -477,15 +480,6 @@ func DiffForCommit(path string, commitHash string, filePath string, resourceName
 		diffOutput = diffOutput[:Max_Diff_Lines] + "..."
 	}
 	return diffOutput, nil
-}
-
-func prefixLinesWith(prefix, text string) string {
-	lines := strings.Split(text, "\n")
-
-	for i := 0; i < len(lines)-1; i++ {
-		lines[i] = prefix + lines[i]
-	}
-	return strings.Join(lines, "\n")
 }
 
 func ListFileRevisions(repoPath string, filePath string, resourceName string) ([]CommitRevision, error) {
