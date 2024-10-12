@@ -62,7 +62,7 @@ func NewStore() (*Store, error) {
 	opts := badger.DefaultOptions("").WithInMemory(true)
 	db, err := badger.Open(opts)
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Error(err.Error())
 		return nil, err
 	}
 
@@ -234,9 +234,7 @@ func (s *Store) SearchByUUID(uuid string, result interface{}) (interface{}, erro
 			item := it.Item()
 
 			err := item.Value(func(v []byte) error {
-				var err error
-				err = s.deserialize(v, result)
-				return err
+				return s.deserialize(v, result)
 			})
 			return err
 		}
@@ -271,9 +269,7 @@ func (s *Store) SearchByNames(namespace string, name string, result interface{})
 
 			if len(key) >= len(searchSuffix) && key[len(key)-len(searchSuffix):] == searchSuffix {
 				err := item.Value(func(v []byte) error {
-					var err error
-					err = s.deserialize(v, result)
-					return err
+					return s.deserialize(v, result)
 				})
 				return err
 			}
