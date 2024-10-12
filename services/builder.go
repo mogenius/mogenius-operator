@@ -116,7 +116,10 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	defer func() {
 		// reset everything if done
 		if !utils.CONFIG.Misc.Debug {
-			executeCmd(job, nil, db.PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+			err := executeCmd(job, nil, db.PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+			if err != nil {
+				ServiceLogger.Error(err)
+			}
 		}
 		done <- structs.JobStateSucceeded
 	}()
@@ -127,7 +130,10 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// CLEANUP
 	if !utils.CONFIG.Misc.Debug {
-		executeCmd(job, nil, db.PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+		err := executeCmd(job, nil, db.PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+		if err != nil {
+			ServiceLogger.Error(err)
+		}
 	}
 
 	// CLONE
@@ -519,7 +525,10 @@ func processLine(
 			return
 		}
 		nextLine := applyErrorSuggestions(cmdOutput.String())
-		db.SaveBuildResult(structs.JobStateEnum(reportCmd.State), prefix, nextLine, startTime, job, container)
+		err := db.SaveBuildResult(structs.JobStateEnum(reportCmd.State), prefix, nextLine, startTime, job, container)
+		if err != nil {
+			ServiceLogger.Error(err)
+		}
 
 		ch, exists := xterm.LogChannels[structs.BuildJobInfoEntryKey(job.BuildId, prefix, job.Namespace.Name, job.Service.ControllerName, container.Name)]
 		if exists {
