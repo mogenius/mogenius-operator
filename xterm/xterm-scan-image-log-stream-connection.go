@@ -168,9 +168,18 @@ func XTermScanImageLogStreamConnection(
 				// log.Error("write close:", err)
 			}
 		}
-		cmd.Process.Kill()
-		cmd.Process.Wait()
-		tty.Close()
+		err := cmd.Process.Kill()
+		if err != nil {
+			log.Error(err)
+		}
+		_, err = cmd.Process.Wait()
+		if err != nil {
+			log.Error(err)
+		}
+		err = tty.Close()
+		if err != nil {
+			log.Error(err)
+		}
 	}()
 
 	go cmdWait(cmd, conn, tty)
