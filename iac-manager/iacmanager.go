@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,8 +31,6 @@ import (
 const (
 	DELETE_DATA_RETRIES = 5
 )
-
-var commitMutex sync.Mutex
 
 var syncInProcess = false
 var SetupInProcess = false
@@ -585,7 +582,7 @@ func SyncChanges() error {
 		err = fmt.Errorf("No remotes found. Skipping sync.")
 	}
 	if err != nil {
-		iaclogger.Warnf(err.Error())
+		iaclogger.Warn(err.Error())
 	}
 	SetSyncError(err)
 	return err
