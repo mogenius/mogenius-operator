@@ -633,7 +633,10 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
 				castedObj.Kind = "Deployment"
@@ -643,7 +646,10 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.Deployment)
-			store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "Deployment", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
 				castedObj.Kind = "Deployment"
@@ -653,7 +659,10 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Deployment)
-			store.GlobalStore.Delete("Deployment", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Delete("Deployment", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
 				castedObj.Kind = "Deployment"

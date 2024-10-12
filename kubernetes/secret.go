@@ -88,12 +88,18 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 
 	// delete old secret
 	// TODO: remove this after a while
-	punq.DeleteK8sSecretBy(namespace.Name, "container-secret-"+namespace.Name, nil)
+	err := punq.DeleteK8sSecretBy(namespace.Name, "container-secret-"+namespace.Name, nil)
+	if err != nil {
+		K8sLogger.Error(err)
+	}
 
 	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
 	if project.ContainerRegistryUser == nil || project.ContainerRegistryPat == nil || project.ContainerRegistryUrl == nil {
 		// delete if exists
-		punq.DeleteK8sSecretBy(namespace.Name, secretName, nil)
+		err := punq.DeleteK8sSecretBy(namespace.Name, secretName, nil)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
 		return
 	}
 
@@ -158,12 +164,18 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 
 	// delete old secret
 	// TODO: remove this after a while
-	punq.DeleteK8sSecretBy(namespace.Name, "container-secret-service-"+service.ControllerName, nil)
+	err := punq.DeleteK8sSecretBy(namespace.Name, "container-secret-service-"+service.ControllerName, nil)
+	if err != nil {
+		K8sLogger.Error(err)
+	}
 
 	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
 	if service.GetImageRepoSecretDecryptValue() == nil {
 		// delete if exists
-		punq.DeleteK8sSecretBy(namespace.Name, secretName, nil)
+		err := punq.DeleteK8sSecretBy(namespace.Name, secretName, nil)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
 		return
 	}
 
@@ -211,7 +223,10 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 
 	// delete old secret
 	// TODO: remove this after a while
-	punq.DeleteK8sSecretBy(namespace.Name, "container-secret-service-"+service.ControllerName, nil)
+	err := punq.DeleteK8sSecretBy(namespace.Name, "container-secret-service-"+service.ControllerName, nil)
+	if err != nil {
+		K8sLogger.Error(err)
+	}
 
 	cmd := structs.CreateCommand("delete", "Delete Container secret", job)
 	wg.Add(1)

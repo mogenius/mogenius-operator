@@ -45,7 +45,10 @@ func watchJobs(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.Job)
-			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
 				castedObj.Kind = "Job"
@@ -55,7 +58,10 @@ func watchJobs(provider *punq.KubeProvider, kindName string) error {
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1job.Job)
-			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
 				castedObj.Kind = "Job"
@@ -65,7 +71,10 @@ func watchJobs(provider *punq.KubeProvider, kindName string) error {
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.Job)
-			store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "Job", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindJobs] {
 				castedObj.Kind = "Job"
