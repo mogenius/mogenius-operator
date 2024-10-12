@@ -146,7 +146,10 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		}()
 		// Push/Pull
 		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
-			ResetLocalRepo()
+			err := ResetLocalRepo()
+			if err != nil {
+				return err
+			}
 		}
 		// Push
 		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
@@ -159,7 +162,10 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		}
 		// Pull
 		if syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
-			ResetLocalRepo()
+			err := ResetLocalRepo()
+			if err != nil {
+				return err
+			}
 		}
 		// None
 		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
@@ -180,8 +186,14 @@ func ResetLocalRepo() error {
 	}
 	IacManagerSetupInProcess = false
 	InitAllWorkloads()
-	IacManagerSyncChanges()
-	IacManagerApplyRepoStateToCluster()
+	err = IacManagerSyncChanges()
+	if err != nil {
+		return err
+	}
+	err = IacManagerApplyRepoStateToCluster()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -43,15 +43,24 @@ func watchReplicaSets(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.ReplicaSet)
-			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.ReplicaSet)
-			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.ReplicaSet)
-			store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "ReplicaSet", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 		},
 	}
 	listWatch := cache.NewListWatchFromClient(

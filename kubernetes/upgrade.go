@@ -57,7 +57,10 @@ func ClusterForceDisconnect() bool {
 	deployment, _ := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
 	deployment.Spec.Paused = true
 	deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
-	deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	if err != nil {
+		K8sLogger.Error(err)
+	}
 
 	podsToKill := []string{}
 	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)

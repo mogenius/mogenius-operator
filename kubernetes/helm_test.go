@@ -60,13 +60,16 @@ func deleteFolder(folderPath string) error {
 func createRepoForTest(t *testing.T) error {
 	// prerequisite configs
 	utils.CONFIG.Kubernetes.HelmDataPath = helmConfPath
-	InitHelmConfig()
+	err := InitHelmConfig()
+	if err != nil {
+		t.Error(err)
+	}
 
 	repoAddData := HelmRepoAddRequest{
 		Name: testRepo,
 		Url:  testChartUrl,
 	}
-	_, err := HelmRepoAdd(repoAddData)
+	_, err = HelmRepoAdd(repoAddData)
 	if err != nil {
 		t.Log(err)
 	}
@@ -76,7 +79,10 @@ func createRepoForTest(t *testing.T) error {
 func installForTests(t *testing.T) error {
 	// prerequisite configs
 	utils.CONFIG.Kubernetes.HelmDataPath = helmConfPath
-	InitHelmConfig()
+	err := InitHelmConfig()
+	if err != nil {
+		t.Error(err)
+	}
 
 	helmInstallData := HelmChartInstallRequest{
 		Namespace: testNamespace,
@@ -85,7 +91,7 @@ func installForTests(t *testing.T) error {
 		Values:    testValues,
 		DryRun:    testDryRun,
 	}
-	_, err := HelmChartInstall(helmInstallData)
+	_, err = HelmChartInstall(helmInstallData)
 	if err != nil {
 		t.Log(err)
 		return err
@@ -93,24 +99,34 @@ func installForTests(t *testing.T) error {
 	return nil
 }
 
-func testSetup() {
+func testSetup() error {
 	utils.CONFIG.Kubernetes.HelmDataPath = helmConfPath
-	InitHelmConfig()
+	err := InitHelmConfig()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 func TestHelmRepoAdd(t *testing.T) {
 	// clean config folder before test
-	deleteFolder(helmConfPath)
+	err := deleteFolder(helmConfPath)
+	if err != nil {
+		t.Error(err)
+	}
 
 	cleanupRepo() // cleanup if it existed before
 
 	// prerequisite configs
-	testSetup()
+	err = testSetup()
+	if err != nil {
+		t.Error(err)
+	}
 
 	// test with
 	// helm --repository-config /tmp/registryConfigPath/helm/repositories.yaml repo list
 	// no futher testing needed no error is sufficient
 	// PAT_NAMESPACE_HELM_REPO_ADD
-	err := createRepoForTest(t)
+	err = createRepoForTest(t)
 	if err != nil {
 		t.Error(err)
 	}
@@ -118,20 +134,29 @@ func TestHelmRepoAdd(t *testing.T) {
 }
 
 func TestHelmRepoUpdate(t *testing.T) {
-	testSetup()
+	err := testSetup()
+	if err != nil {
+		t.Error(err)
+	}
 
 	// PAT_NAMESPACE_HELM_REPO_UPDATE
 	// no futher testing needed no error is sufficient
-	_, err := HelmRepoUpdate()
+	_, err = HelmRepoUpdate()
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestHelmRepoList(t *testing.T) {
-	testSetup()
+	err := testSetup()
+	if err != nil {
+		t.Error(err)
+	}
 
-	createRepoForTest(t)
+	err = createRepoForTest(t)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Cleanup(cleanupRepo)
 
 	// PAT_NAMESPACE_HELM_REPO_LIST
@@ -154,16 +179,22 @@ func TestHelmRepoList(t *testing.T) {
 }
 
 func TestHelmInstallRequest(t *testing.T) {
-	testSetup()
+	err := testSetup()
+	if err != nil {
+		t.Error(err)
+	}
 
-	createRepoForTest(t)
+	err = createRepoForTest(t)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Cleanup(cleanupRepo)
 
 	cleanupInstall() // cleanup if it existed before
 
 	// PAT_NAMESPACE_HELM_INSTALL
 	// no futher testing needed no error is sufficient
-	err := installForTests(t)
+	err = installForTests(t)
 	if err != nil {
 		t.Error(err)
 	}
@@ -171,11 +202,20 @@ func TestHelmInstallRequest(t *testing.T) {
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
-	testSetup()
-	createRepoForTest(t)
+	err := testSetup()
+	if err != nil {
+		t.Error(err)
+	}
+	err = createRepoForTest(t)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Cleanup(cleanupRepo)
 
-	installForTests(t)
+	err = installForTests(t)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Cleanup(cleanupInstall)
 
 	// PAT_NAMESPACE_HELM_UPGRADE
@@ -187,18 +227,27 @@ func TestHelmUpgradeRequest(t *testing.T) {
 		Values:    testValues,
 		DryRun:    testDryRun,
 	}
-	_, err := HelmReleaseUpgrade(releaseUpgradeData)
+	_, err = HelmReleaseUpgrade(releaseUpgradeData)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestHelmListRequest(t *testing.T) {
-	testSetup()
-	createRepoForTest(t)
+	err := testSetup()
+	if err != nil {
+		t.Error(err)
+	}
+	err = createRepoForTest(t)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Cleanup(cleanupRepo)
 
-	installForTests(t)
+	err = installForTests(t)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Cleanup(cleanupInstall)
 
 	// PAT_NAMESPACE_HELM_LIST
@@ -224,12 +273,21 @@ func TestHelmListRequest(t *testing.T) {
 }
 
 func TestHelmReleases(t *testing.T) {
-	testSetup()
+	err := testSetup()
+	if err != nil {
+		t.Error(err)
+	}
 
-	createRepoForTest(t)
+	err = createRepoForTest(t)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Cleanup(cleanupRepo)
 
-	installForTests(t)
+	err = installForTests(t)
+	if err != nil {
+		t.Error(err)
+	}
 	t.Cleanup(cleanupInstall)
 
 	// PAT_NAMESPACE_HELM_STATUS
@@ -238,7 +296,7 @@ func TestHelmReleases(t *testing.T) {
 		Namespace: testNamespace,
 		Release:   testRelease,
 	}
-	_, err := HelmReleaseStatus(releaseStatusData)
+	_, err = HelmReleaseStatus(releaseStatusData)
 	if err != nil {
 		t.Error(err)
 	}
