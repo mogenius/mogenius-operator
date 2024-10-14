@@ -324,6 +324,7 @@ func PrintCurrentCONFIG() (string, error) {
 	configCopy.Kubernetes.GitVaultDataPath = ""
 	configCopy.Kubernetes.BboltDbPath = ""
 	configCopy.Kubernetes.BboltDbStatsPath = ""
+	configCopy.Kubernetes.LogDataPath = ""
 	configCopy.Kubernetes.RunInCluster = false
 
 	// marshal the copy to yaml
