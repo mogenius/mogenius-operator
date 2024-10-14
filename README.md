@@ -2,24 +2,6 @@
   <img src="https://imagedelivery.net/T7YEW5IAgZJ0dY4-LDTpyQ/3ae4fcf0-289c-48d2-3323-d2c5bc932300/detail" alt="drawing" width="200"/>
 </p>
 
-<p align="center">
-    <a href="https://github.com/mogenius/mogenius-k8s-manager/blob/main/LICENSE">
-        <img alt="GitHub License" src="https://img.shields.io/github/license/mogenius/mogenius-k8s-manager?logo=GitHub&style=flat-square">
-    </a>
-    <a href="https://github.com/mogenius/mogenius-k8s-manager/releases/latest">
-        <img alt="GitHub Latest Release" src="https://img.shields.io/github/v/release/mogenius/mogenius-k8s-manager?logo=GitHub&style=flat-square">
-    </a>
-    <a href="https://github.com/mogenius/mogenius-k8s-manager/releases">
-      <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/mogenius/mogenius-k8s-manager/total">
-    </a>
-    <a href="https://github.com/mogenius/mogenius-k8s-manager">
-      <img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/mogenius/mogenius-k8s-manager">
-    </a>
-    <a href="https://discord.gg/WSxnFHr4qm">
-      <img alt="Discord" src="https://img.shields.io/discord/932962925788930088?logo=mogenius">
-    </a>
-</p>
-
 # run build locally
 ```bash
 go build .
