@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="ui/src/assets/logos/logo-horizontal.svg" alt="drawing" width="500"/>
+  <img src="https://imagedelivery.net/T7YEW5IAgZJ0dY4-LDTpyQ/3ae4fcf0-289c-48d2-3323-d2c5bc932300/detail" alt="drawing" width="200"/>
 </p>
 
 <p align="center">
@@ -19,12 +19,6 @@
       <img alt="Discord" src="https://img.shields.io/discord/932962925788930088?logo=mogenius">
     </a>
 </p>
-
-<p align="center">
-  <img src="assets/screenshot1.png" alt="drawing" width="800"/>
-</p>
-<br />
-<br />
 
 # run build locally
 ```bash
