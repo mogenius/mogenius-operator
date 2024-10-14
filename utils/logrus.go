@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -30,7 +33,7 @@ func SecretArray() []string {
 	return result
 }
 
-var logbytesCounter uint64 = 0
+var MainLogBytesCounter uint64 = 0
 
 type SecretRedactionHook struct{}
 type LogRotationHook struct{}
@@ -77,17 +80,21 @@ func (hook *LogRotationHook) Levels() []logrus.Level {
 
 func (hook *LogRotationHook) Fire(entry *logrus.Entry) error {
 
-	logbytesCounter += uint64(len(entry.Message))
+	MainLogBytesCounter += uint64(len(entry.Message))
 
-	if logbytesCounter > uint64(CONFIG.Misc.LogRotationSizeInBytes) {
-		RotateLog(MainLogPath(), "main")
+	component := "main"
+
+	if MainLogBytesCounter > uint64(CONFIG.Misc.LogRotationSizeInBytes) {
+		RotateLog(MainLogPath(), component)
+	} else {
+		DeleteFilesLogRetention(component)
 	}
 
 	return nil
 }
 
 func RotateLog(sourceFilePath string, component string) {
-	logbytesCounter = 0
+	MainLogBytesCounter = 0
 
 	rotatedLogfilePath := fmt.Sprintf("%s/%s-%s.log", CONFIG.Kubernetes.LogDataPath, component, time.Now().Format("2006-01-02-15-04-05.000"))
 	err := os.MkdirAll(CONFIG.Kubernetes.LogDataPath, os.ModePerm)
@@ -117,11 +124,18 @@ func RotateLog(sourceFilePath string, component string) {
 		logrus.Errorf("Failed to truncate log file: %v", err)
 	}
 
-	deleteFilesOlderThanLogRetention()
+	deleteFilesOlderThanLogRetention(component)
+	DeleteFilesLogRetention(component)
 }
 
-func deleteFilesOlderThanLogRetention() {
-	searchPattern := fmt.Sprintf("%s.log", time.Now().Format("2006-01-02-15-04-05.000"))
+func deleteFilesOlderThanLogRetention(component string) {
+	//searchPattern := fmt.Sprintf("%s.log", time.Now().Format("2006-01-02-15-04-05.000"))
+	pattern := fmt.Sprintf("%s-\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2}\\.\\d{3}", component)
+	regex, err := regexp.Compile(pattern)
+	if err != nil {
+		logrus.Errorf("Failed to compile regex: %v", err)
+		return
+	}
 
 	files, err := os.ReadDir(CONFIG.Kubernetes.LogDataPath)
 	if err != nil {
@@ -129,18 +143,21 @@ func deleteFilesOlderThanLogRetention() {
 	}
 
 	for _, file := range files {
-		if file.IsDir() {
+		if file.IsDir() || !regex.MatchString(file.Name()) || strings.HasPrefix(file.Name(), fmt.Sprintf("%s.log", component)) {
 			continue
 		}
-
-		// Skip files that don't match the search pattern
-		if !strings.HasSuffix(file.Name(), searchPattern) {
-			continue
-		}
-
-		if strings.HasPrefix(file.Name(), "main.log") {
-			continue
-		}
+		//if file.IsDir() {
+		//	continue
+		//}
+		//
+		//// Skip files that don't match the search pattern
+		//if !strings.HasSuffix(file.Name(), searchPattern) {
+		//	continue
+		//}
+		//
+		//if strings.HasPrefix(file.Name(), "main.log") {
+		//	continue
+		//}
 
 		fileInfo, err := file.Info()
 		if err != nil {
@@ -154,6 +171,57 @@ func deleteFilesOlderThanLogRetention() {
 				logrus.Errorf("Failed to delete file: %v", err)
 			}
 		}
+	}
+}
+
+func DeleteFilesLogRetention(component string) {
+	pattern := fmt.Sprintf("%s-\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2}\\.\\d{3}", component)
+	regex, err := regexp.Compile(pattern)
+	if err != nil {
+		logrus.Errorf("Failed to compile regex: %v", err)
+		return
+	}
+
+	files, err := os.ReadDir(CONFIG.Kubernetes.LogDataPath)
+	if err != nil {
+		logrus.Errorf("Failed to read directory: %v", err)
+	}
+
+	var totalSize uint64 = 0
+	var filteredFiles []os.FileInfo
+	for _, file := range files {
+		if file.IsDir() || !regex.MatchString(file.Name()) || strings.HasPrefix(file.Name(), fmt.Sprintf("%s.log", component)) {
+			continue
+		}
+		fileInfo, err := file.Info()
+		if err != nil {
+			logrus.Errorf("Failed to get file info: %v", err)
+			continue
+		}
+		filteredFiles = append(filteredFiles, fileInfo)
+		totalSize += uint64(fileInfo.Size())
+	}
+	sort.Slice(filteredFiles, func(i, j int) bool {
+		return filteredFiles[i].ModTime().Before(filteredFiles[j].ModTime())
+	})
+
+	for totalSize > uint64(CONFIG.Misc.LogRotationMaxSizeInBytes) && len(files) > 0 {
+		oldestFile := files[0]
+		filePath := filepath.Join(CONFIG.Kubernetes.LogDataPath, oldestFile.Name())
+
+		oldestFileFileInfo, err := oldestFile.Info()
+		if err != nil {
+			logrus.Errorf("Failed to get file info: %v", err)
+			continue
+		}
+
+		err = os.Remove(filePath)
+		if err != nil {
+			logrus.Errorf("Failed to delete file: %v", err)
+			continue
+		}
+		totalSize -= uint64(oldestFileFileInfo.Size())
+		files = files[1:]
 	}
 }
 

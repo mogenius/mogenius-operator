@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	v1 "k8s.io/api/apps/v1"
+	v1job "k8s.io/api/batch/v1"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/kubernetes"
-	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/xterm"
@@ -101,6 +102,14 @@ func ProcessQueue() {
 func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sContainerDto, done chan structs.JobStateEnum, timeoutCtx *context.Context) {
 	job.Start()
 
+	// update secrets
+	r := ServiceUpdateRequest{
+		Project:   buildJob.Project,
+		Namespace: buildJob.Namespace,
+		Service:   buildJob.Service,
+	}
+	UpdateSecrets(r)
+
 	pwd, _ := os.Getwd()
 	workingDir := fmt.Sprintf("%s/temp/%s", pwd, punqUtils.NanoId())
 
@@ -183,25 +192,13 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		return
 	}
 
-	r := ServiceUpdateRequest{
-		Project:   buildJob.Project,
-		Namespace: buildJob.Namespace,
-		Service:   buildJob.Service,
-	}
-
-	// create
-	if buildJob.CreateAndStart {
-		UpdateService(r)
-	} else {
-		updateSecrets(job, r)
-		// UPDATE IMAGE
-		setImageCmd := structs.CreateCommand("setImage", "Deploying image", job)
-		err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
-		if err != nil {
-			ServiceLogger.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
-			done <- structs.JobStateFailed
-			return
-		}
+	// Update controller
+	setImageCmd := structs.CreateCommand("update", "Deploying image", job)
+	err = updateController(job, setImageCmd, buildJob, container.Name, tagName, buildJob.CreateAndStart)
+	if err != nil {
+		ServiceLogger.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
+		done <- structs.JobStateFailed
+		return
 	}
 }
 
@@ -572,46 +569,66 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 	return line
 }
 
-func updateSecrets(job *structs.Job, r ServiceUpdateRequest) {
-	var wg sync.WaitGroup
-
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
-	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
-
-	go func() {
-		wg.Wait()
-	}()
-}
-
-func updateContainerImage(job *structs.Job, reportCmd *structs.Command, buildJob *structs.BuildJob, containerName string, imageName string) error {
+func updateController(job *structs.Job, reportCmd *structs.Command, buildJob *structs.BuildJob, containerName string, imageName string, createAndStart bool) error {
 	startTime := time.Now()
 	if reportCmd != nil {
 		reportCmd.Start(job, reportCmd.Message)
 	}
 
 	var err error
+	updateService := false
+
 	switch buildJob.Service.Controller {
 	case dtos.CRON_JOB:
-		err = kubernetes.UpdateCronjobImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				var wg sync.WaitGroup
-				kubernetes.UpdateCronJob(job, buildJob.Namespace, buildJob.Service, &wg)
-				err = nil
-				wg.Wait()
+		var cronJob *v1job.CronJob
+		cronJob, err = kubernetes.GetCronJob(buildJob.Namespace.Name, buildJob.Service.ControllerName)
+		if err != nil && apierrors.IsNotFound(err) {
+			err = nil
+			if createAndStart {
+				updateService = true
+			}
+		} else {
+			if err == nil {
+				if cronJob.Spec.Suspend != nil && *cronJob.Spec.Suspend {
+					// cron job not running, update image
+					err = kubernetes.UpdateCronjobImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
+				} else {
+					// cron job running, update Service
+					updateService = true
+				}
+			}
+		}
+	case dtos.DEPLOYMENT:
+		var deployment *v1.Deployment
+		deployment, err = kubernetes.GetDeployment(buildJob.Namespace.Name, buildJob.Service.ControllerName)
+		if err != nil && apierrors.IsNotFound(err) {
+			err = nil
+			if createAndStart {
+				updateService = true
+			}
+		} else {
+			if err == nil {
+				if deployment.Spec.Paused || (deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 0) {
+					// deployment not running, update image
+					err = kubernetes.UpdateDeploymentImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
+				} else {
+					// deployment running, update Service
+					updateService = true
+				}
 			}
 		}
 	default:
-		err = kubernetes.UpdateDeploymentImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				var wg sync.WaitGroup
-				kubernetes.UpdateDeployment(job, buildJob.Namespace, buildJob.Service, &wg)
-				err = nil
-				wg.Wait()
-			}
+		err = fmt.Errorf("Unsupported controller type: %s", buildJob.Service.Controller)
+	}
+
+	// update service
+	if updateService && err == nil {
+		r := ServiceUpdateRequest{
+			Project:   buildJob.Project,
+			Namespace: buildJob.Namespace,
+			Service:   buildJob.Service,
 		}
+		UpdateService(r)
 	}
 
 	elapsedTime := time.Since(startTime)

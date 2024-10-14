@@ -414,10 +414,19 @@ func UpdateCronjobImage(namespaceName string, controllerName string, containerNa
 			crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
 		}
 	}
-	crontjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
+	// crontjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
 
 	_, err = client.Update(context.TODO(), crontjobToUpdate, metav1.UpdateOptions{})
 	return err
+}
+
+func GetCronJob(namespaceName string, controllerName string) (*v1job.CronJob, error) {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return nil, err
+	}
+	client := provider.ClientSet.BatchV1().CronJobs(namespaceName)
+	return client.Get(context.TODO(), controllerName, metav1.GetOptions{})
 }
 
 func getNextSchedule(cronExpr string, lastScheduleTime time.Time) (time.Time, error) {

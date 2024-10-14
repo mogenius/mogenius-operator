@@ -32,21 +32,14 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-
-      - name: Create Sematic Release Version
+          node-version: 20
+          
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # export HOME=/root
-          # git config --system http.sslVerify false
-          git config --global user.email "mok8s@mogenius.com"
-          git config --global user.name "mok8s"
-          git config --global credential.helper cache
-          npx semantic-release
 
   passing-tests:
     needs: prepare
