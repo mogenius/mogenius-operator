@@ -18,6 +18,7 @@ const (
 	ComponentDbStats    ComponentEnum = "db-stats"
 	ComponentCrds       ComponentEnum = "crds"
 	ComponentKubernetes ComponentEnum = "kubernetes"
+	ComponentHelm       ComponentEnum = "helm"
 	ComponentServices   ComponentEnum = "services"
 )
 
@@ -32,17 +33,33 @@ const (
 	JobStateTimeout   JobStateEnum = "TIMEOUT"
 )
 
+type HelmGetEnum string
+
 const (
-	PAT_K8SNOTIFICATION          string = "K8sNotification"
-	PAT_CLUSTERSTATUS            string = "ClusterStatus"
-	PAT_CLUSTERRESOURCEINFO      string = "ClusterResourceInfo"
-	PAT_KUBERNETESEVENT          string = "KubernetesEvent"
-	PAT_UPGRADEK8SMANAGER        string = "UpgradeK8sManager"
-	PAT_SERVICE_POD_EXISTS       string = "SERVICE_POD_EXISTS"
-	PAT_SERVICE_PODS             string = "SERVICE_PODS"
-	PAT_CLUSTER_FORCE_RECONNECT  string = "ClusterForceReconnect"
-	PAT_CLUSTER_FORCE_DISCONNECT string = "ClusterForceDisconnect"
-	PAT_SYSTEM_CHECK             string = "SYSTEM_CHECK"
+	HelmGetAll      HelmGetEnum = "all"
+	HelmGetHooks    HelmGetEnum = "hooks"
+	HelmGetManifest HelmGetEnum = "manifest"
+	HelmGetNotes    HelmGetEnum = "notes"
+	HelmGetValues   HelmGetEnum = "values"
+)
+
+const (
+	PAT_K8SNOTIFICATION             string = "K8sNotification"
+	PAT_CLUSTERSTATUS               string = "ClusterStatus"
+	PAT_CLUSTERRESOURCEINFO         string = "ClusterResourceInfo"
+	PAT_KUBERNETESEVENT             string = "KubernetesEvent"
+	PAT_UPGRADEK8SMANAGER           string = "UpgradeK8sManager"
+	PAT_SERVICE_POD_EXISTS          string = "SERVICE_POD_EXISTS"
+	PAT_SERVICE_PODS                string = "SERVICE_PODS"
+	PAT_CLUSTER_FORCE_RECONNECT     string = "ClusterForceReconnect"
+	PAT_CLUSTER_FORCE_DISCONNECT    string = "ClusterForceDisconnect"
+	PAT_SYSTEM_CHECK                string = "SYSTEM_CHECK"
+	PAT_SYSTEM_PRINT_CURRENT_CONFIG string = "print-current-config"
+
+	PAT_IAC_FORCE_SYNC       string = "iac/force-sync"
+	PAT_IAC_GET_STATUS       string = "iac/get-status"
+	PAT_IAC_RESET_LOCAL_REPO string = "iac/reset-local-repo"
+	PAT_IAC_RESET_FILE       string = "iac/reset-file"
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS         string = "install-local-dev-components"
 	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
@@ -142,6 +159,23 @@ const (
 	PAT_NAMESPACE_RESTORE               string = "namespace/restore"
 	PAT_NAMESPACE_RESOURCE_YAML         string = "namespace/resource-yaml"
 
+	PAT_CLUSTER_HELM_REPO_ADD          string = "cluster/helm-repo-add" // e.g. helm repo add mogenius https://helm.mogenius.com/public
+	PAT_CLUSTER_HELM_REPO_PATCH        string = "cluster/helm-repo-patch"
+	PAT_CLUSTER_HELM_REPO_UPDATE       string = "cluster/helm-repo-update"       // e.g. helm repo update
+	PAT_CLUSTER_HELM_REPO_LIST         string = "cluster/helm-repo-list"         // e.g. helm repo list
+	PAT_CLUSTER_HELM_REPO_REMOVE       string = "cluster/helm-chart-remove"      // e.g. helm repo remove mogenius
+	PAT_CLUSTER_HELM_CHART_SEARCH      string = "cluster/helm-chart-search"      // e.g. helm search repo <name>
+	PAT_CLUSTER_HELM_CHART_INSTALL     string = "cluster/helm-chart-install"     // e.g. helm install mogenius-traffic-collector mogenius/mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_CHART_SHOW        string = "cluster/helm-chart-show"        // e.g. helm show all mogenius/mogenius-traffic-collector
+	PAT_CLUSTER_HELM_CHART_VERSIONS    string = "cluster/helm-chart-versions"    // e.g. helm search repo mogenius/mogenius-traffic-collector --versions
+	PAT_CLUSTER_HELM_RELEASE_UPGRADE   string = "cluster/helm-release-upgrade"   // e.g. helm upgrade mogenius-traffic-collector mogenius/mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_RELEASE_UNINSTALL string = "cluster/helm-release-uninstall" // e.g. helm uninstall mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_RELEASE_LIST      string = "cluster/helm-release-list"      // e.g. helm list -n mogenius
+	PAT_CLUSTER_HELM_RELEASE_STATUS    string = "cluster/helm-release-status"    // e.g. helm status mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_RELEASE_HISTORY   string = "cluster/helm-release-history"   // e.g. helm history mogenius-traffic-collector -n mogenius
+	PAT_CLUSTER_HELM_RELEASE_ROLLBACK  string = "cluster/helm-release-rollback"  // e.g. helm rollback mogenius-traffic-collector 1 -n mogenius
+	PAT_CLUSTER_HELM_RELEASE_GET       string = "cluster/helm-release-get"       // e.g. helm get values mogenius-traffic-collector -n mogenius
+
 	PAT_SERVICE_CREATE  string = "service/create"
 	PAT_SERVICE_DELETE  string = "service/delete"
 	PAT_SERVICE_POD_IDS string = "service/pod-ids"
@@ -230,7 +264,8 @@ const (
 	// PAT_CREATE_CLUSTER_ROLE                string = "create/cluster_role"
 	// PAT_CREATE_CLUSTER_ROLE_BINDING        string = "create/cluster_role_binding"
 	// PAT_CREATE_VOLUME_ATTACHMENT           string = "create/volume_attachment"
-	// PAT_CREATE_NETWORK_POLICY              string = "create/network_policy"
+	PAT_CREATE_LABELED_NETWORK_POLICY     string = "create/labeled_network_policy"
+	PAT_LIST_LABELED_NETWORK_POLICY_PORTS string = "list/labeled_network_policy_ports"
 	// PAT_CREATE_STORAGE_CLASS               string = "create/storage_class"
 	// PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS string = "create/custom_resource_definitions"
 	// PAT_CREATE_ENDPOINTS                   string = "create/endpoints"
@@ -412,12 +447,10 @@ const (
 
 	PAT_FILES_UPLOAD string = "files/upload"
 
-	PAT_EXTERNAL_SECRET_STORE_CREATE                 string = "external-secret-store/create"
-	PAT_EXTERNAL_SECRET_STORE_LIST                   string = "external-secret-store/list"
-	PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS string = "external-secret-store/list-available-secrets"
-	PAT_EXTERNAL_SECRET_STORE_DELETE                 string = "external-secret/delete"
-	PAT_EXTERNAL_SECRET_CREATE                       string = "external-secret/create"
-	PAT_EXTERNAL_SECRET_DELETE                       string = "external-secret/delete"
+	PAT_EXTERNAL_SECRET_STORE_CREATE           string = "external-secret-store/create"
+	PAT_EXTERNAL_SECRET_STORE_LIST             string = "external-secret-store/list"
+	PAT_EXTERNAL_SECRET_STORE_DELETE           string = "external-secret-store/delete"
+	PAT_EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS string = "external-secret/list-available-secrets"
 
 	PAT_LIST_CRONJOB_JOBS string = "list/cronjob-jobs"
 )
@@ -437,6 +470,12 @@ var COMMAND_REQUESTS = []string{
 	PAT_CLUSTER_FORCE_RECONNECT,
 	PAT_CLUSTER_FORCE_DISCONNECT,
 	PAT_SYSTEM_CHECK,
+	PAT_SYSTEM_PRINT_CURRENT_CONFIG,
+
+	PAT_IAC_FORCE_SYNC,
+	PAT_IAC_GET_STATUS,
+	PAT_IAC_RESET_LOCAL_REPO,
+	PAT_IAC_RESET_FILE,
 
 	PAT_INSTALL_LOCAL_DEV_COMPONENTS,
 	PAT_INSTALL_TRAFFIC_COLLECTOR,
@@ -535,6 +574,26 @@ var COMMAND_REQUESTS = []string{
 	PAT_NAMESPACE_RESTORE,
 	PAT_NAMESPACE_RESOURCE_YAML,
 
+	// REPO
+	PAT_CLUSTER_HELM_REPO_ADD,
+	PAT_CLUSTER_HELM_REPO_PATCH,
+	PAT_CLUSTER_HELM_REPO_UPDATE,
+	PAT_CLUSTER_HELM_REPO_LIST,
+	PAT_CLUSTER_HELM_REPO_REMOVE,
+	// CHART
+	PAT_CLUSTER_HELM_CHART_SEARCH,
+	PAT_CLUSTER_HELM_CHART_INSTALL,
+	PAT_CLUSTER_HELM_CHART_SHOW,
+	PAT_CLUSTER_HELM_CHART_VERSIONS,
+	// RELEASE
+	PAT_CLUSTER_HELM_RELEASE_UPGRADE,
+	PAT_CLUSTER_HELM_RELEASE_UNINSTALL,
+	PAT_CLUSTER_HELM_RELEASE_LIST,
+	PAT_CLUSTER_HELM_RELEASE_STATUS,
+	PAT_CLUSTER_HELM_RELEASE_HISTORY,
+	PAT_CLUSTER_HELM_RELEASE_ROLLBACK,
+	PAT_CLUSTER_HELM_RELEASE_GET,
+
 	PAT_SERVICE_CREATE,
 	PAT_SERVICE_DELETE,
 	PAT_SERVICE_POD_IDS,
@@ -623,7 +682,8 @@ var COMMAND_REQUESTS = []string{
 	// PAT_CREATE_CLUSTER_ROLE,
 	// PAT_CREATE_CLUSTER_ROLE_BINDING,
 	// PAT_CREATE_VOLUME_ATTACHMENT,
-	// PAT_CREATE_NETWORK_POLICY,
+	PAT_CREATE_LABELED_NETWORK_POLICY,
+	PAT_LIST_LABELED_NETWORK_POLICY_PORTS,
 	// PAT_CREATE_STORAGE_CLASS,
 	// PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS,
 	// PAT_CREATE_ENDPOINTS,
@@ -805,10 +865,8 @@ var COMMAND_REQUESTS = []string{
 
 	PAT_EXTERNAL_SECRET_STORE_CREATE,
 	PAT_EXTERNAL_SECRET_STORE_LIST,
-	PAT_EXTERNAL_SECRET_STORE_LIST_AVAILABLE_SECRETS,
 	PAT_EXTERNAL_SECRET_STORE_DELETE,
-	PAT_EXTERNAL_SECRET_CREATE,
-	PAT_EXTERNAL_SECRET_DELETE,
+	PAT_EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS,
 
 	PAT_LIST_CRONJOB_JOBS,
 }
@@ -823,5 +881,6 @@ var SUPPRESSED_OUTPUT_PATTERN = []string{
 	PAT_CLUSTER_UPDATE_LOCAL_TLS_SECRET,
 	// PAT_BUILD_LAST_JOB_OF_SERVICES,
 	// PAT_BUILD_SCAN,
+	PAT_SYSTEM_CHECK,
 	PAT_LIST_CRONJOB_JOBS,
 }

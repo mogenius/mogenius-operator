@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -16,7 +15,6 @@ import (
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -82,15 +80,15 @@ func addRbac(provider *punq.KubeProvider) error {
 	K8sLogger.Info("Creating mogenius-k8s-manager RBAC ...")
 
 	err := ApplyServiceAccount(SERVICEACCOUNTNAME, NAMESPACE, nil)
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 	_, err = provider.ClientSet.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, MoCreateOptions())
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 	_, err = provider.ClientSet.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, MoCreateOptions())
-	if err != nil && !k8serrors.IsAlreadyExists(err) {
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 	K8sLogger.Info("Created mogenius-k8s-manager RBAC.")
@@ -142,50 +140,50 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		previousData.AllowPull != syncRepoReq.AllowPull ||
 		previousData.AllowPush != syncRepoReq.AllowPush {
 		K8sLogger.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
-		iacmanager.SetupInProcess = true
+		IacManagerSetupInProcess = true
 		defer func() {
-			iacmanager.SetupInProcess = false
+			IacManagerSetupInProcess = false
 		}()
 		// Push/Pull
 		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
-			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
-			if err != nil {
-				return err
-			}
-			iacmanager.SetupInProcess = false
-			InitAllWorkloads()
-			iacmanager.SyncChanges()
-			iacmanager.ApplyRepoStateToCluster()
+			ResetLocalRepo()
 		}
 		// Push
 		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
-			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			err = IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
 			if err != nil {
 				return err
 			}
-			iacmanager.SetupInProcess = false
+			IacManagerSetupInProcess = false
 			InitAllWorkloads()
 		}
 		// Pull
 		if syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
-			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
-			if err != nil {
-				return err
-			}
-			iacmanager.SetupInProcess = false
-			InitAllWorkloads()
-			iacmanager.SyncChanges()
-			iacmanager.ApplyRepoStateToCluster()
+			ResetLocalRepo()
 		}
 		// None
 		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
-			err = iacmanager.ResetCurrentRepoData(iacmanager.DELETE_DATA_RETRIES)
+			err = IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
 			if err != nil {
 				return err
 			}
 		}
 	}
 	return err
+}
+
+func ResetLocalRepo() error {
+	IacManagerSetupInProcess = true
+	err := IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
+	if err != nil {
+		return err
+	}
+	IacManagerSetupInProcess = false
+	InitAllWorkloads()
+	IacManagerSyncChanges()
+	IacManagerApplyRepoStateToCluster()
+
+	return nil
 }
 
 func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {

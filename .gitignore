@@ -15,3 +15,8 @@ kube-config
 kubeconfig.tmpl
 kubeconfig.yaml
 mogenius-k8s-manager
+git-vault
+git-vault-data
+logs
+helm-data
+bin

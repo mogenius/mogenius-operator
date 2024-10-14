@@ -26,10 +26,27 @@
 <br />
 <br />
 
+# run build locally
+```bash
+go build .
+```
+
+# run local instance with go 
+Adjust the config `~/.mogenius-k8s-manager/config.yaml` (might need to be copied there from [here](utils/config/config-local.yaml))
+Assuming you already have a [prod operator running](https://docs.mogenius.com/cluster-management/installing-mogenius#mogenius-cli), you can adjust the deployment of the operator with e.g.:
+`kubectl edit deployments -n mogenius mogenius-k8s-manager`
+
+Get the api-key, mfa-id and cluster-name from the operator secret `mogenius/mogenius` and adjust the config.yaml accordingly.
+
+change the replicas to 0, then you can run the local instance with:
+```bash
+go run main.go cluster
+```
+
 # local docker image in docker-desktop kubernetes
 RUN:
 ```
-docker build -t localk8smanager --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg BUILD_TIMESTAMP="$(date)" --build-arg COMMIT_HASH="XXX" --build-arg GIT_BRANCH=local-development --build-arg VERSION="6.6.6" -f Dockerfile-dev .
+docker build -t localk8smanager --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg BUILD_TIMESTAMP="$(date)" --build-arg COMMIT_HASH="XXX" --build-arg GIT_BRANCH=local-development --build-arg VERSION="6.6.6" -f Dockerfile .
 ```
 
 Assuming you already have a [prod operator running](https://docs.mogenius.com/cluster-management/installing-mogenius#mogenius-cli), you can adjust the deployment of the operator with e.g.:
@@ -58,6 +75,9 @@ cp /db/mogenius-1.db mogenius1.db
 # Testing
 ```
 go test -v ./...
+
+# clean cache
+go clean -testcache
 ```
 
 # Helm Install
@@ -155,7 +175,6 @@ golangci-lint run '--fast=false' --sort-results '--max-same-issues=0' '--timeout
 slim build --http-probe=false --exec "curl mogenius.com; git; docker info; helm" \
 --include-path-file /usr/local/bin/dockerd \
 --include-path-file /usr/local/bin/docker \
---include-path-file /usr/bin/git \
 --include-path-file /usr/local/bin/helm \
 --include-path-file /usr/bin/curl \
 ghcr.io/mogenius/mogenius-k8s-manager-dev:v1.18.19-develop.92

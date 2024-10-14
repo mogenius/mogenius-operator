@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/structs"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -415,113 +414,20 @@ func UpdateCronjobImage(namespaceName string, controllerName string, containerNa
 			crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
 		}
 	}
-	crontjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
+	// crontjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
 
 	_, err = client.Update(context.TODO(), crontjobToUpdate, metav1.UpdateOptions{})
 	return err
 }
 
-// func SetCronJobImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) {
-// 	cmd := structs.CreateCommand("setImage", "Set CronJob Image", job)
-// 	wg.Add(1)
-// 	go func(wg *sync.WaitGroup) {
-// 		defer wg.Done()
-// 		cmd.Start(job, "Set Image in CronJob")
-
-// 		provider, err := punq.NewKubeProvider(nil)
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-// 			return
-// 		}
-// 		cronjobClient := provider.ClientSet.BatchV1().CronJobs(namespaceName)
-// 		cronjobToUpdate, err := cronjobClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
-// 			return
-// 		}
-
-// 		// SET NEW IMAGE
-// 		for index, container := range cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers {
-// 			if container.Name == containerName {
-// 				cronjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
-// 			}
-// 		}
-// 		cronjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
-
-// 		_, err = cronjobClient.Update(context.TODO(), cronjobToUpdate, metav1.UpdateOptions{})
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("SetCronJobImage ERROR: %s", err.Error()))
-// 		} else {
-// 			cmd.Success(job, "Set new image in CronJob")
-// 		}
-// 	}(wg)
-// }
-
-// func AllCronjobs(namespaceName string) K8sWorkloadResult {
-// 	result := []v1job.CronJob{}
-
-// 	provider, err := punq.NewKubeProvider(nil)
-// 	if err != nil {
-// 		return WorkloadResult(nil, err)
-// 	}
-// 	cronJobList, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-// 	if err != nil {
-// 		K8sLogger.Errorf("AllCronjobs ERROR: %s", err.Error())
-// 		return WorkloadResult(nil, err)
-// 	}
-
-// 	for _, cronJob := range cronJobList.Items {
-// 		if !punqutils.Contains(punqutils.CONFIG.Misc.IgnoreNamespaces, cronJob.ObjectMeta.Namespace) {
-// 			result = append(result, cronJob)
-// 		}
-// 	}
-// 	return WorkloadResult(result, nil)
-// }
-
-// func UpdateK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
-// 	provider, err := punq.NewKubeProvider(nil)
-// 	if provider == nil || err != nil {
-// 		return WorkloadResult(nil, err)
-// 	}
-// 	cronJobClient := provider.ClientSet.BatchV1().CronJobs(data.Namespace)
-// 	_, err = cronJobClient.Update(context.TODO(), &data, metav1.UpdateOptions{})
-// 	if err != nil {
-// 		return WorkloadResult(nil, err)
-// 	}
-// 	return WorkloadResult(nil, nil)
-// }
-
-// func DeleteK8sCronJob(data v1job.CronJob) K8sWorkloadResult {
-// 	provider, err := punq.NewKubeProvider(nil)
-// 	if provider == nil || err != nil {
-// 		return WorkloadResult(nil, err)
-// 	}
-// 	jobClient := provider.ClientSet.BatchV1().CronJobs(data.Namespace)
-// 	err = jobClient.Delete(context.TODO(), data.Name, metav1.DeleteOptions{})
-// 	if err != nil {
-// 		return WorkloadResult(nil, err)
-// 	}
-// 	return WorkloadResult(nil, nil)
-// }
-
-// func DescribeK8sCronJob(namespace string, name string) K8sWorkloadResult {
-// 	cmd := exec.Command("kubectl", "describe", "cronjob", name, "-n", namespace)
-
-// 	output, err := cmd.CombinedOutput()
-// 	if err != nil {
-// 		K8sLogger.Errorf("Failed to execute command (%s): %v", cmd.String(), err)
-// 		K8sLogger.Errorf("Error: %s", string(output))
-// 		return WorkloadResult(nil, string(output))
-// 	}
-// 	return WorkloadResult(string(output), nil)
-// }
-
-// func NewK8sCronJob() K8sNewWorkload {
-// 	return NewWorkload(
-// 		punq.RES_CRON_JOB,
-// 		punqutils.InitCronJobYaml(),
-// 		"A CronJob creates Jobs on a repeating schedule, like the cron utility in Unix-like systems. In this example, a CronJob named 'my-cronjob' is created. It runs a Job every minute. Each Job creates a Pod with a single container from the 'my-cronjob-image' image.")
-// }
+func GetCronJob(namespaceName string, controllerName string) (*v1job.CronJob, error) {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return nil, err
+	}
+	client := provider.ClientSet.BatchV1().CronJobs(namespaceName)
+	return client.Get(context.TODO(), controllerName, metav1.GetOptions{})
+}
 
 func getNextSchedule(cronExpr string, lastScheduleTime time.Time) (time.Time, error) {
 	sched, err := cron.ParseStandard(cronExpr)
@@ -726,7 +632,7 @@ func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
 			if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
 				castedObj.Kind = "CronJob"
 				castedObj.APIVersion = "batch/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+				IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
@@ -736,7 +642,7 @@ func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
 			if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
 				castedObj.Kind = "CronJob"
 				castedObj.APIVersion = "batch/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+				IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -746,7 +652,7 @@ func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
 			if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
 				castedObj.Kind = "CronJob"
 				castedObj.APIVersion = "batch/v1"
-				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+				IacManagerDeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 			}
 		},
 	}

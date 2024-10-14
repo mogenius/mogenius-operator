@@ -2,14 +2,14 @@ package utils
 
 import (
 	_ "embed"
-	"io"
+	"fmt"
 	"mogenius-k8s-manager/version"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	punqDtos "github.com/mogenius/punq/dtos"
+	"gopkg.in/yaml.v3"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"
@@ -46,8 +46,11 @@ type Config struct {
 		OwnNamespace               string `yaml:"own_namespace" env:"OWN_NAMESPACE" env-description:"The Namespace of mogenius platform"`
 		ClusterMfaId               string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"NanoId of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
+		HelmDataPath               string `yaml:"helm_data_path" env:"helm_data_path" env-description:"Path to the Helm data."`
+		GitVaultDataPath           string `yaml:"git_vault_data_path" env:"git_vault_data_path" env-description:"Path to the Git Vault data."`
 		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
 		BboltDbStatsPath           string `yaml:"bbolt_db_stats_path" env:"bbolt_db_stats_path" env-description:"Path to the bbolt database. This db stores stats-related information."`
+		LogDataPath                string `yaml:"log_data_path" env:"log_data_path" env-description:"Path to the log data."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
 	} `yaml:"kubernetes"`
 	ApiServer struct {
@@ -62,35 +65,37 @@ type Config struct {
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
 	} `yaml:"event_server"`
 	Iac struct {
-		RepoUrl            string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url." env-default:""`
-		RepoPat            string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat." env-default:""`
-		RepoBranch         string   `yaml:"repo_pat_branch" env:"sync_repo_branch" env-description:"Sync repo branch." env-default:"main"`
+		RepoUrl            string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url."`
+		RepoPat            string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat."`
+		RepoBranch         string   `yaml:"repo_pat_branch" env:"sync_repo_branch" env-description:"Sync repo branch."`
 		SyncFrequencyInSec int      `yaml:"sync_requency_secs" env:"sync_requency_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
-		AllowPush          bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo." env-default:"true"`
-		AllowPull          bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo." env-default:"true"`
-		SyncWorkloads      []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync." env-default:""`
+		AllowPush          bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo."`
+		AllowPull          bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo."`
+		SyncWorkloads      []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync."`
 		ShowDiffInLog      bool     `yaml:"show_diff_in_log" env:"sync_show_diff_in_log" env-description:"Show all changes of resources as diff in operator log."`
-		IgnoredNamespaces  []string `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces." env-default:""`
-		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry." env-default:"true"`
+		IgnoredNamespaces  []string `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces."`
+		IgnoredNames       []string `yaml:"ignored_names" env:"sync_ignored_names" env-description:"List of strings which are ignored when for sync. This list may include regex."`
+		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
-		Stage                  string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
-		LogFormat              string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"text"`
-		LogLevel               string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: panic, fatal, error, warn, info, debug, trace" env-default:"info"`
-		LogIncomingStats       bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
-		Debug                  bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
-		DebugLogCaller         bool     `yaml:"debug_log_caller" env:"debug_log_caller" env-description:"If set to true, the calling function will be logged." env-default:"false"`
-		LogKubernetesEvents    bool     `yaml:"log_kubernetes_events" env:"log_kubernetes_events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
-		DefaultMountPath       string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
-		IgnoreNamespaces       []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
-		LogRotationSizeInBytes int      `yaml:"log_rotation_size_in_bytes" env:"log_rotation_size_in_bytes" env-description:"Size of the logfile when it is rotated." env-default:"5242880"`
-		LogRetentionDays       int      `yaml:"log_retention_days" env:"log_retention_days" env-description:"Number of days to keep log files." env-default:"7"`
-		AutoMountNfs           bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
-		IgnoreResourcesBackup  []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
-		CheckForUpdates        int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
-		HelmIndex              string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
-		NfsPodPrefix           string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
-		ExternalSecretsEnabled bool     `yaml:"external_secrets_enabled" env:"external_secrets_enabled" env-description:"If set to true, external secrets will be enabled." env-default:"false"`
+		Stage                     string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
+		LogFormat                 string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"json"`
+		LogLevel                  string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: panic, fatal, error, warn, info, debug, trace" env-default:"info"`
+		LogIncomingStats          bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
+		Debug                     bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
+		DebugLogCaller            bool     `yaml:"debug_log_caller" env:"debug_log_caller" env-description:"If set to true, the calling function will be logged." env-default:"false"`
+		LogKubernetesEvents       bool     `yaml:"log_kubernetes_events" env:"log_kubernetes_events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
+		DefaultMountPath          string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
+		IgnoreNamespaces          []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
+		LogRotationSizeInBytes    int      `yaml:"log_rotation_size_in_bytes" env:"log_rotation_size_in_bytes" env-description:"Size of the logfile when it is rotated." env-default:"5242880"`
+		LogRotationMaxSizeInBytes int      `yaml:"log_rotation_max_size_in_bytes" env:"log_rotation_max_size_in_bytes" env-description:"Size of the max logfile when it is rotated." env-default:"314572800"`
+		LogRetentionDays          int      `yaml:"log_retention_days" env:"log_retention_days" env-description:"Number of days to keep log files." env-default:"7"`
+		AutoMountNfs              bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
+		IgnoreResourcesBackup     []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
+		CheckForUpdates           int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
+		HelmIndex                 string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
+		NfsPodPrefix              string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
+		ExternalSecretsEnabled    bool     `yaml:"external_secrets_enabled" env:"external_secrets_enabled" env-description:"If set to true, external secrets will be enabled." env-default:"false"`
 	} `yaml:"misc"`
 	Builder struct {
 		BuildTimeout        int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
@@ -98,10 +103,8 @@ type Config struct {
 		MaxConcurrentBuilds int `yaml:"max_concurrent_builds" env:"max_concurrent_builds" env-description:"Number of concurrent builds." env-default:"1"`
 	} `yaml:"builder"`
 	Git struct {
-		GitUserEmail      string `yaml:"git_user_email" env:"git_user_email" env-description:"Email address which is used when interacting with git." env-default:"git@mogenius.com"`
-		GitUserName       string `yaml:"git_user_name" env:"git_user_name" env-description:"User name which is used when interacting with git." env-default:"mogenius git-user"`
-		GitDefaultBranch  string `yaml:"git_default_branch" env:"git_default_branch" env-description:"Default branch name which is used when creating a repository." env-default:"main"`
-		GitAddIgnoredFile string `yaml:"git_add_ignored_file" env:"git_add_ignored_file" env-description:"Gits behaviour when adding ignored files." env-default:"false"`
+		GitUserEmail string `yaml:"git_user_email" env:"git_user_email" env-description:"Email address which is used when interacting with git." env-default:"git@mogenius.com"`
+		GitUserName  string `yaml:"git_user_name" env:"git_user_name" env-description:"User name which is used when interacting with git." env-default:"mogenius git-user"`
 	} `yaml:"git"`
 	Stats struct {
 		MaxDataPoints int `yaml:"max_data_points" env:"max_data_points" env-description:"After x data points in bucket will be overwritten LIFO principle." env-default:"6000"`
@@ -123,6 +126,20 @@ var ClusterProviderCached punqDtos.KubernetesProvider = punqDtos.UNKNOWN
 
 // preconfigure with dtos
 var IacWorkloadConfigMap map[string]bool
+
+func InitConfigSimple(stage string) {
+	path := os.TempDir() + "/config.yaml"
+
+	switch stage {
+	case STAGE_DEV:
+		os.WriteFile(path, []byte(DefaultConfigClusterFileDev), 0755)
+	case STAGE_LOCAL:
+		os.WriteFile(path, []byte(DefaultConfigLocalFile), 0755)
+	case STAGE_PROD:
+		os.WriteFile(path, []byte(DefaultConfigClusterFileProd), 0755)
+	}
+	cleanenv.ReadConfig(path, &CONFIG)
+}
 
 func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// try to load stage if not set
@@ -160,6 +177,27 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
 	}
 
+	// SET DEFAULTS if missing
+	pwd, _ := os.Getwd()
+	if CONFIG.Kubernetes.BboltDbPath == "" {
+		CONFIG.Kubernetes.BboltDbPath = pwd + "/mogenius.db"
+	}
+	if CONFIG.Kubernetes.HelmDataPath == "" {
+		CONFIG.Kubernetes.HelmDataPath = pwd + "/helm-data"
+	}
+	if CONFIG.Kubernetes.GitVaultDataPath == "" {
+		CONFIG.Kubernetes.GitVaultDataPath = pwd + "/git-vault-data"
+	}
+	if CONFIG.Kubernetes.BboltDbStatsPath == "" {
+		CONFIG.Kubernetes.BboltDbStatsPath = pwd + "/mogenius-stats.db"
+	}
+	if CONFIG.Misc.DefaultMountPath == "" {
+		CONFIG.Misc.DefaultMountPath = pwd + "/mo-data"
+	}
+	if CONFIG.Kubernetes.LogDataPath == "" {
+		CONFIG.Kubernetes.LogDataPath = pwd + "/logs"
+	}
+
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
@@ -185,75 +223,104 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	}
 
 	// SET LOGGING
-	setupLogging()
+	// setupLogging()
 
-	if CONFIG.Misc.Debug {
-		log.Info("Starting serice for pprof in localhost:6060")
-		go func() {
-			log.Info(http.ListenAndServe("localhost:6060", nil))
-			log.Info("1. Portforward mogenius-k8s-manager to 6060")
-			log.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
-			log.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
-			log.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
-			log.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
-			log.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
-			log.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
-			log.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
-			log.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
-			log.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
-			log.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
-			log.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
-			log.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
-			log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
-			log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
-		}()
-	}
+	//if CONFIG.Misc.Debug {
+	//	log.Info("Starting service for pprof in localhost:6060")
+	//	go func() {
+	//		log.Info(http.ListenAndServe("localhost:6060", nil))
+	//		log.Info("1. Portforward mogenius-k8s-manager to 6060")
+	//		log.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
+	//		log.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
+	//		log.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
+	//		log.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
+	//		log.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
+	//		log.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
+	//		log.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
+	//		log.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
+	//		log.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
+	//		log.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
+	//		log.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
+	//		log.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
+	//		log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
+	//		log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
+	//	}()
+	//}
 }
 
-func setupLogging() {
-	// Create a log file
-	err := os.MkdirAll(MainLogFolder(), os.ModePerm)
+//func setupLogging() {
+//	// Create a log file
+//	err := os.MkdirAll(CONFIG.Kubernetes.LogDataPath, os.ModePerm)
+//	if err != nil {
+//		log.Fatalf("Failed to create parent directories: %v", err)
+//	}
+//	file, err := os.OpenFile(MainLogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+//	if err != nil {
+//		log.Fatalf("Failed to open log file: %v", err)
+//	}
+//
+//	mw := io.MultiWriter(os.Stdout, file)
+//
+//	log.SetOutput(mw)
+//	log.SetLevel(log.TraceLevel)
+//
+//	log.AddHook(&SecretRedactionHook{})
+//	log.AddHook(&LogRotationHook{})
+//
+//	log.SetFormatter(&log.TextFormatter{
+//		ForceColors:      true,
+//		DisableTimestamp: false,
+//		DisableQuote:     true,
+//	})
+//
+//	log.SetReportCaller(CONFIG.Misc.DebugLogCaller)
+//	logLevel, err := log.ParseLevel(CONFIG.Misc.LogLevel)
+//	if err != nil {
+//		logLevel = log.InfoLevel
+//		log.Error("Error parsing log level. Using default log level: info")
+//	}
+//	log.SetLevel(logLevel)
+//
+//	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
+//		log.SetFormatter(&log.JSONFormatter{})
+//	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
+//		log.SetFormatter(&log.TextFormatter{
+//			ForceColors:      true,
+//			DisableTimestamp: false,
+//			DisableQuote:     true,
+//		})
+//	} else {
+//		log.SetFormatter(&log.TextFormatter{})
+//	}
+//}
+
+func PrintCurrentCONFIG() (string, error) {
+	// create a deep copy of the Config instance
+	var configCopy Config
+	yamlData, err := yaml.Marshal(&CONFIG)
 	if err != nil {
-		log.Fatalf("Failed to create parent directories: %v", err)
+		return "", err
 	}
-	file, err := os.OpenFile(MainLogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	err = yaml.Unmarshal(yamlData, &configCopy)
 	if err != nil {
-		log.Fatalf("Failed to open log file: %v", err)
+		return "", err
 	}
 
-	mw := io.MultiWriter(os.Stdout, file)
+	// reset data for local usage
+	configCopy.Misc.DefaultMountPath = ""
+	configCopy.Kubernetes.HelmDataPath = ""
+	configCopy.Kubernetes.GitVaultDataPath = ""
+	configCopy.Kubernetes.BboltDbPath = ""
+	configCopy.Kubernetes.BboltDbStatsPath = ""
+	configCopy.Kubernetes.RunInCluster = false
 
-	log.SetOutput(mw)
-	log.SetLevel(log.TraceLevel)
-
-	log.AddHook(&SecretRedactionHook{})
-	log.AddHook(&LogRotationHook{})
-
-	log.SetFormatter(&log.TextFormatter{
-		ForceColors:      true,
-		DisableTimestamp: false,
-		DisableQuote:     true,
-	})
-
-	log.SetReportCaller(CONFIG.Misc.DebugLogCaller)
-	logLevel, err := log.ParseLevel(CONFIG.Misc.LogLevel)
+	// marshal the copy to yaml
+	yamlData, err = yaml.Marshal(&configCopy)
 	if err != nil {
-		logLevel = log.InfoLevel
-		log.Error("Error parsing log level. Using default log level: info")
+		fmt.Printf("Error marshalling to YAML: %v\n", err)
+		return "", err
 	}
-	log.SetLevel(logLevel)
-
-	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
-		log.SetFormatter(&log.JSONFormatter{})
-	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
-		log.SetFormatter(&log.TextFormatter{
-			ForceColors:      true,
-			DisableTimestamp: false,
-			DisableQuote:     true,
-		})
-	} else {
-		log.SetFormatter(&log.TextFormatter{})
-	}
+	return string(yamlData), nil
 }
 
 func SetupClusterSecret(clusterSecret ClusterSecret) {
@@ -287,8 +354,11 @@ func PrintSettings() {
 	log.Infof("ClusterMfaId:              %s", CONFIG.Kubernetes.ClusterMfaId)
 	log.Infof("RunInCluster:              %t", CONFIG.Kubernetes.RunInCluster)
 	log.Infof("ApiKey:                    %s", CONFIG.Kubernetes.ApiKey)
+	log.Infof("HelmDataPath:              %s", CONFIG.Kubernetes.HelmDataPath)
+	log.Infof("GitVaultDataPath:          %s", CONFIG.Kubernetes.GitVaultDataPath)
 	log.Infof("BboltDbPath:               %s", CONFIG.Kubernetes.BboltDbPath)
 	log.Infof("BboltDbStatsPath:          %s", CONFIG.Kubernetes.BboltDbStatsPath)
+	log.Infof("LogDataPath:               %s", CONFIG.Kubernetes.LogDataPath)
 	log.Infof("LocalContainerRegistry:    %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
 
 	log.Infof("API")
@@ -311,6 +381,7 @@ func PrintSettings() {
 	log.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
 	log.Infof("SyncWorkloads:             %s", strings.Join(CONFIG.Iac.SyncWorkloads, ","))
 	log.Infof("IgnoredNamespaces:         %s", strings.Join(CONFIG.Iac.IgnoredNamespaces, ","))
+	log.Infof("IgnoredNames:              %s", strings.Join(CONFIG.Iac.IgnoredNames, ","))
 	log.Infof("LogChanges:                %t", CONFIG.Iac.LogChanges)
 	log.Infof("ShowDiffInLog:             %t\n\n", CONFIG.Iac.ShowDiffInLog)
 
@@ -326,6 +397,7 @@ func PrintSettings() {
 	log.Infof("IgnoreResourcesBackup:     %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
 	log.Infof("IgnoreNamespaces:          %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
 	log.Infof("LogRotationSizeInBytes:    %d", CONFIG.Misc.LogRotationSizeInBytes)
+	log.Infof("LogRotationMaxSizeInBytes: %d", CONFIG.Misc.LogRotationMaxSizeInBytes)
 	log.Infof("LogRetentionDays:          %d", CONFIG.Misc.LogRetentionDays)
 	log.Infof("CheckForUpdates:           %d", CONFIG.Misc.CheckForUpdates)
 	log.Infof("HelmIndex:                 %s", CONFIG.Misc.HelmIndex)
@@ -339,8 +411,6 @@ func PrintSettings() {
 	log.Infof("GIT")
 	log.Infof("GitUserEmail:              %s", CONFIG.Git.GitUserEmail)
 	log.Infof("GitUserName:               %s", CONFIG.Git.GitUserName)
-	log.Infof("GitDefaultBranch:          %s", CONFIG.Git.GitDefaultBranch)
-	log.Infof("GitAddIgnoredFile:         %s\n\n", CONFIG.Git.GitAddIgnoredFile)
 
 	log.Infof("STATS")
 	log.Infof("MaxDataPoints:             %d\n\n", CONFIG.Stats.MaxDataPoints)

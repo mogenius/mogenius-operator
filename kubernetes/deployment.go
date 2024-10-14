@@ -3,16 +3,14 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"mogenius-k8s-manager/dtos"
-	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
 	"sync"
 	"time"
-
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -51,11 +49,16 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		} else {
 			cmd.Success(job, "Deleted Deployment")
 		}
-		// EXTERNAL SECRETS OPERATOR - cleanup unused secrets
-		if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
-			DeleteUnusedSecretsForNamespace(namespace.Name)
-		}
 	}(wg)
+}
+
+func GetDeployment(namespaceName string, controllerName string) (*v1.Deployment, error) {
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return nil, err
+	}
+	client := provider.ClientSet.AppsV1().Deployments(namespaceName)
+	return client.Get(context.TODO(), controllerName, metav1.GetOptions{})
 }
 
 func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
@@ -72,16 +75,6 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 			K8sLogger.Errorf("error: %s", err.Error())
 			cmd.Fail(job, fmt.Sprintf("UpdateDeployment ERROR: %s", err.Error()))
 			return
-		}
-		// add resource creation for external secrets
-		if utils.CONFIG.Misc.ExternalSecretsEnabled && service.ExternalSecretsEnabled() {
-			CreateExternalSecret(CreateExternalSecretProps{
-				Namespace:             namespace.Name,
-				ServiceName:           service.ControllerName,
-				ProjectName:           service.EsoSettings.ProjectName,
-				SecretStoreNamePrefix: service.EsoSettings.SecretStoreNamePrefix,
-			})
-			DeleteUnusedSecretsForNamespace(namespace.Name)
 		}
 
 		deployment := newController.(*v1.Deployment)
@@ -294,47 +287,194 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 			spec.Template.Spec.Containers[index].ImagePullPolicy = v1Core.PullAlways
 		}
 
-		// PORTS
-		var internalHttpPort *int
-		if len(container.Ports) > 0 {
-			for _, port := range container.Ports {
-				if port.PortType == dtos.PortTypeHTTPS {
-					tmp := int(port.InternalPort)
-					internalHttpPort = &tmp
+		if container.Probes != nil {
+			// LivenessProbe
+			if !container.Probes.LivenessProbe.IsActive {
+				spec.Template.Spec.Containers[index].LivenessProbe = nil
+			} else if container.Probes.LivenessProbe.IsActive {
+				if spec.Template.Spec.Containers[index].LivenessProbe == nil {
+					spec.Template.Spec.Containers[index].LivenessProbe = &v1Core.Probe{}
+					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &v1Core.HTTPGetAction{}
+				}
+				spec.Template.Spec.Containers[index].LivenessProbe.InitialDelaySeconds = int32(container.Probes.LivenessProbe.InitialDelaySeconds)
+				spec.Template.Spec.Containers[index].LivenessProbe.PeriodSeconds = int32(container.Probes.LivenessProbe.PeriodSeconds)
+				spec.Template.Spec.Containers[index].LivenessProbe.TimeoutSeconds = int32(container.Probes.LivenessProbe.TimeoutSeconds)
+				spec.Template.Spec.Containers[index].LivenessProbe.SuccessThreshold = int32(container.Probes.LivenessProbe.SuccessThreshold)
+				spec.Template.Spec.Containers[index].LivenessProbe.FailureThreshold = int32(container.Probes.LivenessProbe.FailureThreshold)
+
+				if container.Probes.LivenessProbe.HTTPGet != nil {
+					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Path = container.Probes.LivenessProbe.HTTPGet.Path
+					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(container.Probes.LivenessProbe.HTTPGet.Port))
+					if container.Probes.LivenessProbe.HTTPGet.Host != nil {
+						spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Host = *container.Probes.LivenessProbe.HTTPGet.Host
+					} else {
+						spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Host = ""
+					}
+					if container.Probes.LivenessProbe.HTTPGet.Scheme != nil {
+						spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Scheme = *container.Probes.LivenessProbe.HTTPGet.Scheme
+					} else {
+						spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Scheme = ""
+					}
+					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.HTTPHeaders = []v1Core.HTTPHeader{}
+					if container.Probes.LivenessProbe.HTTPGet.HTTPHeaders != nil {
+						for _, header := range *container.Probes.LivenessProbe.HTTPGet.HTTPHeaders {
+							spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.HTTPHeaders = append(spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.HTTPHeaders, v1Core.HTTPHeader{
+								Name:  header.Name,
+								Value: header.Value,
+							})
+						}
+					} else if container.Probes.LivenessProbe.TCPSocket != nil {
+						spec.Template.Spec.Containers[index].LivenessProbe.TCPSocket = &v1Core.TCPSocketAction{}
+						spec.Template.Spec.Containers[index].LivenessProbe.TCPSocket.Port = intstr.FromInt32(int32(container.Probes.LivenessProbe.TCPSocket.Port))
+					} else if container.Probes.LivenessProbe.Exec != nil {
+						spec.Template.Spec.Containers[index].LivenessProbe.Exec = &v1Core.ExecAction{}
+						spec.Template.Spec.Containers[index].LivenessProbe.Exec.Command = container.Probes.LivenessProbe.Exec.Command
+					} else if container.Probes.LivenessProbe.GRPC != nil {
+						spec.Template.Spec.Containers[index].LivenessProbe.GRPC = &v1Core.GRPCAction{}
+						spec.Template.Spec.Containers[index].LivenessProbe.GRPC.Port = int32(container.Probes.LivenessProbe.GRPC.Port)
+						spec.Template.Spec.Containers[index].LivenessProbe.GRPC.Service = container.Probes.LivenessProbe.GRPC.Service
+					}
+				}
+			}
+
+			// ReadinessProbe
+			if !container.Probes.ReadinessProbe.IsActive {
+				spec.Template.Spec.Containers[index].ReadinessProbe = nil
+			} else if container.Probes.ReadinessProbe.IsActive {
+				if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
+					spec.Template.Spec.Containers[index].ReadinessProbe = &v1Core.Probe{}
+					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &v1Core.HTTPGetAction{}
+				}
+				spec.Template.Spec.Containers[index].ReadinessProbe.InitialDelaySeconds = int32(container.Probes.ReadinessProbe.InitialDelaySeconds)
+				spec.Template.Spec.Containers[index].ReadinessProbe.PeriodSeconds = int32(container.Probes.ReadinessProbe.PeriodSeconds)
+				spec.Template.Spec.Containers[index].ReadinessProbe.TimeoutSeconds = int32(container.Probes.ReadinessProbe.TimeoutSeconds)
+				spec.Template.Spec.Containers[index].ReadinessProbe.SuccessThreshold = int32(container.Probes.ReadinessProbe.SuccessThreshold)
+				spec.Template.Spec.Containers[index].ReadinessProbe.FailureThreshold = int32(container.Probes.ReadinessProbe.FailureThreshold)
+
+				if container.Probes.ReadinessProbe.HTTPGet != nil {
+					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Path = container.Probes.ReadinessProbe.HTTPGet.Path
+					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(container.Probes.ReadinessProbe.HTTPGet.Port))
+					if container.Probes.ReadinessProbe.HTTPGet.Host != nil {
+						spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Host = *container.Probes.ReadinessProbe.HTTPGet.Host
+					} else {
+						spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Host = ""
+					}
+					if container.Probes.ReadinessProbe.HTTPGet.Scheme != nil {
+						spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Scheme = *container.Probes.ReadinessProbe.HTTPGet.Scheme
+					} else {
+						spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Scheme = ""
+					}
+					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.HTTPHeaders = []v1Core.HTTPHeader{}
+					if container.Probes.ReadinessProbe.HTTPGet.HTTPHeaders != nil {
+						for _, header := range *container.Probes.ReadinessProbe.HTTPGet.HTTPHeaders {
+							spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.HTTPHeaders = append(spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.HTTPHeaders, v1Core.HTTPHeader{
+								Name:  header.Name,
+								Value: header.Value,
+							})
+						}
+					} else if container.Probes.ReadinessProbe.TCPSocket != nil {
+						spec.Template.Spec.Containers[index].ReadinessProbe.TCPSocket = &v1Core.TCPSocketAction{}
+						spec.Template.Spec.Containers[index].ReadinessProbe.TCPSocket.Port = intstr.FromInt32(int32(container.Probes.ReadinessProbe.TCPSocket.Port))
+					} else if container.Probes.ReadinessProbe.Exec != nil {
+						spec.Template.Spec.Containers[index].ReadinessProbe.Exec = &v1Core.ExecAction{}
+						spec.Template.Spec.Containers[index].ReadinessProbe.Exec.Command = container.Probes.ReadinessProbe.Exec.Command
+					} else if container.Probes.ReadinessProbe.GRPC != nil {
+						spec.Template.Spec.Containers[index].ReadinessProbe.GRPC = &v1Core.GRPCAction{}
+						spec.Template.Spec.Containers[index].ReadinessProbe.GRPC.Port = int32(container.Probes.ReadinessProbe.GRPC.Port)
+						spec.Template.Spec.Containers[index].ReadinessProbe.GRPC.Service = container.Probes.ReadinessProbe.GRPC.Service
+					}
+				}
+			}
+
+			// StartupProbe
+			if !container.Probes.StartupProbe.IsActive {
+				spec.Template.Spec.Containers[index].StartupProbe = nil
+			} else if container.Probes.StartupProbe.IsActive {
+				if spec.Template.Spec.Containers[index].StartupProbe == nil {
+					spec.Template.Spec.Containers[index].StartupProbe = &v1Core.Probe{}
+					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
+				}
+				spec.Template.Spec.Containers[index].StartupProbe.InitialDelaySeconds = int32(container.Probes.StartupProbe.InitialDelaySeconds)
+				spec.Template.Spec.Containers[index].StartupProbe.PeriodSeconds = int32(container.Probes.StartupProbe.PeriodSeconds)
+				spec.Template.Spec.Containers[index].StartupProbe.TimeoutSeconds = int32(container.Probes.StartupProbe.TimeoutSeconds)
+				spec.Template.Spec.Containers[index].StartupProbe.SuccessThreshold = int32(container.Probes.StartupProbe.SuccessThreshold)
+				spec.Template.Spec.Containers[index].StartupProbe.FailureThreshold = int32(container.Probes.StartupProbe.FailureThreshold)
+
+				if container.Probes.StartupProbe.HTTPGet != nil {
+					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Path = container.Probes.StartupProbe.HTTPGet.Path
+					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(container.Probes.StartupProbe.HTTPGet.Port))
+					if container.Probes.StartupProbe.HTTPGet.Host != nil {
+						spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Host = *container.Probes.StartupProbe.HTTPGet.Host
+					} else {
+						spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Host = ""
+					}
+					if container.Probes.StartupProbe.HTTPGet.Scheme != nil {
+						spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Scheme = *container.Probes.StartupProbe.HTTPGet.Scheme
+					} else {
+						spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Scheme = ""
+					}
+					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.HTTPHeaders = []v1Core.HTTPHeader{}
+					if container.Probes.StartupProbe.HTTPGet.HTTPHeaders != nil {
+						for _, header := range *container.Probes.StartupProbe.HTTPGet.HTTPHeaders {
+							spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.HTTPHeaders = append(spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.HTTPHeaders, v1Core.HTTPHeader{
+								Name:  header.Name,
+								Value: header.Value,
+							})
+						}
+					} else if container.Probes.StartupProbe.TCPSocket != nil {
+						spec.Template.Spec.Containers[index].StartupProbe.TCPSocket = &v1Core.TCPSocketAction{}
+						spec.Template.Spec.Containers[index].StartupProbe.TCPSocket.Port = intstr.FromInt32(int32(container.Probes.StartupProbe.TCPSocket.Port))
+					} else if container.Probes.StartupProbe.Exec != nil {
+						spec.Template.Spec.Containers[index].StartupProbe.Exec = &v1Core.ExecAction{}
+						spec.Template.Spec.Containers[index].StartupProbe.Exec.Command = container.Probes.StartupProbe.Exec.Command
+					} else if container.Probes.StartupProbe.GRPC != nil {
+						spec.Template.Spec.Containers[index].StartupProbe.GRPC = &v1Core.GRPCAction{}
+						spec.Template.Spec.Containers[index].StartupProbe.GRPC.Port = int32(container.Probes.StartupProbe.GRPC.Port)
+						spec.Template.Spec.Containers[index].StartupProbe.GRPC.Service = container.Probes.StartupProbe.GRPC.Service
+					}
 				}
 			}
 		}
 
-		// PROBES
-		if !container.KubernetesLimits.ProbesOn {
-			spec.Template.Spec.Containers[index].StartupProbe = nil
-			spec.Template.Spec.Containers[index].LivenessProbe = nil
-			spec.Template.Spec.Containers[index].ReadinessProbe = nil
-		} else if internalHttpPort != nil {
-			// StartupProbe
-			if spec.Template.Spec.Containers[index].StartupProbe == nil {
-				spec.Template.Spec.Containers[index].StartupProbe = &v1Core.Probe{}
-				spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
-			}
-			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
-			spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Path = "/healthz"
-
-			// LivenessProbe
-			if spec.Template.Spec.Containers[index].LivenessProbe == nil {
-				spec.Template.Spec.Containers[index].LivenessProbe = &v1Core.Probe{}
-				spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &v1Core.HTTPGetAction{}
-			}
-			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
-			spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Path = "/healthz"
-
-			// ReadinessProbe
-			if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
-				spec.Template.Spec.Containers[index].ReadinessProbe = &v1Core.Probe{}
-				spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &v1Core.HTTPGetAction{}
-			}
-			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
-			spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Path = "/healthz"
-		}
+		// TODO REMOVE
+		// PORTS
+		//var internalHttpPort *int
+		//if len(container.Ports) > 0 {
+		//	for _, port := range container.Ports {
+		//		if port.PortType == dtos.PortTypeHTTPS {
+		//			tmp := int(port.InternalPort)
+		//			internalHttpPort = &tmp
+		//		}
+		//	}
+		//}
+		//
+		//// PROBES
+		//if !container.KubernetesLimits.ProbesOn {
+		//	spec.Template.Spec.Containers[index].StartupProbe = nil
+		//	spec.Template.Spec.Containers[index].LivenessProbe = nil
+		//	spec.Template.Spec.Containers[index].ReadinessProbe = nil
+		//} else if internalHttpPort != nil {
+		//	// StartupProbe
+		//	if spec.Template.Spec.Containers[index].StartupProbe == nil {
+		//		spec.Template.Spec.Containers[index].StartupProbe = &v1Core.Probe{}
+		//		spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
+		//	}
+		//	spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+		//
+		//	// LivenessProbe
+		//	if spec.Template.Spec.Containers[index].LivenessProbe == nil {
+		//		spec.Template.Spec.Containers[index].LivenessProbe = &v1Core.Probe{}
+		//		spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &v1Core.HTTPGetAction{}
+		//	}
+		//	spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+		//
+		//	// ReadinessProbe
+		//	if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
+		//		spec.Template.Spec.Containers[index].ReadinessProbe = &v1Core.Probe{}
+		//		spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &v1Core.HTTPGetAction{}
+		//	}
+		//	spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
+		//}
 	}
 
 	return objectMeta, &SpecDeployment{spec, previousSpec}, &newDeployment, nil
@@ -393,7 +533,7 @@ func UpdateDeploymentImage(namespaceName string, controllerName string, containe
 			deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
 		}
 	}
-	deploymentToUpdate.Spec.Paused = false
+	// deploymentToUpdate.Spec.Paused = false
 
 	_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 	return err
@@ -441,6 +581,22 @@ func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, pr
 	return WorkloadResult(deployments.Items, err)
 }
 
+func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
+	result := []v1.Deployment{}
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return result, err
+	}
+	client := provider.ClientSet.AppsV1().Deployments(namespace)
+
+	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return result, err
+	}
+
+	return deployments.Items, err
+}
+
 func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
 	deployment, err := punq.GetK8sDeployment(namespace, name, nil)
 	if err != nil {
@@ -482,7 +638,7 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
 				castedObj.Kind = "Deployment"
 				castedObj.APIVersion = "apps/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+				IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
@@ -492,7 +648,7 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
 				castedObj.Kind = "Deployment"
 				castedObj.APIVersion = "apps/v1"
-				iacmanager.WriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
+				IacManagerWriteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, castedObj)
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -502,7 +658,7 @@ func watchDeployments(provider *punq.KubeProvider, kindName string) error {
 			if utils.IacWorkloadConfigMap[dtos.KindDeployments] {
 				castedObj.Kind = "Deployment"
 				castedObj.APIVersion = "apps/v1"
-				iacmanager.DeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
+				IacManagerDeleteResourceYaml(kindName, castedObj.Namespace, castedObj.Name, obj)
 			}
 		},
 	}

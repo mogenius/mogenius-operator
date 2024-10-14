@@ -45,13 +45,20 @@ const (
 type K8sEnvVarDtoEnum string
 
 const (
-	EnvVarPlainText        K8sEnvVarDtoEnum = "PLAINTEXT"
-	EnvVarKeyVault         K8sEnvVarDtoEnum = "KEY_VAULT"
-	EnvVarKeyEsoHashiVault K8sEnvVarDtoEnum = "KEY_ESO_HASHI_VAULT"
-	EnvVarVolumeMount      K8sEnvVarDtoEnum = "VOLUME_MOUNT"
-	EnvVarVolumeMountSeed  K8sEnvVarDtoEnum = "VOLUME_MOUNT_SEED"
-	EnvVarChangeOwner      K8sEnvVarDtoEnum = "CHANGE_OWNER"
-	EnvVarHostname         K8sEnvVarDtoEnum = "HOSTNAME"
+	EnvVarPlainText   K8sEnvVarDtoEnum = "PLAINTEXT"
+	EnvVarKeyVault    K8sEnvVarDtoEnum = "KEY_VAULT"
+	EnvVarVolumeMount K8sEnvVarDtoEnum = "VOLUME_MOUNT"
+	// EnvVarExternalSecret  K8sEnvVarDtoEnum = "EXTERNAL_SECRET_STORE"
+	// EnvVarVolumeMountSeed K8sEnvVarDtoEnum = "VOLUME_MOUNT_SEED"
+	// EnvVarChangeOwner     K8sEnvVarDtoEnum = "CHANGE_OWNER"
+	EnvVarHostname K8sEnvVarDtoEnum = "HOSTNAME"
+)
+
+type EnvVarVaultTypeEnum string
+
+const (
+	EnvVarVaultTypeMogeniusVault          EnvVarVaultTypeEnum = "MOGENIUS_VAULT"
+	EnvVarVaultTypeHashicorpExternalVault EnvVarVaultTypeEnum = "HASHICORP_EXTERNAL_VAULT"
 )
 
 type PortTypeEnum string
@@ -60,6 +67,7 @@ const (
 	PortTypeHTTPS PortTypeEnum = "HTTPS"
 	PortTypeTCP   PortTypeEnum = "TCP"
 	PortTypeUDP   PortTypeEnum = "UDP"
+	PortTypeSCTP  PortTypeEnum = "SCTP"
 )
 
 type K8sServiceControllerEnum string

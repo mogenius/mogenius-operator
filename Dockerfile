@@ -1,10 +1,11 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit-log here.
 
 RUN apk add --no-cache curl bash
 
 ENV VERIFY_CHECKSUM=false
+ENV CGO_ENABLED=0
 
 ARG GOOS
 ARG GOARCH
@@ -22,7 +23,7 @@ COPY . .
 
 ARG TARGETARCH
 
-RUN go build -ldflags="-extldflags= \
+RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
   -X 'mogenius-k8s-manager/version.GitCommitHash=${COMMIT_HASH}' \
   -X 'mogenius-k8s-manager/version.Branch=${GIT_BRANCH}' \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
@@ -32,6 +33,10 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
 RUN chmod 700 get_helm.sh
 RUN ./get_helm.sh
 RUN rm get_helm.sh
+
+RUN apk add --no-cache upx
+RUN upx -9 --lzma /app/bin/mogenius-k8s-manager
+RUN upx -9 --lzma /usr/local/bin/helm
 
 FROM docker:dind
 
@@ -43,10 +48,9 @@ ENV GOOS=${GOOS}
 ENV GOARCH=${GOARCH}
 ENV GOARM=${GOARM}
 
-RUN apk add --no-cache curl git nfs-utils ca-certificates jq
+RUN apk add --no-cache dumb-init curl nfs-utils ca-certificates jq bash
 
 # RUN apk add --no-cache \
-#     git \
 #     curl \
 #     openssl \
 #     nfs-utils \
@@ -83,9 +87,9 @@ RUN apk add --no-cache curl git nfs-utils ca-certificates jq
 # RUN rm popeye.tar.gz
 
 # Install kubectl
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${GOARCH}/kubectl"
-RUN chmod +x kubectl
-RUN mv kubectl /usr/local/bin/kubectl
+# RUN VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt) curl -LO "https://dl.k8s.io/release/${VERSION}/bin/linux/${GOARCH}/kubectl"
+# RUN chmod +x kubectl
+# RUN mv kubectl /usr/local/bin/kubectl
 
 # Install grype
 # RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
@@ -99,4 +103,12 @@ COPY --from=builder ["/usr/local/bin/helm", "/usr/local/bin/helm"]
 
 ENV GIN_MODE=release
 
-ENTRYPOINT /usr/local/bin/dockerd --iptables=false --dns 1.1.1.1 > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster
+ENV HELM_CACHE_HOME="/db/helm-data/helm/cache"
+ENV HELM_CONFIG_HOME="/db/helm-data/helm"
+ENV HELM_DATA_HOME="/db/helm-data/helm"
+ENV HELM_PLUGINS="/db/helm-data/helm/plugins"
+ENV HELM_REGISTRY_CONFIG="/db/helm-data/helm/config.json"
+ENV HELM_REPOSITORY_CACHE="/db/helm-data/helm/cache/repository"
+ENV HELM_REPOSITORY_CONFIG="/db/helm-data/helm/repositories.yaml"
+
+ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false --dns 1.1.1.1 > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]

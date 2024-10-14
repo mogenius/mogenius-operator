@@ -27,20 +27,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.MO_K8s_TOKEN }}
 
-      - name: Create Sematic Release Version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          export HOME=/root
-          git config --system http.sslVerify false
-          git config --global user.email "mok8s@mogenius.com"
-          git config --global user.name "mok8s"
-          git config --global credential.helper cache
-          npx semantic-release
 
   build-amd64:
     needs: prepare
-    runs-on: [self-hosted, X64]
+    runs-on: [self-hosted-ansible, X64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -66,7 +64,7 @@ jobs:
 
   build-arm64-linux:
     needs: prepare
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -92,7 +90,7 @@ jobs:
 
   build-arm64:
     needs: prepare
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -118,7 +116,7 @@ jobs:
 
   build-armv7:
     needs: prepare
-    runs-on: [self-hosted, ARM64]
+    runs-on: [self-hosted-ansible, ARM64]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -144,7 +142,7 @@ jobs:
 
   merge-images:
     needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
-    runs-on: self-hosted
+    runs-on: self-hosted-ansible
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -177,7 +175,7 @@ jobs:
   helm-chart:
     # needs: [prepare]
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-ansible
 
     steps:
       - name: Check out code

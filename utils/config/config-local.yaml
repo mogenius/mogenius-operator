@@ -7,7 +7,10 @@ kubernetes:
   own_namespace: mogenius
   cluster_mfa_id:
   run_in_cluster: false
+  helm_data_path: 
+  git_vault_data_path: 
   bbolt_db_path: mogenius.db
+  log_data_path: 
   bbolt_db_stats_path: mogenius-stats.db
   local_registry_host: mocr.local.mogenius.io
 
@@ -46,6 +49,7 @@ iac:
       "horizontalpodautoscalers",
     ]
   ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
+  ignored_names: ["acme-*", "mogenius-k8s-manager"]
   show_diff_in_log: false
   log_changes: true
 
@@ -82,8 +86,6 @@ builder:
 git:
   user_email: git@mogenius.com
   user_name: mogenius git-user
-  default_branch: main
-  add_ignored_file: false
 
 stats:
   max_data_points: 6000 # history data points

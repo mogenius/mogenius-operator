@@ -7,17 +7,20 @@ import (
 
 	"mogenius-k8s-manager/utils"
 
+	punqUtils "github.com/mogenius/punq/utils"
+
 	"strings"
 
 	"github.com/mogenius/punq/logger"
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 )
 
 type ExternalSecretStoreProps struct {
-	ProjectName    string
+	DisplayName    string
+	ProjectId      string
 	Role           string
 	VaultServerUrl string
-	MoSharedPath   string
+	SecretPath     string
 	NamePrefix     string
 	Name           string
 	ServiceAccount string
@@ -25,23 +28,29 @@ type ExternalSecretStoreProps struct {
 
 func externalSecretStorePropsExample() ExternalSecretStoreProps {
 	return ExternalSecretStoreProps{
-		ProjectName:    "phoenix",
+		DisplayName:    "Vault Secret Store 1",
+		ProjectId:      "jkhdfjk66-lkj4fdklfj-lkdsjfkl-4rt645-dalksf",
 		Role:           "mogenius-external-secrets",
 		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		MoSharedPath:   "mogenius-external-secrets",
-		Name:           utils.GetSecretStoreName("Integration01", "phoenix"),
-		ServiceAccount: utils.GetServiceAccountName("mogenius-external-secrets"),
+		SecretPath:     "mogenius-external-secrets/data/phoenix",
 	}
 }
 
 func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
-	props.Name = utils.GetSecretStoreName(props.NamePrefix, props.ProjectName)
-	props.ServiceAccount = utils.GetServiceAccountName(props.MoSharedPath)
+	// init some dynamic properties
+	if props.NamePrefix == "" {
+		props.NamePrefix = punqUtils.NanoIdSmallLowerCase()
+	}
+	if strings.Contains(props.SecretPath, "/v1/") {
+		props.SecretPath = strings.ReplaceAll(props.SecretPath, "/v1/", "")
+	}
+	props.Name = utils.GetSecretStoreName(props.NamePrefix)
+	props.ServiceAccount = utils.GetServiceAccountName(props.Role)
 
-	// create unique service account tag per project
+	// create unique service account tag per role
 	annotations := make(map[string]string)
-	key := fmt.Sprintf("%s%s", utils.StoreAnnotationPrefix, props.ProjectName)
-	annotations[key] = fmt.Sprintf("Used to read secrets from vault path: %s", props.MoSharedPath)
+	key := fmt.Sprintf("%srole-%s", utils.StoreAnnotationPrefix, props.Role)
+	annotations[key] = fmt.Sprintf("Used to read secrets from vault path: %s", props.SecretPath)
 
 	err := mokubernetes.ApplyServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace, annotations)
 	if err != nil {
@@ -64,9 +73,8 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	// so that we can use them to offer them as UI options before binding them to a mogenius service
 	err = mokubernetes.CreateExternalSecretList(mokubernetes.ExternalSecretListProps{
 		NamePrefix:      props.NamePrefix,
-		Project:         props.ProjectName,
 		SecretStoreName: props.Name,
-		MoSharedPath:    props.MoSharedPath,
+		SecretPath:      props.SecretPath,
 	})
 	if err != nil {
 		return err
@@ -95,9 +103,9 @@ func GetExternalSecretsStore(name string) (*mokubernetes.SecretStoreSchema, erro
 	return &secretStore, err
 }
 
-func ListAvailableExternalSecrets(namePrefix, projectName string) []string {
+func ListAvailableExternalSecrets(namePrefix string) []string {
 	response, err := mokubernetes.GetDecodedSecret(
-		utils.GetSecretListName(namePrefix, projectName),
+		utils.GetSecretListName(namePrefix),
 		utils.CONFIG.Kubernetes.OwnNamespace,
 	)
 	if err != nil {
@@ -105,34 +113,43 @@ func ListAvailableExternalSecrets(namePrefix, projectName string) []string {
 	}
 	// Initialize result with an empty slice for SecretsInProject
 	result := []string{}
-	for project, secretValue := range response {
-		if project == projectName {
-			var secretMap map[string]interface{}
-			err := json.Unmarshal([]byte(secretValue), &secretMap)
-			if err != nil {
-				logger.Log.Error(err)
-				return nil
-			}
-
-			for key := range secretMap {
-				result = append(result, key)
-			}
-			break // there should only be one matching project
+	// for the current prefix, there's only one secret list
+	for _, secretValue := range response {
+		var secretMap map[string]interface{}
+		err := json.Unmarshal([]byte(secretValue), &secretMap)
+		if err != nil {
+			logger.Log.Error(err)
+			return nil
 		}
+
+		for key := range secretMap {
+			result = append(result, key)
+		}
+
 	}
 	return result
 }
 
-func DeleteExternalSecretsStore(namePrefix, projectName, moSharedPath string) error {
+func DeleteExternalSecretsStore(name string) error {
 	errors := []error{}
+
+	// get the secret store
+	store, err := mokubernetes.GetExternalSecretsStore(name)
+	errors = append(errors, err)
 	// delete the external secrets list
-	errors = append(errors, mokubernetes.DeleteExternalSecretList(namePrefix, projectName))
+	errors = append(errors, mokubernetes.DeleteExternalSecretList(store.Prefix, store.ProjectId))
 
 	// delete the secret store
-	errors = append(errors, mokubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", utils.GetSecretStoreName(namePrefix, projectName), "", true))
+	errors = append(errors, mokubernetes.DeleteResource(
+		"external-secrets.io",
+		"v1beta1",
+		"clustersecretstores",
+		utils.GetSecretStoreName(store.Prefix),
+		"",
+		true))
 
 	// delete the service account if it has no annotations from another SecretStore
-	errors = append(errors, deleteUnusedServiceAccount(projectName, moSharedPath))
+	errors = append(errors, deleteUnusedServiceAccount(store.Role, store.ProjectId, store.SharedPath))
 
 	// if any of the above failed, return an error
 	for _, err := range errors {
@@ -143,8 +160,8 @@ func DeleteExternalSecretsStore(namePrefix, projectName, moSharedPath string) er
 	return nil
 }
 
-func deleteUnusedServiceAccount(projectName, moSharedPath string) error {
-	serviceAccount, err := mokubernetes.GetServiceAccount(utils.GetServiceAccountName(moSharedPath), utils.CONFIG.Kubernetes.OwnNamespace)
+func deleteUnusedServiceAccount(role, projectId, moSharedPath string) error {
+	serviceAccount, err := mokubernetes.GetServiceAccount(utils.GetServiceAccountName(role), utils.CONFIG.Kubernetes.OwnNamespace)
 	if err != nil {
 		return err
 	}
@@ -154,7 +171,7 @@ func deleteUnusedServiceAccount(projectName, moSharedPath string) error {
 		// remove current claim of using this service account
 		removeKey := ""
 		for key := range serviceAccount.Annotations {
-			myKey := fmt.Sprintf("%s%s", utils.StoreAnnotationPrefix, projectName)
+			myKey := fmt.Sprintf("%s%s", utils.StoreAnnotationPrefix, projectId)
 			if key == myKey {
 				removeKey = key
 				break // "my" claim found, remove it
@@ -190,13 +207,15 @@ func deleteUnusedServiceAccount(projectName, moSharedPath string) error {
 }
 
 func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name, -1)
-	// secret stores are currently bound to the project settings
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_SHARED_PATH_COMBINED>", utils.GetMoSharedPath(props.MoSharedPath, props.ProjectName), -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<ROLE>", props.Role, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount, -1)
-	yamlTemplateString = strings.Replace(yamlTemplateString, "<MO_DEFAULT_NS>", utils.CONFIG.Kubernetes.OwnNamespace, -1)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_PATH>", props.SecretPath)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<DISPLAY_NAME>", props.DisplayName)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<PREFIX>", strings.ToLower(props.NamePrefix))
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<PROJECT_ID>", strings.ToLower(props.ProjectId))
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<ROLE>", props.Role)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<MO_DEFAULT_NS>", utils.CONFIG.Kubernetes.OwnNamespace)
 
 	return yamlTemplateString
 }

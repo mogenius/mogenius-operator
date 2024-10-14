@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/api/apps/v1"
+	v1job "k8s.io/api/batch/v1"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -16,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -98,6 +102,14 @@ func ProcessQueue() {
 func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sContainerDto, done chan structs.JobStateEnum, timeoutCtx *context.Context) {
 	job.Start()
 
+	// update secrets
+	r := ServiceUpdateRequest{
+		Project:   buildJob.Project,
+		Namespace: buildJob.Namespace,
+		Service:   buildJob.Service,
+	}
+	UpdateSecrets(r)
+
 	pwd, _ := os.Getwd()
 	workingDir := fmt.Sprintf("%s/temp/%s", pwd, punqUtils.NanoId())
 
@@ -120,22 +132,22 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// CLONE
 	cloneCmd := structs.CreateCommand(string(structs.PrefixGitClone), "Clone repository", job)
-	err := executeCmd(job, cloneCmd, structs.PrefixGitClone, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("git clone --progress -b %s --single-branch %s %s", *container.GitBranch, *container.GitRepository, workingDir))
+	err := gitmanager.CloneFast(*container.GitRepository, workingDir, *container.GitBranch)
+	cloneCmd.Success(job, cloneCmd.Message)
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixGitClone, err.Error())
+		cloneCmd.Fail(job, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
 
 	// TAG
-	getGitTagCmd := exec.Command("/bin/sh", "-c", "git tag --contains HEAD")
-	getGitTagCmd.Dir = workingDir
-	gitTagData, _ := getGitTagCmd.CombinedOutput()
+	gitTagData, _ := gitmanager.GetHeadTag(workingDir)
 	// in this case we dont care if the tag retrieval fails
 
 	// LS
 	lsCmd := structs.CreateCommand(string(structs.PrefixLs), "List contents", job)
-	err = executeCmd(job, lsCmd, structs.PrefixLs, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; echo 'ℹ️  Current directory contents:'; ls -lisa; echo '\nℹ️  Git Log: '; git log -1 --decorate; echo '\nℹ️  Following ARGs are available for Docker build:'; echo '%s'", workingDir, container.AvailableDockerBuildArgs(job.BuildId, string(gitTagData))))
+	err = executeCmd(job, lsCmd, structs.PrefixLs, buildJob, container, true, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; echo 'ℹ️  Current directory contents:'; ls -lisa; echo '\nℹ️  Following ARGs are available for Docker build:'; echo '%s'", workingDir, container.AvailableDockerBuildArgs(job.BuildId, string(gitTagData))))
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixLs, err.Error())
 		done <- structs.JobStateFailed
@@ -155,13 +167,16 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// BUILD
 	buildCmd := structs.CreateCommand(string(structs.PrefixBuild), "Building container", job)
-	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build --network host -f %s %s -t %s -t %s %s", workingDir, *container.DockerfileName, container.GetInjectDockerEnvVars(job.BuildId, string(gitTagData)), tagName, latestTagName, *container.DockerContext))
+	// add dynamic mo-... labels to image metadata
+	labels := fmt.Sprintf("--label \"mo-app=%s\" --label \"mo-ns=%s\" --label \"mo-service-id=%s\" --label \"mo-project-id=%s\"", buildJob.Service.ControllerName, buildJob.Namespace.Name, buildJob.Service.Id, buildJob.Project.Id)
+	err = executeCmd(job, buildCmd, structs.PrefixBuild, buildJob, container, true, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("cd %s; docker build %s --network host -f %s %s -t %s -t %s %s", workingDir, labels, *container.DockerfileName, container.GetInjectDockerEnvVars(job.NamespaceName, job.BuildId, string(gitTagData)), tagName, latestTagName, *container.DockerContext))
 	if err != nil {
 		ServiceLogger.Errorf("Error%s: %s", structs.PrefixBuild, err.Error())
 		done <- structs.JobStateFailed
 		return
 	}
 
+	//
 	// PUSH
 	pushCmd := structs.CreateCommand(string(structs.PrefixPush), "Pushing container", job)
 	err = executeCmd(job, pushCmd, structs.PrefixPush, buildJob, container, false, true, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("docker push %s", latestTagName))
@@ -177,23 +192,13 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		return
 	}
 
-	// create
-	if buildJob.CreateAndStart {
-		r := ServiceUpdateRequest{
-			Project:   buildJob.Project,
-			Namespace: buildJob.Namespace,
-			Service:   buildJob.Service,
-		}
-		UpdateService(r)
-	} else {
-		// UPDATE IMAGE
-		setImageCmd := structs.CreateCommand("setImage", "Deploying image", job)
-		err = updateContainerImage(job, setImageCmd, buildJob, container.Name, tagName)
-		if err != nil {
-			ServiceLogger.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
-			done <- structs.JobStateFailed
-			return
-		}
+	// Update controller
+	setImageCmd := structs.CreateCommand("update", "Deploying image", job)
+	err = updateController(job, setImageCmd, buildJob, container.Name, tagName, buildJob.CreateAndStart)
+	if err != nil {
+		ServiceLogger.Errorf("Error-%s: %s", "updateDeploymentImage", err.Error())
+		done <- structs.JobStateFailed
+		return
 	}
 }
 
@@ -556,7 +561,7 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 	}
 	for _, container := range job.Service.Containers {
 		for _, v := range container.EnvVars {
-			if v.Type == dtos.EnvVarKeyVault {
+			if v.Type == dtos.EnvVarKeyVault && v.Data.VaultType == dtos.EnvVarVaultTypeMogeniusVault {
 				line = strings.ReplaceAll(line, v.Value, "****")
 			}
 		}
@@ -564,34 +569,66 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 	return line
 }
 
-func updateContainerImage(job *structs.Job, reportCmd *structs.Command, buildJob *structs.BuildJob, containerName string, imageName string) error {
+func updateController(job *structs.Job, reportCmd *structs.Command, buildJob *structs.BuildJob, containerName string, imageName string, createAndStart bool) error {
 	startTime := time.Now()
 	if reportCmd != nil {
 		reportCmd.Start(job, reportCmd.Message)
 	}
 
 	var err error
+	updateService := false
+
 	switch buildJob.Service.Controller {
 	case dtos.CRON_JOB:
-		err = kubernetes.UpdateCronjobImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				var wg sync.WaitGroup
-				kubernetes.UpdateCronJob(job, buildJob.Namespace, buildJob.Service, &wg)
-				err = nil
-				wg.Wait()
+		var cronJob *v1job.CronJob
+		cronJob, err = kubernetes.GetCronJob(buildJob.Namespace.Name, buildJob.Service.ControllerName)
+		if err != nil && apierrors.IsNotFound(err) {
+			err = nil
+			if createAndStart {
+				updateService = true
+			}
+		} else {
+			if err == nil {
+				if cronJob.Spec.Suspend != nil && *cronJob.Spec.Suspend {
+					// cron job not running, update image
+					err = kubernetes.UpdateCronjobImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
+				} else {
+					// cron job running, update Service
+					updateService = true
+				}
+			}
+		}
+	case dtos.DEPLOYMENT:
+		var deployment *v1.Deployment
+		deployment, err = kubernetes.GetDeployment(buildJob.Namespace.Name, buildJob.Service.ControllerName)
+		if err != nil && apierrors.IsNotFound(err) {
+			err = nil
+			if createAndStart {
+				updateService = true
+			}
+		} else {
+			if err == nil {
+				if deployment.Spec.Paused || (deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 0) {
+					// deployment not running, update image
+					err = kubernetes.UpdateDeploymentImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
+				} else {
+					// deployment running, update Service
+					updateService = true
+				}
 			}
 		}
 	default:
-		err = kubernetes.UpdateDeploymentImage(buildJob.Namespace.Name, buildJob.Service.ControllerName, containerName, imageName)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				var wg sync.WaitGroup
-				kubernetes.UpdateDeployment(job, buildJob.Namespace, buildJob.Service, &wg)
-				err = nil
-				wg.Wait()
-			}
+		err = fmt.Errorf("Unsupported controller type: %s", buildJob.Service.Controller)
+	}
+
+	// update service
+	if updateService && err == nil {
+		r := ServiceUpdateRequest{
+			Project:   buildJob.Project,
+			Namespace: buildJob.Namespace,
+			Service:   buildJob.Service,
 		}
+		UpdateService(r)
 	}
 
 	elapsedTime := time.Since(startTime)
