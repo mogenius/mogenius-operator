@@ -8,6 +8,7 @@ on:
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager
   DOCKERFILE: Dockerfile
+  DOCKER_CONFIG: ./.docker
   HELMNAME: "mogenius-k8s-manager"
   HELMREPO: "mogenius/helm-k8s-manager"
 
@@ -39,6 +40,9 @@ jobs:
   build-amd64:
     needs: prepare
     runs-on: [self-hosted-ansible, X64]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -65,6 +69,9 @@ jobs:
   build-arm64-linux:
     needs: prepare
     runs-on: [self-hosted-ansible, ARM64]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -91,6 +98,9 @@ jobs:
   build-arm64:
     needs: prepare
     runs-on: [self-hosted-ansible, ARM64]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -112,11 +122,17 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
+      - name: Push ARM64 image
+        run: |
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
 
   build-armv7:
     needs: prepare
     runs-on: [self-hosted-ansible, ARM64]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -146,8 +162,12 @@ jobs:
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
 
   merge-images:
+    if: github.ref == 'refs/heads/main'
     needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
     runs-on: self-hosted-ansible
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -178,7 +198,7 @@ jobs:
           docker manifest push ${{ env.IMAGE_NAME }}:latest
 
   helm-chart:
-    # needs: [prepare]
+    if: github.ref == 'refs/heads/main'
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
     runs-on: self-hosted-ansible
     permissions:
