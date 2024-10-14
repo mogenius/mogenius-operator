@@ -14,7 +14,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: self-hosted
+    runs-on: self-hosted-ansible
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,10 +39,11 @@ jobs:
 
   build-amd64:
     needs: prepare
-    runs-on: [self-hosted-ansible, X64]
+    runs-on: [self-hosted, X64, XL]
     permissions:
       contents: read
       packages: write
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -56,7 +57,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push AMD64 image
+      - name: Build AMD64 image
         run: |
           GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
           COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -64,11 +65,15 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=amd64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-amd64 -t ${{ env.IMAGE_NAME }}:latest-amd64 .
+          
+      - name: Push AMD64-linux image
+        run: |
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
 
   build-arm64-linux:
     needs: prepare
-    runs-on: [self-hosted-ansible, ARM64]
+    runs-on: [self-hosted, ARM64, XL]
     permissions:
       contents: read
       packages: write
@@ -93,11 +98,15 @@ jobs:
           BUILD_TIMESTAMP=$(date -Iseconds)
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker build --platform=linux/arm64 -f ${{ env.DOCKERFILE }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux -t ${{ env.IMAGE_NAME }}:latest-arm64-linux .
+
+      - name: Push AMD64-linux image
+        run: |
+          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
 
   build-arm64:
     needs: prepare
-    runs-on: [self-hosted-ansible, ARM64]
+    runs-on: [self-hosted, ARM64, XL]
     permissions:
       contents: read
       packages: write
@@ -129,7 +138,7 @@ jobs:
 
   build-armv7:
     needs: prepare
-    runs-on: [self-hosted-ansible, ARM64]
+    runs-on: [self-hosted, ARM64, XL]
     permissions:
       contents: read
       packages: write
