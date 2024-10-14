@@ -659,19 +659,15 @@ func sendFile() {
 		if err != nil {
 			log.Error(err)
 		}
+		serverSendMutex.Unlock()
 		for {
+			serverSendMutex.Lock()
 			err := cluster.Connection.WriteMessage(websocket.BinaryMessage, buf)
 			if err != nil {
 				log.Error(err)
 			}
+			serverSendMutex.Unlock()
 		}
-		// TODO: This code is unreachable. The serverSendMutex.Unlock() is also never called within this branch.
-		//       I hesitate to delete this as this bug being unnoticed probably leads to a bigger story.
-		err = cluster.Connection.WriteMessage(websocket.TextMessage, []byte("######END_UPLOAD######;"))
-		if err != nil {
-			log.Error(err)
-		}
-		serverSendMutex.Unlock()
 	} else {
 		log.Error("reader cannot be nil")
 		log.Error("file size cannot be nil")
