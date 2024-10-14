@@ -7,6 +7,8 @@ import (
 )
 
 type CreateLabeledNetworkPolicyRequest struct {
+	ControllerName       string                          `json:"controllerName" validate:"required"`
+	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
 	NamespaceName        string                          `json:"namespaceName" validate:"required"`
 	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
 }
@@ -26,7 +28,7 @@ type CreateLabeledNetworkPolicyResponse struct {
 type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
 
 func CreateLabeledNetworkPolicy(data CreateLabeledNetworkPolicyRequest) CreateLabeledNetworkPolicyResponse {
-	err := kubernetes.CreateLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
+	err := kubernetes.EnsureLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
 	if err != nil {
 		return CreateLabeledNetworkPolicyResponse{
 			Status:  failure,

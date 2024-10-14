@@ -27,10 +27,6 @@ data:
       ports:
         - protocol: TCP
           port: 443
-    - name: imap
-      ports:
-        - protocol: TCP
-          port: 143
     - name: kafka
       ports:
         - protocol: TCP
@@ -40,7 +36,7 @@ data:
         - protocol: TCP
           port: 143
         - protocol: UDP
-          port:
+          port: 220
     - name: idap
       ports:
         - protocol: TCP
@@ -121,10 +117,6 @@ data:
       ports:
         - protocol: TCP
           port: 443
-    - name: imap
-      ports:
-        - protocol: TCP
-          port: 143
     - name: kafka
       ports:
         - protocol: TCP
@@ -134,7 +126,7 @@ data:
         - protocol: TCP
           port: 143
         - protocol: UDP
-          port:
+          port: 220
     - name: idap
       ports:
         - protocol: TCP

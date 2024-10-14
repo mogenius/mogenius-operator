@@ -29,7 +29,7 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Type:  dtos.Ingress,
 		Ports: ports1,
 	}
-	err := CreateLabeledNetworkPolicy(namespaceName, labelPolicy1)
+	err := EnsureLabeledNetworkPolicy(namespaceName, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
@@ -51,7 +51,7 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Ports: ports2,
 	}
 
-	err = CreateLabeledNetworkPolicy(namespaceName, labelPolicy2)
+	err = EnsureLabeledNetworkPolicy(namespaceName, labelPolicy2)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
