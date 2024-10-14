@@ -272,7 +272,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *structs.InterfaceStats {
 	result := &structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
 		if err != nil {
 			return err
 		}
@@ -312,7 +312,7 @@ func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, i
 func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[]structs.InterfaceStats {
 	result := &[]structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
 		if err != nil {
 			return err
 		}
@@ -336,7 +336,7 @@ func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[
 func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats {
 	result := &structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
 		if err != nil {
 			return err
 		}
@@ -360,7 +360,7 @@ func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *str
 func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]structs.PodStats {
 	result := &[]structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
 		if err != nil {
 			return err
 		}
@@ -384,7 +384,7 @@ func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]str
 func GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
 	result := []structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{namespace})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{namespace})
 		if err != nil {
 			return err
 		}
@@ -417,7 +417,7 @@ func GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
 func GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
 	result := &[]structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{namespace})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{namespace})
 		if err != nil {
 			return err
 		}
@@ -440,7 +440,7 @@ func GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
 func GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats {
 	result := []structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{namespace})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{namespace})
 		if err != nil {
 			return err
 		}
@@ -464,7 +464,7 @@ func GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.Interface
 func GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats {
 	result := &[]structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{namespace})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{namespace})
 		if err != nil {
 			return err
 		}
@@ -597,17 +597,14 @@ func cleanupStats() {
 	}
 }
 
-func GetSubBuckets(bucket *bolt.Bucket, bucketNames []string) (*bolt.Bucket, error) {
-	path := ""
-	for _, v := range bucketNames {
-		path += "/" + v
-		subBucket := bucket.Bucket([]byte(v))
-		if subBucket == nil {
-			return nil, fmt.Errorf("Bucket '%s' not found.", path)
-		}
-		// TODO: This ain't looping dawg. What to do?
-		return GetSubBuckets(subBucket, bucketNames[1:])
-
+func GetSubBucket(bucket *bolt.Bucket, bucketNames []string) (*bolt.Bucket, error) {
+	if len(bucketNames) == 0 {
+		return bucket, nil
 	}
-	return bucket, nil
+	bucketName := bucketNames[0]
+	subBucket := bucket.Bucket([]byte(bucketName))
+	if subBucket == nil {
+		return nil, fmt.Errorf("Bucket '%s' not found.", "/"+strings.Join(bucketNames, "/"))
+	}
+	return GetSubBucket(subBucket, bucketNames[1:])
 }
