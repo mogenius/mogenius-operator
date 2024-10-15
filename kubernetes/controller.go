@@ -153,9 +153,8 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					Name: fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name),
 				})
 			}
-
-			if specTemplate.Spec.Containers[index].Image == utils.IMAGE_PLACEHOLDER {
-				imgName := imageNameForContainer(namespace, service, container)
+			imgName := imageNameForContainer(namespace, service, container)
+			if specTemplate.Spec.Containers[index].Image == utils.IMAGE_PLACEHOLDER || specTemplate.Spec.Containers[index].Image != imgName {
 				if imgName != "" {
 					specTemplate.Spec.Containers[index].Image = imgName
 				} else {

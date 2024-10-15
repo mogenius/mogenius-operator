@@ -610,6 +610,7 @@ func updateController(job *structs.Job, reportCmd *structs.Command, buildJob *st
 	case dtos.DEPLOYMENT:
 		var deployment *v1.Deployment
 		deployment, err = kubernetes.GetDeployment(buildJob.Namespace.Name, buildJob.Service.ControllerName)
+		// if deployment not found. Create it if createAndStart is true
 		if err != nil && apierrors.IsNotFound(err) {
 			err = nil
 			if createAndStart {
