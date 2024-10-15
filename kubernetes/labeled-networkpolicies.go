@@ -11,8 +11,8 @@ import (
 	"sigs.k8s.io/yaml"
 
 	punqUtils "github.com/mogenius/punq/utils"
-	punq "github.com/mogenius/punq/kubernetes"
 
+	appsv1 "k8s.io/api/apps/v1"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,21 +27,49 @@ const (
 	PoliciesLabelPrefix string = "mo-netpol"
 )
 
-func AttachLabeledNetworkPolicy(controllerName string, 
-		controllerType dtos.K8sServiceControllerEnum, 
-		namespaceName string, 
-		labelPolicy dtos.K8sLabeledNetworkPolicyDto,
-	) {
-	err := EnsureLabeledNetworkPolicy(namespaceName, labelPolicy)
-	if err != nil {
-		K8sLogger.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
-	}
-	switch controllerType {
-	case dtos.Deployment:
-		deployment := punq.GetK8sDeployment(namespaceName, controllerName)
-	
+func AttachLabeledNetworkPolicy(controllerName string,
+	controllerType dtos.K8sServiceControllerEnum,
+	namespaceName string,
+	labelPolicy dtos.K8sLabeledNetworkPolicyDto,
+) error {
+	client := GetAppClient()
 	label := getNetworkPolicyLabel(labelPolicy)
-	// [label] = "true"
+
+	switch controllerType {
+	case dtos.DEPLOYMENT:
+		deployment, err := client.Deployments(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		deployment.Spec.Template.ObjectMeta.Labels[label] = "true"
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	case dtos.DAEMON_SET:
+		daemonset, err := client.DaemonSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		daemonset.Spec.Template.ObjectMeta.Labels[label] = "true"
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonset, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	case dtos.STATEFUL_SET:
+		statefulset, err := client.StatefulSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		statefulset.Spec.Template.ObjectMeta.Labels[label] = "true"
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulset, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	default:
+		return fmt.Errorf("unsupported controller type %s", controllerType)
+	}
+	return nil
 }
 
 func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabeledNetworkPolicyDto) error {

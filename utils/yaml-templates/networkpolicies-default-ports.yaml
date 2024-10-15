@@ -4,182 +4,76 @@ metadata:
   name: network-ports-config
   namespace: mogenius
 data:
-  egress: |
-    - name: dns
-      ports:
-        - protocol: TCP
-          port: 53
-        - protocol: UDP
-          port: 53
+  network-ports: |
+    - name: dns-TCP
+      port: 53
+      protocol: TCP
+    - name: dns-UDP
+      protocol: UDP
+      port: 53
     - name: ftp-control
-      ports:
-        - protocol: TCP
-          port: 21
+      protocol: TCP
+      port: 21
     - name: ftp
-      ports:
-        - protocol: TCP
-          port: 20
+      protocol: TCP
+      port: 20
     - name: http
-      ports:
-        - protocol: TCP
-          port: 80
+      protocol: TCP
+      port: 80
     - name: https
-      ports:
-        - protocol: TCP
-          port: 443
+      protocol: TCP
+      port: 443
     - name: kafka
-      ports:
-        - protocol: TCP
-          port: 9092
+      protocol: TCP
+      port: 9092
     - name: imap
-      ports:
-        - protocol: TCP
-          port: 143
-        - protocol: UDP
-          port: 220
-    - name: idap
-      ports:
-        - protocol: TCP
-          port: 389
-        - protocol: UDP
-          port: 389
-    - name: idaps
-      ports:
-        - protocol: TCP
-          port: 636
-        - protocol: UDP
-          port: 636
-    - name: mongodb
-      ports:
-        - protocol: TCP
-          port: 27017
-    - name: ms-sql
-      ports:
-        - protocol: TCP
-          port: 1433
-    - name: mysql
-      ports:
-        - protocol: TCP
-          port: 3306
-    - name: nfs
-      ports:
-        - protocol: TCP
-          port: 111
-    - name: ntp
-      ports:
-        - protocol: UDP
-          port: 123
-    - name: oracle-db
-      ports:
-        - protocol: TCP
-          port: 1521
-    - name: pop3
-      ports:
-        - protocol: TCP
-          port: 110
-    - name: postgres
-      ports:
-        - protocol: TCP
-          port: 5432
-    - name: redis
-      ports:
-        - protocol: TCP
-          port: 6379
-    - name: smtp
-      ports:
-        - protocol: TCP
-          port: 25
-    - name: ssh
-      ports:
-        - protocol: TCP
-          port: 22
-
-  ingress: |
-    - name: dns
-      ports:
-        - protocol: TCP
-          port: 53
-        - protocol: UDP
-          port: 53
-    - name: ftp-control
-      ports:
-        - protocol: TCP
-          port: 21
-    - name: ftp
-      ports:
-        - protocol: TCP
-          port: 20
-    - name: http
-      ports:
-        - protocol: TCP
-          port: 80
-    - name: https
-      ports:
-        - protocol: TCP
-          port: 443
-    - name: kafka
-      ports:
-        - protocol: TCP
-          port: 9092
+      protocol: TCP
+      port: 143
     - name: imap
-      ports:
-        - protocol: TCP
-          port: 143
-        - protocol: UDP
-          port: 220
-    - name: idap
-      ports:
-        - protocol: TCP
-          port: 389
-        - protocol: UDP
-          port: 389
-    - name: idaps
-      ports:
-        - protocol: TCP
-          port: 636
-        - protocol: UDP
-          port: 636
+      protocol: UDP
+      port: 220
+    - name: idap-TCP
+      protocol: TCP
+      port: 389
+    - name: idap-UDP
+      protocol: UDP
+      port: 389
+    - name: idaps-TCP
+      protocol: TCP
+      port: 636
+    - name: idaps-UDP
+      protocol: UDP
+      port: 636
     - name: mongodb
-      ports:
-        - protocol: TCP
-          port: 27017
+      protocol: TCP
+      port: 27017
     - name: ms-sql
-      ports:
-        - protocol: TCP
-          port: 1433
+      protocol: TCP
+      port: 1433
     - name: mysql
-      ports:
-        - protocol: TCP
-          port: 3306
+      protocol: TCP
+      port: 3306
     - name: nfs
-      ports:
-        - protocol: TCP
-          port: 111
+      protocol: TCP
+      port: 111
     - name: ntp
-      ports:
-        - protocol: UDP
-          port: 123
+      protocol: UDP
+      port: 123
     - name: oracle-db
-      ports:
-        - protocol: TCP
-          port: 1521
+      protocol: TCP
+      port: 1521
     - name: pop3
-      ports:
-        - protocol: TCP
-          port: 110
+      protocol: TCP
+      port: 110
     - name: postgres
-      ports:
-        - protocol: TCP
-          port: 5432
+      protocol: TCP
+      port: 5432
     - name: redis
-      ports:
-        - protocol: TCP
-          port: 6379
+      protocol: TCP
+      port: 6379
     - name: smtp
-      ports:
-        - protocol: TCP
-          port: 25
+      protocol: TCP
+      port: 25
     - name: ssh
-      ports:
-        - protocol: TCP
-          port: 22
+      protocol: TCP
+      port: 22
