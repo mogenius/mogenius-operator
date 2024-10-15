@@ -238,42 +238,6 @@ const (
 	PAT_LIST_VOLUMESNAPSHOTS             string = "list/volumesnapshots"
 	PAT_LIST_RESOURCEQUOTAS              string = "list/resourcequotas"
 
-	// PAT_CREATE_NAMESPACE  string = "create/namespace"
-	// PAT_CREATE_DEPLOYMENT string = "create/deployment"
-	// PAT_CREATE_SERVICE                     string = "create/service"
-	// PAT_CREATE_POD                         string = "create/pod"
-	// PAT_CREATE_INGRESS                     string = "create/ingress"
-	// PAT_CREATE_CONFIGMAP string = "create/configmap"
-	// PAT_CREATE_SECRET                      string = "create/secret"
-	// PAT_CREATE_DAEMONSET                   string = "create/daemonset"
-	// PAT_CREATE_STATEFULSET                 string = "create/statefulset"
-	// PAT_CREATE_JOB                         string = "create/job"
-	// PAT_CREATE_CRONJOB                     string = "create/cronjob"
-	// PAT_CREATE_REPLICASET                  string = "create/replicaset"
-	// PAT_CREATE_PERSISTENT_VOLUME           string = "create/persistent_volume"
-	// PAT_CREATE_PERSISTENT_VOLUME_CLAIM     string = "create/persistent_volume_claim"
-	// PAT_CREATE_HORIZONTAL_POD_AUTOSCALER   string = "create/horizontal_pod_autoscaler"
-	// PAT_CREATE_CERTIFICATE                 string = "create/certificate"
-	// PAT_CREATE_CERTIFICATEREQUEST          string = "create/certificaterequest"
-	// PAT_CREATE_ORDER                       string = "create/order"
-	// PAT_CREATE_ISSUER                      string = "create/issuer"
-	// PAT_CREATE_CLUSTERISSUER               string = "create/clusterissuer"
-	// PAT_CREATE_SERVICE_ACCOUNT             string = "create/service_account"
-	// PAT_CREATE_ROLE                        string = "create/role"
-	// PAT_CREATE_ROLE_BINDING                string = "create/role_binding"
-	// PAT_CREATE_CLUSTER_ROLE                string = "create/cluster_role"
-	// PAT_CREATE_CLUSTER_ROLE_BINDING        string = "create/cluster_role_binding"
-	// PAT_CREATE_VOLUME_ATTACHMENT           string = "create/volume_attachment"
-	PAT_ATTACH_LABELED_NETWORK_POLICY     string = "attach/labeled_network_policy"
-	PAT_LIST_LABELED_NETWORK_POLICY_PORTS string = "list/labeled_network_policy_ports"
-	// PAT_CREATE_STORAGE_CLASS               string = "create/storage_class"
-	// PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS string = "create/custom_resource_definitions"
-	// PAT_CREATE_ENDPOINTS                   string = "create/endpoints"
-	// PAT_CREATE_LEASES                      string = "create/leases"
-	// PAT_CREATE_PRIORITYCLASSES             string = "create/priorityclasses"
-	// PAT_CREATE_VOLUMESNAPSHOTS             string = "create/volumesnapshots"
-	// PAT_CREATE_RESOURCEQUOTAS              string = "create/resourcequotas"
-
 	PAT_DESCRIBE_NAMESPACE                   string = "describe/namespace"
 	PAT_DESCRIBE_DEPLOYMENT                  string = "describe/deployment"
 	PAT_DESCRIBE_SERVICE                     string = "describe/service"
@@ -447,11 +411,23 @@ const (
 
 	PAT_FILES_UPLOAD string = "files/upload"
 
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// External Secrets
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	PAT_EXTERNAL_SECRET_STORE_CREATE           string = "external-secret-store/create"
 	PAT_EXTERNAL_SECRET_STORE_LIST             string = "external-secret-store/list"
 	PAT_EXTERNAL_SECRET_STORE_DELETE           string = "external-secret-store/delete"
 	PAT_EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS string = "external-secret/list-available-secrets"
 
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// Labeled Network Policies
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	PAT_ATTACH_LABELED_NETWORK_POLICY     string = "attach/labeled_network_policy"
+	PAT_LIST_LABELED_NETWORK_POLICY_PORTS string = "list/labeled_network_policy_ports"
+
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// Cronjobs
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	PAT_LIST_CRONJOB_JOBS string = "list/cronjob-jobs"
 )
 
