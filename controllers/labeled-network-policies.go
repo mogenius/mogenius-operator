@@ -58,7 +58,7 @@ func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
 		},
 		{
 			Name:     "mogenius-policy-098",
-			Type:     dtos.Egress,
+			Type:     dtos.Ingress,
 			Port:     13333,
 			PortType: dtos.PortTypeSCTP,
 		},
