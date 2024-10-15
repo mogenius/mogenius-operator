@@ -264,7 +264,7 @@ const (
 	// PAT_CREATE_CLUSTER_ROLE                string = "create/cluster_role"
 	// PAT_CREATE_CLUSTER_ROLE_BINDING        string = "create/cluster_role_binding"
 	// PAT_CREATE_VOLUME_ATTACHMENT           string = "create/volume_attachment"
-	PAT_CREATE_LABELED_NETWORK_POLICY     string = "create/labeled_network_policy"
+	PAT_ATTACH_LABELED_NETWORK_POLICY     string = "attach/labeled_network_policy"
 	PAT_LIST_LABELED_NETWORK_POLICY_PORTS string = "list/labeled_network_policy_ports"
 	// PAT_CREATE_STORAGE_CLASS               string = "create/storage_class"
 	// PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS string = "create/custom_resource_definitions"
@@ -682,7 +682,7 @@ var COMMAND_REQUESTS = []string{
 	// PAT_CREATE_CLUSTER_ROLE,
 	// PAT_CREATE_CLUSTER_ROLE_BINDING,
 	// PAT_CREATE_VOLUME_ATTACHMENT,
-	PAT_CREATE_LABELED_NETWORK_POLICY,
+	PAT_ATTACH_LABELED_NETWORK_POLICY,
 	PAT_LIST_LABELED_NETWORK_POLICY_PORTS,
 	// PAT_CREATE_STORAGE_CLASS,
 	// PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS,

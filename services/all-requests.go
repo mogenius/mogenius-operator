@@ -2104,13 +2104,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		getResult, _ := punq.GetVolumeAttachment(data.ResourceName, nil)
 		return getResult
-	case structs.PAT_CREATE_LABELED_NETWORK_POLICY:
-		data := controllers.CreateLabeledNetworkPolicyRequest{}
+	case structs.PAT_ATTACH_LABELED_NETWORK_POLICY:
+		data := controllers.AttachLabeledNetworkPolicyRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return controllers.CreateLabeledNetworkPolicy(data)
+		return controllers.AttachLabeledNetworkPolicy(data)
 	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
 		return controllers.ListLabeledNetworkPolicyPorts()
 	case structs.PAT_GET_NETWORK_POLICY:

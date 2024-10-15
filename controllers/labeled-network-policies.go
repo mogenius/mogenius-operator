@@ -6,7 +6,7 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 )
 
-type CreateLabeledNetworkPolicyRequest struct {
+type AttachLabeledNetworkPolicyRequest struct {
 	ControllerName       string                          `json:"controllerName" validate:"required"`
 	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
 	NamespaceName        string                          `json:"namespaceName" validate:"required"`
@@ -20,30 +20,30 @@ const (
 	failure status = "failure"
 )
 
-type CreateLabeledNetworkPolicyResponse struct {
+type AttachLabeledNetworkPolicyResponse struct {
 	Status  status `json:"status"`
 	Message string `json:"message"`
 }
 
 type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
 
-func CreateLabeledNetworkPolicy(data CreateLabeledNetworkPolicyRequest) CreateLabeledNetworkPolicyResponse {
+func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) AttachLabeledNetworkPolicyResponse {
 	err := kubernetes.EnsureLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
 	if err != nil {
-		return CreateLabeledNetworkPolicyResponse{
+		return AttachLabeledNetworkPolicyResponse{
 			Status:  failure,
 			Message: fmt.Sprintf("Failed to create network policy, err: %v", err.Error()),
 		}
 	}
 	err = kubernetes.AttachLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
 	if err != nil {
-		return CreateLabeledNetworkPolicyResponse{
+		return AttachLabeledNetworkPolicyResponse{
 			Status:  failure,
 			Message: fmt.Sprintf("Failed to attach network policy, err: %v", err.Error()),
 		}
 	}
 
-	return CreateLabeledNetworkPolicyResponse{
+	return AttachLabeledNetworkPolicyResponse{
 		Status: success,
 	}
 }
