@@ -13,6 +13,13 @@ type AttachLabeledNetworkPolicyRequest struct {
 	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
 }
 
+type DetachLabeledNetworkPolicyRequest struct {
+	ControllerName       string                          `json:"controllerName" validate:"required"`
+	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
+	NamespaceName        string                          `json:"namespaceName" validate:"required"`
+	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
+}
+
 type status string
 
 const (
@@ -25,7 +32,26 @@ type AttachLabeledNetworkPolicyResponse struct {
 	Message string `json:"message"`
 }
 
+type DetachLabeledNetworkPolicyResponse struct {
+	Status  status `json:"status"`
+	Message string `json:"message"`
+}
+
 type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
+
+func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) DetachLabeledNetworkPolicyResponse {
+	err := kubernetes.DetachLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
+	if err != nil {
+		return DetachLabeledNetworkPolicyResponse{
+			Status:  failure,
+			Message: fmt.Sprintf("Failed to detach network policy, err: %v", err.Error()),
+		}
+	}
+
+	return DetachLabeledNetworkPolicyResponse{
+		Status: success,
+	}
+}
 
 func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) AttachLabeledNetworkPolicyResponse {
 	err := kubernetes.EnsureLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)

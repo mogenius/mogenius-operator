@@ -2111,6 +2111,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return controllers.AttachLabeledNetworkPolicy(data)
+	case structs.PAT_DETACH_LABELED_NETWORK_POLICY:
+		data := controllers.DetachLabeledNetworkPolicyRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return controllers.DetachLabeledNetworkPolicy(data)
 	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
 		return controllers.ListLabeledNetworkPolicyPorts()
 	case structs.PAT_GET_NETWORK_POLICY:

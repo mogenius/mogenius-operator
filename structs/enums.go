@@ -423,6 +423,7 @@ const (
 	// Labeled Network Policies
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	PAT_ATTACH_LABELED_NETWORK_POLICY     string = "attach/labeled_network_policy"
+	PAT_DETACH_LABELED_NETWORK_POLICY     string = "detach/labeled_network_policy"
 	PAT_LIST_LABELED_NETWORK_POLICY_PORTS string = "list/labeled_network_policy_ports"
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -632,42 +633,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_LIST_VOLUMESNAPSHOTS,
 	PAT_LIST_RESOURCEQUOTAS,
 
-	// PAT_CREATE_NAMESPACE,
-	// PAT_CREATE_DEPLOYMENT,
-	// PAT_CREATE_SERVICE,
-	// PAT_CREATE_POD,
-	// PAT_CREATE_INGRESS,
-	// PAT_CREATE_CONFIGMAP,
-	// PAT_CREATE_SECRET,
-	// PAT_CREATE_DAEMONSET,
-	// PAT_CREATE_STATEFULSET,
-	// PAT_CREATE_JOB,
-	// PAT_CREATE_CRONJOB,
-	// PAT_CREATE_REPLICASET,
-	// PAT_CREATE_PERSISTENT_VOLUME,
-	// PAT_CREATE_PERSISTENT_VOLUME_CLAIM,
-	// PAT_CREATE_HORIZONTAL_POD_AUTOSCALER,
-	// PAT_CREATE_CERTIFICATE,
-	// PAT_CREATE_CERTIFICATEREQUEST,
-	// PAT_CREATE_ORDER,
-	// PAT_CREATE_ISSUER,
-	// PAT_CREATE_CLUSTERISSUER,
-	// PAT_CREATE_SERVICE_ACCOUNT,
-	// PAT_CREATE_ROLE,
-	// PAT_CREATE_ROLE_BINDING,
-	// PAT_CREATE_CLUSTER_ROLE,
-	// PAT_CREATE_CLUSTER_ROLE_BINDING,
-	// PAT_CREATE_VOLUME_ATTACHMENT,
-	PAT_ATTACH_LABELED_NETWORK_POLICY,
-	PAT_LIST_LABELED_NETWORK_POLICY_PORTS,
-	// PAT_CREATE_STORAGE_CLASS,
-	// PAT_CREATE_CUSTOM_RESOURCE_DEFINITIONS,
-	// PAT_CREATE_ENDPOINTS,
-	// PAT_CREATE_LEASES,
-	// PAT_CREATE_PRIORITYCLASSES,
-	// PAT_CREATE_VOLUMESNAPSHOTS,
-	// PAT_CREATE_RESOURCEQUOTAS,
-
 	PAT_DESCRIBE_NAMESPACE,
 	PAT_DESCRIBE_DEPLOYMENT,
 	PAT_DESCRIBE_SERVICE,
@@ -839,11 +804,24 @@ var COMMAND_REQUESTS = []string{
 
 	PAT_LOG_LIST_ALL,
 
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// External Secrets
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	PAT_EXTERNAL_SECRET_STORE_CREATE,
 	PAT_EXTERNAL_SECRET_STORE_LIST,
 	PAT_EXTERNAL_SECRET_STORE_DELETE,
 	PAT_EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS,
 
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// Labeled Network Policies
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	PAT_ATTACH_LABELED_NETWORK_POLICY,
+	PAT_ATTACH_LABELED_NETWORK_POLICY,
+	PAT_LIST_LABELED_NETWORK_POLICY_PORTS,
+
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// Cronjobs
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	PAT_LIST_CRONJOB_JOBS,
 }
 
