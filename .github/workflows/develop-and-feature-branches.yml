@@ -299,18 +299,3 @@ jobs:
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
-
-      # - name: Grype Vulnerability Scan
-      #   run: |
-      #     VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-      #     curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-      #     curl -sSfL https://raw.githubusercontent.com/mogenius/docs/dev/grype.yaml > grype.yaml
-      #     grype -c grype.yaml --add-cpes-if-none --fail-on critical ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION
-
-      # currently it is not possible to seperate build and push when using buildx
-      # https://github.com/docker/buildx/issues/1152
-      # - name: Docker Build & Push
-      #   run: |
-      #     VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-      #     # docker image push ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION; docker image push ghcr.io/mogenius/mogenius-k8s-manager-dev:latest
-      #     docker buildx -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest --push
