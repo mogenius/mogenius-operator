@@ -2347,7 +2347,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
 		return controllers.ListLabeledNetworkPolicyPorts()
 	case structs.PAT_REMOVE_CONFLICTING_NETWORK_POLICIES:
-		return
+		data := controllers.RemoveConflictingNetworkPoliciesRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return controllers.RemoveConflictingNetworkPolicies(data)
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -103,6 +103,16 @@ type RemoveConflictingNetworkPoliciesResponse struct {
 	Message string `json:"message"`
 }
 
-func RemoveConflictingNetworkPolicies(data RemoveConflictingNetworkPoliciesRequest) error {
-	return kubernetes.RemoveAllNetworkPolicies(data.NamespaceName)
+func RemoveConflictingNetworkPolicies(data RemoveConflictingNetworkPoliciesRequest) RemoveConflictingNetworkPoliciesResponse {
+	err := kubernetes.RemoveAllNetworkPolicies(data.NamespaceName)
+	if err != nil {
+		return RemoveConflictingNetworkPoliciesResponse{
+			Status:  failure,
+			Message: fmt.Sprintf("Failed to delete all network policies, err: %v", err.Error()),
+		}
+	}
+
+	return RemoveConflictingNetworkPoliciesResponse{
+		Status: success,
+	}
 }
