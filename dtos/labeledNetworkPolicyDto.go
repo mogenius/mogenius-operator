@@ -8,13 +8,9 @@ const (
 	Ingress K8sNetworkPolicyType = "ingress"
 )
 
-type K8sLabeledPortDto struct {
-	Port     uint16       `json:"port" validate:"required"`
-	PortType PortTypeEnum `json:"portType" validate:"required"`
-}
-
 type K8sLabeledNetworkPolicyDto struct {
-	Name  string               `json:"name" validate:"required"`
-	Type  K8sNetworkPolicyType `json:"type" validate:"required"`
-	Ports []K8sLabeledPortDto  `json:"ports" validate:"required"`
+	Name     string               `json:"name" validate:"required"`
+	Type     K8sNetworkPolicyType `json:"type" validate:"required"`
+	Port     uint16               `json:"port" validate:"required"`
+	PortType PortTypeEnum         `json:"portType" validate:"required"`
 }

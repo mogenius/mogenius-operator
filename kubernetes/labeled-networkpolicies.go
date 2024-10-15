@@ -12,7 +12,6 @@ import (
 
 	punqUtils "github.com/mogenius/punq/utils"
 
-	appsv1 "k8s.io/api/apps/v1"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,43 +85,42 @@ func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabele
 	// this label is marking all netpols that "need" a deny-all rule
 	netpol.ObjectMeta.Labels = map[string]string{MarkerLabel: "true"}
 
-	for _, aPort := range labelPolicy.Ports {
-		port := intstr.FromInt32(int32(aPort.Port))
-		var proto v1Core.Protocol
+	port := intstr.FromInt32(int32(labelPolicy.Port))
+	var proto v1Core.Protocol
 
-		switch aPort.PortType {
-		case "UDP":
-			proto = v1Core.ProtocolUDP
-		case "SCTP":
-			proto = v1Core.ProtocolSCTP
-		default:
-			proto = v1Core.ProtocolTCP
-		}
-
-		if labelPolicy.Type == dtos.Ingress {
-			var rule v1.NetworkPolicyIngressRule = v1.NetworkPolicyIngressRule{}
-			rule.From = append(rule.From, v1.NetworkPolicyPeer{
-				IPBlock: &v1.IPBlock{
-					CIDR: "0.0.0.0/0",
-				},
-			})
-			rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
-				Port: &port, Protocol: &proto,
-			})
-			netpol.Spec.Ingress = append(netpol.Spec.Ingress, rule)
-		} else {
-			var rule v1.NetworkPolicyEgressRule = v1.NetworkPolicyEgressRule{}
-			rule.To = append(rule.To, v1.NetworkPolicyPeer{
-				IPBlock: &v1.IPBlock{
-					CIDR: "0.0.0.0/0",
-				},
-			})
-			rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
-				Port: &port, Protocol: &proto,
-			})
-			netpol.Spec.Egress = append(netpol.Spec.Egress, rule)
-		}
+	switch labelPolicy.PortType {
+	case "UDP":
+		proto = v1Core.ProtocolUDP
+	case "SCTP":
+		proto = v1Core.ProtocolSCTP
+	default:
+		proto = v1Core.ProtocolTCP
 	}
+
+	if labelPolicy.Type == dtos.Ingress {
+		var rule v1.NetworkPolicyIngressRule = v1.NetworkPolicyIngressRule{}
+		rule.From = append(rule.From, v1.NetworkPolicyPeer{
+			IPBlock: &v1.IPBlock{
+				CIDR: "0.0.0.0/0",
+			},
+		})
+		rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
+			Port: &port, Protocol: &proto,
+		})
+		netpol.Spec.Ingress = append(netpol.Spec.Ingress, rule)
+	} else {
+		var rule v1.NetworkPolicyEgressRule = v1.NetworkPolicyEgressRule{}
+		rule.To = append(rule.To, v1.NetworkPolicyPeer{
+			IPBlock: &v1.IPBlock{
+				CIDR: "0.0.0.0/0",
+			},
+		})
+		rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
+			Port: &port, Protocol: &proto,
+		})
+		netpol.Spec.Egress = append(netpol.Spec.Egress, rule)
+	}
+
 	err := ensureDenyAllRule(namespaceName, netpol, labelPolicy)
 	if err != nil {
 		return err
@@ -198,7 +196,6 @@ func InitNetworkPolicyConfigMap() error {
 	configMap := readDefaultConfigMap()
 
 	return EnsureConfigMapExists(configMap.Namespace, *configMap)
-	// return WriteConfigMap(configMap.Namespace, configMap.Name, yamlString, configMap.Labels)
 }
 
 func readDefaultConfigMap() *v1Core.ConfigMap {
@@ -214,42 +211,30 @@ func readDefaultConfigMap() *v1Core.ConfigMap {
 	return &configMap
 }
 
-type Port struct {
-	Protocol string `yaml:"protocol"`
-	Port     int    `yaml:"port"`
-}
-
 type NetworkPolicy struct {
-	Name  string `yaml:"name"`
-	Ports []Port `yaml:"ports"`
+	Name     string `yaml:"name"`
+	Protocol string `yaml:"protocol"`
+	Port     uint16 `yaml:"port"`
 }
 
 func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicyDto {
 	configMap := readDefaultConfigMap()
-
 	ClusterConfigMap := GetConfigMap(configMap.Namespace, configMap.Name)
 
 	var result []dtos.K8sLabeledNetworkPolicyDto
-	for key, valueYaml := range ClusterConfigMap.Data {
-		var policies []NetworkPolicy
-		err := yaml.Unmarshal([]byte(valueYaml), &policies)
-		if err != nil {
-			K8sLogger.Errorf("Error unmarshalling YAML: %s\n", err)
-		}
-		for _, policy := range policies {
-			for _, port := range policy.Ports {
-				result = append(result, dtos.K8sLabeledNetworkPolicyDto{
-					Name: policy.Name,
-					Type: dtos.K8sNetworkPolicyType(key),
-					Ports: []dtos.K8sLabeledPortDto{
-						{
-							Port:     uint16(port.Port),
-							PortType: dtos.PortTypeEnum(port.Protocol),
-						},
-					},
-				})
-			}
-		}
+	var policies []NetworkPolicy
+	policiesRaw := ClusterConfigMap.Data["network-ports"]
+	err := yaml.Unmarshal([]byte(policiesRaw), &policies)
+	if err != nil {
+		K8sLogger.Errorf("Error unmarshalling YAML: %s\n", err)
+	}
+	for _, policy := range policies {
+		result = append(result, dtos.K8sLabeledNetworkPolicyDto{
+			Name:     policy.Name,
+			Type:     dtos.Ingress, // TODO should maybe be removed
+			Port:     uint16(policy.Port),
+			PortType: dtos.PortTypeEnum(policy.Protocol),
+		})
 	}
 
 	return result

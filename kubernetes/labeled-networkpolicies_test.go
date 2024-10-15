@@ -13,42 +13,22 @@ const (
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	var namespaceName = "mogenius"
 
-	var ports1 = []dtos.K8sLabeledPortDto{
-		{
-			Port:     80,
-			PortType: dtos.PortTypeHTTPS,
-		},
-		{
-			Port:     443,
-			PortType: dtos.PortTypeTCP,
-		},
-	}
-
 	var labelPolicy1 = dtos.K8sLabeledNetworkPolicyDto{
-		Name:  PolicyName1,
-		Type:  dtos.Ingress,
-		Ports: ports1,
+		Name:     PolicyName1,
+		Type:     dtos.Ingress,
+		Port:     80,
+		PortType: dtos.PortTypeHTTPS,
 	}
 	err := EnsureLabeledNetworkPolicy(namespaceName, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
 
-	var ports2 = []dtos.K8sLabeledPortDto{
-		{
-			Port:     13333,
-			PortType: dtos.PortTypeSCTP,
-		},
-		{
-			Port:     59999,
-			PortType: dtos.PortTypeUDP,
-		},
-	}
-
 	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
-		Name:  PolicyName2,
-		Type:  dtos.Egress,
-		Ports: ports2,
+		Name:     PolicyName2,
+		Type:     dtos.Egress,
+		Port:     59999,
+		PortType: dtos.PortTypeUDP,
 	}
 
 	err = EnsureLabeledNetworkPolicy(namespaceName, labelPolicy2)
@@ -82,5 +62,16 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 	if len(ports) == 0 {
 		t.Errorf("Error reading network policy ports")
 	}
-	// t.Logf("Ports: %v\n", ports)
+	// check if ports contains a imap named port fo egress
+	var found bool
+	for _, port := range ports {
+		if port.Name == "imap" && port.Type == dtos.Ingress && port.Port == 143 && port.PortType == dtos.PortTypeTCP {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("Error reading network policy ports")
+	}
+
 }

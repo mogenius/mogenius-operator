@@ -28,13 +28,21 @@ type CreateLabeledNetworkPolicyResponse struct {
 type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
 
 func CreateLabeledNetworkPolicy(data CreateLabeledNetworkPolicyRequest) CreateLabeledNetworkPolicyResponse {
-	err := kubernetes.EnsureLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
+	err := kubernetes.EnsureLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
 	if err != nil {
 		return CreateLabeledNetworkPolicyResponse{
 			Status:  failure,
 			Message: fmt.Sprintf("Failed to create network policy, err: %v", err.Error()),
 		}
 	}
+	err = kubernetes.AttachLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
+	if err != nil {
+		return CreateLabeledNetworkPolicyResponse{
+			Status:  failure,
+			Message: fmt.Sprintf("Failed to attach network policy, err: %v", err.Error()),
+		}
+	}
+
 	return CreateLabeledNetworkPolicyResponse{
 		Status: success,
 	}
@@ -43,28 +51,16 @@ func CreateLabeledNetworkPolicy(data CreateLabeledNetworkPolicyRequest) CreateLa
 func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
 	return []dtos.K8sLabeledNetworkPolicyDto{
 		{
-			Name: "mogenius-policy-123",
-			Type: dtos.Ingress,
-			Ports: []dtos.K8sLabeledPortDto{
-				{
-					Port:     80,
-					PortType: dtos.PortTypeHTTPS,
-				},
-				{
-					Port:     443,
-					PortType: dtos.PortTypeTCP,
-				},
-			},
+			Name:     "mogenius-policy-123",
+			Type:     dtos.Ingress,
+			Port:     80,
+			PortType: dtos.PortTypeHTTPS,
 		},
 		{
-			Name: "mogenius-policy-098",
-			Type: dtos.Egress,
-			Ports: []dtos.K8sLabeledPortDto{
-				{
-					Port:     13333,
-					PortType: dtos.PortTypeSCTP,
-				},
-			},
+			Name:     "mogenius-policy-098",
+			Type:     dtos.Egress,
+			Port:     13333,
+			PortType: dtos.PortTypeSCTP,
 		},
 	}
 }
