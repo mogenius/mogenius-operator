@@ -79,10 +79,13 @@ spec:
             name: "external-secrets-sa"
 `
 	// prereq:
-	ApplyServiceAccount("external-secrets-sa", "default", nil)
+	err := ApplyServiceAccount("external-secrets-sa", "default", nil)
+	if err != nil {
+		t.Error(err)
+	}
 
 	// CREATE
-	err := ApplyResource(yamlData, true)
+	err = ApplyResource(yamlData, true)
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
@@ -121,5 +124,8 @@ spec:
 		logger.Log.Info("Resource deleted ✅")
 	}
 
-	DeleteServiceAccount("external-secrets-sa", "default")
+	err = DeleteServiceAccount("external-secrets-sa", "default")
+	if err != nil {
+		t.Error(err)
+	}
 }

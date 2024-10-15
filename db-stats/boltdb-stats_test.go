@@ -38,7 +38,10 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	if !bucketExists(tx, stat.Namespace) {
 		log.Printf("Bucket for namespace %s does not exist and should be created once the stat is added", stat.Namespace)
 	}
-	tx.Rollback()
+	err = tx.Rollback()
+	if err != nil {
+		t.Error(err)
+	}
 	AddInterfaceStatsToDb(stat)
 
 	tx, err = dbStats.Begin(false)
@@ -48,7 +51,10 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	if !bucketExists(tx, stat.Namespace) {
 		t.Errorf("Bucket for namespace %s does not exist but should have been created!", stat.Namespace)
 	}
-	tx.Rollback()
+	err = tx.Rollback()
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
@@ -74,7 +80,12 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error beginning transaction: %v", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		err := tx.Rollback()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	//check if the data points are limited to 3
 	bucket := getNestedBucket(tx, []string{"TESTNS", "TESTCONTROLLER"})
@@ -86,24 +97,6 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 		t.Errorf("Expected %d data points but got %d", utils.CONFIG.Stats.MaxDataPoints, bucket.Stats().KeyN)
 	}
 
-}
-
-func readSubBucketContents(tx *bolt.Tx, bucketChain []string) {
-	bucket := getNestedBucket(tx, bucketChain)
-	if bucket == nil {
-		log.Printf("Bucket %v does not exist", bucketChain)
-		// return nil
-	}
-
-	err := bucket.ForEach(func(k, v []byte) error {
-		log.Printf("Key: %s, Value: %s", k, v)
-		return nil
-	})
-	if err != nil {
-		log.Printf("Error reading bucket contents: %v", err)
-		// return err
-	}
-	// return nil
 }
 
 func getNestedBucket(tx *bolt.Tx, bucketChain []string) *bolt.Bucket {
@@ -124,10 +117,7 @@ func getNestedBucket(tx *bolt.Tx, bucketChain []string) *bolt.Bucket {
 
 func bucketExists(tx *bolt.Tx, bucketName string) bool {
 	bucket := getNestedBucket(tx, []string{bucketName})
-	if bucket == nil {
-		return false
-	}
-	return true
+	return bucket != nil
 }
 
 func generateRandomInterfaceStats() structs.InterfaceStats {

@@ -558,7 +558,7 @@ func UpdateStateInDb(buildJob structs.BuildJob, newState structs.JobStateEnum) {
 		errStr := fmt.Sprintf("Error updating state for build '%d'. REASON: %s", buildJob.BuildId, err.Error())
 		dblogger.Error(errStr)
 	}
-	dblogger.Infof(fmt.Sprintf("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState))
+	dblogger.Infof("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState)
 }
 
 // func PositionInQueueFromDb(buildId uint64) int {

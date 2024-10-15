@@ -57,7 +57,10 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 				continue
 			}
 			if existingIngress != nil {
-				ingressClient.Delete(context.TODO(), containerIngressName, metav1.DeleteOptions{})
+				err := ingressClient.Delete(context.TODO(), containerIngressName, metav1.DeleteOptions{})
+				if err != nil {
+					K8sLogger.Error(err)
+				}
 			}
 		}
 		ingressName := INGRESS_PREFIX + "-" + service.ControllerName //  + "-" + container.Name
@@ -177,7 +180,10 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			}
 		} else {
 			if len(ingressToUpdate.Spec.Rules) <= 0 {
-				ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+				if err != nil {
+					K8sLogger.Error(err)
+				}
 				cmd.Success(job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 			} else {
 				// create

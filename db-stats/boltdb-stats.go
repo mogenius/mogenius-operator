@@ -130,7 +130,10 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		if controllerBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()
-			controllerBucket.Delete(k)
+			err := controllerBucket.Delete(k)
+			if err != nil {
+				return err
+			}
 		}
 
 		// save socketConnections to separate bucket and remove from stats
@@ -142,7 +145,10 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		stats.SocketConnections = nil
 
 		// add new Entry
-		id, _ := controllerBucket.NextSequence() // auto increment
+		id, err := controllerBucket.NextSequence() // auto increment
+		if err != nil {
+			return fmt.Errorf("Cant create next id: %s", err.Error())
+		}
 		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
@@ -198,11 +204,17 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 		if nodeBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
 			c := nodeBucket.Cursor()
 			k, _ := c.First()
-			nodeBucket.Delete(k)
+			err := nodeBucket.Delete(k)
+			if err != nil {
+				return err
+			}
 		}
 
 		// add new Entry
-		id, _ := nodeBucket.NextSequence() // auto increment
+		id, err := nodeBucket.NextSequence() // auto increment
+		if err != nil {
+			return fmt.Errorf("Cant create next id: %s", err.Error())
+		}
 		return nodeBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
@@ -239,11 +251,17 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		if controllerBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()
-			controllerBucket.Delete(k)
+			err := controllerBucket.Delete(k)
+			if err != nil {
+				return err
+			}
 		}
 
 		// add new Entry
-		id, _ := controllerBucket.NextSequence() // auto increment
+		id, err := controllerBucket.NextSequence() // auto increment
+		if err != nil {
+			return fmt.Errorf("Cant create next id: %s", err.Error())
+		}
 		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
@@ -254,7 +272,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *structs.InterfaceStats {
 	result := &structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
 		if err != nil {
 			return err
 		}
@@ -294,7 +312,7 @@ func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, i
 func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[]structs.InterfaceStats {
 	result := &[]structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
 		if err != nil {
 			return err
 		}
@@ -318,7 +336,7 @@ func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[
 func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats {
 	result := &structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
 		if err != nil {
 			return err
 		}
@@ -342,7 +360,7 @@ func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *str
 func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]structs.PodStats {
 	result := &[]structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{controller.Namespace, controller.Name})
 		if err != nil {
 			return err
 		}
@@ -366,7 +384,7 @@ func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]str
 func GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
 	result := []structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{namespace})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{namespace})
 		if err != nil {
 			return err
 		}
@@ -399,7 +417,7 @@ func GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
 func GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
 	result := &[]structs.PodStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{namespace})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(POD_STATS_BUCKET_NAME)), []string{namespace})
 		if err != nil {
 			return err
 		}
@@ -422,7 +440,7 @@ func GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
 func GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats {
 	result := []structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{namespace})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{namespace})
 		if err != nil {
 			return err
 		}
@@ -446,7 +464,7 @@ func GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.Interface
 func GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats {
 	result := &[]structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {
-		bucket, err := GetSubBuckets(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{namespace})
+		bucket, err := GetSubBucket(tx.Bucket([]byte(TRAFFIC_BUCKET_NAME)), []string{namespace})
 		if err != nil {
 			return err
 		}
@@ -470,11 +488,11 @@ func cleanupStats() {
 	err := dbStats.Update(func(tx *bolt.Tx) error {
 		// TRAFFIC
 		bucketTraffic := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
-		bucketTraffic.ForEach(func(k, v []byte) error {
+		err := bucketTraffic.ForEach(func(k, v []byte) error {
 			namespaceBucket := bucketTraffic.Bucket(k)
-			namespaceBucket.ForEach(func(k, v []byte) error {
+			err := namespaceBucket.ForEach(func(k, v []byte) error {
 				controllerBucket := namespaceBucket.Bucket(k)
-				controllerBucket.ForEach(func(k, v []byte) error {
+				err := controllerBucket.ForEach(func(k, v []byte) error {
 					entry := structs.InterfaceStats{}
 					err := structs.UnmarshalInterfaceStats(&entry, v)
 					if err != nil {
@@ -488,17 +506,26 @@ func cleanupStats() {
 					}
 					return nil
 				})
+				if err != nil {
+					return err
+				}
 				return nil
 			})
+			if err != nil {
+				return err
+			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		// PODS
 		bucketPods := tx.Bucket([]byte(POD_STATS_BUCKET_NAME))
-		bucketPods.ForEach(func(k, v []byte) error {
+		err = bucketPods.ForEach(func(k, v []byte) error {
 			namespaceBucket := bucketPods.Bucket(k)
-			namespaceBucket.ForEach(func(k, v []byte) error {
+			err := namespaceBucket.ForEach(func(k, v []byte) error {
 				controllerBucket := namespaceBucket.Bucket(k)
-				controllerBucket.ForEach(func(k, v []byte) error {
+				err := controllerBucket.ForEach(func(k, v []byte) error {
 					entry := structs.PodStats{}
 					err := structs.UnmarshalPodStats(&entry, v)
 					if err != nil {
@@ -512,10 +539,19 @@ func cleanupStats() {
 					}
 					return nil
 				})
+				if err != nil {
+					return err
+				}
 				return nil
 			})
+			if err != nil {
+				return err
+			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		// Nodes
 		bucketNodes := tx.Bucket([]byte(NODE_STATS_BUCKET_NAME))
 		c := bucketNodes.Cursor()
@@ -537,7 +573,7 @@ func cleanupStats() {
 		}
 		// SOCKETS
 		bucketSockets := tx.Bucket([]byte(SOCKET_STATS_BUCKET))
-		bucketSockets.ForEach(func(k, v []byte) error {
+		err = bucketSockets.ForEach(func(k, v []byte) error {
 			entry := structs.SocketConnections{}
 			err := structs.UnmarshalSocketConnections(&entry, v)
 			if err != nil {
@@ -551,6 +587,9 @@ func cleanupStats() {
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -558,16 +597,14 @@ func cleanupStats() {
 	}
 }
 
-func GetSubBuckets(bucket *bolt.Bucket, bucketNames []string) (*bolt.Bucket, error) {
-	path := ""
-	for _, v := range bucketNames {
-		path += "/" + v
-		subBucket := bucket.Bucket([]byte(v))
-		if subBucket == nil {
-			return nil, fmt.Errorf("Bucket '%s' not found.", path)
-		}
-		return GetSubBuckets(subBucket, bucketNames[1:])
-
+func GetSubBucket(bucket *bolt.Bucket, bucketNames []string) (*bolt.Bucket, error) {
+	if len(bucketNames) == 0 {
+		return bucket, nil
 	}
-	return bucket, nil
+	bucketName := bucketNames[0]
+	subBucket := bucket.Bucket([]byte(bucketName))
+	if subBucket == nil {
+		return nil, fmt.Errorf("Bucket '%s' not found.", "/"+strings.Join(bucketNames, "/"))
+	}
+	return GetSubBucket(subBucket, bucketNames[1:])
 }

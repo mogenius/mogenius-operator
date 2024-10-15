@@ -52,10 +52,7 @@ func (k *K8sServiceDto) HasPorts() bool {
 	//		return true
 	//	}
 	//}
-	if len(k.Ports) > 0 {
-		return true
-	}
-	return false
+	return len(k.Ports) > 0
 }
 
 func (k *K8sServiceDto) HpaEnabled() bool {

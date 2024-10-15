@@ -67,7 +67,10 @@ func watchPods(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Pod)
-			store.GlobalStore.Set(castedObj, "Pod", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "Pod", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindPods] {
 				castedObj.Kind = "Pod"
@@ -77,7 +80,10 @@ func watchPods(provider *punq.KubeProvider, kindName string) error {
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1.Pod)
-			store.GlobalStore.Set(castedObj, "Pod", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "Pod", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindPods] {
 				castedObj.Kind = "Pod"
@@ -87,7 +93,10 @@ func watchPods(provider *punq.KubeProvider, kindName string) error {
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1.Pod)
-			store.GlobalStore.Delete("Pod", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Delete("Pod", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindPods] {
 				castedObj.Kind = "Pod"

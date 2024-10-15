@@ -142,6 +142,9 @@ func GetLastCommits(path string, maxNoOfEntries int) ([]*object.Commit, error) {
 		count++
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return commits, nil
 }
@@ -311,13 +314,16 @@ func GetHeadTag(path string) (string, error) {
 
 		defer commitIter.Close()
 
-		commitIter.ForEach(func(commit *object.Commit) error {
+		err = commitIter.ForEach(func(commit *object.Commit) error {
 			if commit.Hash == headCommitHash {
 				tagName = tagRef.Name().Short()
 				return nil
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -474,15 +480,6 @@ func DiffForCommit(path string, commitHash string, filePath string, resourceName
 		diffOutput = diffOutput[:Max_Diff_Lines] + "..."
 	}
 	return diffOutput, nil
-}
-
-func prefixLinesWith(prefix, text string) string {
-	lines := strings.Split(text, "\n")
-
-	for i := 0; i < len(lines)-1; i++ {
-		lines[i] = prefix + lines[i]
-	}
-	return strings.Join(lines, "\n")
 }
 
 func ListFileRevisions(repoPath string, filePath string, resourceName string) ([]CommitRevision, error) {
@@ -908,7 +905,7 @@ func findDecorations(repo *git.Repository, hash plumbing.Hash) []string {
 		fmt.Printf("Error getting references %s\n", err)
 	}
 
-	refs.ForEach(func(ref *plumbing.Reference) error {
+	err = refs.ForEach(func(ref *plumbing.Reference) error {
 		if ref.Type() == plumbing.HashReference && ref.Hash() == hash {
 			if ref.Name().IsBranch() || ref.Name().IsTag() {
 				decorations = append(decorations, ref.Name().String())
@@ -916,6 +913,9 @@ func findDecorations(repo *git.Repository, hash plumbing.Hash) []string {
 		}
 		return nil
 	})
+	if err != nil {
+		fmt.Printf("Failed iterating over references: %s\n", err.Error())
+	}
 
 	return decorations
 }

@@ -159,7 +159,7 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.Kub
 					clearScreen(conn)
 					closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
 					if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-						// log.Error("write close:", err)
+						log.Debug("write close:", err)
 					}
 				}
 				return
@@ -239,7 +239,10 @@ func generateWsConnection(
 		// log.Infof("Connected to %s", u.String())
 
 		// API send ack when it is ready to receive messages.
-		conn.SetReadDeadline(time.Now().Add(30 * time.Minute))
+		err = conn.SetReadDeadline(time.Now().Add(30 * time.Minute))
+		if err != nil {
+			log.Error(err)
+		}
 		_, _, err = conn.ReadMessage()
 		if err != nil {
 			log.Errorf("Failed to receive ack-ready, retrying in 5 seconds: %s", err.Error())
@@ -282,10 +285,10 @@ func oncloseWs(conn *websocket.Conn, ctx context.Context, cancel context.CancelF
 				readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: err}
 			}
 			if err != nil {
-				if _, ok := err.(*websocket.CloseError); ok {
-					// log.Printf("[oncloseWs] WebSocket closed with status code %d and message: %s\n", closeErr.Code, closeErr.Text)
+				if closeErr, ok := err.(*websocket.CloseError); ok {
+					log.Debugf("[oncloseWs] WebSocket closed with status code %d and message: %s\n", closeErr.Code, closeErr.Text)
 				} else {
-					// log.Printf("[oncloseWs] Error reading message: %v\n. Connection closed.", err)
+					log.Debugf("[oncloseWs] Error reading message: %v\n. Connection closed.", err)
 				}
 				return
 			}
@@ -330,9 +333,18 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 				log.Errorf("WriteMessage: %s", err.Error())
 			}
 		}
-		cmd.Process.Kill()
-		cmd.Process.Wait()
-		tty.Close()
+		err := cmd.Process.Kill()
+		if err != nil {
+			log.Error(err)
+		}
+		_, err = cmd.Process.Wait()
+		if err != nil {
+			log.Error(err)
+		}
+		err = tty.Close()
+		if err != nil {
+			log.Error(err)
+		}
 	}
 }
 
@@ -486,9 +498,6 @@ func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc,
 }
 
 func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Context, tty *os.File, cmdType *string) {
-	defer func() {
-		// log.Info("[websocketToCmdInput] Closing connection.")
-	}()
 	for msg := range readMessages {
 		select {
 		case <-ctx.Done():
@@ -526,7 +535,10 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 
 				if cmdType != nil {
 					if *cmdType == "exec-sh" {
-						tty.Write(msg.Data)
+						_, err := tty.Write(msg.Data)
+						if err != nil {
+							log.Error(err)
+						}
 					}
 				}
 			}

@@ -11,13 +11,11 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-echarts/go-echarts/v2 v2.4.3
 	github.com/go-git/go-git/v5 v5.12.0
-	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/gorilla/websocket v1.5.3
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/jedib0t/go-pretty/v6 v6.6.0
 	github.com/json-iterator/go v1.1.12
-	github.com/mattn/go-tty v0.0.7
 	github.com/mogenius/punq v1.5.0-develop.75
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/shirou/gopsutil/v3 v3.24.5
@@ -223,7 +221,6 @@ require (
 	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
-	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/klog/v2 v2.130.1 // indirect

@@ -132,12 +132,18 @@ func InitAllWorkloads() {
 			IacManagerWriteResourceYaml(dtos.KindDeployments, res.Namespace, res.Name, res)
 		}
 
-		store.GlobalStore.Set(res, "Deployment", res.Namespace, res.Name)
+		err := store.GlobalStore.Set(res, "Deployment", res.Namespace, res.Name)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
 	}
 
 	replicasets := punq.AllReplicasets("", nil)
 	for _, res := range replicasets {
-		store.GlobalStore.Set(res, "ReplicaSet", res.Namespace, res.Name)
+		err := store.GlobalStore.Set(res, "ReplicaSet", res.Namespace, res.Name)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
 	}
 
 	cronjobs := punq.AllCronjobs("", nil)
@@ -146,7 +152,10 @@ func InitAllWorkloads() {
 			IacManagerWriteResourceYaml(dtos.KindCronJobs, res.Namespace, res.Name, res)
 		}
 
-		store.GlobalStore.Set(res, "CronJob", res.Namespace, res.Name)
+		err := store.GlobalStore.Set(res, "CronJob", res.Namespace, res.Name)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
 	}
 
 	jobs := punq.AllJobs("", nil)
@@ -155,7 +164,10 @@ func InitAllWorkloads() {
 			IacManagerWriteResourceYaml(dtos.KindJobs, res.Namespace, res.Name, res)
 		}
 
-		store.GlobalStore.Set(res, "Job", res.Namespace, res.Name)
+		err := store.GlobalStore.Set(res, "Job", res.Namespace, res.Name)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
 	}
 
 	pods := punq.AllPods("", nil)
@@ -164,7 +176,10 @@ func InitAllWorkloads() {
 			IacManagerWriteResourceYaml(dtos.KindPods, res.Namespace, res.Name, res)
 		}
 
-		store.GlobalStore.Set(res, "Pod", res.Namespace, res.Name)
+		err := store.GlobalStore.Set(res, "Pod", res.Namespace, res.Name)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
 	}
 
 	if !IacManagerShouldWatchResources() {
@@ -297,17 +312,26 @@ func watchEvents(provider *punq.KubeProvider) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
-			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
+			err := store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 			processEvent(event)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			event := newObj.(*v1Core.Event)
-			store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
+			err := store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 			processEvent(event)
 		},
 		DeleteFunc: func(obj interface{}) {
 			event := obj.(*v1Core.Event)
-			store.GlobalStore.Delete("Event", event.Namespace, event.Name)
+			err := store.GlobalStore.Delete("Event", event.Namespace, event.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 			processEvent(event)
 		},
 	}
@@ -318,7 +342,10 @@ func watchEvents(provider *punq.KubeProvider) error {
 		fields.Nothing(),
 	)
 	eventInformer := cache.NewSharedInformer(listWatch, &v1Core.Event{}, 0)
-	eventInformer.AddEventHandler(handler)
+	_, err := eventInformer.AddEventHandler(handler)
+	if err != nil {
+		return fmt.Errorf("Failed to add event handler: %s", err.Error())
+	}
 
 	stopCh := make(chan struct{})
 	go eventInformer.Run(stopCh)
@@ -344,8 +371,7 @@ func watchEvents(provider *punq.KubeProvider) error {
 var allEventsForNamespaceDebounce = utils.NewDebounce("allEventsForNamespaceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
 func AllEventsForNamespace(namespaceName string) []v1Core.Event {
-	key := fmt.Sprintf("%s", namespaceName)
-	result, _ := allEventsForNamespaceDebounce.CallFn(key, func() (interface{}, error) {
+	result, _ := allEventsForNamespaceDebounce.CallFn(namespaceName, func() (interface{}, error) {
 		return AllEventsForNamespace2(namespaceName), nil
 	})
 	return result.([]v1Core.Event)

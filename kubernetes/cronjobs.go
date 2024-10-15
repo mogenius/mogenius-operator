@@ -332,9 +332,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
 	var previousSpec *v1job.CronJobSpec
 	previousCronjob, err := client.(batchv1.CronJobInterface).Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
-	if err != nil {
-		previousCronjob = nil
-	} else {
+	if err == nil {
 		previousSpec = &(*previousCronjob).Spec
 	}
 
@@ -627,7 +625,10 @@ func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.CronJob)
-			store.GlobalStore.Set(castedObj, "CronJob", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "CronJob", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
 				castedObj.Kind = "CronJob"
@@ -637,7 +638,10 @@ func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			castedObj := newObj.(*v1job.CronJob)
-			store.GlobalStore.Set(castedObj, "CronJob", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Set(castedObj, "CronJob", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
 				castedObj.Kind = "CronJob"
@@ -647,7 +651,10 @@ func watchCronJobs(provider *punq.KubeProvider, kindName string) error {
 		},
 		DeleteFunc: func(obj interface{}) {
 			castedObj := obj.(*v1job.CronJob)
-			store.GlobalStore.Delete("CronJob", castedObj.Namespace, castedObj.Name)
+			err := store.GlobalStore.Delete("CronJob", castedObj.Namespace, castedObj.Name)
+			if err != nil {
+				K8sLogger.Error(err)
+			}
 
 			if utils.IacWorkloadConfigMap[dtos.KindCronJobs] {
 				castedObj.Kind = "CronJob"

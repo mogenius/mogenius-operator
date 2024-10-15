@@ -153,14 +153,13 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					Name: fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name),
 				})
 			}
-
-			if specTemplate.Spec.Containers[index].Image == utils.IMAGE_PLACEHOLDER {
-				imgName := imageNameForContainer(namespace, service, container)
+			imgName := imageNameForContainer(namespace, service, container)
+			if specTemplate.Spec.Containers[index].Image == utils.IMAGE_PLACEHOLDER || specTemplate.Spec.Containers[index].Image != imgName {
 				if imgName != "" {
 					specTemplate.Spec.Containers[index].Image = imgName
 				} else {
 					imgErr := fmt.Errorf("No image found for '%s/%s'. Maybe the build failed or is still running.", namespace.Name, container.Name)
-					K8sLogger.Errorf(imgErr.Error())
+					K8sLogger.Error(imgErr.Error())
 					return nil, imgErr
 				}
 			}

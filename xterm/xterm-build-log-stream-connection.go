@@ -75,7 +75,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		delete(LogChannels, key)
 	}
 	LogChannels[key] = make(chan string)
-	ch, _ = LogChannels[key]
+	ch = LogChannels[key]
 
 	go readChannelBuildLog(ch, conn, ctx)
 

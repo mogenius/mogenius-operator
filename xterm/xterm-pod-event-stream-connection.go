@@ -87,7 +87,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		delete(kubernetes.EventChannels, key)
 	}
 	kubernetes.EventChannels[key] = make(chan string)
-	ch, _ = kubernetes.EventChannels[key]
+	ch = kubernetes.EventChannels[key]
 
 	go readChannelPodEvent(ch, conn, ctx)
 
