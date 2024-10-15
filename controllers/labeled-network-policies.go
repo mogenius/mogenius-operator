@@ -6,20 +6,6 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 )
 
-type AttachLabeledNetworkPolicyRequest struct {
-	ControllerName       string                          `json:"controllerName" validate:"required"`
-	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
-	NamespaceName        string                          `json:"namespaceName" validate:"required"`
-	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
-}
-
-type DetachLabeledNetworkPolicyRequest struct {
-	ControllerName       string                          `json:"controllerName" validate:"required"`
-	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
-	NamespaceName        string                          `json:"namespaceName" validate:"required"`
-	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
-}
-
 type status string
 
 const (
@@ -27,14 +13,15 @@ const (
 	failure status = "failure"
 )
 
-type AttachLabeledNetworkPolicyResponse struct {
-	Status  status `json:"status"`
-	Message string `json:"message"`
-}
-
 type DetachLabeledNetworkPolicyResponse struct {
 	Status  status `json:"status"`
 	Message string `json:"message"`
+}
+type DetachLabeledNetworkPolicyRequest struct {
+	ControllerName       string                          `json:"controllerName" validate:"required"`
+	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
+	NamespaceName        string                          `json:"namespaceName" validate:"required"`
+	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
 }
 
 type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
@@ -51,6 +38,18 @@ func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) DetachLa
 	return DetachLabeledNetworkPolicyResponse{
 		Status: success,
 	}
+}
+
+type AttachLabeledNetworkPolicyRequest struct {
+	ControllerName       string                          `json:"controllerName" validate:"required"`
+	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
+	NamespaceName        string                          `json:"namespaceName" validate:"required"`
+	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
+}
+
+type AttachLabeledNetworkPolicyResponse struct {
+	Status  status `json:"status"`
+	Message string `json:"message"`
 }
 
 func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) AttachLabeledNetworkPolicyResponse {
@@ -93,4 +92,17 @@ func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
 
 func ListLabeledNetworkPolicyPorts() LabeledNetworkPoliciesListResponse {
 	return kubernetes.ReadNetworkPolicyPorts()
+}
+
+type RemoveConflictingNetworkPoliciesRequest struct {
+	NamespaceName string `json:"namespaceName" validate:"required"`
+}
+
+type RemoveConflictingNetworkPoliciesResponse struct {
+	Status  status `json:"status"`
+	Message string `json:"message"`
+}
+
+func RemoveConflictingNetworkPolicies(data RemoveConflictingNetworkPoliciesRequest) error {
+	return kubernetes.RemoveAllNetworkPolicies(data.NamespaceName)
 }
