@@ -6,7 +6,16 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 )
 
-type CreateLabeledNetworkPolicyRequest struct {
+type AttachLabeledNetworkPolicyRequest struct {
+	ControllerName       string                          `json:"controllerName" validate:"required"`
+	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
+	NamespaceName        string                          `json:"namespaceName" validate:"required"`
+	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
+}
+
+type DetachLabeledNetworkPolicyRequest struct {
+	ControllerName       string                          `json:"controllerName" validate:"required"`
+	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
 	NamespaceName        string                          `json:"namespaceName" validate:"required"`
 	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
 }
@@ -18,22 +27,49 @@ const (
 	failure status = "failure"
 )
 
-type CreateLabeledNetworkPolicyResponse struct {
+type AttachLabeledNetworkPolicyResponse struct {
+	Status  status `json:"status"`
+	Message string `json:"message"`
+}
+
+type DetachLabeledNetworkPolicyResponse struct {
 	Status  status `json:"status"`
 	Message string `json:"message"`
 }
 
 type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
 
-func CreateLabeledNetworkPolicy(data CreateLabeledNetworkPolicyRequest) CreateLabeledNetworkPolicyResponse {
-	err := kubernetes.CreateLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
+func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) DetachLabeledNetworkPolicyResponse {
+	err := kubernetes.DetachLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
 	if err != nil {
-		return CreateLabeledNetworkPolicyResponse{
+		return DetachLabeledNetworkPolicyResponse{
+			Status:  failure,
+			Message: fmt.Sprintf("Failed to detach network policy, err: %v", err.Error()),
+		}
+	}
+
+	return DetachLabeledNetworkPolicyResponse{
+		Status: success,
+	}
+}
+
+func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) AttachLabeledNetworkPolicyResponse {
+	err := kubernetes.EnsureLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
+	if err != nil {
+		return AttachLabeledNetworkPolicyResponse{
 			Status:  failure,
 			Message: fmt.Sprintf("Failed to create network policy, err: %v", err.Error()),
 		}
 	}
-	return CreateLabeledNetworkPolicyResponse{
+	err = kubernetes.AttachLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
+	if err != nil {
+		return AttachLabeledNetworkPolicyResponse{
+			Status:  failure,
+			Message: fmt.Sprintf("Failed to attach network policy, err: %v", err.Error()),
+		}
+	}
+
+	return AttachLabeledNetworkPolicyResponse{
 		Status: success,
 	}
 }
@@ -41,28 +77,16 @@ func CreateLabeledNetworkPolicy(data CreateLabeledNetworkPolicyRequest) CreateLa
 func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
 	return []dtos.K8sLabeledNetworkPolicyDto{
 		{
-			Name: "mogenius-policy-123",
-			Type: dtos.Ingress,
-			Ports: []dtos.K8sLabeledPortDto{
-				{
-					Port:     80,
-					PortType: dtos.PortTypeHTTPS,
-				},
-				{
-					Port:     443,
-					PortType: dtos.PortTypeTCP,
-				},
-			},
+			Name:     "mogenius-policy-123",
+			Type:     dtos.Ingress,
+			Port:     80,
+			PortType: dtos.PortTypeHTTPS,
 		},
 		{
-			Name: "mogenius-policy-098",
-			Type: dtos.Egress,
-			Ports: []dtos.K8sLabeledPortDto{
-				{
-					Port:     13333,
-					PortType: dtos.PortTypeSCTP,
-				},
-			},
+			Name:     "mogenius-policy-098",
+			Type:     dtos.Ingress,
+			Port:     13333,
+			PortType: dtos.PortTypeSCTP,
 		},
 	}
 }

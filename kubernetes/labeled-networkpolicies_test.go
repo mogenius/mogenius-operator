@@ -1,8 +1,12 @@
 package kubernetes
 
 import (
+	"context"
 	"mogenius-k8s-manager/dtos"
 	"testing"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -13,45 +17,25 @@ const (
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	var namespaceName = "mogenius"
 
-	var ports1 = []dtos.K8sLabeledPortDto{
-		{
-			Port:     80,
-			PortType: dtos.PortTypeHTTPS,
-		},
-		{
-			Port:     443,
-			PortType: dtos.PortTypeTCP,
-		},
-	}
-
 	var labelPolicy1 = dtos.K8sLabeledNetworkPolicyDto{
-		Name:  PolicyName1,
-		Type:  dtos.Ingress,
-		Ports: ports1,
+		Name:     PolicyName1,
+		Type:     dtos.Ingress,
+		Port:     80,
+		PortType: dtos.PortTypeHTTPS,
 	}
-	err := CreateLabeledNetworkPolicy(namespaceName, labelPolicy1)
+	err := EnsureLabeledNetworkPolicy(namespaceName, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
 
-	var ports2 = []dtos.K8sLabeledPortDto{
-		{
-			Port:     13333,
-			PortType: dtos.PortTypeSCTP,
-		},
-		{
-			Port:     59999,
-			PortType: dtos.PortTypeUDP,
-		},
-	}
-
 	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
-		Name:  PolicyName2,
-		Type:  dtos.Egress,
-		Ports: ports2,
+		Name:     PolicyName2,
+		Type:     dtos.Egress,
+		Port:     59999,
+		PortType: dtos.PortTypeUDP,
 	}
 
-	err = CreateLabeledNetworkPolicy(namespaceName, labelPolicy2)
+	err = EnsureLabeledNetworkPolicy(namespaceName, labelPolicy2)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
@@ -82,5 +66,49 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 	if len(ports) == 0 {
 		t.Errorf("Error reading network policy ports")
 	}
-	// t.Logf("Ports: %v\n", ports)
+	// check if ports contains a imap named port fo egress
+	var found bool
+	for _, port := range ports {
+		if port.Name == "imap" && port.Type == dtos.Ingress && port.Port == 143 && port.PortType == dtos.PortTypeTCP {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("Error reading network policy ports")
+	}
+
+}
+
+func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
+	var namespaceName = "mogenius"
+
+	// create simple nginx deployment with k8s
+	exampleDeploy := createNginxDeployment()
+
+	client := GetAppClient()
+	_, err := client.Deployments(namespaceName).Create(context.TODO(), exampleDeploy, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		t.Errorf("Error creating deployment: %s", err.Error())
+	}
+	defer client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
+
+	// attach network policy
+	var labelPolicy = dtos.K8sLabeledNetworkPolicyDto{
+		Name:     PolicyName1,
+		Type:     dtos.Ingress,
+		Port:     80,
+		PortType: dtos.PortTypeHTTPS,
+	}
+
+	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy)
+	if err != nil {
+		t.Errorf("Error attaching network policy: %s", err.Error())
+	}
+
+	// detach network policy
+	err = DetachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy)
+	if err != nil {
+		t.Errorf("Error detaching network policy: %s", err.Error())
+	}
 }

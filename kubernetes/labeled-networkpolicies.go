@@ -5,22 +5,142 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/utils"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/yaml"
 
 	punqUtils "github.com/mogenius/punq/utils"
+
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
+	// deny policy
 	DenyAllNetPolName string = "deny-all"
 	MarkerLabel              = "using-" + DenyAllNetPolName
+
+	// allow policies
+	PoliciesLabelPrefix string = "mo-netpol"
 )
 
-func CreateLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabeledNetworkPolicyDto) error {
+func AttachLabeledNetworkPolicy(controllerName string,
+	controllerType dtos.K8sServiceControllerEnum,
+	namespaceName string,
+	labelPolicy dtos.K8sLabeledNetworkPolicyDto,
+) error {
+	client := GetAppClient()
+	label := getNetworkPolicyLabel(labelPolicy)
+
+	switch controllerType {
+	case dtos.DEPLOYMENT:
+		deployment, err := client.Deployments(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		if deployment.Spec.Template.ObjectMeta.Labels == nil {
+			deployment.Spec.Template.ObjectMeta.Labels = make(map[string]string)
+		}
+		if deployment.ObjectMeta.Labels == nil {
+			deployment.ObjectMeta.Labels = make(map[string]string)
+		}
+		deployment.Spec.Template.ObjectMeta.Labels[label] = "true"
+		deployment.ObjectMeta.Labels[label] = "true"
+
+		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	case dtos.DAEMON_SET:
+		daemonset, err := client.DaemonSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		if daemonset.Spec.Template.ObjectMeta.Labels == nil {
+			daemonset.Spec.Template.ObjectMeta.Labels = make(map[string]string)
+		}
+		if daemonset.ObjectMeta.Labels == nil {
+			daemonset.ObjectMeta.Labels = make(map[string]string)
+		}
+		daemonset.Spec.Template.ObjectMeta.Labels[label] = "true"
+		daemonset.ObjectMeta.Labels[label] = "true"
+
+		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonset, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	case dtos.STATEFUL_SET:
+		statefulset, err := client.StatefulSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		if statefulset.Spec.Template.ObjectMeta.Labels == nil {
+			statefulset.Spec.Template.ObjectMeta.Labels = make(map[string]string)
+		}
+		if statefulset.ObjectMeta.Labels == nil {
+			statefulset.ObjectMeta.Labels = make(map[string]string)
+		}
+		statefulset.Spec.Template.ObjectMeta.Labels[label] = "true"
+		statefulset.ObjectMeta.Labels[label] = "true"
+
+		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulset, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	default:
+		return fmt.Errorf("unsupported controller type %s", controllerType)
+	}
+	return nil
+}
+
+func DetachLabeledNetworkPolicy(controllerName string,
+	controllerType dtos.K8sServiceControllerEnum,
+	namespaceName string,
+	labelPolicy dtos.K8sLabeledNetworkPolicyDto,
+) error {
+	client := GetAppClient()
+	label := getNetworkPolicyLabel(labelPolicy)
+
+	switch controllerType {
+	case dtos.DEPLOYMENT:
+		deployment, err := client.Deployments(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		delete(deployment.Spec.Template.ObjectMeta.Labels, label)
+		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	case dtos.DAEMON_SET:
+		daemonset, err := client.DaemonSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		delete(daemonset.Spec.Template.ObjectMeta.Labels, label)
+		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonset, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	case dtos.STATEFUL_SET:
+		statefulset, err := client.StatefulSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		delete(statefulset.Spec.Template.ObjectMeta.Labels, label)
+		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulset, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	default:
+		return fmt.Errorf("unsupported controller type %s", controllerType)
+	}
+	return nil
+}
+
+func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabeledNetworkPolicyDto) error {
 	netpol := punqUtils.InitNetPolService()
 	// clean traffic rules
 	netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
@@ -28,50 +148,62 @@ func CreateLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabele
 
 	netpol.ObjectMeta.Name = labelPolicy.Name
 	netpol.ObjectMeta.Namespace = namespaceName
-	label := fmt.Sprintf("mo-netpol-%s-%s", labelPolicy.Name, labelPolicy.Type)
+	label := getNetworkPolicyLabel(labelPolicy)
 	netpol.Spec.PodSelector.MatchLabels[label] = "true"
 
 	// this label is marking all netpols that "need" a deny-all rule
 	netpol.ObjectMeta.Labels = map[string]string{MarkerLabel: "true"}
 
-	for _, aPort := range labelPolicy.Ports {
-		port := intstr.FromInt32(int32(aPort.Port))
-		var proto v1Core.Protocol
+	port := intstr.FromInt32(int32(labelPolicy.Port))
+	var proto v1Core.Protocol
 
-		switch aPort.PortType {
-		case "UDP":
-			proto = v1Core.ProtocolUDP
-		case "SCTP":
-			proto = v1Core.ProtocolSCTP
-		default:
-			proto = v1Core.ProtocolTCP
-		}
-
-		if labelPolicy.Type == dtos.Ingress {
-			var rule v1.NetworkPolicyIngressRule = v1.NetworkPolicyIngressRule{}
-			rule.From = append(rule.From, v1.NetworkPolicyPeer{
-				IPBlock: &v1.IPBlock{
-					CIDR: "0.0.0.0/0",
-				},
-			})
-			rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
-				Port: &port, Protocol: &proto,
-			})
-			netpol.Spec.Ingress = append(netpol.Spec.Ingress, rule)
-		} else {
-			var rule v1.NetworkPolicyEgressRule = v1.NetworkPolicyEgressRule{}
-			rule.To = append(rule.To, v1.NetworkPolicyPeer{
-				IPBlock: &v1.IPBlock{
-					CIDR: "0.0.0.0/0",
-				},
-			})
-			rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
-				Port: &port, Protocol: &proto,
-			})
-			netpol.Spec.Egress = append(netpol.Spec.Egress, rule)
-		}
+	switch labelPolicy.PortType {
+	case "UDP":
+		proto = v1Core.ProtocolUDP
+	case "SCTP":
+		proto = v1Core.ProtocolSCTP
+	default:
+		proto = v1Core.ProtocolTCP
 	}
 
+	if labelPolicy.Type == dtos.Ingress {
+		var rule v1.NetworkPolicyIngressRule = v1.NetworkPolicyIngressRule{}
+		rule.From = append(rule.From, v1.NetworkPolicyPeer{
+			IPBlock: &v1.IPBlock{
+				CIDR: "0.0.0.0/0",
+			},
+		})
+		rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
+			Port: &port, Protocol: &proto,
+		})
+		netpol.Spec.Ingress = append(netpol.Spec.Ingress, rule)
+	} else {
+		var rule v1.NetworkPolicyEgressRule = v1.NetworkPolicyEgressRule{}
+		rule.To = append(rule.To, v1.NetworkPolicyPeer{
+			IPBlock: &v1.IPBlock{
+				CIDR: "0.0.0.0/0",
+			},
+		})
+		rule.Ports = append(rule.Ports, v1.NetworkPolicyPort{
+			Port: &port, Protocol: &proto,
+		})
+		netpol.Spec.Egress = append(netpol.Spec.Egress, rule)
+	}
+
+	err := ensureDenyAllRule(namespaceName, netpol, labelPolicy)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getNetworkPolicyLabel(labelPolicy dtos.K8sLabeledNetworkPolicyDto) string {
+	return strings.ToLower(
+		fmt.Sprintf("%s-%s-%s", PoliciesLabelPrefix, labelPolicy.Name, labelPolicy.Type),
+	)
+}
+
+func ensureDenyAllRule(namespaceName string, netpol v1.NetworkPolicy, labelPolicy dtos.K8sLabeledNetworkPolicyDto) error {
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 
 	_, err := netPolClient.Get(context.TODO(), DenyAllNetPolName, metav1.GetOptions{})
@@ -133,7 +265,6 @@ func InitNetworkPolicyConfigMap() error {
 	configMap := readDefaultConfigMap()
 
 	return EnsureConfigMapExists(configMap.Namespace, *configMap)
-	// return WriteConfigMap(configMap.Namespace, configMap.Name, yamlString, configMap.Labels)
 }
 
 func readDefaultConfigMap() *v1Core.ConfigMap {
@@ -149,42 +280,30 @@ func readDefaultConfigMap() *v1Core.ConfigMap {
 	return &configMap
 }
 
-type Port struct {
-	Protocol string `yaml:"protocol"`
-	Port     int    `yaml:"port"`
-}
-
 type NetworkPolicy struct {
-	Name  string `yaml:"name"`
-	Ports []Port `yaml:"ports"`
+	Name     string `yaml:"name"`
+	Protocol string `yaml:"protocol"`
+	Port     uint16 `yaml:"port"`
 }
 
 func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicyDto {
 	configMap := readDefaultConfigMap()
-
 	ClusterConfigMap := GetConfigMap(configMap.Namespace, configMap.Name)
 
 	var result []dtos.K8sLabeledNetworkPolicyDto
-	for key, valueYaml := range ClusterConfigMap.Data {
-		var policies []NetworkPolicy
-		err := yaml.Unmarshal([]byte(valueYaml), &policies)
-		if err != nil {
-			K8sLogger.Errorf("Error unmarshalling YAML: %s\n", err)
-		}
-		for _, policy := range policies {
-			for _, port := range policy.Ports {
-				result = append(result, dtos.K8sLabeledNetworkPolicyDto{
-					Name: policy.Name,
-					Type: dtos.K8sNetworkPolicyType(key),
-					Ports: []dtos.K8sLabeledPortDto{
-						{
-							Port:     uint16(port.Port),
-							PortType: dtos.PortTypeEnum(port.Protocol),
-						},
-					},
-				})
-			}
-		}
+	var policies []NetworkPolicy
+	policiesRaw := ClusterConfigMap.Data["network-ports"]
+	err := yaml.Unmarshal([]byte(policiesRaw), &policies)
+	if err != nil {
+		K8sLogger.Errorf("Error unmarshalling YAML: %s\n", err)
+	}
+	for _, policy := range policies {
+		result = append(result, dtos.K8sLabeledNetworkPolicyDto{
+			Name:     policy.Name,
+			Type:     dtos.Ingress, // TODO should maybe be deleted
+			Port:     uint16(policy.Port),
+			PortType: dtos.PortTypeEnum(policy.Protocol),
+		})
 	}
 
 	return result
