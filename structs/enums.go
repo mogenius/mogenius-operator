@@ -425,7 +425,8 @@ const (
 	PAT_ATTACH_LABELED_NETWORK_POLICY     string = "attach/labeled_network_policy"
 	PAT_DETACH_LABELED_NETWORK_POLICY     string = "detach/labeled_network_policy"
 	PAT_LIST_LABELED_NETWORK_POLICY_PORTS string = "list/labeled_network_policy_ports"
-
+	// PAT_LIST_CONFLICTING_NETWORK_POLICIES   string = "list/conflicting_network_policies"
+	PAT_REMOVE_CONFLICTING_NETWORK_POLICIES string = "remove/conflicting_network_policies"
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -818,6 +819,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_ATTACH_LABELED_NETWORK_POLICY,
 	PAT_ATTACH_LABELED_NETWORK_POLICY,
 	PAT_LIST_LABELED_NETWORK_POLICY_PORTS,
+	// PAT_LIST_CONFLICTING_NETWORK_POLICIES,
+	PAT_REMOVE_CONFLICTING_NETWORK_POLICIES,
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs

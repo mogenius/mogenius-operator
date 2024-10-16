@@ -4,6 +4,7 @@ import (
 	"context"
 	"mogenius-k8s-manager/dtos"
 	"testing"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,6 +92,10 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		t.Errorf("Error creating deployment: %s", err.Error())
 	}
+	// sleep for 5 seconds to allow the deployment to be created
+	// real world scenario wouldn't have this problem, as we assume existing controllers
+	time.Sleep(5 * time.Second)
+
 	defer client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
 
 	// attach network policy

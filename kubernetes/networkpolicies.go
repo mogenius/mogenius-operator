@@ -220,3 +220,27 @@ func watchNetworkPolicies(provider *punq.KubeProvider, kindName string) error {
 		}
 	}
 }
+
+func RemoveAllNetworkPolicies(namespaceName string) error {
+	client := GetNetworkingClient()
+	netPolClient := client.NetworkPolicies(namespaceName)
+
+	netpols, err := netPolClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
+		return nil
+	}
+
+	errors := []error{}
+	for _, netpol := range netpols.Items {
+		err = netPolClient.Delete(context.TODO(), netpol.Name, metav1.DeleteOptions{})
+		if err != nil {
+			K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
+			errors = append(errors, err)
+		}
+	}
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to remove all network policies: %v", errors)
+	}
+	return nil
+}

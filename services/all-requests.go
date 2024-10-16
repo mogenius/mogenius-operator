@@ -2104,22 +2104,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		getResult, _ := punq.GetVolumeAttachment(data.ResourceName, nil)
 		return getResult
-	case structs.PAT_ATTACH_LABELED_NETWORK_POLICY:
-		data := controllers.AttachLabeledNetworkPolicyRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return controllers.AttachLabeledNetworkPolicy(data)
-	case structs.PAT_DETACH_LABELED_NETWORK_POLICY:
-		data := controllers.DetachLabeledNetworkPolicyRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return controllers.DetachLabeledNetworkPolicy(data)
-	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
-		return controllers.ListLabeledNetworkPolicyPorts()
 	case structs.PAT_GET_NETWORK_POLICY:
 		data := K8sDescribeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2312,7 +2296,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return PopeyeConsole()
 	case structs.PAT_LOG_LIST_ALL:
 		return db.ListLogFromDb()
-
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// External Secrets
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	case structs.PAT_EXTERNAL_SECRET_STORE_CREATE:
 		data := controllers.CreateSecretsStoreRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2341,6 +2327,35 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return controllers.DeleteExternalSecretsStore(data)
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// Labeled Network Policies
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	case structs.PAT_ATTACH_LABELED_NETWORK_POLICY:
+		data := controllers.AttachLabeledNetworkPolicyRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return controllers.AttachLabeledNetworkPolicy(data)
+	case structs.PAT_DETACH_LABELED_NETWORK_POLICY:
+		data := controllers.DetachLabeledNetworkPolicyRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return controllers.DetachLabeledNetworkPolicy(data)
+	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
+		return controllers.ListLabeledNetworkPolicyPorts()
+	case structs.PAT_REMOVE_CONFLICTING_NETWORK_POLICIES:
+		data := controllers.RemoveConflictingNetworkPoliciesRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return controllers.RemoveConflictingNetworkPolicies(data)
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// Cronjobs
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	case structs.PAT_LIST_CRONJOB_JOBS:
 		data := ListCronjobJobsRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
