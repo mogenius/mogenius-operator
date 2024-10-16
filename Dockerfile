@@ -29,10 +29,10 @@ RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
   -X 'mogenius-k8s-manager/version.Ver=$VERSION'" -o bin/mogenius-k8s-manager .
 
-RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-RUN chmod 700 get_helm.sh
-RUN ./get_helm.sh
-RUN rm get_helm.sh
+# RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+# RUN chmod 700 get_helm.sh
+# RUN ./get_helm.sh
+# RUN rm get_helm.sh
 
 RUN apk add --no-cache upx
 RUN upx -9 --lzma /app/bin/mogenius-k8s-manager
