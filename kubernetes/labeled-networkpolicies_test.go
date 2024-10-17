@@ -117,3 +117,16 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 		t.Errorf("Error detaching network policy: %s", err.Error())
 	}
 }
+func TestListAllConflictingNetworkPolicies(t *testing.T) {
+	list, err := ListAllConflictingNetworkPolicies("mogenius")
+	if err != nil {
+		t.Errorf("Error listing conflicting network policies: %s", err.Error())
+	}
+	t.Log(list)
+}
+
+func TestRemoveAllNetworkPolicies(t *testing.T) {
+	t.Skip("skipping this test for manual testing")
+
+	RemoveAllConflictingNetworkPolicies("mogenius")
+}

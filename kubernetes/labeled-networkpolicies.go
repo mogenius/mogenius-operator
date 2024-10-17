@@ -18,6 +18,9 @@ import (
 )
 
 const (
+	// all policies
+	NetpolLabel string = "mogenius-network-policy"
+
 	// deny policy
 	DenyAllNetPolName string = "deny-all"
 	MarkerLabel              = "using-" + DenyAllNetPolName
@@ -153,6 +156,8 @@ func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabele
 
 	// this label is marking all netpols that "need" a deny-all rule
 	netpol.ObjectMeta.Labels = map[string]string{MarkerLabel: "true"}
+	// general label for all mogenius netpols
+	netpol.ObjectMeta.Labels[NetpolLabel] = "true"
 
 	port := intstr.FromInt32(int32(labelPolicy.Port))
 	var proto v1Core.Protocol
@@ -231,6 +236,10 @@ func CreateDenyAllNetworkPolicy(namespaceName string) error {
 	netpol.Spec.PodSelector = metav1.LabelSelector{} // An empty podSelector matches all pods in this namespace.
 	netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
 
+	// general label for all mogenius netpols
+	netpol.ObjectMeta.Labels = make(map[string]string)
+	netpol.ObjectMeta.Labels[NetpolLabel] = "true"
+
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 	if err != nil {
@@ -307,4 +316,41 @@ func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicyDto {
 	}
 
 	return result
+}
+
+func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
+	netpols, err := ListAllConflictingNetworkPolicies(namespaceName)
+	if err != nil {
+		return fmt.Errorf("failed to list all network policies: %v", err)
+	}
+
+	client := GetNetworkingClient()
+	netPolClient := client.NetworkPolicies(namespaceName)
+
+	errors := []error{}
+	for _, netpol := range netpols.Items {
+		err = netPolClient.Delete(context.TODO(), netpol.Name, metav1.DeleteOptions{})
+		if err != nil {
+			K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
+			errors = append(errors, err)
+		}
+	}
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to remove all network policies: %v", errors)
+	}
+	return nil
+}
+
+func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyList, error) {
+	client := GetNetworkingClient()
+	netPolClient := client.NetworkPolicies(namespaceName)
+
+	netpols, err := netPolClient.List(context.TODO(), metav1.ListOptions{
+		LabelSelector: NetpolLabel + "!=true",
+	})
+	if err != nil {
+		K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
+		return nil, nil
+	}
+	return netpols, err
 }
