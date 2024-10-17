@@ -6,13 +6,6 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 )
 
-type status string
-
-const (
-	success status = "success"
-	failure status = "failure"
-)
-
 type DetachLabeledNetworkPolicyRequest struct {
 	ControllerName       string                          `json:"controllerName" validate:"required"`
 	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
@@ -29,9 +22,6 @@ func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) (string,
 	}
 
 	return "", nil
-	//return DetachLabeledNetworkPolicyResponse{
-	//	Status: success,
-	//}
 }
 
 type AttachLabeledNetworkPolicyRequest struct {
