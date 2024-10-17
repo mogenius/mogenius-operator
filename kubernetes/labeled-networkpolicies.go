@@ -18,6 +18,9 @@ import (
 )
 
 const (
+	// all policies
+	NetpolLabel string = "mogenius-network-policy"
+
 	// deny policy
 	DenyAllNetPolName string = "deny-all"
 	MarkerLabel              = "using-" + DenyAllNetPolName
@@ -153,6 +156,8 @@ func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabele
 
 	// this label is marking all netpols that "need" a deny-all rule
 	netpol.ObjectMeta.Labels = map[string]string{MarkerLabel: "true"}
+	// general label for all mogenius netpols
+	netpol.ObjectMeta.Labels[NetpolLabel] = "true"
 
 	port := intstr.FromInt32(int32(labelPolicy.Port))
 	var proto v1Core.Protocol
@@ -230,6 +235,10 @@ func CreateDenyAllNetworkPolicy(namespaceName string) error {
 	netpol.ObjectMeta.Namespace = namespaceName
 	netpol.Spec.PodSelector = metav1.LabelSelector{} // An empty podSelector matches all pods in this namespace.
 	netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
+
+	// general label for all mogenius netpols
+	netpol.ObjectMeta.Labels = make(map[string]string)
+	netpol.ObjectMeta.Labels[NetpolLabel] = "true"
 
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
@@ -314,7 +323,7 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 	netPolClient := client.NetworkPolicies(namespaceName)
 
 	netpols, err := netPolClient.List(context.TODO(), metav1.ListOptions{
-		LabelSelector: MarkerLabel + "=false",
+		LabelSelector: NetpolLabel + "!=true",
 	})
 	if err != nil {
 		K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)

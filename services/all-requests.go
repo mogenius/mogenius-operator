@@ -2336,14 +2336,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return controllers.AttachLabeledNetworkPolicy(data)
+		return NewMessageResponse(controllers.AttachLabeledNetworkPolicy(data))
 	case structs.PAT_DETACH_LABELED_NETWORK_POLICY:
 		data := controllers.DetachLabeledNetworkPolicyRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return controllers.DetachLabeledNetworkPolicy(data)
+		return NewMessageResponse(controllers.DetachLabeledNetworkPolicy(data))
 	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
 		return controllers.ListLabeledNetworkPolicyPorts()
 	case structs.PAT_REMOVE_CONFLICTING_NETWORK_POLICIES:
@@ -2352,7 +2352,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return controllers.RemoveConflictingNetworkPolicies(data)
+		return NewMessageResponse(controllers.RemoveConflictingNetworkPolicies(data))
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
