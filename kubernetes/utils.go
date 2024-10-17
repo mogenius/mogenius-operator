@@ -548,13 +548,6 @@ func ObjectFor(kind, namespace, name string) (interface{}, error) {
 func FindResourceKind(namespace string, name string) (*dtos.K8sServiceControllerEnum, error) {
 	clientset := getProvider().ClientSet
 
-	provider, err := punq.NewKubeProvider(nil)
-	if err != nil {
-		return nil, err
-	}
-	deploymentClient, _ := provider.ClientSet.AppsV1().Deployments("mogenius").Get(context.TODO(), "mogenius-pod-stats-collector", metav1.GetOptions{})
-	log.Infof("deploymentClient: %v", deploymentClient.Kind)
-
 	if _, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
 		return punqUtils.Pointer(dtos.DEPLOYMENT), nil
 	}
