@@ -319,16 +319,13 @@ func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicyDto {
 }
 
 func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
+	netpols, err := ListAllConflictingNetworkPolicies(namespaceName)
+	if err != nil {
+		return fmt.Errorf("failed to list all network policies: %v", err)
+	}
+
 	client := GetNetworkingClient()
 	netPolClient := client.NetworkPolicies(namespaceName)
-
-	netpols, err := netPolClient.List(context.TODO(), metav1.ListOptions{
-		LabelSelector: NetpolLabel + "!=true",
-	})
-	if err != nil {
-		K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
-		return nil
-	}
 
 	errors := []error{}
 	for _, netpol := range netpols.Items {
@@ -342,4 +339,18 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 		return fmt.Errorf("failed to remove all network policies: %v", errors)
 	}
 	return nil
+}
+
+func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyList, error) {
+	client := GetNetworkingClient()
+	netPolClient := client.NetworkPolicies(namespaceName)
+
+	netpols, err := netPolClient.List(context.TODO(), metav1.ListOptions{
+		LabelSelector: NetpolLabel + "!=true",
+	})
+	if err != nil {
+		K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
+		return nil, nil
+	}
+	return netpols, err
 }

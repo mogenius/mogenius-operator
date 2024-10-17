@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
+
+	v1 "k8s.io/api/networking/v1"
 )
 
 type DetachLabeledNetworkPolicyRequest struct {
@@ -76,4 +78,16 @@ func RemoveConflictingNetworkPolicies(data RemoveConflictingNetworkPoliciesReque
 	}
 
 	return "", nil
+}
+
+type ListConflictingNetworkPoliciesRequest struct {
+	NamespaceName string `json:"namespaceName" validate:"required"`
+}
+
+func ListAllConflictingNetworkPolicies(data ListConflictingNetworkPoliciesRequest) (*v1.NetworkPolicyList, error) {
+	list, err := kubernetes.ListAllConflictingNetworkPolicies(data.NamespaceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all network policies, err: %s", err.Error())
+	}
+	return list, nil
 }
