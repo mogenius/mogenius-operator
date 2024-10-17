@@ -776,7 +776,7 @@ func UpgradeTrafficCollector() string {
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
 		HelmChartName:   "mogenius/" + utils.HelmReleaseNameTrafficCollector,
-		HelmFlags:       fmt.Sprintf("global.namespace: %s\nglobal.stage: %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage, utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmFlags:       fmt.Sprintf("global.namespace: %s\nglobal.stage: %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
 		HelmTask:        structs.HelmUpgrade,
 	}
 	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
@@ -812,15 +812,15 @@ func UpgradePodStatsCollector() string {
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
 		HelmChartName:   "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
-		HelmFlags:       fmt.Sprintf("global.namespace: %s\nglobal.stage: %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage, utils.CONFIG.Kubernetes.OwnNamespace),
+		HelmFlags:       fmt.Sprintf("global.namespace: %s\nglobal.stage: %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
 		HelmTask:        structs.HelmUpgrade,
 	}
 	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
 	}, func(output string, err error) {
 		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
 	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return fmt.Sprintf("Successfully triggered '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
 }
 
 func InstallMetricsServer() string {

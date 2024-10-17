@@ -87,7 +87,12 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	// real world scenario wouldn't have this problem, as we assume existing controllers
 	time.Sleep(5 * time.Second)
 
-	defer client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
+	defer func() {
+		err := client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	// attach network policy
 
@@ -118,7 +123,10 @@ func TestListAllConflictingNetworkPolicies(t *testing.T) {
 func TestRemoveAllNetworkPolicies(t *testing.T) {
 	t.Skip("skipping this test for manual testing")
 
-	RemoveAllConflictingNetworkPolicies("mogenius")
+	err := RemoveAllConflictingNetworkPolicies("mogenius")
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestListControllerLabeledNetworkPolicy(t *testing.T) {
@@ -135,7 +143,12 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	// sleep to allow the deployment to be created
 	// real world scenario wouldn't have this problem, as we assume existing controllers
 	time.Sleep(5 * time.Second)
-	defer client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
+	defer func() {
+		err := client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
+		if err != nil {
+			t.Errorf("Error deleting deployments: %s", err)
+		}
+	}()
 
 	// attach network policy
 	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)

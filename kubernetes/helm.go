@@ -194,7 +194,10 @@ func DeleteHelmChart(helmReleaseName string, namespace string) {
 		Namespace: namespace,
 		Release:   helmReleaseName,
 	}
-	HelmReleaseUninstall(data)
+	_, err := HelmReleaseUninstall(data)
+	if err != nil {
+		HelmLogger.Error(err)
+	}
 	//structs.CreateShellCommand("helm uninstall", "Uninstall chart", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
 }
 

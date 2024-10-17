@@ -9,6 +9,7 @@ import (
 	dbstats "mogenius-k8s-manager/db-stats"
 	api "mogenius-k8s-manager/http"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/kubernetes"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/migrations"
 	"mogenius-k8s-manager/services"
@@ -77,7 +78,8 @@ var clusterCmd = &cobra.Command{
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
 		go mokubernetes.EventWatcher()
-		go mokubernetes.ResourceWatcher()
+		// go mokubernetes.ResourceWatcher()
+		go kubernetes.WatchAllResources()
 		go mokubernetes.WatchPersistentVolumes()
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
