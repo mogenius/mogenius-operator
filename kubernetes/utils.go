@@ -544,3 +544,40 @@ func ObjectFor(kind, namespace, name string) (interface{}, error) {
 
 	return data, err
 }
+
+func FindResourceKind(namespace string, name string) (*dtos.K8sServiceControllerEnum, error) {
+	clientset := getProvider().ClientSet
+
+	provider, err := punq.NewKubeProvider(nil)
+	if err != nil {
+		return nil, err
+	}
+	deploymentClient, _ := provider.ClientSet.AppsV1().Deployments("mogenius").Get(context.TODO(), "mogenius-pod-stats-collector", metav1.GetOptions{})
+	log.Infof("deploymentClient: %v", deploymentClient.Kind)
+
+	if _, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
+		return punqUtils.Pointer(dtos.DEPLOYMENT), nil
+	}
+
+	if _, err := clientset.AppsV1().ReplicaSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
+		return punqUtils.Pointer(dtos.REPLICA_SET), nil
+	}
+
+	if _, err := clientset.AppsV1().StatefulSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
+		return punqUtils.Pointer(dtos.STATEFUL_SET), nil
+	}
+
+	if _, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
+		return punqUtils.Pointer(dtos.DAEMON_SET), nil
+	}
+
+	if _, err := clientset.BatchV1().Jobs(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
+		return punqUtils.Pointer(dtos.JOB), nil
+	}
+
+	if _, err := clientset.BatchV1beta1().CronJobs(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
+		return punqUtils.Pointer(dtos.CRON_JOB), nil
+	}
+
+	return nil, fmt.Errorf("Resource not found")
+}

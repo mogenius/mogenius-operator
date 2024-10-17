@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"fmt"
+	punqUtils "github.com/mogenius/punq/utils"
+	v1 "k8s.io/api/networking/v1"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
-
-	v1 "k8s.io/api/networking/v1"
 )
 
 type DetachLabeledNetworkPolicyRequest struct {
@@ -66,7 +66,7 @@ func ListLabeledNetworkPolicyPortsExample() []dtos.K8sLabeledNetworkPolicyDto {
 func ListLabeledNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
 	list, err := kubernetes.ReadNetworkPolicyPorts()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list all network policies, err: %s", err.Error())
+		return []dtos.K8sLabeledNetworkPolicyDto{}, fmt.Errorf("failed to list all network policies, err: %s", err.Error())
 	}
 	return list, nil
 }
@@ -88,10 +88,38 @@ type ListConflictingNetworkPoliciesRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
 }
 
-func ListAllConflictingNetworkPolicies(data ListConflictingNetworkPoliciesRequest) (*v1.NetworkPolicyList, error) {
-	list, err := kubernetes.ListAllConflictingNetworkPolicies(data.NamespaceName)
+type K8sConflictingNetworkPolicyDto struct {
+	NamespaceName  string                         `json:"namespaceName"`
+	ControllerName *string                        `json:"controllerName,omitempty"`
+	ControllerType *dtos.K8sServiceControllerEnum `json:"controllerType,omitempty"`
+	Spec           v1.NetworkPolicySpec           `json:"spec"`
+	// NetworkPolicy  v1.NetworkPolicy               `json:"networkPolicy"`
+}
+
+func ListAllConflictingNetworkPolicies(data ListConflictingNetworkPoliciesRequest) ([]K8sConflictingNetworkPolicyDto, error) {
+	policies, err := kubernetes.ListAllConflictingNetworkPolicies(data.NamespaceName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list all network policies, err: %s", err.Error())
+		return []K8sConflictingNetworkPolicyDto{}, fmt.Errorf("failed to list all network policies, err: %s", err.Error())
 	}
-	return list, nil
+
+	var dataList []K8sConflictingNetworkPolicyDto
+	for _, policy := range policies.Items {
+		controllerName := punqUtils.Pointer(policy.Spec.PodSelector.MatchLabels["app"])
+		controllerType, _ := kubernetes.FindResourceKind(policy.Namespace, *controllerName)
+
+		if *controllerName == "" {
+			controllerName = nil
+		}
+
+		data := K8sConflictingNetworkPolicyDto{
+			NamespaceName:  policy.Namespace,
+			ControllerName: controllerName,
+			ControllerType: controllerType,
+			Spec:           policy.Spec,
+			// NetworkPolicy:  policy,
+		}
+		dataList = append(dataList, data)
+	}
+
+	return dataList, nil
 }
