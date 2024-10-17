@@ -104,7 +104,7 @@ type RemoveConflictingNetworkPoliciesResponse struct {
 }
 
 func RemoveConflictingNetworkPolicies(data RemoveConflictingNetworkPoliciesRequest) RemoveConflictingNetworkPoliciesResponse {
-	err := kubernetes.RemoveAllNetworkPolicies(data.NamespaceName)
+	err := kubernetes.RemoveAllConflictingNetworkPolicies(data.NamespaceName)
 	if err != nil {
 		return RemoveConflictingNetworkPoliciesResponse{
 			Status:  failure,
