@@ -15,7 +15,7 @@ type DetachLabeledNetworkPolicyRequest struct {
 	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
 }
 
-type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
+//type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
 
 func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) (string, error) {
 	err := kubernetes.DetachLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
@@ -46,7 +46,7 @@ func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string,
 	return "", nil
 }
 
-func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
+func ListLabeledNetworkPolicyPortsExample() []dtos.K8sLabeledNetworkPolicyDto {
 	return []dtos.K8sLabeledNetworkPolicyDto{
 		{
 			Name:     "mogenius-policy-123",
@@ -63,8 +63,12 @@ func ListLabeledNetworkPolicyPortsExample() LabeledNetworkPoliciesListResponse {
 	}
 }
 
-func ListLabeledNetworkPolicyPorts() LabeledNetworkPoliciesListResponse {
-	return kubernetes.ReadNetworkPolicyPorts()
+func ListLabeledNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
+	list, err := kubernetes.ReadNetworkPolicyPorts()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all network policies, err: %s", err.Error())
+	}
+	return list, nil
 }
 
 type RemoveConflictingNetworkPoliciesRequest struct {

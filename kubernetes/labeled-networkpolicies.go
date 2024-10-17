@@ -295,7 +295,7 @@ type NetworkPolicy struct {
 	Port     uint16 `yaml:"port"`
 }
 
-func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicyDto {
+func ReadNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
 	configMap := readDefaultConfigMap()
 	ClusterConfigMap := GetConfigMap(configMap.Namespace, configMap.Name)
 
@@ -305,6 +305,7 @@ func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicyDto {
 	err := yaml.Unmarshal([]byte(policiesRaw), &policies)
 	if err != nil {
 		K8sLogger.Errorf("Error unmarshalling YAML: %s\n", err)
+		return nil, err
 	}
 	for _, policy := range policies {
 		result = append(result, dtos.K8sLabeledNetworkPolicyDto{
@@ -315,7 +316,7 @@ func ReadNetworkPolicyPorts() []dtos.K8sLabeledNetworkPolicyDto {
 		})
 	}
 
-	return result
+	return result, nil
 }
 
 func RemoveAllConflictingNetworkPolicies(namespaceName string) error {

@@ -2345,9 +2345,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return NewMessageResponse(controllers.DetachLabeledNetworkPolicy(data))
 	case structs.PAT_LIST_LABELED_NETWORK_POLICY_PORTS:
-		return controllers.ListLabeledNetworkPolicyPorts()
+		return NewMessageResponse(controllers.ListLabeledNetworkPolicyPorts())
 	case structs.PAT_LIST_CONFLICTING_NETWORK_POLICIES:
-		data := controllers.RemoveConflictingNetworkPoliciesRequest{}
+		data := controllers.ListConflictingNetworkPoliciesRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
