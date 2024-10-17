@@ -184,23 +184,6 @@ func SystemCheck() SystemCheckResponse {
 		return metricsEntry
 	})
 
-	// check for helm
-	wg.Add(1)
-	go SysCheckExec("CheckHelm", &wg, &entries, func() SystemCheckEntry {
-		helmResult, helmOutput, helmErr := punqUtils.IsHelmInstalled()
-		return CreateSystemCheckEntry(
-			"Helm",
-			helmResult,
-			helmOutput,
-			"Plase install helm (https://helm.sh/docs/intro/install/) on your system to proceed.",
-			helmErr,
-			"",
-			true,
-			false,
-			helmOutput,
-			"")
-	})
-
 	// check cluster provider
 	wg.Add(1)
 	go SysCheckExec("CheckClusterProvider", &wg, &entries, func() SystemCheckEntry {

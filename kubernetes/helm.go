@@ -1,13 +1,12 @@
 package kubernetes
 
 import (
-	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
-	"os/exec"
-	"sync"
+	"path/filepath"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -36,6 +35,8 @@ const (
 	HELM_REPOSITORY_CONFIG_FILE = "helm/repositories.yaml"
 
 	HELM_PLUGINS = "helm/plugins"
+
+	MAXCHART_VERSIONS = 50
 )
 
 var (
@@ -168,12 +169,33 @@ type HelmReleaseStatusInfo struct {
 	Chart        string    `json:"chart"`
 }
 
-func CreateHelmChart(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask structs.HelmTaskEnum, helmChartName string, helmFlags string, successFunc func(), failFunc func(output string, err error)) {
-	structs.CreateShellCommandGoRoutine("Add/Update Helm Repo & Execute chart.", fmt.Sprintf("helm repo add %s %s; helm repo update; helm %s %s %s %s", helmRepoName, helmRepoUrl, helmTask, helmReleaseName, helmChartName, helmFlags), successFunc, failFunc)
+// Only for internal usage
+func CreateHelmChart(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask structs.HelmTaskEnum, helmChartName string, helmValues string, successFunc func(), failFunc func(output string, err error)) {
+	go func() {
+		data := HelmChartInstallRequest{
+			Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+			Chart:     helmChartName,
+			Release:   helmReleaseName,
+			Values:    helmValues,
+		}
+		status, err := HelmChartInstall(data)
+		if err != nil {
+			failFunc(status, err)
+		} else {
+			successFunc()
+		}
+	}()
+	//structs.CreateShellCommandGoRoutine("Add/Update Helm Repo & Execute chart.", fmt.Sprintf("helm repo add %s %s; helm repo update; helm %s %s %s %s", helmRepoName, helmRepoUrl, helmTask, helmReleaseName, helmChartName, helmFlags), successFunc, failFunc)
 }
 
-func DeleteHelmChart(job *structs.Job, helmReleaseName string, wg *sync.WaitGroup) {
-	structs.CreateShellCommand("helm uninstall", "Uninstall chart", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
+// Only for internal usage
+func DeleteHelmChart(helmReleaseName string, namespace string) {
+	data := HelmReleaseUninstallRequest{
+		Namespace: namespace,
+		Release:   helmReleaseName,
+	}
+	HelmReleaseUninstall(data)
+	//structs.CreateShellCommand("helm uninstall", "Uninstall chart", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
 }
 
 //func CheckHelmRepoExists(repoURL string, username string, password string) error {
@@ -552,23 +574,52 @@ func HelmRepoRemove(data HelmRepoRemoveRequest) (string, error) {
 }
 
 func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
-	args := []string{}
-	args = append(args, "search", "repo", data.Name, "--output", "json")
-	args = append(args, NewCliConfArgs()...)
-	cmd := exec.Command("helm", args...)
+	settings := cli.New()
 
-	out, err := cmd.Output()
+	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Failed to load repositories file: %v", err)
 	}
 
-	var charts []HelmChartInfo
-	err = json.Unmarshal(out, &charts)
-	if err != nil {
-		return nil, err
+	var allCharts []HelmChartInfo
+
+	for _, repoEntry := range repositoriesFile.Repositories {
+		cacheIndexFile := filepath.Join(settings.RepositoryCache, fmt.Sprintf("%s-index.yaml", repoEntry.Name))
+
+		indexFile, err := repo.LoadIndexFile(cacheIndexFile)
+		if err != nil {
+			log.Printf("Error loading index file for repo %s: %v", repoEntry.Name, err)
+			continue
+		}
+
+		for _, chartVersions := range indexFile.Entries {
+			for _, chartVersion := range chartVersions {
+				allCharts = append(allCharts, HelmChartInfo{
+					Name:        fmt.Sprintf("%s/%s", repoEntry.Name, chartVersion.Metadata.Name),
+					Version:     chartVersion.Metadata.Version,
+					AppVersion:  chartVersion.Metadata.AppVersion,
+					Description: chartVersion.Metadata.Description,
+				})
+				break // only take the first version
+			}
+		}
 	}
 
-	return charts, nil
+	filteredCharts := filterCharts(allCharts, data.Name)
+	return filteredCharts, nil
+}
+
+// filterCharts filters charts based on the query
+func filterCharts(charts []HelmChartInfo, query string) []HelmChartInfo {
+	var result []HelmChartInfo
+	query = strings.ToLower(query)
+	for _, chart := range charts {
+		if strings.Contains(strings.ToLower(chart.Name), query) ||
+			strings.Contains(strings.ToLower(chart.Description), query) {
+			result = append(result, chart)
+		}
+	}
+	return result
 }
 
 func HelmChartShow(data HelmChartShowRequest) (string, error) {
@@ -600,31 +651,52 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 }
 
 func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
-	showData := HelmChartShowRequest{
-		Chart:      data.Chart,
-		ShowFormat: action.ShowChart,
-	}
-	if _, err := HelmChartShow(showData); err != nil {
-		return nil, err
-	}
+	settings := cli.New()
 
-	args := []string{}
-	args = append(args, "search", "repo", data.Chart, "--versions", "--output", "json")
-	args = append(args, NewCliConfArgs()...)
-	cmd := exec.Command("helm", args...)
-
-	out, err := cmd.Output()
+	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Failed to load repositories file: %v", err)
 	}
 
-	var charts []HelmChartInfo
-	err = json.Unmarshal(out, &charts)
-	if err != nil {
-		return nil, err
-	}
+	var allCharts []HelmChartInfo
 
-	return charts, nil
+	split := strings.Split(data.Chart, "/")
+	if len(split) != 2 {
+		return nil, fmt.Errorf("invalid chart name %s", data.Chart)
+	}
+	repoName := split[0]
+	chartName := split[1]
+
+	for _, repoEntry := range repositoriesFile.Repositories {
+		if repoEntry.Name != repoName {
+			continue
+		}
+		cacheIndexFile := filepath.Join(settings.RepositoryCache, fmt.Sprintf("%s-index.yaml", repoEntry.Name))
+
+		indexFile, err := repo.LoadIndexFile(cacheIndexFile)
+		if err != nil {
+			log.Printf("Error loading index file for repo %s: %v", repoEntry.Name, err)
+			continue
+		}
+
+		for _, chartVersions := range indexFile.Entries {
+			for _, chartVersion := range chartVersions {
+				if chartVersion.Metadata.Name != chartName {
+					continue
+				}
+				if len(allCharts) > MAXCHART_VERSIONS {
+					break
+				}
+				allCharts = append(allCharts, HelmChartInfo{
+					Name:        fmt.Sprintf("%s/%s", repoEntry.Name, chartVersion.Metadata.Name),
+					Version:     chartVersion.Metadata.Version,
+					AppVersion:  chartVersion.Metadata.AppVersion,
+					Description: chartVersion.Metadata.Description,
+				})
+			}
+		}
+	}
+	return allCharts, nil
 }
 
 func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
@@ -797,6 +869,13 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
 	list := action.NewList(actionConfig)
 	list.StateMask = action.ListAll
 	releases, err := list.Run()
+	// remove unnecessary fields
+	for _, release := range releases {
+		release.Chart.Files = nil
+		release.Chart.Templates = nil
+		release.Chart.Values = nil
+		release.Manifest = ""
+	}
 	if err != nil {
 		HelmReleaseListLogger.Errorf("HelmReleaseList List Error: %s", err.Error())
 		return releases, err
