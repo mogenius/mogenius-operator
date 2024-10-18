@@ -269,6 +269,28 @@ func AddPodStatsToDb(stats structs.PodStats) {
 	}
 }
 
+func GetSocketConnectionsForController(controller kubernetes.K8sController) *structs.SocketConnections {
+	result := &structs.SocketConnections{}
+	err := dbStats.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(SOCKET_STATS_BUCKET))
+		c := bucket.Cursor()
+		for k, data := c.First(); k != nil; k, _ = c.Next() {
+			if strings.HasPrefix(string(k), controller.Name) {
+				err := structs.UnmarshalSocketConnections(result, data)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		dbstatslogger.Errorf("GetSocketConnectionsForController: %s", err.Error())
+		return nil
+	}
+	return result
+}
+
 func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *structs.InterfaceStats {
 	result := &structs.InterfaceStats{}
 	err := dbStats.View(func(tx *bolt.Tx) error {

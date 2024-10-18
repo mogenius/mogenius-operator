@@ -274,6 +274,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return dbstats.GetTrafficStatsEntrySumForController(data, false)
+	case structs.PAT_STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS:
+		data := kubernetes.K8sController{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return dbstats.GetSocketConnectionsForController(data)
 
 	case structs.PAT_STATS_TRAFFIC_FOR_POD_ALL:
 		data := StatsDataRequest{}

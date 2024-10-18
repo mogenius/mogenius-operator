@@ -122,22 +122,23 @@ const (
 
 	PAT_CLUSTER_UPDATE_LOCAL_TLS_SECRET string = "cluster/update-local-tls-secret"
 
-	PAT_STATS_TRAFFIC_FOR_POD_ALL         string = "stats/traffic/all-for-pod"
-	PAT_STATS_TRAFFIC_FOR_POD_SUM         string = "stats/traffic/sum-for-pod"
-	PAT_STATS_TRAFFIC_FOR_POD_LAST        string = "stats/traffic/last-for-pod" // legacy-support TODO: REMOVE
-	PAT_STATS_TRAFFIC_FOR_CONTROLLER_ALL  string = "stats/traffic/all-for-controller"
-	PAT_STATS_TRAFFIC_FOR_CONTROLLER_SUM  string = "stats/traffic/sum-for-controller"
-	PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST string = "stats/traffic/last-for-controller" // legacy-support TODO: REMOVE
-	PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL   string = "stats/traffic/all-for-namespace"
-	PAT_STATS_TRAFFIC_FOR_NAMESPACE_SUM   string = "stats/traffic/sum-for-namespace"
-	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST  string = "stats/traffic/last-for-namespace" // legacy-support TODO: REMOVE
-	PAT_STATS_PODSTAT_FOR_POD_ALL         string = "stats/podstat/all-for-pod"
-	PAT_STATS_PODSTAT_FOR_POD_LAST        string = "stats/podstat/last-for-pod"
-	PAT_STATS_PODSTAT_FOR_CONTROLLER_ALL  string = "stats/podstat/all-for-controller"
-	PAT_STATS_PODSTAT_FOR_CONTROLLER_LAST string = "stats/podstat/last-for-controller"
-	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL   string = "stats/podstat/all-for-namespace"
-	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST  string = "stats/podstat/last-for-namespace"
-	PAT_STATS_CHART_FOR_POD               string = "stats/chart/for-pod"
+	PAT_STATS_TRAFFIC_FOR_POD_ALL                       string = "stats/traffic/all-for-pod"
+	PAT_STATS_TRAFFIC_FOR_POD_SUM                       string = "stats/traffic/sum-for-pod"
+	PAT_STATS_TRAFFIC_FOR_POD_LAST                      string = "stats/traffic/last-for-pod" // legacy-support TODO: REMOVE
+	PAT_STATS_TRAFFIC_FOR_CONTROLLER_ALL                string = "stats/traffic/all-for-controller"
+	PAT_STATS_TRAFFIC_FOR_CONTROLLER_SUM                string = "stats/traffic/sum-for-controller"
+	PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST               string = "stats/traffic/last-for-controller" // legacy-support TODO: REMOVE
+	PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL                 string = "stats/traffic/all-for-namespace"
+	PAT_STATS_TRAFFIC_FOR_NAMESPACE_SUM                 string = "stats/traffic/sum-for-namespace"
+	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST                string = "stats/traffic/last-for-namespace" // legacy-support TODO: REMOVE
+	PAT_STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS string = "stats/traffic/for-controller-socket-connections"
+	PAT_STATS_PODSTAT_FOR_POD_ALL                       string = "stats/podstat/all-for-pod"
+	PAT_STATS_PODSTAT_FOR_POD_LAST                      string = "stats/podstat/last-for-pod"
+	PAT_STATS_PODSTAT_FOR_CONTROLLER_ALL                string = "stats/podstat/all-for-controller"
+	PAT_STATS_PODSTAT_FOR_CONTROLLER_LAST               string = "stats/podstat/last-for-controller"
+	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL                 string = "stats/podstat/all-for-namespace"
+	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST                string = "stats/podstat/last-for-namespace"
+	PAT_STATS_CHART_FOR_POD                             string = "stats/chart/for-pod"
 
 	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION string = "metrics/deployment/average-utilization"
 
@@ -525,6 +526,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_STATS_PODSTAT_FOR_CONTROLLER_LAST,
 	PAT_STATS_TRAFFIC_FOR_NAMESPACE_ALL,
 	PAT_STATS_TRAFFIC_FOR_NAMESPACE_SUM,
+	PAT_STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS,
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL,
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST,
 	PAT_STATS_TRAFFIC_FOR_POD_LAST,        // legacy-support TODO: REMOVE
