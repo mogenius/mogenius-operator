@@ -190,24 +190,29 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	}
 
 	// SET DEFAULTS if missing
-	pwd, _ := os.Getwd()
+	tempDirPath, err := os.MkdirTemp("", "mo_*")
+	if err != nil {
+		log.Fatalf("Failed to create temp dir: %v", err)
+	}
+	log.Infof("TemoDir created: %s", tempDirPath)
+
 	if CONFIG.Kubernetes.BboltDbPath == "" {
-		CONFIG.Kubernetes.BboltDbPath = pwd + "/mogenius.db"
+		CONFIG.Kubernetes.BboltDbPath = filepath.Join(tempDirPath, "mogenius.db")
 	}
 	if CONFIG.Kubernetes.HelmDataPath == "" {
-		CONFIG.Kubernetes.HelmDataPath = pwd + "/helm-data"
+		CONFIG.Kubernetes.HelmDataPath = filepath.Join(tempDirPath, "helm-data")
 	}
 	if CONFIG.Kubernetes.GitVaultDataPath == "" {
-		CONFIG.Kubernetes.GitVaultDataPath = pwd + "/git-vault-data"
+		CONFIG.Kubernetes.GitVaultDataPath = filepath.Join(tempDirPath, "git-vault-data")
 	}
 	if CONFIG.Kubernetes.BboltDbStatsPath == "" {
-		CONFIG.Kubernetes.BboltDbStatsPath = pwd + "/mogenius-stats.db"
+		CONFIG.Kubernetes.BboltDbStatsPath = filepath.Join(tempDirPath, "mogenius-stats.db")
 	}
 	if CONFIG.Misc.DefaultMountPath == "" {
-		CONFIG.Misc.DefaultMountPath = pwd + "/mo-data"
+		CONFIG.Misc.DefaultMountPath = filepath.Join(tempDirPath, "mo-data")
 	}
 	if CONFIG.Kubernetes.LogDataPath == "" {
-		CONFIG.Kubernetes.LogDataPath = pwd + "/logs"
+		CONFIG.Kubernetes.LogDataPath = filepath.Join(tempDirPath, "logs")
 	}
 
 	// CHECKS FOR CLUSTER

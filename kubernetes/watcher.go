@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/store"
 	"slices"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -89,6 +91,7 @@ func watchResource(provider *KubeProvider, resourceName string, resourceKind str
 				K8sLogger.Warnf(`failed to deserialize: %s`, bodyString)
 				return
 			}
+			SetStoreIfNeeded(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
 			IacManagerWriteResourceYaml(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
@@ -99,6 +102,7 @@ func watchResource(provider *KubeProvider, resourceName string, resourceKind str
 				K8sLogger.Warnf(`failed to deserialize: %s`, bodyString)
 				return
 			}
+			SetStoreIfNeeded(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
 			IacManagerWriteResourceYaml(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -109,6 +113,7 @@ func watchResource(provider *KubeProvider, resourceName string, resourceKind str
 				K8sLogger.Warnf(`failed to deserialize: %s`, bodyString)
 				return
 			}
+			DeleteFromStoreIfNeeded(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
 			IacManagerDeleteResourceYaml(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), obj)
 		},
 	})
@@ -125,4 +130,46 @@ func watchResource(provider *KubeProvider, resourceName string, resourceKind str
 	}
 
 	return nil
+}
+
+func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
+	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" {
+		err := store.GlobalStore.Set(obj, kind, namespace, name)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
+		if kind == "Event" {
+			var event v1.Event
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
+			if err != nil {
+				return
+			}
+			processEvent(&event)
+		}
+	}
+}
+
+func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
+	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" {
+		err := store.GlobalStore.Delete(kind, namespace, name)
+		if err != nil {
+			K8sLogger.Error(err)
+		}
+		if kind == "Event" {
+			var event v1.Event
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
+			if err != nil {
+				return
+			}
+			processEvent(&event)
+		}
+	}
+	if kind == "PersistentVolume" {
+		var pv v1.PersistentVolume
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &pv)
+		if err != nil {
+			return
+		}
+		handlePVDeletion(&pv)
+	}
 }
