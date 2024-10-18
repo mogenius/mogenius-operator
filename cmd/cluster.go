@@ -77,10 +77,7 @@ var clusterCmd = &cobra.Command{
 		go api.InitApi()
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
-		go mokubernetes.EventWatcher()
-		// go mokubernetes.ResourceWatcher()
 		go kubernetes.WatchAllResources()
-		go mokubernetes.WatchPersistentVolumes()
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 

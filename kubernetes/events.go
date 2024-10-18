@@ -17,99 +17,13 @@ import (
 	"github.com/mogenius/punq/logger"
 	punqutils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/util/wait"
-
-	"k8s.io/client-go/util/retry"
-
-	"k8s.io/client-go/tools/cache"
 )
 
 const RETRYTIMEOUT time.Duration = 3
 const CONCURRENTCONNECTIONS = 1
 
 var EventChannels = make(map[string]chan string)
-
-func EventWatcher() {
-	provider, err := punq.NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue because it is vital: %s", err.Error())
-		return
-	}
-
-	// Retry watching events with exponential backoff in case of failures
-	err = retry.OnError(wait.Backoff{
-		Steps:    5,
-		Duration: 1 * time.Second,
-		Factor:   2.0,
-		Jitter:   0.1,
-	}, apierrors.IsServiceUnavailable, func() error {
-		return watchEvents(provider)
-	})
-	if err != nil {
-		K8sLogger.Fatalf("Error watching events: %s", err.Error())
-	}
-
-	// Wait forever
-	select {}
-}
-
-func ResourceWatcher() {
-	// if !iacmanager.ShouldWatchResources() {
-	// 	K8sLogger.Warn("Nor Pull nor Push enabled. Skip watching resources.")
-	// 	return
-	// }
-	// if resourceWatcherRunning {
-	// 	K8sLogger.Warn("Resource watcher already running.")
-	// 	return
-	// }
-
-	K8sLogger.Infof("Starting watchers for resources: %s", strings.Join(utils.CONFIG.Iac.SyncWorkloads, ", "))
-
-	MapIacSyncWorkloadIntoConfigMap()
-
-	go WatchDeployments()
-	go WatchReplicaSets()
-	go WatchCronJobs()
-	go WatchJobs()
-	go WatchPods()
-
-	for _, workload := range utils.CONFIG.Iac.SyncWorkloads {
-		switch strings.TrimSpace(workload) {
-		case dtos.KindConfigMaps:
-			go WatchConfigmaps()
-		case dtos.KindDeployments:
-			// go WatchDeployments()
-		case dtos.KindPods:
-			// go WatchPods()
-		case dtos.KindIngresses:
-			go WatchIngresses()
-		case dtos.KindSecrets:
-			go WatchSecrets()
-		case dtos.KindServices:
-			go WatchServices()
-		case dtos.KindNamespaces:
-			go WatchNamespaces()
-		case dtos.KindNetworkPolicies:
-			go WatchNetworkPolicies()
-		case dtos.KindJobs:
-			// go WatchJobs()
-		case dtos.KindCronJobs:
-			// go WatchCronJobs()
-		case dtos.KindDaemonSets:
-			go WatchDaemonSets()
-		case dtos.KindStatefulSets:
-			go WatchStatefulSets()
-		case dtos.KindHorizontalPodAutoscalers:
-			go WatchHpas()
-		default:
-			K8sLogger.Errorf("🚫 Unknown resource type for watcher: %s", workload)
-		}
-		K8sLogger.Infof("Started watching %s 🚀.", workload)
-	}
-}
 
 func MapIacSyncWorkloadIntoConfigMap() {
 	// init all with false
@@ -305,66 +219,6 @@ func processEvent(event *v1Core.Event) {
 		}
 	} else {
 		K8sLogger.Errorf("malformed event received")
-	}
-}
-
-func watchEvents(provider *punq.KubeProvider) error {
-	handler := cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			event := obj.(*v1Core.Event)
-			err := store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
-			if err != nil {
-				K8sLogger.Error(err)
-			}
-			processEvent(event)
-		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			event := newObj.(*v1Core.Event)
-			err := store.GlobalStore.Set(event, "Event", event.Namespace, event.Name)
-			if err != nil {
-				K8sLogger.Error(err)
-			}
-			processEvent(event)
-		},
-		DeleteFunc: func(obj interface{}) {
-			event := obj.(*v1Core.Event)
-			err := store.GlobalStore.Delete("Event", event.Namespace, event.Name)
-			if err != nil {
-				K8sLogger.Error(err)
-			}
-			processEvent(event)
-		},
-	}
-	listWatch := cache.NewListWatchFromClient(
-		provider.ClientSet.CoreV1().RESTClient(),
-		"events",
-		v1Core.NamespaceAll,
-		fields.Nothing(),
-	)
-	eventInformer := cache.NewSharedInformer(listWatch, &v1Core.Event{}, 0)
-	_, err := eventInformer.AddEventHandler(handler)
-	if err != nil {
-		return fmt.Errorf("Failed to add event handler: %s", err.Error())
-	}
-
-	stopCh := make(chan struct{})
-	go eventInformer.Run(stopCh)
-
-	// Wait for the informer to sync and start processing events
-	if !cache.WaitForCacheSync(stopCh, eventInformer.HasSynced) {
-		return fmt.Errorf("failed to sync cache")
-	}
-
-	// This loop will keep the function alive as long as the stopCh is not closed
-	for {
-		select {
-		case <-stopCh:
-			// stopCh closed, return from the function
-			return nil
-		case <-time.After(30 * time.Second):
-			// This is to avoid a tight loop in case stopCh is never closed.
-			// You can adjust the time as per your needs.
-		}
 	}
 }
 
