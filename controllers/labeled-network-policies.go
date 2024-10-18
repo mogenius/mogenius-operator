@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"fmt"
-	punqUtils "github.com/mogenius/punq/utils"
-	v1 "k8s.io/api/networking/v1"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
+
+	punqUtils "github.com/mogenius/punq/utils"
+	v1 "k8s.io/api/networking/v1"
 )
 
 type DetachLabeledNetworkPolicyRequest struct {
@@ -113,4 +114,31 @@ func ListAllConflictingNetworkPolicies(data ListConflictingNetworkPoliciesReques
 	}
 
 	return dataList, nil
+}
+
+type ListControllerLabeledNetworkPoliciesRequest struct {
+	ControllerName string                        `json:"controllerName" validate:"required"`
+	ControllerType dtos.K8sServiceControllerEnum `json:"controllerType" validate:"required"`
+	NamespaceName  string                        `json:"namespaceName" validate:"required"`
+}
+
+type ListControllerLabeledNetworkPoliciesResponse struct {
+	ControllerName       string                          `json:"controllerName" validate:"required"`
+	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
+	NamespaceName        string                          `json:"namespaceName" validate:"required"`
+	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
+}
+
+func ListControllerLabeledNetwork(data ListControllerLabeledNetworkPoliciesRequest) (ListControllerLabeledNetworkPoliciesResponse, error) {
+	policies, err := kubernetes.ListControllerLabeledNetworkPolicies(data.NamespaceName)
+	if err != nil {
+		return ListControllerLabeledNetworkPoliciesResponse{}, err
+	}
+
+	return ListControllerLabeledNetworkPoliciesResponse{
+		ControllerName:       data.ControllerName,
+		ControllerType:       data.ControllerType,
+		NamespaceName:        data.NamespaceName,
+		LabeledNetworkPolicy: policies.LabeledNetworkPolicy,
+	}, nil
 }
