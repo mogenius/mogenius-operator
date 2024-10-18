@@ -63,7 +63,10 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 }
 
 func TestReadNetworkPolicyPorts(t *testing.T) {
-	ports := ReadNetworkPolicyPorts()
+	ports, err := ReadNetworkPolicyPorts()
+	if err != nil {
+		t.Errorf("Error reading network policy ports: %s", err.Error())
+	}
 	if len(ports) == 0 {
 		t.Errorf("Error reading network policy ports")
 	}
