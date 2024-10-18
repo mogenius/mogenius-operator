@@ -15,25 +15,26 @@ const (
 	PolicyName2 = "mogenius-policy-098"
 )
 
+var labelPolicy1 = dtos.K8sLabeledNetworkPolicyDto{
+	Name:     PolicyName1,
+	Type:     dtos.Egress,
+	Port:     80,
+	PortType: dtos.PortTypeTCP,
+}
+
+var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
+	Name:     PolicyName2,
+	Type:     dtos.Egress,
+	Port:     59999,
+	PortType: dtos.PortTypeUDP,
+}
+
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	var namespaceName = "mogenius"
 
-	var labelPolicy1 = dtos.K8sLabeledNetworkPolicyDto{
-		Name:     PolicyName1,
-		Type:     dtos.Ingress,
-		Port:     80,
-		PortType: dtos.PortTypeHTTPS,
-	}
 	err := EnsureLabeledNetworkPolicy(namespaceName, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
-	}
-
-	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
-		Name:     PolicyName2,
-		Type:     dtos.Egress,
-		Port:     59999,
-		PortType: dtos.PortTypeUDP,
 	}
 
 	err = EnsureLabeledNetworkPolicy(namespaceName, labelPolicy2)
@@ -82,31 +83,30 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		t.Errorf("Error creating deployment: %s", err.Error())
 	}
-	// sleep for 5 seconds to allow the deployment to be created
+	// sleep to allow the deployment to be created
 	// real world scenario wouldn't have this problem, as we assume existing controllers
 	time.Sleep(5 * time.Second)
 
 	defer client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
 
 	// attach network policy
-	var labelPolicy = dtos.K8sLabeledNetworkPolicyDto{
-		Name:     PolicyName1,
-		Type:     dtos.Ingress,
-		Port:     80,
-		PortType: dtos.PortTypeHTTPS,
-	}
 
-	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy)
+	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error attaching network policy: %s", err.Error())
 	}
 
+	// sleep to allow the deployment to be updated
+	// real world scenario wouldn't have this problem, as we assume existing controllers
+	time.Sleep(5 * time.Second)
+
 	// detach network policy
-	err = DetachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy)
+	err = DetachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error detaching network policy: %s", err.Error())
 	}
 }
+
 func TestListAllConflictingNetworkPolicies(t *testing.T) {
 	list, err := ListAllConflictingNetworkPolicies("mogenius")
 	if err != nil {
@@ -132,31 +132,22 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		t.Errorf("Error creating deployment: %s", err.Error())
 	}
-	// sleep for 5 seconds to allow the deployment to be created
+	// sleep to allow the deployment to be created
 	// real world scenario wouldn't have this problem, as we assume existing controllers
-	time.Sleep(10 * time.Second)
-
+	time.Sleep(5 * time.Second)
 	defer client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
-	// attach network policy
-	var labelPolicy1 = dtos.K8sLabeledNetworkPolicyDto{
-		Name:     PolicyName1,
-		Type:     dtos.Ingress,
-		Port:     80,
-		PortType: dtos.PortTypeTCP,
-	}
 
+	// attach network policy
 	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error attaching network policy: %s", err.Error())
 	}
-	// attach network policy
-	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
-		Name:     PolicyName2,
-		Type:     dtos.Egress,
-		Port:     80,
-		PortType: dtos.PortTypeHTTPS,
-	}
 
+	// sleep to allow the deployment to be updated
+	// real world scenario wouldn't have this problem, as we assume existing controllers
+	time.Sleep(5 * time.Second)
+
+	// attach network policy
 	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy2)
 	if err != nil {
 		t.Errorf("Error attaching network policy: %s", err.Error())
@@ -172,11 +163,11 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 func TestDeleteNetworkPolicy(t *testing.T) {
 	var namespaceName = "mogenius"
 
-	err := DeleteNetworkPolicy(namespaceName, PolicyName1)
+	err := DeleteNetworkPolicy(namespaceName, getNetworkPolicyName(labelPolicy1))
 	if err != nil {
 		t.Errorf("Error deleting network policy: %s. %s", PolicyName1, err.Error())
 	}
-	err = DeleteNetworkPolicy(namespaceName, PolicyName2)
+	err = DeleteNetworkPolicy(namespaceName, getNetworkPolicyName(labelPolicy2))
 	if err != nil {
 		t.Errorf("Error deleting network policy: %s. %s", PolicyName2, err.Error())
 	}

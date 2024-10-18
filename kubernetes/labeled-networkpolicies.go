@@ -197,7 +197,7 @@ func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabele
 
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "already exists") {
 		K8sLogger.Errorf("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
 		return err
 	}
