@@ -123,10 +123,10 @@ type ListControllerLabeledNetworkPoliciesRequest struct {
 }
 
 type ListControllerLabeledNetworkPoliciesResponse struct {
-	ControllerName       string                          `json:"controllerName" validate:"required"`
-	ControllerType       dtos.K8sServiceControllerEnum   `json:"controllerType" validate:"required"`
-	NamespaceName        string                          `json:"namespaceName" validate:"required"`
-	LabeledNetworkPolicy dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
+	ControllerName         string                            `json:"controllerName" validate:"required"`
+	ControllerType         dtos.K8sServiceControllerEnum     `json:"controllerType" validate:"required"`
+	NamespaceName          string                            `json:"namespaceName" validate:"required"`
+	LabeledNetworkPolicies []dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
 }
 
 func ListControllerLabeledNetwork(data ListControllerLabeledNetworkPoliciesRequest) (ListControllerLabeledNetworkPoliciesResponse, error) {
@@ -136,9 +136,9 @@ func ListControllerLabeledNetwork(data ListControllerLabeledNetworkPoliciesReque
 	}
 
 	return ListControllerLabeledNetworkPoliciesResponse{
-		ControllerName:       data.ControllerName,
-		ControllerType:       data.ControllerType,
-		NamespaceName:        data.NamespaceName,
-		LabeledNetworkPolicy: policies.LabeledNetworkPolicy,
+		ControllerName:         data.ControllerName,
+		ControllerType:         data.ControllerType,
+		NamespaceName:          data.NamespaceName,
+		LabeledNetworkPolicies: policies,
 	}, nil
 }
