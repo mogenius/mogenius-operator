@@ -89,10 +89,9 @@ type ListConflictingNetworkPoliciesRequest struct {
 }
 
 type K8sConflictingNetworkPolicyDto struct {
-	NamespaceName  string                         `json:"namespaceName"`
-	ControllerName *string                        `json:"controllerName,omitempty"`
-	ControllerType *dtos.K8sServiceControllerEnum `json:"controllerType,omitempty"`
-	Spec           v1.NetworkPolicySpec           `json:"spec"`
+	NamespaceName string               `json:"namespaceName"`
+	Name          *string              `json:"name,omitempty"`
+	Spec          v1.NetworkPolicySpec `json:"spec"`
 	// NetworkPolicy  v1.NetworkPolicy               `json:"networkPolicy"`
 }
 
@@ -104,18 +103,10 @@ func ListAllConflictingNetworkPolicies(data ListConflictingNetworkPoliciesReques
 
 	var dataList []K8sConflictingNetworkPolicyDto
 	for _, policy := range policies.Items {
-		controllerName := punqUtils.Pointer(policy.Spec.PodSelector.MatchLabels["app"])
-		controllerType, _ := kubernetes.FindResourceKind(policy.Namespace, *controllerName)
-
-		if *controllerName == "" {
-			controllerName = nil
-		}
-
 		data := K8sConflictingNetworkPolicyDto{
-			NamespaceName:  policy.Namespace,
-			ControllerName: controllerName,
-			ControllerType: controllerType,
-			Spec:           policy.Spec,
+			Name:          punqUtils.Pointer(policy.Name),
+			NamespaceName: policy.Namespace,
+			Spec:          policy.Spec,
 			// NetworkPolicy:  policy,
 		}
 		dataList = append(dataList, data)
