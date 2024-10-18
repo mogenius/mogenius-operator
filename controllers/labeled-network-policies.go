@@ -130,7 +130,7 @@ type ListControllerLabeledNetworkPoliciesResponse struct {
 }
 
 func ListControllerLabeledNetwork(data ListControllerLabeledNetworkPoliciesRequest) (ListControllerLabeledNetworkPoliciesResponse, error) {
-	policies, err := kubernetes.ListControllerLabeledNetworkPolicies(data.NamespaceName)
+	policies, err := kubernetes.ListControllerLabeledNetworkPolicies(data.ControllerName, data.ControllerType, data.NamespaceName)
 	if err != nil {
 		return ListControllerLabeledNetworkPoliciesResponse{}, err
 	}

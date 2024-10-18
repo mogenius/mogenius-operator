@@ -42,19 +42,6 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	}
 }
 
-func TestDeleteNetworkPolicy(t *testing.T) {
-	var namespaceName = "mogenius"
-
-	err := DeleteNetworkPolicy(namespaceName, PolicyName1)
-	if err != nil {
-		t.Errorf("Error deleting network policy: %s. %s", PolicyName1, err.Error())
-	}
-	err = DeleteNetworkPolicy(namespaceName, PolicyName2)
-	if err != nil {
-		t.Errorf("Error deleting network policy: %s. %s", PolicyName2, err.Error())
-	}
-}
-
 func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	err := InitNetworkPolicyConfigMap()
 	if err != nil {
@@ -132,4 +119,65 @@ func TestRemoveAllNetworkPolicies(t *testing.T) {
 	t.Skip("skipping this test for manual testing")
 
 	RemoveAllConflictingNetworkPolicies("mogenius")
+}
+
+func TestListControllerLabeledNetworkPolicy(t *testing.T) {
+	var namespaceName = "mogenius"
+
+	// create simple nginx deployment with k8s
+	exampleDeploy := createNginxDeployment()
+
+	client := GetAppClient()
+	_, err := client.Deployments(namespaceName).Create(context.TODO(), exampleDeploy, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		t.Errorf("Error creating deployment: %s", err.Error())
+	}
+	// sleep for 5 seconds to allow the deployment to be created
+	// real world scenario wouldn't have this problem, as we assume existing controllers
+	time.Sleep(10 * time.Second)
+
+	defer client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
+	// attach network policy
+	var labelPolicy1 = dtos.K8sLabeledNetworkPolicyDto{
+		Name:     PolicyName1,
+		Type:     dtos.Ingress,
+		Port:     80,
+		PortType: dtos.PortTypeTCP,
+	}
+
+	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)
+	if err != nil {
+		t.Errorf("Error attaching network policy: %s", err.Error())
+	}
+	// attach network policy
+	var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
+		Name:     PolicyName2,
+		Type:     dtos.Egress,
+		Port:     80,
+		PortType: dtos.PortTypeHTTPS,
+	}
+
+	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy2)
+	if err != nil {
+		t.Errorf("Error attaching network policy: %s", err.Error())
+	}
+
+	list, err := ListControllerLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName)
+	if err != nil {
+		t.Errorf("Error listing conflicting network policies: %s", err.Error())
+	}
+	t.Log(list)
+}
+
+func TestDeleteNetworkPolicy(t *testing.T) {
+	var namespaceName = "mogenius"
+
+	err := DeleteNetworkPolicy(namespaceName, PolicyName1)
+	if err != nil {
+		t.Errorf("Error deleting network policy: %s. %s", PolicyName1, err.Error())
+	}
+	err = DeleteNetworkPolicy(namespaceName, PolicyName2)
+	if err != nil {
+		t.Errorf("Error deleting network policy: %s. %s", PolicyName2, err.Error())
+	}
 }
