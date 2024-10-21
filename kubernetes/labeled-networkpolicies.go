@@ -102,7 +102,7 @@ func DetachLabeledNetworkPolicy(controllerName string,
 	labelPolicy dtos.K8sLabeledNetworkPolicyDto,
 ) error {
 	client := GetAppClient()
-	label := getNetworkPolicyLabel(labelPolicy)
+	label := getNetworkPolicyLabelByLabelName(labelPolicy)
 
 	switch controllerType {
 	case dtos.DEPLOYMENT:
@@ -439,6 +439,12 @@ func getNetworkPolicyName(labelPolicy dtos.K8sLabeledNetworkPolicyDto) string {
 func getNetworkPolicyLabel(labelPolicy dtos.K8sLabeledNetworkPolicyDto) string {
 	return strings.ToLower(
 		fmt.Sprintf("%s-%s-%s", PoliciesLabelPrefix, labelPolicy.Name, labelPolicy.Type),
+	)
+}
+
+func getNetworkPolicyLabelByLabelName(labelPolicy dtos.K8sLabeledNetworkPolicyDto) string {
+	return strings.ToLower(
+		fmt.Sprintf("%s-%s", PoliciesLabelPrefix, labelPolicy.Name),
 	)
 }
 

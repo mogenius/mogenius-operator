@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 
@@ -19,11 +20,18 @@ type DetachLabeledNetworkPolicyRequest struct {
 //type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
 
 func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) (string, error) {
+	logWithFields := log.WithFields(log.Fields{"namespace": data.NamespaceName, "controllerName": data.ControllerName})
+	logType := "NETWORK POLICY"
+
+	logWithFields.Infof("   %s Detach network policy %s from %s\n", logType, data.LabeledNetworkPolicy.Name, data.ControllerName)
+
 	err := kubernetes.DetachLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
 	if err != nil {
+		logWithFields.Errorf("  %s failed to detach network policy, err: %s\n", logType, err.Error())
 		return "", fmt.Errorf("failed to detach network policy, err: %s", err.Error())
 	}
 
+	logWithFields.Infof("   %s Network policy %s detached from %s\n", logType, data.LabeledNetworkPolicy.Name, data.ControllerName)
 	return "", nil
 }
 
@@ -35,15 +43,22 @@ type AttachLabeledNetworkPolicyRequest struct {
 }
 
 func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string, error) {
+	logWithFields := log.WithFields(log.Fields{"namespace": data.NamespaceName, "controllerName": data.ControllerName})
+	logType := "NETWORK POLICY"
+	logWithFields.Infof("   %s Attach network policy %s to %s\n", logType, data.LabeledNetworkPolicy.Name, data.ControllerName)
+
 	err := kubernetes.EnsureLabeledNetworkPolicy(data.NamespaceName, data.LabeledNetworkPolicy)
 	if err != nil {
+		logWithFields.Errorf("  %s Failed to create network policy, err: %s\n", logType, err.Error())
 		return "", fmt.Errorf("failed to create network policy, err: %s", err.Error())
 	}
 	err = kubernetes.AttachLabeledNetworkPolicy(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicy)
 	if err != nil {
+		logWithFields.Errorf("   %s Failed to attach network policy, err: %s\n", logType, err.Error())
 		return "", fmt.Errorf("failed to attach network policy, err: %s", err.Error())
 	}
 
+	logWithFields.Infof("   %s Network policy %s attached to %s\n", logType, data.LabeledNetworkPolicy.Name, data.ControllerName)
 	return "", nil
 }
 
