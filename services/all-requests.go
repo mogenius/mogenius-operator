@@ -2367,6 +2367,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return NewMessageResponse(controllers.RemoveConflictingNetworkPolicies(data))
+	case structs.PAT_LIST_CONTROLLER_NETWORK_POLICIES:
+		data := controllers.ListControllerLabeledNetworkPoliciesRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return NewMessageResponse(controllers.ListControllerLabeledNetwork(data))
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
