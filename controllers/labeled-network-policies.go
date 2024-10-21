@@ -126,7 +126,7 @@ type ListControllerLabeledNetworkPoliciesResponse struct {
 	ControllerName         string                            `json:"controllerName" validate:"required"`
 	ControllerType         dtos.K8sServiceControllerEnum     `json:"controllerType" validate:"required"`
 	NamespaceName          string                            `json:"namespaceName" validate:"required"`
-	LabeledNetworkPolicies []dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicy" validate:"required"`
+	LabeledNetworkPolicies []dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicies" validate:"required"`
 }
 
 func ListControllerLabeledNetwork(data ListControllerLabeledNetworkPoliciesRequest) (ListControllerLabeledNetworkPoliciesResponse, error) {
