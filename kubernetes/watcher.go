@@ -196,7 +196,7 @@ func InitAllWorkloads() {
 func GetUnstructuredResourceList(group, version, name string, namespaced bool) (*unstructured.UnstructuredList, error) {
 	provider, err := NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		K8sLogger.Errorf("Error creating provider for watcher. Cannot continue: %s", err.Error())
+		K8sLogger.Errorf("Error creating provider for GetUnstructuredResourceList. Cannot continue: %s", err.Error())
 		return nil, err
 	}
 
@@ -212,6 +212,90 @@ func GetUnstructuredResourceList(group, version, name string, namespaced bool) (
 			Version:  version,
 			Resource: name,
 		}).List(context.TODO(), metav1.ListOptions{})
+	}
+}
+
+func CreateUnstructuredResource(group, version, name string, namespaced bool, yamlData string) (*unstructured.Unstructured, error) {
+	provider, err := NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Errorf("Error creating provider for CreateUnstructuredResource. Cannot continue: %s", err.Error())
+		return nil, err
+	}
+
+	obj := &unstructured.Unstructured{}
+	err = yaml.Unmarshal([]byte(yamlData), obj)
+	if err != nil {
+		return nil, err
+	}
+
+	if namespaced {
+		return provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: name,
+		}).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
+	} else {
+		return provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: name,
+		}).Create(context.TODO(), obj, metav1.CreateOptions{})
+	}
+}
+
+func UpdateUnstructuredResource(group, version, name string, namespaced bool, yamlData string) (*unstructured.Unstructured, error) {
+	provider, err := NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Errorf("Error creating provider for UpdatedUnstructuredResource. Cannot continue: %s", err.Error())
+		return nil, err
+	}
+
+	obj := &unstructured.Unstructured{}
+	err = yaml.Unmarshal([]byte(yamlData), obj)
+	if err != nil {
+		return nil, err
+	}
+
+	if namespaced {
+		return provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: name,
+		}).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
+	} else {
+		return provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: name,
+		}).Update(context.TODO(), obj, metav1.UpdateOptions{})
+	}
+}
+
+func DeleteUnstructuredResource(group, version, name string, namespaced bool, yamlData string) error {
+	provider, err := NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Errorf("Error creating provider for watcher. Cannot continue: %s", err.Error())
+		return err
+	}
+
+	obj := &unstructured.Unstructured{}
+	err = yaml.Unmarshal([]byte(yamlData), obj)
+	if err != nil {
+		return err
+	}
+
+	if namespaced {
+		return provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: name,
+		}).Namespace(obj.GetNamespace()).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
+	} else {
+		return provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: name,
+		}).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
 	}
 }
 
