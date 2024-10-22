@@ -1,6 +1,7 @@
 package iacmanager
 
 import (
+	"errors"
 	"fmt"
 	"mogenius-k8s-manager/gitmanager"
 	"mogenius-k8s-manager/kubernetes"
@@ -17,7 +18,9 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -121,10 +124,20 @@ func gitInitRepo() error {
 	}
 
 	if utils.CONFIG.Iac.RepoUrl != "" {
-		err = gitmanager.CloneFast(insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
+		gitRepoUrl := insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat)
+		err = gitmanager.CloneFast(gitRepoUrl, utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
 		if err != nil {
-			iaclogger.Errorf("Error setting up branch: %s", err.Error())
-			return err
+			switch err {
+			case transport.ErrEmptyRemoteRepository:
+				err = initializeRemoteBranch(gitRepoUrl, utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
+				if err != nil {
+					iaclogger.Errorf("Error initializing new sync Repo('%s') in Branch('%s'): %s", utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoBranch, err.Error())
+					return err
+				}
+			default:
+				iaclogger.Errorf("Error cloning Repo('%s') in Branch('%s'): %s", utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoBranch, err.Error())
+				return err
+			}
 		}
 	}
 
@@ -132,18 +145,79 @@ func gitInitRepo() error {
 }
 
 func addRemote() error {
+	gitRepoUrl := insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat)
 	if utils.CONFIG.Iac.RepoUrl == "" {
 		return fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
 	}
-	err := gitmanager.AddRemote(utils.CONFIG.Kubernetes.GitVaultDataPath, insertPATIntoURL(utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoPat), "origin")
+	err := gitmanager.AddRemote(utils.CONFIG.Kubernetes.GitVaultDataPath, gitRepoUrl, "origin")
 	if err != nil {
 		return err
 	}
 	err = gitmanager.CheckoutBranch(utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
 	if err != nil {
-		if err.Error() != "remote repository is empty" {
-			iaclogger.Errorf("Error setting up branch: %s", err.Error())
+		switch err {
+		case transport.ErrEmptyRemoteRepository:
+			err = initializeRemoteBranch(gitRepoUrl, utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
+			if err != nil {
+				iaclogger.Errorf("Error initializing new sync Branch('%s') in Repo('%s'): %s", utils.CONFIG.Iac.RepoUrl, utils.CONFIG.Iac.RepoBranch, err.Error())
+				return err
+			}
+			err = gitmanager.CheckoutBranch(utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
+			if err != nil {
+				iaclogger.Errorf("Error checking out newly created remote Branch('%s') in Repo('%s'): %s", utils.CONFIG.Iac.RepoBranch, utils.CONFIG.Iac.RepoUrl, err.Error())
+				return err
+			}
+		default:
+			iaclogger.Errorf("Error checking out Branch('%s'): %s", utils.CONFIG.Iac.RepoBranch, err.Error())
+			return err
 		}
+	}
+
+	return nil
+}
+
+func initializeRemoteBranch(remoteRepoUrl string, localRepoPath string, branchName string) error {
+	var err error
+
+	r, err := git.PlainInit(localRepoPath, false)
+	if err != nil && err != git.ErrRepositoryAlreadyExists {
+		iaclogger.Errorf("Error creating git repository: %s", err.Error())
+		return err
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		iaclogger.Errorf("Error opening git worktree: %s", err.Error())
+		return err
+	}
+
+	err = gitmanager.AddRemote(localRepoPath, remoteRepoUrl, "origin")
+	if err != nil {
+		iaclogger.Errorf("Error adding remote: %s", err.Error())
+		return err
+	}
+
+	err = gitmanager.Commit(localRepoPath, []string{}, []string{}, "init", utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+	if err != nil {
+		iaclogger.Errorf("Error creating initial commit: %s", err.Error())
+		return err
+	}
+
+	err = w.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.NewBranchReferenceName(branchName),
+		Create: true,
+		Force:  true,
+		Keep:   false,
+	})
+	if err != nil {
+		iaclogger.Errorf("Error checking out new local branch: %s", err.Error())
+		return err
+	}
+
+	err = gitmanager.Push(localRepoPath, "origin")
+	if err != nil {
+		iaclogger.Errorf("Error pushing repo: %s", err.Error())
+		return err
 	}
 
 	return nil
@@ -537,8 +611,8 @@ func SyncChanges() error {
 						SetPulseDiagramData(pulse)
 					}
 				}
-				// skipp this error
-				if err.Error() == "remote repository is empty" {
+				// skip this error
+				if errors.Is(err, transport.ErrEmptyRemoteRepository) {
 					err = nil
 				}
 
@@ -858,7 +932,7 @@ func kubernetesReplaceResource(file string) error {
 	}
 
 	kind, namespace, name := parseFileToK8sParts(file)
-	existingResource, err := kubernetes.GetK8sObjectFor(file)
+	existingResource, err := kubernetes.GetK8sObjectFor(file, namespace != "")
 	if err != nil && !apierrors.IsNotFound(err) {
 		UpdateResourceStatusByFile(file, SyncStateSynced, fmt.Errorf("Error getting existing kubernetes resource %s: %s", file, err.Error()))
 		return nil
