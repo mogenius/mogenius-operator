@@ -1,15 +1,20 @@
 package kubernetes
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/store"
+	"mogenius-k8s-manager/utils"
+	"os"
 	"slices"
+	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -17,40 +22,28 @@ import (
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
+	"sigs.k8s.io/yaml"
 )
 
+var AvailableResources []utils.SyncResourceEntry
+
 func WatchAllResources() {
-	provider, err := NewKubeProvider(nil)
-	if provider == nil || err != nil {
-		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue: %s", err.Error())
-		return
-	}
-
-	// Discover all resources in the cluster
-	resources, err := provider.ClientSet.Discovery().ServerPreferredResources()
-	if err != nil {
-		K8sLogger.Fatalf("Error discovering resources: %s", err.Error())
-		return
-	}
-
 	// Retry watching resources with exponential backoff in case of failures
-	err = retry.OnError(wait.Backoff{
+	err := retry.OnError(wait.Backoff{
 		Steps:    5,
 		Duration: 1 * time.Second,
 		Factor:   2.0,
 		Jitter:   0.1,
 	}, apierrors.IsServiceUnavailable, func() error {
-		for _, resourceList := range resources {
-			for _, resource := range resourceList.APIResources {
-				if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
-					go func() {
-						err := watchResource(provider, resource.Name, resource.Kind, resourceList.GroupVersion)
-						if err != nil {
-							K8sLogger.Errorf("failed to initialize watchhandler for resource %s %s: %s", resource.Kind, resourceList.GroupVersion, err.Error())
-						}
-					}()
+		for _, v := range utils.CONFIG.Iac.SyncWorkloads {
+			go func() {
+				err := watchResource(v.Name, v.Kind, v.Group)
+				if err != nil {
+					K8sLogger.Errorf("failed to initialize watchhandler for resource %s %s: %s", v.Kind, v.Version, err.Error())
+				} else {
+					K8sLogger.Infof("🚀 Watching resource %s (%s)", v.Kind, v.Group)
 				}
-			}
+			}()
 		}
 		return nil
 	})
@@ -62,7 +55,13 @@ func WatchAllResources() {
 	select {}
 }
 
-func watchResource(provider *KubeProvider, resourceName string, resourceKind string, groupVersion string) error {
+func watchResource(resourceName string, resourceKind string, groupVersion string) error {
+	provider, err := NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue: %s", err.Error())
+		return err
+	}
+
 	gv, err := schema.ParseGroupVersion(groupVersion)
 	if err != nil {
 		return fmt.Errorf("invalid groupVersion: %s", err)
@@ -172,4 +171,160 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 		}
 		handlePVDeletion(&pv)
 	}
+}
+
+func InitAllWorkloads() {
+	allResources, err := GetAvailableResources()
+	if err != nil {
+		K8sLogger.Errorf("Error getting available resources: %s", err.Error())
+		return
+	}
+	for _, resource := range allResources {
+		if IacManagerShouldWatchResources() {
+			list, err := GetUnstructuredResourceList(resource.Group, resource.Version, resource.Kind, resource.Namespaced)
+			if err != nil {
+				K8sLogger.Errorf("Error getting resource list for %s: %s", resource.Kind, err.Error())
+				continue
+			}
+			for _, res := range list.Items {
+				IacManagerWriteResourceYaml(resource.Kind, res.GetNamespace(), res.GetName(), res.Object)
+			}
+		}
+	}
+}
+
+func GetUnstructuredResourceList(group, version, name string, namespaced bool) (*unstructured.UnstructuredList, error) {
+	provider, err := NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Errorf("Error creating provider for watcher. Cannot continue: %s", err.Error())
+		return nil, err
+	}
+
+	if namespaced {
+		return provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: name,
+		}).Namespace("").List(context.TODO(), metav1.ListOptions{})
+	} else {
+		return provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: name,
+		}).List(context.TODO(), metav1.ListOptions{})
+	}
+}
+
+func GetK8sObjectFor(file string) (interface{}, error) {
+	provider, err := NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Errorf("Error creating provider for watcher. Cannot continue: %s", err.Error())
+		return nil, err
+	}
+
+	obj, err := GetObjectFromFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	k8sObject, err := provider.DynamicClient.Resource(schema.GroupVersionResource{
+		Group:    obj.GroupVersionKind().Group,
+		Version:  obj.GroupVersionKind().Version,
+		Resource: GetResourceNameForUnstructured(obj),
+	}).Namespace(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
+
+	if err != nil {
+		fmt.Println(strings.ToLower(obj.GetKind())+"s", obj.GetNamespace(), obj.GetName(), obj.GroupVersionKind().Group, obj.GroupVersionKind().Version)
+		fmt.Println(err.Error())
+		return nil, err
+	}
+
+	return k8sObject.Object, err
+}
+
+func GetResourceNameForUnstructured(obj *unstructured.Unstructured) string {
+	for _, v := range AvailableResources {
+		if v.Kind == obj.GetKind() && v.Group == obj.GroupVersionKind().Group && v.Version == obj.GroupVersionKind().Version {
+			return v.Name
+		}
+	}
+	K8sLogger.Errorf("Resource not found for %s %s %s", obj.GetKind(), obj.GroupVersionKind().Group, obj.GroupVersionKind().Version)
+	return ""
+}
+
+func GetObjectFromFile(file string) (*unstructured.Unstructured, error) {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	var obj unstructured.Unstructured
+	err = yaml.Unmarshal(data, &obj)
+	if err != nil {
+		return nil, err
+	}
+	return &obj, nil
+}
+
+func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
+	provider, err := NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Errorf("Error creating provider for watcher. Cannot continue: %s", err.Error())
+		return nil, err
+	}
+
+	resources, err := provider.ClientSet.Discovery().ServerPreferredResources()
+	if err != nil {
+		K8sLogger.Errorf("Error discovering resources: %s", err.Error())
+		return nil, err
+	}
+
+	var availableResources []utils.SyncResourceEntry
+	for _, resourceList := range resources {
+		for _, resource := range resourceList.APIResources {
+			if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
+				availableResources = append(availableResources, utils.SyncResourceEntry{
+					Group:      resourceList.GroupVersion,
+					Name:       resource.Name,
+					Kind:       resource.Kind,
+					Version:    resource.Version,
+					Namespaced: resource.Namespaced,
+				})
+			}
+		}
+	}
+
+	AvailableResources = availableResources
+
+	return availableResources, nil
+}
+
+func GetAvailableResourcesSerialized() string {
+	resources, err := GetAvailableResources()
+	if err != nil {
+		K8sLogger.Errorf("Error getting available resources: %s", err.Error())
+		return ""
+	}
+
+	bytes, err := yaml.Marshal(resources)
+	if err != nil {
+		K8sLogger.Errorf("Error serializing available resources: %s", err.Error())
+		return ""
+	}
+
+	return string(bytes)
+}
+
+func GetSyncResourcesFromString(resourcesStr string) ([]utils.SyncResourceEntry, error) {
+	var resources []utils.SyncResourceEntry
+	err := yaml.Unmarshal([]byte(resourcesStr), &resources)
+	if err != nil {
+		return nil, err
+	}
+
+	return resources, nil
+}
+
+func CommaSeperatedStringToArray(str string) []string {
+	return strings.Split(str, ",")
 }

@@ -105,6 +105,11 @@ func gitInitRepo() error {
 			iaclogger.Errorf("Error creating folder for git repository (in %s): %s", utils.CONFIG.Kubernetes.GitVaultDataPath, err.Error())
 			return err
 		}
+		err = gitmanager.InitGit(utils.CONFIG.Kubernetes.GitVaultDataPath)
+		if err != nil {
+			iaclogger.Errorf("Error creating git repository: %s", err.Error())
+			return err
+		}
 	}
 
 	if utils.CONFIG.Iac.RepoUrl == "" {
@@ -136,7 +141,9 @@ func addRemote() error {
 	}
 	err = gitmanager.CheckoutBranch(utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
 	if err != nil {
-		iaclogger.Errorf("Error setting up branch: %s", err.Error())
+		if err.Error() != "remote repository is empty" {
+			iaclogger.Errorf("Error setting up branch: %s", err.Error())
+		}
 	}
 
 	return nil
@@ -530,6 +537,11 @@ func SyncChanges() error {
 						SetPulseDiagramData(pulse)
 					}
 				}
+				// skipp this error
+				if err.Error() == "remote repository is empty" {
+					err = nil
+				}
+
 				SetPullError(err)
 				if err != nil {
 					iaclogger.Errorf("Error pulling changes: %s", err.Error())
@@ -846,7 +858,7 @@ func kubernetesReplaceResource(file string) error {
 	}
 
 	kind, namespace, name := parseFileToK8sParts(file)
-	existingResource, err := kubernetes.ObjectFor(kind, namespace, name)
+	existingResource, err := kubernetes.GetK8sObjectFor(file)
 	if err != nil && !apierrors.IsNotFound(err) {
 		UpdateResourceStatusByFile(file, SyncStateSynced, fmt.Errorf("Error getting existing kubernetes resource %s: %s", file, err.Error()))
 		return nil
@@ -967,15 +979,6 @@ func kubernetesRevertFromPath(filePath string) error {
 }
 
 func shouldSkipResource(path string) bool {
-	if strings.Contains(path, "kube-root-ca.crt") {
-		iaclogger.Debugf("😑 Skipping (because kube-root-ca.crt): %s", path)
-		return true
-	}
-
-	if strings.Contains(path, "/pods/") {
-		iaclogger.Debugf("😑 Skipping (because pods won't by synced): %s", path)
-		return true
-	}
 	hasIgnoredNs, nsName := isIgnoredNamespaceInFile(path)
 	if hasIgnoredNs {
 		iaclogger.Debugf("😑 Skipping (because contains ignored namespace '%s'): %s", *nsName, path)
@@ -983,9 +986,11 @@ func shouldSkipResource(path string) bool {
 	}
 
 	for _, pattern := range utils.CONFIG.Iac.IgnoredNames {
-		match, _ := regexp.MatchString(pattern, path)
-		if match {
-			return true
+		if pattern != "" {
+			match, _ := regexp.MatchString(pattern, path)
+			if match {
+				return true
+			}
 		}
 	}
 

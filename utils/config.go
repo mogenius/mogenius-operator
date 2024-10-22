@@ -26,8 +26,50 @@ type ClusterSecret struct {
 	SyncAllowPull      bool
 	SyncAllowPush      bool
 	SyncFrequencyInSec int
-	SyncWorkloads      []string
+}
+
+type ClusterConfigmap struct {
+	SyncWorkloads      []SyncResourceEntry
+	AvailableWorkloads []SyncResourceEntry
 	IgnoredNamespaces  []string
+	IgnoredNames       []string
+}
+
+type SyncResourceEntry struct {
+	Kind       string `json:"kind"`
+	Name       string `json:"name"`
+	Group      string `json:"group"`
+	Version    string `json:"version"`
+	Namespaced bool   `json:"namespaced"`
+}
+
+func (s *SyncResourceEntry) YamlString() string {
+	bytes, out := yaml.Marshal(s)
+	if out != nil {
+		log.Errorf("Error marshalling SyncResourceEntry: %s", out.Error())
+		return ""
+	}
+	return string(bytes)
+}
+
+func YamlStringFromSyncResource(s []SyncResourceEntry) string {
+	bytes, out := yaml.Marshal(s)
+	if out != nil {
+		log.Errorf("Error marshalling SyncResourceEntry: %s", out.Error())
+		return ""
+	}
+
+	return string(bytes)
+}
+
+func SyncResourceEntryFromYaml(str string) *SyncResourceEntry {
+	var s SyncResourceEntry
+	err := yaml.Unmarshal([]byte(str), &s)
+	if err != nil {
+		log.Errorf("Error unmarshalling SyncResourceEntry: %s", err)
+		return nil
+	}
+	return &s
 }
 
 const CONFIGVERSION = 2
@@ -65,17 +107,18 @@ type Config struct {
 		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
 	} `yaml:"event_server"`
 	Iac struct {
-		RepoUrl            string   `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url."`
-		RepoPat            string   `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat."`
-		RepoBranch         string   `yaml:"repo_pat_branch" env:"sync_repo_branch" env-description:"Sync repo branch."`
-		SyncFrequencyInSec int      `yaml:"sync_requency_secs" env:"sync_requency_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
-		AllowPush          bool     `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo."`
-		AllowPull          bool     `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo."`
-		SyncWorkloads      []string `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync."`
-		ShowDiffInLog      bool     `yaml:"show_diff_in_log" env:"sync_show_diff_in_log" env-description:"Show all changes of resources as diff in operator log."`
-		IgnoredNamespaces  []string `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces."`
-		IgnoredNames       []string `yaml:"ignored_names" env:"sync_ignored_names" env-description:"List of strings which are ignored when for sync. This list may include regex."`
-		LogChanges         bool     `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
+		RepoUrl            string              `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url."`
+		RepoPat            string              `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat."`
+		RepoBranch         string              `yaml:"repo_pat_branch" env:"sync_repo_branch" env-description:"Sync repo branch."`
+		SyncFrequencyInSec int                 `yaml:"sync_requency_secs" env:"sync_requency_secs" env-description:"Polling interval for sync in seconds." env-default:"10"`
+		AllowPush          bool                `yaml:"allow_push" env:"sync_allow_push" env-description:"Allow IAC manager to push data to repo."`
+		AllowPull          bool                `yaml:"allow_pull" env:"sync_allow_pull" env-description:"Allow IAC manager to pull data from repo."`
+		ShowDiffInLog      bool                `yaml:"show_diff_in_log" env:"sync_show_diff_in_log" env-description:"Show all changes of resources as diff in operator log."`
+		AvailableWorkloads []SyncResourceEntry `yaml:"sync_available_workloads" env:"sync_available_workloads" env-description:"List of all workloads to sync."`
+		SyncWorkloads      []SyncResourceEntry `yaml:"sync_workloads" env:"sync_workloads" env-description:"List of all workloads to sync. Default is one entry with * which means all."`
+		IgnoredNamespaces  []string            `yaml:"ignored_namespaces" env:"sync_ignored_namespaces" env-description:"List of all ignored namespaces."`
+		IgnoredNames       []string            `yaml:"ignored_names" env:"sync_ignored_names" env-description:"List of strings which are ignored when for sync. This list may include regex."`
+		LogChanges         bool                `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
 		Stage                     string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
@@ -218,21 +261,11 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
-			if !showDebug {
-				PrintSettings()
-			}
 			log.Fatalf("Environment Variable 'cluster_name' not setup. TERMINATING.")
 		}
 		if CONFIG.Kubernetes.ApiKey == "YOUR_API_KEY" || CONFIG.Kubernetes.ApiKey == "" {
-			if !showDebug {
-				PrintSettings()
-			}
 			log.Fatalf("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
 		}
-	}
-
-	if showDebug || CONFIG.Kubernetes.RunInCluster {
-		PrintSettings()
 	}
 
 	if CONFIGVERSION > CONFIG.Config.Version {
@@ -351,8 +384,6 @@ func SetupClusterSecret(clusterSecret ClusterSecret) {
 		CONFIG.Iac.RepoBranch = clusterSecret.SyncRepoBranch
 		CONFIG.Iac.AllowPull = clusterSecret.SyncAllowPull
 		CONFIG.Iac.AllowPush = clusterSecret.SyncAllowPush
-		CONFIG.Iac.SyncWorkloads = clusterSecret.SyncWorkloads
-		CONFIG.Iac.IgnoredNamespaces = clusterSecret.IgnoredNamespaces
 
 		if clusterSecret.SyncFrequencyInSec <= 5 {
 			clusterSecret.SyncFrequencyInSec = 5
@@ -360,6 +391,13 @@ func SetupClusterSecret(clusterSecret ClusterSecret) {
 			CONFIG.Iac.SyncFrequencyInSec = clusterSecret.SyncFrequencyInSec
 		}
 	}
+}
+
+func SetupClusterConfigmap(clusterConfigmap ClusterConfigmap) {
+	CONFIG.Iac.SyncWorkloads = clusterConfigmap.SyncWorkloads
+	CONFIG.Iac.IgnoredNamespaces = clusterConfigmap.IgnoredNamespaces
+	CONFIG.Iac.AvailableWorkloads = clusterConfigmap.AvailableWorkloads
+	CONFIG.Iac.IgnoredNames = clusterConfigmap.IgnoredNames
 }
 
 func PrintSettings() {
@@ -397,7 +435,8 @@ func PrintSettings() {
 	log.Infof("PollingIntervalSecs:       %d", CONFIG.Iac.SyncFrequencyInSec)
 	log.Infof("AllowPull:                 %t", CONFIG.Iac.AllowPull)
 	log.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
-	log.Infof("SyncWorkloads:             %s", strings.Join(CONFIG.Iac.SyncWorkloads, ","))
+	log.Infof("SyncWorkloads:             %s", YamlStringFromSyncResource(CONFIG.Iac.SyncWorkloads))
+	log.Infof("AvailableWorkloads:        %s", YamlStringFromSyncResource(CONFIG.Iac.AvailableWorkloads))
 	log.Infof("IgnoredNamespaces:         %s", strings.Join(CONFIG.Iac.IgnoredNamespaces, ","))
 	log.Infof("IgnoredNames:              %s", strings.Join(CONFIG.Iac.IgnoredNames, ","))
 	log.Infof("LogChanges:                %t", CONFIG.Iac.LogChanges)

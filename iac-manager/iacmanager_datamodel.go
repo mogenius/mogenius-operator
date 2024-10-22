@@ -18,17 +18,18 @@ type IacManagerStatus struct {
 }
 
 type IacConfiguration struct {
-	RepoUrl            string   `json:"repoUrl"`
-	RepoPat            string   `json:"repoPat"`
-	RepoBranch         string   `json:"repoBranch"`
-	SyncFrequencyInSec int      `json:"syncFrequencyInSec"`
-	AllowPush          bool     `json:"allowPush"`
-	AllowPull          bool     `json:"allowPull"`
-	SyncWorkloads      []string `json:"syncWorkloads"`
-	ShowDiffInLog      bool     `json:"showDiffInLog"`
-	IgnoredNamespaces  []string `json:"ignoredNamespaces"`
-	IgnoredNames       []string `json:"ignoredNames"`
-	LogChanges         bool     `json:"logChanges"`
+	RepoUrl            string                    `json:"repoUrl"`
+	RepoPat            string                    `json:"repoPat"`
+	RepoBranch         string                    `json:"repoBranch"`
+	SyncFrequencyInSec int                       `json:"syncFrequencyInSec"`
+	AllowPush          bool                      `json:"allowPush"`
+	AllowPull          bool                      `json:"allowPull"`
+	SyncWorkloads      []utils.SyncResourceEntry `json:"syncWorkloads"`
+	AvailableWorkloads []utils.SyncResourceEntry `json:"availableWorkloads"`
+	ShowDiffInLog      bool                      `json:"showDiffInLog"`
+	IgnoredNamespaces  []string                  `json:"ignoredNamespaces"`
+	IgnoredNames       []string                  `json:"ignoredNames"`
+	LogChanges         bool                      `json:"logChanges"`
 }
 
 type IacManagerSyncInfo struct {
@@ -394,6 +395,7 @@ func iacConfigurationFromYamlConfig() IacConfiguration {
 		AllowPush:          utils.CONFIG.Iac.AllowPush,
 		AllowPull:          utils.CONFIG.Iac.AllowPull,
 		SyncWorkloads:      utils.CONFIG.Iac.SyncWorkloads,
+		AvailableWorkloads: utils.CONFIG.Iac.AvailableWorkloads,
 		ShowDiffInLog:      utils.CONFIG.Iac.ShowDiffInLog,
 		IgnoredNames:       utils.CONFIG.Iac.IgnoredNames,
 		IgnoredNamespaces:  utils.CONFIG.Iac.IgnoredNamespaces,
