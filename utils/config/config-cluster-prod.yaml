@@ -32,10 +32,6 @@ iac:
   polling_interval_secs: 10 # min is 5
   allow_push: false
   allow_pull: false
-  sync_workloads:
-    - Kind: "*"
-      Name: "*"
-      GroupVersion: "*"
   ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
   ignored_names: ["acme-*", "mogenius-k8s-manager"]
   show_diff_in_log: false

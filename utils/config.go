@@ -62,6 +62,14 @@ func YamlStringFromSyncResource(s []SyncResourceEntry) string {
 	return string(bytes)
 }
 
+func YamlStringFromSyncResourceDescription(s []SyncResourceEntry) string {
+	result := "\n"
+	for _, v := range s {
+		result += fmt.Sprintf("Name: %s, Group: %s, Namespaced: %t\n", v.Name, v.Group, v.Namespaced)
+	}
+	return result
+}
+
 func SyncResourceEntryFromYaml(str string) *SyncResourceEntry {
 	var s SyncResourceEntry
 	err := yaml.Unmarshal([]byte(str), &s)
@@ -237,7 +245,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if err != nil {
 		log.Fatalf("Failed to create temp dir: %v", err)
 	}
-	log.Infof("TemoDir created: %s", tempDirPath)
+	log.Infof("TempDir created: %s", tempDirPath)
 
 	if CONFIG.Kubernetes.BboltDbPath == "" {
 		CONFIG.Kubernetes.BboltDbPath = filepath.Join(tempDirPath, "mogenius.db")
@@ -435,8 +443,8 @@ func PrintSettings() {
 	log.Infof("PollingIntervalSecs:       %d", CONFIG.Iac.SyncFrequencyInSec)
 	log.Infof("AllowPull:                 %t", CONFIG.Iac.AllowPull)
 	log.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
-	log.Infof("SyncWorkloads:             %s", YamlStringFromSyncResource(CONFIG.Iac.SyncWorkloads))
-	log.Infof("AvailableWorkloads:        %s", YamlStringFromSyncResource(CONFIG.Iac.AvailableWorkloads))
+	log.Infof("SyncWorkloads:             %s", YamlStringFromSyncResourceDescription(CONFIG.Iac.SyncWorkloads))
+	log.Infof("AvailableWorkloads:        %s", YamlStringFromSyncResourceDescription(CONFIG.Iac.AvailableWorkloads))
 	log.Infof("IgnoredNamespaces:         %s", strings.Join(CONFIG.Iac.IgnoredNamespaces, ","))
 	log.Infof("IgnoredNames:              %s", strings.Join(CONFIG.Iac.IgnoredNames, ","))
 	log.Infof("LogChanges:                %t", CONFIG.Iac.LogChanges)

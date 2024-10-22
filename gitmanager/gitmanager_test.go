@@ -96,7 +96,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// SWITCH
-	err = SwitchBranch(localPath, switchBranch)
+	err = CheckoutBranch(localPath, switchBranch)
 	if err != nil {
 		t.Errorf("Error switching branch (%s): %s", switchBranch, err.Error())
 	} else {

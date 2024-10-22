@@ -215,7 +215,7 @@ func GetUnstructuredResourceList(group, version, name string, namespaced bool) (
 	}
 }
 
-func GetK8sObjectFor(file string) (interface{}, error) {
+func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
 	provider, err := NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		K8sLogger.Errorf("Error creating provider for watcher. Cannot continue: %s", err.Error())
@@ -227,29 +227,43 @@ func GetK8sObjectFor(file string) (interface{}, error) {
 		return nil, err
 	}
 
-	k8sObject, err := provider.DynamicClient.Resource(schema.GroupVersionResource{
-		Group:    obj.GroupVersionKind().Group,
-		Version:  obj.GroupVersionKind().Version,
-		Resource: GetResourceNameForUnstructured(obj),
-	}).Namespace(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
-
+	resourceName, err := GetResourceNameForUnstructured(obj)
 	if err != nil {
-		fmt.Println(strings.ToLower(obj.GetKind())+"s", obj.GetNamespace(), obj.GetName(), obj.GroupVersionKind().Group, obj.GroupVersionKind().Version)
-		fmt.Println(err.Error())
 		return nil, err
 	}
 
-	return k8sObject.Object, err
+	if namespaced {
+		res, err := provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    obj.GroupVersionKind().Group,
+			Version:  obj.GroupVersionKind().Version,
+			Resource: resourceName,
+		}).Namespace(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
+		if err != nil {
+			K8sLogger.Errorf("Error querying resource: %s", err.Error())
+			return nil, err
+		}
+		return res.Object, nil
+	} else {
+		res, err := provider.DynamicClient.Resource(schema.GroupVersionResource{
+			Group:    obj.GroupVersionKind().Group,
+			Version:  obj.GroupVersionKind().Version,
+			Resource: resourceName,
+		}).List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			K8sLogger.Errorf("Error listing resource: %s", err.Error())
+			return nil, err
+		}
+		return res.Object, nil
+	}
 }
 
-func GetResourceNameForUnstructured(obj *unstructured.Unstructured) string {
+func GetResourceNameForUnstructured(obj *unstructured.Unstructured) (string, error) {
 	for _, v := range AvailableResources {
 		if v.Kind == obj.GetKind() && v.Group == obj.GroupVersionKind().Group && v.Version == obj.GroupVersionKind().Version {
-			return v.Name
+			return v.Name, nil
 		}
 	}
-	K8sLogger.Errorf("Resource not found for %s %s %s", obj.GetKind(), obj.GroupVersionKind().Group, obj.GroupVersionKind().Version)
-	return ""
+	return "", fmt.Errorf("Resource not found for %s %s %s", obj.GetKind(), obj.GroupVersionKind().Group, obj.GroupVersionKind().Version)
 }
 
 func GetObjectFromFile(file string) (*unstructured.Unstructured, error) {

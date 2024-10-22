@@ -190,7 +190,8 @@ func Commit(repoPath string, addedAndUpdatedFils []string, deletedFiles []string
 	}
 
 	commit, err := w.Commit(message, &git.CommitOptions{
-		All: true,
+		All:               true,
+		AllowEmptyCommits: true,
 		Author: &object.Signature{
 			Name:  authorName,
 			Email: authorEmail,
@@ -247,10 +248,6 @@ func CheckoutBranch(path, branchName string) error {
 	}
 
 	return nil
-}
-
-func SwitchBranch(path, branchName string) error {
-	return CheckoutBranch(path, branchName)
 }
 
 func Fetch(path string) error {
