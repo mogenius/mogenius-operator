@@ -108,7 +108,7 @@ func applyNamespace(provider *punq.KubeProvider) {
 	K8sLogger.Info("Creating mogenius-k8s-manager namespace ...")
 	result, err := serviceClient.Apply(context.TODO(), namespace, applyOptions)
 	if err != nil {
-		K8sLogger.Error(err)
+		K8sLogger.Errorf("Error applying mogenius-k8s-manager namespace: %s", err.Error())
 	}
 	K8sLogger.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
@@ -249,7 +249,8 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 		configmap.Data["ignoredNames"] = strings.Join(result.IgnoredNames, ",")
 		_, err := configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())
 		if err != nil {
-			K8sLogger.Error(err)
+			K8sLogger.Errorf("Error creating mogenius configmap: %s", err.Error())
+			return result, err
 		}
 		K8sLogger.Info("🗺️ Created new mogenius configmap.")
 	} else {
@@ -280,7 +281,7 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 		existingConfigMap.Data["ignoredNames"] = strings.Join(result.IgnoredNames, ",")
 		_, err := configmapClient.Update(context.TODO(), existingConfigMap, MoUpdateOptions())
 		if err != nil {
-			K8sLogger.Error(err)
+			K8sLogger.Errorf("Error updating mogenius configmap: %s", err.Error())
 			return result, err
 		}
 		K8sLogger.Info("🗺️ Updated mogenius configmap.")
@@ -377,7 +378,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		K8sLogger.Info("🔑 Creating new mogenius secret ...")
 		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
-			K8sLogger.Error(err)
+			K8sLogger.Errorf("Error creating mogenius secret: %s", err.Error())
 			return clusterSecret, err
 		}
 		K8sLogger.Info("🔑 Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
@@ -394,7 +395,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			K8sLogger.Info("🔑 Updating existing mogenius secret ...")
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
-				K8sLogger.Error(err)
+				K8sLogger.Errorf("Error updating mogenius secret: %s", err.Error())
 				return clusterSecret, err
 			}
 			K8sLogger.Info("🔑 Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
@@ -488,7 +489,7 @@ func addDeployment(provider *punq.KubeProvider) {
 	K8sLogger.Info("Creating mogenius-k8s-manager deployment ...")
 	result, err := deploymentClient.Apply(context.TODO(), deployment, applyOptions)
 	if err != nil {
-		K8sLogger.Error(err)
+		K8sLogger.Errorf("Error creating mogenius-k8s-manager deployment: %s", err.Error())
 	}
 	K8sLogger.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
 }

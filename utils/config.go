@@ -185,22 +185,22 @@ func InitConfigSimple(stage string) {
 	case STAGE_DEV:
 		err := os.WriteFile(path, []byte(DefaultConfigClusterFileDev), 0755)
 		if err != nil {
-			log.Error(err)
+			log.Errorf("Error writing default 'dev' config file: %s", err.Error())
 		}
 	case STAGE_LOCAL:
 		err := os.WriteFile(path, []byte(DefaultConfigLocalFile), 0755)
 		if err != nil {
-			log.Error(err)
+			log.Errorf("Error writing default 'local' config file: %s", err.Error())
 		}
 	case STAGE_PROD:
 		err := os.WriteFile(path, []byte(DefaultConfigClusterFileProd), 0755)
 		if err != nil {
-			log.Error(err)
+			log.Errorf("Error writing default config file: %s", err.Error())
 		}
 	}
 	err := cleanenv.ReadConfig(path, &CONFIG)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("Error reading config file: %s", err.Error())
 	}
 }
 
@@ -493,7 +493,7 @@ func PrintVersionInfo() {
 func GetDirectories(customConfigPath string) (configDir string, configPath string) {
 	homeDirName, err := os.UserHomeDir()
 	if err != nil {
-		log.Error(err)
+		log.Errorf("Error retrieving user homedir: %s", err.Error())
 	}
 
 	if customConfigPath != "" {

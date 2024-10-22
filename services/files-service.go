@@ -174,14 +174,14 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	// 1: VERIFY
 	targetDestination, err := verify(&fileReq.File)
 	if err != nil {
-		ServiceLogger.Error(err)
+		ServiceLogger.Errorf("Error verifying file: %s", err.Error())
 	}
 	ServiceLogger.Infof("\n%s: %s (%s) -> %s\n", fileReq.File.VolumeName, targetDestination, punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
 	if err != nil {
-		ServiceLogger.Error(err)
+		ServiceLogger.Errorf("Error extracing file: %s", err.Error())
 	}
 	for _, file := range files {
 		ServiceLogger.Info("uncompress: " + file)
@@ -421,7 +421,6 @@ func FilesDeleteRequestExampleData() FilesDeleteRequest {
 		File: dtos.PersistentFileRequestNewFolderDtoExampleData(),
 	}
 }
-
 
 func ListDirWithTimeout(root string, timeout time.Duration) ([]dtos.PersistentFileDto, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)

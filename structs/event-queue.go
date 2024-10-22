@@ -85,7 +85,7 @@ func connectEvent(ctx context.Context) {
 		EventConnectionStatus <- true
 		err := Ping(EventQueueConnection, &eventSendMutex)
 		if err != nil {
-			log.Error(err)
+			log.Errorf("Error pinging event queue: %s", err)
 		}
 	}
 

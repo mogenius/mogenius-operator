@@ -77,7 +77,7 @@ func Init() {
 	if !IsIacEnabled() {
 		err := ResetCurrentRepoData(3)
 		if err != nil {
-			log.Error(err)
+			iaclogger.Errorf("Error resetting repo data: %s", err.Error())
 		}
 		InitDataModel()
 		return

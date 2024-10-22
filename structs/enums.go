@@ -11,15 +11,17 @@ const (
 type ComponentEnum string
 
 const (
-	ComponentAll        ComponentEnum = "all"
-	ComponentIacManager ComponentEnum = "iac"
-	ComponentDb         ComponentEnum = "db"
-	Store               ComponentEnum = "store"
-	ComponentDbStats    ComponentEnum = "db-stats"
-	ComponentCrds       ComponentEnum = "crds"
-	ComponentKubernetes ComponentEnum = "kubernetes"
-	ComponentHelm       ComponentEnum = "helm"
-	ComponentServices   ComponentEnum = "services"
+	ComponentAll          ComponentEnum = "all"
+	ComponentIacManager   ComponentEnum = "iac"
+	ComponentDb           ComponentEnum = "db"
+	Store                 ComponentEnum = "store"
+	ComponentDbStats      ComponentEnum = "db-stats"
+	ComponentCrds         ComponentEnum = "crds"
+	ComponentKubernetes   ComponentEnum = "kubernetes"
+	ComponentHelm         ComponentEnum = "helm"
+	ComponentServices     ComponentEnum = "services"
+	ComponentSocketClient ComponentEnum = "socket-client"
+	ComponentHttp         ComponentEnum = "http"
 )
 
 type JobStateEnum string

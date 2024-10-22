@@ -118,7 +118,7 @@ func ListAvailableExternalSecrets(namePrefix string) []string {
 		var secretMap map[string]interface{}
 		err := json.Unmarshal([]byte(secretValue), &secretMap)
 		if err != nil {
-			logger.Log.Error(err)
+			logger.Log.Errorf("Error unmarshalling secret: %s", err.Error())
 			return nil
 		}
 
