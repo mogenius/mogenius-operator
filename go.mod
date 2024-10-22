@@ -7,7 +7,7 @@ require (
 	github.com/cert-manager/cert-manager v1.16.1
 	github.com/creack/pty v1.1.23
 	github.com/dgraph-io/badger/v4 v4.3.1
-	github.com/fatih/color v1.17.0
+	github.com/fatih/color v1.18.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-echarts/go-echarts/v2 v2.4.3
 	github.com/go-git/go-git/v5 v5.12.0
