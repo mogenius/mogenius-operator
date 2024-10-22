@@ -88,38 +88,6 @@ const (
 	CONTAINER_CONTAINER_IMAGE K8sContainerTypeEnum = "CONTAINER_IMAGE"
 )
 
-const (
-	KindNamespaces               string = "namespaces"
-	KindDeployments              string = "deployments"
-	KindPods                     string = "pods"
-	KindStatefulSets             string = "statefulsets"
-	KindServices                 string = "services"
-	KindIngresses                string = "ingresses"
-	KindConfigMaps               string = "configmaps"
-	KindSecrets                  string = "secrets"
-	KindJobs                     string = "jobs"
-	KindCronJobs                 string = "cronjobs"
-	KindDaemonSets               string = "daemonsets"
-	KindNetworkPolicies          string = "networkpolicies"
-	KindHorizontalPodAutoscalers string = "horizontalpodautoscalers"
-)
-
-var AvailableSyncWorkloadKinds = []string{
-	KindNamespaces,
-	KindPods,
-	KindDeployments,
-	KindStatefulSets,
-	KindServices,
-	KindIngresses,
-	KindConfigMaps,
-	KindSecrets,
-	KindJobs,
-	KindCronJobs,
-	KindDaemonSets,
-	KindNetworkPolicies,
-	KindHorizontalPodAutoscalers,
-}
-
 func DefaultIgnoredNamespaces() []string {
 	return []string{
 		"kube-system",

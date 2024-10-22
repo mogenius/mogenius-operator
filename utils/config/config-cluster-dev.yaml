@@ -33,21 +33,10 @@ iac:
   allow_push: false
   allow_pull: false
   sync_workloads:
-    [
-      "namespaces",
-      "pods",
-      "deployments",
-      "statefulsets",
-      "services",
-      "ingresses",
-      "configmaps",
-      "secrets",
-      "jobs",
-      "cronjobs",
-      "daemonsets",
-      "networkpolicies",
-      "horizontalpodautoscalers",
-    ]
+    - Kind: "*"
+      Name: "*"
+      Group: "*"
+      Version: "*"
   ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
   ignored_names: ["acme-*", "mogenius-k8s-manager"]
   show_diff_in_log: false

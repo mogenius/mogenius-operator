@@ -35,8 +35,17 @@ var clusterCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Error retrieving cluster secret. Aborting: %s", err.Error())
 		}
+		clusterConfigmap, err := mokubernetes.CreateOrUpdateClusterConfigmap(nil)
+		if err != nil {
+			log.Fatalf("Error retrieving cluster configmap. Aborting: %s", err.Error())
+		}
 
 		utils.SetupClusterSecret(clusterSecret)
+		utils.SetupClusterConfigmap(clusterConfigmap)
+
+		if utils.CONFIG.Misc.Debug {
+			utils.PrintSettings()
+		}
 
 		log.Infof("Init DB ...")
 		db.Init()

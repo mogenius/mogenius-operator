@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/utils"
+	utils "mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -129,8 +129,6 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		utils.CONFIG.Iac.AllowPull = secret.SyncAllowPull
 		utils.CONFIG.Iac.AllowPush = secret.SyncAllowPush
 		utils.CONFIG.Iac.SyncFrequencyInSec = secret.SyncFrequencyInSec
-		utils.CONFIG.Iac.SyncWorkloads = secret.SyncWorkloads
-		utils.CONFIG.Iac.IgnoredNamespaces = secret.IgnoredNamespaces
 	}
 
 	// check if essential data is changed
@@ -210,6 +208,87 @@ func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterS
 	return writeMogeniusSecret(secretClient, existingSecret, getErr, syncRepoReq)
 }
 
+func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.ClusterConfigmap, error) {
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		K8sLogger.Fatal("Error creating kubeprovider")
+	}
+
+	configmapClient := provider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
+
+	existingConfigMap, getErr := configmapClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+
+	availableRes, err := GetAvailableResources()
+	if err != nil {
+		return utils.ClusterConfigmap{}, err
+	}
+
+	// CONSTRUCT THE OBJECT
+	result := utils.ClusterConfigmap{}
+	result.SyncWorkloads = availableRes
+	result.AvailableWorkloads = availableRes
+	result.IgnoredNamespaces = dtos.DefaultIgnoredNamespaces()
+	result.IgnoredNames = []string{""}
+	if data != nil {
+		result.SyncWorkloads = data.SyncWorkloads
+		result.AvailableWorkloads = data.AvailableWorkloads
+		result.IgnoredNamespaces = data.IgnoredNamespaces
+		result.IgnoredNames = data.IgnoredNames
+	}
+
+	if apierrors.IsNotFound(getErr) {
+		// CREATE
+		K8sLogger.Info("🔑 Creating new mogenius configmap ...")
+		configmap := core.ConfigMap{}
+		configmap.ObjectMeta.Name = NAMESPACE
+		configmap.ObjectMeta.Namespace = NAMESPACE
+		configmap.Data = make(map[string]string)
+		configmap.Data["syncWorkloads"] = utils.YamlStringFromSyncResource(result.SyncWorkloads)
+		configmap.Data["availableWorkloads"] = GetAvailableResourcesSerialized()
+		configmap.Data["ignoredNamespaces"] = strings.Join(result.IgnoredNamespaces, ",")
+		configmap.Data["ignoredNames"] = strings.Join(result.IgnoredNames, ",")
+		_, err := configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())
+		if err != nil {
+			K8sLogger.Error(err)
+		}
+		K8sLogger.Info("🗺️ Created new mogenius configmap.")
+	} else {
+		// USE EXISTING
+		availableWorkloads, err := GetSyncResourcesFromString(existingConfigMap.Data["availableWorkloads"])
+		if err != nil {
+			K8sLogger.Errorf("Error getting available workloads: %s", err.Error())
+			return result, err
+		}
+
+		syncWorkloads, err := GetSyncResourcesFromString(existingConfigMap.Data["syncWorkloads"])
+		if err != nil {
+			K8sLogger.Errorf("Error getting sync workloads: %s", err.Error())
+			return result, err
+		}
+		result.AvailableWorkloads = availableWorkloads
+		result.SyncWorkloads = syncWorkloads
+		result.IgnoredNamespaces = CommaSeperatedStringToArray(existingConfigMap.Data["ignoredNamespaces"])
+		result.IgnoredNames = CommaSeperatedStringToArray(existingConfigMap.Data["ignoredNames"])
+		K8sLogger.Info("🗺️ Using existing mogenius configmap.")
+	}
+
+	if data != nil {
+		// UPDATE EXISTING
+		existingConfigMap.Data["syncWorkloads"] = utils.YamlStringFromSyncResource(result.SyncWorkloads)
+		existingConfigMap.Data["availableWorkloads"] = GetAvailableResourcesSerialized()
+		existingConfigMap.Data["ignoredNamespaces"] = strings.Join(result.IgnoredNamespaces, ",")
+		existingConfigMap.Data["ignoredNames"] = strings.Join(result.IgnoredNames, ",")
+		_, err := configmapClient.Update(context.TODO(), existingConfigMap, MoUpdateOptions())
+		if err != nil {
+			K8sLogger.Error(err)
+			return result, err
+		}
+		K8sLogger.Info("🗺️ Updated mogenius configmap.")
+	}
+
+	return result, nil
+}
+
 func GetSyncRepoData() (*dtos.SyncRepoData, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
@@ -265,12 +344,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		clusterSecret.SyncAllowPull = syncdata.AllowPull
 		clusterSecret.SyncAllowPush = syncdata.AllowPush
 		clusterSecret.SyncFrequencyInSec = syncdata.SyncFrequencyInSec
-		clusterSecret.SyncWorkloads = syncdata.SyncWorkloads
-		if len(syncdata.IgnoredNamespaces) > 1 {
-			clusterSecret.IgnoredNamespaces = syncdata.IgnoredNamespaces
-		} else {
-			clusterSecret.IgnoredNamespaces = dtos.DefaultIgnoredNamespaces()
-		}
 	}
 	if clusterSecret.ClusterMfaId == "" {
 		clusterSecret.ClusterMfaId = punqUtils.NanoId()
@@ -284,10 +357,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		clusterSecret.SyncAllowPull = syncRepoReq.AllowPull
 		clusterSecret.SyncAllowPush = syncRepoReq.AllowPush
 		clusterSecret.SyncFrequencyInSec = syncRepoReq.SyncFrequencyInSec
-		clusterSecret.SyncWorkloads = syncRepoReq.SyncWorkloads
-		if len(syncRepoReq.IgnoredNamespaces) > 1 {
-			clusterSecret.IgnoredNamespaces = syncRepoReq.IgnoredNamespaces
-		}
 	}
 
 	secret := punqUtils.InitSecret()
@@ -303,8 +372,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	secret.StringData["sync-allow-pull"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPull)
 	secret.StringData["sync-allow-push"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPush)
 	secret.StringData["sync-frequency-in-sec"] = fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec)
-	secret.StringData["sync-workloads"] = strings.Join(clusterSecret.SyncWorkloads, ",")
-	secret.StringData["sync-ignored-namespaces"] = strings.Join(clusterSecret.IgnoredNamespaces, ",")
 
 	if existingSecret == nil || getErr != nil {
 		K8sLogger.Info("🔑 Creating new mogenius secret ...")
@@ -323,9 +390,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			string(existingSecret.Data["sync-repo-branch"]) != clusterSecret.SyncRepoBranch ||
 			string(existingSecret.Data["sync-allow-pull"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPull) ||
 			string(existingSecret.Data["sync-allow-push"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPush) ||
-			string(existingSecret.Data["sync-frequency-in-sec"]) != fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec) ||
-			string(existingSecret.Data["sync-workloads"]) != strings.Join(clusterSecret.SyncWorkloads, ",") ||
-			string(existingSecret.Data["sync-ignored-namespaces"]) != strings.Join(clusterSecret.IgnoredNamespaces, ",") {
+			string(existingSecret.Data["sync-frequency-in-sec"]) != fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec) {
 			K8sLogger.Info("🔑 Updating existing mogenius secret ...")
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
