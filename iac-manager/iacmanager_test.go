@@ -41,7 +41,7 @@ func TestIacManager(t *testing.T) {
 	tempPath := os.TempDir() + "/example-configmap.yaml"
 	err = os.WriteFile(tempPath, []byte(exampleConfigmapYaml), 0644)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Error creating example configmap: %s", err.Error())
 	}
 	diff, err := createDiffFromFile(exampleConfigmapYaml, tempPath, "bla")
 	if err != nil {

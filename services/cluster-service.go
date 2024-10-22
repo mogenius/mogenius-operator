@@ -224,7 +224,7 @@ func sumAllBytesOfFolder(root string) uint64 {
 		return nil
 	})
 	if err != nil {
-		ServiceLogger.Error(err)
+		ServiceLogger.Errorf("Error while summing bytes in path: %s", err.Error())
 	}
 
 	wg.Wait()

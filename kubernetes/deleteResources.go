@@ -27,7 +27,7 @@ func removeDeployment(provider *punq.KubeProvider) {
 	deletePolicy := metav1.DeletePropagationForeground
 	err := deploymentClient.Delete(context.TODO(), DEPLOYMENTNAME, metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
-		K8sLogger.Error(err)
+		K8sLogger.Errorf("Error deleting mogenius-k8s-manager deployment: %s", err.Error())
 		return
 	}
 	K8sLogger.Info("Deleted mogenius-k8s-manager deployment.")
@@ -38,17 +38,17 @@ func removeRbac(provider *punq.KubeProvider) {
 	K8sLogger.Info("Deleting mogenius-k8s-manager RBAC ...")
 	err := provider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Delete(context.TODO(), SERVICEACCOUNTNAME, metav1.DeleteOptions{})
 	if err != nil {
-		K8sLogger.Error(err)
+		K8sLogger.Errorf("Error deleting mogenius-k8s-manager ServiceAccounts: %s", err.Error())
 		return
 	}
 	err = provider.ClientSet.RbacV1().ClusterRoles().Delete(context.TODO(), CLUSTERROLENAME, metav1.DeleteOptions{})
 	if err != nil {
-		K8sLogger.Error(err)
+		K8sLogger.Errorf("Error deleting mogenius-k8s-manager ClosterRoles: %s", err.Error())
 		return
 	}
 	err = provider.ClientSet.RbacV1().ClusterRoleBindings().Delete(context.TODO(), CLUSTERROLEBINDINGNAME, metav1.DeleteOptions{})
 	if err != nil {
-		K8sLogger.Error(err)
+		K8sLogger.Errorf("Error deleting mogenius-k8s-manager ClusterRoleBindings: %s", err.Error())
 		return
 	}
 	K8sLogger.Info("Deleted mogenius-k8s-manager RBAC.")

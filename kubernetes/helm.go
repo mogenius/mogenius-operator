@@ -196,7 +196,7 @@ func DeleteHelmChart(helmReleaseName string, namespace string) {
 	}
 	_, err := HelmReleaseUninstall(data)
 	if err != nil {
-		HelmLogger.Error(err)
+		HelmLogger.Errorf("Error uninstalling helm chart: %s", err.Error())
 	}
 	//structs.CreateShellCommand("helm uninstall", "Uninstall chart", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
 }
@@ -363,7 +363,7 @@ func InitHelmConfig() error {
 	if _, err := os.Stat(repositoryConfig); os.IsNotExist(err) {
 		destFile, err := os.Create(repositoryConfig)
 		if err != nil {
-			HelmLogger.Error(err)
+			HelmLogger.Errorf("Error creating repository config: %s", err.Error())
 		}
 		defer destFile.Close()
 

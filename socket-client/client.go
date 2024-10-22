@@ -25,6 +25,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var SocketClientLogger = log.WithField("component", structs.ComponentSocketClient)
+
 func StartK8sManager() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -33,7 +35,7 @@ func StartK8sManager() {
 		utils.PrintVersionInfo()
 		utils.PrintSettings()
 	} else {
-		log.Infof("\n%s\n###   CURRENT CONTEXT: %s   ###\n%s\n", punqUtils.FillWith("", 90, "#"), punqUtils.FillWith(mokubernetes.CurrentContextName(), 61, " "), punqUtils.FillWith("", 90, "#"))
+		SocketClientLogger.Infof("\n%s\n###   CURRENT CONTEXT: %s   ###\n%s\n", punqUtils.FillWith("", 90, "#"), punqUtils.FillWith(mokubernetes.CurrentContextName(), 61, " "), punqUtils.FillWith("", 90, "#"))
 	}
 
 	updateCheck()
@@ -46,7 +48,7 @@ func StartK8sManager() {
 				for {
 					_, _, err := structs.EventQueueConnection.ReadMessage()
 					if err != nil {
-						log.Errorf("%s -> %s", &structs.EventConnectionUrl, err.Error())
+						SocketClientLogger.Errorf("%s -> %s", &structs.EventConnectionUrl, err.Error())
 						break
 					}
 				}
@@ -80,7 +82,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
-			log.Errorf("%s -> %s", &structs.JobConnectionUrl, err.Error())
+			SocketClientLogger.Errorf("%s -> %s", &structs.JobConnectionUrl, err.Error())
 			return
 		} else {
 			rawDataStr := string(message)
@@ -92,7 +94,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				rawDataStr = strings.Replace(rawDataStr, "######START_UPLOAD######;", "", 1)
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
-					log.Errorf("Cannot open uploadfile: '%s'.", err.Error())
+					SocketClientLogger.Errorf("Cannot open uploadfile: '%s'.", err.Error())
 				}
 			}
 			if strings.HasPrefix(rawDataStr, "######END_UPLOAD######;") {
@@ -113,7 +115,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 			if preparedFileName != nil {
 				_, err := openFile.Write([]byte(rawDataStr))
 				if err != nil {
-					log.Error(err)
+					SocketClientLogger.Errorf("Error writing to file: %s", err)
 				}
 			} else {
 				datagram := structs.CreateEmptyDatagram()
@@ -121,11 +123,11 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				jsonErr := json.Unmarshal([]byte(rawDataStr), &datagram)
 				if jsonErr != nil {
-					log.Errorf("%s", jsonErr.Error())
+					SocketClientLogger.Errorf("%s", jsonErr.Error())
 				}
 				validationErr := utils.ValidateJSON(datagram)
 				if validationErr != nil {
-					log.Errorf("Received malformed Datagram: %s", datagram.Pattern)
+					SocketClientLogger.Errorf("Received malformed Datagram: %s", datagram.Pattern)
 					continue
 				}
 
@@ -133,7 +135,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				if isSuppressed := punqUtils.Contains(structs.SUPPRESSED_OUTPUT_PATTERN, datagram.Pattern); !isSuppressed {
 					if utils.CONFIG.Misc.Debug {
-						log.Info(utils.PrettyPrintInterface(datagram))
+						SocketClientLogger.Info(utils.PrettyPrintInterface(datagram))
 					}
 				}
 
@@ -155,7 +157,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 					var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
 					ack.Send()
 				} else {
-					log.Errorf("Pattern not found: '%s'.", datagram.Pattern)
+					SocketClientLogger.Errorf("Pattern not found: '%s'.", datagram.Pattern)
 				}
 			}
 		}
@@ -179,30 +181,30 @@ func versionTicker() {
 }
 
 func updateCheck() {
-	log.Info("Checking for updates ...")
+	SocketClientLogger.Info("Checking for updates ...")
 
 	if !punqUtils.IsProduction() {
-		log.Warn(" (skipped) [not production].")
+		SocketClientLogger.Warn(" (skipped) [not production].")
 		return
 	}
 
 	helmData, err := utils.GetVersionData(utils.CONFIG.Misc.HelmIndex)
 	if err != nil {
-		log.Errorf("GetVersionData ERR: %s", err.Error())
+		SocketClientLogger.Errorf("GetVersionData ERR: %s", err.Error())
 		return
 	}
 	// VALIDATE RESPONSE
 	if len(helmData.Entries) < 1 {
-		log.Errorf("\nHelmIndex Entries length <= 0. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		SocketClientLogger.Errorf("\nHelmIndex Entries length <= 0. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
 	mogeniusPlatform, doesExist := helmData.Entries["mogenius-platform"]
 	if !doesExist {
-		log.Errorf("\nHelmIndex does not contain the field 'mogenius-platform'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		SocketClientLogger.Errorf("\nHelmIndex does not contain the field 'mogenius-platform'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
 	if len(mogeniusPlatform) <= 0 {
-		log.Errorf("\nField 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		SocketClientLogger.Errorf("\nField 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
 	var mok8smanager *punqStructs.HelmDependency = nil
@@ -213,12 +215,12 @@ func updateCheck() {
 		}
 	}
 	if mok8smanager == nil {
-		log.Errorf("The umbrella chart 'mogenius-platform' does not contain a dependency for 'mogenius-k8s-manager'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
+		SocketClientLogger.Errorf("The umbrella chart 'mogenius-platform' does not contain a dependency for 'mogenius-k8s-manager'. Check the HelmIndex for errors: %s\n", utils.CONFIG.Misc.HelmIndex)
 		return
 	}
 
 	if version.Ver != mok8smanager.Version {
-		log.Warnf("\n####################################################################\n"+
+		SocketClientLogger.Warnf("\n####################################################################\n"+
 			"####################################################################\n"+
 			"######                  %s                ######\n"+
 			"######               %s              ######\n"+
@@ -231,47 +233,47 @@ func updateCheck() {
 			"####################################################################\n", color.BlueString("NEW VERSION AVAILABLE!"), color.YellowString(" UPDATE AS FAST AS POSSIBLE"), color.GreenString(mok8smanager.Version), color.RedString(version.Ver))
 		notUpToDateAction(helmData)
 	} else {
-		log.Infof(" Up-To-Date: 👍 (Your Ver: %s)\n", version.Ver)
+		SocketClientLogger.Infof(" Up-To-Date: 👍 (Your Ver: %s)\n", version.Ver)
 	}
 }
 
 func notUpToDateAction(helmData *punqStructs.HelmData) {
 	localVer, err := semver.NewVersion(version.Ver)
 	if err != nil {
-		log.Errorf("Error parsing local version: %s", err.Error())
+		SocketClientLogger.Errorf("Error parsing local version: %s", err.Error())
 		return
 	}
 
 	remoteVer, err := semver.NewVersion(helmData.Entries["mogenius-k8s-manager"][0].Version)
 	if err != nil {
-		log.Errorf("Error parsing remote version: %s", err.Error())
+		SocketClientLogger.Errorf("Error parsing remote version: %s", err.Error())
 		return
 	}
 
 	constraint, err := semver.NewConstraint(">= " + version.Ver)
 	if err != nil {
-		log.Errorf("Error parsing constraint version: %s", err.Error())
+		SocketClientLogger.Errorf("Error parsing constraint version: %s", err.Error())
 		return
 	}
 
 	_, errors := constraint.Validate(remoteVer)
 	for _, m := range errors {
-		log.Error(m)
+		SocketClientLogger.Error(m)
 	}
 	// Local version > Remote version (likely development version)
 	if remoteVer.LessThan(localVer) {
-		log.Warningf("Your local version '%s' is > the remote version '%s'. AI thinks: You are likely a developer.", localVer.String(), remoteVer.String())
+		SocketClientLogger.Warningf("Your local version '%s' is > the remote version '%s'. AI thinks: You are likely a developer.", localVer.String(), remoteVer.String())
 		return
 	}
 
 	// MAYOR CHANGES: MUST UPGRADE TO CONTINUE
 	if remoteVer.GreaterThan(localVer) && remoteVer.Major() > localVer.Major() {
-		log.Fatalf("Your version '%s' is too low to continue. Please upgrade to '%s' and try again.\n", localVer.String(), remoteVer.String())
+		SocketClientLogger.Fatalf("Your version '%s' is too low to continue. Please upgrade to '%s' and try again.\n", localVer.String(), remoteVer.String())
 	}
 
-	// MMINOR&PATCH CHANGES: SHOULD UPGRADE
+	// MINOR&PATCH CHANGES: SHOULD UPGRADE
 	if remoteVer.GreaterThan(localVer) {
-		log.Warningf("Your version '%s' is out-dated. Please upgrade to '%s' to avoid service interruption.", localVer.String(), remoteVer.String())
+		SocketClientLogger.Warningf("Your version '%s' is out-dated. Please upgrade to '%s' to avoid service interruption.", localVer.String(), remoteVer.String())
 		return
 	}
 }

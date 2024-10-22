@@ -77,7 +77,7 @@ func connectJob(ctx context.Context) {
 		JobConnectionStatus <- true
 		err := Ping(JobQueueConnection, &JobSendMutex)
 		if err != nil {
-			log.Error(err)
+			log.Errorf("Error pinging job queue: %s", err)
 		}
 	}
 
@@ -114,7 +114,7 @@ func processJobNow() {
 				}
 				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {
-				log.Error(err)
+				log.Errorf("Error writing json in job queue: %s", err)
 				return
 			}
 		}

@@ -59,7 +59,7 @@ func ClusterForceDisconnect() bool {
 	deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
 	_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 	if err != nil {
-		K8sLogger.Error(err)
+		K8sLogger.Errorf("Error updating deployment: %s", err)
 	}
 
 	podsToKill := []string{}
