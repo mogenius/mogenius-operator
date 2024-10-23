@@ -48,6 +48,12 @@ cp /db/mogenius-1.db mogenius1.db
 /root/go/bin/boltbrowser mogenius-stats1.db
 ```
 
+# Upgrade Modules
+```
+go get -u ./...
+go mod tidy
+```
+
 # Testing
 ```
 go test -v ./...
