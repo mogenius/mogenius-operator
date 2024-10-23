@@ -8,6 +8,55 @@ import (
 func TestWatcher(t *testing.T) {
 	t.Log("TestWatcher")
 
+	createNewDeplString := `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testdepl
+  namespace: default
+  labels:
+    app: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+        addedlabel: newlabel
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+        ports:
+        - containerPort: 80`
+
+	updatedDeplString := `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testdepl
+  namespace: default
+  labels:
+    app: my-app
+    whoop: whoop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+        addedlabel: newlabel
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+        ports:
+        - containerPort: 80`
+
 	yamlString := `apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,12 +71,52 @@ spec:
     ports:
     - containerPort: 80`
 
-	// Test the example generator
+	// LIST ALL AVAILABLE
+	resources, err := GetAvailableResources()
+	if err != nil {
+		t.Errorf("Error GetAvailableResources: %s", err.Error())
+	} else {
+		t.Logf("%d resources found ✅", len(resources))
+	}
+
+	// LIST ITEMS IN WORKLOAD
+	deplList, err := GetUnstructuredResourceList("apps/v1", "", "deployments", true)
+	if err != nil {
+		t.Errorf("Error GetAvailableResources: %s", err.Error())
+	} else {
+		t.Logf("%d deployments found ✅", len(deplList.Items))
+	}
+
+	// DESCRIBE
 	describeStr, err := DescribeUnstructuredResource("apps/v1", "", "deployments", true, yamlString)
 	if err != nil {
-		t.Errorf("Error generating example: %s", err.Error())
+		t.Errorf("Error describing deployments: %s", err.Error())
 	} else {
 		fmt.Println(describeStr)
-		t.Log("Example generated ✅")
+		t.Log("Describtion generated ✅")
+	}
+
+	// NEW WORKLOAD
+	depl, err := CreateUnstructuredResource("apps/v1", "", "deployments", true, createNewDeplString)
+	if err != nil {
+		t.Errorf("Error creating deployment: %s", err.Error())
+	} else {
+		t.Logf("Deployment created: %s ✅", depl.GetName())
+	}
+
+	// UPDATE WORKLOAD
+	deplUpdated, err := UpdateUnstructuredResource("apps/v1", "", "deployments", true, updatedDeplString)
+	if err != nil {
+		t.Errorf("Error updating deployment: %s", err.Error())
+	} else {
+		t.Logf("Deployment updated: %s ✅", deplUpdated.GetName())
+	}
+
+	// DELETE WORKLOAD
+	err = DeleteUnstructuredResource("apps/v1", "", "deployments", true, updatedDeplString)
+	if err != nil {
+		t.Errorf("Error deleting deployment: %s", err.Error())
+	} else {
+		t.Log("Deployment deleted ✅")
 	}
 }
