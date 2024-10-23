@@ -170,35 +170,33 @@ type HelmReleaseStatusInfo struct {
 }
 
 // Only for internal usage
-func CreateHelmChart(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmTask structs.HelmTaskEnum, helmChartName string, helmValues string, successFunc func(), failFunc func(output string, err error)) {
-	go func() {
-		data := HelmChartInstallRequest{
-			Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
-			Chart:     helmChartName,
-			Release:   helmReleaseName,
-			Values:    helmValues,
-		}
-		status, err := HelmChartInstall(data)
-		if err != nil {
-			failFunc(status, err)
-		} else {
-			successFunc()
-		}
-	}()
-	//structs.CreateShellCommandGoRoutine("Add/Update Helm Repo & Execute chart.", fmt.Sprintf("helm repo add %s %s; helm repo update; helm %s %s %s %s", helmRepoName, helmRepoUrl, helmTask, helmReleaseName, helmChartName, helmFlags), successFunc, failFunc)
+func CreateHelmChart(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmChartName string, helmValues string) (output string, err error) {
+	data := HelmChartInstallRequest{
+		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Chart:     helmChartName,
+		Release:   helmReleaseName,
+		Values:    helmValues,
+	}
+
+	// make sure repo is available
+	addResult, err := HelmRepoAdd(HelmRepoAddRequest{
+		Name: helmRepoName,
+		Url:  helmRepoUrl,
+	})
+	if err != nil && !strings.Contains(err.Error(), "already exists") {
+		return addResult, fmt.Errorf("failed to add repository: %s", err.Error())
+	}
+
+	return HelmChartInstall(data)
 }
 
 // Only for internal usage
-func DeleteHelmChart(helmReleaseName string, namespace string) {
+func DeleteHelmChart(helmReleaseName string, namespace string) (string, error) {
 	data := HelmReleaseUninstallRequest{
 		Namespace: namespace,
 		Release:   helmReleaseName,
 	}
-	_, err := HelmReleaseUninstall(data)
-	if err != nil {
-		HelmLogger.Errorf("Error uninstalling helm chart: %s", err.Error())
-	}
-	//structs.CreateShellCommand("helm uninstall", "Uninstall chart", job, fmt.Sprintf("helm uninstall %s", helmReleaseName), wg)
+	return HelmReleaseUninstall(data)
 }
 
 //func CheckHelmRepoExists(repoURL string, username string, password string) error {

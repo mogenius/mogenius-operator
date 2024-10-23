@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"mogenius-k8s-manager/version"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -296,27 +297,27 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// SET LOGGING
 	// setupLogging()
 
-	//if CONFIG.Misc.Debug {
-	//	log.Info("Starting service for pprof in localhost:6060")
-	//	go func() {
-	//		log.Info(http.ListenAndServe("localhost:6060", nil))
-	//		log.Info("1. Portforward mogenius-k8s-manager to 6060")
-	//		log.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
-	//		log.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
-	//		log.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
-	//		log.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
-	//		log.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
-	//		log.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
-	//		log.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
-	//		log.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
-	//		log.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
-	//		log.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
-	//		log.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
-	//		log.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
-	//		log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
-	//		log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
-	//	}()
-	//}
+	if CONFIG.Misc.Debug {
+		log.Info("Starting service for pprof in localhost:6060")
+		go func() {
+			log.Info(http.ListenAndServe("localhost:6060", nil))
+			log.Info("1. Portforward mogenius-k8s-manager to 6060")
+			log.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
+			log.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
+			log.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
+			log.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
+			log.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
+			log.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
+			log.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
+			log.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
+			log.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
+			log.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
+			log.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
+			log.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
+			log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
+			log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
+		}()
+	}
 }
 
 //func setupLogging() {

@@ -1,13 +1,5 @@
 package structs
 
-type HelmTaskEnum string
-
-const (
-	HelmInstall   HelmTaskEnum = "install"
-	HelmUpgrade   HelmTaskEnum = "upgrade"
-	HelmUninstall HelmTaskEnum = "uninstall"
-)
-
 type ComponentEnum string
 
 const (
@@ -63,7 +55,6 @@ const (
 	PAT_IAC_RESET_LOCAL_REPO string = "iac/reset-local-repo"
 	PAT_IAC_RESET_FILE       string = "iac/reset-file"
 
-	PAT_INSTALL_LOCAL_DEV_COMPONENTS         string = "install-local-dev-components"
 	PAT_INSTALL_TRAFFIC_COLLECTOR            string = "install-traffic-collector"
 	PAT_INSTALL_POD_STATS_COLLECTOR          string = "install-pod-stats-collector"
 	PAT_INSTALL_METRICS_SERVER               string = "install-metrics-server"
@@ -466,7 +457,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_IAC_RESET_LOCAL_REPO,
 	PAT_IAC_RESET_FILE,
 
-	PAT_INSTALL_LOCAL_DEV_COMPONENTS,
 	PAT_INSTALL_TRAFFIC_COLLECTOR,
 	PAT_INSTALL_POD_STATS_COLLECTOR,
 	PAT_INSTALL_METRICS_SERVER,

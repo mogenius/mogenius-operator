@@ -152,24 +152,21 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return err
 
-	case structs.PAT_INSTALL_LOCAL_DEV_COMPONENTS:
-		data := ClusterIssuerInstallRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		data.AddSecretsToRedaction()
-		return InstallAllLocalDevComponents(data.Email)
 	case structs.PAT_INSTALL_TRAFFIC_COLLECTOR:
-		return InstallTrafficCollector()
+		result, err := InstallTrafficCollector()
+		return NewMessageResponse(result, err)
 	case structs.PAT_INSTALL_POD_STATS_COLLECTOR:
-		return InstallPodStatsCollector()
+		result, err := InstallPodStatsCollector()
+		return NewMessageResponse(result, err)
 	case structs.PAT_INSTALL_METRICS_SERVER:
-		return InstallMetricsServer()
+		result, err := InstallMetricsServer()
+		return NewMessageResponse(result, err)
 	case structs.PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK:
-		return InstallIngressControllerTreafik()
+		result, err := InstallIngressControllerTreafik()
+		return NewMessageResponse(result, err)
 	case structs.PAT_INSTALL_CERT_MANAGER:
-		return InstallCertManager()
+		result, err := InstallCertManager()
+		return NewMessageResponse(result, err)
 	case structs.PAT_INSTALL_CLUSTER_ISSUER:
 		data := ClusterIssuerInstallRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -177,51 +174,74 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		data.AddSecretsToRedaction()
-		return InstallClusterIssuer(data.Email, 0)
+		result, err := InstallClusterIssuer(data.Email, 0)
+		return NewMessageResponse(result, err)
 	case structs.PAT_INSTALL_CONTAINER_REGISTRY:
-		return InstallContainerRegistry()
+		result, err := InstallContainerRegistry()
+		return NewMessageResponse(result, err)
 	case structs.PAT_INSTALL_EXTERNAL_SECRETS:
-		return InstallExternalSecrets()
+		result, err := InstallExternalSecrets()
+		return NewMessageResponse(result, err)
 	case structs.PAT_INSTALL_METALLB:
-		return InstallMetalLb()
+		result, err := InstallMetalLb()
+		return NewMessageResponse(result, err)
 	case structs.PAT_INSTALL_KEPLER:
-		return InstallKepler()
+		result, err := InstallKepler()
+		return NewMessageResponse(result, err)
 	case structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR:
-		return UninstallTrafficCollector()
+		msg, err := UninstallTrafficCollector()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UNINSTALL_POD_STATS_COLLECTOR:
-		return UninstallPodStatsCollector()
+		msg, err := UninstallPodStatsCollector()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UNINSTALL_METRICS_SERVER:
-		return UninstallMetricsServer()
+		msg, err := UninstallMetricsServer()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK:
-		return UninstallIngressControllerTreafik()
+		msg, err := UninstallIngressControllerTreafik()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UNINSTALL_CERT_MANAGER:
-		return UninstallCertManager()
+		msg, err := UninstallCertManager()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UNINSTALL_CLUSTER_ISSUER:
-		return UninstallClusterIssuer()
+		msg, err := UninstallClusterIssuer()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UNINSTALL_CONTAINER_REGISTRY:
-		return UninstallContainerRegistry()
+		msg, err := UninstallContainerRegistry()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UNINSTALL_EXTERNAL_SECRETS:
-		return UninstallExternalSecrets()
+		msg, err := UninstallExternalSecrets()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UNINSTALL_METALLB:
-		return UninstallMetalLb()
+		msg, err := UninstallMetalLb()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UNINSTALL_KEPLER:
-		return UninstallKepler()
+		msg, err := UninstallKepler()
+		return NewMessageResponse(msg, err)
 	case structs.PAT_UPGRADE_TRAFFIC_COLLECTOR:
-		return UpgradeTrafficCollector()
+		result, err := UpgradeTrafficCollector()
+		return NewMessageResponse(result, err)
 	case structs.PAT_UPGRADE_PODSTATS_COLLECTOR:
-		return UpgradePodStatsCollector()
+		result, err := UpgradePodStatsCollector()
+		return NewMessageResponse(result, err)
 	case structs.PAT_UPGRADE_METRICS_SERVER:
-		return UpgradeMetricsServer()
+		result, err := UpgradeMetricsServer()
+		return NewMessageResponse(result, err)
 	case structs.PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK:
-		return UpgradeIngressControllerTreafik()
+		result, err := UpgradeIngressControllerTreafik()
+		return NewMessageResponse(result, err)
 	case structs.PAT_UPGRADE_CERT_MANAGER:
-		return UpgradeCertManager()
+		result, err := UpgradeCertManager()
+		return NewMessageResponse(result, err)
 	case structs.PAT_UPGRADE_CONTAINER_REGISTRY:
-		return UpgradeContainerRegistry()
+		result, err := UpgradeContainerRegistry()
+		return NewMessageResponse(result, err)
 	case structs.PAT_UPGRADE_METALLB:
-		return UpgradeMetalLb()
+		result, err := UpgradeMetalLb()
+		return NewMessageResponse(result, err)
 	case structs.PAT_UPGRADE_KEPLER:
-		return UpgradeKepler()
+		result, err := UpgradeKepler()
+		return NewMessageResponse(result, err)
 
 	case structs.PAT_STATS_PODSTAT_FOR_POD_ALL:
 		data := StatsDataRequest{}
