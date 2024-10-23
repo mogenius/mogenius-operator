@@ -204,13 +204,12 @@ const (
 
 	PAT_LIST_CREATE_TEMPLATES string = "list/create-templates"
 
-	PAT_LIST_ALL_WORKLOADS   string = "list/all-workloads"
-	PAT_GET_WORKLOAD_LIST    string = "get/workload-list"
-	PAT_CREATE_NEW_WORKLOAD  string = "create/new-workload"
-	PAT_GET_EXAMPLE_WORKLOAD string = "get/example-workload"
-	PAT_DESCRIBE_WORKLOAD    string = "describe/workload"
-	PAT_UPDATE_WORKLOAD      string = "update/workload"
-	PAT_DELETE_WORKLOAD      string = "delete/workload"
+	PAT_LIST_ALL_WORKLOADS  string = "list/all-workloads"
+	PAT_GET_WORKLOAD_LIST   string = "get/workload-list"
+	PAT_CREATE_NEW_WORKLOAD string = "create/new-workload"
+	PAT_DESCRIBE_WORKLOAD   string = "describe/workload"
+	PAT_UPDATE_WORKLOAD     string = "update/workload"
+	PAT_DELETE_WORKLOAD     string = "delete/workload"
 
 	PAT_LIST_NAMESPACES                  string = "list/namespaces"
 	PAT_LIST_DEPLOYMENTS                 string = "list/deployments"
@@ -613,7 +612,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_LIST_ALL_WORKLOADS,
 	PAT_GET_WORKLOAD_LIST,
 	PAT_CREATE_NEW_WORKLOAD,
-	PAT_GET_EXAMPLE_WORKLOAD,
 	PAT_UPDATE_WORKLOAD,
 	PAT_DELETE_WORKLOAD,
 	PAT_DESCRIBE_WORKLOAD,
