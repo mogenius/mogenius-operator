@@ -59,7 +59,12 @@ func (s *Store) Close() error {
 }
 
 func NewStore() (*Store, error) {
-	opts := badger.DefaultOptions("").WithInMemory(true)
+	// Limit Memory Usage to
+	opts := badger.DefaultOptions("").WithInMemory(true).
+		WithMemTableSize(16 << 20).
+		WithNumMemtables(2).
+		WithNumLevelZeroTables(1).
+		WithNumLevelZeroTablesStall(2)
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Error(err.Error())
