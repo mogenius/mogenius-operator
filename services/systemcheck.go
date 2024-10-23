@@ -124,7 +124,7 @@ func SystemCheck() SystemCheckResponse {
 
 	// check kubernetes version
 	wg.Add(1)
-	go SysCheckExec("CheckKubectlAndKubernetesVersion", &wg, &entries, func() SystemCheckEntry {
+	go SysCheckExec("CheckKubernetesVersion", &wg, &entries, func() SystemCheckEntry {
 		kubernetesVersion := punq.KubernetesVersion(nil)
 		kubernetesVersionResult := kubernetesVersion != nil
 		return CreateSystemCheckEntry("Kubernetes Version",
