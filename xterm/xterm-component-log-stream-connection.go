@@ -19,6 +19,7 @@ func XTermComponentStreamConnection(
 	wsConnectionRequest WsConnectionRequest,
 	component structs.ComponentEnum,
 	namespace *string,
+	controllerName *string,
 	release *string,
 ) {
 	cmdType := "log"
@@ -100,7 +101,7 @@ func XTermComponentStreamConnection(
 	go cmdWait(cmd, conn, tty)
 
 	// cmd output to websocket
-	go cmdOutputScannerToWebsocket(ctx, cancel, conn, tty, nil, component, namespace, release)
+	go cmdOutputScannerToWebsocket(ctx, cancel, conn, tty, nil, component, namespace, controllerName, release)
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)
