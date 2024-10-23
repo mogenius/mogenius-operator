@@ -8,72 +8,96 @@ data:
     - name: dns-TCP
       port: 53
       protocol: TCP
+      createAt: 2024-10-22T00:00:00Z
     - name: dns-UDP
       protocol: UDP
       port: 53
+      createAt: 2024-10-22T00:00:00Z
     - name: ftp-control
       protocol: TCP
       port: 21
+      createAt: 2024-10-22T00:00:00Z
     - name: ftp
       protocol: TCP
       port: 20
+      createAt: 2024-10-22T00:00:00Z
     - name: http
       protocol: TCP
       port: 80
+      createAt: 2024-10-22T00:00:00Z
     - name: https
       protocol: TCP
       port: 443
+      createAt: 2024-10-22T00:00:00Z
     - name: kafka
       protocol: TCP
       port: 9092
-    - name: imap
+      createAt: 2024-10-22T00:00:00Z
+    - name: imap-TCP
       protocol: TCP
       port: 143
-    - name: imap
+      createAt: 2024-10-22T00:00:00Z
+    - name: imap-UDP
       protocol: UDP
       port: 220
+      createAt: 2024-10-22T00:00:00Z
     - name: idap-TCP
       protocol: TCP
       port: 389
+      createAt: 2024-10-22T00:00:00Z
     - name: idap-UDP
       protocol: UDP
       port: 389
+      createAt: 2024-10-22T00:00:00Z
     - name: idaps-TCP
       protocol: TCP
       port: 636
+      createAt: 2024-10-22T00:00:00Z
     - name: idaps-UDP
       protocol: UDP
       port: 636
+      createAt: 2024-10-22T00:00:00Z
     - name: mongodb
       protocol: TCP
       port: 27017
+      createAt: 2024-10-22T00:00:00Z
     - name: ms-sql
       protocol: TCP
       port: 1433
+      createAt: 2024-10-22T00:00:00Z
     - name: mysql
       protocol: TCP
       port: 3306
+      createAt: 2024-10-22T00:00:00Z
     - name: nfs
       protocol: TCP
       port: 111
+      createAt: 2024-10-22T00:00:00Z
     - name: ntp
       protocol: UDP
       port: 123
+      createAt: 2024-10-22T00:00:00Z
     - name: oracle-db
       protocol: TCP
       port: 1521
+      createAt: 2024-10-22T00:00:00Z
     - name: pop3
       protocol: TCP
       port: 110
+      createAt: 2024-10-22T00:00:00Z
     - name: postgres
       protocol: TCP
       port: 5432
+      createAt: 2024-10-22T00:00:00Z
     - name: redis
       protocol: TCP
       port: 6379
+      createAt: 2024-10-22T00:00:00Z
     - name: smtp
       protocol: TCP
       port: 25
+      createAt: 2024-10-22T00:00:00Z
     - name: ssh
       protocol: TCP
       port: 22
+      createAt: 2024-10-22T00:00:00Z

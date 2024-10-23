@@ -66,6 +66,7 @@ type ComponentLogConnectionRequest struct {
 	WsConnection WsConnectionRequest   `json:"wsConnectionRequest" validate:"required"`
 	Component    structs.ComponentEnum `json:"component" validate:"required"`
 	Namespace    *string               `json:"namespace,omitempty"`
+	Controller   *string               `json:"controller,omitempty"`
 	Release      *string               `json:"release,omitempty"`
 }
 
@@ -384,7 +385,12 @@ func cmdOutputToWebsocketForOperatorLog(ctx context.Context, cancel context.Canc
 					}
 
 					if conn != nil {
-						messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+						var messageSt string
+						if strings.HasSuffix(entry.Message, "\n") {
+							messageSt = fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+						} else {
+							messageSt = fmt.Sprintf("[%s] %s %s\n", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+						}
 						err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
 						if err != nil {
 							fmt.Println("WriteMessage", err.Error())
@@ -440,7 +446,7 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 	}
 }
 
-func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, component structs.ComponentEnum, namespace *string, release *string) {
+func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, component structs.ComponentEnum, namespace *string, controllerName *string, release *string) {
 	if injectPreContent != nil {
 		injectContent(injectPreContent, conn)
 	}
@@ -471,14 +477,21 @@ func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc,
 				//}
 
 				if namespace != nil {
-					log.Infof("namespace: %s", *namespace)
+					// log.Infof("namespace: %s", *namespace)
 					if entry.Namespace != *namespace {
 						continue
 					}
 				}
 
+				if controllerName != nil {
+					// log.Infof("controllerName: %s", *controllerName)
+					if entry.ControllerName != *controllerName {
+						continue
+					}
+				}
+
 				if release != nil {
-					log.Infof("release: %s", *release)
+					// log.Infof("release: %s", *release)
 					if entry.ReleaseName != *release {
 						continue
 					}
