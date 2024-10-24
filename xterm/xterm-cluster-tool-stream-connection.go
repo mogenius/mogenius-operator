@@ -11,17 +11,16 @@ import (
 	"github.com/creack/pty"
 
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 )
 
 func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, cmdType string, tool string) {
 	if wsConnectionRequest.WebsocketScheme == "" {
-		log.Error("WebsocketScheme is empty")
+		XtermLogger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		log.Error("WebsocketHost is empty")
+		XtermLogger.Error("WebsocketHost is empty")
 		return
 	}
 
@@ -31,12 +30,12 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	// websocket connection
 	readMessages, conn, err := generateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		log.Errorf("Unable to connect to websocket: %s", err.Error())
+		XtermLogger.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
 	}
 
 	defer func() {
-		// log.Info("[XTermClusterToolStreamConnection] Closing connection.")
+		// XtermLogger.Info("[XTermClusterToolStreamConnection] Closing connection.")
 		cancel()
 	}()
 
@@ -45,21 +44,21 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	case "k9s":
 		cmdString = "k9s --kubeconfig kubeconfig.yaml"
 	default:
-		log.Errorf("Tool not found: %s", tool)
+		XtermLogger.Errorf("Tool not found: %s", tool)
 		return
 	}
 
 	// Start pty/cmd
-	log.Info(cmdString)
+	XtermLogger.Info(cmdString)
 	cmd := exec.Command("sh", "-c", cmdString)
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
-		log.Errorf("Unable to start pty/cmd: %s", err.Error())
+		XtermLogger.Errorf("Unable to start pty/cmd: %s", err.Error())
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			if err != nil {
-				log.Errorf("WriteMessage: %s", err.Error())
+				XtermLogger.Errorf("WriteMessage: %s", err.Error())
 			}
 		}
 		return
@@ -69,20 +68,20 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				log.Debug(err)
+				XtermLogger.Debug(err)
 			}
 		}
 		err := cmd.Process.Kill()
 		if err != nil {
-			log.Error(err)
+			XtermLogger.Error(err)
 		}
 		_, err = cmd.Process.Wait()
 		if err != nil {
-			log.Error(err)
+			XtermLogger.Error(err)
 		}
 		err = tty.Close()
 		if err != nil {
-			log.Error(err)
+			XtermLogger.Error(err)
 		}
 	}()
 

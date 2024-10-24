@@ -994,7 +994,10 @@ func InstallClusterIssuer(email string, currentRetries int) (string, error) {
 			result, err := mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 			if err != nil {
 				currentRetries++
-				InstallClusterIssuer(email, currentRetries)
+				_, err := InstallClusterIssuer(email, currentRetries)
+				if err != nil {
+					ServiceLogger.Debugf("Error installing cluster issuer: %s", err.Error())
+				}
 			}
 			return result, err
 		}

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	log "github.com/sirupsen/logrus"
 )
 
 var validate *validator.Validate
@@ -15,7 +14,7 @@ func init() {
 }
 
 func PrintLogo() {
-	log.Info("\n" +
+	UtilsLogger.Info("\n" +
 		"███╗░░░███╗░█████╗░░██████╗░███████╗███╗░░██╗██╗██╗░░░██╗░██████╗\n" +
 		"████╗░████║██╔══██╗██╔════╝░██╔════╝████╗░██║██║██║░░░██║██╔════╝\n" +
 		"██╔████╔██║██║░░██║██║░░██╗░█████╗░░██╔██╗██║██║██║░░░██║╚█████╗░\n" +
@@ -46,7 +45,7 @@ func ValidateJSON(obj interface{}) *ValidationError {
 			}
 		}
 		//result.Errors = append(result.Errors, err.Error())
-		log.Error(PrettyPrintInterface(result))
+		UtilsLogger.Error(PrettyPrintInterface(result))
 		return result
 	}
 	return nil
@@ -55,7 +54,7 @@ func ValidateJSON(obj interface{}) *ValidationError {
 func FormatJsonTimePretty(jsonTimestamp string) string {
 	t, err := time.Parse(time.RFC3339, jsonTimestamp)
 	if err != nil {
-		log.Errorf("Failed to parse timestamp: %v", err)
+		UtilsLogger.Errorf("Failed to parse timestamp: %v", err)
 		return jsonTimestamp
 	}
 	return t.Format("2006-01-02 15:04:05")

@@ -3,10 +3,13 @@ package controllers
 import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	servicesExternal "mogenius-k8s-manager/services-external"
+	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
-	"github.com/mogenius/punq/logger"
+	log "github.com/sirupsen/logrus"
 )
+
+var ControllerLogger = log.WithField("component", structs.ComponentControllers)
 
 type CreateSecretsStoreRequest struct {
 	// Secrets stores are bound to a projects,
@@ -83,7 +86,7 @@ func CreateExternalSecretStore(data CreateSecretsStoreRequest) CreateSecretsStor
 func ListExternalSecretsStores(data ListSecretStoresRequest) []mokubernetes.SecretStore {
 	stores, err := mokubernetes.ListExternalSecretsStores(data.ProjectId)
 	if err != nil {
-		logger.Log.Error("Getting secret stores failed with error: %v", err)
+		ControllerLogger.Errorf("Getting secret stores failed with error: %v", err)
 	}
 	return stores
 }
@@ -91,7 +94,7 @@ func ListExternalSecretsStores(data ListSecretStoresRequest) []mokubernetes.Secr
 func ListAvailableExternalSecrets(data ListSecretsRequest) []string {
 	availSecrets := servicesExternal.ListAvailableExternalSecrets(data.NamePrefix)
 	if availSecrets == nil {
-		logger.Log.Error("Getting available secrets failed")
+		ControllerLogger.Error("Getting available secrets failed")
 		return []string{}
 	}
 	return availSecrets
@@ -100,7 +103,7 @@ func ListAvailableExternalSecrets(data ListSecretsRequest) []string {
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
 	err := servicesExternal.DeleteExternalSecretsStore(data.Name)
 	if err != nil {
-		logger.Log.Error("Deleting secret store failed with error: %v", err)
+		ControllerLogger.Errorf("Deleting secret store failed with error: %v", err)
 		return DeleteSecretsStoreResponse{
 			Status:       "ERROR",
 			ErrorMessage: err.Error(),

@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var storeLogger = log.WithField("component", structs.Store)
+var StoreLogger = log.WithField("component", structs.Store)
 
 type Store struct {
 	db         *badger.DB
@@ -27,19 +27,18 @@ func Init() {
 	var err error
 	GlobalStore, err = NewStore()
 	if err != nil {
-		storeLogger.Errorf("Error initializing store: %s", err.Error())
-		storeLogger.Fatal(err.Error())
+		StoreLogger.Errorf("Error initializing store: %s", err.Error())
+		StoreLogger.Fatal(err.Error())
 	}
 
 	// Run garbage collection every 5 minutes
 	garbageCollectionTicker = time.NewTicker(5 * time.Minute)
 	go func() {
 		for range garbageCollectionTicker.C {
-		again:
-			log.Infof("Run garbage collection DB ...")
+			StoreLogger.Infof("Run garbage collection DB ...")
 			err := GlobalStore.RunGC()
-			if err == nil {
-				goto again
+			if err != nil {
+				StoreLogger.Debugf("Error running GlobalStore.RunGC: %s", err.Error())
 			}
 		}
 	}()
@@ -67,7 +66,7 @@ func NewStore() (*Store, error) {
 		WithNumLevelZeroTablesStall(2)
 	db, err := badger.Open(opts)
 	if err != nil {
-		log.Error(err.Error())
+		StoreLogger.Error(err.Error())
 		return nil, err
 	}
 
@@ -137,7 +136,7 @@ func (s *Store) GetByKeyParts(resultType reflect.Type, keys ...string) interface
 	key := CreateKey(keys...)
 	value, err := s.Get(key, resultType)
 	if err != nil {
-		log.Errorf("Error getting value for key %s: %s", key, err.Error())
+		StoreLogger.Errorf("Error getting value for key %s: %s", key, err.Error())
 		return nil
 	}
 	return value
@@ -149,7 +148,7 @@ func (s *Store) GetByKeyPart(keyPart string, resultType reflect.Type) []interfac
 	for _, key := range keys {
 		value, err := s.Get(key, resultType)
 		if err != nil {
-			log.Errorf("Error getting value for key %s: %s", key, err.Error())
+			StoreLogger.Errorf("Error getting value for key %s: %s", key, err.Error())
 			continue
 		}
 		values = append(values, value)

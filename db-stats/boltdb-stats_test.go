@@ -2,7 +2,6 @@ package dbstats
 
 import (
 	"fmt"
-	"log"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -36,7 +35,7 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 
 	// check if db has a bucket for the namespace
 	if !bucketExists(tx, stat.Namespace) {
-		log.Printf("Bucket for namespace %s does not exist and should be created once the stat is added", stat.Namespace)
+		DbStatsLogger.Printf("Bucket for namespace %s does not exist and should be created once the stat is added", stat.Namespace)
 	}
 	err = tx.Rollback()
 	if err != nil {
@@ -63,6 +62,7 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	Init()
 
 	getControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
+		_ = podName
 		return &kubernetes.K8sController{
 			Kind:      "Deployment",
 			Name:      "TESTCONTROLLER",

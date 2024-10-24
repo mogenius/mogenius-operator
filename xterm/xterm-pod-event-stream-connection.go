@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -25,14 +24,14 @@ func readChannelPodEvent(ch chan string, conn *websocket.Conn, ctx context.Conte
 				var events []v1.Event
 
 				if err := json.Unmarshal([]byte(message), &events); err != nil {
-					log.Errorf("Unable to unmarshal event: %s", err.Error())
+					XtermLogger.Errorf("Unable to unmarshal event: %s", err.Error())
 					continue
 				}
 				for _, event := range events {
 					formattedTime := event.FirstTimestamp.Time.Format("2006-01-02 15:04:05")
 					err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s\n\r", formattedTime, event.Message)))
 					if err != nil {
-						log.Errorf("WriteMessage: %s", err.Error())
+						XtermLogger.Errorf("WriteMessage: %s", err.Error())
 					}
 				}
 
@@ -44,12 +43,12 @@ func readChannelPodEvent(ch chan string, conn *websocket.Conn, ctx context.Conte
 
 func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string) {
 	if wsConnectionRequest.WebsocketScheme == "" {
-		log.Error("WebsocketScheme is empty")
+		XtermLogger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		log.Error("WebsocketHost is empty")
+		XtermLogger.Error("WebsocketHost is empty")
 		return
 	}
 
@@ -59,14 +58,14 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// websocket connection
 	readMessages, conn, err := generateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		log.Errorf("Unable to connect to websocket: %s", err.Error())
+		XtermLogger.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
 	}
 
 	key := fmt.Sprintf("%s-%s", namespace, controller)
 
 	defer func() {
-		// log.Info("[XTermPodEventStreamConnection] Closing connection.")
+		// XtermLogger.Info("[XTermPodEventStreamConnection] Closing connection.")
 		cancel()
 
 		ch := kubernetes.EventChannels[key]

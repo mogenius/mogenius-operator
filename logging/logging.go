@@ -2,12 +2,13 @@ package logging
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type FileHook struct {
@@ -147,6 +148,7 @@ func SetupLogging() {
 
 	// Create a log file for each component
 	components := []structs.ComponentEnum{
+		structs.ComponentAll,
 		structs.ComponentIacManager,
 		structs.ComponentDb,
 		structs.Store,
@@ -155,6 +157,12 @@ func SetupLogging() {
 		structs.ComponentKubernetes,
 		structs.ComponentHelm,
 		structs.ComponentServices,
+		structs.ComponentSocketClient,
+		structs.ComponentHttp,
+		structs.ComponentCmd,
+		structs.ComponentControllers,
+		structs.ComponentMigrations,
+		structs.ComponentXterm,
 	}
 
 	err = NewFileHook(components)

@@ -4,7 +4,6 @@ import (
 	"mogenius-k8s-manager/utils"
 	"testing"
 
-	"github.com/mogenius/punq/logger"
 	"sigs.k8s.io/yaml"
 )
 
@@ -25,7 +24,7 @@ func TestSecretListRender(t *testing.T) {
 	if yamlTemplate == yamlDataRendered {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
 	} else {
-		logger.Log.Info("Yaml data updated (1/2) ✅")
+		K8sLogger.Info("Yaml data updated (1/2) ✅")
 	}
 
 	// change values and compare
@@ -36,7 +35,7 @@ func TestSecretListRender(t *testing.T) {
 	if yamlDataRenderedChanged == yamlDataRendered {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
 	} else {
-		logger.Log.Info("Yaml data updated (2/2) ✅")
+		K8sLogger.Info("Yaml data updated (2/2) ✅")
 	}
 
 	// check if the values are replaced as expected
@@ -49,7 +48,7 @@ func TestSecretListRender(t *testing.T) {
 	if data.Spec.Target.Name != expectedName {
 		t.Errorf("Error updating Name: expected: %s, got: %s", expectedName, data.Spec.Target.Name)
 	} else {
-		logger.Log.Info("MoSharedPath updated ✅")
+		K8sLogger.Info("MoSharedPath updated ✅")
 	}
 }
 
@@ -70,7 +69,7 @@ func TestCreateExternalSecretList(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating external secret list. Err: %s", err.Error())
 	} else {
-		logger.Log.Info("Secret store created ✅")
+		K8sLogger.Info("Secret store created ✅")
 	}
 }
 
@@ -90,6 +89,6 @@ func TestCreateExternalSecret(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating external secret list. Err: %s", err.Error())
 	} else {
-		logger.Log.Infof("Secret store %s created ✅", secretName)
+		K8sLogger.Infof("Secret store %s created ✅", secretName)
 	}
 }

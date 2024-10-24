@@ -2,8 +2,6 @@ package kubernetes
 
 import (
 	"testing"
-
-	"github.com/mogenius/punq/logger"
 )
 
 // test the functionality of the custom resource with a basic pod
@@ -23,7 +21,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		logger.Log.Info("Resource applied ✅")
+		K8sLogger.Info("Resource applied ✅")
 	}
 
 	// UPDATE (same resource), on second call the update client call is tested
@@ -31,7 +29,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		logger.Log.Info("Resource updated ✅")
+		K8sLogger.Info("Resource updated ✅")
 	}
 
 	// GET
@@ -39,7 +37,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
 	} else {
-		logger.Log.Info("Resource retrieved ✅")
+		K8sLogger.Info("Resource retrieved ✅")
 	}
 
 	// LIST
@@ -47,7 +45,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
 	} else {
-		logger.Log.Info("Resources listed ✅")
+		K8sLogger.Info("Resources listed ✅")
 	}
 
 	// DELETE
@@ -55,7 +53,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
 	} else {
-		logger.Log.Info("Resource deleted ✅")
+		K8sLogger.Info("Resource deleted ✅")
 	}
 }
 
@@ -89,7 +87,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		logger.Log.Info("Resource applied ✅")
+		K8sLogger.Info("Resource applied ✅")
 	}
 
 	// UPDATE (same resource), on second call the update client call is tested
@@ -97,7 +95,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		logger.Log.Info("Resource updated ✅")
+		K8sLogger.Info("Resource updated ✅")
 	}
 
 	// LIST
@@ -105,7 +103,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
 	} else {
-		logger.Log.Info("Resources listed ✅")
+		K8sLogger.Info("Resources listed ✅")
 	}
 
 	// GET
@@ -113,7 +111,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
 	} else {
-		logger.Log.Info("Resource retrieved ✅")
+		K8sLogger.Info("Resource retrieved ✅")
 	}
 
 	// DELETE
@@ -121,7 +119,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
 	} else {
-		logger.Log.Info("Resource deleted ✅")
+		K8sLogger.Info("Resource deleted ✅")
 	}
 
 	err = DeleteServiceAccount("external-secrets-sa", "default")

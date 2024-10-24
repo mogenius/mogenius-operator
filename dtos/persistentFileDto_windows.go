@@ -8,7 +8,6 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 type PersistentFileDto struct {
@@ -45,7 +44,7 @@ func PersistentFileDtoExampleData() PersistentFileDto {
 func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 	info, err := os.Stat(path)
 	if err != nil {
-		log.Warningf("FileStat Err: %s", err.Error())
+		DtosLogger.Warningf("FileStat Err: %s", err.Error())
 		return PersistentFileDto{}
 	}
 

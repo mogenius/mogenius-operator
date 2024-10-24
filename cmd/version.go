@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/version"
 
 	"github.com/fatih/color"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -17,11 +16,11 @@ var versionCmd = &cobra.Command{
 	Long:  `Print version information and exit`,
 	Run: func(cmd *cobra.Command, args []string) {
 		yellow := color.New(color.FgYellow).SprintFunc()
-		log.Infof("CLI: \t\t%s\n", yellow(version.Ver))
-		log.Infof("Container: \t%s\n", yellow(version.Ver))
-		log.Infof("Branch: \t%s\n", yellow(version.Branch))
-		log.Infof("Commit: \t%s\n", yellow(version.GitCommitHash))
-		log.Infof("Timestamp: \t%s\n", yellow(version.BuildTimestamp))
+		CmdLogger.Infof("CLI: \t\t%s\n", yellow(version.Ver))
+		CmdLogger.Infof("Container: \t%s\n", yellow(version.Ver))
+		CmdLogger.Infof("Branch: \t%s\n", yellow(version.Branch))
+		CmdLogger.Infof("Commit: \t%s\n", yellow(version.GitCommitHash))
+		CmdLogger.Infof("Timestamp: \t%s\n", yellow(version.BuildTimestamp))
 	},
 }
 

@@ -579,7 +579,7 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		log.Fatalf("Failed to load repositories file: %v", err)
+		HelmLogger.Fatalf("Failed to load repositories file: %v", err)
 	}
 
 	var allCharts []HelmChartInfo
@@ -589,7 +589,7 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 
 		indexFile, err := repo.LoadIndexFile(cacheIndexFile)
 		if err != nil {
-			log.Printf("Error loading index file for repo %s: %v", repoEntry.Name, err)
+			HelmLogger.Printf("Error loading index file for repo %s: %v", repoEntry.Name, err)
 			continue
 		}
 
@@ -656,7 +656,7 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		log.Fatalf("Failed to load repositories file: %v", err)
+		HelmLogger.Fatalf("Failed to load repositories file: %v", err)
 	}
 
 	var allCharts []HelmChartInfo
@@ -676,7 +676,7 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 
 		indexFile, err := repo.LoadIndexFile(cacheIndexFile)
 		if err != nil {
-			log.Printf("Error loading index file for repo %s: %v", repoEntry.Name, err)
+			HelmLogger.Printf("Error loading index file for repo %s: %v", repoEntry.Name, err)
 			continue
 		}
 
@@ -705,7 +705,7 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 	settings.SetNamespace(data.Namespace)
 	settings.Debug = true
 
-	var HelmInstallLogger = log.WithFields(log.Fields{
+	var HelmInstallLogger = HelmLogger.WithFields(log.Fields{
 		"component":   structs.ComponentHelm,
 		"releaseName": data.Release,
 		"namespace":   data.Namespace,
@@ -763,7 +763,7 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 }
 
 func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
-	var HelmReleaseUpgradeLogger = log.WithFields(log.Fields{
+	var HelmReleaseUpgradeLogger = HelmLogger.WithFields(log.Fields{
 		"component":   structs.ComponentHelm,
 		"releaseName": data.Release,
 		"namespace":   data.Namespace,
@@ -817,7 +817,7 @@ func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
 }
 
 func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
-	var HelmReleaseUninstallLogger = log.WithFields(log.Fields{
+	var HelmReleaseUninstallLogger = HelmLogger.WithFields(log.Fields{
 		"component":   structs.ComponentHelm,
 		"releaseName": data.Release,
 		"namespace":   data.Namespace,
@@ -853,7 +853,7 @@ func installStatus(rel release.Release) string {
 }
 
 func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
-	var HelmReleaseListLogger = log.WithFields(log.Fields{
+	var HelmReleaseListLogger = HelmLogger.WithFields(log.Fields{
 		"component": structs.ComponentHelm,
 		"namespace": data.Namespace,
 	})
@@ -885,7 +885,7 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
 }
 
 func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, error) {
-	var HelmReleaseStatusLogger = log.WithFields(log.Fields{
+	var HelmReleaseStatusLogger = HelmLogger.WithFields(log.Fields{
 		"component":   structs.ComponentHelm,
 		"releaseName": data.Release,
 		"namespace":   data.Namespace,
@@ -923,7 +923,7 @@ func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, e
 }
 
 func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, error) {
-	var HelmReleaseHistoryLogger = log.WithFields(log.Fields{
+	var HelmReleaseHistoryLogger = HelmLogger.WithFields(log.Fields{
 		"component":   structs.ComponentHelm,
 		"releaseName": data.Release,
 		"namespace":   data.Namespace,
@@ -949,7 +949,7 @@ func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, err
 }
 
 func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
-	var HelmReleaseRollbackLogger = log.WithFields(log.Fields{
+	var HelmReleaseRollbackLogger = HelmLogger.WithFields(log.Fields{
 		"component":   structs.ComponentHelm,
 		"releaseName": data.Release,
 		"namespace":   data.Namespace,
@@ -976,7 +976,7 @@ func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
 }
 
 func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
-	var HelmReleaseGetLogger = log.WithFields(log.Fields{
+	var HelmReleaseGetLogger = HelmLogger.WithFields(log.Fields{
 		"component":   structs.ComponentHelm,
 		"releaseName": data.Release,
 		"namespace":   data.Namespace,

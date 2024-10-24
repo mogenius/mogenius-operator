@@ -9,7 +9,6 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 type PersistentFileDto struct {
@@ -46,7 +45,7 @@ func PersistentFileDtoExampleData() PersistentFileDto {
 func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 	info, err := os.Stat(path)
 	if err != nil {
-		log.Warningf("FileStat Err: %s", err.Error())
+		DtosLogger.Warningf("FileStat Err: %s", err.Error())
 		return PersistentFileDto{}
 	}
 
@@ -61,13 +60,11 @@ func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 	var createTime = time.Now().Format(time.RFC3339)
 	var modTime = time.Now().Format(time.RFC3339)
 	var filemode fs.FileMode = 0
-	if err == nil {
-		filemode = info.Mode().Perm()
-		if stat, ok := info.Sys().(*syscall.Stat_t); ok {
-			uid = int(stat.Uid)
-			gid = int(stat.Gid)
-			size = stat.Size
-		}
+	filemode = info.Mode().Perm()
+	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
+		uid = int(stat.Uid)
+		gid = int(stat.Gid)
+		size = stat.Size
 	}
 	uidGid := fmt.Sprintf("%d:%d", uid, gid)
 

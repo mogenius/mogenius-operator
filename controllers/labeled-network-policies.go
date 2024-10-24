@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/networking/v1"
@@ -24,7 +25,7 @@ type DetachLabeledNetworkPolicyRequest struct {
 //type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
 
 func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) (string, error) {
-	if data.LabeledNetworkPolicies == nil || len(data.LabeledNetworkPolicies) == 0 {
+	if len(data.LabeledNetworkPolicies) == 0 {
 		return "", nil
 	}
 
@@ -55,7 +56,7 @@ type AttachLabeledNetworkPolicyRequest struct {
 }
 
 func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string, error) {
-	if data.LabeledNetworkPolicies == nil || len(data.LabeledNetworkPolicies) == 0 {
+	if len(data.LabeledNetworkPolicies) == 0 {
 		return "", nil
 	}
 
