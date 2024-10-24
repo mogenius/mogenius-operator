@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	json1 "encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
@@ -73,6 +74,39 @@ type K8sWorkloadResult struct {
 type MogeniusNfsInstallationStatus struct {
 	Error       string `json:"error,omitempty"`
 	IsInstalled bool   `json:"isInstalled"`
+}
+
+// Define the expected JSON structure
+type AuthConfig struct {
+	Auths map[string]Credentials `json:"auths"`
+}
+
+type Credentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Auth     string `json:"auth"`
+}
+
+func ValidateContainerRegistryAuthString(input string) error {
+	var config AuthConfig
+	// Try to unmarshal the input string into the struct
+	err := json1.Unmarshal([]byte(input), &config)
+	if err != nil {
+		return fmt.Errorf("invalid JSON structure: %v", err)
+	}
+
+	if config.Auths == nil {
+		return fmt.Errorf("missing 'auths' field in JSON")
+	}
+
+	// Further checks to ensure the fields are not empty (optional)
+	for _, creds := range config.Auths {
+		if creds.Username == "" || creds.Password == "" || creds.Auth == "" {
+			return fmt.Errorf("missing required fields in credentials (username, password, auth)")
+		}
+	}
+
+	return nil
 }
 
 func init() {
