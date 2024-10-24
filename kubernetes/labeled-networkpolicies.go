@@ -3,12 +3,13 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	v2 "k8s.io/api/apps/v1"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/utils"
 	"sort"
 	"strings"
 	"time"
+
+	v2 "k8s.io/api/apps/v1"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/yaml"
@@ -641,7 +642,7 @@ func ListControllerLabeledNetworkPolicies(
 	client := GetAppClient()
 
 	// get all labels from the controller
-	labels := map[string]string{}
+	var labels map[string]string
 	switch controllerType {
 	case dtos.DEPLOYMENT:
 		deployment, err := client.Deployments(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})

@@ -25,7 +25,7 @@ type DetachLabeledNetworkPolicyRequest struct {
 //type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
 
 func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) (string, error) {
-	if data.LabeledNetworkPolicies == nil || len(data.LabeledNetworkPolicies) == 0 {
+	if len(data.LabeledNetworkPolicies) == 0 {
 		return "", nil
 	}
 
@@ -56,7 +56,7 @@ type AttachLabeledNetworkPolicyRequest struct {
 }
 
 func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string, error) {
-	if data.LabeledNetworkPolicies == nil || len(data.LabeledNetworkPolicies) == 0 {
+	if len(data.LabeledNetworkPolicies) == 0 {
 		return "", nil
 	}
 
