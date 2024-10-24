@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/db"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -60,19 +59,21 @@ func UpgradeK8sManager(r K8sManagerUpgradeRequest) *structs.Job {
 func InstallHelmChart(r ClusterHelmRequest) *structs.Job {
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		job.Finish()
-	}, func(output string, err error) {
-		job.Fail(fmt.Sprintf("Failed to install helm chart %s: %s\n%s", r.HelmReleaseName, output, err.Error()))
-		job.Finish()
-	})
+	result, err := mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	if err != nil {
+		job.Fail(fmt.Sprintf("Failed to install helm chart %s: %s\n%s", r.HelmReleaseName, result, err.Error()))
+	}
+	job.Finish()
 	return job
 }
 
 func DeleteHelmChart(r ClusterHelmUninstallRequest) *structs.Job {
 	job := structs.CreateJob("Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.NamespaceId)
+	result, err := mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.NamespaceId)
+	if err != nil {
+		job.Fail(fmt.Sprintf("Failed to delete helm chart %s: %s\n%s", r.HelmReleaseName, result, err.Error()))
+	}
 	job.Finish()
 	return job
 }
@@ -427,26 +428,23 @@ type K8sManagerUpgradeRequest struct {
 // }
 
 type ClusterHelmRequest struct {
-	Namespace       string               `json:"namespace" validate:"required"`
-	NamespaceId     string               `json:"namespaceId" validate:"required"`
-	HelmRepoName    string               `json:"helmRepoName" validate:"required"`
-	HelmRepoUrl     string               `json:"helmRepoUrl" validate:"required"`
-	HelmReleaseName string               `json:"helmReleaseName" validate:"required"`
-	HelmChartName   string               `json:"helmChartName" validate:"required"`
-	HelmFlags       string               `json:"helmFlags" validate:"required"`
-	HelmTask        structs.HelmTaskEnum `json:"helmTask" validate:"required"`
+	Namespace       string `json:"namespace" validate:"required"`
+	NamespaceId     string `json:"namespaceId" validate:"required"`
+	HelmRepoName    string `json:"helmRepoName" validate:"required"`
+	HelmRepoUrl     string `json:"helmRepoUrl" validate:"required"`
+	HelmReleaseName string `json:"helmReleaseName" validate:"required"`
+	HelmChartName   string `json:"helmChartName" validate:"required"`
+	HelmValues      string `json:"helmValues" validate:"required"`
 }
 
 func ClusterHelmRequestExample() ClusterHelmRequest {
 	return ClusterHelmRequest{
 		Namespace:       "mogenius",
 		NamespaceId:     "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		HelmRepoName:    "bitnami",
 		HelmRepoUrl:     "https://charts.bitnami.com/bitnami",
 		HelmReleaseName: "test-helm-release",
 		HelmChartName:   "bitnami/nginx",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmInstall,
+		HelmValues:      "",
 	}
 }
 
@@ -738,265 +736,180 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 	return structs.CurrentEnergyConsumptionResponse
 }
 
-func InstallAllLocalDevComponents(email string) string {
-	result := ""
-	result += InstallTrafficCollector() + "\n"
-	result += InstallPodStatsCollector() + "\n"
-	result += InstallMetricsServer() + "\n"
-	result += InstallIngressControllerTreafik() + "\n"
-	result += InstallCertManager() + "\n"
-	result += InstallContainerRegistry() + "\n"
-	result += InstallMetalLb() + "\n"
-	result += InstallClusterIssuer(email, 0) + "\n"
-	return result
-}
-
-func InstallTrafficCollector() string {
+func InstallTrafficCollector() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
 		HelmChartName:   "mogenius/" + utils.HelmReleaseNameTrafficCollector,
-		HelmFlags:       fmt.Sprintf("global.namespace: %s\nglobal.stage: %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
-		HelmTask:        structs.HelmInstall,
+		HelmValues: fmt.Sprintf(`global:
+  namespace: %s
+  stage: %s
+`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
-func UpgradeTrafficCollector() string {
-	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "mogenius",
-		HelmRepoUrl:     MogeniusHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
-		HelmChartName:   "mogenius/" + utils.HelmReleaseNameTrafficCollector,
-		HelmFlags:       fmt.Sprintf("global.namespace: %s\nglobal.stage: %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
-		HelmTask:        structs.HelmUpgrade,
+func UpgradeTrafficCollector() (string, error) {
+	r := mokubernetes.HelmReleaseUpgradeRequest{
+		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Release:   utils.HelmReleaseNameTrafficCollector,
+		Chart:     "mogenius/" + utils.HelmReleaseNameTrafficCollector,
+		Values: fmt.Sprintf(`global:
+  namespace: %s
+  stage: %s
+`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.HelmReleaseUpgrade(r)
 }
 
-func InstallPodStatsCollector() string {
+func InstallPodStatsCollector() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
 		HelmChartName:   "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
-		HelmFlags:       fmt.Sprintf("global.namespace: %s\nglobal.stage: %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
-		HelmTask:        structs.HelmInstall,
+		HelmValues: fmt.Sprintf(`global:
+  namespace: %s
+  stage: %s
+`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
-func UpgradePodStatsCollector() string {
-	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "mogenius",
-		HelmRepoUrl:     MogeniusHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
-		HelmChartName:   "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
-		HelmFlags:       fmt.Sprintf("global.namespace: %s\nglobal.stage: %s", utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
-		HelmTask:        structs.HelmUpgrade,
+func UpgradePodStatsCollector() (string, error) {
+	r := mokubernetes.HelmReleaseUpgradeRequest{
+		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Release:   utils.HelmReleaseNamePodStatsCollector,
+		Chart:     "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
+		Values: fmt.Sprintf(`global:
+  namespace: %s
+  stage: %s
+`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggered '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.HelmReleaseUpgrade(r)
 }
 
-func InstallMetricsServer() string {
+func InstallMetricsServer() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       "default",
 		HelmRepoName:    utils.HelmReleaseNameMetricsServer,
 		HelmRepoUrl:     MetricsHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameMetricsServer,
 		HelmChartName:   utils.HelmReleaseNameMetricsServer + "/" + utils.HelmReleaseNameMetricsServer,
-		HelmFlags:       "args[0]: '--kubelet-insecure-tls'\nargs[1]: '--secure-port=10250'\nargs[2]: '--cert-dir=/tmp'\nargs[3]: '--kubelet-preferred-address-types=InternalIP\\,ExternalIP\\,Hostname'\nargs[4]: '--kubelet-use-node-status-port'\nargs[5]: '--metric-resolution=15s'",
-		HelmTask:        structs.HelmInstall,
+		HelmValues: `args:
+  - "--kubelet-insecure-tls"
+  - "--secure-port=10250"
+  - "--cert-dir=/tmp"
+  - "--kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname"
+  - "--kubelet-use-node-status-port"
+  - "--metric-resolution=15s"
+`,
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
-func UpgradeMetricsServer() string {
-	r := ClusterHelmRequest{
-		Namespace:       "default",
-		HelmRepoName:    utils.HelmReleaseNameMetricsServer,
-		HelmRepoUrl:     MetricsHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameMetricsServer,
-		HelmChartName:   utils.HelmReleaseNameMetricsServer + "/" + utils.HelmReleaseNameMetricsServer,
-		HelmFlags:       "args[0]: '--kubelet-insecure-tls'\nargs[1]: '--secure-port=10250'\nargs[2]: '--cert-dir=/tmp'\nargs[3]:'--kubelet-preferred-address-types=InternalIP\\,ExternalIP\\,Hostname'\nargs[4]: '--kubelet-use-node-status-port'\nargs[5]: '--metric-resolution=15s'",
-		HelmTask:        structs.HelmUpgrade,
+func UpgradeMetricsServer() (string, error) {
+	r := mokubernetes.HelmReleaseUpgradeRequest{
+		Namespace: "default",
+		Release:   utils.HelmReleaseNameMetricsServer,
+		Chart:     utils.HelmReleaseNameMetricsServer + "/" + utils.HelmReleaseNameMetricsServer,
+		Values: `args:
+  - "--kubelet-insecure-tls"
+  - "--secure-port=10250"
+  - "--cert-dir=/tmp"
+  - "--kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname"
+  - "--kubelet-use-node-status-port"
+  - "--metric-resolution=15s"
+`,
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.HelmReleaseUpgrade(r)
 }
 
-func InstallIngressControllerTreafik() string {
+func InstallIngressControllerTreafik() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       "default",
 		HelmRepoName:    utils.HelmReleaseNameTraefik,
 		HelmRepoUrl:     IngressControllerTraefikHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameTraefik,
 		HelmChartName:   utils.HelmReleaseNameTraefik + "/" + utils.HelmReleaseNameTraefik,
-		HelmFlags:       "",
-		HelmTask:        structs.HelmInstall,
+		HelmValues:      "",
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
-func UpgradeIngressControllerTreafik() string {
-	r := ClusterHelmRequest{
-		Namespace:       "default",
-		HelmRepoName:    utils.HelmReleaseNameTraefik,
-		HelmRepoUrl:     IngressControllerTraefikHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameTraefik,
-		HelmChartName:   utils.HelmReleaseNameTraefik + "/" + utils.HelmReleaseNameTraefik,
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUpgrade,
+func UpgradeIngressControllerTreafik() (string, error) {
+	r := mokubernetes.HelmReleaseUpgradeRequest{
+		Namespace: "default",
+		Release:   utils.HelmReleaseNameTraefik,
+		Chart:     utils.HelmReleaseNameTraefik + "/" + utils.HelmReleaseNameTraefik,
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.HelmReleaseUpgrade(r)
 }
 
-func InstallCertManager() string {
+func InstallCertManager() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "jetstack",
 		HelmRepoUrl:     CertManagerHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameCertManager,
 		HelmChartName:   "jetstack/" + utils.HelmReleaseNameCertManager,
-		HelmFlags:       fmt.Sprintf("namespace: %s\nstartupapicheck.enabled:false\ninstallCRDs:true", utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        structs.HelmInstall,
+		HelmValues: fmt.Sprintf(`namespace: %s
+startupapicheck:
+  enabled: false
+installCRDs: true
+`, utils.CONFIG.Kubernetes.OwnNamespace),
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
-func UpgradeCertManager() string {
-	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "jetstack",
-		HelmRepoUrl:     CertManagerHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameCertManager,
-		HelmChartName:   "jetstack/" + utils.HelmReleaseNameCertManager,
-		HelmFlags:       "startupapicheck.enabled=false\ninstallCRDs=true",
-		HelmTask:        structs.HelmUpgrade,
+func UpgradeCertManager() (string, error) {
+	r := mokubernetes.HelmReleaseUpgradeRequest{
+		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Release:   utils.HelmReleaseNameCertManager,
+		Chart:     "jetstack/" + utils.HelmReleaseNameCertManager,
+		Values:    "startupapicheck.enabled=false\ninstallCRDs=true",
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.HelmReleaseUpgrade(r)
 }
 
-func InstallContainerRegistry() string {
+func InstallContainerRegistry() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    "phntom",
 		HelmRepoUrl:     ContainerRegistryHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameDistributionRegistry,
 		HelmChartName:   "phntom/docker-registry",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmInstall,
+		HelmValues:      "",
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
-func InstallExternalSecrets() string {
+func InstallExternalSecrets() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    utils.HelmReleaseNameExternalSecrets,
 		HelmRepoUrl:     ExternalSecretsHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
 		HelmChartName:   "external-secrets/external-secrets",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmInstall,
+		HelmValues:      "",
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
-func UpgradeContainerRegistry() string {
-	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "phntom",
-		HelmRepoUrl:     ContainerRegistryHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameDistributionRegistry,
-		HelmChartName:   "phntom/docker-registry",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUpgrade,
+func UpgradeContainerRegistry() (string, error) {
+	r := mokubernetes.HelmReleaseUpgradeRequest{
+		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Release:   utils.HelmReleaseNameDistributionRegistry,
+		Chart:     "phntom/docker-registry",
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.HelmReleaseUpgrade(r)
 }
 
-func InstallMetalLb() string {
+func InstallMetalLb() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    utils.HelmReleaseNameMetalLb,
 		HelmRepoUrl:     MetalLBHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameMetalLb,
 		HelmChartName:   utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
-		HelmFlags:       "",
-		HelmTask:        structs.HelmInstall,
+		HelmValues:      "",
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
+	helmResultStr, err := mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	if err == nil {
 		for {
 			// this is important because the control plane needs some time to make the CRDs available
 			time.Sleep(1 * time.Second)
@@ -1008,75 +921,60 @@ func InstallMetalLb() string {
 				ServiceLogger.Infof("Control plane not ready. Waiting for metallb address pool installation ...")
 			}
 			if err == nil {
-				return
+				break
 			}
 		}
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
-}
-
-func UpgradeMetalLb() string {
-	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    utils.HelmReleaseNameMetalLb,
-		HelmRepoUrl:     MetalLBHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameMetalLb,
-		HelmChartName:   utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUpgrade,
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return helmResultStr, err
 }
 
-func InstallKepler() string {
+func UpgradeMetalLb() (string, error) {
+	r := mokubernetes.HelmReleaseUpgradeRequest{
+		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Release:   utils.HelmReleaseNameMetalLb,
+		Chart:     utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
+	}
+	return mokubernetes.HelmReleaseUpgrade(r)
+}
+
+func InstallKepler() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 		HelmRepoName:    utils.HelmReleaseNameKepler,
 		HelmRepoUrl:     KeplerHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameKepler,
 		HelmChartName:   utils.HelmReleaseNameKepler + "/" + utils.HelmReleaseNameKepler,
-		HelmFlags:       fmt.Sprintf(`global.namespace: "%s"\nextraEnvVars.EXPOSE_IRQ_COUNTER_METRICS: "false"\nextraEnvVars.EXPOSE_KUBELET_METRICS: "false"\nextraEnvVars.ENABLE_PROCESS_METRICS:"false"`, utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        structs.HelmInstall,
+		HelmValues: fmt.Sprintf(`global:
+  namespace: "%s"
+extraEnvVars:
+  EXPOSE_IRQ_COUNTER_METRICS: "false"
+  EXPOSE_KUBELET_METRICS: "false"
+  ENABLE_PROCESS_METRICS: "false"
+`, utils.CONFIG.Kubernetes.OwnNamespace),
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
-func UpgradeKepler() string {
-	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    utils.HelmReleaseNameKepler,
-		HelmRepoUrl:     KeplerHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameKepler,
-		HelmChartName:   utils.HelmReleaseNameKepler + "/" + utils.HelmReleaseNameKepler,
-		HelmFlags:       fmt.Sprintf(`global.namespace: "%s"\nextraEnvVars.EXPOSE_IRQ_COUNTER_METRICS: "false"\nextraEnvVars.EXPOSE_KUBELET_METRICS: "false"\nextraEnvVars.ENABLE_PROCESS_METRICS: "false"`, utils.CONFIG.Kubernetes.OwnNamespace),
-		HelmTask:        structs.HelmUpgrade,
+func UpgradeKepler() (string, error) {
+	r := mokubernetes.HelmReleaseUpgradeRequest{
+		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Chart:     utils.HelmReleaseNameKepler + "/" + utils.HelmReleaseNameKepler,
+		Release:   utils.HelmReleaseNameKepler,
+		Values: fmt.Sprintf(`global:
+  namespace: "%s"
+extraEnvVars:
+  EXPOSE_IRQ_COUNTER_METRICS: "false"
+  EXPOSE_KUBELET_METRICS: "false"
+  ENABLE_PROCESS_METRICS: "false"
+`, utils.CONFIG.Kubernetes.OwnNamespace),
 	}
-	mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	}, func(output string, err error) {
-		db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	})
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.HelmReleaseUpgrade(r)
 }
 
-func InstallClusterIssuer(email string, currentRetries int) string {
+func InstallClusterIssuer(email string, currentRetries int) (string, error) {
 	time.Sleep(3 * time.Second) // wait for cert-manager to be ready
 	maxRetries := 10
 	if currentRetries >= maxRetries {
-		return "No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first."
+		return "", fmt.Errorf("No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first.")
 	} else {
 		ingType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
@@ -1084,22 +982,21 @@ func InstallClusterIssuer(email string, currentRetries int) string {
 		}
 		if ingType == punq.TRAEFIK || ingType == punq.NGINX {
 			r := ClusterHelmRequest{
-				Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
 				HelmRepoName:    "mogenius",
 				HelmRepoUrl:     MogeniusHelmIndex,
 				HelmReleaseName: utils.HelmReleaseNameClusterIssuer,
 				HelmChartName:   "mogenius/mogenius-cluster-issuer",
-				HelmFlags:       fmt.Sprintf(`--replace --namespace %s global.clusterissuermail="%s" global.ingressclass="%s"`, utils.CONFIG.Kubernetes.OwnNamespace, email, strings.ToLower(ingType.String())),
-				HelmTask:        structs.HelmInstall,
+				HelmValues: fmt.Sprintf(`global:
+  clusterissuermail: "%s"
+  ingressclass: "%s"
+`, email, strings.ToLower(ingType.String())),
 			}
-			mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-				db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-			}, func(output string, err error) {
+			result, err := mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+			if err != nil {
 				currentRetries++
-				db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
 				InstallClusterIssuer(email, currentRetries)
-			})
-			return fmt.Sprintf("Successfully triggert '%s' of '%s' (%s, %s).", r.HelmTask, r.HelmReleaseName, email, strings.ToLower(ingType.String()))
+			}
+			return result, err
 		}
 		ServiceLogger.Infof("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), currentRetries, maxRetries)
 		currentRetries++
@@ -1107,194 +1004,84 @@ func InstallClusterIssuer(email string, currentRetries int) string {
 	}
 }
 
-func UninstallTrafficCollector() string {
+func UninstallTrafficCollector() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "mogenius",
-		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
-		HelmChartName:   "",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallPodStatsCollector() string {
+func UninstallPodStatsCollector() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "mogenius",
-		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
-		HelmChartName:   "",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallMetricsServer() string {
+func UninstallMetricsServer() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       "default",
-		HelmRepoName:    utils.HelmReleaseNameMetricsServer,
-		HelmRepoUrl:     MetricsHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameMetricsServer,
-		HelmChartName:   "",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallIngressControllerTreafik() string {
+func UninstallIngressControllerTreafik() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       "default",
-		HelmRepoName:    utils.HelmReleaseNameTraefik,
-		HelmRepoUrl:     IngressControllerTraefikHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameTraefik,
-		HelmChartName:   "",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallCertManager() string {
+func UninstallCertManager() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "jetstack",
-		HelmRepoUrl:     CertManagerHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameCertManager,
-		HelmChartName:   "",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallContainerRegistry() string {
+func UninstallContainerRegistry() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "phntom",
-		HelmRepoUrl:     ContainerRegistryHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameDistributionRegistry,
-		HelmChartName:   "",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallExternalSecrets() string {
+func UninstallExternalSecrets() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    utils.HelmReleaseNameExternalSecrets,
-		HelmRepoUrl:     ExternalSecretsHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
-		HelmChartName:   "external-secrets/external-secrets",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallMetalLb() string {
+func UninstallMetalLb() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    utils.HelmReleaseNameMetalLb,
-		HelmRepoUrl:     MetalLBHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameMetalLb,
-		HelmChartName:   "",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallKepler() string {
+func UninstallKepler() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    utils.HelmReleaseNameKepler,
-		HelmRepoUrl:     KeplerHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameKepler,
-		HelmChartName:   "",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallClusterIssuer() string {
+func UninstallClusterIssuer() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
-		HelmRepoName:    "mogenius",
-		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameClusterIssuer,
-		HelmChartName:   "",
-		HelmFlags:       "",
-		HelmTask:        structs.HelmUninstall,
 	}
-	mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-	// mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmTask, r.HelmChartName, r.HelmFlags, func() {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' succeded.", r.HelmTask, r.HelmReleaseName), structs.Installation, structs.Info)
-	// }, func(output string, err error) {
-	// 	db.AddLogToDb(r.HelmReleaseName, fmt.Sprintf("'%s' of '%s' FAILED with Reason: %s", r.HelmTask, r.HelmReleaseName, output), structs.Installation, structs.Error)
-	// })
-	return fmt.Sprintf("Successfully triggert '%s' of '%s'.", r.HelmTask, r.HelmReleaseName)
+	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func InstallDefaultApplications() (string, string) {

@@ -18,6 +18,8 @@ import (
 	"syscall"
 	"time"
 
+	punq "github.com/mogenius/punq/kubernetes"
+
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -40,6 +42,7 @@ func InitApi() {
 		router.GET("/debug/ns", debugGetNs)
 		router.GET("/debug/chart", debugChart)
 		router.GET("/debug/iac", debugIac)
+		router.GET("/debug/list-templates", debugListTemplates)
 	}
 
 	srv := &http.Server{
@@ -197,4 +200,10 @@ func debugChart(c *gin.Context) {
 func debugIac(c *gin.Context) {
 	json := iacmanager.GetDataModelJson()
 	c.Data(http.StatusOK, "application/json; charset=utf-8", []byte(json))
+}
+
+func debugListTemplates(c *gin.Context) {
+	data := punq.ListCreateTemplates()
+
+	c.IndentedJSON(http.StatusOK, data)
 }
