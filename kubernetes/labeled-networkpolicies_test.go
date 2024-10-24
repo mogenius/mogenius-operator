@@ -61,13 +61,13 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 	// check if ports contains a imap named port fo egress
 	var found bool
 	for _, port := range ports {
-		if port.Name == "imap" && port.Type == dtos.Ingress && port.Port == 143 && port.PortType == dtos.PortTypeTCP {
+		if port.Name == "imap-TCP" && port.Type == dtos.Ingress && port.Port == 143 && port.PortType == dtos.PortTypeTCP {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Errorf("Error reading network policy ports")
+		t.Errorf("Networkpolicy port for imap not found. failing test.")
 	}
 
 }
