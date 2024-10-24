@@ -175,7 +175,7 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
-	logWithFields := log.WithFields(log.Fields{"namespace": ns, "controllerName": controllerName})
+	logWithFields := log.WithFields(log.Fields{"namespace": ns, "controllerName": controllerName, "component": ComponentServices})
 
 	switch data.State {
 	case JobStatePending:
