@@ -56,7 +56,7 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 		t.Errorf("Error reading network policy ports: %s", err.Error())
 	}
 	if len(ports) == 0 {
-		t.Errorf("Error reading network policy ports")
+		t.Errorf("Error reading network policy ports because they len() == 0")
 	}
 	// check if ports contains a imap named port fo egress
 	var found bool
