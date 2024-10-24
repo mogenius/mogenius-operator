@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/networking/v1"

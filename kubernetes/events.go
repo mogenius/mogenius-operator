@@ -13,7 +13,6 @@ import (
 	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	"github.com/mogenius/punq/logger"
 	punqutils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,7 +90,7 @@ func AllEventsForNamespace2(namespaceName string) []v1Core.Event {
 	}
 	eventList, err := provider.ClientSet.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
-		logger.Log.Errorf("AllEvents ERROR: %s", err.Error())
+		K8sLogger.Errorf("AllEvents ERROR: %s", err.Error())
 		return result
 	}
 

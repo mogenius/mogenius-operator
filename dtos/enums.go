@@ -1,5 +1,11 @@
 package dtos
 
+import (
+	log "github.com/sirupsen/logrus"
+)
+
+var DtosLogger = log.WithField("component", "dtos")
+
 type GitConnectionTypeEnum string
 
 const (

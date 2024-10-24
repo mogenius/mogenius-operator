@@ -26,6 +26,8 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
+var UtilsLogger = log.WithField("component", "utils")
+
 const IMAGE_PLACEHOLDER = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
 
 const APP_NAME = "k8s"
@@ -71,7 +73,7 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 		pwd, err := os.Getwd()
 		pwd += "/temp"
 		if err != nil {
-			log.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
+			UtilsLogger.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
 		} else {
 			return pwd
 		}
@@ -119,7 +121,7 @@ func GetFunctionName() string {
 
 func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	result, err := utils.RunOnLocalShell(shellCmd).Output()
-	log.Infof("ExecuteShellCommandSilent: %s:\n%s", shellCmd, result)
+	UtilsLogger.Infof("ExecuteShellCommandSilent: %s:\n%s", shellCmd, result)
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
 		errorMsg := string(exitErr.Stderr)

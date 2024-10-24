@@ -15,15 +15,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var MainLogger = log.WithField("component", "main")
+
 func main() {
 	go func() {
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		<-quit
-		log.Warning("Shutting down bbolt server...")
+		MainLogger.Warning("Shutting down bbolt server...")
 		db.Close()
 		dbstats.Close()
-		log.Warning("DB shutdown complete")
+		MainLogger.Warning("DB shutdown complete")
 		os.Exit(0)
 	}()
 

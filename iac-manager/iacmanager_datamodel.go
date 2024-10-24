@@ -324,9 +324,9 @@ func UpdateResourceStatus(kind string, namespace string, name string, state Sync
 	SetResourceState(key, newStatus)
 
 	if errMsg != nil {
-		iaclogger.Errorf("Error with %s resource (%s): %s", state, key, errMsg.Error())
+		IacLogger.Errorf("Error with %s resource (%s): %s", state, key, errMsg.Error())
 	} else {
-		iaclogger.Infof("✅ %s resource '%s'.", state, key)
+		IacLogger.Infof("✅ %s resource '%s'.", state, key)
 	}
 }
 

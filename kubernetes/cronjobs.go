@@ -14,7 +14,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqutils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	apipatchv1 "k8s.io/api/batch/v1"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
@@ -475,7 +474,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		log.Warnf("Error creating provider for ListJobs: %s", err.Error())
+		K8sLogger.Warnf("Error creating provider for ListJobs: %s", err.Error())
 		return list
 	}
 
@@ -483,7 +482,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 	cronJob, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
 
 	if err != nil {
-		log.Warnf("Error getting cronjob %s: %s", controllerName, err.Error())
+		K8sLogger.Warnf("Error getting cronjob %s: %s", controllerName, err.Error())
 		return list
 	}
 
@@ -498,7 +497,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 		LabelSelector: strings.Join(jobLabelSelectors, ","),
 	})
 	if err != nil {
-		log.Warnf("Error getting jobs for cronjob %s: %s", cronJob.Name, err.Error())
+		K8sLogger.Warnf("Error getting jobs for cronjob %s: %s", cronJob.Name, err.Error())
 		return list
 	}
 
@@ -512,7 +511,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 		LabelSelector: fmt.Sprintf("job-name in (%s)", strings.Join(podLabelSelectors, ",")),
 	})
 	if err != nil {
-		log.Warnf("Error getting pods for cronjob %s: %s", cronJob.Name, err.Error())
+		K8sLogger.Warnf("Error getting pods for cronjob %s: %s", cronJob.Name, err.Error())
 		return list
 	}
 
@@ -575,7 +574,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 
 		nextScheduleTime, err := getNextSchedule(cronJob.Spec.Schedule, lastTime)
 		if err != nil {
-			log.Warnf("Error getting next schedule for cronjob %s: %s", cronJob.Name, err.Error())
+			K8sLogger.Warnf("Error getting next schedule for cronjob %s: %s", cronJob.Name, err.Error())
 			list.JobsInfo = jobInfos
 			return list
 		}

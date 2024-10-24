@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 )
 
 func readChannelBuildLog(ch chan string, conn *websocket.Conn, ctx context.Context) {
@@ -21,7 +20,7 @@ func readChannelBuildLog(ch chan string, conn *websocket.Conn, ctx context.Conte
 			if conn != nil {
 				err := conn.WriteMessage(websocket.TextMessage, []byte(message))
 				if err != nil {
-					log.Errorf("WriteMessage: %s", err.Error())
+					XtermLogger.Errorf("WriteMessage: %s", err.Error())
 				}
 			}
 			continue
@@ -31,12 +30,12 @@ func readChannelBuildLog(ch chan string, conn *websocket.Conn, ctx context.Conte
 
 func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string, container string, buildTask structs.BuildPrefixEnum, buildId uint64) {
 	if wsConnectionRequest.WebsocketScheme == "" {
-		log.Error("WebsocketScheme is empty")
+		XtermLogger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		log.Error("WebsocketHost is empty")
+		XtermLogger.Error("WebsocketHost is empty")
 		return
 	}
 
@@ -46,7 +45,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// websocket connection
 	readMessages, conn, err := generateWsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		log.Errorf("Unable to connect to websocket: %s", err.Error())
+		XtermLogger.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
 	}
 
@@ -54,7 +53,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	key := structs.BuildJobInfoEntryKey(buildId, buildTask, namespace, controller, container)
 
 	defer func() {
-		// log.Info("[XTermBuildLogStreamConnection] Closing connection.")
+		// XtermLogger.Info("[XTermBuildLogStreamConnection] Closing connection.")
 		cancel()
 
 		ch := LogChannels[key]

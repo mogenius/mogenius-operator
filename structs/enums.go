@@ -14,6 +14,10 @@ const (
 	ComponentServices     ComponentEnum = "services"
 	ComponentSocketClient ComponentEnum = "socket-client"
 	ComponentHttp         ComponentEnum = "http"
+	ComponentCmd          ComponentEnum = "cmd"
+	ComponentControllers  ComponentEnum = "controllers"
+	ComponentMigrations   ComponentEnum = "migrations"
+	ComponentXterm        ComponentEnum = "xterm"
 )
 
 type JobStateEnum string

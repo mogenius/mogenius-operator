@@ -13,7 +13,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/ilyakaznacheev/cleanenv"
-	log "github.com/sirupsen/logrus"
 )
 
 // This object will initially created in secrets when the software is installed into the cluster for the first time (resource: secret -> mogenius/mogenius)
@@ -56,7 +55,7 @@ type SyncResourceData struct {
 func (s *SyncResourceEntry) YamlString() string {
 	bytes, out := yaml.Marshal(s)
 	if out != nil {
-		log.Errorf("Error marshalling SyncResourceEntry: %s", out.Error())
+		UtilsLogger.Errorf("Error marshalling SyncResourceEntry: %s", out.Error())
 		return ""
 	}
 	return string(bytes)
@@ -65,7 +64,7 @@ func (s *SyncResourceEntry) YamlString() string {
 func YamlStringFromSyncResource(s []SyncResourceEntry) string {
 	bytes, out := yaml.Marshal(s)
 	if out != nil {
-		log.Errorf("Error marshalling SyncResourceEntry: %s", out.Error())
+		UtilsLogger.Errorf("Error marshalling SyncResourceEntry: %s", out.Error())
 		return ""
 	}
 
@@ -84,7 +83,7 @@ func SyncResourceEntryFromYaml(str string) *SyncResourceEntry {
 	var s SyncResourceEntry
 	err := yaml.Unmarshal([]byte(str), &s)
 	if err != nil {
-		log.Errorf("Error unmarshalling SyncResourceEntry: %s", err)
+		UtilsLogger.Errorf("Error unmarshalling SyncResourceEntry: %s", err)
 		return nil
 	}
 	return &s
@@ -195,22 +194,22 @@ func InitConfigSimple(stage string) {
 	case STAGE_DEV:
 		err := os.WriteFile(path, []byte(DefaultConfigClusterFileDev), 0755)
 		if err != nil {
-			log.Errorf("Error writing default 'dev' config file: %s", err.Error())
+			UtilsLogger.Errorf("Error writing default 'dev' config file: %s", err.Error())
 		}
 	case STAGE_LOCAL:
 		err := os.WriteFile(path, []byte(DefaultConfigLocalFile), 0755)
 		if err != nil {
-			log.Errorf("Error writing default 'local' config file: %s", err.Error())
+			UtilsLogger.Errorf("Error writing default 'local' config file: %s", err.Error())
 		}
 	case STAGE_PROD:
 		err := os.WriteFile(path, []byte(DefaultConfigClusterFileProd), 0755)
 		if err != nil {
-			log.Errorf("Error writing default config file: %s", err.Error())
+			UtilsLogger.Errorf("Error writing default config file: %s", err.Error())
 		}
 	}
 	err := cleanenv.ReadConfig(path, &CONFIG)
 	if err != nil {
-		log.Errorf("Error reading config file: %s", err.Error())
+		UtilsLogger.Errorf("Error reading config file: %s", err.Error())
 	}
 }
 
@@ -240,10 +239,10 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// read configuration from the file and environment variables
 	if err := cleanenv.ReadConfig(ConfigPath, &CONFIG); err != nil {
 		if strings.HasPrefix(err.Error(), "config file parsing error:") {
-			log.Error("Config file is corrupted. Creating a new one by using -r flag.")
+			UtilsLogger.Error("Config file is corrupted. Creating a new one by using -r flag.")
 		}
-		log.Errorf("Error reading config: %s", ConfigPath)
-		log.Errorf("Error reading config: %s", err.Error())
+		UtilsLogger.Errorf("Error reading config: %s", ConfigPath)
+		UtilsLogger.Errorf("Error reading config: %s", err.Error())
 	}
 
 	if CONFIG.Kubernetes.RunInCluster {
@@ -256,9 +255,9 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if !CONFIG.Kubernetes.RunInCluster {
 		dirPath, err := os.MkdirTemp("", "mo_*")
 		if err != nil {
-			log.Fatalf("Failed to create temp dir: %v", err)
+			UtilsLogger.Fatalf("Failed to create temp dir: %v", err)
 		}
-		log.Infof("TempDir created: %s", dirPath)
+		UtilsLogger.Infof("TempDir created: %s", dirPath)
 	}
 
 	if CONFIG.Kubernetes.BboltDbPath == "" {
@@ -283,39 +282,39 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
-			log.Fatalf("Environment Variable 'cluster_name' not setup. TERMINATING.")
+			UtilsLogger.Fatalf("Environment Variable 'cluster_name' not setup. TERMINATING.")
 		}
 		if CONFIG.Kubernetes.ApiKey == "YOUR_API_KEY" || CONFIG.Kubernetes.ApiKey == "" {
-			log.Fatalf("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
+			UtilsLogger.Fatalf("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
 		}
 	}
 
 	if CONFIGVERSION > CONFIG.Config.Version {
-		log.Fatalf("Config version is outdated. Please delete your config file %s and restart the application. (Your Config version: %d, Needed: %d)", ConfigPath, CONFIG.Config.Version, CONFIGVERSION)
+		UtilsLogger.Fatalf("Config version is outdated. Please delete your config file %s and restart the application. (Your Config version: %d, Needed: %d)", ConfigPath, CONFIG.Config.Version, CONFIGVERSION)
 	}
 
 	// SET LOGGING
 	// setupLogging()
 
 	if CONFIG.Misc.Debug {
-		log.Info("Starting service for pprof in localhost:6060")
+		UtilsLogger.Info("Starting service for pprof in localhost:6060")
 		go func() {
-			log.Info(http.ListenAndServe("localhost:6060", nil))
-			log.Info("1. Portforward mogenius-k8s-manager to 6060")
-			log.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
-			log.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
-			log.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
-			log.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
-			log.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
-			log.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
-			log.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
-			log.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
-			log.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
-			log.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
-			log.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
-			log.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
-			log.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
-			log.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
+			UtilsLogger.Info(http.ListenAndServe("localhost:6060", nil))
+			UtilsLogger.Info("1. Portforward mogenius-k8s-manager to 6060")
+			UtilsLogger.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
+			UtilsLogger.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
+			UtilsLogger.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
+			UtilsLogger.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
+			UtilsLogger.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
+			UtilsLogger.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
+			UtilsLogger.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
+			UtilsLogger.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
+			UtilsLogger.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
+			UtilsLogger.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
+			UtilsLogger.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
+			UtilsLogger.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
+			UtilsLogger.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
+			UtilsLogger.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
 		}()
 	}
 }
@@ -423,91 +422,91 @@ func SetupClusterConfigmap(clusterConfigmap ClusterConfigmap) {
 }
 
 func PrintSettings() {
-	log.Infof("Config\n")
-	log.Infof("Version:                   %d\n\n", CONFIG.Config.Version)
+	UtilsLogger.Infof("Config\n")
+	UtilsLogger.Infof("Version:                   %d\n\n", CONFIG.Config.Version)
 
-	log.Infof("KUBERNETES")
-	log.Infof("OwnNamespace:              %s", CONFIG.Kubernetes.OwnNamespace)
-	log.Infof("ClusterName:               %s", CONFIG.Kubernetes.ClusterName)
-	log.Infof("ClusterMfaId:              %s", CONFIG.Kubernetes.ClusterMfaId)
-	log.Infof("RunInCluster:              %t", CONFIG.Kubernetes.RunInCluster)
-	log.Infof("ApiKey:                    %s", CONFIG.Kubernetes.ApiKey)
-	log.Infof("HelmDataPath:              %s", CONFIG.Kubernetes.HelmDataPath)
-	log.Infof("GitVaultDataPath:          %s", CONFIG.Kubernetes.GitVaultDataPath)
-	log.Infof("BboltDbPath:               %s", CONFIG.Kubernetes.BboltDbPath)
-	log.Infof("BboltDbStatsPath:          %s", CONFIG.Kubernetes.BboltDbStatsPath)
-	log.Infof("LogDataPath:               %s", CONFIG.Kubernetes.LogDataPath)
-	log.Infof("LocalContainerRegistry:    %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
+	UtilsLogger.Infof("KUBERNETES")
+	UtilsLogger.Infof("OwnNamespace:              %s", CONFIG.Kubernetes.OwnNamespace)
+	UtilsLogger.Infof("ClusterName:               %s", CONFIG.Kubernetes.ClusterName)
+	UtilsLogger.Infof("ClusterMfaId:              %s", CONFIG.Kubernetes.ClusterMfaId)
+	UtilsLogger.Infof("RunInCluster:              %t", CONFIG.Kubernetes.RunInCluster)
+	UtilsLogger.Infof("ApiKey:                    %s", CONFIG.Kubernetes.ApiKey)
+	UtilsLogger.Infof("HelmDataPath:              %s", CONFIG.Kubernetes.HelmDataPath)
+	UtilsLogger.Infof("GitVaultDataPath:          %s", CONFIG.Kubernetes.GitVaultDataPath)
+	UtilsLogger.Infof("BboltDbPath:               %s", CONFIG.Kubernetes.BboltDbPath)
+	UtilsLogger.Infof("BboltDbStatsPath:          %s", CONFIG.Kubernetes.BboltDbStatsPath)
+	UtilsLogger.Infof("LogDataPath:               %s", CONFIG.Kubernetes.LogDataPath)
+	UtilsLogger.Infof("LocalContainerRegistry:    %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
 
-	log.Infof("API")
-	log.Infof("HttpServer:                %s", CONFIG.ApiServer.Http_Server)
-	log.Infof("WsServer:                  %s", CONFIG.ApiServer.Ws_Server)
-	log.Infof("WsScheme:                  %s", CONFIG.ApiServer.Ws_Scheme)
-	log.Infof("WsPath:                    %s\n\n", CONFIG.ApiServer.WS_Path)
+	UtilsLogger.Infof("API")
+	UtilsLogger.Infof("HttpServer:                %s", CONFIG.ApiServer.Http_Server)
+	UtilsLogger.Infof("WsServer:                  %s", CONFIG.ApiServer.Ws_Server)
+	UtilsLogger.Infof("WsScheme:                  %s", CONFIG.ApiServer.Ws_Scheme)
+	UtilsLogger.Infof("WsPath:                    %s\n\n", CONFIG.ApiServer.WS_Path)
 
-	log.Infof("EVENTS")
-	log.Infof("EventServer:               %s", CONFIG.EventServer.Server)
-	log.Infof("EventScheme:               %s", CONFIG.EventServer.Scheme)
-	log.Infof("EventPath:                 %s\n\n", CONFIG.EventServer.Path)
+	UtilsLogger.Infof("EVENTS")
+	UtilsLogger.Infof("EventServer:               %s", CONFIG.EventServer.Server)
+	UtilsLogger.Infof("EventScheme:               %s", CONFIG.EventServer.Scheme)
+	UtilsLogger.Infof("EventPath:                 %s\n\n", CONFIG.EventServer.Path)
 
-	log.Infof("IAC")
-	log.Infof("RepoUrl:                   %s", CONFIG.Iac.RepoUrl)
-	log.Infof("RepoPat:                   %s", CONFIG.Iac.RepoPat)
-	log.Infof("RepoBranch:                %s", CONFIG.Iac.RepoBranch)
-	log.Infof("PollingIntervalSecs:       %d", CONFIG.Iac.SyncFrequencyInSec)
-	log.Infof("AllowPull:                 %t", CONFIG.Iac.AllowPull)
-	log.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
-	log.Infof("SyncWorkloads:             %s", YamlStringFromSyncResourceDescription(CONFIG.Iac.SyncWorkloads))
-	log.Infof("AvailableWorkloads:        %s", YamlStringFromSyncResourceDescription(CONFIG.Iac.AvailableWorkloads))
-	log.Infof("IgnoredNamespaces:         %s", strings.Join(CONFIG.Iac.IgnoredNamespaces, ","))
-	log.Infof("IgnoredNames:              %s", strings.Join(CONFIG.Iac.IgnoredNames, ","))
-	log.Infof("LogChanges:                %t", CONFIG.Iac.LogChanges)
-	log.Infof("ShowDiffInLog:             %t\n\n", CONFIG.Iac.ShowDiffInLog)
+	UtilsLogger.Infof("IAC")
+	UtilsLogger.Infof("RepoUrl:                   %s", CONFIG.Iac.RepoUrl)
+	UtilsLogger.Infof("RepoPat:                   %s", CONFIG.Iac.RepoPat)
+	UtilsLogger.Infof("RepoBranch:                %s", CONFIG.Iac.RepoBranch)
+	UtilsLogger.Infof("PollingIntervalSecs:       %d", CONFIG.Iac.SyncFrequencyInSec)
+	UtilsLogger.Infof("AllowPull:                 %t", CONFIG.Iac.AllowPull)
+	UtilsLogger.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
+	UtilsLogger.Infof("SyncWorkloads:             %s", YamlStringFromSyncResourceDescription(CONFIG.Iac.SyncWorkloads))
+	UtilsLogger.Infof("AvailableWorkloads:        %s", YamlStringFromSyncResourceDescription(CONFIG.Iac.AvailableWorkloads))
+	UtilsLogger.Infof("IgnoredNamespaces:         %s", strings.Join(CONFIG.Iac.IgnoredNamespaces, ","))
+	UtilsLogger.Infof("IgnoredNames:              %s", strings.Join(CONFIG.Iac.IgnoredNames, ","))
+	UtilsLogger.Infof("LogChanges:                %t", CONFIG.Iac.LogChanges)
+	UtilsLogger.Infof("ShowDiffInLog:             %t\n\n", CONFIG.Iac.ShowDiffInLog)
 
-	log.Infof("MISC")
-	log.Infof("Stage:                     %s", CONFIG.Misc.Stage)
-	log.Infof("LogFormat:                 %s", CONFIG.Misc.LogFormat)
-	log.Infof("LogIncomingStats:          %t", CONFIG.Misc.LogIncomingStats)
-	log.Infof("Debug:                     %t", CONFIG.Misc.Debug)
-	log.Infof("DebugLogCaller:            %t", CONFIG.Misc.DebugLogCaller)
-	log.Infof("AutoMountNfs:              %t", CONFIG.Misc.AutoMountNfs)
-	log.Infof("LogKubernetesEvents:       %t", CONFIG.Misc.LogKubernetesEvents)
-	log.Infof("DefaultMountPath:          %s", CONFIG.Misc.DefaultMountPath)
-	log.Infof("IgnoreResourcesBackup:     %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
-	log.Infof("IgnoreNamespaces:          %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
-	log.Infof("LogRotationSizeInBytes:    %d", CONFIG.Misc.LogRotationSizeInBytes)
-	log.Infof("LogRotationMaxSizeInBytes: %d", CONFIG.Misc.LogRotationMaxSizeInBytes)
-	log.Infof("LogRetentionDays:          %d", CONFIG.Misc.LogRetentionDays)
-	log.Infof("CheckForUpdates:           %d", CONFIG.Misc.CheckForUpdates)
-	log.Infof("HelmIndex:                 %s", CONFIG.Misc.HelmIndex)
-	log.Infof("NfsPodPrefix:              %s\n\n", CONFIG.Misc.NfsPodPrefix)
+	UtilsLogger.Infof("MISC")
+	UtilsLogger.Infof("Stage:                     %s", CONFIG.Misc.Stage)
+	UtilsLogger.Infof("LogFormat:                 %s", CONFIG.Misc.LogFormat)
+	UtilsLogger.Infof("LogIncomingStats:          %t", CONFIG.Misc.LogIncomingStats)
+	UtilsLogger.Infof("Debug:                     %t", CONFIG.Misc.Debug)
+	UtilsLogger.Infof("DebugLogCaller:            %t", CONFIG.Misc.DebugLogCaller)
+	UtilsLogger.Infof("AutoMountNfs:              %t", CONFIG.Misc.AutoMountNfs)
+	UtilsLogger.Infof("LogKubernetesEvents:       %t", CONFIG.Misc.LogKubernetesEvents)
+	UtilsLogger.Infof("DefaultMountPath:          %s", CONFIG.Misc.DefaultMountPath)
+	UtilsLogger.Infof("IgnoreResourcesBackup:     %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
+	UtilsLogger.Infof("IgnoreNamespaces:          %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
+	UtilsLogger.Infof("LogRotationSizeInBytes:    %d", CONFIG.Misc.LogRotationSizeInBytes)
+	UtilsLogger.Infof("LogRotationMaxSizeInBytes: %d", CONFIG.Misc.LogRotationMaxSizeInBytes)
+	UtilsLogger.Infof("LogRetentionDays:          %d", CONFIG.Misc.LogRetentionDays)
+	UtilsLogger.Infof("CheckForUpdates:           %d", CONFIG.Misc.CheckForUpdates)
+	UtilsLogger.Infof("HelmIndex:                 %s", CONFIG.Misc.HelmIndex)
+	UtilsLogger.Infof("NfsPodPrefix:              %s\n\n", CONFIG.Misc.NfsPodPrefix)
 
-	log.Infof("BUILDER")
-	log.Infof("BuildTimeout:              %d", CONFIG.Builder.BuildTimeout)
-	log.Infof("ScanTimeout:               %d", CONFIG.Builder.ScanTimeout)
-	log.Infof("MaxConcurrentBuilds:       %d\n\n", CONFIG.Builder.MaxConcurrentBuilds)
+	UtilsLogger.Infof("BUILDER")
+	UtilsLogger.Infof("BuildTimeout:              %d", CONFIG.Builder.BuildTimeout)
+	UtilsLogger.Infof("ScanTimeout:               %d", CONFIG.Builder.ScanTimeout)
+	UtilsLogger.Infof("MaxConcurrentBuilds:       %d\n\n", CONFIG.Builder.MaxConcurrentBuilds)
 
-	log.Infof("GIT")
-	log.Infof("GitUserEmail:              %s", CONFIG.Git.GitUserEmail)
-	log.Infof("GitUserName:               %s", CONFIG.Git.GitUserName)
+	UtilsLogger.Infof("GIT")
+	UtilsLogger.Infof("GitUserEmail:              %s", CONFIG.Git.GitUserEmail)
+	UtilsLogger.Infof("GitUserName:               %s", CONFIG.Git.GitUserName)
 
-	log.Infof("STATS")
-	log.Infof("MaxDataPoints:             %d\n\n", CONFIG.Stats.MaxDataPoints)
+	UtilsLogger.Infof("STATS")
+	UtilsLogger.Infof("MaxDataPoints:             %d\n\n", CONFIG.Stats.MaxDataPoints)
 
-	log.Infof("Config:                    %s\n\n", ConfigPath)
+	UtilsLogger.Infof("Config:                    %s\n\n", ConfigPath)
 }
 
 func PrintVersionInfo() {
-	log.Infof("\nVersion:     %s", version.Ver)
-	log.Infof("Branch:      %s", version.Branch)
-	log.Infof("Hash:        %s", version.GitCommitHash)
-	log.Infof("BuildAt:     %s", version.BuildTimestamp)
+	UtilsLogger.Infof("\nVersion:     %s", version.Ver)
+	UtilsLogger.Infof("Branch:      %s", version.Branch)
+	UtilsLogger.Infof("Hash:        %s", version.GitCommitHash)
+	UtilsLogger.Infof("BuildAt:     %s", version.BuildTimestamp)
 }
 
 func GetDirectories(customConfigPath string) (configDir string, configPath string) {
 	homeDirName, err := os.UserHomeDir()
 	if err != nil {
-		log.Errorf("Error retrieving user homedir: %s", err.Error())
+		UtilsLogger.Errorf("Error retrieving user homedir: %s", err.Error())
 	}
 
 	if customConfigPath != "" {
@@ -515,7 +514,7 @@ func GetDirectories(customConfigPath string) (configDir string, configPath strin
 			configPath = customConfigPath
 			configDir = filepath.Dir(customConfigPath)
 		} else {
-			log.Errorf("Custom config not found '%s'.", customConfigPath)
+			UtilsLogger.Errorf("Custom config not found '%s'.", customConfigPath)
 		}
 	} else {
 		configDir = homeDirName + "/.mogenius-k8s-manager/"
@@ -529,9 +528,9 @@ func DeleteCurrentConfig() {
 	_, configPath := GetDirectories("")
 	err := os.Remove(configPath)
 	if err != nil {
-		log.Errorf("Error removing config file. '%s'.", err.Error())
+		UtilsLogger.Errorf("Error removing config file. '%s'.", err.Error())
 	} else {
-		log.Infof("%s succesfuly deleted.", configPath)
+		UtilsLogger.Infof("%s succesfuly deleted.", configPath)
 	}
 }
 
@@ -541,8 +540,8 @@ func writeDefaultConfig(stage string) {
 	// write it to default location
 	err := os.Mkdir(configDir, 0755)
 	if err != nil && err.Error() != "mkdir "+configDir+": file exists" {
-		log.Warning("Error creating folder " + configDir)
-		log.Warning(err)
+		UtilsLogger.Warning("Error creating folder " + configDir)
+		UtilsLogger.Warning(err)
 	}
 
 	// check if stage is set via env variable
@@ -563,11 +562,11 @@ func writeDefaultConfig(stage string) {
 	} else if stage == STAGE_LOCAL {
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	} else {
-		log.Warnf("No stage set. Using local config.")
+		UtilsLogger.Warnf("No stage set. Using local config.")
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	}
 	if err != nil {
-		log.Error("Error writing " + configPath + " file")
-		log.Fatal(err.Error())
+		UtilsLogger.Error("Error writing " + configPath + " file")
+		UtilsLogger.Fatal(err.Error())
 	}
 }

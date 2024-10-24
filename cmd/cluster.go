@@ -18,8 +18,6 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/spf13/cobra"
 )
 
@@ -33,11 +31,11 @@ var clusterCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
 		if err != nil {
-			log.Fatalf("Error retrieving cluster secret. Aborting: %s", err.Error())
+			CmdLogger.Fatalf("Error retrieving cluster secret. Aborting: %s", err.Error())
 		}
 		clusterConfigmap, err := mokubernetes.CreateOrUpdateClusterConfigmap(nil)
 		if err != nil {
-			log.Fatalf("Error retrieving cluster configmap. Aborting: %s", err.Error())
+			CmdLogger.Fatalf("Error retrieving cluster configmap. Aborting: %s", err.Error())
 		}
 
 		utils.SetupClusterSecret(clusterSecret)
@@ -47,7 +45,7 @@ var clusterCmd = &cobra.Command{
 			utils.PrintSettings()
 		}
 
-		log.Infof("Init DB ...")
+		CmdLogger.Infof("Init DB ...")
 		db.Init()
 		store.Init()
 		defer store.Defer()
@@ -60,7 +58,7 @@ var clusterCmd = &cobra.Command{
 		if utils.CONFIG.Misc.AutoMountNfs {
 			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
 			if err != nil && utils.CONFIG.Misc.Stage != utils.STAGE_LOCAL {
-				log.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
+				CmdLogger.Errorf("GetVolumeMountsForK8sManager ERROR: %s", err.Error())
 			}
 			for _, vol := range volumesToMount {
 				mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
@@ -72,9 +70,9 @@ var clusterCmd = &cobra.Command{
 			basicApps, userApps := services.InstallDefaultApplications()
 			if basicApps != "" || userApps != "" {
 				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
-				log.Infof("Seeding Commands ( 🪴 🪴 🪴 ): \"%s\".\n", userApps)
+				CmdLogger.Infof("Seeding Commands ( 🪴 🪴 🪴 ): \"%s\".\n", userApps)
 				if err != nil {
-					log.Fatalf("Error installing default applications: %s", err.Error())
+					CmdLogger.Fatalf("Error installing default applications: %s", err.Error())
 				}
 			}
 			services.DISABLEQUEUE = false
@@ -92,12 +90,12 @@ var clusterCmd = &cobra.Command{
 
 		// Init Helm Config
 		if err := mokubernetes.InitHelmConfig(); err != nil {
-			log.Errorf("Error initializing Helm Config: %s", err.Error())
+			CmdLogger.Errorf("Error initializing Helm Config: %s", err.Error())
 		}
 
 		// Init Network Policy Configmap
 		if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
-			log.Errorf("Error initializing Network Policy Configmap: %s", err.Error())
+			CmdLogger.Errorf("Error initializing Network Policy Configmap: %s", err.Error())
 		}
 
 		socketclient.StartK8sManager()

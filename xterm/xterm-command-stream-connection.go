@@ -13,14 +13,13 @@ import (
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
 	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 )
 
 func injectContent(content io.Reader, conn *websocket.Conn) {
 	// Read full content for pre-injection
 	input, err := io.ReadAll(content)
 	if err != nil {
-		log.Errorf("failed to read data: %v", err)
+		XtermLogger.Errorf("failed to read data: %v", err)
 	}
 
 	// Encode for security reasons and send to pseudoterminal to be executed
@@ -29,11 +28,11 @@ func injectContent(content io.Reader, conn *websocket.Conn) {
 	bash := exec.Command("bash", "-c", "echo \""+encodedData+"\" | base64 -d")
 	ttytmp, err := pty.Start(bash)
 	if err != nil {
-		log.Errorf("Unable to start tmp pty/cmd: %s", err.Error())
+		XtermLogger.Errorf("Unable to start tmp pty/cmd: %s", err.Error())
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			if err != nil {
-				log.Errorf("WriteMessage: %s", err.Error())
+				XtermLogger.Errorf("WriteMessage: %s", err.Error())
 			}
 		}
 		return
@@ -49,12 +48,12 @@ func injectContent(content io.Reader, conn *websocket.Conn) {
 				break
 			}
 
-			log.Errorf("WriteMessage: %s", err.Error())
+			XtermLogger.Errorf("WriteMessage: %s", err.Error())
 			break
 		}
 		if conn != nil {
 			if err := conn.WriteMessage(websocket.BinaryMessage, buf[:n]); err != nil {
-				log.Errorf("WriteMessage: %s", err.Error())
+				XtermLogger.Errorf("WriteMessage: %s", err.Error())
 				break
 			}
 		} else {
@@ -74,12 +73,12 @@ func XTermCommandStreamConnection(
 	injectPreContent io.Reader,
 ) {
 	if wsConnectionRequest.WebsocketScheme == "" {
-		log.Error("WebsocketScheme is empty")
+		XtermLogger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		log.Error("WebsocketHost is empty")
+		XtermLogger.Error("WebsocketHost is empty")
 		return
 	}
 
@@ -89,12 +88,12 @@ func XTermCommandStreamConnection(
 	// websocket connection
 	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		log.Errorf("Unable to connect to websocket: %s", err.Error())
+		XtermLogger.Errorf("Unable to connect to websocket: %s", err.Error())
 		return
 	}
 
 	defer func() {
-		// log.Info("[XTermCommandStreamConnection] Closing connection.")
+		// XtermLogger.Info("[XTermCommandStreamConnection] Closing connection.")
 		cancel()
 	}()
 
@@ -104,17 +103,17 @@ func XTermCommandStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				log.Debug("write close:", err)
+				XtermLogger.Debug("write close:", err)
 			}
 		}
-		log.Errorf("Pod %s does not exist, closing connection.", podName)
+		XtermLogger.Errorf("Pod %s does not exist, closing connection.", podName)
 		return
 	}
 
 	// kube provider
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		log.Warningf("Unable to create kube provider: %s", err.Error())
+		XtermLogger.Warningf("Unable to create kube provider: %s", err.Error())
 		return
 	}
 
@@ -127,7 +126,7 @@ func XTermCommandStreamConnection(
 	// send ping
 	err = wsPing(conn)
 	if err != nil {
-		log.Errorf("Unable to send ping: %s", err.Error())
+		XtermLogger.Errorf("Unable to send ping: %s", err.Error())
 		return
 	}
 
@@ -135,11 +134,11 @@ func XTermCommandStreamConnection(
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
-		log.Errorf("Unable to start pty/cmd: %s", err.Error())
+		XtermLogger.Errorf("Unable to start pty/cmd: %s", err.Error())
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			if err != nil {
-				log.Errorf("WriteMessage: %s", err.Error())
+				XtermLogger.Errorf("WriteMessage: %s", err.Error())
 			}
 		}
 		return
@@ -149,20 +148,20 @@ func XTermCommandStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				log.Debug("write close:", err)
+				XtermLogger.Debug("write close:", err)
 			}
 		}
 		err := cmd.Process.Kill()
 		if err != nil {
-			log.Error(err)
+			XtermLogger.Error(err)
 		}
 		_, err = cmd.Process.Wait()
 		if err != nil {
-			log.Error(err)
+			XtermLogger.Error(err)
 		}
 		err = tty.Close()
 		if err != nil {
-			log.Error(err)
+			XtermLogger.Error(err)
 		}
 	}()
 

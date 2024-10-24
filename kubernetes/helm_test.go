@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"log"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
@@ -29,7 +28,7 @@ func cleanupRepo() {
 	}
 	_, err := HelmRepoRemove(repoRemoveData)
 	if err != nil {
-		log.Printf("%v", err)
+		K8sLogger.Printf("%v", err)
 	}
 }
 
@@ -43,17 +42,17 @@ func cleanupInstall() {
 	}
 	_, err := HelmReleaseUninstall(releaseUninstallData)
 	if err != nil {
-		log.Printf("%v", err)
+		K8sLogger.Printf("%v", err)
 	}
 }
 
 func deleteFolder(folderPath string) error {
 	err := os.RemoveAll(folderPath)
 	if err != nil {
-		log.Printf("Error deleting folder %s: %v", folderPath, err)
+		K8sLogger.Printf("Error deleting folder %s: %v", folderPath, err)
 		return err
 	}
-	log.Printf("Successfully deleted folder %s", folderPath)
+	K8sLogger.Printf("Successfully deleted folder %s", folderPath)
 	return nil
 }
 
