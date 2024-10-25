@@ -1,0 +1,75 @@
+config:
+  version: 2
+
+kubernetes:
+  api_key: YOUR_API_KEY
+  cluster_name: your-cluster-name
+  own_namespace: mogenius
+  cluster_mfa_id:
+  run_in_cluster: true
+  helm_data_path: /db/helm-data
+  git_vault_data_path: /db/git-vault-data
+  bbolt_db_path: /db/mogenius.db
+  log_data_path: /db/logs
+  bbolt_db_stats_path: /db/mogenius-stats.db
+  local_registry_host: mocr.local.mogenius.io
+
+api_server:
+  http_server: https://api-pre-live.mogenius.dev
+  ws_server: k8s-ws-pre-live.mogenius.dev
+  ws_server_scheme: wss
+  ws_path: /ws
+
+event_server:
+  server: k8s-dispatcher-pre-live.mogenius.dev
+  scheme: wss
+  path: /ws
+
+iac:
+  repo_url:
+  repo_pat:
+  repo_branch: main
+  polling_interval_secs: 10 # min is 5
+  allow_push: false
+  allow_pull: false
+  ignored_namespaces: ["kube-system", "kube-public", "kube-node-lease"]
+  ignored_names: ["acme-*", "mogenius-k8s-manager"]
+  show_diff_in_log: false
+  log_changes: true
+
+misc:
+  stage: pre-live
+  log_format: json # json or text
+  log_level: info # panic, fatal, error, warn, info, debug, trace
+  log_incoming_stats: false
+  default_mount_path: /mo-data
+  debug: true
+  debug_log_caller: false
+  auto_mount_nfs: true
+  log_kubernetes_events: false
+  ignore_namespaces: ["kube-system"]
+  log_rotation_size_in_bytes: 5242880 # 5MB
+  log_retention_days: 7
+  ignore_resources_backup:
+    [
+      "events.k8s.io/v1",
+      "events.k8s.io/v1beta1",
+      "metrics.k8s.io/v1beta1",
+      "discovery.k8s.io/v1",
+    ]
+  check_for_updates: 86400
+  helm_index: https://helm.mogenius.com/public/index.yaml
+  nfs_pod_prefix: nfs-server-pod
+  external_secrets_enabled: true
+
+builder:
+  max_build_time: 3600 # 1 hour
+  max_scan_time: 200 # seconds
+  max_concurrent_builds: 1 # max concurrent builds
+
+git:
+  user_email: git@mogenius.com
+  user_name: mogenius git-user
+
+stats:
+  max_data_points: 6000 # history data points
