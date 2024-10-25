@@ -2,8 +2,16 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/interfaces"
 	"testing"
 )
+
+// compile time check
+func TestWatcherAdheresToInterface(t *testing.T) {
+	watcher := NewWatcher()
+	testfunc := func(w interfaces.KubernetesWatcher) {}
+	testfunc(&watcher) // this checks if the typesystem allows to call it
+}
 
 func TestWatcher(t *testing.T) {
 	t.Log("TestWatcher")

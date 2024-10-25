@@ -11,6 +11,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,9 +37,10 @@ const (
 	DELETE_DATA_RETRIES = 5
 )
 
-var syncInProcess = false
-var SetupInProcess = false
+var SetupInProcess atomic.Bool
 var initialRepoApplied = false
+
+var gitSyncLock sync.Mutex
 
 var IacLogger = log.WithField("component", structs.ComponentIacManager)
 
@@ -66,7 +69,7 @@ func Init() {
 	kubernetes.IacManagerDeleteResourceYaml = DeleteResourceYaml
 	kubernetes.IacManagerWriteResourceYaml = WriteResourceYaml
 	kubernetes.IacManagerShouldWatchResources = ShouldWatchResources
-	kubernetes.IacManagerSetupInProcess = SetupInProcess
+	kubernetes.IacManagerSetupInProcess = &SetupInProcess
 	kubernetes.IacManagerResetCurrentRepoData = ResetCurrentRepoData
 	kubernetes.IacManagerSyncChanges = SyncChanges
 	kubernetes.IacManagerApplyRepoStateToCluster = ApplyRepoStateToCluster
@@ -280,7 +283,7 @@ func IsIacEnabled() bool {
 func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
 	var err error
 
-	if SetupInProcess {
+	if SetupInProcess.Load() {
 		return
 	}
 	if !IsIacEnabled() {
@@ -374,7 +377,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 }
 
 func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) {
-	if SetupInProcess {
+	if SetupInProcess.Load() {
 		return
 	}
 	if !IsIacEnabled() {
@@ -592,75 +595,68 @@ func ApplyRepoStateToCluster() error {
 }
 
 func SyncChanges() error {
-	defer func() {
-		syncInProcess = false
-	}()
-
 	startTime := time.Now()
 
 	var err error
 	if gitHasRemotes() {
-		if !SetupInProcess {
-			if !syncInProcess {
-				syncInProcess = true
-				lastCommit, updatedFiles, deletedFiles, err := pullChanges(GetLastAppliedCommit())
-				// update Pulse
-				if len(updatedFiles) > 0 || len(deletedFiles) > 0 {
-					pulse, err := gitmanager.GeneratePulseDiagramData(utils.CONFIG.Kubernetes.GitVaultDataPath)
-					if err == nil {
-						SetPulseDiagramData(pulse)
-					}
+		if !SetupInProcess.Load() {
+			gitSyncLock.Lock()
+			defer gitSyncLock.Unlock()
+			lastCommit, updatedFiles, deletedFiles, err := pullChanges(GetLastAppliedCommit())
+			// update Pulse
+			if len(updatedFiles) > 0 || len(deletedFiles) > 0 {
+				pulse, err := gitmanager.GeneratePulseDiagramData(utils.CONFIG.Kubernetes.GitVaultDataPath)
+				if err == nil {
+					SetPulseDiagramData(pulse)
 				}
-				// skip this error
-				if errors.Is(err, transport.ErrEmptyRemoteRepository) {
-					err = nil
-				}
-
-				SetPullError(err)
-				if err != nil {
-					IacLogger.Errorf("Error pulling changes: %s", err.Error())
-					if err == git.ErrNonFastForwardUpdate {
-						IacLogger.Warnf("Non-fast-forward update detected. Deleting local repository. Changes will not be lost because they will be synced again in the next run.")
-						err2 := ResetCurrentRepoData(3)
-						if err2 != nil {
-							IacLogger.Errorf("Error resetting repo data: %s", err.Error())
-						}
-						return err
-					}
-					return err
-				} else if !initialRepoApplied {
-					err = ApplyRepoStateToCluster()
-					SetSyncError(err)
-					if err != nil {
-						return err
-					}
-				}
-				updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
-				for _, v := range updatedFiles {
-					err = kubernetesReplaceResource(v)
-					if err != nil {
-						IacLogger.Warnf("Error replacing resource: %s", err.Error())
-					}
-				}
-				deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
-				for _, v := range deletedFiles {
-					err = kubernetesDeleteResource(v)
-					if err != nil {
-						IacLogger.Warnf("Error deleting resource: %s", err.Error())
-					}
-				}
-				SetLastSuccessfullyAppliedCommit(lastCommit)
-				err = pushChanges()
-				SetPushError(err)
-				if err != nil {
-					IacLogger.Errorf("Error pushing changes: %s", err.Error())
-					return err
-				}
-				SetSyncError(nil)
-				SetSyncInfo(time.Since(startTime).Milliseconds())
-			} else {
-				err = fmt.Errorf("Sync in process. Skipping sync.")
 			}
+			// skip this error
+			if errors.Is(err, transport.ErrEmptyRemoteRepository) {
+				err = nil
+			}
+
+			SetPullError(err)
+			if err != nil {
+				IacLogger.Errorf("Error pulling changes: %s", err.Error())
+				if err == git.ErrNonFastForwardUpdate {
+					IacLogger.Warnf("Non-fast-forward update detected. Deleting local repository. Changes will not be lost because they will be synced again in the next run.")
+					err2 := ResetCurrentRepoData(3)
+					if err2 != nil {
+						IacLogger.Errorf("Error resetting repo data: %s", err.Error())
+					}
+					return err
+				}
+				return err
+			} else if !initialRepoApplied {
+				err = ApplyRepoStateToCluster()
+				SetSyncError(err)
+				if err != nil {
+					return err
+				}
+			}
+			updatedFiles = applyPriotityToChangesForUpdates(updatedFiles)
+			for _, v := range updatedFiles {
+				err = kubernetesReplaceResource(v)
+				if err != nil {
+					IacLogger.Warnf("Error replacing resource: %s", err.Error())
+				}
+			}
+			deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
+			for _, v := range deletedFiles {
+				err = kubernetesDeleteResource(v)
+				if err != nil {
+					IacLogger.Warnf("Error deleting resource: %s", err.Error())
+				}
+			}
+			SetLastSuccessfullyAppliedCommit(lastCommit)
+			err = pushChanges()
+			SetPushError(err)
+			if err != nil {
+				IacLogger.Errorf("Error pushing changes: %s", err.Error())
+				return err
+			}
+			SetSyncError(nil)
+			SetSyncInfo(time.Since(startTime).Milliseconds())
 		} else {
 			err = fmt.Errorf("Setup in process. Skipping sync.")
 		}
