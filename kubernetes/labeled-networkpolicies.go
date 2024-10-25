@@ -235,6 +235,7 @@ func DetachLabeledNetworkPolicy(controllerName string,
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
 		delete(deployment.Spec.Template.ObjectMeta.Labels, label)
+		delete(deployment.ObjectMeta.Labels, label)
 		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions())
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
@@ -245,6 +246,7 @@ func DetachLabeledNetworkPolicy(controllerName string,
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
 		delete(daemonset.Spec.Template.ObjectMeta.Labels, label)
+		delete(daemonset.ObjectMeta.Labels, label)
 		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonset, MoUpdateOptions())
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
@@ -255,6 +257,7 @@ func DetachLabeledNetworkPolicy(controllerName string,
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
 		delete(statefulset.Spec.Template.ObjectMeta.Labels, label)
+		delete(statefulset.ObjectMeta.Labels, label)
 		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulset, MoUpdateOptions())
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
