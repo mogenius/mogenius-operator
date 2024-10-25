@@ -24,7 +24,7 @@ var labelPolicy1 = dtos.K8sLabeledNetworkPolicyDto{
 
 var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
 	Name:     PolicyName2,
-	Type:     dtos.Egress,
+	Type:     dtos.Ingress,
 	Port:     59999,
 	PortType: dtos.PortTypeUDP,
 }
