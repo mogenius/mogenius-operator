@@ -98,11 +98,11 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 		return
 	}
 
-	cmd := structs.CreateCommand("create", "Create Cluster Image-Pull secret", job)
+	cmd := structs.CreateCommand("create", "Create Cluster ImagePullSecret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Creating Cluster Image-Pull secret")
+		cmd.Start(job, "Creating Cluster ImagePullSecret")
 
 		secretClient := GetCoreClient().Secrets(namespace.Name)
 
@@ -124,7 +124,7 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
-			cmd.Success(job, "Created Cluster Image-Pull secret")
+			cmd.Success(job, "Created Cluster ImagePullSecret")
 		} else {
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
@@ -132,7 +132,7 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
-					cmd.Success(job, "Created Cluster Image-Pull secret")
+					cmd.Success(job, "Created Cluster ImagePullSecret")
 				}
 			} else {
 				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret ERROR: %s", err.Error()))
@@ -165,7 +165,8 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 	}
 
 	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
-	if service.GetImageRepoSecretDecryptValue() == nil {
+	authStr := service.GetImageRepoSecretDecryptValue()
+	if authStr == nil {
 		// delete if exists
 		err := punq.DeleteK8sSecretBy(namespace.Name, secretName, nil)
 		if err != nil {
@@ -174,11 +175,19 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 		return
 	}
 
-	cmd := structs.CreateCommand("create", "Create Container Image-Pull secret", job)
+	cmd := structs.CreateCommand("create", "Create Container ImagePullSecret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Creating Container Image-Pull secret")
+		cmd.Start(job, "Creating Container ImagePullSecret")
+
+		if authStr != nil {
+			err := ValidateContainerRegistryAuthString(*authStr)
+			if err != nil {
+				cmd.Fail(job, fmt.Sprintf("The provided ImagePullSecret does not match the required format: %s", err.Error()))
+				return
+			}
+		}
 
 		secretClient := GetCoreClient().Secrets(namespace.Name)
 
@@ -193,10 +202,10 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
 
 		// Check if exists
-		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
-			cmd.Success(job, "Created Container Image-Pull secret")
+			cmd.Success(job, "Created Container ImagePullSecret")
 		} else {
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
@@ -204,7 +213,7 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
-					cmd.Success(job, "Created Container Image-Pull secret")
+					cmd.Success(job, "Created Container ImagePullSecret")
 				}
 			} else {
 				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret ERROR: %s", err.Error()))

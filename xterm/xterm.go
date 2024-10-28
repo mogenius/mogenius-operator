@@ -500,7 +500,7 @@ func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc,
 				}
 
 				if conn != nil {
-					messageSt := fmt.Sprintf("[%s] %s %s\n", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+					messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
 					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
 					if err != nil {
 						fmt.Println("WriteMessage", err.Error())

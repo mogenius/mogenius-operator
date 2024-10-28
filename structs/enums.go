@@ -192,7 +192,6 @@ const (
 	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST               string = "service/exec-sh-connection-request"
 	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST            string = "service/log-stream-connection-request"
 	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST      string = "service/build-log-stream-connection-request"
-	PAT_SERVICE_OPERATOR_LOG_STREAM_CONNECTION_REQUEST   string = "service/operator-log-stream-connection-request"
 	PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST      string = "service/pod-event-stream-connection-request"
 	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST string = "service/scan-image-log-stream-connection-request"
 	PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST   string = "service/cluster-tool-stream-connection-request"
@@ -596,7 +595,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_EXEC_SH_CONNECTION_REQUEST,
 	PAT_SERVICE_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_BUILD_LOG_STREAM_CONNECTION_REQUEST,
-	PAT_SERVICE_OPERATOR_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST,

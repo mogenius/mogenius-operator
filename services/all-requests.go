@@ -888,14 +888,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		go buildLogStreamConnection(data)
 		return nil
-	case structs.PAT_SERVICE_OPERATOR_LOG_STREAM_CONNECTION_REQUEST:
-		data := xterm.OperatorLogConnectionRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		go operatorLogStreamConnection(data)
-		return nil
 	case structs.PAT_CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST:
 		data := xterm.ComponentLogConnectionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2630,17 +2622,6 @@ func buildLogStreamConnection(buildLogConnectionRequest xterm.BuildLogConnection
 		buildLogConnectionRequest.Container,
 		buildLogConnectionRequest.BuildTask,
 		buildLogConnectionRequest.BuildId,
-	)
-}
-
-func operatorLogStreamConnection(operatorLogConnectionRequest xterm.OperatorLogConnectionRequest) {
-	if operatorLogConnectionRequest.LogTail == "" {
-		operatorLogConnectionRequest.LogTail = "1000"
-	}
-	xterm.XTermOperatorStreamConnection(
-		operatorLogConnectionRequest.WsConnection,
-		operatorLogConnectionRequest.Namespace,
-		operatorLogConnectionRequest.Controller,
 	)
 }
 
