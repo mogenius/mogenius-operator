@@ -138,10 +138,8 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		previousData.AllowPull != syncRepoReq.AllowPull ||
 		previousData.AllowPush != syncRepoReq.AllowPush {
 		K8sLogger.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
-		IacManagerSetupInProcess = true
-		defer func() {
-			IacManagerSetupInProcess = false
-		}()
+		IacManagerSetupInProcess.Store(true)
+		defer IacManagerSetupInProcess.Store(false)
 		// Push/Pull
 		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
 			err := ResetLocalRepo()
@@ -155,7 +153,7 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 			if err != nil {
 				return err
 			}
-			IacManagerSetupInProcess = false
+			IacManagerSetupInProcess.Store(false)
 			InitAllWorkloads()
 		}
 		// Pull
@@ -177,12 +175,12 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 }
 
 func ResetLocalRepo() error {
-	IacManagerSetupInProcess = true
+	IacManagerSetupInProcess.Store(true)
 	err := IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
 	if err != nil {
 		return err
 	}
-	IacManagerSetupInProcess = false
+	IacManagerSetupInProcess.Store(false)
 	InitAllWorkloads()
 	err = IacManagerSyncChanges()
 	if err != nil {

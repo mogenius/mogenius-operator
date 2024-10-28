@@ -26,7 +26,7 @@ var clusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "Run the application inside a container",
 	Long: `
-	This cmd starts the application permanently into you cluster. 
+	This cmd starts the application permanently into your cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
@@ -84,7 +84,8 @@ var clusterCmd = &cobra.Command{
 		go api.InitApi()
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue()
-		go kubernetes.WatchAllResources()
+		watcherManager := kubernetes.NewWatcher()
+		go kubernetes.WatchAllResources(&watcherManager)
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 

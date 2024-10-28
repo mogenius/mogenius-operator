@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/interfaces"
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/utils"
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -29,61 +31,59 @@ import (
 
 var AvailableResources []utils.SyncResourceEntry
 
-func WatchAllResources() {
-	// Retry watching resources with exponential backoff in case of failures
-	err := retry.OnError(wait.Backoff{
-		Steps:    5,
-		Duration: 1 * time.Second,
-		Factor:   2.0,
-		Jitter:   0.1,
-	}, apierrors.IsServiceUnavailable, func() error {
-		for _, v := range utils.CONFIG.Iac.SyncWorkloads {
-			go func() {
-				err := watchResource(v.Name, v.Kind, v.Group)
-				if err != nil {
-					K8sLogger.Errorf("failed to initialize watchhandler for resource %s %s: %s", v.Kind, v.Version, err.Error())
-				} else {
-					K8sLogger.Infof("🚀 Watching resource %s (%s)", v.Kind, v.Group)
-				}
-			}()
-		}
-		return nil
-	})
-	if err != nil {
-		K8sLogger.Fatalf("Error watching resources: %s", err.Error())
-	}
-
-	// Wait forever
-	select {}
+type Watcher struct {
+	handlerMapLock sync.Mutex
+	activeHandlers map[interfaces.ResourceIdentifier]resourceContext
 }
 
-func watchResource(resourceName string, resourceKind string, groupVersion string) error {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		K8sLogger.Fatalf("Error creating provider for watcher. Cannot continue: %s", err.Error())
-		return err
+func NewWatcher() Watcher {
+	return Watcher{
+		handlerMapLock: sync.Mutex{},
+		activeHandlers: make(map[interfaces.ResourceIdentifier]resourceContext, 0),
+	}
+}
+
+type resourceContext struct {
+	state    interfaces.ResourceState
+	informer cache.SharedIndexInformer
+	handler  cache.ResourceEventHandlerRegistration
+}
+
+func (m *Watcher) Watch(resource interfaces.ResourceIdentifier, onAdd func(resource interfaces.ResourceIdentifier, obj *unstructured.Unstructured), onUpdate func(resource interfaces.ResourceIdentifier, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured), onDelete func(resource interfaces.ResourceIdentifier, obj *unstructured.Unstructured)) error {
+	m.handlerMapLock.Lock()
+	defer m.handlerMapLock.Unlock()
+
+	for r := range m.activeHandlers {
+		if resource == r {
+			return fmt.Errorf("resources is already being watched")
+		}
 	}
 
-	gv, err := schema.ParseGroupVersion(groupVersion)
+	provider, err := NewKubeProvider()
+	if provider == nil || err != nil {
+		return fmt.Errorf("failed to create provider for watcher: %s", err.Error())
+	}
+
+	gv, err := schema.ParseGroupVersion(resource.GroupVersion)
 	if err != nil {
 		return fmt.Errorf("invalid groupVersion: %s", err)
 	}
 
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(provider.DynamicClient, time.Minute*10, v1.NamespaceAll, nil)
 
-	gvr := schema.GroupVersionResource{Group: gv.Group, Version: gv.Version, Resource: resourceName}
+	gvr := schema.GroupVersionResource{Group: gv.Group, Version: gv.Version, Resource: resource.Name}
 	resourceInformer := informerFactory.ForResource(gvr).Informer()
 
 	err = resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 		if err == io.EOF {
 			return // closed normally, its fine
 		}
-		K8sLogger.Errorf(`WatchError on Name('%s') Kind('%s') GroupVersion('%s'): %s`, resourceName, resourceKind, groupVersion, err)
+		K8sLogger.Errorf(`WatchError on Name('%s') Kind('%s') GroupVersion('%s'): %s`, resource.Name, resource.Kind, resource.GroupVersion, err)
 	})
 	if err != nil {
 		return fmt.Errorf("failed to set error watch handler: %s", err)
 	}
-	_, err = resourceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	handler, err := resourceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			unstructuredObj, ok := obj.(*unstructured.Unstructured)
 			if !ok {
@@ -92,19 +92,32 @@ func watchResource(resourceName string, resourceKind string, groupVersion string
 				K8sLogger.Warnf(`failed to deserialize: %s`, bodyString)
 				return
 			}
-			SetStoreIfNeeded(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
-			IacManagerWriteResourceYaml(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
+			if onAdd != nil {
+				onAdd(resource, unstructuredObj)
+			}
+			SetStoreIfNeeded(resource.Kind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
+			IacManagerWriteResourceYaml(resource.Kind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			unstructuredObj, ok := newObj.(*unstructured.Unstructured)
+			oldUnstructuredObj, ok := oldObj.(*unstructured.Unstructured)
 			if !ok {
 				body, _ := json.Marshal(newObj)
 				bodyString := string(body)
 				K8sLogger.Warnf(`failed to deserialize: %s`, bodyString)
 				return
 			}
-			SetStoreIfNeeded(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
-			IacManagerWriteResourceYaml(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
+			newUnstructuredObj, ok := newObj.(*unstructured.Unstructured)
+			if !ok {
+				body, _ := json.Marshal(newObj)
+				bodyString := string(body)
+				K8sLogger.Warnf(`failed to deserialize: %s`, bodyString)
+				return
+			}
+			if onUpdate != nil {
+				onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
+			}
+			SetStoreIfNeeded(resource.Kind, newUnstructuredObj.GetNamespace(), newUnstructuredObj.GetName(), newUnstructuredObj)
+			IacManagerWriteResourceYaml(resource.Kind, newUnstructuredObj.GetNamespace(), newUnstructuredObj.GetName(), newUnstructuredObj)
 		},
 		DeleteFunc: func(obj interface{}) {
 			unstructuredObj, ok := obj.(*unstructured.Unstructured)
@@ -114,23 +127,119 @@ func watchResource(resourceName string, resourceKind string, groupVersion string
 				K8sLogger.Warnf(`failed to deserialize: %s`, bodyString)
 				return
 			}
-			DeleteFromStoreIfNeeded(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
-			IacManagerDeleteResourceYaml(resourceKind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), obj)
+			if onDelete != nil {
+				onDelete(resource, unstructuredObj)
+			}
+			DeleteFromStoreIfNeeded(resource.Kind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), unstructuredObj)
+			IacManagerDeleteResourceYaml(resource.Kind, unstructuredObj.GetNamespace(), unstructuredObj.GetName(), obj)
 		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to add eventhandler: %s", err.Error())
 	}
 
-	stopCh := make(chan struct{})
-	go resourceInformer.Run(stopCh)
+	go func() {
+		stopCh := make(chan struct{})
+		go resourceInformer.Run(stopCh)
 
-	// Wait for the informer to sync and start processing events
-	if !cache.WaitForCacheSync(stopCh, resourceInformer.HasSynced) {
-		return fmt.Errorf("failed to sync cache for resource: %s", resourceKind)
+		if !cache.WaitForCacheSync(stopCh, resourceInformer.HasSynced) {
+			m.handlerMapLock.Lock()
+			defer m.handlerMapLock.Unlock()
+			resourceContext, ok := m.activeHandlers[resource]
+			if !ok {
+				K8sLogger.Warnf("Attempted to update resource state but resource has been removed from watcher: %+v", resource)
+			}
+			resourceContext.state = interfaces.WatchingFailed
+			m.activeHandlers[resource] = resourceContext
+			return
+		}
+
+		m.handlerMapLock.Lock()
+		defer m.handlerMapLock.Unlock()
+		resourceContext, ok := m.activeHandlers[resource]
+		if !ok {
+			K8sLogger.Warnf("Attempted to update resource state but resource has been removed from watcher: %+v", resource)
+		}
+		resourceContext.state = interfaces.Watching
+		m.activeHandlers[resource] = resourceContext
+	}()
+
+	m.activeHandlers[resource] = resourceContext{
+		state:    interfaces.WatcherInitializing,
+		informer: resourceInformer,
+		handler:  handler,
 	}
 
 	return nil
+}
+
+func (m *Watcher) Unwatch(resource interfaces.ResourceIdentifier) error {
+	m.handlerMapLock.Lock()
+	defer m.handlerMapLock.Unlock()
+
+	resourceContext, ok := m.activeHandlers[resource]
+	if !ok {
+		return fmt.Errorf("resource is not being watched")
+	}
+
+	err := resourceContext.informer.RemoveEventHandler(resourceContext.handler)
+	if err != nil {
+		return fmt.Errorf("failed to remove event handler: %s", err.Error())
+	}
+	delete(m.activeHandlers, resource)
+
+	return nil
+}
+
+func (m *Watcher) ListWatchedResources() []interfaces.ResourceIdentifier {
+	m.handlerMapLock.Lock()
+	defer m.handlerMapLock.Unlock()
+
+	resources := make([]interfaces.ResourceIdentifier, len(m.activeHandlers))
+	for r := range m.activeHandlers {
+		resources = append(resources, r)
+	}
+
+	return resources
+}
+
+func (m *Watcher) State(resource interfaces.ResourceIdentifier) (interfaces.ResourceState, error) {
+	m.handlerMapLock.Lock()
+	defer m.handlerMapLock.Unlock()
+
+	resourceContext, ok := m.activeHandlers[resource]
+	if !ok {
+		return interfaces.Unknown, fmt.Errorf("resource is not being watched")
+	}
+
+	return resourceContext.state, nil
+}
+
+func WatchAllResources(watcher interfaces.KubernetesWatcher) {
+	// Retry watching resources with exponential backoff in case of failures
+	err := retry.OnError(wait.Backoff{
+		Steps:    5,
+		Duration: 1 * time.Second,
+		Factor:   2.0,
+		Jitter:   0.1,
+	}, apierrors.IsServiceUnavailable, func() error {
+		for _, v := range utils.CONFIG.Iac.SyncWorkloads {
+			err := watcher.Watch(interfaces.ResourceIdentifier{
+				Name:         v.Name,
+				Kind:         v.Kind,
+				GroupVersion: v.Group,
+			}, nil, nil, nil)
+			if err != nil {
+				K8sLogger.Errorf("failed to initialize watchhandler for resource %s %s: %s", v.Kind, v.Version, err.Error())
+			} else {
+				K8sLogger.Infof("🚀 Watching resource %s (%s)", v.Kind, v.Group)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		K8sLogger.Fatalf("Error watching resources: %s", err.Error())
+	}
 }
 
 func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
@@ -176,6 +285,7 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 }
 
 func InitAllWorkloads() {
+	utils.Assert(IacManagerShouldWatchResources != nil, "func IacManagerShouldWatchResources has to be initialized")
 	allResources, err := GetAvailableResources()
 	if err != nil {
 		K8sLogger.Errorf("Error getting available resources: %s", err.Error())

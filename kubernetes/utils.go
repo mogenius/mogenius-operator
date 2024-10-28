@@ -11,6 +11,7 @@ import (
 	"net"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	punqDtos "github.com/mogenius/punq/dtos"
@@ -36,15 +37,11 @@ var K8sLogger = log.WithField("component", structs.ComponentKubernetes)
 var IacManagerWriteResourceYaml func(string, string, string, interface{})
 var IacManagerDeleteResourceYaml func(string, string, string, interface{})
 var IacManagerShouldWatchResources func() bool
-var IacManagerSetupInProcess bool
+var IacManagerSetupInProcess *atomic.Bool
 var IacManagerResetCurrentRepoData func(int) error
 var IacManagerSyncChanges func() error
 var IacManagerApplyRepoStateToCluster func() error
 var IacManagerDeleteDataRetries int
-
-// var IacManager
-// var IacManager
-// var IacManager
 
 var (
 	NAMESPACE       = utils.CONFIG.Kubernetes.OwnNamespace
@@ -484,15 +481,13 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 }
 
 func DeleteResourceYaml(kind, namespace, name string, obj interface{}) {
-	if IacManagerDeleteResourceYaml != nil {
-		IacManagerDeleteResourceYaml(kind, namespace, name, obj)
-	}
+	utils.Assert(IacManagerDeleteResourceYaml != nil, "func IacManageDeleteResourceYaml has to be initialized")
+	IacManagerDeleteResourceYaml(kind, namespace, name, obj)
 }
 
 func WriteResourceYaml(kind, namespace, name string, obj interface{}) {
-	if IacManagerWriteResourceYaml != nil {
-		IacManagerWriteResourceYaml(kind, namespace, name, obj)
-	}
+	utils.Assert(IacManagerWriteResourceYaml != nil, "func IacManagerWriteResourceYaml has to be initialized")
+	IacManagerWriteResourceYaml(kind, namespace, name, obj)
 }
 
 func FindResourceKind(namespace string, name string) (*dtos.K8sServiceControllerEnum, error) {
