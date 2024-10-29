@@ -129,6 +129,13 @@ func TestRemoveAllNetworkPolicies(t *testing.T) {
 	}
 }
 
+func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
+	err := CleanupLabeledNetworkPolicies("mogenius")
+	if err != nil {
+		t.Errorf("Error TestCleanupMogeniusNetworkPolicies: %s", err.Error())
+	}
+}
+
 func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	var namespaceName = "mogenius"
 

@@ -303,14 +303,17 @@ func DetachLabeledNetworkPolicies(controllerName string,
 		switch controllerType {
 		case dtos.DEPLOYMENT:
 			if deployment.Spec.Template.ObjectMeta.Labels != nil {
+				delete(deployment.ObjectMeta.Labels, policy.Name)
 				delete(deployment.Spec.Template.ObjectMeta.Labels, policy.Name)
 			}
 		case dtos.DAEMON_SET:
 			if daemonSet.Spec.Template.ObjectMeta.Labels != nil {
+				delete(daemonSet.ObjectMeta.Labels, policy.Name)
 				delete(daemonSet.Spec.Template.ObjectMeta.Labels, policy.Name)
 			}
 		case dtos.STATEFUL_SET:
 			if statefulSet.Spec.Template.ObjectMeta.Labels != nil {
+				delete(statefulSet.ObjectMeta.Labels, policy.Name)
 				delete(statefulSet.Spec.Template.ObjectMeta.Labels, policy.Name)
 			}
 		default:
@@ -343,7 +346,76 @@ func DetachLabeledNetworkPolicies(controllerName string,
 	default:
 		return fmt.Errorf("unsupported controller type %s", controllerType)
 	}
+
+	// cleanup unused network policies
+	CleanupLabeledNetworkPolicies(namespaceName)
+
 	return nil
+}
+
+func CleanupLabeledNetworkPolicies(namespaceName string) error {
+	client := GetAppClient()
+	deployments, err := client.Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("CleanupLabeledNetworkPolicies getDeployments ERROR: %s", err)
+	}
+	daemonSet, err := client.DaemonSets(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("CleanupLabeledNetworkPolicies getDaemonSets ERROR: %s", err)
+	}
+	statefulSet, err := client.StatefulSets(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("CleanupLabeledNetworkPolicies getStatefulSets ERROR: %s", err)
+	}
+
+	// create list of all in-use labels
+	inUseLabels := make(map[string]bool)
+	for _, deployment := range deployments.Items {
+		inUseLabels = findInuseLabels(deployment.ObjectMeta, inUseLabels)
+		inUseLabels = findInuseLabels(deployment.Spec.Template.ObjectMeta, inUseLabels)
+	}
+	for _, daemonSet := range daemonSet.Items {
+		inUseLabels = findInuseLabels(daemonSet.ObjectMeta, inUseLabels)
+		inUseLabels = findInuseLabels(daemonSet.Spec.Template.ObjectMeta, inUseLabels)
+	}
+	for _, statefulSet := range statefulSet.Items {
+		inUseLabels = findInuseLabels(statefulSet.ObjectMeta, inUseLabels)
+		inUseLabels = findInuseLabels(statefulSet.Spec.Template.ObjectMeta, inUseLabels)
+	}
+
+	// list all network policies created by mogenius
+	netClient := GetNetworkingClient()
+	netPolList, err := netClient.NetworkPolicies(namespaceName).List(context.TODO(), metav1.ListOptions{LabelSelector: NetpolLabel + "=true"})
+	if err != nil {
+		return fmt.Errorf("CleanupLabeledNetworkPolicies getNetworkPolicies ERROR: %s", err)
+	}
+
+	// delete all network policies that are not in use
+	cleanupCounter := 0
+	for _, netPol := range netPolList.Items {
+		if netPol.Name == DenyAllNetPolName {
+			continue
+		}
+		if _, ok := inUseLabels[netPol.Name]; !ok {
+			err = netClient.NetworkPolicies(namespaceName).Delete(context.TODO(), netPol.Name, metav1.DeleteOptions{})
+			if err != nil {
+				K8sLogger.Errorf("CleanupLabeledNetworkPolicies deleteNetworkPolicy ERROR: %s", err)
+			} else {
+				cleanupCounter++
+			}
+		}
+	}
+	K8sLogger.Infof("%d unused mogenius network policies deleted.", cleanupCounter)
+	return nil
+}
+
+func findInuseLabels(meta metav1.ObjectMeta, currentList map[string]bool) map[string]bool {
+	for label := range meta.Labels {
+		if strings.Contains(label, PoliciesLabelPrefix) {
+			currentList[label] = true
+		}
+	}
+	return currentList
 }
 
 func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabeledNetworkPolicyDto) error {
@@ -598,6 +670,10 @@ func ReadNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
 }
 
 func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
+	if namespaceName == "kube-system" {
+		return fmt.Errorf("cannot remove network-policies from kube-system namespace")
+	}
+
 	netpols, err := ListAllConflictingNetworkPolicies(namespaceName)
 	if err != nil {
 		return fmt.Errorf("failed to list all network policies: %v", err)
