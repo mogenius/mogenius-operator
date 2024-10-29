@@ -98,6 +98,18 @@ spec:
 	} else {
 		t.Logf("%d persistentvolumes found ✅", len(pvList.Items))
 	}
+	nsList, err := GetUnstructuredResourceList("", "v1", "namespaces", false)
+	if err != nil {
+		t.Errorf("Error GetUnstructuredResourceList namespaces: %s", err.Error())
+	} else {
+		t.Logf("%d namespaces found ✅", len(nsList.Items))
+	}
+	k3sAddonsList, err := GetUnstructuredResourceList("k3s.cattle.io/v1", "v1", "addons", true)
+	if err != nil {
+		t.Errorf("Error GetUnstructuredResourceList k3sAddons: %s", err.Error())
+	} else {
+		t.Logf("%d k3s addons found ✅", len(k3sAddonsList.Items))
+	}
 
 	// GET WORKLOAD
 	getObj, err := GetUnstructuredResource("apps/v1", "", "deployments", "kube-system", "coredns")

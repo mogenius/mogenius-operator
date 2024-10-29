@@ -586,6 +586,10 @@ func createResourceVersion(group, version, name string) schema.GroupVersionResou
 			Resource: name,
 		}
 	}
+	if strings.HasSuffix(group, version) {
+		version = ""
+	}
+
 	return schema.GroupVersionResource{
 		Group:    group,
 		Version:  version,
