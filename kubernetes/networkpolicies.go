@@ -8,13 +8,19 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
+	scheme "k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/record"
 
+	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+var netPolRecoderLogger record.EventRecorderLogger
 
 func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("create", "Create NetworkPolicy namespace", job)
@@ -135,4 +141,24 @@ func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 			cmd.Success(job, "Delete NetworkPolicy")
 		}
 	}(wg)
+}
+
+func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
+	if netPolRecoderLogger == nil {
+		provider, err := punq.NewKubeProvider(nil)
+		if provider == nil || err != nil {
+			K8sLogger.Fatalf("Error creating provider for netpol watcher. Cannot continue because it is vital: %s", err.Error())
+			return
+		}
+
+		// Set up a dynamic event broadcaster for the specific namespace
+		broadcaster := record.NewBroadcaster()
+		eventInterface := provider.ClientSet.CoreV1().Events(netPol.Namespace)
+		broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
+		netPolRecoderLogger = broadcaster.NewRecorder(scheme.Scheme, v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"})
+	}
+
+	// Trigger custom event
+	K8sLogger.Debugf("Netpol %s is being updated in namespace %s, triggering event", netPol.Name, netPol.Namespace)
+	netPolRecoderLogger.Eventf(netPol, v1Core.EventTypeNormal, reason, "NetPol %s is being %s", netPol.Name, reason)
 }

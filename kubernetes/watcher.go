@@ -15,6 +15,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	v1Net "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -255,6 +256,17 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 			}
 			processEvent(&event)
 		}
+		return
+	}
+
+	if kind == "NetworkPolicy" {
+		var netPol v1Net.NetworkPolicy
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
+		if err != nil {
+			return
+		}
+		HandleNetworkPolicyChange(&netPol, "Added/Updated")
+		return
 	}
 }
 
@@ -272,7 +284,9 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 			}
 			processEvent(&event)
 		}
+		return
 	}
+
 	if kind == "PersistentVolume" {
 		var pv v1.PersistentVolume
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &pv)
@@ -280,6 +294,17 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 			return
 		}
 		handlePVDeletion(&pv)
+		return
+	}
+
+	if kind == "NetworkPolicy" {
+		var netPol v1Net.NetworkPolicy
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
+		if err != nil {
+			return
+		}
+		HandleNetworkPolicyChange(&netPol, "Deleted")
+		return
 	}
 }
 
