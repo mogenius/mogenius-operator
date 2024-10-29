@@ -71,8 +71,7 @@ func (m *Watcher) Watch(resource interfaces.ResourceIdentifier, onAdd func(resou
 
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(provider.DynamicClient, time.Minute*10, v1.NamespaceAll, nil)
 
-	gvr := schema.GroupVersionResource{Group: gv.Group, Version: gv.Version, Resource: resource.Name}
-	resourceInformer := informerFactory.ForResource(gvr).Informer()
+	resourceInformer := informerFactory.ForResource(createResourceVersion(gv.Group, gv.Version, resource.Name)).Informer()
 
 	err = resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 		if err == io.EOF {
@@ -313,17 +312,9 @@ func GetUnstructuredResourceList(group, version, name string, namespaced bool) (
 	}
 
 	if namespaced {
-		return provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    group,
-			Version:  version,
-			Resource: name,
-		}).Namespace("").List(context.TODO(), metav1.ListOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace("").List(context.TODO(), metav1.ListOptions{})
 	} else {
-		return provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    group,
-			Version:  version,
-			Resource: name,
-		}).List(context.TODO(), metav1.ListOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).List(context.TODO(), metav1.ListOptions{})
 	}
 }
 
@@ -341,17 +332,9 @@ func CreateUnstructuredResource(group, version, name string, namespaced bool, ya
 	}
 
 	if namespaced {
-		return provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    group,
-			Version:  version,
-			Resource: name,
-		}).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
 	} else {
-		return provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    group,
-			Version:  version,
-			Resource: name,
-		}).Create(context.TODO(), obj, metav1.CreateOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Create(context.TODO(), obj, metav1.CreateOptions{})
 	}
 }
 
@@ -369,17 +352,9 @@ func UpdateUnstructuredResource(group, version, name string, namespaced bool, ya
 	}
 
 	if namespaced {
-		return provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    group,
-			Version:  version,
-			Resource: name,
-		}).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
 	} else {
-		return provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    group,
-			Version:  version,
-			Resource: name,
-		}).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Update(context.TODO(), obj, metav1.UpdateOptions{})
 	}
 }
 
@@ -397,17 +372,9 @@ func DeleteUnstructuredResource(group, version, name string, namespaced bool, ya
 	}
 
 	if namespaced {
-		return provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    group,
-			Version:  version,
-			Resource: name,
-		}).Namespace(obj.GetNamespace()).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
 	} else {
-		return provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    group,
-			Version:  version,
-			Resource: name,
-		}).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
 	}
 }
 
@@ -419,11 +386,7 @@ func DescribeUnstructuredResource(group, version, name string, namespaced bool, 
 	}
 
 	restMapping := &meta.RESTMapping{
-		Resource: schema.GroupVersionResource{
-			Group:    group,
-			Version:  version,
-			Resource: name,
-		},
+		Resource: createResourceVersion(group, version, name),
 		GroupVersionKind: schema.GroupVersionKind{
 			Group:   group,
 			Version: version,
@@ -470,22 +433,15 @@ func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
 	}
 
 	if namespaced {
-		res, err := provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    obj.GroupVersionKind().Group,
-			Version:  obj.GroupVersionKind().Version,
-			Resource: resourceName,
-		}).Namespace(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
+		res, err := provider.DynamicClient.Resource(
+			createResourceVersion(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).Namespace(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 		if err != nil {
 			K8sLogger.Errorf("Error querying resource: %s", err.Error())
 			return nil, err
 		}
 		return res.Object, nil
 	} else {
-		res, err := provider.DynamicClient.Resource(schema.GroupVersionResource{
-			Group:    obj.GroupVersionKind().Group,
-			Version:  obj.GroupVersionKind().Version,
-			Resource: resourceName,
-		}).List(context.TODO(), metav1.ListOptions{})
+		res, err := provider.DynamicClient.Resource(createResourceVersion(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			K8sLogger.Errorf("Error listing resource: %s", err.Error())
 			return nil, err
@@ -578,4 +534,20 @@ func GetSyncResourcesFromString(resourcesStr string) ([]utils.SyncResourceEntry,
 
 func CommaSeperatedStringToArray(str string) []string {
 	return strings.Split(str, ",")
+}
+
+func createResourceVersion(group, version, name string) schema.GroupVersionResource {
+	// fore core apis we need change the group to empty string
+	if group == "v1" && version == "" {
+		return schema.GroupVersionResource{
+			Group:    "",
+			Version:  group,
+			Resource: name,
+		}
+	}
+	return schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: name,
+	}
 }
