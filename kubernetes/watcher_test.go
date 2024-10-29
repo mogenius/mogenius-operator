@@ -65,20 +65,6 @@ spec:
         ports:
         - containerPort: 80`
 
-	yamlString := `apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: coredns
-  namespace: kube-system
-  labels:
-    app: my-app
-spec:
-  containers:
-  - name: my-container
-    image: nginx
-    ports:
-    - containerPort: 80`
-
 	// LIST ALL AVAILABLE
 	resources, err := GetAvailableResources()
 	if err != nil {
@@ -123,7 +109,7 @@ spec:
 	}
 
 	// DESCRIBE
-	describeStr, err := DescribeUnstructuredResource("apps/v1", "", "deployments", true, yamlString)
+	describeStr, err := DescribeUnstructuredResource("apps/v1", "", "deployments", "kube-system", "coredns")
 	if err != nil {
 		t.Errorf("Error describing deployments: %s", err.Error())
 	} else {

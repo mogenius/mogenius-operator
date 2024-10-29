@@ -425,7 +425,7 @@ func DeleteUnstructuredResource(group, version, name string, namespaced bool, ya
 	}
 }
 
-func DescribeUnstructuredResource(group, version, name string, namespaced bool, yamlData string) (string, error) {
+func DescribeUnstructuredResource(group, version, name string, namespace, resourceName string) (string, error) {
 	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		K8sLogger.Errorf("Error creating provider for watcher. Cannot continue: %s", err.Error())
@@ -441,19 +441,13 @@ func DescribeUnstructuredResource(group, version, name string, namespaced bool, 
 		},
 	}
 
-	obj := &unstructured.Unstructured{}
-	err = yaml.Unmarshal([]byte(yamlData), obj)
-	if err != nil {
-		return "", err
-	}
-
 	describer, ok := describe.GenericDescriberFor(restMapping, &provider.ClientConfig)
 	if !ok {
 		fmt.Printf("Failed to get describer: %v\n", err)
 		return "", err
 	}
 
-	output, err := describer.Describe(obj.GetNamespace(), obj.GetName(), describe.DescriberSettings{ShowEvents: true})
+	output, err := describer.Describe(namespace, resourceName, describe.DescriberSettings{ShowEvents: true})
 	if err != nil {
 		fmt.Printf("Failed to describe resource: %v\n", err)
 		return "", err
