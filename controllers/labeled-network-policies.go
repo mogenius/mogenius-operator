@@ -60,6 +60,10 @@ func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string,
 		return "", nil
 	}
 
+	if data.NamespaceName == "kube-system" {
+		return "", fmt.Errorf("cannot attach network policy to kube-system namespace")
+	}
+
 	// log
 	logWithFields := log.WithFields(log.Fields{"component": structs.ComponentServices, "namespace": data.NamespaceName, "controllerName": data.ControllerName})
 	var labeledNetworkPolicyNameStrings []string

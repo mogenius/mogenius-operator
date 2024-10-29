@@ -90,9 +90,27 @@ spec:
 	// LIST ITEMS IN WORKLOAD
 	deplList, err := GetUnstructuredResourceList("apps/v1", "", "deployments", true)
 	if err != nil {
-		t.Errorf("Error GetAvailableResources: %s", err.Error())
+		t.Errorf("Error GetUnstructuredResourceList deployments: %s", err.Error())
 	} else {
 		t.Logf("%d deployments found ✅", len(deplList.Items))
+	}
+	podList, err := GetUnstructuredResourceList("", "v1", "pods", true)
+	if err != nil {
+		t.Errorf("Error GetUnstructuredResourceList pods: %s", err.Error())
+	} else {
+		t.Logf("%d pods found ✅", len(podList.Items))
+	}
+	secList, err := GetUnstructuredResourceList("", "v1", "secrets", true)
+	if err != nil {
+		t.Errorf("Error GetUnstructuredResourceList pods: %s", err.Error())
+	} else {
+		t.Logf("%d secrets found ✅", len(secList.Items))
+	}
+	pvList, err := GetUnstructuredResourceList("", "v1", "persistentvolumes", true)
+	if err != nil {
+		t.Errorf("Error GetUnstructuredResourceList pods: %s", err.Error())
+	} else {
+		t.Logf("%d persistentvolumes found ✅", len(pvList.Items))
 	}
 
 	// DESCRIBE
