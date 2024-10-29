@@ -337,9 +337,27 @@ func GetUnstructuredResourceList(group, version, name string, namespaced bool) (
 	}
 
 	if namespaced {
-		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace("").List(context.TODO(), metav1.ListOptions{})
+		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace("").List(context.TODO(), metav1.ListOptions{})
+		return removeManagedFieldsFromList(result), err
 	} else {
-		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).List(context.TODO(), metav1.ListOptions{})
+		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).List(context.TODO(), metav1.ListOptions{})
+		return removeManagedFieldsFromList(result), err
+	}
+}
+
+func GetUnstructuredResource(group, version, name string, namespace, resourceName string) (*unstructured.Unstructured, error) {
+	provider, err := NewKubeProvider()
+	if provider == nil || err != nil {
+		K8sLogger.Errorf("Error creating provider for GetUnstructuredResource. Cannot continue: %s", err.Error())
+		return nil, err
+	}
+
+	if namespace != "" {
+		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(namespace).Get(context.TODO(), resourceName, metav1.GetOptions{})
+		return removeManagedFields(result), err
+	} else {
+		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Get(context.TODO(), resourceName, metav1.GetOptions{})
+		return removeManagedFields(result), err
 	}
 }
 
@@ -357,9 +375,11 @@ func CreateUnstructuredResource(group, version, name string, namespaced bool, ya
 	}
 
 	if namespaced {
-		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
+		return removeManagedFields(result), err
 	} else {
-		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Create(context.TODO(), obj, metav1.CreateOptions{})
+		return removeManagedFields(result), err
 	}
 }
 
@@ -377,9 +397,11 @@ func UpdateUnstructuredResource(group, version, name string, namespaced bool, ya
 	}
 
 	if namespaced {
-		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		return removeManagedFields(result), err
 	} else {
-		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		return removeManagedFields(result), err
 	}
 }
 
@@ -575,4 +597,24 @@ func createResourceVersion(group, version, name string) schema.GroupVersionResou
 		Version:  version,
 		Resource: name,
 	}
+}
+
+func removeManagedFields(obj *unstructured.Unstructured) *unstructured.Unstructured {
+	if obj == nil {
+		return obj
+	}
+	unstructuredContent := obj.Object
+	delete(unstructuredContent, "managedFields")
+	return obj
+}
+
+func removeManagedFieldsFromList(objList *unstructured.UnstructuredList) *unstructured.UnstructuredList {
+	if objList == nil {
+		return objList
+	}
+	for i := range objList.Items {
+		removeManagedFields(&objList.Items[i])
+	}
+
+	return objList
 }

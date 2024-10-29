@@ -202,6 +202,7 @@ const (
 	PAT_GET_WORKLOAD_LIST   string = "get/workload-list"
 	PAT_CREATE_NEW_WORKLOAD string = "create/new-workload"
 	PAT_DESCRIBE_WORKLOAD   string = "describe/workload"
+	PAT_GET_WORKLOAD        string = "get/workload"
 	PAT_UPDATE_WORKLOAD     string = "update/workload"
 	PAT_DELETE_WORKLOAD     string = "delete/workload"
 
@@ -605,6 +606,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_GET_WORKLOAD_LIST,
 	PAT_CREATE_NEW_WORKLOAD,
 	PAT_UPDATE_WORKLOAD,
+	PAT_GET_WORKLOAD,
 	PAT_DELETE_WORKLOAD,
 	PAT_DESCRIBE_WORKLOAD,
 

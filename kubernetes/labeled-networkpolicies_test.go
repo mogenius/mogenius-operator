@@ -95,8 +95,7 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	}()
 
 	// attach network policy
-
-	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)
+	err = AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy1})
 	if err != nil {
 		t.Errorf("Error attaching network policy: %s", err.Error())
 	}
@@ -158,7 +157,7 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	}()
 
 	// attach network policy
-	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)
+	err = AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy1})
 	if err != nil {
 		t.Errorf("Error attaching network policy: %s", err.Error())
 	}
@@ -168,7 +167,7 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// attach network policy
-	err = AttachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy2)
+	err = AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy2})
 	if err != nil {
 		t.Errorf("Error attaching network policy: %s", err.Error())
 	}

@@ -113,13 +113,22 @@ spec:
 		t.Logf("%d persistentvolumes found ✅", len(pvList.Items))
 	}
 
+	// GET WORKLOAD
+	getObj, err := GetUnstructuredResource("apps/v1", "", "deployments", "kube-system", "coredns")
+	if err != nil {
+		t.Errorf("Error describing deployments: %s", err.Error())
+	} else {
+		fmt.Println(getObj)
+		t.Log("Get object success ✅")
+	}
+
 	// DESCRIBE
 	describeStr, err := DescribeUnstructuredResource("apps/v1", "", "deployments", true, yamlString)
 	if err != nil {
 		t.Errorf("Error describing deployments: %s", err.Error())
 	} else {
 		fmt.Println(describeStr)
-		t.Log("Describtion generated ✅")
+		t.Log("Description generated ✅")
 	}
 
 	// NEW WORKLOAD
