@@ -348,9 +348,9 @@ func DetachLabeledNetworkPolicies(controllerName string,
 	}
 
 	// cleanup unused network policies
-	CleanupLabeledNetworkPolicies(namespaceName)
+	err = CleanupLabeledNetworkPolicies(namespaceName)
 
-	return nil
+	return err
 }
 
 func CleanupLabeledNetworkPolicies(namespaceName string) error {
