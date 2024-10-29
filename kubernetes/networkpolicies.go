@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/utils"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -158,7 +159,53 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 		netPolRecoderLogger = broadcaster.NewRecorder(scheme.Scheme, v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"})
 	}
 
-	// Trigger custom event
+	// Create a new event and add custom annotations
+	event := &v1Core.Event{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: netPol.Namespace,
+			Name:      netPol.Name,
+		},
+		InvolvedObject: v1Core.ObjectReference{
+			Kind:       "NetworkPolicy",
+			Namespace:  netPol.Namespace,
+			Name:       netPol.Name,
+			UID:        netPol.UID,
+			APIVersion: "networking.k8s.io/v1",
+		},
+		Message: fmt.Sprintf("NetPol %s is being %s", netPol.Name, reason),
+		Type:    v1Core.EventTypeNormal,
+		Reason:  reason,
+		Source:  v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"},
+	}
+
+	// Add custom annotations for auth to the event
+	err := addEventAnnotations(event,
+		"x-authorization", utils.CONFIG.Kubernetes.ApiKey,
+		"x-cluster-mfa-id", utils.CONFIG.Kubernetes.ClusterMfaId)
+	if err != nil {
+		K8sLogger.Errorf("Failed to add annotations to the event: %v", err)
+	}
+
+	// Trigger the custom event
 	K8sLogger.Debugf("Netpol %s is being updated in namespace %s, triggering event", netPol.Name, netPol.Namespace)
-	netPolRecoderLogger.Eventf(netPol, v1Core.EventTypeNormal, reason, "NetPol %s is being %s", netPol.Name, reason)
+	netPolRecoderLogger.Event(event, event.Type, event.Reason, event.Message)
+}
+
+// AddAnnotations adds key-value pairs as annotations to a Kubernetes event
+func addEventAnnotations(event *v1Core.Event, annotations ...string) error {
+	if len(annotations)%2 != 0 {
+		return fmt.Errorf("annotations must be in key-value pairs")
+	}
+
+	if event.ObjectMeta.Annotations == nil {
+		event.ObjectMeta.Annotations = make(map[string]string)
+	}
+
+	for i := 0; i < len(annotations); i += 2 {
+		key := annotations[i]
+		value := annotations[i+1]
+		event.ObjectMeta.Annotations[key] = value
+	}
+
+	return nil
 }

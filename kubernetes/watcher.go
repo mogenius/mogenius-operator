@@ -265,6 +265,7 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 		if err != nil {
 			return
 		}
+
 		HandleNetworkPolicyChange(&netPol, "Added/Updated")
 		return
 	}
