@@ -52,6 +52,15 @@ type SyncResourceData struct {
 	YamlData   string `json:"yamlData"`
 }
 
+type SyncResourceItem struct {
+	Kind         string `json:"kind"`
+	Name         string `json:"name"`
+	Group        string `json:"group"`
+	Version      string `json:"version"`
+	ResourceName string `json:"resourceName"`
+	Namespace    string `json:"namespace"`
+}
+
 func (s *SyncResourceEntry) YamlString() string {
 	bytes, out := yaml.Marshal(s)
 	if out != nil {
