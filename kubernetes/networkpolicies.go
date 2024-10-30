@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
+	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	scheme "k8s.io/client-go/kubernetes/scheme"
@@ -159,53 +160,27 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 		netPolRecoderLogger = broadcaster.NewRecorder(scheme.Scheme, v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"})
 	}
 
-	// Create a new event and add custom annotations
-	event := &v1Core.Event{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: netPol.Namespace,
-			Name:      netPol.Name,
-		},
-		InvolvedObject: v1Core.ObjectReference{
-			Kind:       "NetworkPolicy",
-			Namespace:  netPol.Namespace,
-			Name:       netPol.Name,
-			UID:        netPol.UID,
-			APIVersion: "networking.k8s.io/v1",
-		},
-		Message: fmt.Sprintf("NetPol %s is being %s", netPol.Name, reason),
-		Type:    v1Core.EventTypeNormal,
-		Reason:  reason,
-		Source:  v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"},
-	}
+	annotations := createAnnotations(
+		"mogenius.io/x-authorization", utils.CONFIG.Kubernetes.ApiKey,
+		"mogenius.io/x-cluster-mfa-id", utils.CONFIG.Kubernetes.ClusterMfaId)
 
-	// Add custom annotations for auth to the event
-	err := addEventAnnotations(event,
-		"x-authorization", utils.CONFIG.Kubernetes.ApiKey,
-		"x-cluster-mfa-id", utils.CONFIG.Kubernetes.ClusterMfaId)
-	if err != nil {
-		K8sLogger.Errorf("Failed to add annotations to the event: %v", err)
-	}
-
-	// Trigger the custom event
-	K8sLogger.Debugf("Netpol %s is being updated in namespace %s, triggering event", netPol.Name, netPol.Namespace)
-	netPolRecoderLogger.Event(event, event.Type, event.Reason, event.Message)
+	netPolRecoderLogger.AnnotatedEventf(netPol, annotations, v1Core.EventTypeNormal, reason, "NetPol %s is being %s", netPol.Name, reason)
 }
 
-// AddAnnotations adds key-value pairs as annotations to a Kubernetes event
-func addEventAnnotations(event *v1Core.Event, annotations ...string) error {
-	if len(annotations)%2 != 0 {
-		return fmt.Errorf("annotations must be in key-value pairs")
+func createAnnotations(items ...string) map[string]string {
+	if len(items)%2 != 0 {
+		return nil
 	}
 
-	if event.ObjectMeta.Annotations == nil {
-		event.ObjectMeta.Annotations = make(map[string]string)
+	annotations := make(map[string]string)
+
+	for i := 0; i < len(items); i += 2 {
+		key := items[i]
+		value := items[i+1]
+		annotations[key] = value
 	}
 
-	for i := 0; i < len(annotations); i += 2 {
-		key := annotations[i]
-		value := annotations[i+1]
-		event.ObjectMeta.Annotations[key] = value
-	}
+	annotations["mogenius.io/created"] = time.Now().String()
 
-	return nil
+	return annotations
 }
