@@ -2,16 +2,14 @@ package crds
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/logging"
 	"reflect"
 	"unicode"
-
-	log "github.com/sirupsen/logrus"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-var CrdLogger = log.WithField("component", structs.ComponentCrds)
+var CrdLogger = logging.CreateLogger("crds")
 
 const (
 	MogeniusGroup                  = "mogenius.io"

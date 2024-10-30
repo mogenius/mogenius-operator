@@ -127,14 +127,22 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 		TotalBytes: total,
 	}
 
-	ServiceLogger.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(result.UsedBytes)), punqUtils.BytesToHumanReadable(int64(result.TotalBytes)), punqUtils.BytesToHumanReadable(int64(result.FreeBytes)))
+	ServiceLogger.Info("💾: nfs volume stats",
+		"mountPath", mountPath,
+		"usedBytes", punqUtils.BytesToHumanReadable(int64(result.UsedBytes)),
+		"totalBytes", punqUtils.BytesToHumanReadable(int64(result.TotalBytes)),
+		"freeBytes", punqUtils.BytesToHumanReadable(int64(result.FreeBytes)),
+	)
 	return result
 }
 
 func diskUsage(mountPath string) (uint64, uint64, uint64, error) {
 	usage, err := disk.Usage(mountPath)
 	if err != nil {
-		ServiceLogger.Errorf("StatsMogeniusNfsVolume Err: %s %s", mountPath, err.Error())
+		ServiceLogger.Error("StatsMogeniusNfsVolume",
+			"mountPath", mountPath,
+			"error", err,
+		)
 		return 0, 0, 0, err
 	} else {
 		return usage.Free, usage.Used, usage.Total, nil
@@ -145,7 +153,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 	result := []NfsVolumeStatsResponse{}
 
 	if r.NamespaceName == "null" || r.NamespaceName == "" {
-		ServiceLogger.Errorf("StatsMogeniusNfsNamespace Err: namespaceName cannot be null or empty.")
+		ServiceLogger.Error("StatsMogeniusNfsNamespace", "error", "namespaceName cannot be null or empty")
 		return result
 	}
 
@@ -185,7 +193,8 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 			}
 		}
 
-		ServiceLogger.Infof("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), punqUtils.BytesToHumanReadable(int64(entry.FreeBytes)))
+		message := fmt.Sprintf("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), punqUtils.BytesToHumanReadable(int64(entry.FreeBytes)))
+		ServiceLogger.Info(message)
 		result = append(result, entry)
 	}
 	return result
@@ -225,7 +234,7 @@ func sumAllBytesOfFolder(root string) uint64 {
 		return nil
 	})
 	if err != nil {
-		ServiceLogger.Errorf("Error while summing bytes in path: %s", err.Error())
+		ServiceLogger.Error("Error while summing bytes in path", "error", err)
 	}
 
 	wg.Wait()
@@ -694,7 +703,7 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 		if keplerservice != nil {
 			keplerHostAndPort = fmt.Sprintf("%s:%d", keplerservice.Name, keplerservice.Spec.Ports[0].Port)
 		} else {
-			ServiceLogger.Errorf("EnergyConsumption Err: kepler service not found.")
+			ServiceLogger.Error("EnergyConsumption", "error", "kepler service not found.")
 			return structs.CurrentEnergyConsumptionResponse
 		}
 		// if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
@@ -716,13 +725,13 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 			// download the data
 			response, err := http.Get(fmt.Sprintf("http://%s/metrics", keplerHostAndPort))
 			if err != nil {
-				ServiceLogger.Errorf("EnergyConsumption Err: %s", err.Error())
+				ServiceLogger.Error("EnergyConsumption", "error", err)
 				return
 			}
 			defer response.Body.Close()
 			data, err := io.ReadAll(response.Body)
 			if err != nil {
-				ServiceLogger.Errorf("EnergyConsumptionRead Err: %s", err.Error())
+				ServiceLogger.Error("EnergyConsumptionRead", "error", err)
 				return
 			}
 
@@ -915,10 +924,10 @@ func InstallMetalLb() (string, error) {
 			time.Sleep(1 * time.Second)
 			err := mokubernetes.CreateYamlString(InstallAddressPool())
 			if err != nil && !apierrors.IsAlreadyExists(err) {
-				ServiceLogger.Errorf("Error installing metallb address pool: %s", err.Error())
+				ServiceLogger.Error("Error installing metallb address pool", "error", err)
 			}
 			if err != nil && apierrors.IsInternalError(err) {
-				ServiceLogger.Infof("Control plane not ready. Waiting for metallb address pool installation ...")
+				ServiceLogger.Info("Control plane not ready. Waiting for metallb address pool installation ...")
 			}
 			if err == nil {
 				break
@@ -978,7 +987,7 @@ func InstallClusterIssuer(email string, currentRetries int) (string, error) {
 	} else {
 		ingType, err := punq.DetermineIngressControllerType(nil)
 		if err != nil {
-			ServiceLogger.Errorf("InstallClusterIssuer: Error determining ingress controller type: %s", err.Error())
+			ServiceLogger.Error("InstallClusterIssuer: Error determining ingress controller type", "error", err)
 		}
 		if ingType == punq.TRAEFIK || ingType == punq.NGINX {
 			r := ClusterHelmRequest{
@@ -996,12 +1005,16 @@ func InstallClusterIssuer(email string, currentRetries int) (string, error) {
 				currentRetries++
 				_, err := InstallClusterIssuer(email, currentRetries)
 				if err != nil {
-					ServiceLogger.Debugf("Error installing cluster issuer: %s", err.Error())
+					ServiceLogger.Debug("Error installing cluster issuer", "error", err)
 				}
 			}
 			return result, err
 		}
-		ServiceLogger.Infof("No suitable Ingress Controller found (%s). Retry in 3 seconds (%d/%d) ...", ingType.String(), currentRetries, maxRetries)
+		ServiceLogger.Info("No suitable Ingress Controller found. Retry in 3 seconds ...",
+			"ingType", ingType.String(),
+			"currentRetries", currentRetries,
+			"maxRetries", maxRetries,
+		)
 		currentRetries++
 		return InstallClusterIssuer(email, currentRetries)
 	}
@@ -1253,7 +1266,11 @@ func getMostCurrentHelmChartVersion(url string, chartname string) string {
 	url = addIndexYAMLtoURL(url)
 	data, err := utils.GetVersionData(url)
 	if err != nil {
-		ServiceLogger.Errorf("Error getting helm chart version (%s/%s): %s", url, chartname, err)
+		ServiceLogger.Error("Error getting helm chart version",
+			"chartUrl", url,
+			"chartName", chartname,
+			"error", err,
+		)
 		return ""
 	}
 	chartsArray := data.Entries[chartname]

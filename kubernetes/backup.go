@@ -351,10 +351,10 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 
 	//os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 0777)
 
-	K8sLogger.Infof("\nSKIP   : %s\n", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
-	K8sLogger.Infof("\nALL    : %s\n", allResources.Display())
-	K8sLogger.Infof("\nSKIPPED: %s\n", skippedGroups.Display())
-	K8sLogger.Infof("\nUSED   : %s\n", usedResources.Display())
+	K8sLogger.Info("SKIP", "resources", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
+	K8sLogger.Info("ALL", "resources", allResources.Display())
+	K8sLogger.Info("SKIPPED", "resources", skippedGroups.Display())
+	K8sLogger.Info("USED", "resources", usedResources.Display())
 
 	return result, nil
 }

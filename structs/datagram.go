@@ -8,7 +8,6 @@ import (
 	"github.com/fatih/color"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 type Datagram punqStructs.Datagram
@@ -99,28 +98,32 @@ func (d *Datagram) DisplayBeautiful() {
 	SIZECOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
 	PAYLOADCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
 
-	log.Infof("%s %s\n", IDCOLOR("ID:      "), d.Id)
-	log.Infof("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
-	log.Infof("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
-	log.Infof("%s %s\n", TIMECOLOR("Duration:"), punqStructs.DurationStrSince(d.CreatedAt))
-	log.Infof("%s %s\n", SIZECOLOR("Size:    "), punqUtils.BytesToHumanReadable(d.GetSize()))
-	log.Infof("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), utils.PrettyPrintInterface(d.Payload))
+	fmt.Printf("%s %s\n", IDCOLOR("ID:      "), d.Id)
+	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
+	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
+	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), punqStructs.DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s %s\n", SIZECOLOR("Size:    "), punqUtils.BytesToHumanReadable(d.GetSize()))
+	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), utils.PrettyPrintInterface(d.Payload))
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
-	log.Infof("%s%s%s%s     %s\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "))
+	message := fmt.Sprintf("%s%s%s%s     %s\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "))
+	StructsLogger.Info(message)
 }
 
 func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
-	log.Infof("%s%s%s%s     %s %s %s\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "), punqUtils.FillWith(punqStructs.DurationStrSince(d.CreatedAt), 12, " "), color.YellowString(fmt.Sprintf("[Queue: %d/%d]", queuePosition, queueLen)))
+	message := fmt.Sprintf("%s%s%s%s     %s %s %s\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "), punqUtils.FillWith(punqStructs.DurationStrSince(d.CreatedAt), 12, " "), color.YellowString(fmt.Sprintf("[Queue: %d/%d]", queuePosition, queueLen)))
+	StructsLogger.Info(message)
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
-	log.Infof("%s%s: %s/%s -> %s (Count: %d)\n", punqUtils.FillWith("SENT", 23, " "), d.Pattern, kind, reason, msg, count)
+	message := fmt.Sprintf("%s%s: %s/%s -> %s (Count: %d)\n", punqUtils.FillWith("SENT", 23, " "), d.Pattern, kind, reason, msg, count)
+	StructsLogger.Info(message)
 }
 
 func (d *Datagram) DisplayStreamSummary() {
-	log.Infof("%s%s%s\n", punqUtils.FillWith("STREAMING", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
+	message := fmt.Sprintf("%s%s%s\n", punqUtils.FillWith("STREAMING", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
+	StructsLogger.Info(message)
 }
 
 func (d *Datagram) Send() {

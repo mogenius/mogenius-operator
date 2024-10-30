@@ -2,6 +2,7 @@ package iacmanager
 
 import (
 	"mogenius-k8s-manager/gitmanager"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	"sync"
 	"time"
@@ -324,9 +325,9 @@ func UpdateResourceStatus(kind string, namespace string, name string, state Sync
 	SetResourceState(key, newStatus)
 
 	if errMsg != nil {
-		IacLogger.Errorf("Error with %s resource (%s): %s", state, key, errMsg.Error())
+		IacLogger.Error("failure in UpdateResourceStatus", "syncState", state, "key", key, "error", errMsg.Error())
 	} else {
-		IacLogger.Infof("✅ %s resource '%s'.", state, key)
+		IacLogger.Info("✅ UpdateResourceStatus finished", "syncState", state, "key", key)
 	}
 }
 
@@ -385,7 +386,7 @@ func ChangedFilesLen() int {
 func iacConfigurationFromYamlConfig() IacConfiguration {
 	repoPat := ""
 	if utils.CONFIG.Iac.RepoPat != "" {
-		repoPat = utils.REDACTED
+		repoPat = logging.REDACTED
 	}
 	return IacConfiguration{
 		RepoUrl:            utils.CONFIG.Iac.RepoUrl,

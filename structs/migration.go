@@ -4,8 +4,6 @@ import (
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type Migration struct {
@@ -26,7 +24,7 @@ func MigrationBytes(migration Migration) []byte {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(migration)
 	if err != nil {
-		log.Errorf("MigrationBytes ERR: %s", err.Error())
+		StructsLogger.Error("MigrationBytes", "error", err)
 	}
 	return bytes
 }

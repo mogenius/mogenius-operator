@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strconv"
@@ -15,7 +16,6 @@ import (
 
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -45,7 +45,7 @@ const (
 	MAX_ENTRY_LENGTH = 1024 * 1024 * 50 // 50 MB
 )
 
-var dblogger = log.WithField("component", structs.ComponentDb)
+var DbLogger = logging.CreateLogger("db")
 
 func BuildJobKey(buildId uint64) string {
 	return fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
@@ -57,8 +57,8 @@ func Init() {
 	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		dblogger.Errorf("Error opening bbolt database from '%s'", dbPath)
-		dblogger.Fatal(err.Error())
+		DbLogger.Error("Error opening bbolt database", "dbPath", dbPath, "error", err)
+		panic(1)
 	}
 	// ### BUILD BUCKET ###
 	db = database
@@ -70,7 +70,7 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("Error creating bucket ('%s'): %s", BUILD_BUCKET_NAME, err)
+		DbLogger.Error("failed to create bucket", "bucket", BUILD_BUCKET_NAME, "error", err)
 	}
 	// ### SCAN BUCKET ### create a new scan bucket on every startup
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -93,7 +93,7 @@ func Init() {
 			return nil
 		})
 		if err != nil {
-			dblogger.Errorf("Error recreating bucket ('%s'): %s", SCAN_BUCKET_NAME, err)
+			DbLogger.Error("Error recreating bucket", "bucket", SCAN_BUCKET_NAME, "error", err)
 		}
 	}
 	// ### LOG BUCKET ###
@@ -106,7 +106,7 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("Error creating bucket ('%s'): %s", LOG_BUCKET_NAME, err)
+		DbLogger.Error("Error creating bucket", "bucket", LOG_BUCKET_NAME, "error", err)
 	}
 
 	// ### POD EVENT BUCKET ###
@@ -119,7 +119,7 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("Error creating bucket ('%s'): %s", POD_EVENT_BUCKET_NAME, err)
+		DbLogger.Error("Error creating bucket", "bucket", POD_EVENT_BUCKET_NAME, "error", err)
 	}
 
 	// ### MIGRATION BUCKET ###
@@ -132,13 +132,13 @@ func Init() {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("Error creating bucket ('%s'): %s", MIGRATION_BUCKET_NAME, err)
+		DbLogger.Error("Error creating bucket", "bucket", MIGRATION_BUCKET_NAME, "error", err)
 	}
 
 	// RESET STARTED JOBS TO PENDING
 	resetStartedJobsToPendingOnInit()
 
-	dblogger.Infof("bbold started 🚀 (Path: '%s')", dbPath)
+	DbLogger.Info("bbold started 🚀", "dbPath", dbPath)
 }
 
 func Close() {
@@ -157,7 +157,7 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 				// delete all build data
 				err := bucket.Delete(k)
 				if err != nil {
-					dblogger.Errorf("DeleteAllBuildData delete build data: %s", err.Error())
+					DbLogger.Error("DeleteAllBuildData delete build data", "error", err)
 				}
 
 				parts := strings.Split(string(k), "___")
@@ -165,13 +165,13 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 					buildIdStr := parts[0]
 					buildId, err := strconv.ParseUint(buildIdStr, 10, 64)
 					if err != nil {
-						dblogger.Errorf("DeleteAllBuildData parse buildId: %s", err.Error())
+						DbLogger.Error("DeleteAllBuildData parse buildId", "error", err)
 					}
 					// Delete queue entry
 					queueKey := fmt.Sprintf("%s-%s", PREFIX_QUEUE, utils.SequenceToKey(buildId))
 					err = bucket.Delete([]byte(queueKey))
 					if err != nil {
-						dblogger.Errorf("DeleteAllBuildData delete queue entry: %s", err.Error())
+						DbLogger.Error("DeleteAllBuildData delete queue entry", "error", err)
 					}
 				}
 			}
@@ -179,13 +179,13 @@ func DeleteAllBuildData(namespace string, controller string, container string) {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("DeleteAllBuildData: %s", err.Error())
+		DbLogger.Error("DeleteAllBuildData", "error", err.Error())
 	}
 	// Delete event entry
 	eventKey := fmt.Sprintf("%s-%s", namespace, controller)
 	err = DeleteEventByKey(eventKey)
 	if err != nil {
-		dblogger.Errorf("DeleteAllBuildData delete event entry: %s", err.Error())
+		DbLogger.Error("DeleteAllBuildData delete event entry", "error", err.Error())
 	}
 }
 
@@ -199,7 +199,7 @@ func resetStartedJobsToPendingOnInit() {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err != nil {
-				dblogger.Errorf("Init (unmarshall) ERR: %s", err.Error())
+				DbLogger.Error("Init (unmarshall)", "error", err)
 				continue
 			}
 			if job.State == structs.JobStateStarted {
@@ -207,14 +207,14 @@ func resetStartedJobsToPendingOnInit() {
 				key := BuildJobKey(job.BuildId)
 				err := bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
 				if err != nil {
-					dblogger.Errorf("Init (update) ERR: %s", err.Error())
+					DbLogger.Error("Init (update)", "error", err)
 				}
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("Init (db) ERR: %s", err.Error())
+		DbLogger.Error("Init (db)", "error", err)
 	}
 }
 
@@ -231,13 +231,13 @@ func GetJobsToBuildFromDb() []structs.BuildJob {
 					result = append(result, job)
 				}
 			} else {
-				dblogger.Errorf("ProcessQueue (unmarshall) ERR: %s", err.Error())
+				DbLogger.Error("ProcessQueue (unmarshall)", "error", err)
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("GetJobsToBuildFromDb (db) ERR: %s", err.Error())
+		DbLogger.Error("GetJobsToBuildFromDb (db)", "error", err)
 	}
 	return result
 }
@@ -316,7 +316,7 @@ func GetBuilderStatus() structs.BuilderStatus {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
+		DbLogger.Error("GetBuilderStatus (db)", "error", err)
 	}
 	return result
 }
@@ -342,7 +342,7 @@ func GetLastBuildJobInfosFromDb(data structs.BuildTaskRequest) structs.BuildJobI
 			buildId := parts[0]
 			lastBuildId, err := strconv.ParseUint(buildId, 10, 64)
 			if err != nil {
-				dblogger.Errorf("GetLastBuildJobInfosFromDb: %s", err.Error())
+				DbLogger.Error("GetLastBuildJobInfosFromDb", "error", err)
 				return err
 			}
 			result = GetBuildJobInfosFromDb(lastBuildId)
@@ -350,7 +350,7 @@ func GetLastBuildJobInfosFromDb(data structs.BuildTaskRequest) structs.BuildJobI
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("GetBuildJobListFromDb: %s", err.Error())
+		DbLogger.Error("GetBuildJobListFromDb", "error", err)
 	}
 	return result
 }
@@ -379,7 +379,7 @@ func GetLastBuildForNamespaceAndControllerName(namespace string, controllerName 
 			buildId := parts[0]
 			lastBuildId, err := strconv.ParseUint(buildId, 10, 64)
 			if err != nil {
-				dblogger.Errorf("GetLastBuildJobInfosFromDb: %s", err.Error())
+				DbLogger.Error("GetLastBuildJobInfosFromDb", "error", err)
 				return err
 			}
 			result = GetBuildJobInfosFromDb(lastBuildId)
@@ -387,7 +387,7 @@ func GetLastBuildForNamespaceAndControllerName(namespace string, controllerName 
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("GetBuildJobListFromDb: %s", err.Error())
+		DbLogger.Error("GetBuildJobListFromDb", "error", err)
 	}
 	return result
 }
@@ -455,7 +455,7 @@ func GetBuildJobInfosFromDb(buildId uint64) structs.BuildJobInfo {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("GetBuildJobFromDb (db) ERR: %s", err.Error())
+		DbLogger.Error("GetBuildJobFromDb (db)", "error", err)
 	}
 
 	return result
@@ -491,7 +491,7 @@ func GetBuildJobInfosListFromDb(namespace string, controller string, container s
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("GetBuildJobInfosListFromDb (db) ERR: %s", err.Error())
+		DbLogger.Error("GetBuildJobInfosListFromDb (db)", "error", err)
 	}
 
 	return results
@@ -505,7 +505,7 @@ func GetItemByKey(key string) []byte {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("GetBuilderStatus (db) ERR: %s", err.Error())
+		DbLogger.Error("GetBuilderStatus (db)", "error", err)
 	}
 	return rawData
 }
@@ -536,7 +536,7 @@ func GetBuildJobListFromDb() []structs.BuildJob {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("GetBuildJobListFromDb: %s", err.Error())
+		DbLogger.Error("GetBuildJobListFromDb", "error", err)
 	}
 	return result
 }
@@ -556,9 +556,9 @@ func UpdateStateInDb(buildJob structs.BuildJob, newState structs.JobStateEnum) {
 	})
 	if err != nil {
 		errStr := fmt.Sprintf("Error updating state for build '%d'. REASON: %s", buildJob.BuildId, err.Error())
-		dblogger.Error(errStr)
+		DbLogger.Error(errStr)
 	}
-	dblogger.Infof("State for build '%d' updated successfuly to '%s'.", buildJob.BuildId, newState)
+	DbLogger.Info("State for build updated successfuly.", "buildId", buildJob.BuildId, "newState", newState)
 }
 
 // func PositionInQueueFromDb(buildId uint64) int {
@@ -595,7 +595,7 @@ func SaveJobInDb(buildJob structs.BuildJob) {
 		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
 	})
 	if err != nil {
-		dblogger.Errorf("Error saving job '%d'.", buildJob.BuildId)
+		DbLogger.Error("Error saving job.", "buildId", buildJob.BuildId, "error", err)
 	}
 }
 
@@ -646,7 +646,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 			job := structs.BuildJob{}
 			err := structs.UnmarshalJob(&job, jobData)
 			if err != nil {
-				dblogger.Errorf("AddToDb (unmarshall) ERR: %s", err.Error())
+				DbLogger.Error("AddToDb (unmarshall)", "error", err)
 				continue
 			}
 			//
@@ -701,7 +701,7 @@ func SaveBuildResult(
 		return bucket.Put([]byte(key), entry)
 	})
 	if err != nil {
-		dblogger.Errorf("Error saving build result for '%d'.", job.BuildId)
+		DbLogger.Error("Error saving build result.", "buildId", job.BuildId)
 	}
 	return err
 }
@@ -714,7 +714,7 @@ func AddLogToDb(title string, message string, category structs.Category, logType
 		return bucket.Put([]byte(fmt.Sprintf("%s_%s_%s", entry.CreatedAt, entry.Category, entry.Type)), structs.LogBytes(entry))
 	})
 	if err != nil {
-		dblogger.Errorf("Error adding log for '%s': %s", title, err.Error())
+		DbLogger.Error("Error adding log", "title", title, "error", err)
 	}
 }
 
@@ -735,7 +735,7 @@ func ListLogFromDb() []structs.Log {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("ListLog: %s", err.Error())
+		DbLogger.Error("ListLog", "error", err)
 	}
 	return result
 }
@@ -748,7 +748,7 @@ func AddMigrationToDb(name string) error {
 		return bucket.Put([]byte(entry.Name), structs.MigrationBytes(entry))
 	})
 	if err != nil {
-		dblogger.Errorf("Error adding migration '%s'.", name)
+		DbLogger.Error("Error adding migration.", "name", name, "error", err)
 	}
 	return err
 }
@@ -823,7 +823,7 @@ func GetEventByKey(key string) []byte {
 		return nil
 	})
 	if err != nil {
-		dblogger.Errorf("GetEventByKey (db) ERR: %s", err.Error())
+		DbLogger.Error("GetEventByKey (db)", "error", err)
 	}
 	return rawData
 }
@@ -833,7 +833,7 @@ func DeleteEventByKey(key string) error {
 		bucket := tx.Bucket([]byte(POD_EVENT_BUCKET_NAME))
 		err := bucket.Delete([]byte(key))
 		if err != nil {
-			dblogger.Errorf("DeleteEventByKey: %s", err.Error())
+			DbLogger.Error("DeleteEventByKey", "error", err)
 		}
 		return nil
 	})

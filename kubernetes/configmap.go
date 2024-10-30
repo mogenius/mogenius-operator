@@ -116,11 +116,11 @@ func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
 		if apierrors.IsNotFound(err) {
 			_, err = client.Create(context.TODO(), &configMap, MoCreateOptions())
 			if err != nil {
-				K8sLogger.Errorf("InitNetworkPolicyConfigMap creation ERROR: %s", err)
+				K8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
 				return err
 			}
 		} else {
-			K8sLogger.Errorf("InitNetworkPolicyConfigMap get ERROR: %s", err)
+			K8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
 			return err
 		}
 	}
@@ -182,7 +182,7 @@ func WriteConfigMap(namespace string, name string, data string, labels map[strin
 			return err
 		}
 	} else {
-		K8sLogger.Errorf("CreateOrUpdateConfigMap ERROR: %s", err.Error())
+		K8sLogger.Error("CreateOrUpdateConfigMap", "error", err)
 		return err
 	}
 	return nil

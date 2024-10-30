@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/version"
 	"net/http"
 	"net/url"
@@ -20,13 +21,12 @@ import (
 
 	punqStructs "github.com/mogenius/punq/structs"
 	"github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 
 	"github.com/patrickmn/go-cache"
 )
 
-var UtilsLogger = log.WithField("component", "utils")
+var UtilsLogger = logging.CreateLogger("utils")
 
 const IMAGE_PLACEHOLDER = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
 
@@ -73,7 +73,7 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 		pwd, err := os.Getwd()
 		pwd += "/temp"
 		if err != nil {
-			UtilsLogger.Errorf("StatsMogeniusNfsVolume PWD Err: %s", err.Error())
+			UtilsLogger.Error("StatsMogeniusNfsVolume PWD", "error", err)
 		} else {
 			return pwd
 		}
@@ -121,7 +121,7 @@ func GetFunctionName() string {
 
 func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	result, err := utils.RunOnLocalShell(shellCmd).Output()
-	UtilsLogger.Infof("ExecuteShellCommandSilent: %s:\n%s", shellCmd, result)
+	UtilsLogger.Info("ExecuteShellCommandSilent", "command", shellCmd, "result", result)
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
 		errorMsg := string(exitErr.Stderr)
@@ -612,4 +612,16 @@ func adjustKeyLength(key []byte) []byte {
 		key = key[:32]
 	}
 	return key
+}
+
+func PrettyPrintInterface(i interface{}) string {
+	str := punqStructs.PrettyPrintString(i)
+	return RedactString(str)
+}
+
+func RedactString(targetSring string) string {
+	for _, secret := range logging.SecretArray() {
+		targetSring = strings.ReplaceAll(targetSring, secret, logging.REDACTED)
+	}
+	return targetSring
 }

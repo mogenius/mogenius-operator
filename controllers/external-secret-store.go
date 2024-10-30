@@ -2,14 +2,12 @@ package controllers
 
 import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/logging"
 	servicesExternal "mogenius-k8s-manager/services-external"
-	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
-
-	log "github.com/sirupsen/logrus"
 )
 
-var ControllerLogger = log.WithField("component", structs.ComponentControllers)
+var ControllerLogger = logging.CreateLogger("controllers")
 
 type CreateSecretsStoreRequest struct {
 	// Secrets stores are bound to a projects,
@@ -86,7 +84,7 @@ func CreateExternalSecretStore(data CreateSecretsStoreRequest) CreateSecretsStor
 func ListExternalSecretsStores(data ListSecretStoresRequest) []mokubernetes.SecretStore {
 	stores, err := mokubernetes.ListExternalSecretsStores(data.ProjectId)
 	if err != nil {
-		ControllerLogger.Errorf("Getting secret stores failed with error: %v", err)
+		ControllerLogger.Error("Getting secret stores failed", "error", err)
 	}
 	return stores
 }
@@ -103,7 +101,7 @@ func ListAvailableExternalSecrets(data ListSecretsRequest) []string {
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
 	err := servicesExternal.DeleteExternalSecretsStore(data.Name)
 	if err != nil {
-		ControllerLogger.Errorf("Deleting secret store failed with error: %v", err)
+		ControllerLogger.Error("Deleting secret store failed", "error", err)
 		return DeleteSecretsStoreResponse{
 			Status:       "ERROR",
 			ErrorMessage: err.Error(),

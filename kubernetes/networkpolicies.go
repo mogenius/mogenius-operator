@@ -55,11 +55,11 @@ func DeleteNetworkPolicy(namespaceName, name string) error {
 
 	err := netPolClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
-		K8sLogger.Errorf("DeleteNetworkPolicy ERROR: %s", err)
+		K8sLogger.Error("DeleteNetworkPolicy", "networkpolicy", name, "error", err)
 		return err
 	}
 
-	K8sLogger.Printf("Deleted NetworkPolicy: %s", name)
+	K8sLogger.Info("Deleted NetworkPolicy", "networkpolicy", name)
 
 	cleanupUnusedDenyAll(namespaceName)
 	return nil
@@ -147,8 +147,8 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 	if netPolRecoderLogger == nil {
 		provider, err := punq.NewKubeProvider(nil)
 		if provider == nil || err != nil {
-			K8sLogger.Fatalf("Error creating provider for netpol watcher. Cannot continue because it is vital: %s", err.Error())
-			return
+			K8sLogger.Error("Error creating provider for netpol watcher. Cannot continue because it is vital.", "error", err)
+			panic(1)
 		}
 
 		// Set up a dynamic event broadcaster for the specific namespace
@@ -159,6 +159,6 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 	}
 
 	// Trigger custom event
-	K8sLogger.Debugf("Netpol %s is being updated in namespace %s, triggering event", netPol.Name, netPol.Namespace)
+	K8sLogger.Debug("Netpol is being updated in namespace, triggering event", "netpol", netPol.Name, "namespace", netPol.Namespace)
 	netPolRecoderLogger.Eventf(netPol, v1Core.EventTypeNormal, reason, "NetPol %s is being %s", netPol.Name, reason)
 }

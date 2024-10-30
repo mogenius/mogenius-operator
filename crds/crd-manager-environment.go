@@ -23,12 +23,12 @@ func CreateEnvironmentCmd(job *structs.Job, projectName string, namespace string
 		cmd.Start(job, "Creating CRDs for ApplicationKit")
 		err := CreateEnvironment(namespace, namespace, newObj)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("CreateEnvironmentCmd ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("CreateEnvironmentCmd ERROR: %s", err))
 		}
 
 		err = AddEnvironmentToProject(projectName, namespace)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("AddEnvironmentToProject ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("AddEnvironmentToProject ERROR: %s", err))
 		} else {
 			cmd.Success(job, "Created CRDs for ApplicationKit")
 		}
@@ -43,7 +43,7 @@ func UpdateEnvironmentCmd(job *structs.Job, namespace string, newObj CrdEnvironm
 		cmd.Start(job, "Updating CRDs for Environment")
 		err := UpdateEnvironment(namespace, namespace, &newObj)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("UpdateEnvironmentCmd ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("UpdateEnvironmentCmd ERROR: %s", err))
 		} else {
 			cmd.Success(job, "Updated CRDs for Environment")
 		}
@@ -62,7 +62,7 @@ func DeleteEnvironmentCmd(job *structs.Job, projectName string, namespace string
 		}
 		err = RemoveEnvironmentFromProject(projectName, namespace)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("RemoveEnvironmentFromProject ERROR: %s", err.Error()))
+			cmd.Fail(job, fmt.Sprintf("RemoveEnvironmentFromProject ERROR: %s", err))
 		} else {
 			cmd.Success(job, "Deleted CRDs for Environment")
 		}
@@ -72,7 +72,7 @@ func DeleteEnvironmentCmd(job *structs.Job, projectName string, namespace string
 func CreateEnvironment(namespace string, name string, newObj CrdEnvironment) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
 	}
 
@@ -80,7 +80,7 @@ func CreateEnvironment(namespace string, name string, newObj CrdEnvironment) err
 	raw := newObj.ToUnstructuredEnvironment(namespace, name)
 	_, err = provider.ClientSet.Resource(environmentsGVR).Namespace(namespace).Create(context.Background(), raw, metav1.CreateOptions{})
 	if err != nil {
-		CrdLogger.Errorf("Error creating Environment: %s", err.Error())
+		CrdLogger.Error("Error creating Environment", "error", err)
 		return err
 	}
 
@@ -90,19 +90,19 @@ func CreateEnvironment(namespace string, name string, newObj CrdEnvironment) err
 func UpdateEnvironment(namespace string, name string, updatedObj *CrdEnvironment) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
 	}
 
 	_, environmentUnstructured, err := GetEnvironment(namespace, name)
 	if err != nil {
-		CrdLogger.Errorf("Error updating Environment: %s", err.Error())
+		CrdLogger.Error("Error updating Environment", "error", err)
 		return err
 	}
 
 	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(updatedObj)
 	if err != nil {
-		CrdLogger.Errorf("Error converting Environment to unstructured: %s", err.Error())
+		CrdLogger.Error("Error converting Environment to unstructured", "error", err)
 		return err
 	}
 	environmentUnstructured.Object["spec"] = unstrRaw
@@ -110,7 +110,7 @@ func UpdateEnvironment(namespace string, name string, updatedObj *CrdEnvironment
 	environmentsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceEnvironment}
 	_, err = provider.ClientSet.Resource(environmentsGVR).Namespace(namespace).Update(context.Background(), environmentUnstructured, metav1.UpdateOptions{})
 	if err != nil {
-		CrdLogger.Errorf("Error updating Environment: %s", err.Error())
+		CrdLogger.Error("Error updating Environment", "error", err)
 		return err
 	}
 
@@ -120,14 +120,14 @@ func UpdateEnvironment(namespace string, name string, updatedObj *CrdEnvironment
 func DeleteEnvironment(namespace string, name string) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
 	}
 
 	environmentsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceEnvironment}
 	err = provider.ClientSet.Resource(environmentsGVR).Namespace(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 	if err != nil {
-		CrdLogger.Errorf("Error deleting Environment: %s", err.Error())
+		CrdLogger.Error("Error deleting Environment", "error", err)
 		return err
 	}
 
@@ -139,25 +139,25 @@ func GetEnvironment(namespace string, name string) (environment *CrdEnvironment,
 
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return nil, nil, err
 	}
 
 	environmentsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceEnvironment}
 	environmentItem, err := provider.ClientSet.Resource(environmentsGVR).Namespace(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
-		CrdLogger.Errorf("Error getting Environment: %s", err.Error())
+		CrdLogger.Error("Error getting Environment", "error", err)
 		return nil, environmentItem, err
 	}
 
 	jsonData, err := json.Marshal(environmentItem.Object["spec"])
 	if err != nil {
-		CrdLogger.Errorf("Error marshalling Environment spec: %s", err.Error())
+		CrdLogger.Error("Error marshalling Environment spec", "error", err)
 		return nil, environmentItem, err
 	}
 	err = json.Unmarshal(jsonData, &result)
 	if err != nil {
-		CrdLogger.Errorf("Error unmarshalling Environment spec: %s", err.Error())
+		CrdLogger.Error("Error unmarshalling Environment spec", "error", err)
 		return nil, environmentItem, err
 	}
 
@@ -169,14 +169,14 @@ func ListEnvironments(namespace string) (Environment []CrdEnvironment, Environme
 
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return result, nil, err
 	}
 
 	environmentsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceEnvironment}
 	environments, err := provider.ClientSet.Resource(environmentsGVR).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		CrdLogger.Errorf("Error getting Environment: %s", err.Error())
+		CrdLogger.Error("Error getting Environment", "error", err)
 		return result, environments, err
 	}
 
@@ -184,12 +184,12 @@ func ListEnvironments(namespace string) (Environment []CrdEnvironment, Environme
 		entry := CrdEnvironment{}
 		jsonData, err := json.Marshal(Environment.Object["spec"])
 		if err != nil {
-			CrdLogger.Errorf("Error marshalling Environment spec: %s", err.Error())
+			CrdLogger.Error("Error marshalling Environment spec", "error", err)
 			return result, environments, err
 		}
 		err = json.Unmarshal(jsonData, &entry)
 		if err != nil {
-			CrdLogger.Errorf("Error unmarshalling Environment spec: %s", err.Error())
+			CrdLogger.Error("Error unmarshalling Environment spec", "error", err)
 			return result, environments, err
 		}
 		result = append(result, entry)
@@ -200,13 +200,13 @@ func ListEnvironments(namespace string) (Environment []CrdEnvironment, Environme
 func AddAppKitToEnvironment(namespace string, appkitName string) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
 	}
 
 	existingEnvironment, environmentUnstructured, err := GetEnvironment(namespace, namespace)
 	if err != nil {
-		CrdLogger.Errorf("Error updating environment: %s", err.Error())
+		CrdLogger.Error("Error updating environment", "error", err)
 		return err
 	}
 
@@ -218,7 +218,7 @@ func AddAppKitToEnvironment(namespace string, appkitName string) error {
 
 	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(existingEnvironment)
 	if err != nil {
-		CrdLogger.Errorf("Error converting environment to unstructured: %s", err.Error())
+		CrdLogger.Error("Error converting environment to unstructured", "error", err)
 		return err
 	}
 	environmentUnstructured.Object["spec"] = unstrRaw
@@ -226,7 +226,7 @@ func AddAppKitToEnvironment(namespace string, appkitName string) error {
 	environmentsGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceEnvironment}
 	_, err = provider.ClientSet.Resource(environmentsGVR).Namespace(namespace).Update(context.Background(), environmentUnstructured, metav1.UpdateOptions{})
 	if err != nil {
-		CrdLogger.Errorf("Error updating environment: %s", err.Error())
+		CrdLogger.Error("Error updating environment", "error", err)
 		return err
 	}
 
@@ -236,13 +236,13 @@ func AddAppKitToEnvironment(namespace string, appkitName string) error {
 func RemoveAppKitFromEnvironment(namespace string, appkitName string) error {
 	provider, err := kubernetes.NewDynamicKubeProvider(nil)
 	if provider == nil || err != nil {
-		CrdLogger.Errorf("Error creating provider. Cannot continue because it is vital: %s", err.Error())
+		CrdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
 	}
 
 	existingEnironment, environmentUnstructured, err := GetEnvironment(namespace, namespace)
 	if err != nil {
-		CrdLogger.Errorf("Error updating environment: %s", err.Error())
+		CrdLogger.Error("Error updating environment", "error", err)
 		return err
 	}
 	for i, id := range existingEnironment.ApplicationKitRefs {
@@ -254,7 +254,7 @@ func RemoveAppKitFromEnvironment(namespace string, appkitName string) error {
 
 	unstrRaw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(existingEnironment)
 	if err != nil {
-		CrdLogger.Errorf("Error converting environment to unstructured: %s", err.Error())
+		CrdLogger.Error("Error converting environment to unstructured", "error", err)
 		return err
 	}
 	environmentUnstructured.Object["spec"] = unstrRaw
@@ -262,7 +262,7 @@ func RemoveAppKitFromEnvironment(namespace string, appkitName string) error {
 	environemntGVR := schema.GroupVersionResource{Group: MogeniusGroup, Version: MogeniusVersion, Resource: MogeniusResourceEnvironment}
 	_, err = provider.ClientSet.Resource(environemntGVR).Namespace(namespace).Update(context.Background(), environmentUnstructured, metav1.UpdateOptions{})
 	if err != nil {
-		CrdLogger.Errorf("Error updating environment: %s", err.Error())
+		CrdLogger.Error("Error updating environment", "error", err)
 		return err
 	}
 
