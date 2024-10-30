@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"math/rand/v2"
+
 	bolt "go.etcd.io/bbolt"
-	"golang.org/x/exp/rand"
 )
 
 // test the functionality of the custom resource with a basic pod
@@ -121,12 +122,10 @@ func bucketExists(tx *bolt.Tx, bucketName string) bool {
 }
 
 func generateRandomInterfaceStats() structs.InterfaceStats {
-	rand.Seed(uint64(time.Now().UnixNano()))
-
 	return structs.InterfaceStats{
-		Ip:                 fmt.Sprintf("192.168.%d.%d", rand.Intn(255), rand.Intn(255)),
-		PodName:            fmt.Sprintf("pod-%d", rand.Intn(1000)),
-		Namespace:          fmt.Sprintf("namespace-%d", rand.Intn(100)),
+		Ip:                 fmt.Sprintf("192.168.%d.%d", rand.IntN(255), rand.IntN(255)),
+		PodName:            fmt.Sprintf("pod-%d", rand.IntN(1000)),
+		Namespace:          fmt.Sprintf("namespace-%d", rand.IntN(100)),
 		PacketsSum:         rand.Uint64(),
 		TransmitBytes:      rand.Uint64(),
 		ReceivedBytes:      rand.Uint64(),
@@ -135,7 +134,7 @@ func generateRandomInterfaceStats() structs.InterfaceStats {
 		LocalReceivedBytes: rand.Uint64(),
 		TransmitStartBytes: rand.Uint64(),
 		ReceivedStartBytes: rand.Uint64(),
-		StartTime:          time.Now().Add(-time.Duration(rand.Intn(1000)) * time.Hour).Format(time.RFC3339),
+		StartTime:          time.Now().Add(-time.Duration(rand.IntN(1000)) * time.Hour).Format(time.RFC3339),
 		CreatedAt:          time.Now().Format(time.RFC3339),
 		SocketConnections: map[string]uint64{
 			"conn1": rand.Uint64(),
