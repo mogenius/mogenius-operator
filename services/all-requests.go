@@ -1150,7 +1150,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return punq.AllK8sNetworkPolicies(data.NamespaceName, nil)
+
+		return kubernetes.ListAllNetworkPolicies(data.NamespaceName)
 	case structs.PAT_LIST_STORAGE_CLASS:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

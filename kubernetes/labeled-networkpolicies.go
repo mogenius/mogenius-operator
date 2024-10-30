@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/utils"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -17,6 +19,9 @@ import (
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	punq "github.com/mogenius/punq/kubernetes"
+	punqUtils "github.com/mogenius/punq/utils"
 )
 
 // The first rule of NetworkPolicy-Club is: you do not talk about NetworkPolicy-Club.
@@ -675,6 +680,28 @@ func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyL
 		return nil, nil
 	}
 	return netpols, err
+}
+
+func ListAllNetworkPolicies(namespaceName string) punqUtils.K8sWorkloadResult {
+	result := []v1.NetworkPolicy{}
+
+	resultType := reflect.TypeOf(v1.NetworkPolicy{})
+	policies, err := store.GlobalStore.SearchByPrefix(resultType, namespaceName)
+	if err != nil {
+		K8sLogger.Error("ListAllNetworkPolicies", "error", err)
+		return punq.WorkloadResult(nil, err)
+	}
+
+	for _, ref := range policies {
+		netpol := ref.(*v1.NetworkPolicy)
+		if netpol == nil {
+			continue
+		}
+
+		result = append(result, *netpol)
+	}
+
+	return punq.WorkloadResult(result, nil)
 }
 
 func extractLabels(maps ...map[string]string) map[string]string {
