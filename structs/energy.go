@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type EnergyConsumptionEntry struct {
@@ -90,7 +88,12 @@ func CreateEnergyConsumptionResponse(input string, index int) *EnergyConsumption
 		SecondsBetweenInspections: EnergyConsumptionTimeInterval,
 	}
 
-	log.Infof("EnergyConsumptionMeasurement (%d/%d): %d entries - %d joule - %d watt \n", index+1, EnergyConsumptionResponseSize, len(entries), totalEnergyInJoule, watts)
+	StructsLogger.Info("EnergyConsumptionMeasurement (%d/%d): %d entries - %d joule - %d watt \n",
+		"currentMeasurement", index+1,
+		"amountMeasureMents", EnergyConsumptionResponseSize,
+		"entries", len(entries),
+		"joule", totalEnergyInJoule,
+		"watts", watts)
 
 	return &CurrentEnergyConsumptionResponse[index]
 }

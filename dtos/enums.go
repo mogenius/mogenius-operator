@@ -1,10 +1,10 @@
 package dtos
 
 import (
-	log "github.com/sirupsen/logrus"
+	"mogenius-k8s-manager/logging"
 )
 
-var DtosLogger = log.WithField("component", "dtos")
+var DtosLogger = logging.CreateLogger("dtos")
 
 type GitConnectionTypeEnum string
 

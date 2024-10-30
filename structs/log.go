@@ -4,7 +4,6 @@ import (
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	log "github.com/sirupsen/logrus"
 )
 
 type LogType string
@@ -49,7 +48,7 @@ func LogBytes(logEntry Log) []byte {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(logEntry)
 	if err != nil {
-		log.Errorf("LogBytes ERR: %s", err.Error())
+		StructsLogger.Error("LogBytes", "error", err)
 	}
 	return bytes
 }

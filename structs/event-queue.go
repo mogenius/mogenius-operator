@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type EventData struct {
@@ -65,7 +63,8 @@ func ConnectToEventQueue() {
 
 		select {
 		case <-interrupt:
-			log.Fatal("CTRL + C pressed. Terminating.")
+			StructsLogger.Info("CTRL + C pressed. Terminating.")
+			panic(1)
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
@@ -77,15 +76,15 @@ func connectEvent(ctx context.Context) {
 
 	connection, _, err := websocket.DefaultDialer.Dial(EventConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
-		log.Errorf("Connection to EventServer failed (%s): %s\n", EventConnectionUrl.String(), err.Error())
+		StructsLogger.Error("Connection to EventServer failed", "url", EventConnectionUrl.String(), "error", err)
 		EventConnectionStatus <- false
 	} else {
-		log.Infof("Connected to EventServer: %s  (%s)\n", EventConnectionUrl.String(), connection.LocalAddr().String())
+		StructsLogger.Info("Connected to EventServer", "url", EventConnectionUrl.String(), "localAddr", connection.LocalAddr().String())
 		EventQueueConnection = connection
 		EventConnectionStatus <- true
 		err := Ping(EventQueueConnection, &eventSendMutex)
 		if err != nil {
-			log.Errorf("Error pinging event queue: %s", err)
+			StructsLogger.Error("Error pinging event queue", "error", err)
 		}
 	}
 
@@ -128,7 +127,7 @@ func processEventQueueNow() {
 				}
 				eventDataQueue = RemoveEventIndex(eventDataQueue, i)
 			} else {
-				log.Error("Error sending data to EventServer: ", err.Error())
+				StructsLogger.Error("Error sending data to EventServer", "error", err)
 			}
 		}
 	}

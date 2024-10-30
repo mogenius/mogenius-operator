@@ -30,7 +30,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	// websocket connection
 	readMessages, conn, err := generateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		XtermLogger.Errorf("Unable to connect to websocket: %s", err.Error())
+		XtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 
@@ -44,7 +44,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	case "k9s":
 		cmdString = "k9s --kubeconfig kubeconfig.yaml"
 	default:
-		XtermLogger.Errorf("Tool not found: %s", tool)
+		XtermLogger.Error("Tool not found", "tool", tool)
 		return
 	}
 
@@ -54,11 +54,11 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
-		XtermLogger.Errorf("Unable to start pty/cmd: %s", err.Error())
+		XtermLogger.Error("Unable to start pty/cmd", "error", err)
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			if err != nil {
-				XtermLogger.Errorf("WriteMessage: %s", err.Error())
+				XtermLogger.Error("WriteMessage", "error", err)
 			}
 		}
 		return
@@ -68,20 +68,20 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				XtermLogger.Debug(err)
+				XtermLogger.Debug("failed to write message", "error", err)
 			}
 		}
 		err := cmd.Process.Kill()
 		if err != nil {
-			XtermLogger.Error(err)
+			XtermLogger.Error("failed to kill process", "error", err)
 		}
 		_, err = cmd.Process.Wait()
 		if err != nil {
-			XtermLogger.Error(err)
+			XtermLogger.Error("failed to wait for process", "error", err)
 		}
 		err = tty.Close()
 		if err != nil {
-			XtermLogger.Error(err)
+			XtermLogger.Error("failed to close tty", "error", err)
 		}
 	}()
 

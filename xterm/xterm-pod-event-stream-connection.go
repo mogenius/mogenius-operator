@@ -24,14 +24,14 @@ func readChannelPodEvent(ch chan string, conn *websocket.Conn, ctx context.Conte
 				var events []v1.Event
 
 				if err := json.Unmarshal([]byte(message), &events); err != nil {
-					XtermLogger.Errorf("Unable to unmarshal event: %s", err.Error())
+					XtermLogger.Error("Unable to unmarshal event", "error", err)
 					continue
 				}
 				for _, event := range events {
 					formattedTime := event.FirstTimestamp.Time.Format("2006-01-02 15:04:05")
 					err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s\n\r", formattedTime, event.Message)))
 					if err != nil {
-						XtermLogger.Errorf("WriteMessage: %s", err.Error())
+						XtermLogger.Error("WriteMessage", "error", err)
 					}
 				}
 
@@ -58,7 +58,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// websocket connection
 	readMessages, conn, err := generateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		XtermLogger.Errorf("Unable to connect to websocket: %s", err.Error())
+		XtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 

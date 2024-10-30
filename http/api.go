@@ -8,6 +8,7 @@ import (
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
 	iacmanager "mogenius-k8s-manager/iac-manager"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -21,10 +22,9 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
-var HttpLogger = log.WithField("component", structs.ComponentHttp)
+var HttpLogger = logging.CreateLogger("http")
 
 func InitApi() {
 	gin.SetMode(gin.ReleaseMode)
@@ -54,7 +54,7 @@ func InitApi() {
 	// it won't block the graceful shutdown handling below
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
-			HttpLogger.Infof("listen: %s\n", err.Error())
+			HttpLogger.Error("failed to server", "error", err)
 		}
 	}()
 
@@ -66,7 +66,7 @@ func InitApi() {
 	// kill -9 is syscall.SIGKILL but can't be caught, so don't need to add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	HttpLogger.Warning("Shutting down server...")
+	HttpLogger.Warn("Shutting down server...")
 
 	// The context is used to inform the server it has 5 seconds to finish
 	// the request it is currently handling
@@ -74,10 +74,10 @@ func InitApi() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		HttpLogger.Warning("Server forced to shutdown:", err)
+		HttpLogger.Warn("Server forced to shutdown", "error", err)
 	}
 
-	HttpLogger.Warning("Server exiting")
+	HttpLogger.Warn("Server exiting")
 }
 
 func getHealtz(c *gin.Context) {
@@ -96,7 +96,7 @@ func postTraffic(c *gin.Context) {
 
 	err := json.Indent(&out, []byte(body), "", "  ")
 	if err != nil {
-		HttpLogger.Errorf("Error indenting json: %s", err)
+		HttpLogger.Error("Error indenting json", "error", err)
 	}
 	if utils.CONFIG.Misc.LogIncomingStats {
 		HttpLogger.Info(out.String())
@@ -105,7 +105,7 @@ func postTraffic(c *gin.Context) {
 	stat := &structs.InterfaceStats{}
 	err = structs.UnmarshalInterfaceStats(stat, out.Bytes())
 	if err != nil {
-		HttpLogger.Errorf("Error unmarshalling interface stats: %s", err.Error())
+		HttpLogger.Error("Error unmarshalling interface stats", "error", err)
 		c.IndentedJSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
 		})
@@ -121,7 +121,7 @@ func postPodStats(c *gin.Context) {
 
 	err := json.Indent(&out, []byte(body), "", "  ")
 	if err != nil {
-		HttpLogger.Errorf("Error indenting json: %s", err)
+		HttpLogger.Error("Error indenting json", "error", err)
 	}
 	if utils.CONFIG.Misc.LogIncomingStats {
 		HttpLogger.Info(out.String())
@@ -130,7 +130,7 @@ func postPodStats(c *gin.Context) {
 	stat := &structs.PodStats{}
 	err = structs.UnmarshalPodStats(stat, out.Bytes())
 	if err != nil {
-		HttpLogger.Errorf("Error unmarshalling pod stats: %s", err.Error())
+		HttpLogger.Error("Error unmarshalling pod stats", "error", err.Error())
 		c.IndentedJSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
 		})
@@ -146,7 +146,7 @@ func postNodeStats(c *gin.Context) {
 
 	err := json.Indent(&out, []byte(body), "", "  ")
 	if err != nil {
-		HttpLogger.Errorf("Error indenting json: %s", err)
+		HttpLogger.Error("Error indenting json", "error", err)
 	}
 	if utils.CONFIG.Misc.LogIncomingStats {
 		HttpLogger.Info(out.String())
@@ -155,7 +155,7 @@ func postNodeStats(c *gin.Context) {
 	stat := &structs.NodeStats{}
 	err = structs.UnmarshalNodeStats(stat, out.Bytes())
 	if err != nil {
-		HttpLogger.Errorf("Error unmarshalling node stats: %s", err.Error())
+		HttpLogger.Error("Error unmarshalling node stats", "error", err.Error())
 		c.IndentedJSON(http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
 		})

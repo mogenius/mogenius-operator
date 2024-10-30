@@ -8,7 +8,6 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	punq "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 type InterfaceStats struct {
@@ -68,7 +67,8 @@ func (data *InterfaceStats) SumOrReplace(dataToAdd *InterfaceStats) {
 }
 
 func (data *InterfaceStats) PrintInfo() {
-	log.Infof("%s -> Packets: %d, Send: %s | Received %s\n", data.PodName, data.PacketsSum, punq.BytesToHumanReadable(int64(data.TransmitBytes+data.TransmitStartBytes+data.LocalTransmitBytes)), punq.BytesToHumanReadable(int64(data.ReceivedBytes+data.ReceivedStartBytes+data.LocalReceivedBytes)))
+	message := fmt.Sprintf("%s -> Packets: %d, Send: %s | Received %s\n", data.PodName, data.PacketsSum, punq.BytesToHumanReadable(int64(data.TransmitBytes+data.TransmitStartBytes+data.LocalTransmitBytes)), punq.BytesToHumanReadable(int64(data.ReceivedBytes+data.ReceivedStartBytes+data.LocalReceivedBytes)))
+	StructsLogger.Info(message)
 }
 
 func UnmarshalInterfaceStats(dst *InterfaceStats, data []byte) error {
@@ -113,7 +113,7 @@ func (data *InterfaceStats) ToBytes() []byte {
 func (data *SocketConnections) UniqueIps() []string {
 	result := []string{}
 
-	for key, _ := range data.Connections {
+	for key := range data.Connections {
 		// split TCP-10.96.0.10:53-10.1.11.193:48013
 		pattern := `^(TCP|UDP)-([\d.]+):(\d+)-([\d.]+):(\d+)$`
 		re := regexp.MustCompile(pattern)

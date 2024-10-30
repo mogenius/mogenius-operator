@@ -28,7 +28,7 @@ func cleanupRepo() {
 	}
 	_, err := HelmRepoRemove(repoRemoveData)
 	if err != nil {
-		K8sLogger.Printf("%v", err)
+		K8sLogger.Info("failed to remove helm repo", "error", err)
 	}
 }
 
@@ -42,17 +42,17 @@ func cleanupInstall() {
 	}
 	_, err := HelmReleaseUninstall(releaseUninstallData)
 	if err != nil {
-		K8sLogger.Printf("%v", err)
+		K8sLogger.Info("failed to uninstall helmrelease", "error", err)
 	}
 }
 
 func deleteFolder(folderPath string) error {
 	err := os.RemoveAll(folderPath)
 	if err != nil {
-		K8sLogger.Printf("Error deleting folder %s: %v", folderPath, err)
+		K8sLogger.Info("Error deleting folder %s: %v", folderPath, err)
 		return err
 	}
-	K8sLogger.Printf("Successfully deleted folder %s", folderPath)
+	K8sLogger.Info("Successfully deleted folder", "path", folderPath)
 	return nil
 }
 

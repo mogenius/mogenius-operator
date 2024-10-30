@@ -15,7 +15,7 @@ func TestEnvironment(t *testing.T) {
 	// CREATE
 	err := CreateEnvironment(namespace, newEnvironmentName, CrdEnvironment{})
 	if err != nil {
-		CrdLogger.Fatalf("Error creating Environment: %s", err.Error())
+		t.Fatalf("Error creating Environment: %s", err.Error())
 	} else {
 		fmt.Println("Environment created ✅")
 	}
@@ -23,7 +23,7 @@ func TestEnvironment(t *testing.T) {
 	// GET
 	environment, _, err := GetEnvironment(namespace, newEnvironmentName)
 	if err != nil {
-		CrdLogger.Fatalf("Error getting Environment: %s", err.Error())
+		t.Fatalf("Error getting Environment: %s", err.Error())
 	} else {
 		fmt.Println("Environment retrieved ✅")
 	}
@@ -33,7 +33,7 @@ func TestEnvironment(t *testing.T) {
 	// UPDATE
 	err = UpdateEnvironment(namespace, newEnvironmentName, environment)
 	if err != nil {
-		CrdLogger.Fatalf("Error updating environment: %s", err.Error())
+		t.Fatalf("Error updating environment: %s", err.Error())
 	} else {
 		fmt.Println("environment updated ✅")
 	}
@@ -41,7 +41,7 @@ func TestEnvironment(t *testing.T) {
 	// DELETE
 	err = DeleteEnvironment(namespace, newEnvironmentName)
 	if err != nil {
-		CrdLogger.Fatalf("Error deleting environment: %s", err.Error())
+		t.Fatalf("Error deleting environment: %s", err.Error())
 	} else {
 		fmt.Println("environment deleted ✅")
 	}
@@ -49,7 +49,7 @@ func TestEnvironment(t *testing.T) {
 	// LIST
 	_, _, err = ListEnvironments(namespace)
 	if err != nil {
-		CrdLogger.Fatalf("Error listing environments: %s", err.Error())
+		t.Fatalf("Error listing environments: %s", err.Error())
 	} else {
 		fmt.Println("environments listed ✅")
 	}

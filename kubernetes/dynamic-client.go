@@ -30,7 +30,7 @@ func NewKubeProvider() (*KubeProvider, error) {
 	}
 
 	if err != nil {
-		K8sLogger.Errorf("ERROR: %s", err.Error())
+		K8sLogger.Error("failed to create kube provider", "error", err)
 	}
 	return provider, err
 }
@@ -112,14 +112,15 @@ func GetDefaultKubeConfig() []string {
 	validConfigs := []string{}
 	for _, singleConfig := range kubeconfigs {
 		if _, err := os.Stat(singleConfig); os.IsNotExist(err) {
-			K8sLogger.Warningf("Warning: kubeconfig file '%s' does not exist", singleConfig)
+			K8sLogger.Warn("kubeconfig file does not exist", "kubeConfig", singleConfig)
 		} else {
 			validConfigs = append(validConfigs, singleConfig)
 		}
 	}
 
 	if len(validConfigs) == 0 {
-		K8sLogger.Fatal("Error: No valid kubeconfig file found. Ensure that the $KUBECONFIG environment variable or the default kubeconfig is set correctly. For more info, see https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/.")
+		K8sLogger.Error("Error: No valid kubeconfig file found. Ensure that the $KUBECONFIG environment variable or the default kubeconfig is set correctly. For more info, see https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/.")
+		panic(1)
 	}
 
 	return validConfigs

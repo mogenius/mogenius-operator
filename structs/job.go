@@ -6,7 +6,6 @@ import (
 
 	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 type DefaultResponse struct {
@@ -139,21 +138,22 @@ func stateLogJob(data *Job) {
 		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
-	logWithFields := log.WithFields(log.Fields{"namespace": data.NamespaceName, "controllerName": data.ControllerName})
+	logWithFields := StructsLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
 
+	var message string
 	switch data.State {
 	case JobStatePending:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case JobStateStarted:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case JobStateFailed, JobStateTimeout, JobStateCanceled:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
-		logWithFields.Infof("      %s %s %s\n", "", ERRO(punqUtils.FillWith("--> ", 15, " ")), data.Message)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case JobStateSucceeded:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	default:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	}
+	logWithFields.Info(message)
 }
 
 func stateLogCmd(data *Command, ns string, controllerName string) {
@@ -175,24 +175,20 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
-	logWithFields := log.WithFields(log.Fields{"namespace": ns, "controllerName": controllerName, "component": ComponentServices})
+	logWithFields := StructsLogger.With("namespace", ns, "controllerName", controllerName)
 
+	var message string
 	switch data.State {
 	case JobStatePending:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case JobStateStarted:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case JobStateFailed, JobStateTimeout, JobStateCanceled:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
-		logWithFields.Infof("      %s %s %s\n", "", ERRO(punqUtils.FillWith("--> ", 15, " ")), data.Message)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	case JobStateSucceeded:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	default:
-		logWithFields.Infof("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	}
+	logWithFields.Info(message)
 }
-
-// func StateDebugLog(debugStr string) {
-// 	DEBUG := color.New(color.FgWhite, color.BgHiMagenta).SprintFunc()
-// 	log.Infof("%-6s %-26s %s\n", "DEBUG", DEBUG(punqUtils.FillWith("DEBUG", 15, " ")), debugStr)
-// }

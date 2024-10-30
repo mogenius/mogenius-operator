@@ -54,7 +54,7 @@ func ValidateJSON(obj interface{}) *ValidationError {
 func FormatJsonTimePretty(jsonTimestamp string) string {
 	t, err := time.Parse(time.RFC3339, jsonTimestamp)
 	if err != nil {
-		UtilsLogger.Errorf("Failed to parse timestamp: %v", err)
+		UtilsLogger.Error("Failed to parse timestamp", "timestamp", jsonTimestamp, "expectedFormat", "RFC3339", "error", err)
 		return jsonTimestamp
 	}
 	return t.Format("2006-01-02 15:04:05")

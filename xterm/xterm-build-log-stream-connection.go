@@ -20,7 +20,7 @@ func readChannelBuildLog(ch chan string, conn *websocket.Conn, ctx context.Conte
 			if conn != nil {
 				err := conn.WriteMessage(websocket.TextMessage, []byte(message))
 				if err != nil {
-					XtermLogger.Errorf("WriteMessage: %s", err.Error())
+					XtermLogger.Error("WriteMessage", "error", err)
 				}
 			}
 			continue
@@ -45,7 +45,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// websocket connection
 	readMessages, conn, err := generateWsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		XtermLogger.Errorf("Unable to connect to websocket: %s", err.Error())
+		XtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 

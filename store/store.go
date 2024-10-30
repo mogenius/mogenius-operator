@@ -3,16 +3,15 @@ package store
 import (
 	"encoding/json"
 	"fmt"
-	"mogenius-k8s-manager/structs"
+	"mogenius-k8s-manager/logging"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
-	log "github.com/sirupsen/logrus"
 )
 
-var StoreLogger = log.WithField("component", structs.Store)
+var StoreLogger = logging.CreateLogger("store")
 
 type Store struct {
 	db         *badger.DB
@@ -27,18 +26,18 @@ func Init() {
 	var err error
 	GlobalStore, err = NewStore()
 	if err != nil {
-		StoreLogger.Errorf("Error initializing store: %s", err.Error())
-		StoreLogger.Fatal(err.Error())
+		StoreLogger.Error("failed to initialize store", "error", err)
+		panic(1)
 	}
 
 	// Run garbage collection every 5 minutes
 	garbageCollectionTicker = time.NewTicker(5 * time.Minute)
 	go func() {
 		for range garbageCollectionTicker.C {
-			StoreLogger.Infof("Run garbage collection DB ...")
+			StoreLogger.Info("Run garbage collection DB ...")
 			err := GlobalStore.RunGC()
 			if err != nil {
-				StoreLogger.Debugf("Error running GlobalStore.RunGC: %s", err.Error())
+				StoreLogger.Debug("Error running GlobalStore.RunGC", "error", err)
 			}
 		}
 	}()
@@ -136,7 +135,7 @@ func (s *Store) GetByKeyParts(resultType reflect.Type, keys ...string) interface
 	key := CreateKey(keys...)
 	value, err := s.Get(key, resultType)
 	if err != nil {
-		StoreLogger.Errorf("Error getting value for key %s: %s", key, err.Error())
+		StoreLogger.Error("failed to get value", "key", key, "error", err)
 		return nil
 	}
 	return value
@@ -148,7 +147,7 @@ func (s *Store) GetByKeyPart(keyPart string, resultType reflect.Type) []interfac
 	for _, key := range keys {
 		value, err := s.Get(key, resultType)
 		if err != nil {
-			StoreLogger.Errorf("Error getting value for key %s: %s", key, err.Error())
+			StoreLogger.Error("failed to get value", "key", key, "error", err)
 			continue
 		}
 		values = append(values, value)

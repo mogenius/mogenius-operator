@@ -30,10 +30,10 @@ func ClusterForceReconnect() bool {
 	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)
 
 	for _, podName := range podsToKill {
-		K8sLogger.Warningf("Restarting %s ...", podName)
+		K8sLogger.Warn("Restarting pod ...", "podName", podName)
 		err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{})
 		if err != nil {
-			K8sLogger.Errorf("ClusterForceReconnect ERR: %s", err.Error())
+			K8sLogger.Error("failed to delete pod", "podName", podName, "error", err)
 		}
 	}
 
@@ -59,18 +59,18 @@ func ClusterForceDisconnect() bool {
 	deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
 	_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 	if err != nil {
-		K8sLogger.Errorf("Error updating deployment: %s", err)
+		K8sLogger.Error("Error updating deployment", "deployment", deployment, "error", err)
 	}
 
 	podsToKill := []string{}
 	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)
 
 	for _, podName := range podsToKill {
-		K8sLogger.Warningf("Restarting %s ...", podName)
+		K8sLogger.Warn("Restarting pod...", "pod", podName)
 		err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{})
 
 		if err != nil {
-			K8sLogger.Errorf("ClusterForceReconnect ERR: %s", err.Error())
+			K8sLogger.Error("failed to delete pod", "pod", podName, "error", err)
 		}
 	}
 

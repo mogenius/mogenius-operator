@@ -97,7 +97,7 @@ func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClu
 }
 
 func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
-	ServiceLogger.Infof("CleanupIngressPorts: %d ports received from DB.", len(r.Ports))
+	ServiceLogger.Info("CleanupIngressPorts: received ports from DB.", "amountPorts", len(r.Ports), "ports", r.Ports)
 	if len(r.Ports) <= 0 {
 		ServiceLogger.Error("Received empty ports list. Something seems wrong. Skipping process.")
 		return nil

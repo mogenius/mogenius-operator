@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"net/url"
@@ -15,8 +16,9 @@ import (
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
+
+var StructsLogger = logging.CreateLogger("structs")
 
 const PingSeconds = 3
 
@@ -94,7 +96,7 @@ func UnmarshalJobListEntry(dst *BuildJob, data []byte) error {
 func SendData(sendToServer string, data []byte) {
 	resp, err := http.Post(sendToServer, "application/json", bytes.NewBuffer(data))
 	if err != nil {
-		log.Errorf("Error occurred during sending the request. Error: %s", err)
+		StructsLogger.Error("Error occurred during sending the request.", "error", err)
 	} else {
 		defer resp.Body.Close()
 	}
@@ -104,21 +106,21 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 	header := utils.HttpHeader("-logs")
 	connection, _, err := websocket.DefaultDialer.Dial(sendToServer, header)
 	if err != nil {
-		log.Errorf("Connection to stream endpoint (%s) failed: %s\n", sendToServer, err.Error())
+		StructsLogger.Error("Connection to stream endpoint failed", "sendToServer", sendToServer, "error", err)
 	} else {
 		// API send ack when it is ready to receive messages.
 		err = connection.SetReadDeadline(time.Now().Add(2 * time.Second))
 		if err != nil {
-			log.Errorf("Error setting read deadline: %s.", err)
+			StructsLogger.Error("Error setting read deadline.", "error", err)
 			return
 		}
 		_, ack, err := connection.ReadMessage()
 		if err != nil {
-			log.Errorf("Error reading ack message: %s.", err)
+			StructsLogger.Error("Error reading ack message.", "error", err)
 			return
 		}
 
-		log.Infof("Ready ack from stream endpoint: %s.", string(ack))
+		StructsLogger.Info("Ready ack from stream endpoint.", "ack", string(ack))
 
 		buf := make([]byte, 1024)
 		for {
@@ -126,29 +128,29 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 				n, err := reader.Read(buf)
 				if err != nil {
 					if err != io.EOF {
-						log.Errorf("Unexpected stop of stream: %s.", sendToServer)
+						StructsLogger.Error("Unexpected stop of stream.", "sendToServer", sendToServer)
 					}
 					return
 				}
 				if connection != nil {
 					// debugging
 					// str := string(buf[:n])
-					// log.Infof("Send data ws: %s.", str)
+					// StructsLogger.Info("Send data ws.", "data", str)
 
 					err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
 					if err != nil {
-						log.Errorf("Error sending data to '%s': %s\n", sendToServer, err.Error())
+						StructsLogger.Error("Error sending data", "sendToServer", sendToServer, "error", err)
 						return
 					}
 
 					// if conn, ok := connection.UnderlyingConn().(*net.TCPConn); ok {
 					// 	err := conn.SetWriteBuffer(0)
 					// 	if err != nil {
-					// 		log.Println("Error flushing connection:", err)
+					// 		StructsLogger.Error("Error flushing connection", "error", err)
 					// 	}
 					// }
 				} else {
-					log.Errorf("%s - connection cannot be nil.", sendToServer)
+					StructsLogger.Error("connection cannot be nil", "sendToServer", sendToServer)
 					return
 				}
 			} else {
@@ -182,11 +184,11 @@ func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 			err := c.WriteMessage(websocket.PingMessage, nil)
 			sendMutex.Unlock()
 			if err != nil {
-				log.Error("pingTicker ERROR:", err)
+				StructsLogger.Error("pingTicker", "error", err)
 				return err
 			}
 		case <-interrupt:
-			log.Error("interrupt")
+			StructsLogger.Error("interrupt")
 
 			// Cleanly close the connection by sending a close message and then
 			// waiting (with timeout) for the server to close the connection.
@@ -194,7 +196,7 @@ func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			sendMutex.Unlock()
 			if err != nil {
-				// log.Error("write close:", err)
+				// StructsLogger.Error("write close", "error", err)
 				return err
 			}
 			time.Sleep(1 * time.Second)
