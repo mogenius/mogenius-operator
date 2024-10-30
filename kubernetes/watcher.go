@@ -243,7 +243,7 @@ func WatchAllResources(watcher interfaces.KubernetesWatcher) {
 }
 
 func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "NetworkPolicy" {
+	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" {
 		err := store.GlobalStore.Set(obj, kind, namespace, name)
 		if err != nil {
 			K8sLogger.Errorf("Error setting object in store: %s", err.Error())
@@ -260,8 +260,13 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 	}
 
 	if kind == "NetworkPolicy" {
+		err := store.GlobalStore.Set(obj, kind, namespace, name)
+		if err != nil {
+			K8sLogger.Errorf("Error setting object in store: %s", err.Error())
+		}
+
 		var netPol v1Net.NetworkPolicy
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
 		if err != nil {
 			return
 		}
@@ -272,7 +277,7 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 }
 
 func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "NetworkPolicy" {
+	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" {
 		err := store.GlobalStore.Delete(kind, namespace, name)
 		if err != nil {
 			K8sLogger.Errorf("Error deleting object in store: %s", err.Error())
@@ -299,8 +304,13 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 	}
 
 	if kind == "NetworkPolicy" {
+		err := store.GlobalStore.Delete(kind, namespace, name)
+		if err != nil {
+			K8sLogger.Errorf("Error deleting object in store: %s", err.Error())
+		}
+
 		var netPol v1Net.NetworkPolicy
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
 		if err != nil {
 			return
 		}
