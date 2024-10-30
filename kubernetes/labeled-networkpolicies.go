@@ -749,63 +749,121 @@ func ListControllerLabeledNetworkPolicies(
 	}
 
 	// get all network policies based on mo-netpol labels
-	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
-	existingNetPols, err := netPolClient.List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		K8sLogger.Error("ListControllerLabeledNetworkPolicies(get single one)", "error", err)
-	}
+	// netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
+	// existingNetPols, err := netPolClient.List(context.TODO(), metav1.ListOptions{})
+	// if err != nil {
+	// 	K8sLogger.Error("ListControllerLabeledNetworkPolicies(get single one)", "error", err)
+	// }
 
 	netpols := []dtos.K8sLabeledNetworkPolicyDto{}
+
+	policies, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.NetworkPolicy{}), namespaceName)
+	if err != nil {
+		K8sLogger.Error("ListControllerLabeledNetworkPolicies", "error", err)
+		return nil, err
+	}
+
 	for label := range labels {
 		if !strings.Contains(label, PoliciesLabelPrefix) {
 			continue
 		}
 
-		var netpol v1.NetworkPolicy
-		for _, np := range existingNetPols.Items {
-			if np.Name == label {
-				netpol = np
-				break
-			}
-		}
-		if netpol.ObjectMeta.Name == "" {
-			// no network policy found for this label
-			netpol, err := netPolClient.Get(context.TODO(), label, metav1.GetOptions{})
-			if err != nil {
-				K8sLogger.Error("ListControllerLabeledNetworkPolicies(get single one)", "error", err)
+		// var netpol v1.NetworkPolicy
+		// for _, np := range existingNetPols.Items {
+		// 	if np.Name == label {
+		// 		netpol = np
+		// 		break
+		// 	}
+		// }
+
+		var np *v1.NetworkPolicy
+		for _, ref := range policies {
+			np = ref.(*v1.NetworkPolicy)
+			if np == nil {
 				continue
 			}
 
-			if strings.Contains(netpol.Name, "egress") {
-				var port uint16
-				var pType dtos.PortTypeEnum
-				// our netpols only have one rule
-				if len(netpol.Spec.Egress) == 1 && len(netpol.Spec.Egress[0].Ports) == 1 && netpol.Spec.Egress[0].Ports[0].Port != nil {
-					port = uint16(netpol.Spec.Egress[0].Ports[0].Port.IntVal)
-					pType = dtos.PortTypeEnum(*netpol.Spec.Egress[0].Ports[0].Protocol)
-				}
-				netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
-					Name:     netpol.Name,
-					Type:     dtos.Egress,
-					Port:     port,
-					PortType: pType,
-				})
+			if np.Name == label {
+				break
 			} else {
-				var port uint16
-				var pType dtos.PortTypeEnum
-				// our netpols only have one rule
-				if len(netpol.Spec.Ingress) == 1 && len(netpol.Spec.Ingress[0].Ports) == 1 && netpol.Spec.Ingress[0].Ports[0].Port != nil {
-					port = uint16(netpol.Spec.Ingress[0].Ports[0].Port.IntVal)
-					pType = dtos.PortTypeEnum(*netpol.Spec.Ingress[0].Ports[0].Protocol)
-				}
-				netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
-					Name:     netpol.Name,
-					Type:     dtos.Ingress,
-					Port:     port,
-					PortType: pType,
-				})
+				np = nil
 			}
 		}
+
+		if np == nil {
+			continue
+		}
+
+		netpol := *np
+
+		if strings.Contains(netpol.Name, "egress") {
+			var port uint16
+			var pType dtos.PortTypeEnum
+			// our netpols only have one rule
+			if len(netpol.Spec.Egress) == 1 && len(netpol.Spec.Egress[0].Ports) == 1 && netpol.Spec.Egress[0].Ports[0].Port != nil {
+				port = uint16(netpol.Spec.Egress[0].Ports[0].Port.IntVal)
+				pType = dtos.PortTypeEnum(*netpol.Spec.Egress[0].Ports[0].Protocol)
+			}
+			netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
+				Name:     netpol.Name,
+				Type:     dtos.Egress,
+				Port:     port,
+				PortType: pType,
+			})
+		} else {
+			var port uint16
+			var pType dtos.PortTypeEnum
+			// our netpols only have one rule
+			if len(netpol.Spec.Ingress) == 1 && len(netpol.Spec.Ingress[0].Ports) == 1 && netpol.Spec.Ingress[0].Ports[0].Port != nil {
+				port = uint16(netpol.Spec.Ingress[0].Ports[0].Port.IntVal)
+				pType = dtos.PortTypeEnum(*netpol.Spec.Ingress[0].Ports[0].Protocol)
+			}
+			netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
+				Name:     netpol.Name,
+				Type:     dtos.Ingress,
+				Port:     port,
+				PortType: pType,
+			})
+		}
+
+		// if netpol.ObjectMeta.Name == "" {
+		// 	// no network policy found for this label
+		// 	netpol, err := netPolClient.Get(context.TODO(), label, metav1.GetOptions{})
+		// 	if err != nil {
+		// 		K8sLogger.Error("ListControllerLabeledNetworkPolicies(get single one)", "error", err)
+		// 		continue
+		// 	}
+
+		// 	if strings.Contains(netpol.Name, "egress") {
+		// 		var port uint16
+		// 		var pType dtos.PortTypeEnum
+		// 		// our netpols only have one rule
+		// 		if len(netpol.Spec.Egress) == 1 && len(netpol.Spec.Egress[0].Ports) == 1 && netpol.Spec.Egress[0].Ports[0].Port != nil {
+		// 			port = uint16(netpol.Spec.Egress[0].Ports[0].Port.IntVal)
+		// 			pType = dtos.PortTypeEnum(*netpol.Spec.Egress[0].Ports[0].Protocol)
+		// 		}
+		// 		netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
+		// 			Name:     netpol.Name,
+		// 			Type:     dtos.Egress,
+		// 			Port:     port,
+		// 			PortType: pType,
+		// 		})
+		// 	} else {
+		// 		var port uint16
+		// 		var pType dtos.PortTypeEnum
+		// 		// our netpols only have one rule
+		// 		if len(netpol.Spec.Ingress) == 1 && len(netpol.Spec.Ingress[0].Ports) == 1 && netpol.Spec.Ingress[0].Ports[0].Port != nil {
+		// 			port = uint16(netpol.Spec.Ingress[0].Ports[0].Port.IntVal)
+		// 			pType = dtos.PortTypeEnum(*netpol.Spec.Ingress[0].Ports[0].Protocol)
+		// 		}
+		// 		netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
+		// 			Name:     netpol.Name,
+		// 			Type:     dtos.Ingress,
+		// 			Port:     port,
+		// 			PortType: pType,
+		// 		})
+		// 	}
+		// }
 	}
 	return netpols, nil
 }
