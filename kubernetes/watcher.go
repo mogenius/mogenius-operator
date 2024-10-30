@@ -261,11 +261,17 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 	}
 
 	if kind == "NetworkPolicy" {
+		err := store.GlobalStore.Set(obj, kind, namespace, name)
+		if err != nil {
+			K8sLogger.Error("Error setting object in store", "error", err)
+		}
+
 		var netPol v1Net.NetworkPolicy
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
 		if err != nil {
 			return
 		}
+
 		HandleNetworkPolicyChange(&netPol, "Added/Updated")
 		return
 	}
@@ -299,11 +305,17 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 	}
 
 	if kind == "NetworkPolicy" {
+		err := store.GlobalStore.Delete(kind, namespace, name)
+		if err != nil {
+			K8sLogger.Error("Error deleting object in store", "error", err)
+		}
+
 		var netPol v1Net.NetworkPolicy
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
 		if err != nil {
 			return
 		}
+
 		HandleNetworkPolicyChange(&netPol, "Deleted")
 		return
 	}
