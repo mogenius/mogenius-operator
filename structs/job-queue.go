@@ -11,7 +11,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 var jobDataQueue []Datagram = []Datagram{}
@@ -57,7 +56,8 @@ func ConnectToJobQueue() {
 
 		select {
 		case <-interrupt:
-			log.Fatal("CTRL + C pressed. Terminating.")
+			StructsLogger.Info("CTRL + C pressed. Terminating.")
+			panic(1)
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
@@ -69,15 +69,15 @@ func connectJob(ctx context.Context) {
 
 	connection, _, err := websocket.DefaultDialer.Dial(JobConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
-		log.Errorf("Connection to JobServer failed (%s): %s\n", JobConnectionUrl.String(), err.Error())
+		StructsLogger.Error("Connection to JobServer failed", "url", JobConnectionUrl.String(), "error", err)
 		JobConnectionStatus <- false
 	} else {
-		log.Infof("Connected to JobServer: %s  (%s)\n", JobConnectionUrl.String(), connection.LocalAddr().String())
+		StructsLogger.Info("Connected to JobServer", "url", JobConnectionUrl.String(), "localAddr", connection.LocalAddr().String())
 		JobQueueConnection = connection
 		JobConnectionStatus <- true
 		err := Ping(JobQueueConnection, &JobSendMutex)
 		if err != nil {
-			log.Errorf("Error pinging job queue: %s", err)
+			StructsLogger.Error("Error pinging job queue", "error", err)
 		}
 	}
 
@@ -109,18 +109,18 @@ func processJobNow() {
 				element.DisplaySentSummary(i+1, len(jobDataQueue))
 				if isSuppressed := punqUtils.Contains(SUPPRESSED_OUTPUT_PATTERN, element.Pattern); !isSuppressed {
 					if utils.CONFIG.Misc.Debug {
-						log.Info(utils.PrettyPrintInterface(element.Payload))
+						StructsLogger.Info(utils.PrettyPrintInterface(element.Payload))
 					}
 				}
 				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {
-				log.Errorf("Error writing json in job queue: %s", err)
+				StructsLogger.Error("Error writing json in job queue", "error", err)
 				return
 			}
 		}
 	} else {
 		if utils.CONFIG.Misc.Debug {
-			log.Error("jobQueueConnection is nil.")
+			StructsLogger.Error("jobQueueConnection is nil.")
 		}
 	}
 }

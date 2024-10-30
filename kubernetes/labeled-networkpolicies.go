@@ -35,6 +35,75 @@ const (
 	PoliciesLabelPrefix string = "mo-netpol"
 )
 
+func AttachLabeledNetworkPolicy(controllerName string,
+	controllerType dtos.K8sServiceControllerEnum,
+	namespaceName string,
+	labelPolicy dtos.K8sLabeledNetworkPolicyDto,
+) error {
+	client := GetAppClient()
+	label := getNetworkPolicyName(labelPolicy)
+
+	switch controllerType {
+	case dtos.DEPLOYMENT:
+		deployment, err := client.Deployments(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		if deployment.Spec.Template.ObjectMeta.Labels == nil {
+			deployment.Spec.Template.ObjectMeta.Labels = make(map[string]string)
+		}
+		if deployment.ObjectMeta.Labels == nil {
+			deployment.ObjectMeta.Labels = make(map[string]string)
+		}
+		deployment.Spec.Template.ObjectMeta.Labels[label] = "true"
+		deployment.ObjectMeta.Labels[label] = "true"
+
+		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	case dtos.DAEMON_SET:
+		daemonset, err := client.DaemonSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		if daemonset.Spec.Template.ObjectMeta.Labels == nil {
+			daemonset.Spec.Template.ObjectMeta.Labels = make(map[string]string)
+		}
+		if daemonset.ObjectMeta.Labels == nil {
+			daemonset.ObjectMeta.Labels = make(map[string]string)
+		}
+		daemonset.Spec.Template.ObjectMeta.Labels[label] = "true"
+		daemonset.ObjectMeta.Labels[label] = "true"
+
+		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonset, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	case dtos.STATEFUL_SET:
+		statefulset, err := client.StatefulSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+		if statefulset.Spec.Template.ObjectMeta.Labels == nil {
+			statefulset.Spec.Template.ObjectMeta.Labels = make(map[string]string)
+		}
+		if statefulset.ObjectMeta.Labels == nil {
+			statefulset.ObjectMeta.Labels = make(map[string]string)
+		}
+		statefulset.Spec.Template.ObjectMeta.Labels[label] = "true"
+		statefulset.ObjectMeta.Labels[label] = "true"
+
+		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulset, MoUpdateOptions())
+		if err != nil {
+			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
+		}
+	default:
+		return fmt.Errorf("unsupported controller type %s", controllerType)
+	}
+	return nil
+}
+
 func AttachLabeledNetworkPolicies(controllerName string,
 	controllerType dtos.K8sServiceControllerEnum,
 	namespaceName string,
@@ -297,13 +366,13 @@ func CleanupLabeledNetworkPolicies(namespaceName string) error {
 		if _, ok := inUseLabels[netPol.Name]; !ok {
 			err = netClient.NetworkPolicies(namespaceName).Delete(context.TODO(), netPol.Name, metav1.DeleteOptions{})
 			if err != nil {
-				K8sLogger.Errorf("CleanupLabeledNetworkPolicies deleteNetworkPolicy ERROR: %s", err)
+				K8sLogger.Error("CleanupLabeledNetworkPolicies deleteNetworkPolicy ERROR", "error", err)
 			} else {
 				cleanupCounter++
 			}
 		}
 	}
-	K8sLogger.Infof("%d unused mogenius network policies deleted.", cleanupCounter)
+	K8sLogger.Info("unused mogenius network policies deleted.", "amount", cleanupCounter)
 	return nil
 }
 
@@ -372,7 +441,7 @@ func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabele
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 	if err != nil && !strings.Contains(err.Error(), "already exists") {
-		K8sLogger.Errorf("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
+		K8sLogger.Error("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
 		return err
 	}
 
@@ -441,7 +510,7 @@ func EnsureLabeledNetworkPolicies(namespaceName string, labelPolicy []dtos.K8sLa
 		netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil && !strings.Contains(err.Error(), "already exists") {
-			K8sLogger.Errorf("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
+			K8sLogger.Error("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
 			return err
 		}
 	}
@@ -467,7 +536,7 @@ func CreateDenyAllNetworkPolicy(namespaceName string) error {
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 	if err != nil {
-		K8sLogger.Errorf("CreateDenyAllNetworkPolicy ERROR: %s", err)
+		K8sLogger.Error("CreateDenyAllNetworkPolicy", "error", err)
 		return err
 	}
 	return nil
@@ -482,14 +551,14 @@ func cleanupUnusedDenyAll(namespaceName string) {
 		LabelSelector: MarkerLabel + "=true",
 	})
 	if err != nil {
-		K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
+		K8sLogger.Error("cleanupNetworkPolicies", "error", err)
 		return
 	}
 
 	if len(netpols.Items) == 0 {
 		err = netPolClient.Delete(context.TODO(), DenyAllNetPolName, metav1.DeleteOptions{})
 		if err != nil {
-			K8sLogger.Errorf("cleanupNetworkPolicies ERROR: %s", err)
+			K8sLogger.Error("cleanupNetworkPolicies", "error", err)
 		}
 	}
 }
@@ -507,7 +576,7 @@ func readDefaultConfigMap() *v1Core.ConfigMap {
 	var configMap v1Core.ConfigMap
 	err := yaml.Unmarshal([]byte(yamlString), &configMap)
 	if err != nil {
-		K8sLogger.Errorf("InitNetworkPolicyConfigMap ERROR: %s", err)
+		K8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
 		return nil
 	}
 	return &configMap
@@ -529,7 +598,7 @@ func uniqueItemsByName(items []NetworkPolicy) []NetworkPolicy {
 			seen[item.Name] = true
 			result = append(result, item)
 		} else {
-			K8sLogger.Warnf("Duplicate network policy name: %s", item.Name)
+			K8sLogger.Warn("Duplicate network policy name", "networkpolicy", item.Name)
 		}
 	}
 
@@ -552,7 +621,7 @@ func ReadNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
 	policies = uniqueItemsByName(policies)
 
 	if err != nil {
-		K8sLogger.Errorf("Error unmarshalling YAML: %s\n", err)
+		K8sLogger.Error("Error unmarshalling YAML", "error", err)
 		return nil, err
 	}
 	for _, policy := range policies {
@@ -584,7 +653,7 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 	for _, netpol := range netpols.Items {
 		err = netPolClient.Delete(context.TODO(), netpol.Name, metav1.DeleteOptions{})
 		if err != nil {
-			K8sLogger.Errorf("RemoveAllConflictingNetworkPolicies ERROR: %s", err)
+			K8sLogger.Error("RemoveAllConflictingNetworkPolicies", "error", err)
 			errors = append(errors, err)
 		}
 	}
@@ -602,7 +671,7 @@ func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyL
 		LabelSelector: NetpolLabel + "!=true",
 	})
 	if err != nil {
-		K8sLogger.Errorf("ListAllConflictingNetworkPolicies ERROR: %s", err)
+		K8sLogger.Error("ListAllConflictingNetworkPolicies", "error", err)
 		return nil, nil
 	}
 	return netpols, err
@@ -625,7 +694,6 @@ func ListControllerLabeledNetworkPolicies(
 	controllerType dtos.K8sServiceControllerEnum,
 	namespaceName string,
 ) ([]dtos.K8sLabeledNetworkPolicyDto, error) {
-
 	client := GetAppClient()
 
 	// get all labels from the controller
@@ -657,7 +725,7 @@ func ListControllerLabeledNetworkPolicies(
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 	existingNetPols, err := netPolClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		K8sLogger.Errorf("ListControllerLabeledNetworkPolicies(get single one) ERROR: %s", err)
+		K8sLogger.Error("ListControllerLabeledNetworkPolicies(get single one)", "error", err)
 	}
 
 	netpols := []dtos.K8sLabeledNetworkPolicyDto{}
@@ -675,37 +743,41 @@ func ListControllerLabeledNetworkPolicies(
 		}
 		if netpol.ObjectMeta.Name == "" {
 			// no network policy found for this label
-			continue
-		}
+			netpol, err := netPolClient.Get(context.TODO(), label, metav1.GetOptions{})
+			if err != nil {
+				K8sLogger.Error("ListControllerLabeledNetworkPolicies(get single one)", "error", err)
+				continue
+			}
 
-		if strings.Contains(netpol.Name, "egress") {
-			var port uint16
-			var pType dtos.PortTypeEnum
-			// our netpols only have one rule
-			if len(netpol.Spec.Egress) == 1 && len(netpol.Spec.Egress[0].Ports) == 1 && netpol.Spec.Egress[0].Ports[0].Port != nil {
-				port = uint16(netpol.Spec.Egress[0].Ports[0].Port.IntVal)
-				pType = dtos.PortTypeEnum(*netpol.Spec.Egress[0].Ports[0].Protocol)
+			if strings.Contains(netpol.Name, "egress") {
+				var port uint16
+				var pType dtos.PortTypeEnum
+				// our netpols only have one rule
+				if len(netpol.Spec.Egress) == 1 && len(netpol.Spec.Egress[0].Ports) == 1 && netpol.Spec.Egress[0].Ports[0].Port != nil {
+					port = uint16(netpol.Spec.Egress[0].Ports[0].Port.IntVal)
+					pType = dtos.PortTypeEnum(*netpol.Spec.Egress[0].Ports[0].Protocol)
+				}
+				netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
+					Name:     netpol.Name,
+					Type:     dtos.Egress,
+					Port:     port,
+					PortType: pType,
+				})
+			} else {
+				var port uint16
+				var pType dtos.PortTypeEnum
+				// our netpols only have one rule
+				if len(netpol.Spec.Ingress) == 1 && len(netpol.Spec.Ingress[0].Ports) == 1 && netpol.Spec.Ingress[0].Ports[0].Port != nil {
+					port = uint16(netpol.Spec.Ingress[0].Ports[0].Port.IntVal)
+					pType = dtos.PortTypeEnum(*netpol.Spec.Ingress[0].Ports[0].Protocol)
+				}
+				netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
+					Name:     netpol.Name,
+					Type:     dtos.Ingress,
+					Port:     port,
+					PortType: pType,
+				})
 			}
-			netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
-				Name:     netpol.Name,
-				Type:     dtos.Egress,
-				Port:     port,
-				PortType: pType,
-			})
-		} else {
-			var port uint16
-			var pType dtos.PortTypeEnum
-			// our netpols only have one rule
-			if len(netpol.Spec.Ingress) == 1 && len(netpol.Spec.Ingress[0].Ports) == 1 && netpol.Spec.Ingress[0].Ports[0].Port != nil {
-				port = uint16(netpol.Spec.Ingress[0].Ports[0].Port.IntVal)
-				pType = dtos.PortTypeEnum(*netpol.Spec.Ingress[0].Ports[0].Protocol)
-			}
-			netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
-				Name:     netpol.Name,
-				Type:     dtos.Ingress,
-				Port:     port,
-				PortType: pType,
-			})
 		}
 	}
 	return netpols, nil
@@ -722,11 +794,11 @@ func ensureDenyAllRule(namespaceName string) error {
 
 	_, err := netPolClient.Get(context.TODO(), DenyAllNetPolName, metav1.GetOptions{})
 	if err != nil {
-		K8sLogger.Infof("%s not found, it will be created.", DenyAllNetPolName)
+		K8sLogger.Info("networkpolicy not found, it will be created.", "networkpolicy", DenyAllNetPolName)
 
 		err = CreateDenyAllNetworkPolicy(namespaceName)
 		if err != nil {
-			K8sLogger.Errorf("ERROR creating: %s:  %v , abort NetPol creation!", DenyAllNetPolName, err.Error())
+			K8sLogger.Error("failed to create networkpolicy", "networkpolicy", DenyAllNetPolName, "error", err)
 			return err
 		}
 	}

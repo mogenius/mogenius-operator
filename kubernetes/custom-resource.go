@@ -90,13 +90,13 @@ func isReady(res *unstructured.Unstructured) bool {
 	// Convert res to []byte
 	resBytes, err := res.MarshalJSON()
 	if err != nil {
-		K8sLogger.Error("Error converting res to []byte:", err)
+		K8sLogger.Error("Error converting res to []byte", "error", err)
 		return false
 	}
 	var resourceStatus ResourceStatus
 	// Unmarshal the YAML into the struct
 	if err := yaml.Unmarshal(resBytes, &resourceStatus); err != nil {
-		K8sLogger.Error("Error unmarshalling YAML:", err)
+		K8sLogger.Error("Error unmarshalling YAML", "error", err)
 		return false
 	}
 

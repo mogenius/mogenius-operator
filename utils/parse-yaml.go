@@ -164,6 +164,10 @@ func InitNetworkPolicyDefaultsYaml() string {
 	return readYaml("yaml-templates/networkpolicies-default-ports.yaml")
 }
 
+func InitResourceTemplatesYaml() string {
+	return readYaml("yaml-templates/resource-templates-configmap.yaml")
+}
+
 func readYaml(filePath string) string {
 	yaml, err := YamlTemplatesFolder.ReadFile(filePath)
 	if err != nil {

@@ -303,7 +303,7 @@ func RenderPodNetworkTreePageHtml(namespace string, podName string) string {
 	// TODO: FINALIZE
 	ips := connections.UniqueIps()
 	mapping := kubernetes.GatherNamesForIps(ips)
-	ServiceLogger.Printf("ip mappings: %s", mapping)
+	ServiceLogger.Info("ip mappings", "mappings", mapping)
 
 	tree := generateTree(*stats, connections, *ctrl)
 	page := components.NewPage()

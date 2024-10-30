@@ -35,7 +35,7 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 
 	// check if db has a bucket for the namespace
 	if !bucketExists(tx, stat.Namespace) {
-		DbStatsLogger.Printf("Bucket for namespace %s does not exist and should be created once the stat is added", stat.Namespace)
+		DbStatsLogger.Info("Bucket for namespace does not exist and should be created once the stat is added", "namespace", stat.Namespace)
 	}
 	err = tx.Rollback()
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/xterm"
 	"os"
@@ -24,13 +25,12 @@ import (
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )
 
-var ServiceLogger = log.WithField("component", structs.ComponentServices)
+var ServiceLogger = logging.CreateLogger("services")
 
 type MessageResponseStatus string
 
@@ -100,7 +100,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_SYSTEM_CHECK:
 		return SystemCheck()
 	case structs.PAT_CLUSTER_RESTART:
-		ServiceLogger.Infof("😵😵😵 Received RESTART COMMAND. Restarting now ...")
+		ServiceLogger.Info("😵😵😵 Received RESTART COMMAND. Restarting now ...")
 		time.Sleep(1 * time.Second)
 		os.Exit(0)
 		return nil
@@ -948,12 +948,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		newObj, err := kubernetes.GetUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
 		return NewMessageResponse(newObj, err)
-	// case structs.PAT_GET_WORKLOAD_EXAMPLE:
-	// 	data := utils.SyncResourceItem{}
-	// 	structs.MarshalUnmarshal(&datagram, &data)
-	// 	newObj, err := kubernetes.GetExampleYamle(data.Group, data.Version, data.Name)
-	// 	return NewMessageResponse(newObj, err)
-
+	case structs.PAT_GET_WORKLOAD_EXAMPLE:
+		data := utils.SyncResourceItem{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return NewMessageResponse(kubernetes.GetResourceTemplateYaml(data.Group, data.Version, data.Name, data.Kind, data.Namespace, data.ResourceName), nil)
 	case structs.PAT_UPDATE_WORKLOAD:
 		data := utils.SyncResourceData{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2442,6 +2440,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 }
 
 func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceLogStreamResult {
+	_ = datagram
 	result := ServiceLogStreamResult{}
 
 	url, err := url.Parse(data.PostTo)
@@ -2474,10 +2473,10 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	}
 
 	if terminatedState != nil {
-		ServiceLogger.Infof("Logger try multiStreamData")
+		ServiceLogger.Info("Logger try multiStreamData")
 		go multiStreamData(previousResReq, restReq, terminatedState, url.String())
 	} else {
-		ServiceLogger.Infof("Logger try streamData")
+		ServiceLogger.Info("Logger try streamData")
 		go streamData(restReq, url.String())
 	}
 
@@ -2543,7 +2542,7 @@ func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
 }
 
 func K8sNotification(d structs.Datagram) interface{} {
-	ServiceLogger.Infof("Received '%s'.", d.Pattern)
+	ServiceLogger.Info("Received pattern", "pattern", d.Pattern)
 	return nil
 }
 
@@ -2595,7 +2594,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 
 	data, err := io.ReadAll(previousStream)
 	if err != nil {
-		ServiceLogger.Errorf("failed to read data: %v", err)
+		ServiceLogger.Error("failed to read data", "error", err)
 	}
 
 	lastState := punq.LastTerminatedStateToString(terminatedState)

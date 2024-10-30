@@ -89,6 +89,6 @@ func TestCreateExternalSecret(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating external secret list. Err: %s", err.Error())
 	} else {
-		K8sLogger.Infof("Secret store %s created ✅", secretName)
+		K8sLogger.Info("Secret store created ✅", "store", secretName)
 	}
 }

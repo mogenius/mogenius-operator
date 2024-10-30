@@ -52,7 +52,7 @@ func processEvent(event *v1Core.Event) {
 			controllerName := strings.Join(parts, "-")
 			err := db.AddPodEvent(event.InvolvedObject.Namespace, controllerName, event, 150)
 			if err != nil {
-				K8sLogger.Errorf("Error adding event to db: %s", err.Error())
+				K8sLogger.Error("Error adding event to db", "error", err.Error())
 			}
 
 			key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, controllerName)
@@ -68,7 +68,7 @@ func processEvent(event *v1Core.Event) {
 
 		}
 	} else {
-		K8sLogger.Errorf("malformed event received")
+		K8sLogger.Error("malformed event received")
 	}
 }
 
@@ -90,7 +90,7 @@ func AllEventsForNamespace2(namespaceName string) []v1Core.Event {
 	}
 	eventList, err := provider.ClientSet.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
-		K8sLogger.Errorf("AllEvents ERROR: %s", err.Error())
+		K8sLogger.Error("AllEvents", "error", err)
 		return result
 	}
 

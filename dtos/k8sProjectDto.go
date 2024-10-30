@@ -1,7 +1,7 @@
 package dtos
 
 import (
-	utils "mogenius-k8s-manager/utils"
+	"mogenius-k8s-manager/logging"
 
 	punqUtils "github.com/mogenius/punq/utils"
 )
@@ -41,9 +41,9 @@ func K8sProjectDtoExampleData() K8sProjectDto {
 }
 
 func (p *K8sProjectDto) AddSecretsToRedaction() {
-	utils.AddSecret(p.GitAccessToken)
-	utils.AddSecret(p.GitUserId)
-	utils.AddSecret(&p.ClusterMfaId)
-	utils.AddSecret(p.ContainerRegistryUser)
-	utils.AddSecret(p.ContainerRegistryPat)
+	logging.AddSecret(p.GitAccessToken)
+	logging.AddSecret(p.GitUserId)
+	logging.AddSecret(&p.ClusterMfaId)
+	logging.AddSecret(p.ContainerRegistryUser)
+	logging.AddSecret(p.ContainerRegistryPat)
 }

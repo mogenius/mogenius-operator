@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/repo"
 
@@ -47,7 +47,7 @@ var (
 
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
 
-var HelmLogger = log.WithField("component", structs.ComponentHelm)
+var HelmLogger = logging.CreateLogger("helm")
 
 type HelmRepoAddRequest struct {
 	Name string `json:"name" validate:"required"`
@@ -257,8 +257,8 @@ func HelmStatus(namespace string, chartname string) release.Status {
 	settings.SetNamespace(namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), HelmLogger.Infof); err != nil {
-		HelmLogger.Errorf("HelmStatus Init Error: %s", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), HelmLogger.Info); err != nil {
+		HelmLogger.Error("HelmStatus Init", "error", err)
 		helmCache.Set(cacheKey, release.StatusUnknown, cacheTime)
 		return release.StatusUnknown
 	}
@@ -266,7 +266,7 @@ func HelmStatus(namespace string, chartname string) release.Status {
 	get := action.NewGet(actionConfig)
 	chart, err := get.Run(chartname)
 	if err != nil && err.Error() != "release: not found" {
-		HelmLogger.Errorf("HelmStatus List Error: %s", err.Error())
+		HelmLogger.Error("HelmStatus List", "error", err)
 		helmCache.Set(cacheKey, release.StatusUnknown, cacheTime)
 		return release.StatusUnknown
 	}
@@ -309,25 +309,25 @@ func InitHelmConfig() error {
 	repositoryCache = fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_REPOSITORY_CACHE_FOLDER)
 
 	// Set the HELM_HOME environment variable
-	folder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_DATA_HOME)
+	path := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_DATA_HOME)
 
 	// create helm home directory if it does not exist
-	if _, err := os.Stat(folder); os.IsNotExist(err) {
-		err := os.MkdirAll(folder, 0755)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err := os.MkdirAll(path, 0755)
 		if err != nil {
-			HelmLogger.Errorf("Error creating directory: %s", err.Error())
+			HelmLogger.Error("failed to create directory", "path", path, "error", err)
 			return err
 		}
-		HelmLogger.Infof("Helm home directory created successfully: %s", folder)
+		HelmLogger.Info("Helm home directory created successfully", "path", path)
 
 		// create cache directory if it does not exist
 		if _, err := os.Stat(repositoryCache); os.IsNotExist(err) {
 			err := os.MkdirAll(repositoryCache, 0755)
 			if err != nil {
-				HelmLogger.Errorf("Error creating directory: %s", err.Error())
+				HelmLogger.Error("failed to create directory", "path", repositoryCache, "error", err)
 				return err
 			}
-			HelmLogger.Infof("Helm cache directory created successfully: %s", repositoryCache)
+			HelmLogger.Info("Helm cache directory created successfully", "path", repositoryCache)
 		}
 
 		// create plugins directory if it does not exist
@@ -335,10 +335,10 @@ func InitHelmConfig() error {
 		if _, err := os.Stat(pluginsFolder); os.IsNotExist(err) {
 			err := os.MkdirAll(pluginsFolder, 0755)
 			if err != nil {
-				HelmLogger.Errorf("Error creating directory: %s", err.Error())
+				HelmLogger.Error("failed to create directory", "path", pluginsFolder, "error", err)
 				return err
 			}
-			HelmLogger.Infof("Helm plugins directory created successfully: %s", pluginsFolder)
+			HelmLogger.Info("Helm plugins directory created successfully", "path", pluginsFolder)
 		}
 	}
 	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_CACHE_HOME))
@@ -350,18 +350,28 @@ func InitHelmConfig() error {
 	os.Setenv("HELM_REPOSITORY_CONFIG", repositoryConfig)
 	os.Setenv("HELM_LOG_LEVEL", "trace")
 
-	K8sLogger.Infof("HELM_CACHE_HOME: %s", os.Getenv("HELM_CACHE_HOME"))
-	K8sLogger.Infof("HELM_CONFIG_HOME: %s", os.Getenv("HELM_CONFIG_HOME"))
-	K8sLogger.Infof("HELM_DATA_HOME: %s", os.Getenv("HELM_DATA_HOME"))
-	K8sLogger.Infof("HELM_PLUGINS: %s", os.Getenv("HELM_PLUGINS"))
-	K8sLogger.Infof("HELM_REGISTRY_CONFIG: %s", os.Getenv("HELM_REGISTRY_CONFIG"))
-	K8sLogger.Infof("HELM_REPOSITORY_CACHE: %s", os.Getenv("HELM_REPOSITORY_CACHE"))
-	K8sLogger.Infof("HELM_REPOSITORY_CONFIG: %s", os.Getenv("HELM_REPOSITORY_CONFIG"))
+	K8sLogger.Info(
+		"detected helm config",
+		"HELM_CACHE_HOME",
+		os.Getenv("HELM_CACHE_HOME"),
+		"HELM_CONFIG_HOME",
+		os.Getenv("HELM_CONFIG_HOME"),
+		"HELM_DATA_HOME",
+		os.Getenv("HELM_DATA_HOME"),
+		"HELM_PLUGINS",
+		os.Getenv("HELM_PLUGINS"),
+		"HELM_REGISTRY_CONFIG",
+		os.Getenv("HELM_REGISTRY_CONFIG"),
+		"HELM_REPOSITORY_CACHE",
+		os.Getenv("HELM_REPOSITORY_CACHE"),
+		"HELM_REPOSITORY_CONFIG",
+		os.Getenv("HELM_REPOSITORY_CONFIG"),
+	)
 
 	if _, err := os.Stat(repositoryConfig); os.IsNotExist(err) {
 		destFile, err := os.Create(repositoryConfig)
 		if err != nil {
-			HelmLogger.Errorf("Error creating repository config: %s", err.Error())
+			HelmLogger.Error("failed to create repository config", "path", repositoryConfig, "error", err)
 		}
 		defer destFile.Close()
 
@@ -371,12 +381,12 @@ func InitHelmConfig() error {
 			Url:  "https://helm.mogenius.com/public",
 		}
 		if _, err := HelmRepoAdd(data); err != nil {
-			HelmLogger.Errorf("Failed to add default repository: %s", err.Error())
+			HelmLogger.Error("failed to add default helm repository", "repoName", data.Name, "repoUrl", data.Url, "error", err)
 		}
 	}
 
 	if _, err := HelmRepoUpdate(); err != nil {
-		HelmLogger.Errorf("Failed to update repositories: %s", err.Error())
+		HelmLogger.Error("failed to update helm repositories", "error", err)
 	}
 
 	return nil
@@ -579,7 +589,8 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		HelmLogger.Fatalf("Failed to load repositories file: %v", err)
+		HelmLogger.Error("Failed to load repositories file", "error", err)
+		panic(1)
 	}
 
 	var allCharts []HelmChartInfo
@@ -589,7 +600,7 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 
 		indexFile, err := repo.LoadIndexFile(cacheIndexFile)
 		if err != nil {
-			HelmLogger.Printf("Error loading index file for repo %s: %v", repoEntry.Name, err)
+			HelmLogger.Info("failed to load repo index file", "repoName", repoEntry.Name, "error", err)
 			continue
 		}
 
@@ -627,8 +638,8 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 	settings := NewCli()
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), "", os.Getenv("HELM_DRIVER"), HelmLogger.Infof); err != nil {
-		HelmLogger.Errorf("HelmChartShow Init Error: %s", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), "", os.Getenv("HELM_DRIVER"), HelmLogger.Info); err != nil {
+		HelmLogger.Error("HelmChartShow Init", "error", err)
 		return "", err
 	}
 
@@ -636,7 +647,7 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 	chartPathOptions := action.ChartPathOptions{}
 	chartPath, err := chartPathOptions.LocateChart(data.Chart, settings)
 	if err != nil {
-		HelmLogger.Errorf("HelmShow LocateChart Error: %s\n", err.Error())
+		HelmLogger.Error("HelmShow LocateChart", "error", err)
 		return "", err
 	}
 
@@ -644,7 +655,7 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 	show := action.NewShowWithConfig(data.ShowFormat, actionConfig)
 	result, err := show.Run(chartPath)
 	if err != nil {
-		HelmLogger.Errorf("HelmShow Run Error: %s", err.Error())
+		HelmLogger.Error("HelmShow Run", "error", err)
 		return "", err
 	}
 
@@ -656,7 +667,8 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		HelmLogger.Fatalf("Failed to load repositories file: %v", err)
+		HelmLogger.Error("failed to load repositories file", "error", err)
+		panic(1)
 	}
 
 	var allCharts []HelmChartInfo
@@ -676,7 +688,7 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 
 		indexFile, err := repo.LoadIndexFile(cacheIndexFile)
 		if err != nil {
-			HelmLogger.Printf("Error loading index file for repo %s: %v", repoEntry.Name, err)
+			HelmLogger.Info("Error loading repo index file", "repoName", repoEntry.Name, "error", err)
 			continue
 		}
 
@@ -705,15 +717,11 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 	settings.SetNamespace(data.Namespace)
 	settings.Debug = true
 
-	var HelmInstallLogger = HelmLogger.WithFields(log.Fields{
-		"component":   structs.ComponentHelm,
-		"releaseName": data.Release,
-		"namespace":   data.Namespace,
-	})
+	var HelmInstallLogger = HelmLogger.With("releaseName", data.Release, "namespace", data.Namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmInstallLogger.Infof); err != nil {
-		HelmInstallLogger.Errorf("HelmInstall Init Error: %s\n", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmInstallLogger.Info); err != nil {
+		HelmInstallLogger.Error("HelmInstall Init", "error", err)
 		return "", err
 	}
 
@@ -731,26 +739,26 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 
 	chartPath, err := install.LocateChart(data.Chart, settings)
 	if err != nil {
-		HelmInstallLogger.Errorf("HelmInstall LocateChart Error: %s\n", err.Error())
+		HelmInstallLogger.Error("HelmInstall LocateChart", "error", err)
 		return "", err
 	}
 
 	chartRequested, err := loader.Load(chartPath)
 	if err != nil {
-		HelmInstallLogger.Errorf("HelmInstall Load Error: %s\n", err.Error())
+		HelmInstallLogger.Error("HelmInstall Load", "error", err)
 		return "", err
 	}
 
 	// Parse the values string into a map
 	valuesMap := map[string]interface{}{}
 	if err := yaml.Unmarshal([]byte(data.Values), &valuesMap); err != nil {
-		HelmInstallLogger.Errorf("HelmInstall Values Unmarshal Error: %s\n", err.Error())
+		HelmInstallLogger.Error("failed to Unmarshal HelmInstall Values", "error", err)
 		return "", err
 	}
 
 	re, err := install.Run(chartRequested, valuesMap)
 	if err != nil {
-		HelmInstallLogger.Errorf("HelmInstall Run Error: %s\n", err.Error())
+		HelmInstallLogger.Error("HelmInstall Run", "error", err)
 		return "", err
 	}
 	if re == nil {
@@ -763,18 +771,14 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 }
 
 func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
-	var HelmReleaseUpgradeLogger = HelmLogger.WithFields(log.Fields{
-		"component":   structs.ComponentHelm,
-		"releaseName": data.Release,
-		"namespace":   data.Namespace,
-	})
+	var HelmReleaseUpgradeLogger = HelmLogger.With("releaseName", data.Release, "namespace", data.Namespace)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseUpgradeLogger.Infof); err != nil {
-		HelmReleaseUpgradeLogger.Errorf("HelmUpgrade Init Error: %s\n", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseUpgradeLogger.Info); err != nil {
+		HelmReleaseUpgradeLogger.Error("HelmUpgrade Init", "error", err)
 		return "", err
 	}
 
@@ -787,26 +791,26 @@ func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
 
 	chartPath, err := upgrade.LocateChart(data.Chart, settings)
 	if err != nil {
-		HelmReleaseUpgradeLogger.Errorf("HelmUpgrade LocateChart Error: %s\n", err.Error())
+		HelmReleaseUpgradeLogger.Error("HelmUpgrade LocateChart", "error", err)
 		return "", err
 	}
 
 	chartRequested, err := loader.Load(chartPath)
 	if err != nil {
-		HelmReleaseUpgradeLogger.Errorf("HelmUpgrade Load Error: %s\n", err.Error())
+		HelmReleaseUpgradeLogger.Error("HelmUpgrade Load", "error", err)
 		return "", err
 	}
 
 	// Parse the values string into a map
 	valuesMap := map[string]interface{}{}
 	if err := yaml.Unmarshal([]byte(data.Values), &valuesMap); err != nil {
-		HelmReleaseUpgradeLogger.Errorf("HelmUpgrade Values Unmarshal Error: %s\n", err.Error())
+		HelmReleaseUpgradeLogger.Error("failed to Unmarshal HelmUpgrade Values", "error", err)
 		return "", err
 	}
 
 	re, err := upgrade.Run(data.Release, chartRequested, valuesMap)
 	if err != nil {
-		HelmReleaseUpgradeLogger.Errorf("HelmUpgrade Run Error: %s\n", err.Error())
+		HelmReleaseUpgradeLogger.Error("HelmUpgrade Run", "error", err)
 		return "", err
 	}
 	if re == nil {
@@ -817,18 +821,14 @@ func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
 }
 
 func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
-	var HelmReleaseUninstallLogger = HelmLogger.WithFields(log.Fields{
-		"component":   structs.ComponentHelm,
-		"releaseName": data.Release,
-		"namespace":   data.Namespace,
-	})
+	var HelmReleaseUninstallLogger = HelmLogger.With("releaseName", data.Release, "namespace", data.Namespace)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseUninstallLogger.Infof); err != nil {
-		HelmReleaseUninstallLogger.Errorf("HelmUninstall Init Error: %s\n", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseUninstallLogger.Info); err != nil {
+		HelmReleaseUninstallLogger.Error("HelmUninstall Init", "error", err)
 		return "", err
 	}
 
@@ -837,7 +837,7 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 	uninstall.Wait = false
 	_, err := uninstall.Run(data.Release)
 	if err != nil {
-		HelmReleaseUninstallLogger.Errorf("HelmUninstall Run Error: %s\n", err.Error())
+		HelmReleaseUninstallLogger.Error("HelmUninstall Run", "error", err)
 		return "", err
 	}
 
@@ -853,17 +853,14 @@ func installStatus(rel release.Release) string {
 }
 
 func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
-	var HelmReleaseListLogger = HelmLogger.WithFields(log.Fields{
-		"component": structs.ComponentHelm,
-		"namespace": data.Namespace,
-	})
+	var HelmReleaseListLogger = HelmLogger.With("namespace", data.Namespace)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseListLogger.Infof); err != nil {
-		HelmReleaseListLogger.Errorf("HelmReleaseList Init Error: %s", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseListLogger.Info); err != nil {
+		HelmReleaseListLogger.Error("HelmReleaseList Init", "error", err)
 		return []*release.Release{}, err
 	}
 
@@ -878,32 +875,28 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
 		release.Manifest = ""
 	}
 	if err != nil {
-		HelmReleaseListLogger.Errorf("HelmReleaseList List Error: %s", err.Error())
+		HelmReleaseListLogger.Error("HelmReleaseList List", "error", err)
 		return releases, err
 	}
 	return releases, nil
 }
 
 func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, error) {
-	var HelmReleaseStatusLogger = HelmLogger.WithFields(log.Fields{
-		"component":   structs.ComponentHelm,
-		"releaseName": data.Release,
-		"namespace":   data.Namespace,
-	})
+	var HelmReleaseStatusLogger = HelmLogger.With("releaseName", data.Release, "namespace", data.Namespace)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseStatusLogger.Infof); err != nil {
-		HelmReleaseStatusLogger.Errorf("HelmReleaseStatus Init Error: %s", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseStatusLogger.Info); err != nil {
+		HelmReleaseStatusLogger.Error("HelmReleaseStatus Init", "error", err)
 		return nil, err
 	}
 
 	status := action.NewStatus(actionConfig)
 	re, err := status.Run(data.Release)
 	if err != nil {
-		HelmReleaseStatusLogger.Errorf("HelmReleaseStatus List Error: %s", err.Error())
+		HelmReleaseStatusLogger.Error("HelmReleaseStatus List", "error", err)
 		return nil, err
 	}
 	if re == nil {
@@ -923,18 +916,14 @@ func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, e
 }
 
 func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, error) {
-	var HelmReleaseHistoryLogger = HelmLogger.WithFields(log.Fields{
-		"component":   structs.ComponentHelm,
-		"releaseName": data.Release,
-		"namespace":   data.Namespace,
-	})
+	var HelmReleaseHistoryLogger = HelmLogger.With("releaseName", data.Release, "namespace", data.Namespace)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseHistoryLogger.Infof); err != nil {
-		HelmReleaseHistoryLogger.Errorf("HelmHistory Init Error: %s", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseHistoryLogger.Info); err != nil {
+		HelmReleaseHistoryLogger.Error("HelmHistory Init", "error", err)
 		return []*release.Release{}, err
 	}
 
@@ -942,25 +931,21 @@ func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, err
 	history.Max = 10
 	releases, err := history.Run(data.Release)
 	if err != nil {
-		HelmReleaseHistoryLogger.Errorf("HelmHistory List Error: %s", err.Error())
+		HelmReleaseHistoryLogger.Error("HelmHistory List", "error", err)
 		return releases, err
 	}
 	return releases, nil
 }
 
 func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
-	var HelmReleaseRollbackLogger = HelmLogger.WithFields(log.Fields{
-		"component":   structs.ComponentHelm,
-		"releaseName": data.Release,
-		"namespace":   data.Namespace,
-	})
+	var HelmReleaseRollbackLogger = HelmLogger.With("releaseName", data.Release, "namespace", data.Namespace)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseRollbackLogger.Infof); err != nil {
-		HelmReleaseRollbackLogger.Errorf("HelmRollback Init Error: %s", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseRollbackLogger.Info); err != nil {
+		HelmReleaseRollbackLogger.Error("HelmRollback Init", "error", err)
 		return "", err
 	}
 
@@ -968,7 +953,7 @@ func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
 	rollback.Version = data.Revision
 	err := rollback.Run(data.Release)
 	if err != nil {
-		HelmReleaseRollbackLogger.Errorf("HelmRollback Run Error: %s", err.Error())
+		HelmReleaseRollbackLogger.Error("HelmRollback Run", "error", err)
 		return "", err
 	}
 
@@ -976,25 +961,21 @@ func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
 }
 
 func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
-	var HelmReleaseGetLogger = HelmLogger.WithFields(log.Fields{
-		"component":   structs.ComponentHelm,
-		"releaseName": data.Release,
-		"namespace":   data.Namespace,
-	})
+	var HelmReleaseGetLogger = HelmLogger.With("releaseName", data.Release, "namespace", data.Namespace)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseGetLogger.Infof); err != nil {
-		HelmReleaseGetLogger.Errorf("HelmGet Init Error: %s", err.Error())
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseGetLogger.Info); err != nil {
+		HelmReleaseGetLogger.Error("HelmGet Init", "error", err)
 		return "", err
 	}
 
 	get := action.NewGet(actionConfig)
 	re, err := get.Run(data.Release)
 	if err != nil && err.Error() != "release: not found" {
-		HelmReleaseGetLogger.Errorf("HelmGet List Error: %s", err.Error())
+		HelmReleaseGetLogger.Error("HelmGet List", "error", err)
 		return "", err
 	}
 
@@ -1053,7 +1034,7 @@ func printHooks(rel *release.Release) string {
 func yamlString(data map[string]interface{}) string {
 	yamlData, err := yaml.Marshal(data)
 	if err != nil {
-		HelmLogger.Errorf("Error while marshaling. %v", err)
+		HelmLogger.Error("failed to Marshal", "error", err)
 		return ""
 	}
 

@@ -15,7 +15,7 @@ func TestApplicationKit(t *testing.T) {
 	// CREATE
 	err := CreateApplicationKit(namespace, newAppkitName, CrdApplicationKit{Id: name, DisplayName: "Test Project", CreatedBy: name, Controller: "tesst", AppId: "gtesdf"})
 	if err != nil {
-		CrdLogger.Fatalf("Error creating appkit: %s", err.Error())
+		t.Fatalf("Error creating appkit: %s", err.Error())
 	} else {
 		fmt.Println("Applicationkit created ✅")
 	}
@@ -23,7 +23,7 @@ func TestApplicationKit(t *testing.T) {
 	// GET
 	appkit, _, err := GetApplicationKit(namespace, newAppkitName)
 	if err != nil {
-		CrdLogger.Fatalf("Error getting appkit: %s", err.Error())
+		t.Fatalf("Error getting appkit: %s", err.Error())
 	} else {
 		fmt.Println("Applicationkit retrieved ✅")
 	}
@@ -36,7 +36,7 @@ func TestApplicationKit(t *testing.T) {
 	// UPDATE
 	err = UpdateApplicationKit(namespace, newAppkitName, &appkit)
 	if err != nil {
-		CrdLogger.Fatalf("Error updating appkit: %s", err.Error())
+		t.Fatalf("Error updating appkit: %s", err.Error())
 	} else {
 		fmt.Println("Applicationkit updated ✅")
 	}
@@ -44,7 +44,7 @@ func TestApplicationKit(t *testing.T) {
 	// DELETE
 	err = DeleteApplicationKit(namespace, newAppkitName)
 	if err != nil {
-		CrdLogger.Fatalf("Error deleting appkit: %s", err.Error())
+		t.Fatalf("Error deleting appkit: %s", err.Error())
 	} else {
 		fmt.Println("ApplicationKit deleted ✅")
 	}
@@ -52,7 +52,7 @@ func TestApplicationKit(t *testing.T) {
 	// LIST
 	_, _, err = ListProjects()
 	if err != nil {
-		CrdLogger.Fatalf("Error listing appkits: %s", err.Error())
+		t.Fatalf("Error listing appkits: %s", err.Error())
 	} else {
 		fmt.Println("Applicationkits listed ✅")
 	}

@@ -3,11 +3,11 @@ package structs
 import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	"time"
 
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -27,8 +27,8 @@ type ScanImageRequest struct {
 }
 
 func (s *ScanImageRequest) AddSecretsToRedaction() {
-	utils.AddSecret(s.ContainerRegistryUser)
-	utils.AddSecret(s.ContainerRegistryPat)
+	logging.AddSecret(s.ContainerRegistryUser)
+	logging.AddSecret(s.ContainerRegistryPat)
 }
 
 func ScanImageRequestExample() ScanImageRequest {
@@ -409,7 +409,7 @@ func CreateBuildJobInfo(image string, clone []byte, ls []byte, login []byte, bui
 	if projectId != nil {
 		result.ProjectId = *projectId
 	}
-	
+
 	if !cloneEntity.IsEmpty() {
 		result.StartTime = cloneEntity.StartTime
 	}
@@ -446,7 +446,7 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal(data, &result)
 		if err != nil {
-			log.Errorf("createBuildJobEntryFromData ERR: %s", err.Error())
+			StructsLogger.Error("createBuildJobEntryFromData", "error", err)
 		}
 	}
 
@@ -479,7 +479,7 @@ func CreateBuildJobInfoEntryBytes(
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(entry)
 	if err != nil {
-		log.Errorf("createBuildJobInfoEntryBytes ERR: %s", err.Error())
+		StructsLogger.Error("createBuildJobInfoEntryBytes", "error", err)
 	}
 	return bytes
 }
@@ -495,7 +495,7 @@ func CreateScanImageEntryBytes(
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(entry)
 	if err != nil {
-		log.Errorf("createBuildJobInfoEntryBytes ERR: %s", err.Error())
+		StructsLogger.Error("createBuildJobInfoEntryBytes", "error", err)
 	}
 	return bytes
 
@@ -512,7 +512,7 @@ func CreateScanImageEntryBytes(
 // 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 // 	bytes, err := json.Marshal(entry)
 // 	if err != nil {
-// 		log.Errorf("CreateBuildJobInfoEntryBytesForScan ERR: %s", err.Error())
+// 		StructsLogger.Error("CreateBuildJobInfoEntryBytesForScan", "error", err)
 // 	}
 // 	return bytes
 // }

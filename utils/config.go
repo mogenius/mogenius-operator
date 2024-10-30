@@ -62,18 +62,18 @@ type SyncResourceItem struct {
 }
 
 func (s *SyncResourceEntry) YamlString() string {
-	bytes, out := yaml.Marshal(s)
-	if out != nil {
-		UtilsLogger.Errorf("Error marshalling SyncResourceEntry: %s", out.Error())
+	bytes, err := yaml.Marshal(s)
+	if err != nil {
+		UtilsLogger.Error("Error marshalling SyncResourceEntry", "error", err)
 		return ""
 	}
 	return string(bytes)
 }
 
 func YamlStringFromSyncResource(s []SyncResourceEntry) string {
-	bytes, out := yaml.Marshal(s)
-	if out != nil {
-		UtilsLogger.Errorf("Error marshalling SyncResourceEntry: %s", out.Error())
+	bytes, err := yaml.Marshal(s)
+	if err != nil {
+		UtilsLogger.Error("Error marshalling SyncResourceEntry", "error", err)
 		return ""
 	}
 
@@ -92,7 +92,7 @@ func SyncResourceEntryFromYaml(str string) *SyncResourceEntry {
 	var s SyncResourceEntry
 	err := yaml.Unmarshal([]byte(str), &s)
 	if err != nil {
-		UtilsLogger.Errorf("Error unmarshalling SyncResourceEntry: %s", err)
+		UtilsLogger.Error("Error unmarshalling SyncResourceEntry", "error", err)
 		return nil
 	}
 	return &s
@@ -149,7 +149,7 @@ type Config struct {
 	Misc struct {
 		Stage                     string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		LogFormat                 string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"json"`
-		LogLevel                  string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: panic, fatal, error, warn, info, debug, trace" env-default:"info"`
+		LogLevel                  string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: error, warn, info, debug" env-default:"info"`
 		LogIncomingStats          bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
 		Debug                     bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		DebugLogCaller            bool     `yaml:"debug_log_caller" env:"debug_log_caller" env-description:"If set to true, the calling function will be logged." env-default:"false"`
@@ -203,22 +203,22 @@ func InitConfigSimple(stage string) {
 	case STAGE_DEV:
 		err := os.WriteFile(path, []byte(DefaultConfigClusterFileDev), 0755)
 		if err != nil {
-			UtilsLogger.Errorf("Error writing default 'dev' config file: %s", err.Error())
+			UtilsLogger.Error("failed to write default 'dev' config file", "path", path, "error", err)
 		}
 	case STAGE_LOCAL:
 		err := os.WriteFile(path, []byte(DefaultConfigLocalFile), 0755)
 		if err != nil {
-			UtilsLogger.Errorf("Error writing default 'local' config file: %s", err.Error())
+			UtilsLogger.Error("failed to write default 'local' config file", "path", path, "error", err)
 		}
 	case STAGE_PROD:
 		err := os.WriteFile(path, []byte(DefaultConfigClusterFileProd), 0755)
 		if err != nil {
-			UtilsLogger.Errorf("Error writing default config file: %s", err.Error())
+			UtilsLogger.Error("failed to write default config file", "path", path, "error", err)
 		}
 	}
 	err := cleanenv.ReadConfig(path, &CONFIG)
 	if err != nil {
-		UtilsLogger.Errorf("Error reading config file: %s", err.Error())
+		UtilsLogger.Error("failed to read config file", "path", path, "error", err)
 	}
 }
 
@@ -250,8 +250,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		if strings.HasPrefix(err.Error(), "config file parsing error:") {
 			UtilsLogger.Error("Config file is corrupted. Creating a new one by using -r flag.")
 		}
-		UtilsLogger.Errorf("Error reading config: %s", ConfigPath)
-		UtilsLogger.Errorf("Error reading config: %s", err.Error())
+		UtilsLogger.Error("Error reading config", "path", ConfigPath, "error", err)
 	}
 
 	if CONFIG.Kubernetes.RunInCluster {
@@ -264,9 +263,10 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if !CONFIG.Kubernetes.RunInCluster {
 		dirPath, err := os.MkdirTemp("", "mo_*")
 		if err != nil {
-			UtilsLogger.Fatalf("Failed to create temp dir: %v", err)
+			UtilsLogger.Error("failed to create temp dir", "error", err)
+			panic(1)
 		}
-		UtilsLogger.Infof("TempDir created: %s", dirPath)
+		UtilsLogger.Info("TempDir created", "path", dirPath)
 	}
 
 	if CONFIG.Kubernetes.BboltDbPath == "" {
@@ -291,15 +291,18 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
-			UtilsLogger.Fatalf("Environment Variable 'cluster_name' not setup. TERMINATING.")
+			UtilsLogger.Error("Environment Variable 'cluster_name' not setup. TERMINATING.")
+			panic(1)
 		}
 		if CONFIG.Kubernetes.ApiKey == "YOUR_API_KEY" || CONFIG.Kubernetes.ApiKey == "" {
-			UtilsLogger.Fatalf("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
+			UtilsLogger.Error("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
+			panic(1)
 		}
 	}
 
 	if CONFIGVERSION > CONFIG.Config.Version {
-		UtilsLogger.Fatalf("Config version is outdated. Please delete your config file %s and restart the application. (Your Config version: %d, Needed: %d)", ConfigPath, CONFIG.Config.Version, CONFIGVERSION)
+		UtilsLogger.Error("Config version is outdated. Please delete your config file and restart the application.", "ConfigPath", ConfigPath, "version", CONFIG.Config.Version, "neededVersion", CONFIGVERSION)
+		panic(1)
 	}
 
 	// SET LOGGING
@@ -308,7 +311,10 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if CONFIG.Misc.Debug {
 		UtilsLogger.Info("Starting service for pprof in localhost:6060")
 		go func() {
-			UtilsLogger.Info(http.ListenAndServe("localhost:6060", nil))
+			err := http.ListenAndServe("localhost:6060", nil)
+			if err != nil {
+				panic(err)
+			}
 			UtilsLogger.Info("1. Portforward mogenius-k8s-manager to 6060")
 			UtilsLogger.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
 			UtilsLogger.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
@@ -431,91 +437,78 @@ func SetupClusterConfigmap(clusterConfigmap ClusterConfigmap) {
 }
 
 func PrintSettings() {
-	UtilsLogger.Infof("Config\n")
-	UtilsLogger.Infof("Version:                   %d\n\n", CONFIG.Config.Version)
-
-	UtilsLogger.Infof("KUBERNETES")
-	UtilsLogger.Infof("OwnNamespace:              %s", CONFIG.Kubernetes.OwnNamespace)
-	UtilsLogger.Infof("ClusterName:               %s", CONFIG.Kubernetes.ClusterName)
-	UtilsLogger.Infof("ClusterMfaId:              %s", CONFIG.Kubernetes.ClusterMfaId)
-	UtilsLogger.Infof("RunInCluster:              %t", CONFIG.Kubernetes.RunInCluster)
-	UtilsLogger.Infof("ApiKey:                    %s", CONFIG.Kubernetes.ApiKey)
-	UtilsLogger.Infof("HelmDataPath:              %s", CONFIG.Kubernetes.HelmDataPath)
-	UtilsLogger.Infof("GitVaultDataPath:          %s", CONFIG.Kubernetes.GitVaultDataPath)
-	UtilsLogger.Infof("BboltDbPath:               %s", CONFIG.Kubernetes.BboltDbPath)
-	UtilsLogger.Infof("BboltDbStatsPath:          %s", CONFIG.Kubernetes.BboltDbStatsPath)
-	UtilsLogger.Infof("LogDataPath:               %s", CONFIG.Kubernetes.LogDataPath)
-	UtilsLogger.Infof("LocalContainerRegistry:    %s\n\n", CONFIG.Kubernetes.LocalContainerRegistryHost)
-
-	UtilsLogger.Infof("API")
-	UtilsLogger.Infof("HttpServer:                %s", CONFIG.ApiServer.Http_Server)
-	UtilsLogger.Infof("WsServer:                  %s", CONFIG.ApiServer.Ws_Server)
-	UtilsLogger.Infof("WsScheme:                  %s", CONFIG.ApiServer.Ws_Scheme)
-	UtilsLogger.Infof("WsPath:                    %s\n\n", CONFIG.ApiServer.WS_Path)
-
-	UtilsLogger.Infof("EVENTS")
-	UtilsLogger.Infof("EventServer:               %s", CONFIG.EventServer.Server)
-	UtilsLogger.Infof("EventScheme:               %s", CONFIG.EventServer.Scheme)
-	UtilsLogger.Infof("EventPath:                 %s\n\n", CONFIG.EventServer.Path)
-
-	UtilsLogger.Infof("IAC")
-	UtilsLogger.Infof("RepoUrl:                   %s", CONFIG.Iac.RepoUrl)
-	UtilsLogger.Infof("RepoPat:                   %s", CONFIG.Iac.RepoPat)
-	UtilsLogger.Infof("RepoBranch:                %s", CONFIG.Iac.RepoBranch)
-	UtilsLogger.Infof("PollingIntervalSecs:       %d", CONFIG.Iac.SyncFrequencyInSec)
-	UtilsLogger.Infof("AllowPull:                 %t", CONFIG.Iac.AllowPull)
-	UtilsLogger.Infof("AllowPush:                 %t", CONFIG.Iac.AllowPush)
-	UtilsLogger.Infof("SyncWorkloads:             %s", YamlStringFromSyncResourceDescription(CONFIG.Iac.SyncWorkloads))
-	UtilsLogger.Infof("AvailableWorkloads:        %s", YamlStringFromSyncResourceDescription(CONFIG.Iac.AvailableWorkloads))
-	UtilsLogger.Infof("IgnoredNamespaces:         %s", strings.Join(CONFIG.Iac.IgnoredNamespaces, ","))
-	UtilsLogger.Infof("IgnoredNames:              %s", strings.Join(CONFIG.Iac.IgnoredNames, ","))
-	UtilsLogger.Infof("LogChanges:                %t", CONFIG.Iac.LogChanges)
-	UtilsLogger.Infof("ShowDiffInLog:             %t\n\n", CONFIG.Iac.ShowDiffInLog)
-
-	UtilsLogger.Infof("MISC")
-	UtilsLogger.Infof("Stage:                     %s", CONFIG.Misc.Stage)
-	UtilsLogger.Infof("LogFormat:                 %s", CONFIG.Misc.LogFormat)
-	UtilsLogger.Infof("LogIncomingStats:          %t", CONFIG.Misc.LogIncomingStats)
-	UtilsLogger.Infof("Debug:                     %t", CONFIG.Misc.Debug)
-	UtilsLogger.Infof("DebugLogCaller:            %t", CONFIG.Misc.DebugLogCaller)
-	UtilsLogger.Infof("AutoMountNfs:              %t", CONFIG.Misc.AutoMountNfs)
-	UtilsLogger.Infof("LogKubernetesEvents:       %t", CONFIG.Misc.LogKubernetesEvents)
-	UtilsLogger.Infof("DefaultMountPath:          %s", CONFIG.Misc.DefaultMountPath)
-	UtilsLogger.Infof("IgnoreResourcesBackup:     %s", strings.Join(CONFIG.Misc.IgnoreResourcesBackup, ","))
-	UtilsLogger.Infof("IgnoreNamespaces:          %s", strings.Join(CONFIG.Misc.IgnoreNamespaces, ","))
-	UtilsLogger.Infof("LogRotationSizeInBytes:    %d", CONFIG.Misc.LogRotationSizeInBytes)
-	UtilsLogger.Infof("LogRotationMaxSizeInBytes: %d", CONFIG.Misc.LogRotationMaxSizeInBytes)
-	UtilsLogger.Infof("LogRetentionDays:          %d", CONFIG.Misc.LogRetentionDays)
-	UtilsLogger.Infof("CheckForUpdates:           %d", CONFIG.Misc.CheckForUpdates)
-	UtilsLogger.Infof("HelmIndex:                 %s", CONFIG.Misc.HelmIndex)
-	UtilsLogger.Infof("NfsPodPrefix:              %s\n\n", CONFIG.Misc.NfsPodPrefix)
-
-	UtilsLogger.Infof("BUILDER")
-	UtilsLogger.Infof("BuildTimeout:              %d", CONFIG.Builder.BuildTimeout)
-	UtilsLogger.Infof("ScanTimeout:               %d", CONFIG.Builder.ScanTimeout)
-	UtilsLogger.Infof("MaxConcurrentBuilds:       %d\n\n", CONFIG.Builder.MaxConcurrentBuilds)
-
-	UtilsLogger.Infof("GIT")
-	UtilsLogger.Infof("GitUserEmail:              %s", CONFIG.Git.GitUserEmail)
-	UtilsLogger.Infof("GitUserName:               %s", CONFIG.Git.GitUserName)
-
-	UtilsLogger.Infof("STATS")
-	UtilsLogger.Infof("MaxDataPoints:             %d\n\n", CONFIG.Stats.MaxDataPoints)
-
-	UtilsLogger.Infof("Config:                    %s\n\n", ConfigPath)
+	UtilsLogger.Info("PrintSettings",
+		"ConfigPath", ConfigPath,
+		"Version", CONFIG.Config.Version,
+		"Kubernetes.OwnNamespace", CONFIG.Kubernetes.OwnNamespace,
+		"Kubernetes.ClusterName", CONFIG.Kubernetes.ClusterName,
+		"Kubernetes.ClusterMfaId", CONFIG.Kubernetes.ClusterMfaId,
+		"Kubernetes.RunInCluster", CONFIG.Kubernetes.RunInCluster,
+		"Kubernetes.ApiKey", CONFIG.Kubernetes.ApiKey,
+		"Kubernetes.HelmDataPath", CONFIG.Kubernetes.HelmDataPath,
+		"Kubernetes.GitVaultDataPath", CONFIG.Kubernetes.GitVaultDataPath,
+		"Kubernetes.BboltDbPath", CONFIG.Kubernetes.BboltDbPath,
+		"Kubernetes.BboltDbStatsPath", CONFIG.Kubernetes.BboltDbStatsPath,
+		"Kubernetes.LogDataPath", CONFIG.Kubernetes.LogDataPath,
+		"Kubernetes.LocalContainerRegistryHost", CONFIG.Kubernetes.LocalContainerRegistryHost,
+		"ApiServer.Http_Server", CONFIG.ApiServer.Http_Server,
+		"ApiServer.Ws_Server", CONFIG.ApiServer.Ws_Server,
+		"ApiServer.Ws_Scheme", CONFIG.ApiServer.Ws_Scheme,
+		"ApiServer.WS_Path", CONFIG.ApiServer.WS_Path,
+		"EventServer.Server", CONFIG.EventServer.Server,
+		"EventServer.Scheme", CONFIG.EventServer.Scheme,
+		"EventServer.Path", CONFIG.EventServer.Path,
+		"Iac.RepoUrl", CONFIG.Iac.RepoUrl,
+		"Iac.RepoPat", CONFIG.Iac.RepoPat,
+		"Iac.RepoBranch", CONFIG.Iac.RepoBranch,
+		"Iac.SyncFrequencyInSec", CONFIG.Iac.SyncFrequencyInSec,
+		"Iac.AllowPull", CONFIG.Iac.AllowPull,
+		"Iac.AllowPush", CONFIG.Iac.AllowPush,
+		"Iac.SyncWorkloads", CONFIG.Iac.SyncWorkloads,
+		"Iac.AvailableWorkloads", CONFIG.Iac.AvailableWorkloads,
+		"Iac.IgnoredNamespaces", CONFIG.Iac.IgnoredNamespaces,
+		"Iac.IgnoredNames", CONFIG.Iac.IgnoredNames,
+		"Iac.LogChanges", CONFIG.Iac.LogChanges,
+		"Iac.ShowDiffInLog", CONFIG.Iac.ShowDiffInLog,
+		"Misc.Stage", CONFIG.Misc.Stage,
+		"Misc.LogFormat", CONFIG.Misc.LogFormat,
+		"Misc.LogIncomingStats", CONFIG.Misc.LogIncomingStats,
+		"Misc.Debug", CONFIG.Misc.Debug,
+		"Misc.DebugLogCaller", CONFIG.Misc.DebugLogCaller,
+		"Misc.AutoMountNfs", CONFIG.Misc.AutoMountNfs,
+		"Misc.LogKubernetesEvents", CONFIG.Misc.LogKubernetesEvents,
+		"Misc.DefaultMountPath", CONFIG.Misc.DefaultMountPath,
+		"Misc.IgnoreResourcesBackup", CONFIG.Misc.IgnoreResourcesBackup,
+		"Misc.IgnoreNamespaces", CONFIG.Misc.IgnoreNamespaces,
+		"Misc.LogRotationSizeInBytes", CONFIG.Misc.LogRotationSizeInBytes,
+		"Misc.LogRotationMaxSizeInBytes", CONFIG.Misc.LogRotationMaxSizeInBytes,
+		"Misc.LogRetentionDays", CONFIG.Misc.LogRetentionDays,
+		"Misc.CheckForUpdates", CONFIG.Misc.CheckForUpdates,
+		"Misc.HelmIndex", CONFIG.Misc.HelmIndex,
+		"Misc.NfsPodPrefix", CONFIG.Misc.NfsPodPrefix,
+		"Builder.BuildTimeout", CONFIG.Builder.BuildTimeout,
+		"Builder.ScanTimeout", CONFIG.Builder.ScanTimeout,
+		"Builder.MaxConcurrentBuilds", CONFIG.Builder.MaxConcurrentBuilds,
+		"Git.GitUserEmail", CONFIG.Git.GitUserEmail,
+		"Git.GitUserName", CONFIG.Git.GitUserName,
+		"Stats.MaxDataPoints", CONFIG.Stats.MaxDataPoints,
+	)
 }
 
 func PrintVersionInfo() {
-	UtilsLogger.Infof("\nVersion:     %s", version.Ver)
-	UtilsLogger.Infof("Branch:      %s", version.Branch)
-	UtilsLogger.Infof("Hash:        %s", version.GitCommitHash)
-	UtilsLogger.Infof("BuildAt:     %s", version.BuildTimestamp)
+	UtilsLogger.Info(
+		"mogenius-k8s-manager",
+		"Version", version.Ver,
+		"Branch", version.Branch,
+		"GitCommitHash", version.GitCommitHash,
+		"BuildTimestamp", version.BuildTimestamp,
+	)
 }
 
 func GetDirectories(customConfigPath string) (configDir string, configPath string) {
 	homeDirName, err := os.UserHomeDir()
 	if err != nil {
-		UtilsLogger.Errorf("Error retrieving user homedir: %s", err.Error())
+		UtilsLogger.Error("Error retrieving user homedir", "error", err)
 	}
 
 	if customConfigPath != "" {
@@ -523,7 +516,7 @@ func GetDirectories(customConfigPath string) (configDir string, configPath strin
 			configPath = customConfigPath
 			configDir = filepath.Dir(customConfigPath)
 		} else {
-			UtilsLogger.Errorf("Custom config not found '%s'.", customConfigPath)
+			UtilsLogger.Error("Custom config not found.", "customConfigPath", customConfigPath)
 		}
 	} else {
 		configDir = homeDirName + "/.mogenius-k8s-manager/"
@@ -537,9 +530,9 @@ func DeleteCurrentConfig() {
 	_, configPath := GetDirectories("")
 	err := os.Remove(configPath)
 	if err != nil {
-		UtilsLogger.Errorf("Error removing config file. '%s'.", err.Error())
+		UtilsLogger.Error("failed to delete config file", "error", err)
 	} else {
-		UtilsLogger.Infof("%s succesfuly deleted.", configPath)
+		UtilsLogger.Info("succesfully deleted config file", "configPath", configPath)
 	}
 }
 
@@ -549,8 +542,7 @@ func writeDefaultConfig(stage string) {
 	// write it to default location
 	err := os.Mkdir(configDir, 0755)
 	if err != nil && err.Error() != "mkdir "+configDir+": file exists" {
-		UtilsLogger.Warning("Error creating folder " + configDir)
-		UtilsLogger.Warning(err)
+		UtilsLogger.Warn("failed to create directory", "path", configDir, "error", err)
 	}
 
 	// check if stage is set via env variable
@@ -571,11 +563,11 @@ func writeDefaultConfig(stage string) {
 	} else if stage == STAGE_LOCAL {
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	} else {
-		UtilsLogger.Warnf("No stage set. Using local config.")
+		UtilsLogger.Warn("No stage set. Using local config.")
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	}
 	if err != nil {
-		UtilsLogger.Error("Error writing " + configPath + " file")
-		UtilsLogger.Fatal(err.Error())
+		UtilsLogger.Error("Error writing "+configPath+" file", "configPath", configPath, "error", err)
+		panic(1)
 	}
 }

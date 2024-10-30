@@ -53,7 +53,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			if existingIngress != nil {
 				err := ingressClient.Delete(context.TODO(), containerIngressName, metav1.DeleteOptions{})
 				if err != nil {
-					K8sLogger.Errorf("Error deleting ingress: %s", err.Error())
+					K8sLogger.Error("Error deleting ingress", "error", err)
 				}
 			}
 		}
@@ -176,7 +176,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			if len(ingressToUpdate.Spec.Rules) <= 0 {
 				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
-					K8sLogger.Errorf("Error deleting ingress: %s", err.Error())
+					K8sLogger.Error("Error deleting ingress", "error", err)
 				}
 				cmd.Success(job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 			} else {
@@ -246,7 +246,7 @@ func loadDefaultAnnotations() map[string]string {
 		if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
 			var annotations map[string]string
 			if err := json.Unmarshal([]byte(annotationsRaw), &annotations); err != nil {
-				K8sLogger.Errorf("Error unmarshalling annotations from mogenius-default-ingress-values: %s", err.Error())
+				K8sLogger.Error("Error unmarshalling annotations from mogenius-default-ingress-values", "error", err)
 				return result
 			}
 			for key, value := range annotations {
@@ -309,12 +309,12 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 					indexesToRemove = append(indexesToRemove, index)
 				}
 			}
-			K8sLogger.Infof("Following indexes will be remove: %v", indexesToRemove)
+			K8sLogger.Info("indexes will be removed", "indexes", indexesToRemove)
 			if len(indexesToRemove) > 0 {
 				for _, indexToRemove := range indexesToRemove {
 					service.Spec.Ports = punqUtils.Remove(service.Spec.Ports, indexToRemove)
 				}
-				K8sLogger.Infof("%d indexes successfully remove", len(indexesToRemove))
+				K8sLogger.Info("indexes successfully removed", "amount", len(indexesToRemove))
 
 				// TODO wieder einkommentieren wenn ordentlich getest in DEV. sieht gut aus.
 				//UpdateServiceWith(service)
@@ -340,12 +340,12 @@ func CreateMogeniusContainerRegistryIngress() {
 	if apierrors.IsNotFound(err) {
 		_, err = client.Create(context.TODO(), &ing, metav1.CreateOptions{})
 		if err == nil {
-			K8sLogger.Infof("Created ingress '%s' in namespace '%s'", ing.Name, ing.Namespace)
+			K8sLogger.Info("created ingress", "ingress", ing.Name, "namespace", ing.Namespace)
 		} else {
-			K8sLogger.Errorf("CreateMogeniusContainerRegistryIngress ERROR: %s", err.Error())
+			K8sLogger.Error("CreateMogeniusContainerRegistryIngress", "error", err)
 		}
 	} else {
-		K8sLogger.Infof("Ingress '%s' in namespace '%s' already exists", ing.Name, ing.Namespace)
+		K8sLogger.Info("Ingress '%s' in namespace '%s' already exists", ing.Name, ing.Namespace)
 	}
 }
 
@@ -368,17 +368,17 @@ func CreateMogeniusContainerRegistryTlsSecret(crt string, key string) error {
 	if apierrors.IsNotFound(err) {
 		_, err = client.Create(context.TODO(), &secret, metav1.CreateOptions{})
 		if err == nil {
-			K8sLogger.Infof("Created secret '%s' in namespace '%s'", secret.Name, secret.Namespace)
+			K8sLogger.Info("Created secret '%s' in namespace '%s'", secret.Name, secret.Namespace)
 		} else {
-			K8sLogger.Errorf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error())
+			K8sLogger.Error("CreateMogeniusContainerRegistryTlsSecret", "error", err.Error())
 			return err
 		}
 	} else {
 		_, err = client.Update(context.TODO(), &secret, metav1.UpdateOptions{})
 		if err == nil {
-			K8sLogger.Infof("Secret '%s' in namespace '%s' updated", secret.Name, secret.Namespace)
+			K8sLogger.Info("Secret '%s' in namespace '%s' updated", secret.Name, secret.Namespace)
 		} else {
-			K8sLogger.Errorf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error())
+			K8sLogger.Error("CreateMogeniusContainerRegistryTlsSecret", "error", err.Error())
 			return err
 		}
 	}
