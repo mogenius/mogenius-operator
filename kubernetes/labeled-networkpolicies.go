@@ -776,25 +776,25 @@ func ListControllerLabeledNetworkPolicies(
 		// 	}
 		// }
 
-		var np *v1.NetworkPolicy
+		var netpol v1.NetworkPolicy
+		found := false
+
 		for _, ref := range policies {
-			np = ref.(*v1.NetworkPolicy)
-			if np == nil {
+			np, ok := ref.(*v1.NetworkPolicy)
+			if !ok || np == nil {
 				continue
 			}
 
 			if np.Name == label {
+				netpol = *np
+				found = true
 				break
-			} else {
-				np = nil
 			}
 		}
 
-		if np == nil {
+		if !found {
 			continue
 		}
-
-		netpol := *np
 
 		if strings.Contains(netpol.Name, "egress") {
 			var port uint16
