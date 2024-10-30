@@ -146,7 +146,7 @@ spec:
 	}
 
 	// DELETE WORKLOAD
-	err = DeleteUnstructuredResource("apps/v1", "", "deployments", true, updatedDeplString)
+	err = DeleteUnstructuredResource("apps/v1", "", "deployments", "default", updatedDeplString)
 	if err != nil {
 		t.Errorf("Error deleting deployment: %s", err.Error())
 	} else {

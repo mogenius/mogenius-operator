@@ -428,7 +428,7 @@ func DeleteUnstructuredResource(group, version, name string, namespace string, r
 	if namespace != "" {
 		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(namespace).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
 	} else {
-		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Delete(context.TODO(), name, metav1.DeleteOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
 	}
 }
 
