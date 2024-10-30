@@ -951,7 +951,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_GET_WORKLOAD_EXAMPLE:
 		data := utils.SyncResourceItem{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return NewMessageResponse(kubernetes.GetResourceTemplateYaml(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName), nil)
+		return NewMessageResponse(kubernetes.GetResourceTemplateYaml(data.Group, data.Version, data.Name, data.Kind, data.Namespace, data.ResourceName), nil)
 	case structs.PAT_UPDATE_WORKLOAD:
 		data := utils.SyncResourceData{}
 		structs.MarshalUnmarshal(&datagram, &data)
