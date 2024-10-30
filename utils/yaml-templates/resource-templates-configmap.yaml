@@ -1,0 +1,349 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mogenius-resource-templates
+  namespace: mogenius
+data:
+  Certificate: |
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: my-certificate
+    spec:
+      secretName: my-certificate-secret
+      duration: 2160h # 90 days
+      renewBefore: 360h # 15 days
+      dnsNames:
+        - example.com
+        - www.example.com
+      issuerRef:
+        name: my-cluster-issuer
+        kind: ClusterIssuer
+  ClusterIssuer: |
+    apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: my-cluster-issuer
+    spec:
+      acme:
+        server: https://acme-v02.api.letsencrypt.org/directory
+        email: email@example.com
+        privateKeySecretRef:
+          name: my-cluster-issuer-account-key
+        solvers:
+          - http01:
+              ingress:
+                class: nginx
+  Ingress: |
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: my-ingress
+    spec:
+      rules:
+        - host: example.com
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: my-service
+                    port:
+                      number: 80
+  ConfigMap: |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: my-configmap
+    data:
+      my-key: my-value
+  CronJob: |
+    apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: my-cronjob
+    spec:
+      schedule: "*/1 * * * *"
+      jobTemplate:
+        spec:
+          template:
+            spec:
+              containers:
+                - name: my-container
+                  image: my-image
+              restartPolicy: OnFailure
+  Deployment: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: my-deployment
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: my-app
+      template:
+        metadata:
+          labels:
+            app: my-app
+        spec:
+          containers:
+            - name: my-container
+              image: nginx:latest
+  DaemonSet: |
+    apiVersion: apps/v1
+    kind: DaemonSet
+    metadata:
+      name: my-daemonset
+    spec:
+      selector:
+        matchLabels:
+          app: my-app
+      template:
+        metadata:
+          labels:
+            app: my-app
+        spec:
+          containers:
+            - name: my-container
+              image: nginx:latest
+  Job: |
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: my-job
+    spec:
+      template:
+        spec:
+          containers:
+            - name: my-container
+              image: my-image
+          restartPolicy: OnFailure
+  Namespace: |
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: my-namespace
+  PersistentVolume: |
+    apiVersion: v1
+    kind: PersistentVolume
+    metadata:
+      name: my-pv
+    spec:
+      capacity:
+        storage: 1Gi
+      accessModes:
+        - ReadWriteOnce
+      persistentVolumeReclaimPolicy: Retain
+  PersistentVolumeClaim: |
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: my-pvc
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  HorizontalPodAutoscaler: |
+    apiVersion: autoscaling/v2beta2
+    kind: HorizontalPodAutoscaler
+    metadata:
+      name: my-hpa
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: my-deployment
+      minReplicas: 1
+      maxReplicas: 10
+      metrics:
+        - type: Resource
+          resource:
+            name: cpu
+            targetAverageUtilization: 50
+  Service: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: my-service
+    spec:
+      selector:
+        app: my-app
+      ports:
+        - protocol: TCP
+          port: 80
+          targetPort: 80
+  StatefulSet: |
+    apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: my-statefulset
+    spec:
+      serviceName: my-statefulset
+      replicas: 1
+      selector:
+        matchLabels:
+          app: my-app
+      template:
+        metadata:
+          labels:
+            app: my-app
+        spec:
+          containers:
+            - name: my-container
+              image: nginx:latest
+      volumeClaimTemplates:
+        - metadata:
+            name: my-pvc
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+  Secret: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: my-secret
+    type: Opaque
+    data:
+      my-key: bXktdmFsdWU= # my-value in base64
+  ServiceAccount: |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: my-serviceaccount
+  Role: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: my-role
+    rules:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["get", "list", "watch"]
+  RoleBinding: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: my-rolebinding
+    subjects:
+      - kind: ServiceAccount
+        name: my-serviceaccount
+        namespace: my-namespace
+    roleRef:
+      kind: Role
+      name: my-role
+      apiGroup: rbac.authorization.k8s.io
+  ClusterRole: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: my-clusterrole
+    rules:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["get", "list", "watch"]
+  ClusterRoleBinding: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: my-clusterrolebinding
+    subjects:
+      - kind: ServiceAccount
+        name: my-serviceaccount
+        namespace: my-namespace
+    roleRef:
+      kind: ClusterRole
+      name: my-clusterrole
+      apiGroup: rbac.authorization.k8s.io
+  NetworkPolicy: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: my-networkpolicy
+    spec:
+      podSelector:
+        matchLabels:
+          app: my-app
+      policyTypes:
+        - Ingress
+      ingress:
+        - from:
+            - podSelector:
+                matchLabels:
+                  app: my-app
+  PriorityClass: |
+    apiVersion: scheduling.k8s.io/v1
+    kind: PriorityClass
+    metadata:
+      name: my-priority-class
+    value: 1000
+    globalDefault: false
+    description: "Priority for my applications"
+  Pod: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: my-pod
+    spec:
+      containers:
+        - name: my-container
+          image: nginx:latest
+  StorageClass: |
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: my-storageclass
+    provisioner: kubernetes.io/aws-ebs
+    parameters:
+      type: gp2
+  CustomResourceDefinition: |
+    apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    metadata:
+      name: my-crd
+    spec:
+      group: mygroup.example.com
+      names:
+        kind: MyCRD
+        listKind: MyCRDList
+        plural: mycrds
+        singular: mycrd
+      scope: Namespaced
+      versions:
+        - name: v1
+          served: true
+          storage: true
+          schema:
+            openAPIV3Schema:
+              type: object
+  IngressClass: |
+    apiVersion: networking.k8s.io/v1
+    kind: IngressClass
+    metadata:
+      name: my-ingress-class
+    spec:
+      controller: my-ingress-controller
+  ReplicaSet: |
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    metadata:
+      name: my-replicaset
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: my-app
+      template:
+        metadata:
+          labels:
+            app: my-app
+        spec:
+          containers:
+            - name: my-container
+              image: nginx:latest
