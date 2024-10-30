@@ -958,9 +958,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		updatedObj, err := kubernetes.UpdateUnstructuredResource(data.Group, data.Version, data.Name, data.Namespaced, data.YamlData)
 		return NewMessageResponse(updatedObj, err)
 	case structs.PAT_DELETE_WORKLOAD:
-		data := utils.SyncResourceData{}
+		data := utils.SyncResourceItem{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		err := kubernetes.DeleteUnstructuredResource(data.Group, data.Version, data.Name, data.Namespaced, data.YamlData)
+		err := kubernetes.DeleteUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
 		return NewMessageResponse(nil, err)
 
 	case structs.PAT_LIST_NAMESPACES:
@@ -2424,6 +2424,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return NewMessageResponse(controllers.ListControllerLabeledNetwork(data))
+	case structs.PAT_UPDATE_NETWORK_POLICIES_TEMPLATE:
+		data := []kubernetes.NetworkPolicy{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return NewMessageResponse(nil, controllers.UpdateNetworkPolicyTemplate(data))
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

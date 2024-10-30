@@ -11,6 +11,7 @@ import (
 
 	v2 "k8s.io/api/apps/v1"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/yaml"
 
@@ -33,6 +34,8 @@ const (
 
 	// allow policies
 	PoliciesLabelPrefix string = "mo-netpol"
+
+	PolicyConfigMapKey string = "network-ports"
 )
 
 func AttachLabeledNetworkPolicy(controllerName string,
@@ -605,13 +608,43 @@ func uniqueItemsByName(items []NetworkPolicy) []NetworkPolicy {
 	return result
 }
 
+func UpdateNetworkPolicyTemplate(policies []NetworkPolicy) error {
+	client := GetCoreClient().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
+
+	cfgMap := readDefaultConfigMap()
+
+	yamlStr, err := yaml.Marshal(policies)
+	if err != nil {
+		K8sLogger.Error("UpdateNetworkPolicyTemplate", "error", err)
+		return err
+	}
+
+	cfgMap.Data[PolicyConfigMapKey] = string(yamlStr)
+
+	// check if the configmap already exists
+	_, err = client.Update(context.TODO(), cfgMap, metav1.UpdateOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			_, err = client.Create(context.TODO(), cfgMap, MoCreateOptions())
+			if err != nil {
+				K8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
+				return err
+			}
+		} else {
+			K8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
+			return err
+		}
+	}
+	return nil
+}
+
 func ReadNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
 	configMap := readDefaultConfigMap()
 	ClusterConfigMap := GetConfigMap(configMap.Namespace, configMap.Name)
 
 	var result []dtos.K8sLabeledNetworkPolicyDto
 	var policies []NetworkPolicy
-	policiesRaw := ClusterConfigMap.Data["network-ports"]
+	policiesRaw := ClusterConfigMap.Data[PolicyConfigMapKey]
 	err := yaml.Unmarshal([]byte(policiesRaw), &policies)
 
 	sort.Slice(policies, func(i, j int) bool {

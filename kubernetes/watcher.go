@@ -418,23 +418,17 @@ func UpdateUnstructuredResource(group, version, name string, namespaced bool, ya
 	}
 }
 
-func DeleteUnstructuredResource(group, version, name string, namespaced bool, yamlData string) error {
+func DeleteUnstructuredResource(group, version, name string, namespace string, resourceName string) error {
 	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		K8sLogger.Error("Error creating provider for watcher. Cannot continue.", "error", err)
 		return err
 	}
 
-	obj := &unstructured.Unstructured{}
-	err = yaml.Unmarshal([]byte(yamlData), obj)
-	if err != nil {
-		return err
-	}
-
-	if namespaced {
-		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
+	if namespace != "" {
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(namespace).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
 	} else {
-		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
+		return provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	}
 }
 

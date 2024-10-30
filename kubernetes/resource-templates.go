@@ -94,7 +94,7 @@ func loadResourceTemplateData(kind, namespace, resourcename string) (string, err
 				obj.SetName(resourcename)
 				obj.SetNamespace(namespace)
 
-				data, err := yaml.Marshal(obj)
+				data, err := yaml.Marshal(obj.Object)
 				if err != nil {
 					return "", err
 				}
