@@ -6,37 +6,27 @@ import (
 	"mogenius-k8s-manager/cmd"
 	"mogenius-k8s-manager/db"
 	dbstats "mogenius-k8s-manager/db-stats"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
-
-	log "github.com/sirupsen/logrus"
 )
 
-var MainLogger = log.WithField("component", "main")
+var MainLogger = logging.CreateLogger("main")
 
 func main() {
 	go func() {
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		<-quit
-		MainLogger.Warning("Shutting down bbolt server...")
+		MainLogger.Warn("Shutting down bbolt server...")
 		db.Close()
 		dbstats.Close()
-		MainLogger.Warning("DB shutdown complete")
+		MainLogger.Warn("DB shutdown complete")
 		os.Exit(0)
 	}()
-
-	// DEFAULT LOGGING --- will be overwritten by utils when envvars and yamlconfig is loaded
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.TraceLevel)
-	log.SetFormatter(&log.TextFormatter{
-		ForceColors:      true,
-		DisableTimestamp: false,
-		DisableQuote:     true,
-	})
 
 	utils.PrintLogo()
 	cmd.Execute()

@@ -4,16 +4,20 @@ import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 type KubernetesWatcher interface {
 	// Register a watcher for the given resource
-	Watch(resource ResourceIdentifier, onAdd func(resource ResourceIdentifier, obj *unstructured.Unstructured), onUpdate func(resource ResourceIdentifier, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured), onDelete func(resource ResourceIdentifier, obj *unstructured.Unstructured)) error
+	Watch(resource KubernetesWatcherResourceIdentifier, onAdd KubernetesWatcherOnAdd, onUpdate KubernetesWatcherOnUpdate, onDelete KubernetesWatcherOnDelete) error
 	// Stop the watcher for the given resource
-	Unwatch(resource ResourceIdentifier) error
+	Unwatch(resource KubernetesWatcherResourceIdentifier) error
 	// Query the status of the resource
-	State(resource ResourceIdentifier) (ResourceState, error)
+	State(resource KubernetesWatcherResourceIdentifier) (KubernetesWatcherResourceState, error)
 	// List all currently watched resources
-	ListWatchedResources() []ResourceIdentifier
+	ListWatchedResources() []KubernetesWatcherResourceIdentifier
 }
 
-type ResourceIdentifier struct {
+type KubernetesWatcherOnAdd func(resource KubernetesWatcherResourceIdentifier, obj *unstructured.Unstructured)
+type KubernetesWatcherOnUpdate func(resource KubernetesWatcherResourceIdentifier, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured)
+type KubernetesWatcherOnDelete func(resource KubernetesWatcherResourceIdentifier, obj *unstructured.Unstructured)
+
+type KubernetesWatcherResourceIdentifier struct {
 	Name         string
 	Kind         string
 	Version      string
@@ -21,11 +25,11 @@ type ResourceIdentifier struct {
 	Namespaced   bool
 }
 
-type ResourceState string
+type KubernetesWatcherResourceState string
 
 const (
-	Unknown             ResourceState = "Unknown"
-	Watching            ResourceState = "Watching"
-	WatcherInitializing ResourceState = "WatcherInitializing"
-	WatchingFailed      ResourceState = "WatchingFailed"
+	Unknown             KubernetesWatcherResourceState = "Unknown"
+	Watching            KubernetesWatcherResourceState = "Watching"
+	WatcherInitializing KubernetesWatcherResourceState = "WatcherInitializing"
+	WatchingFailed      KubernetesWatcherResourceState = "WatchingFailed"
 )

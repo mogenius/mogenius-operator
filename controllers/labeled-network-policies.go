@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/structs"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
 
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/networking/v1"
@@ -30,21 +27,21 @@ func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) (string,
 	}
 
 	// log
-	logWithFields := log.WithFields(log.Fields{"component": structs.ComponentServices, "namespace": data.NamespaceName, "controllerName": data.ControllerName})
+	logWithFields := ControllerLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
 	var labeledNetworkPolicyNameStrings []string
 	for _, labeledNetworkPolicy := range data.LabeledNetworkPolicies {
 		labeledNetworkPolicyNameStrings = append(labeledNetworkPolicyNameStrings, labeledNetworkPolicy.Name)
 	}
 	labeledNetworkPolicyNames := strings.Join(labeledNetworkPolicyNameStrings, ", ")
-	logWithFields.Infof("   %s Detach network policy %s from %s", logType, labeledNetworkPolicyNames, data.ControllerName)
+	logWithFields.Info(fmt.Sprintf("   %s Detach network policy %s from %s", logType, labeledNetworkPolicyNames, data.ControllerName))
 
 	err := kubernetes.DetachLabeledNetworkPolicies(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicies)
 	if err != nil {
-		logWithFields.Errorf("  %s failed to detach network policy, err: %s", logType, err.Error())
+		logWithFields.Error(fmt.Sprintf("  %s failed to detach network policy, err: %s", logType, err.Error()))
 		return "", fmt.Errorf("failed to detach network policy, err: %s", err.Error())
 	}
 
-	logWithFields.Infof("   %s Network policy %s detached from %s", logType, labeledNetworkPolicyNames, data.ControllerName)
+	logWithFields.Info(fmt.Sprintf("   %s Network policy %s detached from %s", logType, labeledNetworkPolicyNames, data.ControllerName))
 	return "", nil
 }
 
@@ -65,27 +62,27 @@ func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string,
 	}
 
 	// log
-	logWithFields := log.WithFields(log.Fields{"component": structs.ComponentServices, "namespace": data.NamespaceName, "controllerName": data.ControllerName})
+	logWithFields := ControllerLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
 	var labeledNetworkPolicyNameStrings []string
 	for _, labeledNetworkPolicy := range data.LabeledNetworkPolicies {
 		labeledNetworkPolicyNameStrings = append(labeledNetworkPolicyNameStrings, labeledNetworkPolicy.Name)
 	}
 	labeledNetworkPolicyNames := strings.Join(labeledNetworkPolicyNameStrings, ", ")
-	logWithFields.Infof("   %s Attach network policy %s to %s", logType, labeledNetworkPolicyNames, data.ControllerName)
+	logWithFields.Info(fmt.Sprintf("   %s Attach network policy %s to %s", logType, labeledNetworkPolicyNames, data.ControllerName))
 
 	// create kind: NetworkPolicy
 	err := kubernetes.EnsureLabeledNetworkPolicies(data.NamespaceName, data.LabeledNetworkPolicies)
 	if err != nil {
-		logWithFields.Errorf("  %s Failed to create network policy, err: %s", logType, err.Error())
+		logWithFields.Error(fmt.Sprintf("  %s Failed to create network policy, err: %s", logType, err.Error()))
 		return "", fmt.Errorf("failed to create network policy, err: %s", err.Error())
 	}
 	err = kubernetes.AttachLabeledNetworkPolicies(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicies)
 	if err != nil {
-		logWithFields.Errorf("   %s Failed to attach network policy, err: %s", logType, err.Error())
+		logWithFields.Error(fmt.Sprintf("   %s Failed to attach network policy, err: %s", logType, err.Error()))
 		return "", fmt.Errorf("failed to attach network policy, err: %s", err.Error())
 	}
 
-	logWithFields.Infof("   %s Network policy %s attached to %s", logType, labeledNetworkPolicyNames, data.ControllerName)
+	logWithFields.Info(fmt.Sprintf("   %s Network policy %s attached to %s", logType, labeledNetworkPolicyNames, data.ControllerName))
 	return "", nil
 }
 
@@ -173,11 +170,11 @@ type ListControllerLabeledNetworkPoliciesResponse struct {
 
 func ListControllerLabeledNetwork(data ListControllerLabeledNetworkPoliciesRequest) (ListControllerLabeledNetworkPoliciesResponse, error) {
 	// log
-	logWithFields := log.WithFields(log.Fields{"component": structs.ComponentServices, "namespace": data.NamespaceName, "controllerName": data.ControllerName})
+	logWithFields := ControllerLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
 
 	policies, err := kubernetes.ListControllerLabeledNetworkPolicies(data.ControllerName, data.ControllerType, data.NamespaceName)
 	if err != nil {
-		logWithFields.Errorf("  %s failed to list network policies, err: %s", logType, err.Error())
+		logWithFields.Error(fmt.Sprintf("  %s failed to list network policies, err: %s", logType, err.Error()))
 		return ListControllerLabeledNetworkPoliciesResponse{}, err
 	}
 

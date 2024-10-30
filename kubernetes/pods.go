@@ -11,13 +11,14 @@ import (
 func KeplerPod() *v1.Pod {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		K8sLogger.Errorf("KeplerPod ERROR: %s", err.Error())
+		K8sLogger.Error("failed to create kube provider", "error", err)
 		return nil
 	}
 	podClient := provider.ClientSet.CoreV1().Pods("")
-	pods, err := podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler"})
+	labelSelector := "app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler"
+	pods, err := podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
-		K8sLogger.Errorf("KeplerPod ERROR: %s", err.Error())
+		K8sLogger.Error("failed to list kepler pods", "labelSelector", labelSelector, "error", err.Error())
 		return nil
 	}
 	for _, pod := range pods.Items {

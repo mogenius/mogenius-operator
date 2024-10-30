@@ -3,17 +3,17 @@ package dbstats
 import (
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
 	"time"
 
 	punqStructs "github.com/mogenius/punq/structs"
-	log "github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
 
-var DbStatsLogger = log.WithField("component", structs.ComponentDbStats)
+var DbStatsLogger = logging.CreateLogger("db-stats")
 
 const (
 	DB_SCHEMA_VERSION = "3"
@@ -33,8 +33,8 @@ func Init() {
 	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbStatsPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		DbStatsLogger.Errorf("Error opening bbolt database from '%s'.", dbPath)
-		DbStatsLogger.Fatal(err.Error())
+		DbStatsLogger.Error("Error opening bbolt database.", "dbPath", dbPath, "error", err)
+		panic(1)
 	}
 	dbStats = database
 
@@ -42,51 +42,51 @@ func Init() {
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(TRAFFIC_BUCKET_NAME))
 		if err == nil {
-			DbStatsLogger.Infof("Bucket '%s' created 🚀.", TRAFFIC_BUCKET_NAME)
+			DbStatsLogger.Info("Bucket created 🚀.", "bucket", TRAFFIC_BUCKET_NAME)
 		}
 		return err
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("Error creating bucket ('%s'): %s", TRAFFIC_BUCKET_NAME, err)
+		DbStatsLogger.Error("Error creating bucket", "bucket", TRAFFIC_BUCKET_NAME, "error", err)
 	}
 
 	// ### POD STATS BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(POD_STATS_BUCKET_NAME))
 		if err == nil {
-			DbStatsLogger.Infof("Bucket '%s' created 🚀.", POD_STATS_BUCKET_NAME)
+			DbStatsLogger.Info("Bucket created 🚀.", "bucket", POD_STATS_BUCKET_NAME)
 		}
 		return err
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("Error creating bucket ('%s'): %s", POD_STATS_BUCKET_NAME, err)
+		DbStatsLogger.Error("Error creating bucket", "bucket", POD_STATS_BUCKET_NAME, "error", err)
 	}
 
 	// ### NODE STATS BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(NODE_STATS_BUCKET_NAME))
 		if err == nil {
-			DbStatsLogger.Infof("Bucket '%s' created 🚀.", NODE_STATS_BUCKET_NAME)
+			DbStatsLogger.Info("Bucket created 🚀.", "bucket", NODE_STATS_BUCKET_NAME)
 		}
 		return err
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("Error creating bucket ('%s'): %s", NODE_STATS_BUCKET_NAME, err)
+		DbStatsLogger.Error("Error creating bucket", "bucket", NODE_STATS_BUCKET_NAME, "error", err)
 	}
 
 	// ### SOCKET STATS BUCKET ###
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(SOCKET_STATS_BUCKET))
 		if err == nil {
-			DbStatsLogger.Infof("Bucket '%s' created 🚀.", SOCKET_STATS_BUCKET)
+			DbStatsLogger.Info("Bucket created 🚀.", "bucket", SOCKET_STATS_BUCKET)
 		}
 		return err
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("Error creating bucket ('%s'): %s", SOCKET_STATS_BUCKET, err)
+		DbStatsLogger.Error("Error creating bucket", "bucket", SOCKET_STATS_BUCKET, "error", err)
 	}
 
-	DbStatsLogger.Infof("bbold started 🚀 (Path: '%s')", dbPath)
+	DbStatsLogger.Info("bbold started 🚀", "dbPath", dbPath)
 
 	go func() {
 		cleanupStats()
@@ -140,7 +140,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		socketBucket := tx.Bucket([]byte(SOCKET_STATS_BUCKET))
 		err = socketBucket.Put([]byte(stats.PodName), []byte(punqStructs.PrettyPrintString(cleanSocketConnections(stats.SocketConnections))))
 		if err != nil {
-			DbStatsLogger.Errorf("Error adding socket connections for '%s': %s", stats.PodName, err.Error())
+			DbStatsLogger.Error("Error adding socket connections", "namespace", stats.Namespace, "podName", stats.PodName, "error", err.Error())
 		}
 		stats.SocketConnections = nil
 
@@ -152,7 +152,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("Error adding interface stats for '%s': %s", stats.Namespace, err.Error())
+		DbStatsLogger.Error("Error adding interface stats", "namespace", stats.Namespace, "podName", stats.PodName, "error", err.Error())
 	}
 }
 
@@ -184,7 +184,7 @@ func GetSocketConnectionsForPod(podName string) structs.SocketConnections {
 		return nil
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetSocketConnectionsForPod: %s", err.Error())
+		DbStatsLogger.Error("GetSocketConnectionsForPod", "error", err)
 	}
 	return result
 }
@@ -218,7 +218,7 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 		return nodeBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("Error adding node stats for '%s': %s", stats.Name, err.Error())
+		DbStatsLogger.Error("Error adding node stats", "name", stats.Name, "error", err)
 	}
 }
 
@@ -265,7 +265,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("Error adding pod stats for '%s': %s", stats.Namespace, err.Error())
+		DbStatsLogger.Error("Error adding pod stats", "namespace", stats.Namespace, "podName", stats.PodName, "error", err)
 	}
 }
 
@@ -285,7 +285,7 @@ func GetSocketConnectionsForController(controller kubernetes.K8sController) *str
 		return nil
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetSocketConnectionsForController: %s", err.Error())
+		DbStatsLogger.Error("GetSocketConnectionsForController", "error", err)
 		return nil
 	}
 	return result
@@ -325,7 +325,7 @@ func GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, i
 		return nil
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetTrafficStatsEntrySumForController: %s", err.Error())
+		DbStatsLogger.Error("GetTrafficStatsEntrySumForController", "error", err)
 	}
 	result.PrintInfo()
 	return result
@@ -350,7 +350,7 @@ func GetTrafficStatsEntriesForController(controller kubernetes.K8sController) *[
 		})
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetTrafficStatsEntriesForController: %s", err.Error())
+		DbStatsLogger.Error("GetTrafficStatsEntriesForController", "error", err)
 	}
 	return result
 }
@@ -374,7 +374,7 @@ func GetLastPodStatsEntryForController(controller kubernetes.K8sController) *str
 		return nil
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetLastPodStatsEntryForController: %s", err.Error())
+		DbStatsLogger.Error("GetLastPodStatsEntryForController", "error", err)
 	}
 	return result
 }
@@ -398,7 +398,7 @@ func GetPodStatsEntriesForController(controller kubernetes.K8sController) *[]str
 		})
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetPodStatsEntriesForController: %s", err.Error())
+		DbStatsLogger.Error("GetPodStatsEntriesForController", "error", err)
 	}
 	return result
 }
@@ -431,7 +431,7 @@ func GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
 		})
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetLastPodStatsEntriesForNamespace: %s", err.Error())
+		DbStatsLogger.Error("GetLastPodStatsEntriesForNamespace", "error", err)
 	}
 	return result
 }
@@ -454,7 +454,7 @@ func GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
 		})
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetPodStatsEntriesForNamespace: %s", err.Error())
+		DbStatsLogger.Error("GetPodStatsEntriesForNamespace", "error", err)
 	}
 	return result
 }
@@ -478,7 +478,7 @@ func GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.Interface
 		return nil
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetTrafficStatsEntriesSumForNamespace: %s", err.Error())
+		DbStatsLogger.Error("GetTrafficStatsEntriesSumForNamespace", "error", err)
 	}
 	return result
 }
@@ -501,7 +501,7 @@ func GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceSt
 		})
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("GetTrafficStatsEntriesForNamespace: %s", err.Error())
+		DbStatsLogger.Error("GetTrafficStatsEntriesForNamespace", "error", err)
 	}
 	return result
 }
@@ -615,7 +615,7 @@ func cleanupStats() {
 		return nil
 	})
 	if err != nil {
-		DbStatsLogger.Errorf("cleanupStats: %s", err.Error())
+		DbStatsLogger.Error("cleanupStats", "error", err)
 	}
 }
 

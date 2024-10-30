@@ -198,7 +198,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 						service.ControllerName,
 					})
 					if err != nil {
-						K8sLogger.Errorf("Error creating external secret: %s, Secret %s will not be set for service %s", err.Error(), envVar.Name, service.ControllerName)
+						K8sLogger.Error("Error creating external secret: %s, Secret will not be set for service.", "error", err, "secret name", envVar.Name, "service name", service.ControllerName)
 					} else {
 						// link created secret to container env
 						specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
@@ -265,10 +265,10 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 							})
 						}
 					} else {
-						K8sLogger.Errorf("No Volume found for  '%s/%s'!!!", namespace.Name, volumeName)
+						K8sLogger.Error("No Volume found", "namespace", namespace.Name, "volume", volumeName)
 					}
 				} else {
-					K8sLogger.Errorf("SKIPPING ENVVAR '%s' because data is missing", envVar.Name)
+					K8sLogger.Error("SKIPPING ENVVAR because data is missing", "env name", envVar.Name)
 				}
 				//} else {
 				//	K8sLogger.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)

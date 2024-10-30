@@ -17,7 +17,7 @@ func TestProject(t *testing.T) {
 		Limits:          ProjectLimits{LimitMemoryMB: 1024, LimitCpuCores: 1.0, EphemeralStorageMB: 1024, MaxVolumeSizeGb: 10}},
 	)
 	if err != nil {
-		CrdLogger.Fatalf("Error creating project: %s", err.Error())
+		t.Fatalf("Error creating project: %s", err.Error())
 	} else {
 		fmt.Println("Project created ✅")
 	}
@@ -25,7 +25,7 @@ func TestProject(t *testing.T) {
 	// GET
 	project, _, err := GetProject(newProjectName)
 	if err != nil {
-		CrdLogger.Fatalf("Error getting project: %s", err.Error())
+		t.Fatalf("Error getting project: %s", err.Error())
 	} else {
 		fmt.Println("Project retrieved ✅")
 	}
@@ -39,7 +39,7 @@ func TestProject(t *testing.T) {
 	// UPDATE
 	err = UpdateProject(newProjectName, project.Id, project.ProjectName, project.DisplayName, project.ProductId, project.Limits)
 	if err != nil {
-		CrdLogger.Fatalf("Error updating project: %s", err.Error())
+		t.Fatalf("Error updating project: %s", err.Error())
 	} else {
 		fmt.Println("Project updated ✅")
 	}
@@ -47,7 +47,7 @@ func TestProject(t *testing.T) {
 	// DELETE
 	err = DeleteProject(newProjectName)
 	if err != nil {
-		CrdLogger.Fatalf("Error deleting project: %s", err.Error())
+		t.Fatalf("Error deleting project: %s", err.Error())
 	} else {
 		fmt.Println("Project deleted ✅")
 	}
@@ -55,7 +55,7 @@ func TestProject(t *testing.T) {
 	// LIST
 	_, _, err = ListProjects()
 	if err != nil {
-		CrdLogger.Fatalf("Error listing projects: %s", err.Error())
+		t.Fatalf("Error listing projects: %s", err.Error())
 	} else {
 		fmt.Println("Projects listed ✅")
 	}

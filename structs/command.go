@@ -8,7 +8,6 @@ import (
 	"time"
 
 	punqUtils "github.com/mogenius/punq/utils"
-	log "github.com/sirupsen/logrus"
 )
 
 type Command struct {
@@ -42,17 +41,16 @@ func CreateShellCommand(command string, title string, job *Job, shellCmd string,
 		cmd.Start(job, title)
 
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		log.Info(string(shellCmd))
-		log.Info(string(output))
+		StructsLogger.Info(string(shellCmd))
+		StructsLogger.Info(string(output))
 
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
-			log.Error(shellCmd)
-			log.Errorf("%d: %s", exitCode, errorMsg)
+			StructsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
 			cmd.Fail(job, fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
 		} else if err != nil {
-			log.Errorf("exec.Command: %s", err.Error())
+			StructsLogger.Error("exec.Command", "error", err)
 		} else {
 			cmd.Success(job, title)
 		}
@@ -62,23 +60,22 @@ func CreateShellCommand(command string, title string, job *Job, shellCmd string,
 func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		log.Info(string(shellCmd))
-		log.Info(string(output))
+		StructsLogger.Info(string(shellCmd))
+		StructsLogger.Info(string(output))
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
-			log.Error(shellCmd)
-			log.Errorf("%d: %s", exitCode, errorMsg)
+			StructsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
 			if failFunc != nil {
 				failFunc(string(output), exitErr)
 			}
 		} else if err != nil {
-			log.Errorf("exec.Command: %s", err.Error())
+			StructsLogger.Error("exec.Command", "error", err)
 			if failFunc != nil {
 				failFunc(string(output), err)
 			}
 		} else {
-			log.Infof("SUCCESS: %s", shellCmd)
+			StructsLogger.Info("SUCCESS", "shellCmd", shellCmd)
 			if successFunc != nil {
 				successFunc()
 			}
@@ -92,12 +89,12 @@ func (cmd *Command) Start(job *Job, msg string) {
 	ReportCmdStateToServer(job, cmd)
 }
 
-func (cmd *Command) Fail(job *Job, error string) {
+func (cmd *Command) Fail(job *Job, err string) {
 	cmd.State = JobStateFailed
-	cmd.Message = error
+	cmd.Message = err
 	cmd.Finished = time.Now()
 	if utils.CONFIG.Misc.Debug {
-		log.Errorf("Command '%s' failed: %s", cmd.Title, error)
+		StructsLogger.Error("Command failed", "title", cmd.Title, "error", err)
 	}
 	ReportCmdStateToServer(job, cmd)
 }

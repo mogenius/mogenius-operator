@@ -19,7 +19,7 @@ func injectContent(content io.Reader, conn *websocket.Conn) {
 	// Read full content for pre-injection
 	input, err := io.ReadAll(content)
 	if err != nil {
-		XtermLogger.Errorf("failed to read data: %v", err)
+		XtermLogger.Error("failed to read data", "error", err)
 	}
 
 	// Encode for security reasons and send to pseudoterminal to be executed
@@ -28,11 +28,11 @@ func injectContent(content io.Reader, conn *websocket.Conn) {
 	bash := exec.Command("bash", "-c", "echo \""+encodedData+"\" | base64 -d")
 	ttytmp, err := pty.Start(bash)
 	if err != nil {
-		XtermLogger.Errorf("Unable to start tmp pty/cmd: %s", err.Error())
+		XtermLogger.Error("Unable to start tmp pty/cmd", "error", err)
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			if err != nil {
-				XtermLogger.Errorf("WriteMessage: %s", err.Error())
+				XtermLogger.Error("WriteMessage", "error", err)
 			}
 		}
 		return
@@ -48,12 +48,12 @@ func injectContent(content io.Reader, conn *websocket.Conn) {
 				break
 			}
 
-			XtermLogger.Errorf("WriteMessage: %s", err.Error())
+			XtermLogger.Error("WriteMessage", "error", err)
 			break
 		}
 		if conn != nil {
 			if err := conn.WriteMessage(websocket.BinaryMessage, buf[:n]); err != nil {
-				XtermLogger.Errorf("WriteMessage: %s", err.Error())
+				XtermLogger.Error("WriteMessage", "error", err)
 				break
 			}
 		} else {
@@ -88,12 +88,12 @@ func XTermCommandStreamConnection(
 	// websocket connection
 	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		XtermLogger.Errorf("Unable to connect to websocket: %s", err.Error())
+		XtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 
 	defer func() {
-		// XtermLogger.Info("[XTermCommandStreamConnection] Closing connection.")
+		XtermLogger.Debug("[XTermCommandStreamConnection] Closing connection.")
 		cancel()
 	}()
 
@@ -103,17 +103,17 @@ func XTermCommandStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				XtermLogger.Debug("write close:", err)
+				XtermLogger.Debug("write close:", "error", err)
 			}
 		}
-		XtermLogger.Errorf("Pod %s does not exist, closing connection.", podName)
+		XtermLogger.Error("Pod does not exist, closing connection.", "podName", podName)
 		return
 	}
 
 	// kube provider
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		XtermLogger.Warningf("Unable to create kube provider: %s", err.Error())
+		XtermLogger.Warn("Unable to create kube provider", "error", err)
 		return
 	}
 
@@ -126,7 +126,7 @@ func XTermCommandStreamConnection(
 	// send ping
 	err = wsPing(conn)
 	if err != nil {
-		XtermLogger.Errorf("Unable to send ping: %s", err.Error())
+		XtermLogger.Error("Unable to send ping", "error", err)
 		return
 	}
 
@@ -134,11 +134,11 @@ func XTermCommandStreamConnection(
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
-		XtermLogger.Errorf("Unable to start pty/cmd: %s", err.Error())
+		XtermLogger.Error("Unable to start pty/cmd", "error", err)
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			if err != nil {
-				XtermLogger.Errorf("WriteMessage: %s", err.Error())
+				XtermLogger.Error("WriteMessage", "error", err)
 			}
 		}
 		return
@@ -148,20 +148,20 @@ func XTermCommandStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				XtermLogger.Debug("write close:", err)
+				XtermLogger.Debug("write close:", "error", err)
 			}
 		}
 		err := cmd.Process.Kill()
 		if err != nil {
-			XtermLogger.Error(err)
+			XtermLogger.Error("failed to kill process", "error", err)
 		}
 		_, err = cmd.Process.Wait()
 		if err != nil {
-			XtermLogger.Error(err)
+			XtermLogger.Error("failed to wait for process", "error", err)
 		}
 		err = tty.Close()
 		if err != nil {
-			XtermLogger.Error(err)
+			XtermLogger.Error("failed to close tty", "error", err)
 		}
 	}()
 

@@ -5,18 +5,16 @@ package cmd
 
 import (
 	"mogenius-k8s-manager/logging"
-	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
 
 	cc "github.com/ivanpirog/coloredcobra"
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var CmdLogger = log.WithField("component", structs.ComponentCmd)
+var CmdLogger = logging.CreateLogger("cmd")
 
 var resetConfig bool
 var stage string
@@ -33,17 +31,15 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 			utils.DeleteCurrentConfig()
 		}
 		utils.InitConfigYaml(debug, customConfig, stage)
-		// SET LOGGING
-		logging.SetupLogging()
 		punq.InitKubernetes(utils.CONFIG.Kubernetes.RunInCluster)
 
 		if utils.ClusterProviderCached == punqDtos.UNKNOWN {
 			foundProvider, err := punq.GuessClusterProvider(nil)
 			if err != nil {
-				CmdLogger.Errorf("GuessClusterProvider ERR: %s", err.Error())
+				CmdLogger.Error("GuessClusterProvider", "error", err)
 			}
 			utils.ClusterProviderCached = foundProvider
-			CmdLogger.Infof("🎲 🎲 🎲 ClusterProvider: %s", string(foundProvider))
+			CmdLogger.Info("🎲 🎲 🎲 ClusterProvider", "foundProvider", string(foundProvider))
 		}
 	},
 }
