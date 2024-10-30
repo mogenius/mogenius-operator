@@ -948,12 +948,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		newObj, err := kubernetes.GetUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
 		return NewMessageResponse(newObj, err)
-	// case structs.PAT_GET_WORKLOAD_EXAMPLE:
-	// 	data := utils.SyncResourceItem{}
-	// 	structs.MarshalUnmarshal(&datagram, &data)
-	// 	newObj, err := kubernetes.GetExampleYamle(data.Group, data.Version, data.Name)
-	// 	return NewMessageResponse(newObj, err)
-
+	case structs.PAT_GET_WORKLOAD_EXAMPLE:
+		data := utils.SyncResourceItem{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return NewMessageResponse(kubernetes.GetResourceTemplateYaml(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName), nil)
 	case structs.PAT_UPDATE_WORKLOAD:
 		data := utils.SyncResourceData{}
 		structs.MarshalUnmarshal(&datagram, &data)
