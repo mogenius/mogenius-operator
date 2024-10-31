@@ -670,24 +670,30 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 }
 
 func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyList, error) {
-	client := GetNetworkingClient()
-	netPolClient := client.NetworkPolicies(namespaceName)
-
-	netpols, err := netPolClient.List(context.TODO(), metav1.ListOptions{
-		LabelSelector: NetpolLabel + "!=true",
-	})
+	policies, err := listAllNetworkPolicies(namespaceName)
 	if err != nil {
-		K8sLogger.Error("ListAllConflictingNetworkPolicies", "error", err)
-		return nil, nil
+		return nil, err
 	}
-	return netpols, err
+
+	// filter out all policies that are not created by mogenius
+	var netpols []v1.NetworkPolicy
+	for _, policy := range policies {
+		if policy.ObjectMeta.Labels != nil && policy.ObjectMeta.Labels[NetpolLabel] != "true" {
+			continue
+		}
+		netpols = append(netpols, policy)
+	}
+
+	// create list *v1.NetworkPolicyList
+	return &v1.NetworkPolicyList{
+		Items: netpols,
+	}, nil
 }
 
 func listAllNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
 	result := []v1.NetworkPolicy{}
 
-	resultType := reflect.TypeOf(v1.NetworkPolicy{})
-	policies, err := store.GlobalStore.SearchByPrefix(resultType, namespaceName)
+	policies, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.NetworkPolicy{}), namespaceName)
 	if err != nil {
 		K8sLogger.Error("ListAllNetworkPolicies", "error", err)
 		return result, err
