@@ -734,6 +734,10 @@ func listAllNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
 	}
 
 	for _, ref := range policies {
+		if ref == nil {
+			continue
+		}
+
 		netpol := ref.(*v1.NetworkPolicy)
 		if netpol == nil {
 			continue
@@ -776,6 +780,9 @@ func ListControllerLabeledNetworkPolicies(
 	switch controllerType {
 	case dtos.DEPLOYMENT:
 		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.Deployment{}), "Deployment", namespaceName, controllerName)
+		if ref == nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
+		}
 		deployment := ref.(*appsv1.Deployment)
 		if deployment == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
@@ -783,6 +790,9 @@ func ListControllerLabeledNetworkPolicies(
 		labels = extractLabels(deployment.ObjectMeta.Labels, deployment.Spec.Template.ObjectMeta.Labels)
 	case dtos.DAEMON_SET:
 		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.DaemonSet{}), "DaemonSet", namespaceName, controllerName)
+		if ref == nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
+		}
 		daemonset := ref.(*appsv1.DaemonSet)
 		if daemonset == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
@@ -790,6 +800,9 @@ func ListControllerLabeledNetworkPolicies(
 		labels = extractLabels(daemonset.ObjectMeta.Labels, daemonset.Spec.Template.ObjectMeta.Labels)
 	case dtos.STATEFUL_SET:
 		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.StatefulSet{}), "StatefulSet", namespaceName, controllerName)
+		if ref == nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
+		}
 		statefulset := ref.(*appsv1.StatefulSet)
 		if statefulset == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
