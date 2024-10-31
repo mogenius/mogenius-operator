@@ -27,7 +27,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	// check if namespace exists and CREATE IT IF NOT
 	nsExists, nsErr := punq.NamespaceExists(r.Namespace.Name, nil)
 	if nsErr != nil {
-		ServiceLogger.Warn("failed to check if namespace exists", "error", nsErr)
+		serviceLogger.Warn("failed to check if namespace exists", "error", nsErr)
 	}
 	if !nsExists {
 		nsReq := NamespaceCreateRequest{
@@ -102,7 +102,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 
 		time.Sleep(10 * time.Second)
 		for _, container := range r.Service.Containers {
-			ServiceLogger.Info("Deleting build data", "namespace", r.Namespace.Name, "controller", r.Service.ControllerName, "container", container.Name)
+			serviceLogger.Info("Deleting build data", "namespace", r.Namespace.Name, "controller", r.Service.ControllerName, "container", container.Name)
 			db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
 		}
 	}()
@@ -312,15 +312,15 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 		for _, container := range service.Containers {
 			if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 				if container.GitRepository == nil {
-					ServiceLogger.Error("GitRepository cannot be nil", "controller", service.ControllerName)
+					serviceLogger.Error("GitRepository cannot be nil", "controller", service.ControllerName)
 					continue
 				}
 				if container.GitBranch == nil {
-					ServiceLogger.Error("GitBranch cannot be nil", "controller", service.ControllerName)
+					serviceLogger.Error("GitBranch cannot be nil", "controller", service.ControllerName)
 					continue
 				}
 				if container.SettingsYaml == nil {
-					ServiceLogger.Error("SettingsYaml cannot be nil", "controller", service.ControllerName)
+					serviceLogger.Error("SettingsYaml cannot be nil", "controller", service.ControllerName)
 					continue
 				}
 

@@ -159,7 +159,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 					specTemplate.Spec.Containers[index].Image = imgName
 				} else {
 					imgErr := fmt.Errorf("No image found for '%s/%s'. Maybe the build failed or is still running.", namespace.Name, container.Name)
-					K8sLogger.Error(imgErr.Error())
+					k8sLogger.Error(imgErr.Error())
 					return nil, imgErr
 				}
 			}
@@ -198,7 +198,7 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 						service.ControllerName,
 					})
 					if err != nil {
-						K8sLogger.Error("Error creating external secret: %s, Secret will not be set for service.", "error", err, "secret name", envVar.Name, "service name", service.ControllerName)
+						k8sLogger.Error("Error creating external secret: %s, Secret will not be set for service.", "error", err, "secret name", envVar.Name, "service name", service.ControllerName)
 					} else {
 						// link created secret to container env
 						specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
@@ -265,10 +265,10 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 							})
 						}
 					} else {
-						K8sLogger.Error("No Volume found", "namespace", namespace.Name, "volume", volumeName)
+						k8sLogger.Error("No Volume found", "namespace", namespace.Name, "volume", volumeName)
 					}
 				} else {
-					K8sLogger.Error("SKIPPING ENVVAR because data is missing", "env name", envVar.Name)
+					k8sLogger.Error("SKIPPING ENVVAR because data is missing", "env name", envVar.Name)
 				}
 				//} else {
 				//	K8sLogger.Errorf("SKIPPING ENVVAR '%s' because value '%s' must conform to pattern XXX:YYY:ZZZ", envVar.Type, envVar.Value)

@@ -138,7 +138,7 @@ func stateLogJob(data *Job) {
 		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
-	logWithFields := StructsLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
+	logWithFields := structsLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
 
 	var message string
 	switch data.State {
@@ -175,7 +175,7 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
-	logWithFields := StructsLogger.With("namespace", ns, "controllerName", controllerName)
+	logWithFields := structsLogger.With("namespace", ns, "controllerName", controllerName)
 
 	var message string
 	switch data.State {

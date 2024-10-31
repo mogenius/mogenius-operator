@@ -27,7 +27,7 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 			Namespace: namespace,
 		}
 	}
-	Init()
+	Start()
 
 	tx, err := dbStats.Begin(false)
 	if err != nil {
@@ -36,7 +36,7 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 
 	// check if db has a bucket for the namespace
 	if !bucketExists(tx, stat.Namespace) {
-		DbStatsLogger.Info("Bucket for namespace does not exist and should be created once the stat is added", "namespace", stat.Namespace)
+		dbStatsLogger.Info("Bucket for namespace does not exist and should be created once the stat is added", "namespace", stat.Namespace)
 	}
 	err = tx.Rollback()
 	if err != nil {
@@ -60,7 +60,7 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test02.db"
 	utils.CONFIG.Stats.MaxDataPoints = 3
-	Init()
+	Start()
 
 	getControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
 		_ = podName

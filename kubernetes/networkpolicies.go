@@ -57,11 +57,11 @@ func DeleteNetworkPolicy(namespaceName, name string) error {
 
 	err := netPolClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
-		K8sLogger.Error("DeleteNetworkPolicy", "networkpolicy", name, "error", err)
+		k8sLogger.Error("DeleteNetworkPolicy", "networkpolicy", name, "error", err)
 		return err
 	}
 
-	K8sLogger.Info("Deleted NetworkPolicy", "networkpolicy", name)
+	k8sLogger.Info("Deleted NetworkPolicy", "networkpolicy", name)
 
 	cleanupUnusedDenyAll(namespaceName)
 	return nil
@@ -149,7 +149,7 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 	if netPolRecoderLogger == nil {
 		provider, err := punq.NewKubeProvider(nil)
 		if provider == nil || err != nil {
-			K8sLogger.Error("Error creating provider for netpol watcher. Cannot continue because it is vital.", "error", err)
+			k8sLogger.Error("Error creating provider for netpol watcher. Cannot continue because it is vital.", "error", err)
 			panic(1)
 		}
 
@@ -165,7 +165,7 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 		"mogenius.io/x-cluster-mfa-id", utils.CONFIG.Kubernetes.ClusterMfaId)
 
 	// Trigger custom event
-	K8sLogger.Debug("Netpol is being updated in namespace, triggering event", "netpol", netPol.Name, "namespace", netPol.Namespace)
+	k8sLogger.Debug("Netpol is being updated in namespace, triggering event", "netpol", netPol.Name, "namespace", netPol.Namespace)
 	netPolRecoderLogger.AnnotatedEventf(netPol, annotations, v1Core.EventTypeNormal, reason, "NetPol %s is being %s", netPol.Name, reason)
 }
 

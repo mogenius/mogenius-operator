@@ -21,7 +21,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource applied ✅")
+		k8sLogger.Info("Resource applied ✅")
 	}
 
 	// UPDATE (same resource), on second call the update client call is tested
@@ -29,7 +29,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource updated ✅")
+		k8sLogger.Info("Resource updated ✅")
 	}
 
 	// GET
@@ -37,7 +37,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource retrieved ✅")
+		k8sLogger.Info("Resource retrieved ✅")
 	}
 
 	// LIST
@@ -45,7 +45,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resources listed ✅")
+		k8sLogger.Info("Resources listed ✅")
 	}
 
 	// DELETE
@@ -53,7 +53,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource deleted ✅")
+		k8sLogger.Info("Resource deleted ✅")
 	}
 }
 
@@ -87,7 +87,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource applied ✅")
+		k8sLogger.Info("Resource applied ✅")
 	}
 
 	// UPDATE (same resource), on second call the update client call is tested
@@ -95,7 +95,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource updated ✅")
+		k8sLogger.Info("Resource updated ✅")
 	}
 
 	// LIST
@@ -103,7 +103,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resources listed ✅")
+		k8sLogger.Info("Resources listed ✅")
 	}
 
 	// GET
@@ -111,7 +111,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource retrieved ✅")
+		k8sLogger.Info("Resource retrieved ✅")
 	}
 
 	// DELETE
@@ -119,7 +119,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource deleted ✅")
+		k8sLogger.Info("Resource deleted ✅")
 	}
 
 	err = DeleteServiceAccount("external-secrets-sa", "default")

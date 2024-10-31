@@ -41,16 +41,16 @@ func CreateShellCommand(command string, title string, job *Job, shellCmd string,
 		cmd.Start(job, title)
 
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		StructsLogger.Info(string(shellCmd))
-		StructsLogger.Info(string(output))
+		structsLogger.Info(string(shellCmd))
+		structsLogger.Info(string(output))
 
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
-			StructsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
+			structsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
 			cmd.Fail(job, fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
 		} else if err != nil {
-			StructsLogger.Error("exec.Command", "error", err)
+			structsLogger.Error("exec.Command", "error", err)
 		} else {
 			cmd.Success(job, title)
 		}
@@ -60,22 +60,22 @@ func CreateShellCommand(command string, title string, job *Job, shellCmd string,
 func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		StructsLogger.Info(string(shellCmd))
-		StructsLogger.Info(string(output))
+		structsLogger.Info(string(shellCmd))
+		structsLogger.Info(string(output))
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
-			StructsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
+			structsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
 			if failFunc != nil {
 				failFunc(string(output), exitErr)
 			}
 		} else if err != nil {
-			StructsLogger.Error("exec.Command", "error", err)
+			structsLogger.Error("exec.Command", "error", err)
 			if failFunc != nil {
 				failFunc(string(output), err)
 			}
 		} else {
-			StructsLogger.Info("SUCCESS", "shellCmd", shellCmd)
+			structsLogger.Info("SUCCESS", "shellCmd", shellCmd)
 			if successFunc != nil {
 				successFunc()
 			}
@@ -94,7 +94,7 @@ func (cmd *Command) Fail(job *Job, err string) {
 	cmd.Message = err
 	cmd.Finished = time.Now()
 	if utils.CONFIG.Misc.Debug {
-		StructsLogger.Error("Command failed", "title", cmd.Title, "error", err)
+		structsLogger.Error("Command failed", "title", cmd.Title, "error", err)
 	}
 	ReportCmdStateToServer(job, cmd)
 }

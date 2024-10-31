@@ -31,7 +31,7 @@ const (
 func handlePVDeletion(pv *v1.PersistentVolume) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		K8sLogger.Error("Error creating provider for watcher. Cannot continue because it is vital.", "error", err)
+		k8sLogger.Error("Error creating provider for watcher. Cannot continue because it is vital.", "error", err)
 		panic(1)
 	}
 
@@ -42,7 +42,7 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 	// Extract label value from the PV
 	volumeName, err := GetLabelValue(pv.Labels, LabelKeyVolumeName)
 	if err != nil {
-		K8sLogger.Warn("Label value for identifier:'%s' not found on PV %s", LabelKeyVolumeName, pv.Name)
+		k8sLogger.Warn("Label value for identifier:'%s' not found on PV %s", LabelKeyVolumeName, pv.Name)
 		return
 	}
 
@@ -64,7 +64,7 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 	time.Sleep(delayDuration)
 
 	// Trigger custom event
-	K8sLogger.Info("PV %s is being deleted in namespace %s, triggering event", objectMetaName, namespaceName)
+	k8sLogger.Info("PV %s is being deleted in namespace %s, triggering event", objectMetaName, namespaceName)
 	namespaceRecorder.Eventf(pv, v1.EventTypeNormal, PersitentVolumeKillingEventReason, "PersistentVolume %s is being deleted", objectMetaName)
 }
 

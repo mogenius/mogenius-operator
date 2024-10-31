@@ -64,7 +64,7 @@ type SyncResourceItem struct {
 func (s *SyncResourceEntry) YamlString() string {
 	bytes, err := yaml.Marshal(s)
 	if err != nil {
-		UtilsLogger.Error("Error marshalling SyncResourceEntry", "error", err)
+		utilsLogger.Error("Error marshalling SyncResourceEntry", "error", err)
 		return ""
 	}
 	return string(bytes)
@@ -73,7 +73,7 @@ func (s *SyncResourceEntry) YamlString() string {
 func YamlStringFromSyncResource(s []SyncResourceEntry) string {
 	bytes, err := yaml.Marshal(s)
 	if err != nil {
-		UtilsLogger.Error("Error marshalling SyncResourceEntry", "error", err)
+		utilsLogger.Error("Error marshalling SyncResourceEntry", "error", err)
 		return ""
 	}
 
@@ -92,7 +92,7 @@ func SyncResourceEntryFromYaml(str string) *SyncResourceEntry {
 	var s SyncResourceEntry
 	err := yaml.Unmarshal([]byte(str), &s)
 	if err != nil {
-		UtilsLogger.Error("Error unmarshalling SyncResourceEntry", "error", err)
+		utilsLogger.Error("Error unmarshalling SyncResourceEntry", "error", err)
 		return nil
 	}
 	return &s
@@ -203,22 +203,22 @@ func InitConfigSimple(stage string) {
 	case STAGE_DEV:
 		err := os.WriteFile(path, []byte(DefaultConfigClusterFileDev), 0755)
 		if err != nil {
-			UtilsLogger.Error("failed to write default 'dev' config file", "path", path, "error", err)
+			utilsLogger.Error("failed to write default 'dev' config file", "path", path, "error", err)
 		}
 	case STAGE_LOCAL:
 		err := os.WriteFile(path, []byte(DefaultConfigLocalFile), 0755)
 		if err != nil {
-			UtilsLogger.Error("failed to write default 'local' config file", "path", path, "error", err)
+			utilsLogger.Error("failed to write default 'local' config file", "path", path, "error", err)
 		}
 	case STAGE_PROD:
 		err := os.WriteFile(path, []byte(DefaultConfigClusterFileProd), 0755)
 		if err != nil {
-			UtilsLogger.Error("failed to write default config file", "path", path, "error", err)
+			utilsLogger.Error("failed to write default config file", "path", path, "error", err)
 		}
 	}
 	err := cleanenv.ReadConfig(path, &CONFIG)
 	if err != nil {
-		UtilsLogger.Error("failed to read config file", "path", path, "error", err)
+		utilsLogger.Error("failed to read config file", "path", path, "error", err)
 	}
 }
 
@@ -248,9 +248,9 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// read configuration from the file and environment variables
 	if err := cleanenv.ReadConfig(ConfigPath, &CONFIG); err != nil {
 		if strings.HasPrefix(err.Error(), "config file parsing error:") {
-			UtilsLogger.Error("Config file is corrupted. Creating a new one by using -r flag.")
+			utilsLogger.Error("Config file is corrupted. Creating a new one by using -r flag.")
 		}
-		UtilsLogger.Error("Error reading config", "path", ConfigPath, "error", err)
+		utilsLogger.Error("Error reading config", "path", ConfigPath, "error", err)
 	}
 
 	if CONFIG.Kubernetes.RunInCluster {
@@ -263,10 +263,10 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if !CONFIG.Kubernetes.RunInCluster {
 		dirPath, err := os.MkdirTemp("", "mo_*")
 		if err != nil {
-			UtilsLogger.Error("failed to create temp dir", "error", err)
+			utilsLogger.Error("failed to create temp dir", "error", err)
 			panic(1)
 		}
-		UtilsLogger.Info("TempDir created", "path", dirPath)
+		utilsLogger.Info("TempDir created", "path", dirPath)
 	}
 
 	if CONFIG.Kubernetes.BboltDbPath == "" {
@@ -291,17 +291,17 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
-			UtilsLogger.Error("Environment Variable 'cluster_name' not setup. TERMINATING.")
+			utilsLogger.Error("Environment Variable 'cluster_name' not setup. TERMINATING.")
 			panic(1)
 		}
 		if CONFIG.Kubernetes.ApiKey == "YOUR_API_KEY" || CONFIG.Kubernetes.ApiKey == "" {
-			UtilsLogger.Error("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
+			utilsLogger.Error("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
 			panic(1)
 		}
 	}
 
 	if CONFIGVERSION > CONFIG.Config.Version {
-		UtilsLogger.Error("Config version is outdated. Please delete your config file and restart the application.", "ConfigPath", ConfigPath, "version", CONFIG.Config.Version, "neededVersion", CONFIGVERSION)
+		utilsLogger.Error("Config version is outdated. Please delete your config file and restart the application.", "ConfigPath", ConfigPath, "version", CONFIG.Config.Version, "neededVersion", CONFIGVERSION)
 		panic(1)
 	}
 
@@ -309,27 +309,27 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// setupLogging()
 
 	if CONFIG.Misc.Debug {
-		UtilsLogger.Info("Starting service for pprof in localhost:6060")
+		utilsLogger.Info("Starting service for pprof in localhost:6060")
 		go func() {
 			err := http.ListenAndServe("localhost:6060", nil)
 			if err != nil {
 				panic(err)
 			}
-			UtilsLogger.Info("1. Portforward mogenius-k8s-manager to 6060")
-			UtilsLogger.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
-			UtilsLogger.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
-			UtilsLogger.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
-			UtilsLogger.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
-			UtilsLogger.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
-			UtilsLogger.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
-			UtilsLogger.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
-			UtilsLogger.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
-			UtilsLogger.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
-			UtilsLogger.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
-			UtilsLogger.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
-			UtilsLogger.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
-			UtilsLogger.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
-			UtilsLogger.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
+			utilsLogger.Info("1. Portforward mogenius-k8s-manager to 6060")
+			utilsLogger.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
+			utilsLogger.Info("3. wget http://localhost:6060/debug/pprof/heap -O mem.pprof")
+			utilsLogger.Info("4. go tool pprof -http=localhost:8081 cpu.pprof")
+			utilsLogger.Info("5. go tool pprof -http=localhost:8081 mem.pprof")
+			utilsLogger.Info("OR: go tool pprof mem.pprof -> Then type in commands like top, top --cum, list")
+			utilsLogger.Info("http://localhost:6060/debug/pprof/ This is the index page that lists all available profiles.")
+			utilsLogger.Info("http://localhost:6060/debug/pprof/profile This serves a CPU profile. You can set the profiling duration through the seconds parameter. For example, ?seconds=30 would profile your CPU for 30 seconds.")
+			utilsLogger.Info("http://localhost:6060/debug/pprof/heap This serves a snapshot of the current heap memory usage.")
+			utilsLogger.Info("http://localhost:6060/debug/pprof/goroutine This serves a snapshot of the current goroutines stack traces.")
+			utilsLogger.Info("http://localhost:6060/debug/pprof/block This serves a snapshot of stack traces that led to blocking on synchronization primitives.")
+			utilsLogger.Info("http://localhost:6060/debug/pprof/threadcreate This serves a snapshot of all OS thread creation stack traces.")
+			utilsLogger.Info("http://localhost:6060/debug/pprof/cmdline This returns the command line invocation of the current program.")
+			utilsLogger.Info("http://localhost:6060/debug/pprof/symbol This is used to look up the program counters listed in a pprof profile.")
+			utilsLogger.Info("http://localhost:6060/debug/pprof/trace This serves a trace of execution of the current program. You can set the trace duration through the seconds parameter.")
 		}()
 	}
 }
@@ -437,7 +437,7 @@ func SetupClusterConfigmap(clusterConfigmap ClusterConfigmap) {
 }
 
 func PrintSettings() {
-	UtilsLogger.Info("PrintSettings",
+	utilsLogger.Info("PrintSettings",
 		"ConfigPath", ConfigPath,
 		"Version", CONFIG.Config.Version,
 		"Kubernetes.OwnNamespace", CONFIG.Kubernetes.OwnNamespace,
@@ -496,7 +496,7 @@ func PrintSettings() {
 }
 
 func PrintVersionInfo() {
-	UtilsLogger.Info(
+	utilsLogger.Info(
 		"mogenius-k8s-manager",
 		"Version", version.Ver,
 		"Branch", version.Branch,
@@ -508,7 +508,7 @@ func PrintVersionInfo() {
 func GetDirectories(customConfigPath string) (configDir string, configPath string) {
 	homeDirName, err := os.UserHomeDir()
 	if err != nil {
-		UtilsLogger.Error("Error retrieving user homedir", "error", err)
+		utilsLogger.Error("Error retrieving user homedir", "error", err)
 	}
 
 	if customConfigPath != "" {
@@ -516,7 +516,7 @@ func GetDirectories(customConfigPath string) (configDir string, configPath strin
 			configPath = customConfigPath
 			configDir = filepath.Dir(customConfigPath)
 		} else {
-			UtilsLogger.Error("Custom config not found.", "customConfigPath", customConfigPath)
+			utilsLogger.Error("Custom config not found.", "customConfigPath", customConfigPath)
 		}
 	} else {
 		configDir = homeDirName + "/.mogenius-k8s-manager/"
@@ -530,9 +530,9 @@ func DeleteCurrentConfig() {
 	_, configPath := GetDirectories("")
 	err := os.Remove(configPath)
 	if err != nil {
-		UtilsLogger.Error("failed to delete config file", "error", err)
+		utilsLogger.Error("failed to delete config file", "error", err)
 	} else {
-		UtilsLogger.Info("succesfully deleted config file", "configPath", configPath)
+		utilsLogger.Info("succesfully deleted config file", "configPath", configPath)
 	}
 }
 
@@ -542,7 +542,7 @@ func writeDefaultConfig(stage string) {
 	// write it to default location
 	err := os.Mkdir(configDir, 0755)
 	if err != nil && err.Error() != "mkdir "+configDir+": file exists" {
-		UtilsLogger.Warn("failed to create directory", "path", configDir, "error", err)
+		utilsLogger.Warn("failed to create directory", "path", configDir, "error", err)
 	}
 
 	// check if stage is set via env variable
@@ -563,11 +563,11 @@ func writeDefaultConfig(stage string) {
 	} else if stage == STAGE_LOCAL {
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	} else {
-		UtilsLogger.Warn("No stage set. Using local config.")
+		utilsLogger.Warn("No stage set. Using local config.")
 		err = os.WriteFile(configPath, []byte(DefaultConfigLocalFile), 0755)
 	}
 	if err != nil {
-		UtilsLogger.Error("Error writing "+configPath+" file", "configPath", configPath, "error", err)
+		utilsLogger.Error("Error writing "+configPath+" file", "configPath", configPath, "error", err)
 		panic(1)
 	}
 }

@@ -21,6 +21,7 @@ var cleanCmd = &cobra.Command{
 	This cmd removes all remaining parts of the daemonset, configs, etc. from your cluster. 
 	This can be used if something went wrong during automatic cleanup.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		preRun()
 		yellow := color.New(color.FgYellow).SprintFunc()
 		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you realy want to remove mogenius-k8s-manager from '%s' context?", yellow(kubernetes.CurrentContextName()))) {
 			os.Exit(0)

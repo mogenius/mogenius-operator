@@ -23,7 +23,7 @@ func NewDynamicKubeProvider(contextId *string) (*DynamicKubeProvider, error) {
 	}
 
 	if err != nil {
-		K8sLogger.Error("failed to create dynamic kube provider", "error", err)
+		k8sLogger.Error("failed to create dynamic kube provider", "error", err)
 	}
 	return provider, err
 }

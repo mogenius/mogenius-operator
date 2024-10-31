@@ -3,7 +3,8 @@ package store
 import (
 	"encoding/json"
 	"fmt"
-	"mogenius-k8s-manager/logging"
+	"log/slog"
+	"mogenius-k8s-manager/interfaces"
 	"reflect"
 	"sync"
 	"time"
@@ -11,7 +12,11 @@ import (
 	"github.com/dgraph-io/badger/v4"
 )
 
-var StoreLogger = logging.CreateLogger("store")
+var storeLogger *slog.Logger
+
+func Setup(logManager interfaces.LogManager) {
+	storeLogger = logManager.CreateLogger("store")
+}
 
 type Store struct {
 	db         *badger.DB
@@ -22,11 +27,11 @@ type Store struct {
 var GlobalStore *Store
 var garbageCollectionTicker *time.Ticker
 
-func Init() {
+func Start() {
 	var err error
 	GlobalStore, err = NewStore()
 	if err != nil {
-		StoreLogger.Error("failed to initialize store", "error", err)
+		storeLogger.Error("failed to initialize store", "error", err)
 		panic(1)
 	}
 
@@ -34,10 +39,10 @@ func Init() {
 	garbageCollectionTicker = time.NewTicker(5 * time.Minute)
 	go func() {
 		for range garbageCollectionTicker.C {
-			StoreLogger.Info("Run garbage collection DB ...")
+			storeLogger.Info("Run garbage collection DB ...")
 			err := GlobalStore.RunGC()
 			if err != nil {
-				StoreLogger.Debug("Error running GlobalStore.RunGC", "error", err)
+				storeLogger.Debug("Error running GlobalStore.RunGC", "error", err)
 			}
 		}
 	}()
@@ -62,10 +67,11 @@ func NewStore() (*Store, error) {
 		WithMemTableSize(16 << 20).
 		WithNumMemtables(2).
 		WithNumLevelZeroTables(1).
-		WithNumLevelZeroTablesStall(2)
+		WithNumLevelZeroTablesStall(2).
+		WithLogger(nil)
 	db, err := badger.Open(opts)
 	if err != nil {
-		StoreLogger.Error(err.Error())
+		storeLogger.Error(err.Error())
 		return nil, err
 	}
 
@@ -135,7 +141,7 @@ func (s *Store) GetByKeyParts(resultType reflect.Type, keys ...string) interface
 	key := CreateKey(keys...)
 	value, err := s.Get(key, resultType)
 	if err != nil {
-		StoreLogger.Error("failed to get value", "key", key, "error", err)
+		storeLogger.Error("failed to get value", "key", key, "error", err)
 		return nil
 	}
 	return value
@@ -147,7 +153,7 @@ func (s *Store) GetByKeyPart(keyPart string, resultType reflect.Type) []interfac
 	for _, key := range keys {
 		value, err := s.Get(key, resultType)
 		if err != nil {
-			StoreLogger.Error("failed to get value", "key", key, "error", err)
+			storeLogger.Error("failed to get value", "key", key, "error", err)
 			continue
 		}
 		values = append(values, value)

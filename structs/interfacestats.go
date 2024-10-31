@@ -68,7 +68,7 @@ func (data *InterfaceStats) SumOrReplace(dataToAdd *InterfaceStats) {
 
 func (data *InterfaceStats) PrintInfo() {
 	message := fmt.Sprintf("%s -> Packets: %d, Send: %s | Received %s\n", data.PodName, data.PacketsSum, punq.BytesToHumanReadable(int64(data.TransmitBytes+data.TransmitStartBytes+data.LocalTransmitBytes)), punq.BytesToHumanReadable(int64(data.ReceivedBytes+data.ReceivedStartBytes+data.LocalReceivedBytes)))
-	StructsLogger.Info(message)
+	structsLogger.Info(message)
 }
 
 func UnmarshalInterfaceStats(dst *InterfaceStats, data []byte) error {

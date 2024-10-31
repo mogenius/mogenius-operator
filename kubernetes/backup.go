@@ -94,7 +94,7 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 			_, err = namespaceClient.Apply(context.TODO(), newNs, v1.ApplyOptions{FieldManager: DEPLOYMENTNAME})
 			time.Sleep(3 * time.Second) // Wait for 3 for namespace to be created
 			if err != nil {
-				K8sLogger.Error(err.Error())
+				k8sLogger.Error(err.Error())
 			}
 		}
 
@@ -109,11 +109,11 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 			if err != nil {
 				aResult := fmt.Sprintf("%d) (%s) FAILED  : %s/%s '%s'", index+1, namespaceName, obj.GetKind(), obj.GetName(), err.Error())
 				result.Messages = append(result.Messages, aResult)
-				K8sLogger.Error(aResult)
+				k8sLogger.Error(aResult)
 			} else {
 				aResult := fmt.Sprintf("%d) (%s) SUCCESS : %s/%s", index+1, namespaceName, obj.GetKind(), obj.GetName())
 				result.Messages = append(result.Messages, aResult)
-				K8sLogger.Info(aResult)
+				k8sLogger.Info(aResult)
 			}
 		}
 	}
@@ -351,10 +351,10 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 
 	//os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 0777)
 
-	K8sLogger.Info("SKIP", "resources", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
-	K8sLogger.Info("ALL", "resources", allResources.Display())
-	K8sLogger.Info("SKIPPED", "resources", skippedGroups.Display())
-	K8sLogger.Info("USED", "resources", usedResources.Display())
+	k8sLogger.Info("SKIP", "resources", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
+	k8sLogger.Info("ALL", "resources", allResources.Display())
+	k8sLogger.Info("SKIPPED", "resources", skippedGroups.Display())
+	k8sLogger.Info("USED", "resources", usedResources.Display())
 
 	return result, nil
 }

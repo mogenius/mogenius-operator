@@ -24,7 +24,7 @@ func MigrationBytes(migration Migration) []byte {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(migration)
 	if err != nil {
-		StructsLogger.Error("MigrationBytes", "error", err)
+		structsLogger.Error("MigrationBytes", "error", err)
 	}
 	return bytes
 }

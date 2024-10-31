@@ -147,7 +147,7 @@ func DeleteUnusedSecretsForNamespace(job *structs.Job, namespace dtos.K8sNamespa
 		// LIST ns secrets
 		secrets, err := ListResources("external-secrets.io", "v1beta1", "externalsecrets", "", true)
 		if err != nil {
-			K8sLogger.Error("Error listing resources", "error", err)
+			k8sLogger.Error("Error listing resources", "error", err)
 		}
 		if secrets == nil {
 			cmd.Success(job, "Deleted unused secrets")
@@ -177,7 +177,7 @@ func DeleteUnusedSecretsForNamespace(job *structs.Job, namespace dtos.K8sNamespa
 			if isMoExternalSecret && !isUsedByDeployment {
 				err = DeleteExternalSecret(secret.Name)
 				if err != nil {
-					K8sLogger.Error("Error deleting unsed secret %s: %s", secret.Name, err.Error())
+					k8sLogger.Error("Error deleting unsed secret %s: %s", secret.Name, err.Error())
 					break
 				}
 			}
@@ -265,7 +265,7 @@ func parseExternalSecretsListing(list *unstructured.UnstructuredList) ([]Externa
 		// Convert item to []byte
 		itemBytes, err := item.MarshalJSON()
 		if err != nil {
-			K8sLogger.Error("Error converting item to []byte", "error", err)
+			k8sLogger.Error("Error converting item to []byte", "error", err)
 			return nil, err
 		}
 		var ExternalSecrets ExternalSecretListingSchema

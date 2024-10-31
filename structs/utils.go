@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"net/url"
@@ -17,8 +16,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	punqUtils "github.com/mogenius/punq/utils"
 )
-
-var StructsLogger = logging.CreateLogger("structs")
 
 const PingSeconds = 3
 
@@ -96,7 +93,7 @@ func UnmarshalJobListEntry(dst *BuildJob, data []byte) error {
 func SendData(sendToServer string, data []byte) {
 	resp, err := http.Post(sendToServer, "application/json", bytes.NewBuffer(data))
 	if err != nil {
-		StructsLogger.Error("Error occurred during sending the request.", "error", err)
+		structsLogger.Error("Error occurred during sending the request.", "error", err)
 	} else {
 		defer resp.Body.Close()
 	}
@@ -106,21 +103,21 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 	header := utils.HttpHeader("-logs")
 	connection, _, err := websocket.DefaultDialer.Dial(sendToServer, header)
 	if err != nil {
-		StructsLogger.Error("Connection to stream endpoint failed", "sendToServer", sendToServer, "error", err)
+		structsLogger.Error("Connection to stream endpoint failed", "sendToServer", sendToServer, "error", err)
 	} else {
 		// API send ack when it is ready to receive messages.
 		err = connection.SetReadDeadline(time.Now().Add(2 * time.Second))
 		if err != nil {
-			StructsLogger.Error("Error setting read deadline.", "error", err)
+			structsLogger.Error("Error setting read deadline.", "error", err)
 			return
 		}
 		_, ack, err := connection.ReadMessage()
 		if err != nil {
-			StructsLogger.Error("Error reading ack message.", "error", err)
+			structsLogger.Error("Error reading ack message.", "error", err)
 			return
 		}
 
-		StructsLogger.Info("Ready ack from stream endpoint.", "ack", string(ack))
+		structsLogger.Info("Ready ack from stream endpoint.", "ack", string(ack))
 
 		buf := make([]byte, 1024)
 		for {
@@ -128,7 +125,7 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 				n, err := reader.Read(buf)
 				if err != nil {
 					if err != io.EOF {
-						StructsLogger.Error("Unexpected stop of stream.", "sendToServer", sendToServer)
+						structsLogger.Error("Unexpected stop of stream.", "sendToServer", sendToServer)
 					}
 					return
 				}
@@ -139,7 +136,7 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 
 					err = connection.WriteMessage(websocket.BinaryMessage, buf[:n])
 					if err != nil {
-						StructsLogger.Error("Error sending data", "sendToServer", sendToServer, "error", err)
+						structsLogger.Error("Error sending data", "sendToServer", sendToServer, "error", err)
 						return
 					}
 
@@ -150,7 +147,7 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 					// 	}
 					// }
 				} else {
-					StructsLogger.Error("connection cannot be nil", "sendToServer", sendToServer)
+					structsLogger.Error("connection cannot be nil", "sendToServer", sendToServer)
 					return
 				}
 			} else {
@@ -184,11 +181,11 @@ func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 			err := c.WriteMessage(websocket.PingMessage, nil)
 			sendMutex.Unlock()
 			if err != nil {
-				StructsLogger.Error("pingTicker", "error", err)
+				structsLogger.Error("pingTicker", "error", err)
 				return err
 			}
 		case <-interrupt:
-			StructsLogger.Error("interrupt")
+			structsLogger.Error("interrupt")
 
 			// Cleanly close the connection by sending a close message and then
 			// waiting (with timeout) for the server to close the connection.

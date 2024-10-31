@@ -3,7 +3,9 @@ package iacmanager
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"mogenius-k8s-manager/gitmanager"
+	"mogenius-k8s-manager/interfaces"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
@@ -41,7 +43,11 @@ var initialRepoApplied = false
 
 var gitSyncLock sync.Mutex
 
-var IacLogger = logging.CreateLogger("iac")
+var iacLogger *slog.Logger
+
+func Setup(logManager interfaces.LogManager) {
+	iacLogger = logManager.CreateLogger("iac")
+}
 
 func isIgnoredNamespace(namespace string) bool {
 	return utils.ContainsString(utils.CONFIG.Iac.IgnoredNamespaces, namespace)
@@ -63,7 +69,7 @@ func isIgnoredNamespaceInFile(file string) (result bool, namespace *string) {
 	return false, nil
 }
 
-func Init() {
+func Start() {
 	// dependency injection to avoid circular dependencies
 	kubernetes.IacManagerDeleteResourceYaml = DeleteResourceYaml
 	kubernetes.IacManagerWriteResourceYaml = WriteResourceYaml
@@ -79,7 +85,7 @@ func Init() {
 	if !IsIacEnabled() {
 		err := ResetCurrentRepoData(3)
 		if err != nil {
-			IacLogger.Error("failed to reset repo data", "error", err)
+			iacLogger.Error("failed to reset repo data", "error", err)
 		}
 		InitDataModel()
 		return
@@ -107,12 +113,12 @@ func gitInitRepo() error {
 	if _, err := os.Stat(utils.CONFIG.Kubernetes.GitVaultDataPath); os.IsNotExist(err) {
 		err := os.MkdirAll(utils.CONFIG.Kubernetes.GitVaultDataPath, 0755)
 		if err != nil {
-			IacLogger.Error("Error creating folder for git repository", "repoPath", utils.CONFIG.Kubernetes.GitVaultDataPath, "error", err)
+			iacLogger.Error("Error creating folder for git repository", "repoPath", utils.CONFIG.Kubernetes.GitVaultDataPath, "error", err)
 			return err
 		}
 		err = gitmanager.InitGit(utils.CONFIG.Kubernetes.GitVaultDataPath)
 		if err != nil {
-			IacLogger.Error("Error creating git repository", "error", err)
+			iacLogger.Error("Error creating git repository", "error", err)
 			return err
 		}
 	}
@@ -120,7 +126,7 @@ func gitInitRepo() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
 		err = gitmanager.InitGit(utils.CONFIG.Kubernetes.GitVaultDataPath)
 		if err != nil {
-			IacLogger.Error("Error creating git repository", "error", err)
+			iacLogger.Error("Error creating git repository", "error", err)
 			return err
 		}
 	}
@@ -133,11 +139,11 @@ func gitInitRepo() error {
 			case transport.ErrEmptyRemoteRepository:
 				err = initializeRemoteBranch(gitRepoUrl, utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
 				if err != nil {
-					IacLogger.Error("Error initializing new sync Repo", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
+					iacLogger.Error("Error initializing new sync Repo", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
 					return err
 				}
 			default:
-				IacLogger.Error("Error cloning Repo", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
+				iacLogger.Error("Error cloning Repo", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
 				return err
 			}
 		}
@@ -161,16 +167,16 @@ func addRemote() error {
 		case transport.ErrEmptyRemoteRepository:
 			err = initializeRemoteBranch(gitRepoUrl, utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
 			if err != nil {
-				IacLogger.Error("Error initializing new sync Branch", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
+				iacLogger.Error("Error initializing new sync Branch", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
 				return err
 			}
 			err = gitmanager.CheckoutBranch(utils.CONFIG.Kubernetes.GitVaultDataPath, utils.CONFIG.Iac.RepoBranch)
 			if err != nil {
-				IacLogger.Error("Error checking out newly created remote Branch", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
+				iacLogger.Error("Error checking out newly created remote Branch", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
 				return err
 			}
 		default:
-			IacLogger.Error("Error checking out Branc", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
+			iacLogger.Error("Error checking out Branc", "syncRepo", utils.CONFIG.Iac.RepoUrl, "repoBranch", utils.CONFIG.Iac.RepoBranch, "error", err)
 			return err
 		}
 	}
@@ -183,25 +189,25 @@ func initializeRemoteBranch(remoteRepoUrl string, localRepoPath string, branchNa
 
 	r, err := git.PlainInit(localRepoPath, false)
 	if err != nil && err != git.ErrRepositoryAlreadyExists {
-		IacLogger.Error("Error creating git repository", "error", err)
+		iacLogger.Error("Error creating git repository", "error", err)
 		return err
 	}
 
 	w, err := r.Worktree()
 	if err != nil {
-		IacLogger.Error("Error opening git worktree", "error", err.Error())
+		iacLogger.Error("Error opening git worktree", "error", err.Error())
 		return err
 	}
 
 	err = gitmanager.AddRemote(localRepoPath, remoteRepoUrl, "origin")
 	if err != nil {
-		IacLogger.Error("Error adding remote", "error", err)
+		iacLogger.Error("Error adding remote", "error", err)
 		return err
 	}
 
 	err = gitmanager.Commit(localRepoPath, []string{}, []string{}, "init", utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
 	if err != nil {
-		IacLogger.Error("Error creating initial commit", "error", err)
+		iacLogger.Error("Error creating initial commit", "error", err)
 		return err
 	}
 
@@ -212,13 +218,13 @@ func initializeRemoteBranch(remoteRepoUrl string, localRepoPath string, branchNa
 		Keep:   false,
 	})
 	if err != nil {
-		IacLogger.Error("Error checking out new local branch", "error", err)
+		iacLogger.Error("Error checking out new local branch", "error", err)
 		return err
 	}
 
 	err = gitmanager.Push(localRepoPath, "origin")
 	if err != nil {
-		IacLogger.Error("Error pushing repo", "error", err)
+		iacLogger.Error("Error pushing repo", "error", err)
 		return err
 	}
 
@@ -230,7 +236,7 @@ func ResetCurrentRepoData(tries int) error {
 
 	err := os.RemoveAll(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err != nil {
-		IacLogger.Error("Error deleting current repository data", "error", err)
+		iacLogger.Error("Error deleting current repository data", "error", err)
 		if tries > 0 {
 			time.Sleep(1 * time.Second)
 			return ResetCurrentRepoData(tries - 1)
@@ -254,12 +260,12 @@ func ResetCurrentRepoData(tries int) error {
 func CheckRepoAccess() error {
 	if utils.CONFIG.Iac.RepoUrl == "" {
 		err := fmt.Errorf("Repository URL is empty. Please set the repository URL in the configuration file or as env var.")
-		IacLogger.Error(err.Error())
+		iacLogger.Error(err.Error())
 		return err
 	}
 	if utils.CONFIG.Iac.RepoPat == "" {
 		err := fmt.Errorf("Repository PAT is empty. Please set the repository PAT in the configuration file or as env var.")
-		IacLogger.Error(err.Error())
+		iacLogger.Error(err.Error())
 		return err
 	}
 	// Insert the PAT into the repository URL
@@ -309,7 +315,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 
 	if utils.CONFIG.Iac.ShowDiffInLog {
 		if diff != "" {
-			IacLogger.Info("iac manager diff", "diff", diff)
+			iacLogger.Info("iac manager diff", "diff", diff)
 		}
 	}
 
@@ -321,7 +327,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		if _, err := os.Stat(filename); err == nil {
 			err = kubernetesRevertFromPath(filename)
 			if err == nil {
-				IacLogger.Warn("🧹 Detected change. Reverting...", "kind", kind, "gitFilePath", gitFilePath)
+				iacLogger.Warn("🧹 Detected change. Reverting...", "kind", kind, "gitFilePath", gitFilePath)
 			}
 		}
 		return
@@ -337,7 +343,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 	yamlData, err := yaml.Marshal(dataInf)
 	if err != nil {
 		err = fmt.Errorf("Error marshaling to YAML: %s\n", err.Error())
-		IacLogger.Error(err.Error())
+		iacLogger.Error(err.Error())
 		return
 	}
 	err = createFolderForResource(kind, namespace)
@@ -357,7 +363,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		return
 	}
 	if utils.CONFIG.Iac.LogChanges {
-		IacLogger.Info("🧹 Detected change. Updated resource.", "kind", kind, "namespace", namespace, "resourceName", resourceName)
+		iacLogger.Info("🧹 Detected change. Updated resource.", "kind", kind, "namespace", namespace, "resourceName", resourceName)
 	}
 	UpdateResourceStatus(kind, namespace, resourceName, SyncStatePendingSync, err)
 
@@ -398,7 +404,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	}
 	if utils.CONFIG.Iac.ShowDiffInLog {
 		if diff != "" {
-			IacLogger.Info("iac manager diff", "diff", diff)
+			iacLogger.Info("iac manager diff", "diff", diff)
 		}
 	}
 
@@ -411,7 +417,7 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 		} else {
 			err = kubernetesRevertFromPath(filename)
 			if err == nil {
-				IacLogger.Warn("🧹 Detected deletion. Reverting.", "kind", kind, "namespace", namespace, "resourceName", resourceName)
+				iacLogger.Warn("🧹 Detected deletion. Reverting.", "kind", kind, "namespace", namespace, "resourceName", resourceName)
 			}
 		}
 		return
@@ -424,11 +430,11 @@ func DeleteResourceYaml(kind string, namespace string, resourceName string, obje
 	filename := fileNameForRaw(kind, namespace, resourceName)
 	err = os.Remove(filename)
 	if err != nil && !os.IsNotExist(err) {
-		IacLogger.Error("Error deleting resource file", "kind", kind, "namespace", namespace, "resourceName", resourceName, "error", err)
+		iacLogger.Error("Error deleting resource file", "kind", kind, "namespace", namespace, "resourceName", resourceName, "error", err)
 		return
 	}
 	if utils.CONFIG.Iac.LogChanges {
-		IacLogger.Info("Detected deletion. Removed resource. ♻️", "kind", kind, "namespace", namespace, "resourceName", resourceName)
+		iacLogger.Info("Detected deletion. Removed resource. ♻️", "kind", kind, "namespace", namespace, "resourceName", resourceName)
 	}
 	UpdateResourceStatus(kind, namespace, resourceName, SyncStateDeleted, nil)
 
@@ -466,29 +472,29 @@ func createDiffFromFile(yaml string, filePath string, resourceName string) (stri
 	}
 	yamlDataCleaned, err := utils.CleanYaml(string(yamlData), utils.IacSecurityNeedsDecryption)
 	if err != nil {
-		IacLogger.Error("Error cleaning YAML", "error", err)
+		iacLogger.Error("Error cleaning YAML", "error", err)
 		return "", err
 	}
 	file1, err := os.CreateTemp("", "temp1*")
 	if err != nil {
-		IacLogger.Error("Error creating temp file", "error", err)
+		iacLogger.Error("Error creating temp file", "error", err)
 		return "", err
 	}
 	defer os.Remove(file1.Name())
 	file2, err := os.CreateTemp("", "temp2*")
 	if err != nil {
-		IacLogger.Error("Error creating temp file", "error", err)
+		iacLogger.Error("Error creating temp file", "error", err)
 		return "", err
 	}
 	defer os.Remove(file2.Name())
 	_, err = file1.WriteString(yamlDataCleaned)
 	if err != nil {
-		IacLogger.Error("Error writing to temp file1", "error", err)
+		iacLogger.Error("Error writing to temp file1", "error", err)
 		return "", err
 	}
 	_, err = file2.WriteString(yaml)
 	if err != nil {
-		IacLogger.Error("Error writing to temp file2", "error", err)
+		iacLogger.Error("Error writing to temp file2", "error", err)
 		return "", err
 	}
 
@@ -532,7 +538,7 @@ func syncChangesTimer() {
 				if IsIacEnabled() {
 					err := SyncChanges()
 					if err != nil {
-						IacLogger.Error("Error syncing changes", "error", err)
+						iacLogger.Error("Error syncing changes", "error", err)
 					}
 				}
 			case <-quit:
@@ -554,7 +560,7 @@ func ApplyRepoStateToCluster() error {
 
 	folders, err := os.ReadDir(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err != nil {
-		IacLogger.Error("Error reading directory", "error", err)
+		iacLogger.Error("Error reading directory", "error", err)
 		return nil
 	}
 	for _, folder := range folders {
@@ -586,7 +592,7 @@ func ApplyRepoStateToCluster() error {
 	for _, file := range allFiles {
 		err := kubernetesReplaceResource(file)
 		if err != nil {
-			IacLogger.Error("Error replacing resource", "error", err)
+			iacLogger.Error("Error replacing resource", "error", err)
 		}
 	}
 
@@ -616,12 +622,12 @@ func SyncChanges() error {
 
 			SetPullError(err)
 			if err != nil {
-				IacLogger.Error("Error pulling changes", "error", err)
+				iacLogger.Error("Error pulling changes", "error", err)
 				if err == git.ErrNonFastForwardUpdate {
-					IacLogger.Warn("Non-fast-forward update detected. Deleting local repository. Changes will not be lost because they will be synced again in the next run.")
+					iacLogger.Warn("Non-fast-forward update detected. Deleting local repository. Changes will not be lost because they will be synced again in the next run.")
 					err2 := ResetCurrentRepoData(3)
 					if err2 != nil {
-						IacLogger.Error("Error resetting repo data", "error", err)
+						iacLogger.Error("Error resetting repo data", "error", err)
 					}
 					return err
 				}
@@ -637,21 +643,21 @@ func SyncChanges() error {
 			for _, v := range updatedFiles {
 				err = kubernetesReplaceResource(v)
 				if err != nil {
-					IacLogger.Warn("Error replacing resource", "error", err)
+					iacLogger.Warn("Error replacing resource", "error", err)
 				}
 			}
 			deletedFiles = applyPriotityToChangesForDeletes(deletedFiles)
 			for _, v := range deletedFiles {
 				err = kubernetesDeleteResource(v)
 				if err != nil {
-					IacLogger.Warn("Error deleting resource", "error", err)
+					iacLogger.Warn("Error deleting resource", "error", err)
 				}
 			}
 			SetLastSuccessfullyAppliedCommit(lastCommit)
 			err = pushChanges()
 			SetPushError(err)
 			if err != nil {
-				IacLogger.Error("Error pushing changes", "error", err)
+				iacLogger.Error("Error pushing changes", "error", err)
 				return err
 			}
 			SetSyncError(nil)
@@ -663,7 +669,7 @@ func SyncChanges() error {
 		err = fmt.Errorf("No remotes found. Skipping sync.")
 	}
 	if err != nil {
-		IacLogger.Warn(err.Error())
+		iacLogger.Warn(err.Error())
 	}
 	SetSyncError(err)
 	return err
@@ -690,7 +696,7 @@ func createFolderForResource(resource string, namespace string) error {
 	if _, err := os.Stat(resourceFolder); os.IsNotExist(err) {
 		err := os.MkdirAll(resourceFolder, 0755)
 		if err != nil {
-			IacLogger.Error("Error creating folder for resource", "error", err)
+			iacLogger.Error("Error creating folder for resource", "error", err)
 			return err
 		}
 	}
@@ -702,13 +708,13 @@ func ResetFile(filePath, commitHash string) error {
 
 	err := gitmanager.ResetFileToCommit(utils.CONFIG.Kubernetes.GitVaultDataPath, commitHash, filePath)
 	if err != nil {
-		IacLogger.Error("Error resetting file", "error", err)
+		iacLogger.Error("Error resetting file", "error", err)
 		return err
 	}
 
 	err = gitmanager.Commit(utils.CONFIG.Kubernetes.GitVaultDataPath, []string{filePath}, []string{}, fmt.Sprintf("Reset [%s] %s to %s.", kind, name, commitHash), utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
 	if err != nil {
-		IacLogger.Error("Error committing reset", "error", err)
+		iacLogger.Error("Error committing reset", "error", err)
 		return err
 	}
 
@@ -743,27 +749,27 @@ func pullChanges(lastAppliedCommit *GitActionStatus) (lastCommit *object.Commit,
 	//Get the list of updated or newly added files since the last pull
 	updatedFiles, err = gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err != nil {
-		IacLogger.Error("Error getting updated files", "error", err)
+		iacLogger.Error("Error getting updated files", "error", err)
 		return
 	}
 
 	// Get the list of deleted files since the last pull
 	deletedFiles, err = gitmanager.GetLastDeletedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
 	if err != nil {
-		IacLogger.Error("Error getting deleted files", "error", err)
+		iacLogger.Error("Error getting deleted files", "error", err)
 		return
 	}
 
-	IacLogger.Info("🔄 Pulled changes from the remote repository.", "modifiedFilesCount", len(updatedFiles), "deletedFilesCount", len(deletedFiles))
+	iacLogger.Info("🔄 Pulled changes from the remote repository.", "modifiedFilesCount", len(updatedFiles), "deletedFilesCount", len(deletedFiles))
 	if utils.CONFIG.Misc.Debug {
-		IacLogger.Info("Added/Updated Files", "count", len(updatedFiles))
+		iacLogger.Info("Added/Updated Files", "count", len(updatedFiles))
 		for _, file := range updatedFiles {
-			IacLogger.Info(file)
+			iacLogger.Info(file)
 		}
 
-		IacLogger.Info("Deleted Files", "count", len(deletedFiles))
+		iacLogger.Info("Deleted Files", "count", len(deletedFiles))
 		for _, file := range deletedFiles {
-			IacLogger.Info(file)
+			iacLogger.Info(file)
 		}
 	}
 
@@ -798,7 +804,7 @@ func pushChanges() error {
 		} else if file.ChangeType == SyncChangeTypeModify {
 			updatedOrAddedFiles = append(updatedOrAddedFiles, file.Path)
 		} else {
-			IacLogger.Error("SyncChangeType unimplemented", "changeType", file.ChangeType)
+			iacLogger.Error("SyncChangeType unimplemented", "changeType", file.ChangeType)
 		}
 		commitMsg += file.Message + "\n"
 	}
@@ -812,10 +818,10 @@ func pushChanges() error {
 	if err != nil {
 		return fmt.Errorf("Error running git push: %s", err.Error())
 	}
-	IacLogger.Info("🔄 Pushed changes to remote repository.", "count", ChangedFilesLen())
+	iacLogger.Info("🔄 Pushed changes to remote repository.", "count", ChangedFilesLen())
 	if utils.CONFIG.Misc.Debug {
 		for _, file := range GetChangedFiles() {
-			IacLogger.Info(file.Name)
+			iacLogger.Info(file.Name)
 		}
 	}
 	ClearChangedFiles()
@@ -956,12 +962,12 @@ func kubernetesReplaceResource(file string) error {
 		// load yaml file, decrypt, apply
 		yamlData, err := os.ReadFile(filePath)
 		if err != nil {
-			IacLogger.Error("Error reading file", "filePath", filePath, "error", err)
+			iacLogger.Error("Error reading file", "filePath", filePath, "error", err)
 			return err
 		}
 		decryptedYaml, err := utils.CleanYaml(string(yamlData), utils.IacSecurityNeedsDecryption)
 		if err != nil {
-			IacLogger.Error("Error decrypting YAML", "error", err)
+			iacLogger.Error("Error decrypting YAML", "error", err)
 			return err
 		}
 		applyCmd := fmt.Sprintf(`kubectl apply -f -<<EOF
@@ -969,7 +975,7 @@ func kubernetesReplaceResource(file string) error {
 EOF`, decryptedYaml)
 		err = utils.ExecuteShellCommandRealySilent(applyCmd, applyCmd)
 		if err != nil {
-			IacLogger.Error("Error applying secret", "error", err)
+			iacLogger.Error("Error applying secret", "error", err)
 		}
 	} else {
 		// if the resource is not found, create it
@@ -1050,7 +1056,7 @@ func kubernetesRevertFromPath(filePath string) error {
 func shouldSkipResource(path string) bool {
 	hasIgnoredNs, nsName := isIgnoredNamespaceInFile(path)
 	if hasIgnoredNs {
-		IacLogger.Debug("😑 Skipping because contains ignored namespace", "namespace", *nsName, "path", path)
+		iacLogger.Debug("😑 Skipping because contains ignored namespace", "namespace", *nsName, "path", path)
 		return true
 	}
 

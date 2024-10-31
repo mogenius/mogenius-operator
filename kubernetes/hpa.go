@@ -83,7 +83,7 @@ func CreateHpa(namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSet
 
 func CreateOrUpdateHpa(job *structs.Job, namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto, wg *sync.WaitGroup) {
 	if hpaSettings == nil {
-		K8sLogger.Warn("CreateOrUpdate hpa warning: hpaSettings is nil")
+		k8sLogger.Warn("CreateOrUpdate hpa warning: hpaSettings is nil")
 		return
 	}
 

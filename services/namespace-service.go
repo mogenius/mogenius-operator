@@ -97,9 +97,9 @@ func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClu
 }
 
 func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
-	ServiceLogger.Info("CleanupIngressPorts: received ports from DB.", "amountPorts", len(r.Ports), "ports", r.Ports)
+	serviceLogger.Info("CleanupIngressPorts: received ports from DB.", "amountPorts", len(r.Ports), "ports", r.Ports)
 	if len(r.Ports) <= 0 {
-		ServiceLogger.Error("Received empty ports list. Something seems wrong. Skipping process.")
+		serviceLogger.Error("Received empty ports list. Something seems wrong. Skipping process.")
 		return nil
 	}
 	mokubernetes.CleanupIngressControllerServicePorts(r.Ports)
