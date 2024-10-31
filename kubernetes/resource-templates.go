@@ -64,7 +64,7 @@ func GetResourceTemplateYaml(group, version, name, kind, namespace, resourcename
 	obj.SetLabels(map[string]string{
 		"example": "label",
 	})
-	data, err := yaml.Marshal(obj)
+	data, err := yaml.Marshal(obj.Object)
 	if err != nil {
 		return ""
 	}
@@ -94,7 +94,7 @@ func loadResourceTemplateData(kind, namespace, resourcename string) (string, err
 				obj.SetName(resourcename)
 				obj.SetNamespace(namespace)
 
-				data, err := yaml.Marshal(obj)
+				data, err := yaml.Marshal(obj.Object)
 				if err != nil {
 					return "", err
 				}

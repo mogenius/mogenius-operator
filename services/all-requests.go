@@ -958,11 +958,12 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		updatedObj, err := kubernetes.UpdateUnstructuredResource(data.Group, data.Version, data.Name, data.Namespaced, data.YamlData)
 		return NewMessageResponse(updatedObj, err)
 	case structs.PAT_DELETE_WORKLOAD:
-		data := utils.SyncResourceData{}
+		data := utils.SyncResourceItem{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		err := kubernetes.DeleteUnstructuredResource(data.Group, data.Version, data.Name, data.Namespaced, data.YamlData)
+		err := kubernetes.DeleteUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
 		return NewMessageResponse(nil, err)
 
+<<<<<<< HEAD
 	case structs.PAT_LIST_NAMESPACES:
 		data := K8sListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -2219,6 +2220,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		getResult, _ := punq.GetResourceQuota(data.NamespaceName, data.ResourceName, nil)
 		return getResult
 
+=======
+>>>>>>> c8a128d27597f10a4079f94ec884aa9f689f7228
 	case structs.PAT_BUILDER_STATUS:
 		return BuilderStatus()
 	case structs.PAT_BUILD_INFOS:
@@ -2425,6 +2428,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return NewMessageResponse(controllers.ListControllerLabeledNetwork(data))
+	case structs.PAT_UPDATE_NETWORK_POLICIES_TEMPLATE:
+		data := []kubernetes.NetworkPolicy{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		return NewMessageResponse(nil, controllers.UpdateNetworkPolicyTemplate(data))
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

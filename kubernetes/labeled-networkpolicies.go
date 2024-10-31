@@ -7,12 +7,11 @@ import (
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/utils"
 	"reflect"
-	"sort"
 	"strings"
-	"time"
 
 	v2 "k8s.io/api/apps/v1"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/yaml"
 
@@ -39,6 +38,9 @@ const (
 
 	// allow policies
 	PoliciesLabelPrefix string = "mo-netpol"
+
+	PolicyConfigMapKey  string = "network-ports"
+	PolicyConfigMapName string = "network-ports-config"
 )
 
 func AttachLabeledNetworkPolicy(controllerName string,
@@ -596,42 +598,68 @@ func readDefaultConfigMap() *v1Core.ConfigMap {
 }
 
 type NetworkPolicy struct {
-	Name      string    `yaml:"name"`
-	Protocol  string    `yaml:"protocol"`
-	Port      uint16    `yaml:"port"`
-	CreatedAt time.Time `yaml:"createdAt"`
+	Name     string `yaml:"name"`
+	Protocol string `yaml:"protocol"`
+	Port     uint16 `yaml:"port"`
 }
 
-func uniqueItemsByName(items []NetworkPolicy) []NetworkPolicy {
+func checkForDuplicatedItems(items []NetworkPolicy) []NetworkPolicy {
 	seen := make(map[string]bool)
-	result := []NetworkPolicy{}
+	duplicates := []NetworkPolicy{}
 
 	for _, item := range items {
 		if !seen[item.Name] {
 			seen[item.Name] = true
-			result = append(result, item)
 		} else {
+			duplicates = append(duplicates, item)
 			K8sLogger.Warn("Duplicate network policy name", "networkpolicy", item.Name)
 		}
 	}
 
-	return result
+	return duplicates
+}
+
+func UpdateNetworkPolicyTemplate(policies []NetworkPolicy) error {
+	duplicates := checkForDuplicatedItems(policies)
+	if len(duplicates) > 0 {
+		return fmt.Errorf("found duplicate network policy names: %v", duplicates)
+	}
+
+	client := GetCoreClient().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
+
+	cfgMap := readDefaultConfigMap()
+
+	yamlStr, err := yaml.Marshal(policies)
+	if err != nil {
+		K8sLogger.Error("UpdateNetworkPolicyTemplate", "error", err)
+		return err
+	}
+
+	cfgMap.Data[PolicyConfigMapKey] = string(yamlStr)
+
+	// check if the configmap already exists
+	_, err = client.Update(context.TODO(), cfgMap, metav1.UpdateOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			_, err = client.Create(context.TODO(), cfgMap, MoCreateOptions())
+			if err != nil {
+				K8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
+				return err
+			}
+		} else {
+			K8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func ReadNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
-	configMap := readDefaultConfigMap()
-	ClusterConfigMap := GetConfigMap(configMap.Namespace, configMap.Name)
+	ClusterConfigMap := GetConfigMap(utils.CONFIG.Kubernetes.OwnNamespace, PolicyConfigMapName)
 
 	var result []dtos.K8sLabeledNetworkPolicyDto
 	var policies []NetworkPolicy
-	policiesRaw := ClusterConfigMap.Data["network-ports"]
-	err := yaml.Unmarshal([]byte(policiesRaw), &policies)
-
-	sort.Slice(policies, func(i, j int) bool {
-		return policies[i].CreatedAt.Before(policies[j].CreatedAt)
-	})
-
-	policies = uniqueItemsByName(policies)
+	err := yaml.Unmarshal([]byte(ClusterConfigMap.Data[PolicyConfigMapKey]), &policies)
 
 	if err != nil {
 		K8sLogger.Error("Error unmarshalling YAML", "error", err)
@@ -640,12 +668,11 @@ func ReadNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
 	for _, policy := range policies {
 		result = append(result, dtos.K8sLabeledNetworkPolicyDto{
 			Name:     policy.Name,
-			Type:     dtos.Ingress, // TODO should maybe be deleted
+			Type:     dtos.Ingress,
 			Port:     uint16(policy.Port),
 			PortType: dtos.PortTypeEnum(policy.Protocol),
 		})
 	}
-
 	return result, nil
 }
 

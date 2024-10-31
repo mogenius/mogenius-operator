@@ -2,9 +2,7 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
 	iacmanager "mogenius-k8s-manager/iac-manager"
@@ -14,85 +12,58 @@ import (
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	punq "github.com/mogenius/punq/kubernetes"
-
-	"github.com/gin-gonic/gin"
 )
 
 var HttpLogger = logging.CreateLogger("http")
 
 func InitApi() {
-	gin.SetMode(gin.ReleaseMode)
-	router := gin.New()
-	router.Use(CreateLogger("INTERNAL"))
-	router.GET("/healtz", getHealtz)
-	router.POST("/traffic", postTraffic)
-	router.POST("/podstats", postPodStats)
-	router.POST("/nodestats", postNodeStats)
+	mux := http.NewServeMux()
+
+	// Deprecated: Typo in `GET /healtz`. Use `GET /healthz` instead.
+	mux.Handle("GET /healtz", withRequestLogging(http.HandlerFunc(getHealthz)))
+	mux.Handle("GET /healthz", withRequestLogging(http.HandlerFunc(getHealthz)))
+	mux.Handle("POST /traffic", withRequestLogging(http.HandlerFunc(postTraffic)))
+	mux.Handle("POST /podstats", withRequestLogging(http.HandlerFunc(postPodStats)))
+	mux.Handle("POST /nodestats", withRequestLogging(http.HandlerFunc(postNodeStats)))
 
 	if utils.CONFIG.Misc.Debug {
-		router.GET("/debug/sum-traffic", debugGetTrafficSum)
-		router.GET("/debug/traffic", debugGetTraffic)
-		router.GET("/debug/last-ns", debugGetLastNs)
-		router.GET("/debug/ns", debugGetNs)
-		router.GET("/debug/chart", debugChart)
-		router.GET("/debug/iac", debugIac)
-		router.GET("/debug/list-templates", debugListTemplates)
+		mux.Handle("GET /debug/sum-traffic", withRequestLogging(http.HandlerFunc(debugGetTrafficSum)))
+		mux.Handle("GET /debug/traffic", withRequestLogging(http.HandlerFunc(debugGetTraffic)))
+		mux.Handle("GET /debug/last-ns", withRequestLogging(http.HandlerFunc(debugGetLastNs)))
+		mux.Handle("GET /debug/ns", withRequestLogging(http.HandlerFunc(debugGetNs)))
+		mux.Handle("GET /debug/chart", withRequestLogging(http.HandlerFunc(debugChart)))
+		mux.Handle("GET /debug/iac", withRequestLogging(http.HandlerFunc(debugIac)))
+		mux.Handle("GET /debug/list-templates", withRequestLogging(http.HandlerFunc(debugListTemplates)))
 	}
 
-	srv := &http.Server{
-		Addr:    ":1337",
-		Handler: router,
+	HttpLogger.Info("Starting API server...", "port", 1338)
+	err := http.ListenAndServe(":1337", mux)
+	if err != nil {
+		HttpLogger.Error("failed to start api server", "error", err)
 	}
-
-	// Initializing the server in a goroutine so that
-	// it won't block the graceful shutdown handling below
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
-			HttpLogger.Error("failed to server", "error", err)
-		}
-	}()
-
-	// Wait for interrupt signal to gracefully shutdown the server with
-	// a timeout of 5 seconds.
-	quit := make(chan os.Signal, 1)
-	// kill (no param) default send syscall.SIGTERM
-	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall.SIGKILL but can't be caught, so don't need to add it
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	HttpLogger.Warn("Shutting down server...")
-
-	// The context is used to inform the server it has 5 seconds to finish
-	// the request it is currently handling
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := srv.Shutdown(ctx); err != nil {
-		HttpLogger.Warn("Server forced to shutdown", "error", err)
-	}
-
-	HttpLogger.Warn("Server exiting")
 }
 
-func getHealtz(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, map[string]string{
+func getHealthz(w http.ResponseWriter, _ *http.Request) {
+	healthStatus := map[string]string{
 		"version": version.Ver,
 		"branch":  version.Branch,
 		"hash":    version.GitCommitHash,
 		"buildAt": version.BuildTimestamp,
 		"stage":   utils.CONFIG.Misc.Stage,
-	})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err := json.NewEncoder(w).Encode(healthStatus)
+	if err != nil {
+		HttpLogger.Error("failed to json encode response", "error", err)
+	}
 }
 
-func postTraffic(c *gin.Context) {
+func postTraffic(w http.ResponseWriter, r *http.Request) {
 	var out bytes.Buffer
-	body, _ := io.ReadAll(c.Request.Body)
+	body, _ := io.ReadAll(r.Body)
 
 	err := json.Indent(&out, []byte(body), "", "  ")
 	if err != nil {
@@ -105,19 +76,24 @@ func postTraffic(c *gin.Context) {
 	stat := &structs.InterfaceStats{}
 	err = structs.UnmarshalInterfaceStats(stat, out.Bytes())
 	if err != nil {
-		HttpLogger.Error("Error unmarshalling interface stats", "error", err)
-		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+		HttpLogger.Error("failed to unmarshal interface stats", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err := json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
 		})
+		if err != nil {
+			HttpLogger.Error("failed to json encode response", "error", err)
+		}
 		return
 	}
 
 	dbstats.AddInterfaceStatsToDb(*stat)
 }
 
-func postPodStats(c *gin.Context) {
+func postPodStats(w http.ResponseWriter, r *http.Request) {
 	var out bytes.Buffer
-	body, _ := io.ReadAll(c.Request.Body)
+	body, _ := io.ReadAll(r.Body)
 
 	err := json.Indent(&out, []byte(body), "", "  ")
 	if err != nil {
@@ -130,19 +106,24 @@ func postPodStats(c *gin.Context) {
 	stat := &structs.PodStats{}
 	err = structs.UnmarshalPodStats(stat, out.Bytes())
 	if err != nil {
-		HttpLogger.Error("Error unmarshalling pod stats", "error", err.Error())
-		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+		HttpLogger.Error("failed to unmarshal interface stats", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err := json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
 		})
+		if err != nil {
+			HttpLogger.Error("failed to json encode response", "error", err)
+		}
 		return
 	}
 
 	dbstats.AddPodStatsToDb(*stat)
 }
 
-func postNodeStats(c *gin.Context) {
+func postNodeStats(w http.ResponseWriter, r *http.Request) {
 	var out bytes.Buffer
-	body, _ := io.ReadAll(c.Request.Body)
+	body, _ := io.ReadAll(r.Body)
 
 	err := json.Indent(&out, []byte(body), "", "  ")
 	if err != nil {
@@ -155,55 +136,98 @@ func postNodeStats(c *gin.Context) {
 	stat := &structs.NodeStats{}
 	err = structs.UnmarshalNodeStats(stat, out.Bytes())
 	if err != nil {
-		HttpLogger.Error("Error unmarshalling node stats", "error", err.Error())
-		c.IndentedJSON(http.StatusBadRequest, map[string]string{
+		HttpLogger.Error("failed to unmarshal interface stats", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err := json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
 		})
+		if err != nil {
+			HttpLogger.Error("failed to json encode response", "error", err)
+		}
 		return
 	}
 
 	dbstats.AddNodeStatsToDb(*stat)
 }
 
-func debugGetTrafficSum(c *gin.Context) {
-	ns := c.Query("ns")
+func debugGetTrafficSum(w http.ResponseWriter, r *http.Request) {
+	ns := r.URL.Query().Get("ns")
 
 	stats := dbstats.GetTrafficStatsEntriesSumForNamespace(ns)
-	c.IndentedJSON(http.StatusOK, stats)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err := json.NewEncoder(w).Encode(stats)
+	if err != nil {
+		HttpLogger.Error("failed to json encode response", "error", err)
+	}
 }
 
-func debugGetLastNs(c *gin.Context) {
-	ns := c.Query("ns")
+func debugGetLastNs(w http.ResponseWriter, r *http.Request) {
+	ns := r.URL.Query().Get("ns")
 	stats := dbstats.GetLastPodStatsEntriesForNamespace(ns)
-	c.IndentedJSON(http.StatusOK, stats)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err := json.NewEncoder(w).Encode(stats)
+	if err != nil {
+		HttpLogger.Error("failed to json encode response", "error", err)
+	}
 }
 
-func debugGetTraffic(c *gin.Context) {
-	ns := c.Query("ns")
+func debugGetTraffic(w http.ResponseWriter, r *http.Request) {
+	ns := r.URL.Query().Get("ns")
 	stats := dbstats.GetTrafficStatsEntriesForNamespace(ns)
-	c.IndentedJSON(http.StatusOK, stats)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err := json.NewEncoder(w).Encode(stats)
+	if err != nil {
+		HttpLogger.Error("failed to json encode response", "error", err)
+	}
 }
 
-func debugGetNs(c *gin.Context) {
-	ns := c.Query("ns")
+func debugGetNs(w http.ResponseWriter, r *http.Request) {
+	ns := r.URL.Query().Get("ns")
 	stats := dbstats.GetPodStatsEntriesForNamespace(ns)
-	c.IndentedJSON(http.StatusOK, stats)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err := json.NewEncoder(w).Encode(stats)
+	if err != nil {
+		HttpLogger.Error("failed to json encode response", "error", err)
+	}
 }
 
-func debugChart(c *gin.Context) {
-	ns := c.Query("namespace")
-	podname := c.Query("podname")
+func debugChart(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	ns := query.Get("namespace")
+	podname := query.Get("podname")
 	html := services.RenderPodNetworkTreePageHtml(ns, podname)
-	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte(html))
+	if err != nil {
+		HttpLogger.Debug("failed to write response", "error", err)
+		return
+	}
 }
 
-func debugIac(c *gin.Context) {
+func debugIac(w http.ResponseWriter, _ *http.Request) {
 	json := iacmanager.GetDataModelJson()
-	c.Data(http.StatusOK, "application/json; charset=utf-8", []byte(json))
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte(json))
+	if err != nil {
+		HttpLogger.Debug("failed to write response", "error", err)
+		return
+	}
 }
 
-func debugListTemplates(c *gin.Context) {
+func debugListTemplates(w http.ResponseWriter, _ *http.Request) {
 	data := punq.ListCreateTemplates()
 
-	c.IndentedJSON(http.StatusOK, data)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err := json.NewEncoder(w).Encode(data)
+	if err != nil {
+		HttpLogger.Error("failed to json encode response", "error", err)
+	}
 }
