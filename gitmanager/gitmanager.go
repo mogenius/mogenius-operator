@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
@@ -14,6 +15,83 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
+
+const remote string = "origin"
+
+type GitManager struct {
+	repoLock  sync.Mutex
+	localPath string
+	remoteUrl string
+	branch    string
+}
+
+func (g *GitManager) GetLocalPath() string {
+	g.repoLock.Lock()
+	defer g.repoLock.Unlock()
+	return g.localPath
+}
+
+func (g *GitManager) GetRemoteUrl() string {
+	g.repoLock.Lock()
+	defer g.repoLock.Unlock()
+	return g.remoteUrl
+}
+
+func (g *GitManager) SetRemoteUrl(remoteUrl string) error {
+	g.repoLock.Lock()
+	defer g.repoLock.Unlock()
+	// TODO: validations?
+	// TODO: hooks?
+	g.remoteUrl = remoteUrl
+	return nil
+}
+
+func (g *GitManager) GetBranch() string {
+	g.repoLock.Lock()
+	defer g.repoLock.Unlock()
+	return g.branch
+}
+
+func (g *GitManager) SetBranch(branch string) error {
+	g.repoLock.Lock()
+	defer g.repoLock.Unlock()
+	// TODO: validations?
+	// TODO: hooks?
+	g.branch = branch
+	return nil
+}
+
+func (g *GitManager) Init() error {
+	g.repoLock.Lock()
+	defer g.repoLock.Unlock()
+	// TODO: implement
+	panic("NOT IMPLEMENTED")
+	return nil
+}
+
+func (g *GitManager) RestoreRemoteState() error {
+	g.repoLock.Lock()
+	defer g.repoLock.Unlock()
+	// TODO: implement
+	panic("NOT IMPLEMENTED")
+	return nil
+}
+
+func (g *GitManager) Pull() error {
+	g.repoLock.Lock()
+	defer g.repoLock.Unlock()
+	// TODO: implement
+	panic("NOT IMPLEMENTED")
+	return nil
+}
+
+func (g *GitManager) Push() error {
+	g.repoLock.Lock()
+	defer g.repoLock.Unlock()
+	// TODO: implement
+	panic("NOT IMPLEMENTED")
+	return nil
+}
 
 type CommitRevision struct {
 	Hash                string `json:"hash"`

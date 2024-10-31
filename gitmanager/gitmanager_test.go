@@ -2,12 +2,20 @@ package gitmanager
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/interfaces"
 	"os"
 	"testing"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/mogenius/punq/structs"
 )
+
+// compile time check
+func TestGitManagerAdheresToInterface(t *testing.T) {
+	gitManager := GitManager{}
+	testfunc := func(w interfaces.Git) {}
+	testfunc(&gitManager) // this checks if the typesystem allows to call it
+}
 
 func TestGitManager(t *testing.T) {
 	repoUrl := "https://github.com/mogenius/docs.git"
