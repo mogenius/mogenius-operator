@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/yaml"
 
+	appsv1 "k8s.io/api/apps/v1"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -721,39 +722,33 @@ func ListControllerLabeledNetworkPolicies(
 	controllerType dtos.K8sServiceControllerEnum,
 	namespaceName string,
 ) ([]dtos.K8sLabeledNetworkPolicyDto, error) {
-	client := GetAppClient()
-
 	// get all labels from the controller
 	var labels map[string]string
 	switch controllerType {
 	case dtos.DEPLOYMENT:
-		deployment, err := client.Deployments(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
+		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.Deployment{}), "Deployment", namespaceName, controllerName)
+		deployment := ref.(*appsv1.Deployment)
+		if deployment == nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
 		}
 		labels = extractLabels(deployment.ObjectMeta.Labels, deployment.Spec.Template.ObjectMeta.Labels)
 	case dtos.DAEMON_SET:
-		daemonset, err := client.DaemonSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
+		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.DaemonSet{}), "DaemonSet", namespaceName, controllerName)
+		daemonset := ref.(*appsv1.DaemonSet)
+		if daemonset == nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
 		}
 		labels = extractLabels(daemonset.ObjectMeta.Labels, daemonset.Spec.Template.ObjectMeta.Labels)
 	case dtos.STATEFUL_SET:
-		statefulset, err := client.StatefulSets(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
+		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.StatefulSet{}), "StatefulSet", namespaceName, controllerName)
+		statefulset := ref.(*appsv1.StatefulSet)
+		if statefulset == nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
 		}
 		labels = extractLabels(statefulset.ObjectMeta.Labels, statefulset.Spec.Template.ObjectMeta.Labels)
 	default:
 		return nil, fmt.Errorf("unsupported controller type %s", controllerType)
 	}
-
-	// get all network policies based on mo-netpol labels
-	// netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
-	// existingNetPols, err := netPolClient.List(context.TODO(), metav1.ListOptions{})
-	// if err != nil {
-	// 	K8sLogger.Error("ListControllerLabeledNetworkPolicies(get single one)", "error", err)
-	// }
 
 	netpols := []dtos.K8sLabeledNetworkPolicyDto{}
 
@@ -767,14 +762,6 @@ func ListControllerLabeledNetworkPolicies(
 		if !strings.Contains(label, PoliciesLabelPrefix) {
 			continue
 		}
-
-		// var netpol v1.NetworkPolicy
-		// for _, np := range existingNetPols.Items {
-		// 	if np.Name == label {
-		// 		netpol = np
-		// 		break
-		// 	}
-		// }
 
 		var netpol v1.NetworkPolicy
 		found := false
@@ -825,45 +812,6 @@ func ListControllerLabeledNetworkPolicies(
 				PortType: pType,
 			})
 		}
-
-		// if netpol.ObjectMeta.Name == "" {
-		// 	// no network policy found for this label
-		// 	netpol, err := netPolClient.Get(context.TODO(), label, metav1.GetOptions{})
-		// 	if err != nil {
-		// 		K8sLogger.Error("ListControllerLabeledNetworkPolicies(get single one)", "error", err)
-		// 		continue
-		// 	}
-
-		// 	if strings.Contains(netpol.Name, "egress") {
-		// 		var port uint16
-		// 		var pType dtos.PortTypeEnum
-		// 		// our netpols only have one rule
-		// 		if len(netpol.Spec.Egress) == 1 && len(netpol.Spec.Egress[0].Ports) == 1 && netpol.Spec.Egress[0].Ports[0].Port != nil {
-		// 			port = uint16(netpol.Spec.Egress[0].Ports[0].Port.IntVal)
-		// 			pType = dtos.PortTypeEnum(*netpol.Spec.Egress[0].Ports[0].Protocol)
-		// 		}
-		// 		netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
-		// 			Name:     netpol.Name,
-		// 			Type:     dtos.Egress,
-		// 			Port:     port,
-		// 			PortType: pType,
-		// 		})
-		// 	} else {
-		// 		var port uint16
-		// 		var pType dtos.PortTypeEnum
-		// 		// our netpols only have one rule
-		// 		if len(netpol.Spec.Ingress) == 1 && len(netpol.Spec.Ingress[0].Ports) == 1 && netpol.Spec.Ingress[0].Ports[0].Port != nil {
-		// 			port = uint16(netpol.Spec.Ingress[0].Ports[0].Port.IntVal)
-		// 			pType = dtos.PortTypeEnum(*netpol.Spec.Ingress[0].Ports[0].Protocol)
-		// 		}
-		// 		netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
-		// 			Name:     netpol.Name,
-		// 			Type:     dtos.Ingress,
-		// 			Port:     port,
-		// 			PortType: pType,
-		// 		})
-		// 	}
-		// }
 	}
 	return netpols, nil
 }
