@@ -549,19 +549,26 @@ func CreateDenyAllNetworkPolicy(namespaceName string) error {
 }
 
 func cleanupUnusedDenyAll(namespaceName string) {
-	client := GetNetworkingClient()
-	netPolClient := client.NetworkPolicies(namespaceName)
-
 	// list all network policies and find all that have the marker label
-	netpols, err := netPolClient.List(context.TODO(), metav1.ListOptions{
-		LabelSelector: MarkerLabel + "=true",
-	})
+	policies, err := listAllNetworkPolicies(namespaceName)
 	if err != nil {
 		K8sLogger.Error("cleanupNetworkPolicies", "error", err)
 		return
 	}
 
-	if len(netpols.Items) == 0 {
+	// filter out all policies that are not created by mogenius
+	var netpols []v1.NetworkPolicy
+	for _, policy := range policies {
+		if policy.ObjectMeta.Labels != nil && policy.ObjectMeta.Labels[MarkerLabel] == "true" {
+			continue
+		}
+		netpols = append(netpols, policy)
+	}
+
+	if len(netpols) == 0 {
+		client := GetNetworkingClient()
+		netPolClient := client.NetworkPolicies(namespaceName)
+
 		err = netPolClient.Delete(context.TODO(), DenyAllNetPolName, metav1.DeleteOptions{})
 		if err != nil {
 			K8sLogger.Error("cleanupNetworkPolicies", "error", err)
