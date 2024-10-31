@@ -204,7 +204,7 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			K8sLogger.Error("Failed to create controller configuration", "error", err)
+			k8sLogger.Error("Failed to create controller configuration", "error", err)
 		}
 
 		newCronJob := newController.(*v1job.CronJob)
@@ -244,7 +244,7 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			K8sLogger.Error("Failed to create controller configuration", "error", err)
+			k8sLogger.Error("Failed to create controller configuration", "error", err)
 		}
 
 		cronJob := newController.(*v1job.CronJob)
@@ -273,7 +273,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			K8sLogger.Error("Failed to create controller configuration", "error", err)
+			k8sLogger.Error("Failed to create controller configuration", "error", err)
 		}
 		cronJob := newController.(*v1job.CronJob)
 		cronJob.Spec.Suspend = punqutils.Pointer(true)
@@ -302,7 +302,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
-			K8sLogger.Error("Failed to create controller configuration", "error", err)
+			k8sLogger.Error("Failed to create controller configuration", "error", err)
 		}
 		cronJob := newController.(*v1job.CronJob)
 
@@ -474,7 +474,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		K8sLogger.Warn("Error creating provider for ListJobs", "error", err)
+		k8sLogger.Warn("Error creating provider for ListJobs", "error", err)
 		return list
 	}
 
@@ -482,7 +482,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 	cronJob, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
 
 	if err != nil {
-		K8sLogger.Warn("Error getting cronjob", "controller", controllerName, "error", err)
+		k8sLogger.Warn("Error getting cronjob", "controller", controllerName, "error", err)
 		return list
 	}
 
@@ -497,7 +497,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 		LabelSelector: strings.Join(jobLabelSelectors, ","),
 	})
 	if err != nil {
-		K8sLogger.Warn("Error getting jobs for cronjob %s: %s", cronJob.Name, err.Error())
+		k8sLogger.Warn("Error getting jobs for cronjob %s: %s", cronJob.Name, err.Error())
 		return list
 	}
 
@@ -511,7 +511,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 		LabelSelector: fmt.Sprintf("job-name in (%s)", strings.Join(podLabelSelectors, ",")),
 	})
 	if err != nil {
-		K8sLogger.Warn("Error getting pods for cronjob %s: %s", cronJob.Name, err.Error())
+		k8sLogger.Warn("Error getting pods for cronjob %s: %s", cronJob.Name, err.Error())
 		return list
 	}
 
@@ -574,7 +574,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 
 		nextScheduleTime, err := getNextSchedule(cronJob.Spec.Schedule, lastTime)
 		if err != nil {
-			K8sLogger.Warn("Error getting next schedule for cronjob", "cronjob", cronJob.Name, "error", err)
+			k8sLogger.Warn("Error getting next schedule for cronjob", "cronjob", cronJob.Name, "error", err)
 			list.JobsInfo = jobInfos
 			return list
 		}

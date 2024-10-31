@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
+	"mogenius-k8s-manager/interfaces"
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -27,7 +29,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var XtermLogger = logging.CreateLogger("xterm")
+var logManager interfaces.LogManager
+var xtermLogger *slog.Logger
+
+func Setup(interfaceLogManager interfaces.LogManager) {
+	logManager = interfaceLogManager
+	xtermLogger = logManager.CreateLogger("xterm")
+}
 
 const (
 	MAX_TAIL_LINES = "100000"
@@ -151,25 +159,25 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.Kub
 	for {
 		select {
 		case <-ctx.Done():
-			XtermLogger.Error("Context done.")
+			xtermLogger.Error("Context done.")
 			return
 		default:
 			pod, err := provider.ClientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 			if err != nil {
-				XtermLogger.Error("Unable to get pod", "error", err)
+				xtermLogger.Error("Unable to get pod", "error", err)
 				if conn != nil {
 					// clear screen
 					clearScreen(conn)
 					closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
 					if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-						XtermLogger.Debug("write close:", "error", err)
+						xtermLogger.Debug("write close:", "error", err)
 					}
 				}
 				return
 			}
 
 			if isPodAvailable(pod) {
-				XtermLogger.Info("Pod is ready", "podName", pod.Name)
+				xtermLogger.Info("Pod is ready", "podName", pod.Name)
 				// clear screen
 				clearScreen(conn)
 				return
@@ -182,7 +190,7 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.Kub
 				}
 				err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
 				if err != nil {
-					XtermLogger.Error("WriteMessage", "error", err)
+					xtermLogger.Error("WriteMessage", "error", err)
 					ctx.Done()
 					return
 				}
@@ -196,7 +204,7 @@ func clearScreen(conn *websocket.Conn) {
 	// clear screen
 	err := conn.WriteMessage(websocket.BinaryMessage, []byte("\u001b[2J\u001b[H"))
 	if err != nil {
-		XtermLogger.Error("WriteMessage", "error", err)
+		xtermLogger.Error("WriteMessage", "error", err)
 	}
 }
 
@@ -229,9 +237,9 @@ func generateWsConnection(
 		dialer := &websocket.Dialer{}
 		conn, _, err := dialer.Dial(u.String(), headers)
 		if err != nil {
-			XtermLogger.Error("failed to connect, retrying in 5 seconds", "error", err.Error())
+			xtermLogger.Error("failed to connect, retrying in 5 seconds", "error", err.Error())
 			if currentRetries >= maxRetries {
-				XtermLogger.Error("Max retries reached, exiting.")
+				xtermLogger.Error("Max retries reached, exiting.")
 				return nil, nil, err
 			}
 			time.Sleep(5 * time.Second)
@@ -244,14 +252,14 @@ func generateWsConnection(
 		// API send ack when it is ready to receive messages.
 		err = conn.SetReadDeadline(time.Now().Add(30 * time.Minute))
 		if err != nil {
-			XtermLogger.Error("failed to set read deadline", "error", err)
+			xtermLogger.Error("failed to set read deadline", "error", err)
 		}
 		_, _, err = conn.ReadMessage()
 		if err != nil {
-			XtermLogger.Error("failed to receive ack-ready, retrying in 5 seconds", "error", err)
+			xtermLogger.Error("failed to receive ack-ready, retrying in 5 seconds", "error", err)
 			time.Sleep(5 * time.Second)
 			if currentRetries >= maxRetries {
-				XtermLogger.Error("Max retries reached, exiting.")
+				xtermLogger.Error("Max retries reached, exiting.")
 				return &xtermMessages, conn, err
 			}
 			currentRetries++
@@ -289,9 +297,9 @@ func oncloseWs(conn *websocket.Conn, ctx context.Context, cancel context.CancelF
 			}
 			if err != nil {
 				if closeErr, ok := err.(*websocket.CloseError); ok {
-					XtermLogger.Debug("[oncloseWs] WebSocket closed", "statusCode", closeErr.Code, "closeErr", closeErr.Text)
+					xtermLogger.Debug("[oncloseWs] WebSocket closed", "statusCode", closeErr.Code, "closeErr", closeErr.Text)
 				} else {
-					XtermLogger.Debug("[oncloseWs] Failed to read message. Connection closed.", "error", err)
+					xtermLogger.Debug("[oncloseWs] Failed to read message. Connection closed.", "error", err)
 				}
 				return
 			}
@@ -303,10 +311,10 @@ func wsPing(conn *websocket.Conn) error {
 	err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(time.Second))
 	if err != nil {
 		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
-			XtermLogger.Info("The connection was closed")
+			xtermLogger.Info("The connection was closed")
 			return err
 		}
-		XtermLogger.Info("failed to send ping", "error", err)
+		xtermLogger.Info("failed to send ping", "error", err)
 		return err
 	}
 	return nil
@@ -322,7 +330,7 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 					if conn != nil {
 						err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
 						if err != nil {
-							XtermLogger.Error("WriteMessage", "error", err)
+							xtermLogger.Error("WriteMessage", "error", err)
 						}
 					}
 				}
@@ -333,20 +341,20 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
 			if err != nil {
-				XtermLogger.Error("WriteMessage", "error", err.Error())
+				xtermLogger.Error("WriteMessage", "error", err.Error())
 			}
 		}
 		err := cmd.Process.Kill()
 		if err != nil {
-			XtermLogger.Error("failed to kill process", "error", err)
+			xtermLogger.Error("failed to kill process", "error", err)
 		}
 		_, err = cmd.Process.Wait()
 		if err != nil {
-			XtermLogger.Error("failed to wait for process", "error", err)
+			xtermLogger.Error("failed to wait for process", "error", err)
 		}
 		err = tty.Close()
 		if err != nil {
-			XtermLogger.Error("failed to close tty", "error", err)
+			xtermLogger.Error("failed to close tty", "error", err)
 		}
 	}
 }
@@ -375,7 +383,7 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 			if conn != nil {
 				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
 				if err != nil {
-					XtermLogger.Error("WriteMessage", "error", err)
+					xtermLogger.Error("WriteMessage", "error", err)
 				}
 				continue
 			}
@@ -477,7 +485,7 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 						err := json.Unmarshal([]byte(str), &resizeMessage)
 						if err == nil {
 							if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
-								XtermLogger.Error("Unable to resize", "error", err)
+								xtermLogger.Error("Unable to resize", "error", err)
 								continue
 							}
 							continue
@@ -489,7 +497,7 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 					if *cmdType == "exec-sh" {
 						_, err := tty.Write(msg.Data)
 						if err != nil {
-							XtermLogger.Error("failed to write in tty context", "error", err)
+							xtermLogger.Error("failed to write in tty context", "error", err)
 						}
 					}
 				}

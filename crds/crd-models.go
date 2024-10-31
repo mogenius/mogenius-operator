@@ -2,14 +2,11 @@ package crds
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/logging"
 	"reflect"
 	"unicode"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
-
-var CrdLogger = logging.CreateLogger("crds")
 
 const (
 	MogeniusGroup                  = "mogenius.io"

@@ -3,13 +3,14 @@ package kubernetes
 import (
 	"encoding/json"
 	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
 func ListExternalSecretsStores(ProjectId string) ([]SecretStore, error) {
 	response, err := ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
-		K8sLogger.Info("ListResources failed")
+		k8sLogger.Info("ListResources failed")
 	}
 
 	jsonOutput, err := json.MarshalIndent(response, "", "  ")
@@ -33,11 +34,11 @@ func ListExternalSecretsStores(ProjectId string) ([]SecretStore, error) {
 func GetExternalSecretsStore(name string) (*SecretStore, error) {
 	response, err := GetResource("external-secrets.io", "v1beta1", "clustersecretstores", name, "", true)
 	if err != nil {
-		K8sLogger.Info("GetResource failed for SecretStore: " + name)
+		k8sLogger.Info("GetResource failed for SecretStore: " + name)
 		return nil, err
 	}
 
-	K8sLogger.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
+	k8sLogger.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
 
 	jsonOutput, err := json.Marshal(response.Object)
 	if err != nil {

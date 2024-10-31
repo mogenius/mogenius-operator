@@ -9,6 +9,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log/slog"
+	"mogenius-k8s-manager/interfaces"
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/version"
 	"net/http"
@@ -26,7 +28,11 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-var UtilsLogger = logging.CreateLogger("utils")
+var utilsLogger *slog.Logger
+
+func Setup(logManager interfaces.LogManager) {
+	utilsLogger = logManager.CreateLogger("utils")
+}
 
 const IMAGE_PLACEHOLDER = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
 
@@ -73,7 +79,7 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 		pwd, err := os.Getwd()
 		pwd += "/temp"
 		if err != nil {
-			UtilsLogger.Error("StatsMogeniusNfsVolume PWD", "error", err)
+			utilsLogger.Error("StatsMogeniusNfsVolume PWD", "error", err)
 		} else {
 			return pwd
 		}
@@ -121,7 +127,7 @@ func GetFunctionName() string {
 
 func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	result, err := utils.RunOnLocalShell(shellCmd).Output()
-	UtilsLogger.Info("ExecuteShellCommandSilent", "command", shellCmd, "result", result)
+	utilsLogger.Info("ExecuteShellCommandSilent", "command", shellCmd, "result", result)
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
 		errorMsg := string(exitErr.Stderr)

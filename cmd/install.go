@@ -21,6 +21,7 @@ var installCmd = &cobra.Command{
 	This cmd installs the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		preRun()
 		yellow := color.New(color.FgYellow).SprintFunc()
 		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you realy want to install mogenius-k8s-manager to '%s' context?", yellow(kubernetes.CurrentContextName()))) {
 			os.Exit(0)

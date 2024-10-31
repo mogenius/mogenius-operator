@@ -63,7 +63,7 @@ func ConnectToEventQueue() {
 
 		select {
 		case <-interrupt:
-			StructsLogger.Info("CTRL + C pressed. Terminating.")
+			structsLogger.Info("CTRL + C pressed. Terminating.")
 			panic(1)
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
@@ -76,15 +76,15 @@ func connectEvent(ctx context.Context) {
 
 	connection, _, err := websocket.DefaultDialer.Dial(EventConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
-		StructsLogger.Error("Connection to EventServer failed", "url", EventConnectionUrl.String(), "error", err)
+		structsLogger.Error("Connection to EventServer failed", "url", EventConnectionUrl.String(), "error", err)
 		EventConnectionStatus <- false
 	} else {
-		StructsLogger.Info("Connected to EventServer", "url", EventConnectionUrl.String(), "localAddr", connection.LocalAddr().String())
+		structsLogger.Info("Connected to EventServer", "url", EventConnectionUrl.String(), "localAddr", connection.LocalAddr().String())
 		EventQueueConnection = connection
 		EventConnectionStatus <- true
 		err := Ping(EventQueueConnection, &eventSendMutex)
 		if err != nil {
-			StructsLogger.Error("Error pinging event queue", "error", err)
+			structsLogger.Error("Error pinging event queue", "error", err)
 		}
 	}
 
@@ -127,7 +127,7 @@ func processEventQueueNow() {
 				}
 				eventDataQueue = RemoveEventIndex(eventDataQueue, i)
 			} else {
-				StructsLogger.Error("Error sending data to EventServer", "error", err)
+				structsLogger.Error("Error sending data to EventServer", "error", err)
 			}
 		}
 	}

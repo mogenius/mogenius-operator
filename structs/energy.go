@@ -88,7 +88,7 @@ func CreateEnergyConsumptionResponse(input string, index int) *EnergyConsumption
 		SecondsBetweenInspections: EnergyConsumptionTimeInterval,
 	}
 
-	StructsLogger.Info("EnergyConsumptionMeasurement (%d/%d): %d entries - %d joule - %d watt \n",
+	structsLogger.Info("EnergyConsumptionMeasurement (%d/%d): %d entries - %d joule - %d watt \n",
 		"currentMeasurement", index+1,
 		"amountMeasureMents", EnergyConsumptionResponseSize,
 		"entries", len(entries),

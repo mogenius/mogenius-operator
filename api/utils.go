@@ -6,7 +6,7 @@ import (
 
 func withRequestLogging(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		HttpLogger.Info("api request",
+		httpLogger.Info("api request",
 			"request.Header", r.Header,
 			"request.ContentLength", r.ContentLength,
 			"request.RequestURI", r.RequestURI,

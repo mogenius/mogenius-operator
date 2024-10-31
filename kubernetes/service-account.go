@@ -20,14 +20,14 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 
 	_, err := client.Create(context.TODO(), serviceAccount, MoCreateOptions())
 	if err == nil {
-		K8sLogger.Info("ServiceAccount created successfully ✅")
+		k8sLogger.Info("ServiceAccount created successfully ✅")
 	} else {
 		// Check if already exists
 		serviceAccount, err := GetServiceAccount(serviceAccountName, namespace)
 		if err != nil {
 			return err
 		} else {
-			K8sLogger.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
+			k8sLogger.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
 		}
 		if serviceAccount.Annotations == nil {
 			serviceAccount.Annotations = make(map[string]string)
@@ -50,7 +50,7 @@ func UpdateServiceAccount(serviceAccount *core.ServiceAccount) error {
 	if err != nil {
 		return err
 	}
-	K8sLogger.Info("ServiceAccount updated successfully ✅")
+	k8sLogger.Info("ServiceAccount updated successfully ✅")
 	return nil
 }
 
@@ -65,6 +65,6 @@ func DeleteServiceAccount(serviceAccountName string, namespace string) error {
 	if err != nil {
 		return err
 	}
-	K8sLogger.Info("ServiceAccount deleted successfully ✅")
+	k8sLogger.Info("ServiceAccount deleted successfully ✅")
 	return nil
 }

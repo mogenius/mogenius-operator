@@ -2,21 +2,26 @@ package migrations
 
 import (
 	"fmt"
+	"log/slog"
 	"mogenius-k8s-manager/db"
+	"mogenius-k8s-manager/interfaces"
 	"mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	"strings"
 
 	punq "github.com/mogenius/punq/kubernetes"
 )
 
-var MigrationLogger = logging.CreateLogger("migrations")
+var migrationLogger *slog.Logger
+
+func Setup(logManager interfaces.LogManager) {
+	migrationLogger = logManager.CreateLogger("migrations")
+}
 
 func ExecuteMigrations() {
 	name, err := _PvcMigration1()
 	if err != nil {
-		MigrationLogger.Info("Migration", "name", name, "error", err)
+		migrationLogger.Info("Migration", "name", name, "error", err)
 	}
 }
 
@@ -45,7 +50,7 @@ func _PvcMigration1() (string, error) {
 				punq.UpdateK8sPersistentVolumeClaim(*connectedPvc, nil)
 			}
 
-			MigrationLogger.Info("Updated PVC", "name", pvc.Name)
+			migrationLogger.Info("Updated PVC", "name", pvc.Name)
 		}
 	}
 	pvs := punq.AllPersistentVolumesRaw(nil)
@@ -62,12 +67,12 @@ func _PvcMigration1() (string, error) {
 					),
 				})
 				punq.UpdateK8sPersistentVolume(pv, nil)
-				MigrationLogger.Info("Updated PV", "name", pv.Name)
+				migrationLogger.Info("Updated PV", "name", pv.Name)
 			}
 		}
 	}
 
-	MigrationLogger.Info("Migration applied successfuly.", "migrationName", migrationName)
+	migrationLogger.Info("Migration applied successfuly.", "migrationName", migrationName)
 	err := db.AddMigrationToDb(migrationName)
 	if err != nil {
 		return migrationName, fmt.Errorf("Migration '%s' applied successfuly, but could not be added to migrations table: %s", migrationName, err.Error())

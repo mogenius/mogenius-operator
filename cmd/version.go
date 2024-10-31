@@ -16,6 +16,7 @@ var versionCmd = &cobra.Command{
 	Short: "Print version information and exit",
 	Long:  `Print version information and exit`,
 	Run: func(cmd *cobra.Command, args []string) {
+		preRun()
 		yellow := color.New(color.FgYellow).SprintFunc()
 		fmt.Printf("CLI: \t\t%s\n", yellow(version.Ver))
 		fmt.Printf("Container: \t%s\n", yellow(version.Ver))

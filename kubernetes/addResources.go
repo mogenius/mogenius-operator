@@ -30,20 +30,20 @@ import (
 func Deploy() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		K8sLogger.Error("Error creating kubeprovider")
+		k8sLogger.Error("Error creating kubeprovider")
 		panic(1)
 	}
 
 	applyNamespace(provider)
 	err = addRbac(provider)
 	if err != nil {
-		K8sLogger.Error("Error Creating RBAC. Aborting.", "error", err)
+		k8sLogger.Error("Error Creating RBAC. Aborting.", "error", err)
 		panic(1)
 	}
 	addDeployment(provider)
 	_, err = CreateOrUpdateClusterSecret(nil)
 	if err != nil {
-		K8sLogger.Error("Error Creating cluster secret. Aborting.", "error", err)
+		k8sLogger.Error("Error Creating cluster secret. Aborting.", "error", err)
 		panic(1)
 	}
 }
@@ -80,7 +80,7 @@ func addRbac(provider *punq.KubeProvider) error {
 	}
 
 	// CREATE RBAC
-	K8sLogger.Info("Creating mogenius-k8s-manager RBAC ...")
+	k8sLogger.Info("Creating mogenius-k8s-manager RBAC ...")
 
 	err := ApplyServiceAccount(SERVICEACCOUNTNAME, NAMESPACE, nil)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
@@ -94,7 +94,7 @@ func addRbac(provider *punq.KubeProvider) error {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
-	K8sLogger.Info("Created mogenius-k8s-manager RBAC.")
+	k8sLogger.Info("Created mogenius-k8s-manager RBAC.")
 	return nil
 }
 
@@ -108,12 +108,12 @@ func applyNamespace(provider *punq.KubeProvider) {
 		FieldManager: DEPLOYMENTNAME,
 	}
 
-	K8sLogger.Info("Creating mogenius-k8s-manager namespace ...")
+	k8sLogger.Info("Creating mogenius-k8s-manager namespace ...")
 	result, err := serviceClient.Apply(context.TODO(), namespace, applyOptions)
 	if err != nil {
-		K8sLogger.Error("Error applying mogenius-k8s-manager namespace.", "error", err)
+		k8sLogger.Error("Error applying mogenius-k8s-manager namespace.", "error", err)
 	}
-	K8sLogger.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
+	k8sLogger.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
 func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
@@ -140,7 +140,7 @@ func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
 		previousData.Branch != syncRepoReq.Branch ||
 		previousData.AllowPull != syncRepoReq.AllowPull ||
 		previousData.AllowPush != syncRepoReq.AllowPush {
-		K8sLogger.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
+		k8sLogger.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
 		IacManagerSetupInProcess.Store(true)
 		defer IacManagerSetupInProcess.Store(false)
 		// Push/Pull
@@ -200,7 +200,7 @@ func ResetLocalRepo() error {
 func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		K8sLogger.Error("Error creating kubeprovider")
+		k8sLogger.Error("Error creating kubeprovider")
 		panic(1)
 	}
 
@@ -213,7 +213,7 @@ func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterS
 func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.ClusterConfigmap, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		K8sLogger.Error("Error creating kubeprovider")
+		k8sLogger.Error("Error creating kubeprovider")
 		panic(1)
 	}
 
@@ -241,7 +241,7 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 
 	if apierrors.IsNotFound(getErr) {
 		// CREATE
-		K8sLogger.Info("🔑 Creating new mogenius configmap ...")
+		k8sLogger.Info("🔑 Creating new mogenius configmap ...")
 		configmap := core.ConfigMap{}
 		configmap.ObjectMeta.Name = NAMESPACE
 		configmap.ObjectMeta.Namespace = NAMESPACE
@@ -252,28 +252,28 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 		configmap.Data["ignoredNames"] = strings.Join(result.IgnoredNames, ",")
 		_, err := configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())
 		if err != nil {
-			K8sLogger.Error("Error creating mogenius configmap.", "error", err)
+			k8sLogger.Error("Error creating mogenius configmap.", "error", err)
 			return result, err
 		}
-		K8sLogger.Info("🗺️ Created new mogenius configmap.")
+		k8sLogger.Info("🗺️ Created new mogenius configmap.")
 	} else {
 		// USE EXISTING
 		availableWorkloads, err := GetSyncResourcesFromString(existingConfigMap.Data["availableWorkloads"])
 		if err != nil {
-			K8sLogger.Error("Error getting available workloads.", "error", err)
+			k8sLogger.Error("Error getting available workloads.", "error", err)
 			return result, err
 		}
 
 		syncWorkloads, err := GetSyncResourcesFromString(existingConfigMap.Data["syncWorkloads"])
 		if err != nil {
-			K8sLogger.Error("Error getting sync workloads.", "error", err)
+			k8sLogger.Error("Error getting sync workloads.", "error", err)
 			return result, err
 		}
 		result.AvailableWorkloads = availableWorkloads
 		result.SyncWorkloads = syncWorkloads
 		result.IgnoredNamespaces = CommaSeperatedStringToArray(existingConfigMap.Data["ignoredNamespaces"])
 		result.IgnoredNames = CommaSeperatedStringToArray(existingConfigMap.Data["ignoredNames"])
-		K8sLogger.Info("🗺️ Using existing mogenius configmap.")
+		k8sLogger.Info("🗺️ Using existing mogenius configmap.")
 	}
 
 	if data != nil {
@@ -284,10 +284,10 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 		existingConfigMap.Data["ignoredNames"] = strings.Join(result.IgnoredNames, ",")
 		_, err := configmapClient.Update(context.TODO(), existingConfigMap, MoUpdateOptions())
 		if err != nil {
-			K8sLogger.Error("Error updating mogenius configmap.", "error", err.Error())
+			k8sLogger.Error("Error updating mogenius configmap.", "error", err.Error())
 			return result, err
 		}
-		K8sLogger.Info("🗺️ Updated mogenius configmap.")
+		k8sLogger.Info("🗺️ Updated mogenius configmap.")
 	}
 
 	return result, nil
@@ -296,7 +296,7 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 func GetSyncRepoData() (*dtos.SyncRepoData, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		K8sLogger.Error("Error creating kubeprovider")
+		k8sLogger.Error("Error creating kubeprovider")
 		panic(1)
 	}
 
@@ -319,7 +319,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	apikey := os.Getenv("api_key")
 	if apikey == "" {
 		if utils.CONFIG.Kubernetes.RunInCluster {
-			K8sLogger.Error("Environment Variable 'api_key' is missing.")
+			k8sLogger.Error("Environment Variable 'api_key' is missing.")
 			panic(1)
 		} else {
 			apikey = utils.CONFIG.Kubernetes.ApiKey
@@ -328,7 +328,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	clusterName := os.Getenv("cluster_name")
 	if clusterName == "" {
 		if utils.CONFIG.Kubernetes.RunInCluster {
-			K8sLogger.Error("Environment Variable 'cluster_name' is missing.")
+			k8sLogger.Error("Environment Variable 'cluster_name' is missing.")
 			panic(1)
 		} else {
 			clusterName = utils.CONFIG.Kubernetes.ClusterName
@@ -381,13 +381,13 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	secret.StringData["sync-frequency-in-sec"] = fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec)
 
 	if existingSecret == nil || getErr != nil {
-		K8sLogger.Info("🔑 Creating new mogenius secret ...")
+		k8sLogger.Info("🔑 Creating new mogenius secret ...")
 		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 		if err != nil {
-			K8sLogger.Error("Error creating mogenius secret.", "error", err)
+			k8sLogger.Error("Error creating mogenius secret.", "error", err)
 			return clusterSecret, err
 		}
-		K8sLogger.Info("🔑 Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
+		k8sLogger.Info("🔑 Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
 	} else {
 		if string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
 			string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
@@ -398,15 +398,15 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			string(existingSecret.Data["sync-allow-pull"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPull) ||
 			string(existingSecret.Data["sync-allow-push"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPush) ||
 			string(existingSecret.Data["sync-frequency-in-sec"]) != fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec) {
-			K8sLogger.Info("🔑 Updating existing mogenius secret ...")
+			k8sLogger.Info("🔑 Updating existing mogenius secret ...")
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
-				K8sLogger.Error("Error updating mogenius secret.", "error", err)
+				k8sLogger.Error("Error updating mogenius secret.", "error", err)
 				return clusterSecret, err
 			}
-			K8sLogger.Info("🔑 Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
+			k8sLogger.Info("🔑 Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
 		} else {
-			K8sLogger.Info("🔑 Using existing mogenius secret.")
+			k8sLogger.Info("🔑 Using existing mogenius secret.")
 		}
 	}
 
@@ -416,26 +416,26 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 func InitOrUpdateCrds() {
 	err := CreateOrUpdateYamlString(utils.InitMogeniusCrdProjectsYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		K8sLogger.Error("Error updating/creating mogenius Project-CRDs.", "error", err)
+		k8sLogger.Error("Error updating/creating mogenius Project-CRDs.", "error", err)
 		panic(1)
 	} else {
-		K8sLogger.Info("Created/updated mogenius Project-CRDs. 🚀")
+		k8sLogger.Info("Created/updated mogenius Project-CRDs. 🚀")
 	}
 
 	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdEnvironmentsYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		K8sLogger.Error("Error updating/creating mogenius Environment-CRDs.", "error", err)
+		k8sLogger.Error("Error updating/creating mogenius Environment-CRDs.", "error", err)
 		panic(1)
 	} else {
-		K8sLogger.Info("Created/updated mogenius Environment-CRDs. 🚀")
+		k8sLogger.Info("Created/updated mogenius Environment-CRDs. 🚀")
 	}
 
 	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdApplicationKitYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		K8sLogger.Error("Error updating/creating mogenius ApplicationKit-CRDs.", "error", err)
+		k8sLogger.Error("Error updating/creating mogenius ApplicationKit-CRDs.", "error", err)
 		panic(1)
 	} else {
-		K8sLogger.Info("Created/updated mogenius ApplicationKit-CRDs. 🚀")
+		k8sLogger.Info("Created/updated mogenius ApplicationKit-CRDs. 🚀")
 	}
 }
 
@@ -495,12 +495,12 @@ func addDeployment(provider *punq.KubeProvider) {
 	deployment.WithSpec(applyconfapp.DeploymentSpec().WithSelector(labelSelector).WithTemplate(podTemplate))
 
 	// Create Deployment
-	K8sLogger.Info("Creating mogenius-k8s-manager deployment ...")
+	k8sLogger.Info("Creating mogenius-k8s-manager deployment ...")
 	result, err := deploymentClient.Apply(context.TODO(), deployment, applyOptions)
 	if err != nil {
-		K8sLogger.Error("Error creating mogenius-k8s-manager deployment.", "error", err)
+		k8sLogger.Error("Error creating mogenius-k8s-manager deployment.", "error", err)
 	}
-	K8sLogger.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
+	k8sLogger.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
 }
 
 func CreateYamlString(yamlContent string) error {

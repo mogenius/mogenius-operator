@@ -1,11 +1,5 @@
 package dtos
 
-import (
-	"mogenius-k8s-manager/logging"
-)
-
-var DtosLogger = logging.CreateLogger("dtos")
-
 type GitConnectionTypeEnum string
 
 const (

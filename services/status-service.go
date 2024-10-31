@@ -349,7 +349,7 @@ func (r *ResourceItem) ContainerStatus() (*ServiceStatusType, *ServiceStatusObje
 					status := ServiceStatusTypePending
 					return &status, &statusObject
 				default:
-					ServiceLogger.Warn("Unhandled status - Container waiting.", "containerName", containerStatus.Name, "waitingReason", containerStatus.State.Waiting.Reason, "waitingMessage", containerStatus.State.Waiting.Message)
+					serviceLogger.Warn("Unhandled status - Container waiting.", "containerName", containerStatus.Name, "waitingReason", containerStatus.State.Waiting.Reason, "waitingMessage", containerStatus.State.Waiting.Message)
 				}
 
 				status := ServiceStatusTypePending
@@ -830,19 +830,19 @@ func statusService(r ServiceStatusRequest) interface{} {
 	resultType := reflect.TypeOf(corev1.Event{})
 	events, err := store.GlobalStore.SearchByPrefix(resultType, "Event", r.Namespace)
 	if err != nil {
-		ServiceLogger.Warn("failed to fetch events", "error", err)
+		serviceLogger.Warn("failed to fetch events", "error", err)
 	}
 
 	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
 	if err != nil {
-		ServiceLogger.Warn("failed to get statusItems", "error", err)
+		serviceLogger.Warn("failed to get statusItems", "error", err)
 	}
 
 	// buildItem
 	if r.GitRepository {
 		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
 		if err != nil {
-			ServiceLogger.Warn("failed to buildItem", "error", err)
+			serviceLogger.Warn("failed to buildItem", "error", err)
 		}
 	}
 
@@ -866,7 +866,7 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	resourceItems := []ResourceItem{}
 	resourceInterface, err := controller(namespace, name, resourceController)
 	if err != nil {
-		ServiceLogger.Warn("failed to fetch controller", "error", err)
+		serviceLogger.Warn("failed to fetch controller", "error", err)
 		return resourceItems, err
 	}
 
@@ -877,7 +877,7 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	resultType := reflect.TypeOf(corev1.Pod{})
 	pods, err := store.GlobalStore.SearchByPrefix(resultType, "Pod", metaNamespace, metaName)
 	if err != nil {
-		ServiceLogger.Warn("failed to fetch pods", "error", err)
+		serviceLogger.Warn("failed to fetch pods", "error", err)
 		return resourceItems, err
 	}
 	for _, podRef := range pods {
@@ -1083,7 +1083,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, resourc
 	// Fetch next k8s controller
 	resourceInterface, err := controller(namespace, ownerRef.Name, NewResourceController(ownerRef.Kind))
 	if err != nil {
-		ServiceLogger.Warn("failed to fetch resources", "error", err)
+		serviceLogger.Warn("failed to fetch resources", "error", err)
 		return resourceItems
 	}
 

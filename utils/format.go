@@ -14,14 +14,14 @@ func init() {
 }
 
 func PrintLogo() {
-	UtilsLogger.Info("\n" +
+	fmt.Printf(
 		"███╗░░░███╗░█████╗░░██████╗░███████╗███╗░░██╗██╗██╗░░░██╗░██████╗\n" +
-		"████╗░████║██╔══██╗██╔════╝░██╔════╝████╗░██║██║██║░░░██║██╔════╝\n" +
-		"██╔████╔██║██║░░██║██║░░██╗░█████╗░░██╔██╗██║██║██║░░░██║╚█████╗░\n" +
-		"██║╚██╔╝██║██║░░██║██║░░╚██╗██╔══╝░░██║╚████║██║██║░░░██║░╚═══██╗\n" +
-		"██║░╚═╝░██║╚█████╔╝╚██████╔╝███████╗██║░╚███║██║╚██████╔╝██████╔╝\n" +
-		"╚═╝░░░░░╚═╝░╚════╝░░╚═════╝░╚══════╝╚═╝░░╚══╝╚═╝░╚═════╝░╚═════╝░\n" +
-		"\n")
+			"████╗░████║██╔══██╗██╔════╝░██╔════╝████╗░██║██║██║░░░██║██╔════╝\n" +
+			"██╔████╔██║██║░░██║██║░░██╗░█████╗░░██╔██╗██║██║██║░░░██║╚█████╗░\n" +
+			"██║╚██╔╝██║██║░░██║██║░░╚██╗██╔══╝░░██║╚████║██║██║░░░██║░╚═══██╗\n" +
+			"██║░╚═╝░██║╚█████╔╝╚██████╔╝███████╗██║░╚███║██║╚██████╔╝██████╔╝\n" +
+			"╚═╝░░░░░╚═╝░╚════╝░░╚═════╝░╚══════╝╚═╝░░╚══╝╚═╝░╚═════╝░╚═════╝░\n\n",
+	)
 }
 
 type ValidationError struct {
@@ -45,7 +45,7 @@ func ValidateJSON(obj interface{}) *ValidationError {
 			}
 		}
 		//result.Errors = append(result.Errors, err.Error())
-		UtilsLogger.Error(PrettyPrintInterface(result))
+		utilsLogger.Error(PrettyPrintInterface(result))
 		return result
 	}
 	return nil
@@ -54,7 +54,7 @@ func ValidateJSON(obj interface{}) *ValidationError {
 func FormatJsonTimePretty(jsonTimestamp string) string {
 	t, err := time.Parse(time.RFC3339, jsonTimestamp)
 	if err != nil {
-		UtilsLogger.Error("Failed to parse timestamp", "timestamp", jsonTimestamp, "expectedFormat", "RFC3339", "error", err)
+		utilsLogger.Error("Failed to parse timestamp", "timestamp", jsonTimestamp, "expectedFormat", "RFC3339", "error", err)
 		return jsonTimestamp
 	}
 	return t.Format("2006-01-02 15:04:05")
