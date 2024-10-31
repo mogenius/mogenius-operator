@@ -872,6 +872,12 @@ func ListControllerLabeledNetworkPolicies(
 	return netpols, nil
 }
 
+// @todo: impl
+// ListAllNamespaceControllerNetworkPolicies returns all network policies attached to controllers in a namespace
+func ListAllNamespaceControllerNetworkPolicies() ([]interface{}, error) {
+	return nil, nil
+}
+
 func getNetworkPolicyName(labelPolicy dtos.K8sLabeledNetworkPolicyDto) string {
 	return strings.ToLower(
 		fmt.Sprintf("%s-%s-%s", PoliciesLabelPrefix, labelPolicy.Name, labelPolicy.Type),
