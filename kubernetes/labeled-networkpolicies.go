@@ -683,14 +683,14 @@ func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyL
 	return netpols, err
 }
 
-func ListAllNetworkPolicies(namespaceName string) punqUtils.K8sWorkloadResult {
+func listAllNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
 	result := []v1.NetworkPolicy{}
 
 	resultType := reflect.TypeOf(v1.NetworkPolicy{})
 	policies, err := store.GlobalStore.SearchByPrefix(resultType, namespaceName)
 	if err != nil {
 		K8sLogger.Error("ListAllNetworkPolicies", "error", err)
-		return punq.WorkloadResult(nil, err)
+		return result, err
 	}
 
 	for _, ref := range policies {
@@ -700,6 +700,15 @@ func ListAllNetworkPolicies(namespaceName string) punqUtils.K8sWorkloadResult {
 		}
 
 		result = append(result, *netpol)
+	}
+
+	return result, nil
+}
+
+func ListAllNetworkPolicies(namespaceName string) punqUtils.K8sWorkloadResult {
+	result, err := listAllNetworkPolicies(namespaceName)
+	if err != nil {
+		return punq.WorkloadResult(nil, err)
 	}
 
 	return punq.WorkloadResult(result, nil)
@@ -752,9 +761,8 @@ func ListControllerLabeledNetworkPolicies(
 
 	netpols := []dtos.K8sLabeledNetworkPolicyDto{}
 
-	policies, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.NetworkPolicy{}), namespaceName)
+	policies, err := listAllNetworkPolicies(namespaceName)
 	if err != nil {
-		K8sLogger.Error("ListControllerLabeledNetworkPolicies", "error", err)
 		return nil, err
 	}
 
@@ -764,16 +772,11 @@ func ListControllerLabeledNetworkPolicies(
 		}
 
 		var netpol v1.NetworkPolicy
+
 		found := false
-
-		for _, ref := range policies {
-			np, ok := ref.(*v1.NetworkPolicy)
-			if !ok || np == nil {
-				continue
-			}
-
-			if np.Name == label {
-				netpol = *np
+		for _, policy := range policies {
+			if policy.Name == label {
+				netpol = policy
 				found = true
 				break
 			}
