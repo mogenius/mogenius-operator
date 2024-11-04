@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	v1 "k8s.io/api/apps/v1"
-	v1job "k8s.io/api/batch/v1"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/gitmanager"
@@ -18,6 +16,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	v1 "k8s.io/api/apps/v1"
+	v1job "k8s.io/api/batch/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -571,7 +572,9 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 	for _, container := range job.Service.Containers {
 		for _, v := range container.EnvVars {
 			if v.Type == dtos.EnvVarKeyVault && v.Data.VaultType == dtos.EnvVarVaultTypeMogeniusVault {
-				line = strings.ReplaceAll(line, v.Value, "****")
+				if v.Value != "" {
+					line = strings.ReplaceAll(line, v.Value, "****")
+				}
 			}
 		}
 	}
