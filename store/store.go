@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/interfaces"
+	"mogenius-k8s-manager/shutdown"
 	"reflect"
 	"sync"
 	"time"
@@ -32,7 +33,8 @@ func Start() {
 	GlobalStore, err = NewStore()
 	if err != nil {
 		storeLogger.Error("failed to initialize store", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	// Run garbage collection every 5 minutes

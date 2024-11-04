@@ -6,6 +6,7 @@ package cmd
 import (
 	"log/slog"
 	"mogenius-k8s-manager/logging"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
 
 	punqDtos "github.com/mogenius/punq/dtos"
@@ -68,7 +69,9 @@ func Execute() {
 
 	err := rootCmd.Execute()
 	if err != nil {
-		panic(1)
+		cmdLogger.Error("rootCmd failed", "error", err)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 }
 

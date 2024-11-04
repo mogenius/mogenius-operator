@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/shutdown"
 	utils "mogenius-k8s-manager/utils"
 	"os"
 	"path/filepath"
@@ -120,7 +121,8 @@ func GetDefaultKubeConfig() []string {
 
 	if len(validConfigs) == 0 {
 		k8sLogger.Error("Error: No valid kubeconfig file found. Ensure that the $KUBECONFIG environment variable or the default kubeconfig is set correctly. For more info, see https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/.")
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	return validConfigs

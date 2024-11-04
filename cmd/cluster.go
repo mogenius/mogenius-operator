@@ -16,6 +16,7 @@ import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/migrations"
 	"mogenius-k8s-manager/services"
+	"mogenius-k8s-manager/shutdown"
 	socketclient "mogenius-k8s-manager/socket-client"
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
@@ -54,12 +55,14 @@ var clusterCmd = &cobra.Command{
 		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
 		if err != nil {
 			cmdLogger.Error("Error retrieving cluster secret. Aborting.", "error", err)
-			panic(1)
+			shutdown.SendShutdownSignalAndBlockForever(true)
+			panic("unreachable")
 		}
 		clusterConfigmap, err := mokubernetes.CreateOrUpdateClusterConfigmap(nil)
 		if err != nil {
 			cmdLogger.Error("Error retrieving cluster configmap. Aborting.", "error", err.Error())
-			panic(1)
+			shutdown.SendShutdownSignalAndBlockForever(true)
+			panic("unreachable")
 		}
 
 		utils.SetupClusterSecret(clusterSecret)
@@ -97,7 +100,8 @@ var clusterCmd = &cobra.Command{
 				cmdLogger.Info("Seeding Commands ( 🪴 🪴 🪴 )", "userApps", userApps)
 				if err != nil {
 					cmdLogger.Error("Error installing default applications", "error", err)
-					panic(1)
+					shutdown.SendShutdownSignalAndBlockForever(true)
+					panic("unreachable")
 				}
 			}
 			services.DISABLEQUEUE = false

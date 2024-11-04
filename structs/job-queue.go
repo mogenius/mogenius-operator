@@ -48,10 +48,7 @@ func ConnectToJobQueue() {
 			close(quit)
 		}()
 
-		select {
-		case <-time.After(RETRYTIMEOUT * time.Second):
-		}
-
+		<-time.After(RETRYTIMEOUT * time.Second)
 	}
 }
 

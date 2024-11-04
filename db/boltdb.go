@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strconv"
@@ -55,7 +56,8 @@ func Start() {
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		dbLogger.Error("Error opening bbolt database", "dbPath", dbPath, "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 	// ### BUILD BUCKET ###
 	db = database
