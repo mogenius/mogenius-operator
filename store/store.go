@@ -38,16 +38,16 @@ func Start() {
 	}
 
 	// Run garbage collection every 5 minutes
-	garbageCollectionTicker = time.NewTicker(5 * time.Minute)
-	go func() {
-		for range garbageCollectionTicker.C {
-			storeLogger.Info("Run garbage collection DB ...")
-			err := GlobalStore.RunGC()
-			if err != nil {
-				storeLogger.Debug("Error running GlobalStore.RunGC", "error", err)
-			}
-		}
-	}()
+	// garbageCollectionTicker = time.NewTicker(5 * time.Minute)
+	// go func() {
+	// 	for range garbageCollectionTicker.C {
+	// 		storeLogger.Info("Run garbage collection DB ...")
+	// 		err := GlobalStore.RunGC()
+	// 		if err != nil {
+	// 			storeLogger.Debug("Error running GlobalStore.RunGC", "error", err)
+	// 		}
+	// 	}
+	// }()
 }
 
 func Defer() {
