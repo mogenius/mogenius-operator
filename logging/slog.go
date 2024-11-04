@@ -63,15 +63,25 @@ func newBufferedLogWriter(combinedLogWriter io.Writer, componentLogWriter io.Wri
 	}
 }
 
+func isJson(str string) bool {
+	var js json.RawMessage
+	return json.Unmarshal([]byte(str), &js) == nil
+}
+
 func (bw *BufferedLogWriter) Write(p []byte) (n int, err error) {
 	n, err = bw.buffer.Write(p)
 	if err != nil {
 		return n, err
 	}
 
+	line := ""
 	scanner := bufio.NewScanner(bw.buffer)
 	for scanner.Scan() {
-		line := scanner.Text()
+		line = scanner.Text()
+
+		if !isJson(line) {
+			continue
+		}
 
 		line = eraseSecrets(line)
 
