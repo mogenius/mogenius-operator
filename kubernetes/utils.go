@@ -109,7 +109,6 @@ func init() {
 	}
 
 	dtos.KubernetesGetSecretValueByPrefixControllerNameAndKey = GetSecretValueByPrefixControllerNameAndKey
-	dtos.KubernetesK8sLogger = k8sLogger
 }
 
 func getProvider() *punq.KubeProvider {

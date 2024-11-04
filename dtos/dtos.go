@@ -5,8 +5,10 @@ import (
 	"mogenius-k8s-manager/interfaces"
 )
 
+var logManager interfaces.LogManager
 var dtosLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManager) {
-	dtosLogger = logManager.CreateLogger("dtos")
+func Setup(interfaceLogManager interfaces.LogManager) {
+	logManager = interfaceLogManager
+	dtosLogger = interfaceLogManager.CreateLogger("dtos")
 }

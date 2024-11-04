@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"os"
-	"os/signal"
 	"strings"
 	"sync"
 	"time"
@@ -25,19 +24,15 @@ import (
 )
 
 func StartK8sManager() {
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-
 	if utils.CONFIG.Kubernetes.RunInCluster {
 		utils.PrintVersionInfo()
 		utils.PrintSettings()
 	} else {
-		message := fmt.Sprintf("\n%s\n###   CURRENT CONTEXT: %s   ###\n%s\n",
+		fmt.Printf("\n%s\n###   CURRENT CONTEXT: %s   ###\n%s\n",
 			punqUtils.FillWith("", 90, "#"),
 			punqUtils.FillWith(mokubernetes.CurrentContextName(), 61, " "),
 			punqUtils.FillWith("", 90, "#"),
 		)
-		socketClientLogger.Info(message)
 	}
 
 	updateCheck()
@@ -137,7 +132,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				if isSuppressed := punqUtils.Contains(structs.SUPPRESSED_OUTPUT_PATTERN, datagram.Pattern); !isSuppressed {
 					if utils.CONFIG.Misc.Debug {
-						socketClientLogger.Info(utils.PrettyPrintInterface(datagram))
+						socketClientLogger.Info("received datagram", "datagram", datagram)
 					}
 				}
 
@@ -222,7 +217,7 @@ func updateCheck() {
 	}
 
 	if version.Ver != mok8smanager.Version {
-		message := fmt.Sprintf("\n####################################################################\n"+
+		fmt.Printf("\n####################################################################\n"+
 			"####################################################################\n"+
 			"######                  %s                ######\n"+
 			"######               %s              ######\n"+
@@ -238,10 +233,9 @@ func updateCheck() {
 			color.GreenString(mok8smanager.Version),
 			color.RedString(version.Ver),
 		)
-		socketClientLogger.Warn(message)
 		notUpToDateAction(helmData)
 	} else {
-		socketClientLogger.Info(" Up-To-Date: 👍", "version", version.Ver)
+		socketClientLogger.Debug(" Up-To-Date: 👍", "version", version.Ver)
 	}
 }
 

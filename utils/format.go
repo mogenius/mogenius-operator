@@ -44,8 +44,7 @@ func ValidateJSON(obj interface{}) *ValidationError {
 				result.Errors = append(result.Errors, errorMessage)
 			}
 		}
-		//result.Errors = append(result.Errors, err.Error())
-		utilsLogger.Error(PrettyPrintInterface(result))
+		utilsLogger.Error("struct validation failed", "result", result)
 		return result
 	}
 	return nil

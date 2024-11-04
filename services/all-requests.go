@@ -1204,7 +1204,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if terminatedState != nil {
 		tmpPreviousResReq, err := PreviousPodLogStream(data.Namespace, data.PodId)
 		if err != nil {
-			serviceLogger.Error(err.Error())
+			serviceLogger.Error("failed to get previous pod log stream", "error", err)
 		} else {
 			previousResReq = tmpPreviousResReq
 		}

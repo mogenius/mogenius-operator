@@ -20,3 +20,4 @@ git-vault-data
 logs
 helm-data
 bin
+/log_errors.txt

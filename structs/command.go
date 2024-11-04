@@ -41,8 +41,7 @@ func CreateShellCommand(command string, title string, job *Job, shellCmd string,
 		cmd.Start(job, title)
 
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		structsLogger.Info(string(shellCmd))
-		structsLogger.Info(string(output))
+		structsLogger.Debug("executed command", "cmd", string(shellCmd), "output", string(output))
 
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
@@ -50,7 +49,7 @@ func CreateShellCommand(command string, title string, job *Job, shellCmd string,
 			structsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
 			cmd.Fail(job, fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
 		} else if err != nil {
-			structsLogger.Error("exec.Command", "error", err)
+			structsLogger.Error("exec.Command", "cmd", shellCmd, "error", err)
 		} else {
 			cmd.Success(job, title)
 		}
@@ -60,8 +59,8 @@ func CreateShellCommand(command string, title string, job *Job, shellCmd string,
 func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
 	go func() {
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		structsLogger.Info(string(shellCmd))
-		structsLogger.Info(string(output))
+		structsLogger.Debug("executed command", "cmd", string(shellCmd), "output", string(output))
+
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
@@ -75,7 +74,7 @@ func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func
 				failFunc(string(output), err)
 			}
 		} else {
-			structsLogger.Info("SUCCESS", "shellCmd", shellCmd)
+			structsLogger.Debug("SUCCESS", "shellCmd", shellCmd)
 			if successFunc != nil {
 				successFunc()
 			}

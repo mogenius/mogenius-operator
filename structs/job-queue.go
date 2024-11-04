@@ -4,8 +4,6 @@ import (
 	"context"
 	"mogenius-k8s-manager/utils"
 	"net/url"
-	"os"
-	"os/signal"
 	"sync"
 	"time"
 
@@ -23,10 +21,6 @@ var JobConnectionStatus chan bool = make(chan bool)
 var JobConnectionUrl url.URL = url.URL{}
 
 func ConnectToJobQueue() {
-	interrupt := make(chan os.Signal, 1)
-	defer close(interrupt)
-	signal.Notify(interrupt, os.Interrupt)
-
 	for {
 		JobConnectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
@@ -55,9 +49,6 @@ func ConnectToJobQueue() {
 		}()
 
 		select {
-		case <-interrupt:
-			structsLogger.Info("CTRL + C pressed. Terminating.")
-			panic(1)
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
@@ -108,9 +99,7 @@ func processJobNow() {
 			if err == nil {
 				element.DisplaySentSummary(i+1, len(jobDataQueue))
 				if isSuppressed := punqUtils.Contains(SUPPRESSED_OUTPUT_PATTERN, element.Pattern); !isSuppressed {
-					if utils.CONFIG.Misc.Debug {
-						structsLogger.Info(utils.PrettyPrintInterface(element.Payload))
-					}
+					structsLogger.Debug("sent summary", "payload", element.Payload)
 				}
 				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {
@@ -119,9 +108,7 @@ func processJobNow() {
 			}
 		}
 	} else {
-		if utils.CONFIG.Misc.Debug {
-			structsLogger.Error("jobQueueConnection is nil.")
-		}
+		structsLogger.Debug("jobQueueConnection is nil.")
 	}
 }
 
