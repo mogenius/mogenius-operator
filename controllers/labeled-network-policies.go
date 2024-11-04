@@ -196,12 +196,12 @@ type ListNetworkPolicyResponse struct {
 }
 
 type ListNetworkPolicyNamespace struct {
-	Id                string                        `json:"id" validate:"required"`
-	DisplayName       string                        `json:"displayName" validate:"required"`
-	Name              string                        `json:"name" validate:"required"`
-	ProjectId         string                        `json:"projectId" validate:"required"`
-	Controllers       []ListNetworkPolicyController `json:"controllers" validate:"required"`
-	UnmanagedPolicies []interface{}                 `json:"unmanagedPolicies" validate:"required"`
+	Id                string                           `json:"id" validate:"required"`
+	DisplayName       string                           `json:"displayName" validate:"required"`
+	Name              string                           `json:"name" validate:"required"`
+	ProjectId         string                           `json:"projectId" validate:"required"`
+	Controllers       []ListNetworkPolicyController    `json:"controllers" validate:"required"`
+	UnmanagedPolicies []K8sConflictingNetworkPolicyDto `json:"unmanagedPolicies" validate:"required"`
 }
 
 type ListNetworkPolicyController struct {
@@ -361,9 +361,16 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 
 		for _, values := range unmanagedMap {
 			for _, value := range values {
-				// todo: use diffrent dto
-				networkPolicyDto := createNetworkPolicyDto(policies[value].Name, policies[value].Spec)
-				namespaceDto.UnmanagedPolicies = append(namespaceDto.UnmanagedPolicies, networkPolicyDto)
+				policy := policies[value]
+
+				conflictingNetworkPolicyDto := K8sConflictingNetworkPolicyDto{
+					Name:          punqUtils.Pointer(policy.Name),
+					NamespaceName: policy.Namespace,
+					Spec:          policy.Spec,
+					// NetworkPolicy:  policy,
+				}
+
+				namespaceDto.UnmanagedPolicies = append(namespaceDto.UnmanagedPolicies, conflictingNetworkPolicyDto)
 			}
 		}
 
