@@ -6,6 +6,9 @@ import (
 
 // test the functionality of the custom resource with a basic pod
 func TestCustomResource(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	yamlData := `apiVersion: v1
 kind: Pod
 metadata:
@@ -60,6 +63,9 @@ spec:
 // test the functionality of the custom resource with a
 // properly "custom" resource, the secret store
 func TestSecretStoreResource(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	yamlData := `apiVersion: external-secrets.io/v1beta1
 kind: ClusterSecretStore
 metadata:

@@ -8,6 +8,9 @@ import (
 )
 
 func TestApplicationKit(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	name := "test"
 	namespace := "default"
 	newAppkitName := name + punqUtils.NanoIdSmallLowerCase()

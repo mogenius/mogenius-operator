@@ -95,7 +95,7 @@ jobs:
         run: |
           go mod download
           go clean -testcache
-          go test -v ./...
+          go run gotest.tools/gotestsum@latest --format="github-actions" -- ./...
       - name: Clean up k3s
         if: always()
         run: |

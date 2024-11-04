@@ -107,6 +107,9 @@ func testSetup() error {
 	return nil
 }
 func TestHelmRepoAdd(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	// clean config folder before test
 	err := deleteFolder(helmConfPath)
 	if err != nil {
@@ -133,6 +136,9 @@ func TestHelmRepoAdd(t *testing.T) {
 }
 
 func TestHelmRepoUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -147,6 +153,9 @@ func TestHelmRepoUpdate(t *testing.T) {
 }
 
 func TestHelmRepoList(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -178,6 +187,9 @@ func TestHelmRepoList(t *testing.T) {
 }
 
 func TestHelmInstallRequest(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -201,6 +213,9 @@ func TestHelmInstallRequest(t *testing.T) {
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -233,6 +248,9 @@ func TestHelmUpgradeRequest(t *testing.T) {
 }
 
 func TestHelmListRequest(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -272,6 +290,9 @@ func TestHelmListRequest(t *testing.T) {
 }
 
 func TestHelmReleases(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)

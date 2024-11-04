@@ -6,6 +6,9 @@ import (
 )
 
 func TestUtilsUtils(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	testSecret := "myLittleTestSecret ;-)"
 	testEncryptionKey := "testEncryptionKey"
 	encryptedTestStringOk := "mj7mD+eJA+MNKU9ftuPdpmxNH0V+8c9Gwk7HXuRhSZZapEsSZyIw+Wz/qitFPzLG"               // Encrypted string "myLittleTestSecret ;-)" using key "testEncryptionKey"

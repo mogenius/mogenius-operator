@@ -6,6 +6,9 @@ import (
 )
 
 func TestStore(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	// NEW STORE
 	store, err := NewStore()
 	if err != nil {
