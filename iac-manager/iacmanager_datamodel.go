@@ -327,7 +327,7 @@ func UpdateResourceStatus(kind string, namespace string, name string, state Sync
 	if errMsg != nil {
 		iacLogger.Error("failure in UpdateResourceStatus", "syncState", state, "key", key, "error", errMsg.Error())
 	} else {
-		iacLogger.Info("✅ UpdateResourceStatus finished", "syncState", state, "key", key)
+		iacLogger.Debug("✅ UpdateResourceStatus finished", "syncState", state, "key", key)
 	}
 }
 

@@ -4,8 +4,6 @@ import (
 	"context"
 	"mogenius-k8s-manager/utils"
 	"net/url"
-	"os"
-	"os/signal"
 	"sync"
 	"time"
 
@@ -30,10 +28,6 @@ var eventDataQueue []EventData = []EventData{}
 var EventConnectionUrl url.URL = url.URL{}
 
 func ConnectToEventQueue() {
-	interrupt := make(chan os.Signal, 1)
-	defer close(interrupt)
-	signal.Notify(interrupt, os.Interrupt)
-
 	for {
 		eventConnectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
@@ -62,9 +56,6 @@ func ConnectToEventQueue() {
 		}()
 
 		select {
-		case <-interrupt:
-			structsLogger.Info("CTRL + C pressed. Terminating.")
-			panic(1)
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
 
