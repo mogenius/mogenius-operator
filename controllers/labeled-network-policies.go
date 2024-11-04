@@ -243,7 +243,6 @@ func ListAllNetworkPolicies() (interface{}, error) {
 		namespaceDto := ListNetworkPolicyNamespace{
 			Name: namespace.Name,
 		}
-		namespacesDto = append(namespacesDto, namespaceDto)
 
 		deployments, err := kubernetes.ListAllDeployments(namespace.Name)
 		if err != nil {
@@ -338,6 +337,8 @@ func ListAllNetworkPolicies() (interface{}, error) {
 		for key, value := range unmanagedMap {
 			fmt.Println("unmanaged", key, value)
 		}
+
+		namespacesDto = append(namespacesDto, namespaceDto)
 	}
 
 	response := ListNetworkPolicyResponse{
