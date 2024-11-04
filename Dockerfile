@@ -33,7 +33,7 @@ RUN chmod 700 get_helm.sh
 RUN ./get_helm.sh
 RUN rm get_helm.sh
 
-FROM docker:dind
+FROM docker:27.1.2-dind
 
 ARG GOOS
 ARG GOARCH
