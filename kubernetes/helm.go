@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"os"
@@ -587,7 +588,8 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
 		helmLogger.Error("Failed to load repositories file", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	var allCharts []HelmChartInfo
@@ -665,7 +667,8 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
 		helmLogger.Error("failed to load repositories file", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	var allCharts []HelmChartInfo

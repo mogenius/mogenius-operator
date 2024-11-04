@@ -5,6 +5,7 @@ import (
 	json1 "encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"net"
@@ -115,7 +116,8 @@ func getProvider() *punq.KubeProvider {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 	return provider
 }
@@ -176,13 +178,15 @@ func ListNodes() []core.Node {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("error creating kubeprovider")
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("failed to list nodes", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 	return nodeMetricsList.Items
 }

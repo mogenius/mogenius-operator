@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"sync"
@@ -145,11 +146,11 @@ func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 
 // TODO: this has realy bad performance, need to find a better way to do this
 func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
-
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for netpol watcher. Cannot continue because it is vital.", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	// Set up a dynamic event broadcaster for the specific namespace

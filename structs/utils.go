@@ -168,16 +168,15 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 	pingTicker := time.NewTicker(time.Second * PingSeconds)
 
+	// TODO: handle shutdown with shutdown.Add(func() {}) -> https://github.com/mogenius/mogenius-k8s-manager/commit/d41220c211b158fcbe17d3638327753169be19ef#diff-9c67221ec2c7a8e91c0c4275e64b83ba5a67be0efd8eec7db6e9b08b4476c7a4L187-L199
 	for {
-		select {
-		case <-pingTicker.C:
-			sendMutex.Lock()
-			err := c.WriteMessage(websocket.PingMessage, nil)
-			sendMutex.Unlock()
-			if err != nil {
-				structsLogger.Error("pingTicker", "error", err)
-				return err
-			}
+		<-pingTicker.C
+		sendMutex.Lock()
+		err := c.WriteMessage(websocket.PingMessage, nil)
+		sendMutex.Unlock()
+		if err != nil {
+			structsLogger.Error("pingTicker", "error", err)
+			return err
 		}
 	}
 }

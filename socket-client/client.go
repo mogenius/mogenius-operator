@@ -3,6 +3,7 @@ package socketclient
 import (
 	"fmt"
 	"mogenius-k8s-manager/services"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
@@ -277,7 +278,8 @@ func notUpToDateAction(helmData *punqStructs.HelmData) {
 			"localVer", localVer.String(),
 			"remoteVer", remoteVer.String(),
 		)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	// MINOR&PATCH CHANGES: SHOULD UPGRADE

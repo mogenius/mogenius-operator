@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"mogenius-k8s-manager/shutdown"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,7 +11,9 @@ import (
 func Remove() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
-		panic("error creating provider.")
+		k8sLogger.Error("error creating provider.", "error", err)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	// namespace is not deleted on purpose

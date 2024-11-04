@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -32,7 +33,8 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for watcher. Cannot continue because it is vital.", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	if !ContainsLabelKey(pv.Labels, LabelKeyVolumeName) {

@@ -187,7 +187,7 @@ func prettyPrintSlogLine(line string) {
 	var data map[string]interface{}
 	err := json.Unmarshal([]byte(line), &data)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to unmarshal json: %s\n", err.Error()))
 	}
 
 	// unused fields
@@ -235,7 +235,7 @@ func prettyPrintSlogLine(line string) {
 	// create a colored single-line json string for all remaining data (aka. every additonal datapoint passed to slog)
 	prettyData, err := colorjson.Marshal(data)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to prettify json: %s\n", err.Error()))
 	}
 
 	// print the output
