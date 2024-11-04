@@ -263,7 +263,7 @@ func createNetworkPolicyDto(name string, spec v1.NetworkPolicySpec) dtos.K8sLabe
 func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 	namespaces, err := kubernetes.ListAllNamespaces()
 	if err != nil {
-		return []ListNetworkPolicyNamespace{}, fmt.Errorf("failed to list all namespaces, err: %s", err.Error())
+		return nil, fmt.Errorf("failed to list all namespaces, err: %s", err.Error())
 	}
 
 	policies, err := kubernetes.ListAllNetworkPolicies("")
@@ -281,8 +281,8 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 			fmt.Println("managed", policy.Namespace, policy.Name)
 		} else {
 			// unmanaged
-			managedKey := policy.Namespace
-			unmanagedMap[managedKey] = append(unmanagedMap[managedKey], idx)
+			unmanagedKey := policy.Namespace
+			unmanagedMap[unmanagedKey] = append(unmanagedMap[unmanagedKey], idx)
 			fmt.Println("unmanged", policy.Namespace, policy.Name)
 		}
 	}
@@ -359,19 +359,17 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
 		}
 
-		for _, values := range unmanagedMap {
-			for _, value := range values {
-				policy := policies[value]
+		for _, idx := range unmanagedMap[namespace.Name] {
+			policy := policies[idx]
 
-				conflictingNetworkPolicyDto := K8sConflictingNetworkPolicyDto{
-					Name:          punqUtils.Pointer(policy.Name),
-					NamespaceName: policy.Namespace,
-					Spec:          policy.Spec,
-					// NetworkPolicy:  policy,
-				}
-
-				namespaceDto.UnmanagedPolicies = append(namespaceDto.UnmanagedPolicies, conflictingNetworkPolicyDto)
+			conflictingNetworkPolicyDto := K8sConflictingNetworkPolicyDto{
+				Name:          punqUtils.Pointer(policy.Name),
+				NamespaceName: policy.Namespace,
+				Spec:          policy.Spec,
+				// NetworkPolicy:  policy,
 			}
+
+			namespaceDto.UnmanagedPolicies = append(namespaceDto.UnmanagedPolicies, conflictingNetworkPolicyDto)
 		}
 
 		namespacesDto = append(namespacesDto, namespaceDto)
