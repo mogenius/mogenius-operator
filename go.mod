@@ -7,7 +7,7 @@ require (
 	github.com/creack/pty v1.1.23
 	github.com/dgraph-io/badger/v4 v4.3.1
 	github.com/fatih/color v1.18.0
-	github.com/go-echarts/go-echarts/v2 v2.4.3
+	github.com/go-echarts/go-echarts/v2 v2.4.4
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/ilyakaznacheev/cleanenv v1.5.0
