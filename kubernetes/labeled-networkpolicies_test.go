@@ -30,6 +30,9 @@ var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
 }
 
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	var namespaceName = "mogenius"
 
 	err := EnsureLabeledNetworkPolicy(namespaceName, labelPolicy1)
@@ -44,6 +47,9 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 }
 
 func TestInitNetworkPolicyConfigMap(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := InitNetworkPolicyConfigMap()
 	if err != nil {
 		t.Errorf("Error initializing network policy config map: %s", err.Error())
@@ -51,6 +57,9 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 }
 
 func TestReadNetworkPolicyPorts(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	ports, err := ReadNetworkPolicyPorts()
 	if err != nil {
 		t.Errorf("Error reading network policy ports: %s", err.Error())
@@ -73,6 +82,9 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 }
 
 func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	var namespaceName = "mogenius"
 
 	// create simple nginx deployment with k8s
@@ -112,6 +124,9 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 }
 
 func TestListAllConflictingNetworkPolicies(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	list, err := ListAllConflictingNetworkPolicies("mogenius")
 	if err != nil {
 		t.Errorf("Error listing conflicting network policies: %s", err.Error())
@@ -120,6 +135,9 @@ func TestListAllConflictingNetworkPolicies(t *testing.T) {
 }
 
 func TestRemoveAllNetworkPolicies(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	t.Skip("skipping this test for manual testing")
 
 	err := RemoveAllConflictingNetworkPolicies("mogenius")
@@ -129,6 +147,9 @@ func TestRemoveAllNetworkPolicies(t *testing.T) {
 }
 
 func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := CleanupLabeledNetworkPolicies("mogenius")
 	if err != nil {
 		t.Errorf("Error TestCleanupMogeniusNetworkPolicies: %s", err.Error())
@@ -136,6 +157,9 @@ func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 }
 
 func TestListControllerLabeledNetworkPolicy(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	var namespaceName = "mogenius"
 
 	// create simple nginx deployment with k8s
@@ -180,6 +204,9 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 }
 
 func TestDeleteNetworkPolicy(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	var namespaceName = "mogenius"
 
 	err := DeleteNetworkPolicy(namespaceName, getNetworkPolicyName(labelPolicy1))

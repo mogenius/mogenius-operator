@@ -14,6 +14,9 @@ const (
 )
 
 func TestSecretListRender(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	yamlTemplate := utils.InitExternalSecretListYaml()
@@ -61,6 +64,9 @@ type YamlDataList struct {
 }
 
 func TestCreateExternalSecretList(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	testReq := externalSecretListExample()
@@ -74,6 +80,9 @@ func TestCreateExternalSecretList(t *testing.T) {
 }
 
 func TestCreateExternalSecret(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
 
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"

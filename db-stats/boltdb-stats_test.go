@@ -15,6 +15,9 @@ import (
 
 // test the functionality of the custom resource with a basic pod
 func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	stat := generateRandomInterfaceStats()
 
 	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test01.db"
@@ -58,6 +61,9 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 }
 
 func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test02.db"
 	utils.CONFIG.Stats.MaxDataPoints = 3
 	Start()

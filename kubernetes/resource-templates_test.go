@@ -7,6 +7,9 @@ import (
 
 // test the functionality of the custom resource with a basic pod
 func TestResourceTemplates(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	// CREATE

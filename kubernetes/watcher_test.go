@@ -14,6 +14,9 @@ func TestWatcherAdheresToInterface(t *testing.T) {
 }
 
 func TestWatcher(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	t.Log("TestWatcher")
 
 	createNewDeplString := `apiVersion: apps/v1
