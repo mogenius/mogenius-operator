@@ -1171,8 +1171,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		return NewMessageResponse(nil, controllers.UpdateNetworkPolicyTemplate(data))
 	case structs.PAT_LIST_ALL_NETWORK_POLICIES:
-		data := []kubernetes.NetworkPolicy{}
-		structs.MarshalUnmarshal(&datagram, &data)
 		return NewMessageResponse(controllers.ListAllNetworkPolicies())
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
