@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/shutdown"
 	utils "mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
@@ -31,20 +32,23 @@ func Deploy() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	applyNamespace(provider)
 	err = addRbac(provider)
 	if err != nil {
 		k8sLogger.Error("Error Creating RBAC. Aborting.", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 	addDeployment(provider)
 	_, err = CreateOrUpdateClusterSecret(nil)
 	if err != nil {
 		k8sLogger.Error("Error Creating cluster secret. Aborting.", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 }
 
@@ -201,7 +205,8 @@ func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterS
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
@@ -214,7 +219,8 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	configmapClient := provider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
@@ -297,7 +303,8 @@ func GetSyncRepoData() (*dtos.SyncRepoData, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
@@ -320,7 +327,8 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	if apikey == "" {
 		if utils.CONFIG.Kubernetes.RunInCluster {
 			k8sLogger.Error("Environment Variable 'api_key' is missing.")
-			panic(1)
+			shutdown.SendShutdownSignalAndBlockForever(true)
+			panic("unreachable")
 		} else {
 			apikey = utils.CONFIG.Kubernetes.ApiKey
 		}
@@ -329,7 +337,8 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	if clusterName == "" {
 		if utils.CONFIG.Kubernetes.RunInCluster {
 			k8sLogger.Error("Environment Variable 'cluster_name' is missing.")
-			panic(1)
+			shutdown.SendShutdownSignalAndBlockForever(true)
+			panic("unreachable")
 		} else {
 			clusterName = utils.CONFIG.Kubernetes.ClusterName
 		}
@@ -417,7 +426,8 @@ func InitOrUpdateCrds() {
 	err := CreateOrUpdateYamlString(utils.InitMogeniusCrdProjectsYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		k8sLogger.Error("Error updating/creating mogenius Project-CRDs.", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	} else {
 		k8sLogger.Info("Created/updated mogenius Project-CRDs. 🚀")
 	}
@@ -425,7 +435,8 @@ func InitOrUpdateCrds() {
 	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdEnvironmentsYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		k8sLogger.Error("Error updating/creating mogenius Environment-CRDs.", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	} else {
 		k8sLogger.Info("Created/updated mogenius Environment-CRDs. 🚀")
 	}
@@ -433,7 +444,8 @@ func InitOrUpdateCrds() {
 	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdApplicationKitYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		k8sLogger.Error("Error updating/creating mogenius ApplicationKit-CRDs.", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	} else {
 		k8sLogger.Info("Created/updated mogenius ApplicationKit-CRDs. 🚀")
 	}

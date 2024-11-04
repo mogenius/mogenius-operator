@@ -3,6 +3,7 @@ package utils
 import (
 	_ "embed"
 	"fmt"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/version"
 	"net/http"
 	"os"
@@ -264,7 +265,8 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		dirPath, err := os.MkdirTemp("", "mo_*")
 		if err != nil {
 			utilsLogger.Error("failed to create temp dir", "error", err)
-			panic(1)
+			shutdown.SendShutdownSignalAndBlockForever(true)
+			panic("unreachable")
 		}
 		utilsLogger.Info("TempDir created", "path", dirPath)
 	}
@@ -292,17 +294,20 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if CONFIG.Kubernetes.RunInCluster {
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
 			utilsLogger.Error("Environment Variable 'cluster_name' not setup. TERMINATING.")
-			panic(1)
+			shutdown.SendShutdownSignalAndBlockForever(true)
+			panic("unreachable")
 		}
 		if CONFIG.Kubernetes.ApiKey == "YOUR_API_KEY" || CONFIG.Kubernetes.ApiKey == "" {
 			utilsLogger.Error("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
-			panic(1)
+			shutdown.SendShutdownSignalAndBlockForever(true)
+			panic("unreachable")
 		}
 	}
 
 	if CONFIGVERSION > CONFIG.Config.Version {
 		utilsLogger.Error("Config version is outdated. Please delete your config file and restart the application.", "ConfigPath", ConfigPath, "version", CONFIG.Config.Version, "neededVersion", CONFIGVERSION)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 
 	// SET LOGGING
@@ -313,7 +318,9 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		go func() {
 			err := http.ListenAndServe("localhost:6060", nil)
 			if err != nil {
-				panic(err)
+				utilsLogger.Error("failed to start debug service", "error", err)
+				shutdown.SendShutdownSignalAndBlockForever(true)
+				panic("unreachable")
 			}
 			utilsLogger.Info("1. Portforward mogenius-k8s-manager to 6060")
 			utilsLogger.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
@@ -568,6 +575,7 @@ func writeDefaultConfig(stage string) {
 	}
 	if err != nil {
 		utilsLogger.Error("Error writing "+configPath+" file", "configPath", configPath, "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 }

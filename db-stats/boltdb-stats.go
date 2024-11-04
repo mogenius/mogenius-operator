@@ -3,6 +3,7 @@ package dbstats
 import (
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"strings"
@@ -31,7 +32,8 @@ func Start() {
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		dbStatsLogger.Error("Error opening bbolt database.", "dbPath", dbPath, "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 	dbStats = database
 

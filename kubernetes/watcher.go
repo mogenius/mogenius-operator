@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/interfaces"
+	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/utils"
 	"os"
@@ -239,7 +240,8 @@ func WatchAllResources(watcher interfaces.KubernetesWatcher) {
 	})
 	if err != nil {
 		k8sLogger.Error("Error watching resources", "error", err)
-		panic(1)
+		shutdown.SendShutdownSignalAndBlockForever(true)
+		panic("unreachable")
 	}
 }
 
@@ -610,6 +612,9 @@ func removeManagedFields(obj *unstructured.Unstructured) *unstructured.Unstructu
 	}
 	unstructuredContent := obj.Object
 	delete(unstructuredContent, "managedFields")
+	if unstructuredContent["metadata"] != nil {
+		delete(unstructuredContent["metadata"].(map[string]interface{}), "managedFields")
+	}
 	return obj
 }
 
