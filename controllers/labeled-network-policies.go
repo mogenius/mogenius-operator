@@ -260,7 +260,7 @@ func createNetworkPolicyDto(name string, spec v1.NetworkPolicySpec) dtos.K8sLabe
 	}
 }
 
-func ListAllNetworkPolicies() (interface{}, error) {
+func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 	namespaces, err := kubernetes.ListAllNamespaces()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list all namespaces, err: %s", err.Error())
@@ -370,7 +370,5 @@ func ListAllNetworkPolicies() (interface{}, error) {
 		namespacesDto = append(namespacesDto, namespaceDto)
 	}
 
-	return ListNetworkPolicyResponse{
-		Namespaces: namespacesDto,
-	}, nil
+	return namespacesDto, nil
 }
