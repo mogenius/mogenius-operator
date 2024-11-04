@@ -17,6 +17,7 @@ require (
 	github.com/mogenius/punq v1.5.0-develop.76
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/shirou/gopsutil/v4 v4.24.10
 	github.com/spf13/cobra v1.8.1
 	go.etcd.io/bbolt v1.3.11
 	helm.sh/helm/v3 v3.16.2
