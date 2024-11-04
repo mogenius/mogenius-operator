@@ -7,8 +7,6 @@ import (
 	"mogenius-k8s-manager/utils"
 	"net/http"
 	"net/url"
-	"os"
-	"os/signal"
 	"sync"
 	"time"
 
@@ -168,10 +166,6 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 }
 
 func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
-	interrupt := make(chan os.Signal, 1)
-	defer close(interrupt)
-	signal.Notify(interrupt, os.Interrupt)
-
 	pingTicker := time.NewTicker(time.Second * PingSeconds)
 
 	for {
@@ -184,20 +178,6 @@ func Ping(c *websocket.Conn, sendMutex *sync.Mutex) error {
 				structsLogger.Error("pingTicker", "error", err)
 				return err
 			}
-		case <-interrupt:
-			structsLogger.Error("interrupt")
-
-			// Cleanly close the connection by sending a close message and then
-			// waiting (with timeout) for the server to close the connection.
-			sendMutex.Lock()
-			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			sendMutex.Unlock()
-			if err != nil {
-				// StructsLogger.Error("write close", "error", err)
-				return err
-			}
-			time.Sleep(1 * time.Second)
-			return nil
 		}
 	}
 }

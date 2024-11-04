@@ -138,7 +138,7 @@ func Start() {
 	dbLogger.Info("bbold started 🚀", "dbPath", dbPath)
 }
 
-func Close() {
+func close() {
 	dbLogger.Info("Shutting down db...")
 	if db != nil {
 		db.Close()

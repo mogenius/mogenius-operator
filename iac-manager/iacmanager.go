@@ -761,17 +761,8 @@ func pullChanges(lastAppliedCommit *GitActionStatus) (lastCommit *object.Commit,
 	}
 
 	iacLogger.Info("🔄 Pulled changes from the remote repository.", "modifiedFilesCount", len(updatedFiles), "deletedFilesCount", len(deletedFiles))
-	if utils.CONFIG.Misc.Debug {
-		iacLogger.Info("Added/Updated Files", "count", len(updatedFiles))
-		for _, file := range updatedFiles {
-			iacLogger.Info(file)
-		}
-
-		iacLogger.Info("Deleted Files", "count", len(deletedFiles))
-		for _, file := range deletedFiles {
-			iacLogger.Info(file)
-		}
-	}
+	iacLogger.Debug("Added/Updated Files", "count", len(updatedFiles), "files", updatedFiles)
+	iacLogger.Debug("Deleted Files", "count", len(deletedFiles), "files", deletedFiles)
 
 	// Get the list of contributors
 	contributor, contributorErr := gitmanager.GetContributors(utils.CONFIG.Kubernetes.GitVaultDataPath)
@@ -819,11 +810,7 @@ func pushChanges() error {
 		return fmt.Errorf("Error running git push: %s", err.Error())
 	}
 	iacLogger.Info("🔄 Pushed changes to remote repository.", "count", ChangedFilesLen())
-	if utils.CONFIG.Misc.Debug {
-		for _, file := range GetChangedFiles() {
-			iacLogger.Info(file.Name)
-		}
-	}
+	iacLogger.Debug("changed files", "files", GetChangedFiles())
 	ClearChangedFiles()
 	return nil
 }

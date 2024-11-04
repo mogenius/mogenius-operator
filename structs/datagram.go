@@ -107,23 +107,41 @@ func (d *Datagram) DisplayBeautiful() {
 }
 
 func (d *Datagram) DisplayReceiveSummary() {
-	message := fmt.Sprintf("%s%s%s%s     %s\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "))
-	structsLogger.Info(message)
+	structsLogger.Debug("RECEIVED",
+		"pattern", d.Pattern,
+		"id", d.Id,
+		"username", d.Username,
+		"size", d.GetSize(),
+	)
 }
 
 func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
-	message := fmt.Sprintf("%s%s%s%s     %s %s %s\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "), punqUtils.FillWith(punqStructs.DurationStrSince(d.CreatedAt), 12, " "), color.YellowString(fmt.Sprintf("[Queue: %d/%d]", queuePosition, queueLen)))
-	structsLogger.Info(message)
+	structsLogger.Debug("SENT",
+		"pattern", d.Pattern,
+		"id", d.Id,
+		"username", d.Username,
+		"size", d.GetSize(),
+		"createdAt", d.CreatedAt,
+		"queuePosition", queuePosition,
+		"queueLen", queueLen,
+	)
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
-	message := fmt.Sprintf("%s%s: %s/%s -> %s (Count: %d)\n", punqUtils.FillWith("SENT", 23, " "), d.Pattern, kind, reason, msg, count)
-	structsLogger.Info(message)
+	structsLogger.Debug("SENT",
+		"pattern", d.Pattern,
+		"kind", kind,
+		"reason", reason,
+		"msg", msg,
+		"count", count,
+	)
 }
 
 func (d *Datagram) DisplayStreamSummary() {
-	message := fmt.Sprintf("%s%s%s\n", punqUtils.FillWith("STREAMING", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
-	structsLogger.Info(message)
+	structsLogger.Debug("STREAMING",
+		"pattern", d.Pattern,
+		"id", d.Id,
+	)
 }
 
 func (d *Datagram) Send() {

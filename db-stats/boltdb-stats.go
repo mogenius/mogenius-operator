@@ -93,7 +93,7 @@ func Start() {
 	}()
 }
 
-func Close() {
+func close() {
 	dbStatsLogger.Info("Shutting down db...")
 	if dbStats != nil {
 		dbStats.Close()

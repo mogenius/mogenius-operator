@@ -3,7 +3,6 @@ package dtos
 import (
 	"encoding/base64"
 	"fmt"
-	"log/slog"
 	"strconv"
 	"strings"
 
@@ -36,7 +35,6 @@ type K8sContainerDto struct {
 }
 
 var KubernetesGetSecretValueByPrefixControllerNameAndKey func(string, string, string, string) (string, error)
-var KubernetesK8sLogger *slog.Logger
 
 func (k *K8sContainerDto) GetInjectDockerEnvVars(namespaceName string, buildId uint64, gitTag string) string {
 	buildIdStr := strconv.FormatUint(buildId, 10)
@@ -50,7 +48,12 @@ func (k *K8sContainerDto) GetInjectDockerEnvVars(namespaceName string, buildId u
 			// get value from secret hashicorp vault
 			value, err := KubernetesGetSecretValueByPrefixControllerNameAndKey(namespaceName, k.Name, v.Data.VaultStore, v.Data.VaultKey)
 			if err != nil {
-				KubernetesK8sLogger.Error("Error getting secret value by prefix, controller name and key", "namespace", namespaceName, "error", err)
+				k8sLogger, err := logManager.GetLogger("kubernetes")
+				if err != nil {
+					dtosLogger.Error("failed to get 'kubernetes' logger", "error", err)
+				} else {
+					k8sLogger.Error("Error getting secret value by prefix, controller name and key", "namespace", namespaceName, "error", err)
+				}
 			}
 			result += fmt.Sprintf("--build-arg %s=\"$(echo \"%s\" | base64 -d)\" ", v.Name, base64.StdEncoding.EncodeToString([]byte(value)))
 		}
