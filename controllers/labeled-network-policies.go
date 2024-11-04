@@ -278,12 +278,10 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 			// managed
 			managedKey := fmt.Sprintf("%s--%s-%s", policy.Namespace, kubernetes.PoliciesLabelPrefix, policy.Name)
 			managedMap[managedKey] = idx
-			fmt.Println("managed", policy.Namespace, policy.Name)
 		} else {
 			// unmanaged
 			unmanagedKey := policy.Namespace
 			unmanagedMap[unmanagedKey] = append(unmanagedMap[unmanagedKey], idx)
-			fmt.Println("unmanged", policy.Namespace, policy.Name)
 		}
 	}
 
