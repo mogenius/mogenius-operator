@@ -189,3 +189,8 @@ func ListControllerLabeledNetwork(data ListControllerLabeledNetworkPoliciesReque
 func UpdateNetworkPolicyTemplate(policies []kubernetes.NetworkPolicy) error {
 	return kubernetes.UpdateNetworkPolicyTemplate(policies)
 }
+
+func ListAllNetworkPolicies() ([]interface{}, error) {
+	// return kubernetes.ListAllNetworkPolicies()
+	return nil, nil
+}

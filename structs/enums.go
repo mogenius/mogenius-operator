@@ -255,6 +255,7 @@ const (
 	PAT_LIST_CONTROLLER_NETWORK_POLICIES    string = "list/controller_network_policies"
 	PAT_REMOVE_CONFLICTING_NETWORK_POLICIES string = "remove/conflicting_network_policies"
 	PAT_UPDATE_NETWORK_POLICIES_TEMPLATE    string = "update/network_policies_template"
+	PAT_LIST_ALL_NETWORK_POLICIES           string = "list/all_network_policies"
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -479,6 +480,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_LIST_CONTROLLER_NETWORK_POLICIES,
 	PAT_REMOVE_CONFLICTING_NETWORK_POLICIES,
 	PAT_UPDATE_NETWORK_POLICIES_TEMPLATE,
+	PAT_LIST_ALL_NETWORK_POLICIES,
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
