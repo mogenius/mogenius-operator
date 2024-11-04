@@ -244,7 +244,7 @@ func WatchAllResources(watcher interfaces.KubernetesWatcher) {
 }
 
 func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
+	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" || kind == "Namespace" {
 		err := store.GlobalStore.Set(obj, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error setting object in store", "error", err)
@@ -278,7 +278,7 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 }
 
 func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
+	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" || kind == "Namespace" {
 		err := store.GlobalStore.Delete(kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)

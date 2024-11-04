@@ -19,9 +19,6 @@ import (
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	punq "github.com/mogenius/punq/kubernetes"
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 // The first rule of NetworkPolicy-Club is: you do not talk about NetworkPolicy-Club.
@@ -552,7 +549,7 @@ func CreateDenyAllNetworkPolicy(namespaceName string) error {
 
 func cleanupUnusedDenyAll(namespaceName string) {
 	// list all network policies and find all that have the marker label
-	policies, err := listAllNetworkPolicies(namespaceName)
+	policies, err := ListAllNetworkPolicies(namespaceName)
 	if err != nil {
 		k8sLogger.Error("cleanupNetworkPolicies", "error", err)
 		return
@@ -704,7 +701,7 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 }
 
 func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyList, error) {
-	policies, err := listAllNetworkPolicies(namespaceName)
+	policies, err := ListAllNetworkPolicies(namespaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -724,10 +721,10 @@ func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyL
 	}, nil
 }
 
-func listAllNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
+func ListAllNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
 	result := []v1.NetworkPolicy{}
 
-	policies, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.NetworkPolicy{}), namespaceName)
+	policies, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.NetworkPolicy{}), "NetworkPolicy", namespaceName)
 	if err != nil {
 		k8sLogger.Error("ListAllNetworkPolicies", "error", err)
 		return result, err
@@ -749,14 +746,14 @@ func listAllNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
 	return result, nil
 }
 
-func ListAllNetworkPolicies(namespaceName string) punqUtils.K8sWorkloadResult {
-	result, err := listAllNetworkPolicies(namespaceName)
-	if err != nil {
-		return punq.WorkloadResult(nil, err)
-	}
+// func ListAllNetworkPolicies(namespaceName string) punqUtils.K8sWorkloadResult {
+// 	result, err := listAllNetworkPolicies(namespaceName)
+// 	if err != nil {
+// 		return punq.WorkloadResult(nil, err)
+// 	}
 
-	return punq.WorkloadResult(result, nil)
-}
+// 	return punq.WorkloadResult(result, nil)
+// }
 
 func extractLabels(maps ...map[string]string) map[string]string {
 	mergedLabels := make(map[string]string)
@@ -814,7 +811,7 @@ func ListControllerLabeledNetworkPolicies(
 
 	netpols := []dtos.K8sLabeledNetworkPolicyDto{}
 
-	policies, err := listAllNetworkPolicies(namespaceName)
+	policies, err := ListAllNetworkPolicies(namespaceName)
 	if err != nil {
 		return nil, err
 	}

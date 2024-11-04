@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
+	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 )
 
@@ -190,7 +191,181 @@ func UpdateNetworkPolicyTemplate(policies []kubernetes.NetworkPolicy) error {
 	return kubernetes.UpdateNetworkPolicyTemplate(policies)
 }
 
-func ListAllNetworkPolicies() ([]interface{}, error) {
-	// return kubernetes.ListAllNetworkPolicies()
-	return nil, nil
+type ListNetworkPolicyResponse struct {
+	Namespaces []ListNetworkPolicyNamespace `json:"namespaces" validate:"required"`
+}
+
+type ListNetworkPolicyNamespace struct {
+	Id                string                        `json:"id" validate:"required"`
+	DisplayName       string                        `json:"displayName" validate:"required"`
+	Name              string                        `json:"name" validate:"required"`
+	ProjectId         string                        `json:"projectId" validate:"required"`
+	Controllers       []ListNetworkPolicyController `json:"controllers" validate:"required"`
+	UnmanagedPolicies []interface{}                 `json:"unmanagedPolicies" validate:"required"`
+}
+
+type ListNetworkPolicyController struct {
+	ControllerName         string                            `json:"controllerName" validate:"required"`
+	ControllerType         dtos.K8sServiceControllerEnum     `json:"controllerType" validate:"required"`
+	ServiceId              string                            `json:"serviceId" validate:"required"`
+	LabeledNetworkPolicies []dtos.K8sLabeledNetworkPolicyDto `json:"networkPolicies" validate:"required"`
+}
+
+func ListAllNetworkPolicies() (interface{}, error) {
+	namespaces, err := kubernetes.ListAllNamespaces()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all namespaces, err: %s", err.Error())
+	}
+
+	policies, err := kubernetes.ListAllNetworkPolicies("")
+	if err != nil {
+	}
+
+	managedMap := make(map[string]int)
+	unmanagedMap := make(map[string]int)
+	for idx, policy := range policies {
+		isManaged := policy.Labels != nil && policy.Labels[kubernetes.NetpolLabel] == "true"
+		if isManaged {
+			// managed
+			managedKey := fmt.Sprintf("%s--%s-%s", policy.Namespace, kubernetes.PoliciesLabelPrefix, policy.Name)
+			managedMap[managedKey] = idx
+			fmt.Println("managed", policy.Namespace, policy.Name)
+		} else {
+			// unmanaged
+			managedKey := fmt.Sprintf("%s--%s", policy.Namespace, policy.Name)
+			unmanagedMap[managedKey] = idx
+			fmt.Println("unmanged", policy.Namespace, policy.Name)
+		}
+	}
+
+	var namespacesDto []ListNetworkPolicyNamespace
+	for _, namespace := range namespaces {
+		namespaceDto := ListNetworkPolicyNamespace{
+			Name: namespace.Name,
+		}
+		namespacesDto = append(namespacesDto, namespaceDto)
+
+		deployments, err := kubernetes.ListAllDeployments(namespace.Name)
+		if err != nil {
+		}
+		for _, deployment := range deployments {
+			controllerDto := ListNetworkPolicyController{
+				ControllerName: deployment.Name,
+				ControllerType: dtos.DEPLOYMENT,
+			}
+
+			if deployment.Spec.Template.Labels != nil {
+				for key, _ := range deployment.Spec.Template.Labels {
+					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
+					if idx, ok := managedMap[managedKey]; ok {
+						var typeOf dtos.K8sNetworkPolicyType
+						var port uint16
+						var portType dtos.PortTypeEnum
+
+						spec := policies[idx].Spec
+
+						if len(spec.Ingress) > 0 {
+							typeOf = dtos.Ingress
+
+							port = uint16(spec.Ingress[0].Ports[0].Port.IntVal)
+
+							if spec.Ingress[0].Ports[0].Protocol == nil {
+								portType = dtos.PortTypeTCP
+							} else {
+								switch *spec.Ingress[0].Ports[0].Protocol {
+								case v1Core.ProtocolUDP:
+									portType = dtos.PortTypeUDP
+								case v1Core.ProtocolSCTP:
+									portType = dtos.PortTypeSCTP
+								default:
+									portType = dtos.PortTypeTCP
+								}
+							}
+						} else if len(spec.Egress) > 0 {
+							typeOf = dtos.Egress
+
+							port = uint16(spec.Egress[0].Ports[0].Port.IntVal)
+
+							if spec.Egress[0].Ports[0].Protocol == nil {
+								portType = dtos.PortTypeTCP
+							} else {
+								switch *spec.Egress[0].Ports[0].Protocol {
+								case v1Core.ProtocolUDP:
+									portType = dtos.PortTypeUDP
+								case v1Core.ProtocolSCTP:
+									portType = dtos.PortTypeSCTP
+								default:
+									portType = dtos.PortTypeTCP
+								}
+							}
+						}
+
+						controllerDto.LabeledNetworkPolicies = append(controllerDto.LabeledNetworkPolicies, dtos.K8sLabeledNetworkPolicyDto{
+							Name:     policies[idx].Name,
+							Type:     typeOf,
+							Port:     port,
+							PortType: portType,
+						})
+					}
+				}
+			}
+
+			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
+		}
+
+		daemonsets, err := kubernetes.ListAllDaemonSets(namespace.Name)
+		if err != nil {
+		}
+		for _, daemonset := range daemonsets {
+			controllerDto := ListNetworkPolicyController{
+				ControllerName: daemonset.Name,
+				ControllerType: dtos.DAEMON_SET,
+			}
+			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
+		}
+
+		statefulsets, err := kubernetes.ListAllStatefulSets(namespace.Name)
+		if err != nil {
+		}
+		for _, statefulset := range statefulsets {
+			controllerDto := ListNetworkPolicyController{
+				ControllerName: statefulset.Name,
+				ControllerType: dtos.STATEFUL_SET,
+			}
+			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
+		}
+
+		for key, value := range unmanagedMap {
+			fmt.Println("unmanaged", key, value)
+		}
+	}
+
+	response := ListNetworkPolicyResponse{
+		Namespaces: []ListNetworkPolicyNamespace{
+			{
+				Id:          "1",
+				DisplayName: "default",
+				Name:        "default",
+				ProjectId:   "1",
+				Controllers: []ListNetworkPolicyController{
+					{
+						ControllerName: "mogenius-controller-1",
+						ControllerType: dtos.DEPLOYMENT,
+						ServiceId:      "1",
+						LabeledNetworkPolicies: []dtos.K8sLabeledNetworkPolicyDto{
+							{
+								Name:     "mogenius-policy-1",
+								Type:     dtos.Ingress,
+								Port:     80,
+								PortType: dtos.PortTypeHTTPS,
+							},
+						},
+					},
+				},
+				UnmanagedPolicies: []interface{}{},
+			},
+		},
+	}
+
+	return response, nil
 }
