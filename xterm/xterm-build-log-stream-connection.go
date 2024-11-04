@@ -20,7 +20,7 @@ func readChannelBuildLog(ch chan string, conn *websocket.Conn, ctx context.Conte
 			if conn != nil {
 				err := conn.WriteMessage(websocket.TextMessage, []byte(message))
 				if err != nil {
-					XtermLogger.Error("WriteMessage", "error", err)
+					xtermLogger.Error("WriteMessage", "error", err)
 				}
 			}
 			continue
@@ -30,12 +30,12 @@ func readChannelBuildLog(ch chan string, conn *websocket.Conn, ctx context.Conte
 
 func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string, container string, buildTask structs.BuildPrefixEnum, buildId uint64) {
 	if wsConnectionRequest.WebsocketScheme == "" {
-		XtermLogger.Error("WebsocketScheme is empty")
+		xtermLogger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		XtermLogger.Error("WebsocketHost is empty")
+		xtermLogger.Error("WebsocketHost is empty")
 		return
 	}
 
@@ -45,7 +45,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// websocket connection
 	readMessages, conn, err := generateWsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		XtermLogger.Error("Unable to connect to websocket", "error", err)
+		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 

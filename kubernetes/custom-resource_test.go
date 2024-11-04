@@ -6,6 +6,9 @@ import (
 
 // test the functionality of the custom resource with a basic pod
 func TestCustomResource(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	yamlData := `apiVersion: v1
 kind: Pod
 metadata:
@@ -21,7 +24,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource applied ✅")
+		k8sLogger.Info("Resource applied ✅")
 	}
 
 	// UPDATE (same resource), on second call the update client call is tested
@@ -29,7 +32,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource updated ✅")
+		k8sLogger.Info("Resource updated ✅")
 	}
 
 	// GET
@@ -37,7 +40,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource retrieved ✅")
+		k8sLogger.Info("Resource retrieved ✅")
 	}
 
 	// LIST
@@ -45,7 +48,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resources listed ✅")
+		k8sLogger.Info("Resources listed ✅")
 	}
 
 	// DELETE
@@ -53,13 +56,16 @@ spec:
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource deleted ✅")
+		k8sLogger.Info("Resource deleted ✅")
 	}
 }
 
 // test the functionality of the custom resource with a
 // properly "custom" resource, the secret store
 func TestSecretStoreResource(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	yamlData := `apiVersion: external-secrets.io/v1beta1
 kind: ClusterSecretStore
 metadata:
@@ -87,7 +93,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource applied ✅")
+		k8sLogger.Info("Resource applied ✅")
 	}
 
 	// UPDATE (same resource), on second call the update client call is tested
@@ -95,7 +101,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource updated ✅")
+		k8sLogger.Info("Resource updated ✅")
 	}
 
 	// LIST
@@ -103,7 +109,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resources listed ✅")
+		k8sLogger.Info("Resources listed ✅")
 	}
 
 	// GET
@@ -111,7 +117,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource retrieved ✅")
+		k8sLogger.Info("Resource retrieved ✅")
 	}
 
 	// DELETE
@@ -119,7 +125,7 @@ spec:
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource deleted ✅")
+		k8sLogger.Info("Resource deleted ✅")
 	}
 
 	err = DeleteServiceAccount("external-secrets-sa", "default")

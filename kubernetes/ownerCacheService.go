@@ -35,7 +35,7 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 
 	pod := punq.GetPod(namespace, podName, nil)
 	if pod == nil {
-		K8sLogger.Error("Pod: '%s/%s' not found.", namespace, podName)
+		k8sLogger.Error("Pod: '%s/%s' not found.", namespace, podName)
 		return nil
 	}
 	ctlr := OwnerFromReference(pod.Namespace, pod.OwnerReferences)
@@ -44,7 +44,7 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 		return ctlr
 	}
 
-	K8sLogger.Debug("Pod: '%s/%s' has no owner.", namespace, podName)
+	k8sLogger.Debug("Pod: '%s/%s' has no owner.", namespace, podName)
 	return nil
 }
 
@@ -133,7 +133,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 		case "Node":
 			data, err := punq.GetK8sNode(owner.Name, nil)
 			if err != nil {
-				K8sLogger.Error("Error getting node", "error", err)
+				k8sLogger.Error("Error getting node", "error", err)
 				return nil
 			}
 			if data != nil {
@@ -146,7 +146,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			return nil
 		default:
-			K8sLogger.Error("NOT IMPLEMENTED owner kind", "owner kind", owner.Kind)
+			k8sLogger.Error("NOT IMPLEMENTED owner kind", "owner kind", owner.Kind)
 			return nil
 		}
 	}

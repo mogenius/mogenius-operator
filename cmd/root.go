@@ -4,44 +4,54 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
+	"log/slog"
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
-	"os"
 
-	cc "github.com/ivanpirog/coloredcobra"
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
+
+	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/spf13/cobra"
+	"k8s.io/klog/v2"
 )
 
-var CmdLogger = logging.CreateLogger("cmd")
+type rootCmdConfig struct {
+	resetConfig  bool
+	stage        string
+	debug        bool
+	customConfig string
+}
 
-var resetConfig bool
-var stage string
-var debug bool = false
-var customConfig string
+var rootConfig rootCmdConfig
+
+var slogManager logging.SlogManager = logging.NewSlogManager()
+var cmdLogger *slog.Logger
+var klogLogger *slog.Logger
 
 var rootCmd = &cobra.Command{
 	Use:   "mogenius-k8s-manager",
 	Short: "Control your kubernetes cluster the easy way",
 	Long: `
 Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		if resetConfig {
-			utils.DeleteCurrentConfig()
-		}
-		utils.InitConfigYaml(debug, customConfig, stage)
-		punq.InitKubernetes(utils.CONFIG.Kubernetes.RunInCluster)
+}
 
-		if utils.ClusterProviderCached == punqDtos.UNKNOWN {
-			foundProvider, err := punq.GuessClusterProvider(nil)
-			if err != nil {
-				CmdLogger.Error("GuessClusterProvider", "error", err)
-			}
-			utils.ClusterProviderCached = foundProvider
-			CmdLogger.Info("🎲 🎲 🎲 ClusterProvider", "foundProvider", string(foundProvider))
+// TODO: this needs to be integrated in some smarter way
+func preRun() {
+	if rootConfig.resetConfig {
+		utils.DeleteCurrentConfig()
+	}
+	utils.InitConfigYaml(rootConfig.debug, rootConfig.customConfig, rootConfig.stage)
+	punq.InitKubernetes(utils.CONFIG.Kubernetes.RunInCluster)
+
+	if utils.ClusterProviderCached == punqDtos.UNKNOWN {
+		foundProvider, err := punq.GuessClusterProvider(nil)
+		if err != nil {
+			cmdLogger.Error("GuessClusterProvider", "error", err)
 		}
-	},
+		utils.ClusterProviderCached = foundProvider
+		cmdLogger.Info("🎲 🎲 🎲 ClusterProvider", "foundProvider", string(foundProvider))
+	}
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -58,13 +68,17 @@ func Execute() {
 
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		panic(1)
 	}
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&stage, "stage", "s", "", "Use different stage environment")
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Enable debug information")
-	rootCmd.PersistentFlags().BoolVarP(&resetConfig, "reset-config", "k", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
-	rootCmd.PersistentFlags().StringVarP(&customConfig, "config", "y", "", "Use config from custom location")
+	slogManager = logging.NewSlogManager()
+	cmdLogger = slogManager.CreateLogger("cmd")
+	klogLogger = slogManager.CreateLogger("klog")
+	klog.SetSlogLogger(klogLogger)
+	rootCmd.PersistentFlags().StringVarP(&rootConfig.stage, "stage", "s", "", "Use different stage environment")
+	rootCmd.PersistentFlags().BoolVarP(&rootConfig.debug, "debug", "d", false, "Enable debug information")
+	rootCmd.PersistentFlags().BoolVarP(&rootConfig.resetConfig, "reset-config", "k", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
+	rootCmd.PersistentFlags().StringVarP(&rootConfig.customConfig, "config", "y", "", "Use config from custom location")
 }

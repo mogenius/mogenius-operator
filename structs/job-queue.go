@@ -56,7 +56,7 @@ func ConnectToJobQueue() {
 
 		select {
 		case <-interrupt:
-			StructsLogger.Info("CTRL + C pressed. Terminating.")
+			structsLogger.Info("CTRL + C pressed. Terminating.")
 			panic(1)
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
@@ -69,15 +69,15 @@ func connectJob(ctx context.Context) {
 
 	connection, _, err := websocket.DefaultDialer.Dial(JobConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
-		StructsLogger.Error("Connection to JobServer failed", "url", JobConnectionUrl.String(), "error", err)
+		structsLogger.Error("Connection to JobServer failed", "url", JobConnectionUrl.String(), "error", err)
 		JobConnectionStatus <- false
 	} else {
-		StructsLogger.Info("Connected to JobServer", "url", JobConnectionUrl.String(), "localAddr", connection.LocalAddr().String())
+		structsLogger.Info("Connected to JobServer", "url", JobConnectionUrl.String(), "localAddr", connection.LocalAddr().String())
 		JobQueueConnection = connection
 		JobConnectionStatus <- true
 		err := Ping(JobQueueConnection, &JobSendMutex)
 		if err != nil {
-			StructsLogger.Error("Error pinging job queue", "error", err)
+			structsLogger.Error("Error pinging job queue", "error", err)
 		}
 	}
 
@@ -109,18 +109,18 @@ func processJobNow() {
 				element.DisplaySentSummary(i+1, len(jobDataQueue))
 				if isSuppressed := punqUtils.Contains(SUPPRESSED_OUTPUT_PATTERN, element.Pattern); !isSuppressed {
 					if utils.CONFIG.Misc.Debug {
-						StructsLogger.Info(utils.PrettyPrintInterface(element.Payload))
+						structsLogger.Info(utils.PrettyPrintInterface(element.Payload))
 					}
 				}
 				jobDataQueue = removeJobIndex(jobDataQueue, i)
 			} else {
-				StructsLogger.Error("Error writing json in job queue", "error", err)
+				structsLogger.Error("Error writing json in job queue", "error", err)
 				return
 			}
 		}
 	} else {
 		if utils.CONFIG.Misc.Debug {
-			StructsLogger.Error("jobQueueConnection is nil.")
+			structsLogger.Error("jobQueueConnection is nil.")
 		}
 	}
 }

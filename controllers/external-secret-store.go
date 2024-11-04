@@ -2,12 +2,9 @@ package controllers
 
 import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logging"
 	servicesExternal "mogenius-k8s-manager/services-external"
 	"mogenius-k8s-manager/utils"
 )
-
-var ControllerLogger = logging.CreateLogger("controllers")
 
 type CreateSecretsStoreRequest struct {
 	// Secrets stores are bound to a projects,
@@ -84,7 +81,7 @@ func CreateExternalSecretStore(data CreateSecretsStoreRequest) CreateSecretsStor
 func ListExternalSecretsStores(data ListSecretStoresRequest) []mokubernetes.SecretStore {
 	stores, err := mokubernetes.ListExternalSecretsStores(data.ProjectId)
 	if err != nil {
-		ControllerLogger.Error("Getting secret stores failed", "error", err)
+		controllerLogger.Error("Getting secret stores failed", "error", err)
 	}
 	return stores
 }
@@ -92,7 +89,7 @@ func ListExternalSecretsStores(data ListSecretStoresRequest) []mokubernetes.Secr
 func ListAvailableExternalSecrets(data ListSecretsRequest) []string {
 	availSecrets := servicesExternal.ListAvailableExternalSecrets(data.NamePrefix)
 	if availSecrets == nil {
-		ControllerLogger.Error("Getting available secrets failed")
+		controllerLogger.Error("Getting available secrets failed")
 		return []string{}
 	}
 	return availSecrets
@@ -101,7 +98,7 @@ func ListAvailableExternalSecrets(data ListSecretsRequest) []string {
 func DeleteExternalSecretsStore(data DeleteSecretsStoreRequest) DeleteSecretsStoreResponse {
 	err := servicesExternal.DeleteExternalSecretsStore(data.Name)
 	if err != nil {
-		ControllerLogger.Error("Deleting secret store failed", "error", err)
+		controllerLogger.Error("Deleting secret store failed", "error", err)
 		return DeleteSecretsStoreResponse{
 			Status:       "ERROR",
 			ErrorMessage: err.Error(),

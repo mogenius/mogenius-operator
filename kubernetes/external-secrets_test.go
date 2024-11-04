@@ -14,6 +14,9 @@ const (
 )
 
 func TestSecretListRender(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	yamlTemplate := utils.InitExternalSecretListYaml()
@@ -24,7 +27,7 @@ func TestSecretListRender(t *testing.T) {
 	if yamlTemplate == yamlDataRendered {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
 	} else {
-		K8sLogger.Info("Yaml data updated (1/2) ✅")
+		k8sLogger.Info("Yaml data updated (1/2) ✅")
 	}
 
 	// change values and compare
@@ -35,7 +38,7 @@ func TestSecretListRender(t *testing.T) {
 	if yamlDataRenderedChanged == yamlDataRendered {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
 	} else {
-		K8sLogger.Info("Yaml data updated (2/2) ✅")
+		k8sLogger.Info("Yaml data updated (2/2) ✅")
 	}
 
 	// check if the values are replaced as expected
@@ -48,7 +51,7 @@ func TestSecretListRender(t *testing.T) {
 	if data.Spec.Target.Name != expectedName {
 		t.Errorf("Error updating Name: expected: %s, got: %s", expectedName, data.Spec.Target.Name)
 	} else {
-		K8sLogger.Info("MoSharedPath updated ✅")
+		k8sLogger.Info("MoSharedPath updated ✅")
 	}
 }
 
@@ -61,6 +64,9 @@ type YamlDataList struct {
 }
 
 func TestCreateExternalSecretList(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	testReq := externalSecretListExample()
@@ -69,11 +75,14 @@ func TestCreateExternalSecretList(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating external secret list. Err: %s", err.Error())
 	} else {
-		K8sLogger.Info("Secret store created ✅")
+		k8sLogger.Info("Secret store created ✅")
 	}
 }
 
 func TestCreateExternalSecret(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
 
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
@@ -89,6 +98,6 @@ func TestCreateExternalSecret(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating external secret list. Err: %s", err.Error())
 	} else {
-		K8sLogger.Info("Secret store created ✅", "store", secretName)
+		k8sLogger.Info("Secret store created ✅", "store", secretName)
 	}
 }

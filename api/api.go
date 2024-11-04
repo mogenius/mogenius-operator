@@ -6,7 +6,6 @@ import (
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
 	iacmanager "mogenius-k8s-manager/iac-manager"
-	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -15,8 +14,6 @@ import (
 
 	punq "github.com/mogenius/punq/kubernetes"
 )
-
-var HttpLogger = logging.CreateLogger("http")
 
 func InitApi() {
 	mux := http.NewServeMux()
@@ -38,10 +35,10 @@ func InitApi() {
 		mux.Handle("GET /debug/list-templates", withRequestLogging(http.HandlerFunc(debugListTemplates)))
 	}
 
-	HttpLogger.Info("Starting API server...", "port", 1338)
+	httpLogger.Info("Starting API server...", "port", 1338)
 	err := http.ListenAndServe(":1337", mux)
 	if err != nil {
-		HttpLogger.Error("failed to start api server", "error", err)
+		httpLogger.Error("failed to start api server", "error", err)
 	}
 }
 
@@ -57,7 +54,7 @@ func getHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(healthStatus)
 	if err != nil {
-		HttpLogger.Error("failed to json encode response", "error", err)
+		httpLogger.Error("failed to json encode response", "error", err)
 	}
 }
 
@@ -67,23 +64,23 @@ func postTraffic(w http.ResponseWriter, r *http.Request) {
 
 	err := json.Indent(&out, []byte(body), "", "  ")
 	if err != nil {
-		HttpLogger.Error("Error indenting json", "error", err)
+		httpLogger.Error("Error indenting json", "error", err)
 	}
 	if utils.CONFIG.Misc.LogIncomingStats {
-		HttpLogger.Info(out.String())
+		httpLogger.Info(out.String())
 	}
 
 	stat := &structs.InterfaceStats{}
 	err = structs.UnmarshalInterfaceStats(stat, out.Bytes())
 	if err != nil {
-		HttpLogger.Error("failed to unmarshal interface stats", "error", err)
+		httpLogger.Error("failed to unmarshal interface stats", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
 		})
 		if err != nil {
-			HttpLogger.Error("failed to json encode response", "error", err)
+			httpLogger.Error("failed to json encode response", "error", err)
 		}
 		return
 	}
@@ -97,23 +94,23 @@ func postPodStats(w http.ResponseWriter, r *http.Request) {
 
 	err := json.Indent(&out, []byte(body), "", "  ")
 	if err != nil {
-		HttpLogger.Error("Error indenting json", "error", err)
+		httpLogger.Error("Error indenting json", "error", err)
 	}
 	if utils.CONFIG.Misc.LogIncomingStats {
-		HttpLogger.Info(out.String())
+		httpLogger.Info(out.String())
 	}
 
 	stat := &structs.PodStats{}
 	err = structs.UnmarshalPodStats(stat, out.Bytes())
 	if err != nil {
-		HttpLogger.Error("failed to unmarshal interface stats", "error", err)
+		httpLogger.Error("failed to unmarshal interface stats", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
 		})
 		if err != nil {
-			HttpLogger.Error("failed to json encode response", "error", err)
+			httpLogger.Error("failed to json encode response", "error", err)
 		}
 		return
 	}
@@ -127,23 +124,23 @@ func postNodeStats(w http.ResponseWriter, r *http.Request) {
 
 	err := json.Indent(&out, []byte(body), "", "  ")
 	if err != nil {
-		HttpLogger.Error("Error indenting json", "error", err)
+		httpLogger.Error("Error indenting json", "error", err)
 	}
 	if utils.CONFIG.Misc.LogIncomingStats {
-		HttpLogger.Info(out.String())
+		httpLogger.Info(out.String())
 	}
 
 	stat := &structs.NodeStats{}
 	err = structs.UnmarshalNodeStats(stat, out.Bytes())
 	if err != nil {
-		HttpLogger.Error("failed to unmarshal interface stats", "error", err)
+		httpLogger.Error("failed to unmarshal interface stats", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
 		})
 		if err != nil {
-			HttpLogger.Error("failed to json encode response", "error", err)
+			httpLogger.Error("failed to json encode response", "error", err)
 		}
 		return
 	}
@@ -159,7 +156,7 @@ func debugGetTrafficSum(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(stats)
 	if err != nil {
-		HttpLogger.Error("failed to json encode response", "error", err)
+		httpLogger.Error("failed to json encode response", "error", err)
 	}
 }
 
@@ -170,7 +167,7 @@ func debugGetLastNs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(stats)
 	if err != nil {
-		HttpLogger.Error("failed to json encode response", "error", err)
+		httpLogger.Error("failed to json encode response", "error", err)
 	}
 }
 
@@ -181,7 +178,7 @@ func debugGetTraffic(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(stats)
 	if err != nil {
-		HttpLogger.Error("failed to json encode response", "error", err)
+		httpLogger.Error("failed to json encode response", "error", err)
 	}
 }
 
@@ -192,7 +189,7 @@ func debugGetNs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(stats)
 	if err != nil {
-		HttpLogger.Error("failed to json encode response", "error", err)
+		httpLogger.Error("failed to json encode response", "error", err)
 	}
 }
 
@@ -205,7 +202,7 @@ func debugChart(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte(html))
 	if err != nil {
-		HttpLogger.Debug("failed to write response", "error", err)
+		httpLogger.Debug("failed to write response", "error", err)
 		return
 	}
 }
@@ -216,7 +213,7 @@ func debugIac(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte(json))
 	if err != nil {
-		HttpLogger.Debug("failed to write response", "error", err)
+		httpLogger.Debug("failed to write response", "error", err)
 		return
 	}
 }
@@ -228,6 +225,6 @@ func debugListTemplates(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(data)
 	if err != nil {
-		HttpLogger.Error("failed to json encode response", "error", err)
+		httpLogger.Error("failed to json encode response", "error", err)
 	}
 }

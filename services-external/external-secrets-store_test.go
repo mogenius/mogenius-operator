@@ -40,6 +40,9 @@ type SecretStoreSchema struct {
 }
 
 func TestSecretStoreRender(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 
 	yamlTemplate := utils.InitExternalSecretsStoreYaml()
 
@@ -76,6 +79,9 @@ func TestSecretStoreRender(t *testing.T) {
 }
 
 func TestSecretStoreCreate(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	props := externalSecretStorePropsExample()
@@ -97,6 +103,9 @@ func TestSecretStoreCreate(t *testing.T) {
 
 // don't move this test as it is dependent on the previous test to create the secret store!
 func TestSecretStoreList(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	// wait for create to finish
 	time.Sleep(3 * time.Second)
 
@@ -123,6 +132,9 @@ func TestSecretStoreList(t *testing.T) {
 	}
 }
 func TestListAvailSecrets(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
 
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
@@ -147,6 +159,9 @@ func TestListAvailSecrets(t *testing.T) {
 }
 
 func TestSecretStoreDelete(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 	name := utils.GetSecretStoreName(NamePrefix)
 

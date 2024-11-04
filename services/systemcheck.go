@@ -339,7 +339,7 @@ func SystemCheck() SystemCheckResponse {
 	go SysCheckExec("CheckTrafficCollector", &wg, &entries, func() SystemCheckEntry {
 		trafficCollectorNewestVersion, err := getCurrentTrafficCollectorVersion()
 		if err != nil {
-			ServiceLogger.Error("getCurrentTrafficCollectorVersion", "error", err)
+			serviceLogger.Error("getCurrentTrafficCollectorVersion", "error", err)
 		}
 		trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
 		if trafficCollectorVersion == "" && trafficCollectorInstalledErr == nil {
@@ -369,7 +369,7 @@ func SystemCheck() SystemCheckResponse {
 	go SysCheckExec("CheckPodStatsCollector", &wg, &entries, func() SystemCheckEntry {
 		podstatsCollectorNewestVersion, err := getCurrentPodStatsCollectorVersion()
 		if err != nil {
-			ServiceLogger.Error("getCurrentPodStatsCollectorVersion", "error", err)
+			serviceLogger.Error("getCurrentPodStatsCollectorVersion", "error", err)
 		}
 		podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
 		if podStatsCollectorVersion == "" && podStatsCollectorInstalledErr == nil {
@@ -603,7 +603,7 @@ func StatusEmoji(state release.Status) string {
 func UpdateSystemCheckStatusForClusterVendor(entries []SystemCheckEntry) []SystemCheckEntry {
 	provider, err := punq.GuessClusterProvider(nil)
 	if err != nil {
-		ServiceLogger.Error("UpdateSystemCheckStatusForClusterVendor", "error", err)
+		serviceLogger.Error("UpdateSystemCheckStatusForClusterVendor", "error", err)
 		return entries
 	}
 
@@ -613,7 +613,7 @@ func UpdateSystemCheckStatusForClusterVendor(entries []SystemCheckEntry) []Syste
 		entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
 		entries = deleteSystemCheckEntryByName(entries, NameLocalDevSetup)
 	case punqDtos.UNKNOWN:
-		ServiceLogger.Warn("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
+		serviceLogger.Warn("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
 	}
 
 	// if public IP is available we skip metallLB

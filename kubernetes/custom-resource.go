@@ -51,12 +51,12 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 				return err
 			}
 
-			K8sLogger.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
+			k8sLogger.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
 
 			if isReady(res) {
 				break // resource is ready and probably won't change anymore before the next update
 			}
-			K8sLogger.Info(fmt.Sprintf("Resource not ready: %s  Retrying in 2 seconds...", res.GetName()))
+			k8sLogger.Info(fmt.Sprintf("Resource not ready: %s  Retrying in 2 seconds...", res.GetName()))
 			time.Sleep(2 * time.Second)
 		}
 		// Try update if already exists
@@ -64,10 +64,10 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 		if err != nil {
 			return err
 		}
-		K8sLogger.Info("Resource updated successfully ✅: " + obj.GetName())
+		k8sLogger.Info("Resource updated successfully ✅: " + obj.GetName())
 
 	} else {
-		K8sLogger.Info("Resource created successfully ✅: " + obj.GetName())
+		k8sLogger.Info("Resource created successfully ✅: " + obj.GetName())
 	}
 	return nil
 }
@@ -90,13 +90,13 @@ func isReady(res *unstructured.Unstructured) bool {
 	// Convert res to []byte
 	resBytes, err := res.MarshalJSON()
 	if err != nil {
-		K8sLogger.Error("Error converting res to []byte", "error", err)
+		k8sLogger.Error("Error converting res to []byte", "error", err)
 		return false
 	}
 	var resourceStatus ResourceStatus
 	// Unmarshal the YAML into the struct
 	if err := yaml.Unmarshal(resBytes, &resourceStatus); err != nil {
-		K8sLogger.Error("Error unmarshalling YAML", "error", err)
+		k8sLogger.Error("Error unmarshalling YAML", "error", err)
 		return false
 	}
 

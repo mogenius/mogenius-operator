@@ -44,7 +44,7 @@ func PersistentFileDtoExampleData() PersistentFileDto {
 func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 	info, err := os.Stat(path)
 	if err != nil {
-		DtosLogger.Warn("FileStat", "error", err)
+		dtosLogger.Warn("FileStat", "error", err)
 		return PersistentFileDto{}
 	}
 

@@ -446,7 +446,7 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal(data, &result)
 		if err != nil {
-			StructsLogger.Error("createBuildJobEntryFromData", "error", err)
+			structsLogger.Error("createBuildJobEntryFromData", "error", err)
 		}
 	}
 
@@ -479,7 +479,7 @@ func CreateBuildJobInfoEntryBytes(
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(entry)
 	if err != nil {
-		StructsLogger.Error("createBuildJobInfoEntryBytes", "error", err)
+		structsLogger.Error("createBuildJobInfoEntryBytes", "error", err)
 	}
 	return bytes
 }
@@ -495,7 +495,7 @@ func CreateScanImageEntryBytes(
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(entry)
 	if err != nil {
-		StructsLogger.Error("createBuildJobInfoEntryBytes", "error", err)
+		structsLogger.Error("createBuildJobInfoEntryBytes", "error", err)
 	}
 	return bytes
 

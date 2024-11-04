@@ -17,6 +17,7 @@ var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check the system for all required components and offer healing",
 	Run: func(cmd *cobra.Command, args []string) {
+		preRun()
 		services.SystemCheck()
 	},
 }

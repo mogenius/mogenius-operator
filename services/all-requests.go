@@ -10,7 +10,6 @@ import (
 	"mogenius-k8s-manager/dtos"
 	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/kubernetes"
-	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/xterm"
 	"os"
@@ -29,8 +28,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )
-
-var ServiceLogger = logging.CreateLogger("services")
 
 type MessageResponseStatus string
 
@@ -100,7 +97,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_SYSTEM_CHECK:
 		return SystemCheck()
 	case structs.PAT_CLUSTER_RESTART:
-		ServiceLogger.Info("😵😵😵 Received RESTART COMMAND. Restarting now ...")
+		serviceLogger.Info("😵😵😵 Received RESTART COMMAND. Restarting now ...")
 		time.Sleep(1 * time.Second)
 		os.Exit(0)
 		return nil
@@ -1200,7 +1197,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if err != nil {
 		result.Error = err.Error()
 		result.Success = false
-		ServiceLogger.Error(result.Error)
+		serviceLogger.Error(result.Error)
 		return result
 	}
 
@@ -1211,7 +1208,7 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if terminatedState != nil {
 		tmpPreviousResReq, err := PreviousPodLogStream(data.Namespace, data.PodId)
 		if err != nil {
-			ServiceLogger.Error(err.Error())
+			serviceLogger.Error(err.Error())
 		} else {
 			previousResReq = tmpPreviousResReq
 		}
@@ -1221,15 +1218,15 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 	if err != nil {
 		result.Error = err.Error()
 		result.Success = false
-		ServiceLogger.Error(result.Error)
+		serviceLogger.Error(result.Error)
 		return result
 	}
 
 	if terminatedState != nil {
-		ServiceLogger.Info("Logger try multiStreamData")
+		serviceLogger.Info("Logger try multiStreamData")
 		go multiStreamData(previousResReq, restReq, terminatedState, url.String())
 	} else {
-		ServiceLogger.Info("Logger try streamData")
+		serviceLogger.Info("Logger try streamData")
 		go streamData(restReq, url.String())
 	}
 
@@ -1243,7 +1240,7 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 	cancelCtx, endGofunc := context.WithCancel(ctx)
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
-		ServiceLogger.Error(err.Error())
+		serviceLogger.Error(err.Error())
 	} else {
 		structs.SendDataWs(toServerUrl, stream)
 	}
@@ -1260,7 +1257,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	if previousRestReq != nil {
 		tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 		if err != nil {
-			ServiceLogger.Error(err.Error())
+			serviceLogger.Error(err.Error())
 			previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 		} else {
 			previousStream = tmpPreviousStream
@@ -1269,7 +1266,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 
 	stream, err := restReq.Stream(cancelCtx)
 	if err != nil {
-		ServiceLogger.Error(err.Error())
+		serviceLogger.Error(err.Error())
 		stream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 	}
 
@@ -1295,7 +1292,7 @@ func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
 }
 
 func K8sNotification(d structs.Datagram) interface{} {
-	ServiceLogger.Info("Received pattern", "pattern", d.Pattern)
+	serviceLogger.Info("Received pattern", "pattern", d.Pattern)
 	return nil
 }
 
@@ -1326,7 +1323,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 	if terminatedState != nil {
 		tmpPreviousResReq, err := PreviousPodLogStream(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod)
 		if err != nil {
-			ServiceLogger.Error(err.Error())
+			serviceLogger.Error(err.Error())
 		} else {
 			previousRestReq = tmpPreviousResReq
 		}
@@ -1339,7 +1336,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 	var previousStream io.ReadCloser
 	tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 	if err != nil {
-		ServiceLogger.Error(err.Error())
+		serviceLogger.Error(err.Error())
 		previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 	} else {
 		previousStream = tmpPreviousStream
@@ -1347,7 +1344,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 
 	data, err := io.ReadAll(previousStream)
 	if err != nil {
-		ServiceLogger.Error("failed to read data", "error", err)
+		serviceLogger.Error("failed to read data", "error", err)
 	}
 
 	lastState := punq.LastTerminatedStateToString(terminatedState)

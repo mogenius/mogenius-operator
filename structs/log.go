@@ -48,7 +48,7 @@ func LogBytes(logEntry Log) []byte {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(logEntry)
 	if err != nil {
-		StructsLogger.Error("LogBytes", "error", err)
+		structsLogger.Error("LogBytes", "error", err)
 	}
 	return bytes
 }

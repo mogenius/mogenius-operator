@@ -67,7 +67,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			K8sLogger.Error("Failed to create controller configuration", "error", err)
+			k8sLogger.Error("Failed to create controller configuration", "error", err)
 			cmd.Fail(job, fmt.Sprintf("UpdateDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -109,7 +109,7 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			K8sLogger.Error("Failed to create controller configuration", "error", err)
+			k8sLogger.Error("Failed to create controller configuration", "error", err)
 			cmd.Fail(job, fmt.Sprintf("StartDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -143,7 +143,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			K8sLogger.Error("Failed to create controller configuration", "error", err)
+			k8sLogger.Error("Failed to create controller configuration", "error", err)
 			cmd.Fail(job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
 			return
 		}
@@ -180,7 +180,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
-			K8sLogger.Error("Failed to create controller configuration", "error", err)
+			k8sLogger.Error("Failed to create controller configuration", "error", err)
 			cmd.Fail(job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
 			return
 		}

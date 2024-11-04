@@ -3,7 +3,6 @@ package xterm
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"net/url"
@@ -24,7 +23,7 @@ func XTermComponentStreamConnection(
 ) {
 	cmdType := "log"
 
-	filename := logging.MainLogPath()
+	filename := logManager.CombinedLogPath()
 	if component != structs.ComponentAll {
 		filename = fmt.Sprintf("%s/%s.log", utils.CONFIG.Kubernetes.LogDataPath, component)
 	}
@@ -32,12 +31,12 @@ func XTermComponentStreamConnection(
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("tail -F -n %s %s", MAX_TAIL_LINES, filename))
 
 	if wsConnectionRequest.WebsocketScheme == "" {
-		XtermLogger.Error("WebsocketScheme is empty")
+		xtermLogger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		XtermLogger.Error("WebsocketHost is empty")
+		xtermLogger.Error("WebsocketHost is empty")
 		return
 	}
 
@@ -47,7 +46,7 @@ func XTermComponentStreamConnection(
 	// websocket connection
 	readMessages, conn, err := generateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		XtermLogger.Error("Unable to connect to websocket", "error", err)
+		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 
@@ -58,7 +57,7 @@ func XTermComponentStreamConnection(
 	// send ping
 	err = wsPing(conn)
 	if err != nil {
-		XtermLogger.Error("Unable to send ping", "error", err)
+		xtermLogger.Error("Unable to send ping", "error", err)
 		return
 	}
 
@@ -66,11 +65,11 @@ func XTermComponentStreamConnection(
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
-		XtermLogger.Error("Unable to start pty/cmd", "error", err)
+		xtermLogger.Error("Unable to start pty/cmd", "error", err)
 		if conn != nil {
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			if err != nil {
-				XtermLogger.Error("WriteMessage", "error", err)
+				xtermLogger.Error("WriteMessage", "error", err)
 			}
 		}
 		return
@@ -80,20 +79,20 @@ func XTermComponentStreamConnection(
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
 			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
-				XtermLogger.Debug("write close:", "error", err)
+				xtermLogger.Debug("write close:", "error", err)
 			}
 		}
 		err := cmd.Process.Kill()
 		if err != nil {
-			XtermLogger.Error("failed to kill process", "error", err)
+			xtermLogger.Error("failed to kill process", "error", err)
 		}
 		_, err = cmd.Process.Wait()
 		if err != nil {
-			XtermLogger.Error("failed to wait for process", "error", err)
+			xtermLogger.Error("failed to wait for process", "error", err)
 		}
 		err = tty.Close()
 		if err != nil {
-			XtermLogger.Error("failed to close tty", "error", err)
+			xtermLogger.Error("failed to close tty", "error", err)
 		}
 	}()
 

@@ -108,22 +108,22 @@ func (d *Datagram) DisplayBeautiful() {
 
 func (d *Datagram) DisplayReceiveSummary() {
 	message := fmt.Sprintf("%s%s%s%s     %s\n", punqUtils.FillWith("RECEIVED", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "))
-	StructsLogger.Info(message)
+	structsLogger.Info(message)
 }
 
 func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
 	message := fmt.Sprintf("%s%s%s%s     %s %s %s\n", punqUtils.FillWith("SENT", 23, " "), punqUtils.FillWith(d.Pattern, 40, " "), color.BlueString(d.Id), punqUtils.FillWith(fmt.Sprint(d.Username+"   "[:3]), 10, " "), punqUtils.FillWith(punqUtils.BytesToHumanReadable(d.GetSize()), 12, " "), punqUtils.FillWith(punqStructs.DurationStrSince(d.CreatedAt), 12, " "), color.YellowString(fmt.Sprintf("[Queue: %d/%d]", queuePosition, queueLen)))
-	StructsLogger.Info(message)
+	structsLogger.Info(message)
 }
 
 func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
 	message := fmt.Sprintf("%s%s: %s/%s -> %s (Count: %d)\n", punqUtils.FillWith("SENT", 23, " "), d.Pattern, kind, reason, msg, count)
-	StructsLogger.Info(message)
+	structsLogger.Info(message)
 }
 
 func (d *Datagram) DisplayStreamSummary() {
 	message := fmt.Sprintf("%s%s%s\n", punqUtils.FillWith("STREAMING", 23, " "), punqUtils.FillWith(d.Pattern, 60, " "), color.BlueString(d.Id))
-	StructsLogger.Info(message)
+	structsLogger.Info(message)
 }
 
 func (d *Datagram) Send() {

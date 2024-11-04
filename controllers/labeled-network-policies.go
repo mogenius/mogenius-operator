@@ -27,7 +27,7 @@ func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) (string,
 	}
 
 	// log
-	logWithFields := ControllerLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
+	logWithFields := controllerLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
 	var labeledNetworkPolicyNameStrings []string
 	for _, labeledNetworkPolicy := range data.LabeledNetworkPolicies {
 		labeledNetworkPolicyNameStrings = append(labeledNetworkPolicyNameStrings, labeledNetworkPolicy.Name)
@@ -62,7 +62,7 @@ func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string,
 	}
 
 	// log
-	logWithFields := ControllerLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
+	logWithFields := controllerLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
 	var labeledNetworkPolicyNameStrings []string
 	for _, labeledNetworkPolicy := range data.LabeledNetworkPolicies {
 		labeledNetworkPolicyNameStrings = append(labeledNetworkPolicyNameStrings, labeledNetworkPolicy.Name)
@@ -170,7 +170,7 @@ type ListControllerLabeledNetworkPoliciesResponse struct {
 
 func ListControllerLabeledNetwork(data ListControllerLabeledNetworkPoliciesRequest) (ListControllerLabeledNetworkPoliciesResponse, error) {
 	// log
-	logWithFields := ControllerLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
+	logWithFields := controllerLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
 
 	policies, err := kubernetes.ListControllerLabeledNetworkPolicies(data.ControllerName, data.ControllerType, data.NamespaceName)
 	if err != nil {

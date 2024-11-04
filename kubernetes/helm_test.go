@@ -28,7 +28,7 @@ func cleanupRepo() {
 	}
 	_, err := HelmRepoRemove(repoRemoveData)
 	if err != nil {
-		K8sLogger.Info("failed to remove helm repo", "error", err)
+		k8sLogger.Info("failed to remove helm repo", "error", err)
 	}
 }
 
@@ -42,17 +42,17 @@ func cleanupInstall() {
 	}
 	_, err := HelmReleaseUninstall(releaseUninstallData)
 	if err != nil {
-		K8sLogger.Info("failed to uninstall helmrelease", "error", err)
+		k8sLogger.Info("failed to uninstall helmrelease", "error", err)
 	}
 }
 
 func deleteFolder(folderPath string) error {
 	err := os.RemoveAll(folderPath)
 	if err != nil {
-		K8sLogger.Info("Error deleting folder %s: %v", folderPath, err)
+		k8sLogger.Info("Error deleting folder %s: %v", folderPath, err)
 		return err
 	}
-	K8sLogger.Info("Successfully deleted folder", "path", folderPath)
+	k8sLogger.Info("Successfully deleted folder", "path", folderPath)
 	return nil
 }
 
@@ -107,6 +107,9 @@ func testSetup() error {
 	return nil
 }
 func TestHelmRepoAdd(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	// clean config folder before test
 	err := deleteFolder(helmConfPath)
 	if err != nil {
@@ -133,6 +136,9 @@ func TestHelmRepoAdd(t *testing.T) {
 }
 
 func TestHelmRepoUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -147,6 +153,9 @@ func TestHelmRepoUpdate(t *testing.T) {
 }
 
 func TestHelmRepoList(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -178,6 +187,9 @@ func TestHelmRepoList(t *testing.T) {
 }
 
 func TestHelmInstallRequest(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -201,6 +213,9 @@ func TestHelmInstallRequest(t *testing.T) {
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -233,6 +248,9 @@ func TestHelmUpgradeRequest(t *testing.T) {
 }
 
 func TestHelmListRequest(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)
@@ -272,6 +290,9 @@ func TestHelmListRequest(t *testing.T) {
 }
 
 func TestHelmReleases(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	err := testSetup()
 	if err != nil {
 		t.Error(err)

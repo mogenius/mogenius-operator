@@ -38,7 +38,7 @@ func CreateOrUpdateResourceTemplateConfigmap() error {
 	// check if configmap exists
 	_, err = CreateUnstructuredResource("", "v1", "configmaps", true, string(updatedYaml))
 	if apierrors.IsAlreadyExists(err) {
-		K8sLogger.Info("Resource template configmap already exists")
+		k8sLogger.Info("Resource template configmap already exists")
 		return nil
 	}
 
@@ -59,8 +59,12 @@ func GetResourceTemplateYaml(group, version, name, kind, namespace, resourcename
 		Version: version,
 		Kind:    name,
 	})
-	obj.SetNamespace(namespace)
-	obj.SetName(resourcename)
+	if namespace != "" {
+		obj.SetNamespace(namespace)
+	}
+	if resourcename != "" {
+		obj.SetName(resourcename)
+	}
 	obj.SetLabels(map[string]string{
 		"example": "label",
 	})
@@ -91,8 +95,12 @@ func loadResourceTemplateData(kind, namespace, resourcename string) (string, err
 				if err != nil {
 					continue
 				}
-				obj.SetName(resourcename)
-				obj.SetNamespace(namespace)
+				if namespace != "" {
+					obj.SetNamespace(namespace)
+				}
+				if resourcename != "" {
+					obj.SetName(resourcename)
+				}
 
 				data, err := yaml.Marshal(obj.Object)
 				if err != nil {

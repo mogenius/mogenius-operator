@@ -7,6 +7,9 @@ import (
 
 // test the functionality of the custom resource with a basic pod
 func TestResourceTemplates(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	// CREATE
@@ -14,7 +17,7 @@ func TestResourceTemplates(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating resource template configmap: %s", err.Error())
 	} else {
-		K8sLogger.Info("Resource template configmap created ✅")
+		k8sLogger.Info("Resource template configmap created ✅")
 	}
 
 	// unknown resource
@@ -22,8 +25,8 @@ func TestResourceTemplates(t *testing.T) {
 	if yaml == "" {
 		t.Errorf("Error getting resource template")
 	} else {
-		K8sLogger.Info(yaml)
-		K8sLogger.Info("Unknown Resource template retrieved ✅")
+		k8sLogger.Info(yaml)
+		k8sLogger.Info("Unknown Resource template retrieved ✅")
 	}
 
 	// known resource Deployment
@@ -31,8 +34,8 @@ func TestResourceTemplates(t *testing.T) {
 	if knownResourceYaml == "" {
 		t.Errorf("Error getting resource template")
 	} else {
-		K8sLogger.Info(knownResourceYaml)
-		K8sLogger.Info("Known Resource Deployment template retrieved ✅")
+		k8sLogger.Info(knownResourceYaml)
+		k8sLogger.Info("Known Resource Deployment template retrieved ✅")
 	}
 
 	// known resource Certificate
@@ -40,7 +43,7 @@ func TestResourceTemplates(t *testing.T) {
 	if knownResourceYamlCert == "" {
 		t.Errorf("Error getting resource template")
 	} else {
-		K8sLogger.Info(knownResourceYamlCert)
-		K8sLogger.Info("Known Resource Certificate template retrieved ✅")
+		k8sLogger.Info(knownResourceYamlCert)
+		k8sLogger.Info("Known Resource Certificate template retrieved ✅")
 	}
 }

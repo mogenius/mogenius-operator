@@ -45,7 +45,7 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 
 	deployment, err := kubeProvider.ClientSet.AppsV1().Deployments(data.Namespace).Get(context.TODO(), data.Name, metav1.GetOptions{})
 	if err != nil {
-		K8sLogger.Error("Error getting deployment", "namespace", data.Namespace, "deployment", data.Name, "error", err)
+		k8sLogger.Error("Error getting deployment", "namespace", data.Namespace, "deployment", data.Name, "error", err)
 		return nil
 	}
 
@@ -54,7 +54,7 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
-		K8sLogger.Error("Error listing pods", "namespace", data.Namespace, "labelSelector", labelSelector, "error", err)
+		k8sLogger.Error("Error listing pods", "namespace", data.Namespace, "labelSelector", labelSelector, "error", err)
 		return nil
 	}
 
@@ -62,7 +62,7 @@ func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
 		LabelSelector: labelSelector,
 	})
 	if err != nil {
-		K8sLogger.Error("Error getting pods metrics", "namespace", data.Namespace, "labelSelector", labelSelector, "error", err)
+		k8sLogger.Error("Error getting pods metrics", "namespace", data.Namespace, "labelSelector", labelSelector, "error", err)
 	}
 
 	// create an inner strcut to hold data from pods for direct access with key pod_name and container_name
@@ -102,7 +102,7 @@ MetricLoop:
 				if resources, containerExists := containerMap[container.Name]; containerExists {
 					// Check if the Requests map is nil
 					if resources.resources == nil {
-						K8sLogger.Warn("No resource requests found for container %s in pod %s", container.Name, podMetrics.Name)
+						k8sLogger.Warn("No resource requests found for container %s in pod %s", container.Name, podMetrics.Name)
 						continue MetricLoop
 					}
 				}
@@ -151,7 +151,7 @@ MetricLoop:
 	}
 
 	if podCount == 0 {
-		K8sLogger.Error("No pods found for deployment", "deployment", data.Name)
+		k8sLogger.Error("No pods found for deployment", "deployment", data.Name)
 		return nil
 	}
 
