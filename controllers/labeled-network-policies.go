@@ -291,9 +291,8 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 			Name: namespace.Name,
 		}
 
-		deployments, err := kubernetes.ListAllDeployments(namespace.Name)
-		if err != nil {
-		}
+		// ignore errors
+		deployments, _ := kubernetes.ListAllDeployments(namespace.Name)
 		for _, deployment := range deployments {
 			controllerDto := ListNetworkPolicyController{
 				ControllerName: deployment.Name,
@@ -313,9 +312,8 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
 		}
 
-		daemonsets, err := kubernetes.ListAllDaemonSets(namespace.Name)
-		if err != nil {
-		}
+		// ignore errors
+		daemonsets, _ := kubernetes.ListAllDaemonSets(namespace.Name)
 		for _, daemonset := range daemonsets {
 			controllerDto := ListNetworkPolicyController{
 				ControllerName: daemonset.Name,
@@ -335,9 +333,8 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
 		}
 
-		statefulsets, err := kubernetes.ListAllStatefulSets(namespace.Name)
-		if err != nil {
-		}
+		// ignore errors
+		statefulsets, _ := kubernetes.ListAllStatefulSets(namespace.Name)
 		for _, statefulset := range statefulsets {
 			controllerDto := ListNetworkPolicyController{
 				ControllerName: statefulset.Name,
