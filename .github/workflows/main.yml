@@ -39,7 +39,7 @@ jobs:
 
   build-amd64:
     needs: prepare
-    runs-on: [self-hosted, X64, XL]
+    runs-on: [self-hosted, X64]
     permissions:
       contents: read
       packages: write
@@ -73,7 +73,7 @@ jobs:
 
   build-arm64-linux:
     needs: prepare
-    runs-on: [self-hosted, ARM64, XL]
+    runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
       packages: write
@@ -106,7 +106,7 @@ jobs:
 
   build-arm64:
     needs: prepare
-    runs-on: [self-hosted, ARM64, XL]
+    runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
       packages: write
@@ -138,7 +138,7 @@ jobs:
 
   build-armv7:
     needs: prepare
-    runs-on: [self-hosted, ARM64, XL]
+    runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
       packages: write
