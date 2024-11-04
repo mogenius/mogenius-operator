@@ -14,7 +14,7 @@ import (
 
 	"github.com/TylerBrock/colorjson"
 	"github.com/go-git/go-git/v5/plumbing/color"
-	"github.com/natefinch/lumberjack"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const logfileMaxBackups int = 10

@@ -16,12 +16,11 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.6.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mogenius/punq v1.5.0-develop.76
-	github.com/natefinch/lumberjack v2.2.1+incompatible
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/shirou/gopsutil/v4 v4.24.10
 	github.com/spf13/cobra v1.8.1
 	go.etcd.io/bbolt v1.3.11
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	helm.sh/helm/v3 v3.16.2
 	k8s.io/api v0.31.2
 	k8s.io/apimachinery v0.31.2
