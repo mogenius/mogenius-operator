@@ -12,7 +12,7 @@ func ListAllDaemonSets(namespace string) ([]v1.DaemonSet, error) {
 	daemonsets, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.DaemonSet{}), "DaemonSet", namespace)
 
 	if err != nil {
-		k8sLogger.Error("ListAllDaemonSet", "error", err)
+		k8sLogger.Warn("ListAllDaemonSet", "warning", err)
 		return result, err
 	}
 

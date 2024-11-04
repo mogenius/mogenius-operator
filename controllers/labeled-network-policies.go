@@ -211,6 +211,55 @@ type ListNetworkPolicyController struct {
 	LabeledNetworkPolicies []dtos.K8sLabeledNetworkPolicyDto `json:"networkPolicies" validate:"required"`
 }
 
+func createNetworkPolicyDto(name string, spec v1.NetworkPolicySpec) dtos.K8sLabeledNetworkPolicyDto {
+	var typeOf dtos.K8sNetworkPolicyType
+	var port uint16
+	var portType dtos.PortTypeEnum
+
+	if len(spec.Ingress) > 0 {
+		typeOf = dtos.Ingress
+
+		port = uint16(spec.Ingress[0].Ports[0].Port.IntVal)
+
+		if spec.Ingress[0].Ports[0].Protocol == nil {
+			portType = dtos.PortTypeTCP
+		} else {
+			switch *spec.Ingress[0].Ports[0].Protocol {
+			case v1Core.ProtocolUDP:
+				portType = dtos.PortTypeUDP
+			case v1Core.ProtocolSCTP:
+				portType = dtos.PortTypeSCTP
+			default:
+				portType = dtos.PortTypeTCP
+			}
+		}
+	} else if len(spec.Egress) > 0 {
+		typeOf = dtos.Egress
+
+		port = uint16(spec.Egress[0].Ports[0].Port.IntVal)
+
+		if spec.Egress[0].Ports[0].Protocol == nil {
+			portType = dtos.PortTypeTCP
+		} else {
+			switch *spec.Egress[0].Ports[0].Protocol {
+			case v1Core.ProtocolUDP:
+				portType = dtos.PortTypeUDP
+			case v1Core.ProtocolSCTP:
+				portType = dtos.PortTypeSCTP
+			default:
+				portType = dtos.PortTypeTCP
+			}
+		}
+	}
+
+	return dtos.K8sLabeledNetworkPolicyDto{
+		Name:     name,
+		Type:     typeOf,
+		Port:     port,
+		PortType: portType,
+	}
+}
+
 func ListAllNetworkPolicies() (interface{}, error) {
 	namespaces, err := kubernetes.ListAllNamespaces()
 	if err != nil {
@@ -222,7 +271,7 @@ func ListAllNetworkPolicies() (interface{}, error) {
 	}
 
 	managedMap := make(map[string]int)
-	unmanagedMap := make(map[string]int)
+	unmanagedMap := make(map[string][]int)
 	for idx, policy := range policies {
 		isManaged := policy.Labels != nil && policy.Labels[kubernetes.NetpolLabel] == "true"
 		if isManaged {
@@ -232,8 +281,8 @@ func ListAllNetworkPolicies() (interface{}, error) {
 			fmt.Println("managed", policy.Namespace, policy.Name)
 		} else {
 			// unmanaged
-			managedKey := fmt.Sprintf("%s--%s", policy.Namespace, policy.Name)
-			unmanagedMap[managedKey] = idx
+			managedKey := policy.Namespace
+			unmanagedMap[managedKey] = append(unmanagedMap[managedKey], idx)
 			fmt.Println("unmanged", policy.Namespace, policy.Name)
 		}
 	}
@@ -257,54 +306,8 @@ func ListAllNetworkPolicies() (interface{}, error) {
 				for key, _ := range deployment.Spec.Template.Labels {
 					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
 					if idx, ok := managedMap[managedKey]; ok {
-						var typeOf dtos.K8sNetworkPolicyType
-						var port uint16
-						var portType dtos.PortTypeEnum
-
-						spec := policies[idx].Spec
-
-						if len(spec.Ingress) > 0 {
-							typeOf = dtos.Ingress
-
-							port = uint16(spec.Ingress[0].Ports[0].Port.IntVal)
-
-							if spec.Ingress[0].Ports[0].Protocol == nil {
-								portType = dtos.PortTypeTCP
-							} else {
-								switch *spec.Ingress[0].Ports[0].Protocol {
-								case v1Core.ProtocolUDP:
-									portType = dtos.PortTypeUDP
-								case v1Core.ProtocolSCTP:
-									portType = dtos.PortTypeSCTP
-								default:
-									portType = dtos.PortTypeTCP
-								}
-							}
-						} else if len(spec.Egress) > 0 {
-							typeOf = dtos.Egress
-
-							port = uint16(spec.Egress[0].Ports[0].Port.IntVal)
-
-							if spec.Egress[0].Ports[0].Protocol == nil {
-								portType = dtos.PortTypeTCP
-							} else {
-								switch *spec.Egress[0].Ports[0].Protocol {
-								case v1Core.ProtocolUDP:
-									portType = dtos.PortTypeUDP
-								case v1Core.ProtocolSCTP:
-									portType = dtos.PortTypeSCTP
-								default:
-									portType = dtos.PortTypeTCP
-								}
-							}
-						}
-
-						controllerDto.LabeledNetworkPolicies = append(controllerDto.LabeledNetworkPolicies, dtos.K8sLabeledNetworkPolicyDto{
-							Name:     policies[idx].Name,
-							Type:     typeOf,
-							Port:     port,
-							PortType: portType,
-						})
+						networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
+						controllerDto.LabeledNetworkPolicies = append(controllerDto.LabeledNetworkPolicies, networkPolicyDto)
 					}
 				}
 			}
@@ -320,6 +323,17 @@ func ListAllNetworkPolicies() (interface{}, error) {
 				ControllerName: daemonset.Name,
 				ControllerType: dtos.DAEMON_SET,
 			}
+
+			if daemonset.Spec.Template.Labels != nil {
+				for key, _ := range daemonset.Spec.Template.Labels {
+					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
+					if idx, ok := managedMap[managedKey]; ok {
+						networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
+						controllerDto.LabeledNetworkPolicies = append(controllerDto.LabeledNetworkPolicies, networkPolicyDto)
+					}
+				}
+			}
+
 			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
 		}
 
@@ -331,42 +345,32 @@ func ListAllNetworkPolicies() (interface{}, error) {
 				ControllerName: statefulset.Name,
 				ControllerType: dtos.STATEFUL_SET,
 			}
+
+			if statefulset.Spec.Template.Labels != nil {
+				for key, _ := range statefulset.Spec.Template.Labels {
+					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
+					if idx, ok := managedMap[managedKey]; ok {
+						networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
+						controllerDto.LabeledNetworkPolicies = append(controllerDto.LabeledNetworkPolicies, networkPolicyDto)
+					}
+				}
+			}
+
 			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
 		}
 
-		for key, value := range unmanagedMap {
-			fmt.Println("unmanaged", key, value)
+		for _, values := range unmanagedMap {
+			for _, value := range values {
+				// todo: use diffrent dto
+				networkPolicyDto := createNetworkPolicyDto(policies[value].Name, policies[value].Spec)
+				namespaceDto.UnmanagedPolicies = append(namespaceDto.UnmanagedPolicies, networkPolicyDto)
+			}
 		}
 
 		namespacesDto = append(namespacesDto, namespaceDto)
 	}
 
-	response := ListNetworkPolicyResponse{
-		Namespaces: []ListNetworkPolicyNamespace{
-			{
-				Id:          "1",
-				DisplayName: "default",
-				Name:        "default",
-				ProjectId:   "1",
-				Controllers: []ListNetworkPolicyController{
-					{
-						ControllerName: "mogenius-controller-1",
-						ControllerType: dtos.DEPLOYMENT,
-						ServiceId:      "1",
-						LabeledNetworkPolicies: []dtos.K8sLabeledNetworkPolicyDto{
-							{
-								Name:     "mogenius-policy-1",
-								Type:     dtos.Ingress,
-								Port:     80,
-								PortType: dtos.PortTypeHTTPS,
-							},
-						},
-					},
-				},
-				UnmanagedPolicies: []interface{}{},
-			},
-		},
-	}
-
-	return response, nil
+	return ListNetworkPolicyResponse{
+		Namespaces: namespacesDto,
+	}, nil
 }

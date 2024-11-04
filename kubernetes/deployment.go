@@ -607,7 +607,7 @@ func ListAllDeployments(namespace string) ([]v1.Deployment, error) {
 	deployments, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.Deployment{}), "Deployment", namespace)
 
 	if err != nil {
-		k8sLogger.Error("ListAllDeployments", "error", err)
+		k8sLogger.Warn("ListAllDeployments", "warning", err)
 		return result, err
 	}
 

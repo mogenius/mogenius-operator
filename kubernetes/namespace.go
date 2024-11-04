@@ -69,7 +69,7 @@ func ListAllNamespaces() ([]coreV1.Namespace, error) {
 	namespaces, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(coreV1.Namespace{}), "Namespace")
 
 	if err != nil {
-		k8sLogger.Error("ListAllNamespaces", "error", err)
+		k8sLogger.Warn("ListAllNamespaces", "warning", err)
 		return result, err
 	}
 

@@ -12,7 +12,7 @@ func ListAllStatefulSets(namespace string) ([]v1.StatefulSet, error) {
 	statefulsets, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.StatefulSet{}), "StatefulSet", namespace)
 
 	if err != nil {
-		k8sLogger.Error("ListAllStatefulSet", "error", err)
+		k8sLogger.Warn("ListAllStatefulSet", "warning", err)
 		return result, err
 	}
 
