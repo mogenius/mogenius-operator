@@ -22,8 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var netPolRecoderLogger record.EventRecorderLogger
-
 func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("create", "Create NetworkPolicy namespace", job)
 	wg.Add(1)
@@ -145,20 +143,20 @@ func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto
 	}(wg)
 }
 
+// TODO: this has realy bad performance, need to find a better way to do this
 func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
-	if netPolRecoderLogger == nil {
-		provider, err := punq.NewKubeProvider(nil)
-		if provider == nil || err != nil {
-			k8sLogger.Error("Error creating provider for netpol watcher. Cannot continue because it is vital.", "error", err)
-			panic(1)
-		}
 
-		// Set up a dynamic event broadcaster for the specific namespace
-		broadcaster := record.NewBroadcaster()
-		eventInterface := provider.ClientSet.CoreV1().Events(netPol.Namespace)
-		broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
-		netPolRecoderLogger = broadcaster.NewRecorder(scheme.Scheme, v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"})
+	provider, err := punq.NewKubeProvider(nil)
+	if provider == nil || err != nil {
+		k8sLogger.Error("Error creating provider for netpol watcher. Cannot continue because it is vital.", "error", err)
+		panic(1)
 	}
+
+	// Set up a dynamic event broadcaster for the specific namespace
+	broadcaster := record.NewBroadcaster()
+	eventInterface := provider.ClientSet.CoreV1().Events(netPol.Namespace)
+	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
+	netPolRecoderLogger := broadcaster.NewRecorder(scheme.Scheme, v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"})
 
 	annotations := createAnnotations(
 		"mogenius.io/x-authorization", utils.CONFIG.Kubernetes.ApiKey,
