@@ -129,7 +129,7 @@ jobs:
       - govet
       - golangci
       - passing-tests
-    runs-on: [self-hosted, X64, XL]
+    runs-on: [self-hosted, X64]
     permissions:
       contents: read
       packages: write
@@ -169,7 +169,7 @@ jobs:
       - govet
       - golangci
       - passing-tests
-    runs-on: [self-hosted, ARM64, XL]
+    runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
       packages: write
@@ -208,7 +208,7 @@ jobs:
       - govet
       - golangci
       - passing-tests
-    runs-on: [self-hosted, ARM64, XL]
+    runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
       packages: write
@@ -247,7 +247,7 @@ jobs:
       - govet
       - golangci
       - passing-tests
-    runs-on: [self-hosted, ARM64, XL]
+    runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
       packages: write
