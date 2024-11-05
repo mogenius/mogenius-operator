@@ -106,4 +106,4 @@ ENV HELM_REGISTRY_CONFIG="/db/helm-data/helm/config.json"
 ENV HELM_REPOSITORY_CACHE="/db/helm-data/helm/cache/repository"
 ENV HELM_REPOSITORY_CONFIG="/db/helm-data/helm/repositories.yaml"
 
-ENTRYPOINT /usr/local/bin/dockerd --iptables=false --dns 1.1.1.1 > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster
+ENTRYPOINT /usr/local/bin/dockerd --iptables=false --dns 1.1.1.1 --network=host > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster
