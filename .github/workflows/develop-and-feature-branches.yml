@@ -59,6 +59,26 @@ jobs:
           only-new-issues: true
           args: --timeout=30m
 
+  staticcheck:
+    needs: prepare
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: go vet
+        run: go run honnef.co/go/tools/cmd/staticcheck@2024.1.1
+
+  govet:
+    needs: prepare
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: go vet
+        run: go vet ./...
+
   passing-tests:
     needs: prepare
     runs-on: [self-hosted, ARM64, k3s-installed]
@@ -105,6 +125,8 @@ jobs:
   build-amd64:
     needs:
       - prepare
+      - staticcheck
+      - govet
       - golangci
       - passing-tests
     runs-on: [self-hosted, X64, XL]
@@ -143,6 +165,8 @@ jobs:
   build-arm64-linux:
     needs:
       - prepare
+      - staticcheck
+      - govet
       - golangci
       - passing-tests
     runs-on: [self-hosted, ARM64, XL]
@@ -180,6 +204,8 @@ jobs:
   build-arm64:
     needs:
       - prepare
+      - staticcheck
+      - govet
       - golangci
       - passing-tests
     runs-on: [self-hosted, ARM64, XL]
@@ -217,6 +243,8 @@ jobs:
   build-armv7:
     needs:
       - prepare
+      - staticcheck
+      - govet
       - golangci
       - passing-tests
     runs-on: [self-hosted, ARM64, XL]
