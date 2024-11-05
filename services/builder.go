@@ -573,7 +573,9 @@ func cleanPasswords(job *structs.BuildJob, line string) string {
 	for _, container := range job.Service.Containers {
 		for _, v := range container.EnvVars {
 			if v.Type == dtos.EnvVarKeyVault && v.Data.VaultType == dtos.EnvVarVaultTypeMogeniusVault {
-				line = strings.ReplaceAll(line, v.Value, "****")
+				if v.Value != "" {
+					line = strings.ReplaceAll(line, v.Value, "****")
+				}
 			}
 		}
 	}

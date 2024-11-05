@@ -1,3 +1,6 @@
+#
+# BUILDER IMAGE
+#
 FROM golang:1.23-alpine AS builder
 
 LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit-log here.
@@ -32,6 +35,9 @@ RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
 RUN apk add --no-cache upx
 RUN upx -9 --lzma /app/bin/mogenius-k8s-manager
 
+#
+# FINAL IMAGE
+#
 FROM docker:dind
 
 ARG GOOS
@@ -59,5 +65,7 @@ ENV HELM_PLUGINS="/db/helm-data/helm/plugins"
 ENV HELM_REGISTRY_CONFIG="/db/helm-data/helm/config.json"
 ENV HELM_REPOSITORY_CACHE="/db/helm-data/helm/cache/repository"
 ENV HELM_REPOSITORY_CONFIG="/db/helm-data/helm/repositories.yaml"
+# e.g. "--dns 1.1.1.1"
+ENV DOCKERD_ARGS="" 
 
-ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false --dns 1.1.1.1 > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]
+ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false ${DOCKERD_ARGS} > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]
