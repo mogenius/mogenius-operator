@@ -16,7 +16,7 @@ func AddSecret(secret *string) {
 func SecretArray() []string {
 	var data []string
 	for _, secret := range secrets {
-		if secret != nil {
+		if secret != nil && *secret != "" {
 			data = append(data, *secret)
 		}
 	}
