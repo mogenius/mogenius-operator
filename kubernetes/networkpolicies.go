@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"sync"
 	"time"
 
@@ -159,9 +158,7 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
 	netPolRecoderLogger := broadcaster.NewRecorder(scheme.Scheme, v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"})
 
-	annotations := createAnnotations(
-		"mogenius.io/x-authorization", utils.CONFIG.Kubernetes.ApiKey,
-		"mogenius.io/x-cluster-mfa-id", utils.CONFIG.Kubernetes.ClusterMfaId)
+	annotations := createAnnotations("mogenius.io/created", time.Now().String())
 
 	// Trigger custom event
 	k8sLogger.Debug("Netpol is being updated in namespace, triggering event", "netpol", netPol.Name, "namespace", netPol.Namespace)
@@ -180,8 +177,6 @@ func createAnnotations(items ...string) map[string]string {
 		value := items[i+1]
 		annotations[key] = value
 	}
-
-	annotations["mogenius.io/created"] = time.Now().String()
 
 	return annotations
 }
