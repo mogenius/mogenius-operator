@@ -1,7 +1,6 @@
 package servicesExternal
 
 import (
-	"fmt"
 	"mogenius-k8s-manager/kubernetes"
 	"time"
 
@@ -154,7 +153,7 @@ func TestListAvailSecrets(t *testing.T) {
 	if len(availSecrets) == 0 {
 		t.Errorf("Error listing available secrets: No secrets found")
 	} else {
-		logger.Log.Info(fmt.Sprintf("Available secrets list ✅: %v", availSecrets))
+		logger.Log.Info("Available secrets list ✅", "secrets", availSecrets)
 	}
 }
 

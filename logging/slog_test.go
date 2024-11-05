@@ -7,7 +7,7 @@ import (
 )
 
 // compile time check
-func TestWatcherAdheresToInterface(t *testing.T) {
+func TestSlogerManagerAdheresToLogManagerInterface(t *testing.T) {
 	slogManager := logging.NewSlogManager()
 	testfunc := func(w interfaces.LogManager) {}
 	testfunc(&slogManager) // this checks if the typesystem allows to call it

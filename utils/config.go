@@ -266,7 +266,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		if err != nil {
 			utilsLogger.Error("failed to create temp dir", "error", err)
 			shutdown.SendShutdownSignalAndBlockForever(true)
-			panic("unreachable")
+			select {}
 		}
 		utilsLogger.Info("TempDir created", "path", dirPath)
 	}
@@ -295,19 +295,19 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
 			utilsLogger.Error("Environment Variable 'cluster_name' not setup. TERMINATING.")
 			shutdown.SendShutdownSignalAndBlockForever(true)
-			panic("unreachable")
+			select {}
 		}
 		if CONFIG.Kubernetes.ApiKey == "YOUR_API_KEY" || CONFIG.Kubernetes.ApiKey == "" {
 			utilsLogger.Error("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
 			shutdown.SendShutdownSignalAndBlockForever(true)
-			panic("unreachable")
+			select {}
 		}
 	}
 
 	if CONFIGVERSION > CONFIG.Config.Version {
 		utilsLogger.Error("Config version is outdated. Please delete your config file and restart the application.", "ConfigPath", ConfigPath, "version", CONFIG.Config.Version, "neededVersion", CONFIGVERSION)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	// SET LOGGING
@@ -320,7 +320,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 			if err != nil {
 				utilsLogger.Error("failed to start debug service", "error", err)
 				shutdown.SendShutdownSignalAndBlockForever(true)
-				panic("unreachable")
+				select {}
 			}
 			utilsLogger.Info("1. Portforward mogenius-k8s-manager to 6060")
 			utilsLogger.Info("2. wget http://localhost:6060/debug/pprof/profile?seconds=60 -O cpu.pprof")
@@ -576,6 +576,6 @@ func writeDefaultConfig(stage string) {
 	if err != nil {
 		utilsLogger.Error("Error writing "+configPath+" file", "configPath", configPath, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 }

@@ -22,7 +22,7 @@ func InitUpgradeConfigMap() corev1.ConfigMap {
 	if err != nil {
 		utilsLogger.Error("failed to decode configmap", "file", file, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return app
 }
@@ -42,7 +42,7 @@ func InitUpgradeJob() v1job.Job {
 	if err != nil {
 		utilsLogger.Error("failed to decode job", "file", file, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return app
 }
@@ -58,7 +58,7 @@ func InitMogeniusNfsPersistentVolumeClaim() corev1.PersistentVolumeClaim {
 	if err != nil {
 		utilsLogger.Error("failed to decode pvc", "file", file, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return app
 }
@@ -74,7 +74,7 @@ func InitMogeniusNfsPersistentVolumeClaimForService() corev1.PersistentVolumeCla
 	if err != nil {
 		utilsLogger.Error("failed to decode pvc", "file", file, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return app
 }
@@ -90,7 +90,7 @@ func InitMogeniusNfsPersistentVolumeForService() corev1.PersistentVolume {
 	if err != nil {
 		utilsLogger.Error("failed to decode pvc", "file", file, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return app
 }
@@ -106,7 +106,7 @@ func InitMogeniusNfsDeployment() v1.Deployment {
 	if err != nil {
 		utilsLogger.Error("failed to decode deployment", "file", file, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return app
 }
@@ -122,7 +122,7 @@ func InitMogeniusNfsService() corev1.Service {
 	if err != nil {
 		utilsLogger.Error("failed to decode service", "file", file, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return service
 }
@@ -138,7 +138,7 @@ func InitMogeniusContainerRegistryIngress() netv1.Ingress {
 	if err != nil {
 		utilsLogger.Error("failed to decode ingress", "file", file, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return ingress
 }
@@ -154,7 +154,7 @@ func InitMogeniusContainerRegistrySecret(crt string, key string) corev1.Secret {
 	if err != nil {
 		utilsLogger.Error("failed to decode", "file", file, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	secret.StringData = make(map[string]string)
@@ -202,7 +202,7 @@ func readYaml(filePath string) string {
 	if err != nil {
 		utilsLogger.Error("failed to read embedded file from YamlTemplatesFolder", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return string(yaml)
 }

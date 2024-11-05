@@ -89,7 +89,7 @@ func GetExternalSecretsStore(name string) (*mokubernetes.SecretStoreSchema, erro
 		return nil, err
 	}
 
-	logger.Log.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
+	logger.Log.Info("SecretStore retrieved", "name", response.GetName())
 
 	yamlOutput, err := yaml.Marshal(response.Object)
 	if err != nil {
@@ -165,7 +165,7 @@ func deleteUnusedServiceAccount(role, projectId, moSharedPath string) error {
 	if err != nil {
 		return err
 	}
-	logger.Log.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
+	logger.Log.Info("ServiceAccount retrieved", "namespace", serviceAccount.GetNamespace(), "name", serviceAccount.GetName())
 
 	if serviceAccount.Annotations != nil {
 		// remove current claim of using this service account

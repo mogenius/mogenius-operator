@@ -279,7 +279,7 @@ func notUpToDateAction(helmData *punqStructs.HelmData) {
 			"remoteVer", remoteVer.String(),
 		)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	// MINOR&PATCH CHANGES: SHOULD UPGRADE

@@ -71,7 +71,7 @@ func Execute() {
 	if err != nil {
 		cmdLogger.Error("rootCmd failed", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 }
 

@@ -34,7 +34,7 @@ func Start() {
 	if err != nil {
 		storeLogger.Error("failed to initialize store", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	// Run garbage collection every 5 minutes

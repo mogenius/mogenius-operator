@@ -33,7 +33,7 @@ func Deploy() {
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	applyNamespace(provider)
@@ -41,14 +41,14 @@ func Deploy() {
 	if err != nil {
 		k8sLogger.Error("Error Creating RBAC. Aborting.", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	addDeployment(provider)
 	_, err = CreateOrUpdateClusterSecret(nil)
 	if err != nil {
 		k8sLogger.Error("Error Creating cluster secret. Aborting.", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 }
 
@@ -206,7 +206,7 @@ func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterS
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
@@ -220,7 +220,7 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	configmapClient := provider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
@@ -304,7 +304,7 @@ func GetSyncRepoData() (*dtos.SyncRepoData, error) {
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
@@ -328,7 +328,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		if utils.CONFIG.Kubernetes.RunInCluster {
 			k8sLogger.Error("Environment Variable 'api_key' is missing.")
 			shutdown.SendShutdownSignalAndBlockForever(true)
-			panic("unreachable")
+			select {}
 		} else {
 			apikey = utils.CONFIG.Kubernetes.ApiKey
 		}
@@ -338,7 +338,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		if utils.CONFIG.Kubernetes.RunInCluster {
 			k8sLogger.Error("Environment Variable 'cluster_name' is missing.")
 			shutdown.SendShutdownSignalAndBlockForever(true)
-			panic("unreachable")
+			select {}
 		} else {
 			clusterName = utils.CONFIG.Kubernetes.ClusterName
 		}
@@ -427,7 +427,7 @@ func InitOrUpdateCrds() {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		k8sLogger.Error("Error updating/creating mogenius Project-CRDs.", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	} else {
 		k8sLogger.Info("Created/updated mogenius Project-CRDs. 🚀")
 	}
@@ -436,7 +436,7 @@ func InitOrUpdateCrds() {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		k8sLogger.Error("Error updating/creating mogenius Environment-CRDs.", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	} else {
 		k8sLogger.Info("Created/updated mogenius Environment-CRDs. 🚀")
 	}
@@ -445,7 +445,7 @@ func InitOrUpdateCrds() {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		k8sLogger.Error("Error updating/creating mogenius ApplicationKit-CRDs.", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	} else {
 		k8sLogger.Info("Created/updated mogenius ApplicationKit-CRDs. 🚀")
 	}
