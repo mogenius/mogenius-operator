@@ -2,7 +2,7 @@ package shutdown
 
 import (
 	"fmt"
-	"log/slog"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var shutdownLogger = slog.New(slog.NewJSONHandler(os.Stderr, nil)).With("component", "shutdown")
+var logger *log.Logger = log.Default()
 
 var DefaultShutdown = New()
 
@@ -22,8 +22,8 @@ func Listen() {
 	DefaultShutdown.Listen()
 }
 
-func SendShutdownSignalAndBlockForever(indicateFailure bool) {
-	DefaultShutdown.SendShutdownSignalAndBlockForever(indicateFailure)
+func SendShutdownSignal(indicateFailure bool) {
+	DefaultShutdown.SendShutdownSignal(indicateFailure)
 }
 
 type Shutdown struct {
@@ -44,10 +44,10 @@ func (s *Shutdown) Add(fn func()) {
 	s.hooks = append(s.hooks, fn)
 }
 
-func (s *Shutdown) SendShutdownSignalAndBlockForever(indicateFailure bool) {
+func (s *Shutdown) SendShutdownSignal(indicateFailure bool) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	shutdownLogger.Info("sending request to shut down", "indicateFailure", indicateFailure)
+	logger.Println("sending request to shut down")
 	if indicateFailure {
 		err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 		if err != nil {
@@ -67,7 +67,7 @@ func (s *Shutdown) Listen() {
 	receivedSignal := <-ch
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	shutdownLogger.Info("received request to shut down", "receivedSignal", receivedSignal.String())
+	logger.Println("received request to shut down: ", receivedSignal.String())
 	var wg sync.WaitGroup
 	for _, fn := range s.hooks {
 		wg.Add(1)
@@ -78,7 +78,7 @@ func (s *Shutdown) Listen() {
 	}
 	wg.Wait()
 	time.Sleep(100 * time.Millisecond)
-	shutdownLogger.Info("finished shutdown routines", "receivedSignal", receivedSignal.String())
+	logger.Println("finished shutdown routines")
 	switch receivedSignal {
 	case syscall.SIGINT:
 		os.Exit(0)

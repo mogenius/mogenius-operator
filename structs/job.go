@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"mogenius-k8s-manager/utils"
+	"mogenius-k8s-manager/assert"
 
 	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -142,7 +142,7 @@ func stateLogJob(data *Job) {
 
 	serviceLogger, err := logManager.GetLogger("services")
 	if err != nil {
-		utils.Assert(serviceLogger != nil, "serviceLogger has to be initialized for stateLogJob")
+		assert.Assert(serviceLogger != nil, "serviceLogger has to be initialized for stateLogJob")
 	}
 
 	var message string
@@ -182,7 +182,7 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 
 	serviceLogger, err := logManager.GetLogger("services")
 	if err != nil {
-		utils.Assert(serviceLogger != nil, "serviceLogger has to be initialized for stateLogCmd")
+		assert.Assert(serviceLogger != nil, "serviceLogger has to be initialized for stateLogCmd")
 	}
 
 	var message string

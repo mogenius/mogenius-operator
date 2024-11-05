@@ -1,3 +1,5 @@
+set dotenv-load := true
+
 export CGO_ENABLED := "0"
 
 # Run the application with flags similar to the production build
@@ -39,7 +41,9 @@ build-linux-armv7:
         -X 'mogenius-k8s-manager/version.Ver=6.6.6'" -o dist/armv7/ ./...
 
 test:
-    go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" -- -short ./...
+    go clean -testcache
+    go run gotest.tools/gotestsum@latest --format="pkgname-and-test-fails" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- ./...
 
 test-short:
-    go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" -- -short ./...
+    go clean -testcache
+    go run gotest.tools/gotestsum@latest --format="pkgname-and-test-fails" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -short ./...

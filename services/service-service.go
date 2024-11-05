@@ -304,7 +304,7 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 		cmd.Start(job, "Update infrastructure YAML")
 
 		// dont do this in local environment
-		// if utils.CONFIG.Misc.Stage == "local" {
+		// if config.Get("MO_STAGE") == "local" {
 		// 	cmd.Success(job, "Skipping infrastructure YAML update")
 		// 	return
 		// }

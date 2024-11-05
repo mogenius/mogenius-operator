@@ -33,7 +33,7 @@ func Start() {
 	GlobalStore, err = NewStore()
 	if err != nil {
 		storeLogger.Error("failed to initialize store", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 

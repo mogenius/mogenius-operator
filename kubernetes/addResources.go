@@ -3,9 +3,9 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
@@ -32,7 +32,7 @@ func Deploy() {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 
@@ -40,14 +40,14 @@ func Deploy() {
 	err = addRbac(provider)
 	if err != nil {
 		k8sLogger.Error("Error Creating RBAC. Aborting.", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 	addDeployment(provider)
 	_, err = CreateOrUpdateClusterSecret(nil)
 	if err != nil {
 		k8sLogger.Error("Error Creating cluster secret. Aborting.", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 }
@@ -205,7 +205,7 @@ func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterS
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 
@@ -219,7 +219,7 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 
@@ -249,7 +249,7 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 			return utils.ClusterConfigmap{}, getErr
 		}
 	}
-	utils.Assert(configMap != nil, "configMap cant be nil at this point")
+	assert.Assert(configMap != nil, "configMap cant be nil at this point")
 
 	availableRes, err := GetAvailableResources()
 	if err != nil {
@@ -265,11 +265,11 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 
 	// TODO: this field should not reflect ALL resources but only the resources we want to actually watch!
 	syncWorkloadsYaml, err := utils.ToYaml(configMapData.SyncWorkloads)
-	utils.Assert(err == nil, fmt.Sprintf("serializing the SyncWorkloads struct field should never fail: %#v", err))
+	assert.Assert(err == nil, fmt.Sprintf("serializing the SyncWorkloads struct field should never fail: %#v", err))
 	configMap.Data["syncWorkloads"] = syncWorkloadsYaml
 
 	availableWorkloadsYaml, err := utils.ToYaml(configMapData.AvailableWorkloads)
-	utils.Assert(err == nil, fmt.Sprintf("serializing the SyncWorkloads struct field should never fail: %#v", err))
+	assert.Assert(err == nil, fmt.Sprintf("serializing the SyncWorkloads struct field should never fail: %#v", err))
 	configMap.Data["availableWorkloads"] = availableWorkloadsYaml
 
 	configMap.Data["ignoredNamespaces"] = strings.Join(configMapData.IgnoredNamespaces, ",")
@@ -289,7 +289,7 @@ func GetSyncRepoData() (*dtos.SyncRepoData, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 
@@ -309,26 +309,8 @@ func GetSyncRepoData() (*dtos.SyncRepoData, error) {
 
 func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error, syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
 	// CREATE NEW SECRET
-	apikey := os.Getenv("api_key")
-	if apikey == "" {
-		if utils.CONFIG.Kubernetes.RunInCluster {
-			k8sLogger.Error("Environment Variable 'api_key' is missing.")
-			shutdown.SendShutdownSignalAndBlockForever(true)
-			select {}
-		} else {
-			apikey = utils.CONFIG.Kubernetes.ApiKey
-		}
-	}
-	clusterName := os.Getenv("cluster_name")
-	if clusterName == "" {
-		if utils.CONFIG.Kubernetes.RunInCluster {
-			k8sLogger.Error("Environment Variable 'cluster_name' is missing.")
-			shutdown.SendShutdownSignalAndBlockForever(true)
-			select {}
-		} else {
-			clusterName = utils.CONFIG.Kubernetes.ClusterName
-		}
-	}
+	apikey := config.Get("MO_API_KEY")
+	clusterName := config.Get("MO_CLUSTER_NAME")
 
 	// Construct cluster secret object
 	clusterSecret := utils.ClusterSecret{
@@ -412,7 +394,7 @@ func InitOrUpdateCrds() {
 	err := CreateOrUpdateYamlString(utils.InitMogeniusCrdProjectsYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		k8sLogger.Error("Error updating/creating mogenius Project-CRDs.", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	} else {
 		k8sLogger.Info("Created/updated mogenius Project-CRDs. 🚀")
@@ -421,7 +403,7 @@ func InitOrUpdateCrds() {
 	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdEnvironmentsYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		k8sLogger.Error("Error updating/creating mogenius Environment-CRDs.", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	} else {
 		k8sLogger.Info("Created/updated mogenius Environment-CRDs. 🚀")
@@ -430,7 +412,7 @@ func InitOrUpdateCrds() {
 	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdApplicationKitYaml())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		k8sLogger.Error("Error updating/creating mogenius ApplicationKit-CRDs.", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	} else {
 		k8sLogger.Info("Created/updated mogenius ApplicationKit-CRDs. 🚀")

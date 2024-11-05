@@ -265,7 +265,7 @@ func notUpToDateAction(helmData *punqStructs.HelmData) {
 			"localVer", localVer.String(),
 			"remoteVer", remoteVer.String(),
 		)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 

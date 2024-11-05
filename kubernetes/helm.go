@@ -588,7 +588,7 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
 		helmLogger.Error("Failed to load repositories file", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 
@@ -667,7 +667,7 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
 		helmLogger.Error("failed to load repositories file", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 

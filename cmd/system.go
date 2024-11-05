@@ -17,6 +17,16 @@ var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check the system for all required components and offer healing",
 	Run: func(cmd *cobra.Command, args []string) {
+		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
+		if err != nil {
+			panic(err)
+		}
+		logFilter := cmdConfig.Get("MO_LOG_FILTER")
+		err = slogManager.SetLogFilter(logFilter)
+		if err != nil {
+			panic(err)
+		}
+		utils.PrintLogo()
 		preRun()
 		services.SystemCheck()
 	},

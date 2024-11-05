@@ -75,7 +75,7 @@ func ZipExtract(source, destination string) ([]string, error) {
 	defer func() {
 		if err := r.Close(); err != nil {
 			utilsLogger.Error("failed to close zip reader", "error", err)
-			shutdown.SendShutdownSignalAndBlockForever(true)
+			shutdown.SendShutdownSignal(true)
 			select {}
 		}
 	}()
@@ -106,7 +106,7 @@ func extractAndWriteFile(destination string, f *zip.File) error {
 	defer func() {
 		if err := rc.Close(); err != nil {
 			utilsLogger.Error("failed to close zip file", "error", err)
-			shutdown.SendShutdownSignalAndBlockForever(true)
+			shutdown.SendShutdownSignal(true)
 			select {}
 		}
 	}()
@@ -134,7 +134,7 @@ func extractAndWriteFile(destination string, f *zip.File) error {
 		defer func() {
 			if err := f.Close(); err != nil {
 				utilsLogger.Error("failed to close file", "error", err)
-				shutdown.SendShutdownSignalAndBlockForever(true)
+				shutdown.SendShutdownSignal(true)
 				select {}
 			}
 		}()
