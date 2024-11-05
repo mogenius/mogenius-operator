@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"encoding/json"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -38,7 +37,7 @@ func GetExternalSecretsStore(name string) (*SecretStore, error) {
 		return nil, err
 	}
 
-	k8sLogger.Info(fmt.Sprintf("SecretStore retrieved name: %s", response.GetName()))
+	k8sLogger.Info("SecretStore retrieved name", "name", response.GetName())
 
 	jsonOutput, err := json.Marshal(response.Object)
 	if err != nil {

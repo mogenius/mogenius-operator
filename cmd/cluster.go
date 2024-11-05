@@ -56,13 +56,13 @@ var clusterCmd = &cobra.Command{
 		if err != nil {
 			cmdLogger.Error("Error retrieving cluster secret. Aborting.", "error", err)
 			shutdown.SendShutdownSignalAndBlockForever(true)
-			panic("unreachable")
+			select {}
 		}
 		clusterConfigmap, err := mokubernetes.CreateOrUpdateClusterConfigmap(nil)
 		if err != nil {
 			cmdLogger.Error("Error retrieving cluster configmap. Aborting.", "error", err.Error())
 			shutdown.SendShutdownSignalAndBlockForever(true)
-			panic("unreachable")
+			select {}
 		}
 
 		utils.SetupClusterSecret(clusterSecret)
@@ -101,7 +101,7 @@ var clusterCmd = &cobra.Command{
 				if err != nil {
 					cmdLogger.Error("Error installing default applications", "error", err)
 					shutdown.SendShutdownSignalAndBlockForever(true)
-					panic("unreachable")
+					select {}
 				}
 			}
 			services.DISABLEQUEUE = false

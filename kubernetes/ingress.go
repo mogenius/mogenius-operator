@@ -332,7 +332,7 @@ func CreateMogeniusContainerRegistryIngress() {
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		k8sLogger.Error(fmt.Sprintf("CreateMogeniusContainerRegistryIngress ERROR: %s", err.Error()))
+		k8sLogger.Error("CreateMogeniusContainerRegistryIngress", "error", err)
 	}
 
 	client := provider.ClientSet.NetworkingV1().Ingresses(ing.Namespace)
@@ -359,7 +359,7 @@ func CreateMogeniusContainerRegistryTlsSecret(crt string, key string) error {
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		k8sLogger.Error(fmt.Sprintf("CreateMogeniusContainerRegistryTlsSecret ERROR: %s", err.Error()))
+		k8sLogger.Error("CreateMogeniusContainerRegistryTlsSecret", "error", err)
 	}
 
 	client := provider.ClientSet.CoreV1().Secrets(secret.Namespace)

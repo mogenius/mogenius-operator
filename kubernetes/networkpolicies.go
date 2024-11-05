@@ -150,7 +150,7 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for netpol watcher. Cannot continue because it is vital.", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	// Set up a dynamic event broadcaster for the specific namespace

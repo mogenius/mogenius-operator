@@ -57,7 +57,7 @@ func Start() {
 	if err != nil {
 		dbLogger.Error("Error opening bbolt database", "dbPath", dbPath, "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	// ### BUILD BUCKET ###
 	db = database

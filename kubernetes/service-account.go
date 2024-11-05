@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 
 	core "k8s.io/api/core/v1"
 
@@ -27,7 +26,7 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 		if err != nil {
 			return err
 		} else {
-			k8sLogger.Info(fmt.Sprintf("ServiceAccount retrieved ns: %s - name: %s", serviceAccount.GetNamespace(), serviceAccount.GetName()))
+			k8sLogger.Info("ServiceAccount retrieved", "namespace", serviceAccount.GetNamespace(), "name", serviceAccount.GetName())
 		}
 		if serviceAccount.Annotations == nil {
 			serviceAccount.Annotations = make(map[string]string)

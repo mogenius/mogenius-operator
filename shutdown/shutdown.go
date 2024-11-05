@@ -59,7 +59,6 @@ func (s *Shutdown) SendShutdownSignalAndBlockForever(indicateFailure bool) {
 			panic(fmt.Errorf("failed to send SIGINT signal: %s", err.Error()))
 		}
 	}
-	select {} // block forever
 }
 
 func (s *Shutdown) Listen() {

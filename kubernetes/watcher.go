@@ -241,7 +241,7 @@ func WatchAllResources(watcher interfaces.KubernetesWatcher) {
 	if err != nil {
 		k8sLogger.Error("Error watching resources", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 }
 

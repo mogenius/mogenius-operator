@@ -34,7 +34,7 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for watcher. Cannot continue because it is vital.", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	if !ContainsLabelKey(pv.Labels, LabelKeyVolumeName) {

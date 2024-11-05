@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -51,12 +50,12 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 				return err
 			}
 
-			k8sLogger.Info(fmt.Sprintf("Resource retrieved %s:%s", gvr.Resource, res.GetName()))
+			k8sLogger.Info("Resource retrieved", "resource", gvr.Resource, "name", res.GetName())
 
 			if isReady(res) {
 				break // resource is ready and probably won't change anymore before the next update
 			}
-			k8sLogger.Info(fmt.Sprintf("Resource not ready: %s  Retrying in 2 seconds...", res.GetName()))
+			k8sLogger.Info("Resource not ready.  Retrying in 2 seconds...", "name", res.GetName())
 			time.Sleep(2 * time.Second)
 		}
 		// Try update if already exists
@@ -64,10 +63,10 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 		if err != nil {
 			return err
 		}
-		k8sLogger.Info("Resource updated successfully ✅: " + obj.GetName())
+		k8sLogger.Info("Resource updated successfully ✅", "name", obj.GetName())
 
 	} else {
-		k8sLogger.Info("Resource created successfully ✅: " + obj.GetName())
+		k8sLogger.Info("Resource created successfully ✅", "name", obj.GetName())
 	}
 	return nil
 }

@@ -13,7 +13,7 @@ func Remove() {
 	if provider == nil || err != nil {
 		k8sLogger.Error("error creating provider.", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	// namespace is not deleted on purpose

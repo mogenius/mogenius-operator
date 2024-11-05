@@ -117,7 +117,7 @@ func getProvider() *punq.KubeProvider {
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return provider
 }
@@ -179,14 +179,14 @@ func ListNodes() []core.Node {
 	if provider == nil || err != nil {
 		k8sLogger.Error("error creating kubeprovider")
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("failed to list nodes", "error", err)
 		shutdown.SendShutdownSignalAndBlockForever(true)
-		panic("unreachable")
+		select {}
 	}
 	return nodeMetricsList.Items
 }
@@ -354,7 +354,7 @@ func IsLocalClusterSetup() bool {
 func GetCustomDeploymentTemplate() *v1.Deployment {
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
-		k8sLogger.Error(fmt.Sprintf("GetCustomDeploymentTemplate: %s", err.Error()))
+		k8sLogger.Error("GetCustomDeploymentTemplate", "error", err)
 		return nil
 	}
 	client := provider.ClientSet.CoreV1().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
@@ -367,7 +367,7 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 		s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 		_, _, err = s.Decode(yamlBytes, nil, &deployment)
 		if err != nil {
-			k8sLogger.Error(fmt.Sprintf("GetCustomDeploymentTemplate (unmarshal): %s", err.Error()))
+			k8sLogger.Error("GetCustomDeploymentTemplate (unmarshal)", "error", err)
 			return nil
 		}
 		return &deployment
