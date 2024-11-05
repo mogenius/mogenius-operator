@@ -2,27 +2,30 @@ package logging
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"runtime"
 	"strings"
 
-	"github.com/TylerBrock/colorjson"
 	"github.com/go-git/go-git/v5/plumbing/color"
+	"github.com/nwidger/jsoncolor"
 )
 
 type MogeniusSlogHandler struct {
-	inner *slog.JSONHandler
-	attrs []slog.Attr
-	group string
+	stdout *os.File
+	inner  *slog.JSONHandler
+	attrs  []slog.Attr
+	group  string
 }
 
 func NewMogeniusSlogHandler(writers ...io.Writer) slog.Handler {
+
 	return &MogeniusSlogHandler{
-		attrs: []slog.Attr{},
-		group: "",
+		stdout: os.Stdout,
+		attrs:  []slog.Attr{},
+		group:  "",
 		inner: slog.NewJSONHandler(io.MultiWriter(writers...), &slog.HandlerOptions{
 			AddSource: true,
 			Level:     slog.LevelDebug,
@@ -64,42 +67,35 @@ func (h *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) er
 
 	component, err := h.getComponent()
 	if err != nil {
-		panic(fmt.Errorf("handler did not receive a component: %#v", err))
+		panic("The LogManager enforces an component attribute to exist: " + err.Error())
 	}
 	component = color.Magenta + component + color.Reset
 
 	source, err := getSourceString(record)
 	if err != nil {
-		panic(err)
+		panic("Source string should always be parsable within this handler: " + err.Error())
 	}
 	source = color.Faint + source + color.Reset
 
 	message := record.Message
 
-	logLine := fmt.Sprintf("%s %s %s %s", level, component, source, message)
+	logLine := level + " " + component + " " + source + " " + message
 
 	payload := getPayload(record)
 	if len(payload) > 0 {
-		// using stdlib marshal and unmarshal to normalize the object before passing it to colorjson
-		// reason: colorjson does not marshal all values from the payload object
-		var jsonObj interface{}
-		data, err := json.Marshal(payload)
-		if err != nil {
-			panic(fmt.Errorf("failed to marshal payload: %s\n", err.Error()))
-		}
-		err = json.Unmarshal(data, &jsonObj)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal payload: %s\n", err.Error()))
-		}
-		prettyData, err := colorjson.Marshal(jsonObj)
+		prettyData, err := jsoncolor.Marshal(payload)
 		if err != nil {
 			panic(fmt.Errorf("failed to prettify json: %s\n", err.Error()))
 		}
 		prettyStringData := string(prettyData)
-		logLine = fmt.Sprintf("%s %s", logLine, prettyStringData)
+
+		logLine = logLine + " " + prettyStringData
 	}
 
-	fmt.Printf("%s\n", logLine)
+	_, err = h.stdout.Write([]byte(logLine + "\n"))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -138,8 +134,17 @@ func getSourceString(record slog.Record) (string, error) {
 
 func getPayload(record slog.Record) map[string]any {
 	attrs := make(map[string]any)
-	clonedRecord := record.Clone()
-	clonedRecord.Attrs(func(a slog.Attr) bool {
+	record.Attrs(func(a slog.Attr) bool {
+		errorData, ok := a.Value.Any().(error)
+		if ok {
+			attrs[a.Key] = errorData.Error()
+			return true
+		}
+		stringerData, ok := a.Value.Any().(fmt.Stringer)
+		if ok {
+			attrs[a.Key] = stringerData.String()
+			return true
+		}
 		attrs[a.Key] = a.Value.Any()
 		return true
 	})

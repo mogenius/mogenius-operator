@@ -3,11 +3,13 @@
 </p>
 
 # run build locally
-```bash
+
+```sh
 go build .
 ```
 
-# run local instance with go 
+# run local instance with go
+
 Adjust the config `~/.mogenius-k8s-manager/config.yaml` (might need to be copied there from [here](utils/config/config-local.yaml))
 Assuming you already have a [prod operator running](https://docs.mogenius.com/cluster-management/installing-mogenius#mogenius-cli), you can adjust the deployment of the operator with e.g.:
 `kubectl edit deployments -n mogenius mogenius-k8s-manager`
@@ -15,13 +17,16 @@ Assuming you already have a [prod operator running](https://docs.mogenius.com/cl
 Get the api-key, mfa-id and cluster-name from the operator secret `mogenius/mogenius` and adjust the config.yaml accordingly.
 
 change the replicas to 0, then you can run the local instance with:
-```bash
-go run main.go cluster
+
+```sh
+go run -trimpath main.go cluster
 ```
 
 # local docker image in docker-desktop kubernetes
+
 RUN:
-```
+
+```sh
 docker build -t localk8smanager --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg BUILD_TIMESTAMP="$(date)" --build-arg COMMIT_HASH="XXX" --build-arg GIT_BRANCH=local-development --build-arg VERSION="6.6.6" -f Dockerfile .
 ```
 
@@ -40,7 +45,8 @@ imagePullPolicy: Never
 After that simply restart the deployment and you are good to go.
 
 # bolt-db debugging
-```
+
+```sh
 apk add go
 go install github.com/br0xen/boltbrowser@latest
 cp /db/mogenius-stats-1.db mogenius-stats1.db
@@ -49,13 +55,15 @@ cp /db/mogenius-1.db mogenius1.db
 ```
 
 # Upgrade Modules
-```
+
+```sh
 go get -u ./...
 go mod tidy
 ```
 
 # Testing
-```
+
+```sh
 go test -v ./...
 
 # clean cache
@@ -63,7 +71,8 @@ go clean -testcache
 ```
 
 # Helm Install
-```
+
+```sh
 helm repo add mo-public helm.mogenius.com/public
 helm repo update
 helm search repo mogenius-platform
@@ -74,24 +83,28 @@ helm install mogenius-platform mo-public/mogenius-platform \
 ```
 
 # Helm Upgrade
-```
+
+```sh
 helm repo update
 helm upgrade mogenius-platform mo-public/mogenius-platform
 ```
 
 # Helm Uninstall
-```
+
+```sh
 helm uninstall mogenius-platform
 ```
 
-# Clean Helm Cache 
-```
+# Clean Helm Cache
+
+```sh
 rm -rf ~/.helm/cache/archive/*
 rm -rf ~/.helm/repository/cache/*
 helm repo update
 ```
 
 # ENV VARS
+
 | NAME                       | DEFAULT                                     | DESCRIPTION |
 | :---                       | :----                                       | ---: |
 | api_key                    | [your_key]                                  | Api Key to access the server     |
@@ -121,10 +134,13 @@ helm repo update
 | git_add_ignored_file       | false                                       | Gits behaviour when adding ignored files. | 
 
 # LINKS
+
+- [Just](https://github.com/casey/just) - A Task Runner. Checkout the `Justfile` for details or use `just -l` for an quick overview.
 - [AIR](https://github.com/cosmtrek/air) - Live reload for Go apps
 
 # Quick Setup Ubuntu
-```
+
+```sh
 #!/bin/bash
 
 # INSTALL K3S
@@ -148,23 +164,22 @@ rm LICENSE README.md k9s_Linux_amd64.tar.gz get_helm.sh
 ```
 
 # Lint
-```
-golangci-lint run '--fast=false' --sort-results '--max-same-issues=0' '--timeout=1h'
+
+```sh
+golangci-lint run --fast=false --sort-results --max-same-issues=0 --timeout=1h
 ```
 
 # Slim setup (IMPORTANT: DOES NOT MAKE THE IMAGE SMALLER IN OUR PARTICULAR CASE)
-```
+
+```sh
 slim build --http-probe=false --exec "curl mogenius.com; git; docker info; helm" \
---include-path-file /usr/local/bin/dockerd \
---include-path-file /usr/local/bin/docker \
---include-path-file /usr/local/bin/helm \
---include-path-file /usr/bin/curl \
+    --include-path-file /usr/local/bin/dockerd \
+    --include-path-file /usr/local/bin/docker \
+    --include-path-file /usr/local/bin/helm \
+    --include-path-file /usr/bin/curl \
 ghcr.io/mogenius/mogenius-k8s-manager-dev:v1.18.19-develop.92
 ```
 
-
 ---------------------
+
 mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform
-
-
-
