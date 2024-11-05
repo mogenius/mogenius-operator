@@ -277,7 +277,7 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 		isManaged := policy.Labels != nil && policy.Labels[kubernetes.NetpolLabel] == "true"
 		if isManaged {
 			// managed
-			managedKey := fmt.Sprintf("%s--%s-%s", policy.Namespace, kubernetes.PoliciesLabelPrefix, policy.Name)
+			managedKey := fmt.Sprintf("%s--%s", policy.Namespace, policy.Name)
 			managedMap[managedKey] = idx
 		} else {
 			// unmanaged
