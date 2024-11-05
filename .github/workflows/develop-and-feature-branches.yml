@@ -123,12 +123,7 @@ jobs:
           helm uninstall external-secrets
 
   build-amd64:
-    needs:
-      - prepare
-      - staticcheck
-      - govet
-      - golangci
-      - passing-tests
+    needs: prepare
     runs-on: [self-hosted, X64]
     permissions:
       contents: read
@@ -163,12 +158,7 @@ jobs:
           docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
 
   build-arm64-linux:
-    needs:
-      - prepare
-      - staticcheck
-      - govet
-      - golangci
-      - passing-tests
+    needs: prepare
     runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
@@ -202,12 +192,7 @@ jobs:
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
 
   build-arm64:
-    needs:
-      - prepare
-      - staticcheck
-      - govet
-      - golangci
-      - passing-tests
+    needs: prepare
     runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
@@ -241,12 +226,7 @@ jobs:
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
 
   build-armv7:
-    needs:
-      - prepare
-      - staticcheck
-      - govet
-      - golangci
-      - passing-tests
+    needs: prepare
     runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
