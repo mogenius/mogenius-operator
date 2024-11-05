@@ -4,7 +4,6 @@ go 1.23.2
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.0
-	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.3.1
 	github.com/fatih/color v1.18.0
@@ -103,7 +102,6 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/jaevor/go-nanoid v1.4.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
@@ -130,6 +128,7 @@ require (
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.3-0.20240618155329-98d742f6907a // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
+	github.com/nwidger/jsoncolor v0.3.2 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
