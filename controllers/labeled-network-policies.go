@@ -267,12 +267,12 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 		return nil, fmt.Errorf("failed to list all namespaces, err: %s", err.Error())
 	}
 
-	policies, err := kubernetes.ListAllNetworkPolicies("")
-	if err != nil {
-	}
+	// ignore errors
+	policies, _ := kubernetes.ListAllNetworkPolicies("")
 
 	managedMap := make(map[string]int)
 	unmanagedMap := make(map[string][]int)
+
 	for idx, policy := range policies {
 		isManaged := policy.Labels != nil && policy.Labels[kubernetes.NetpolLabel] == "true"
 		if isManaged {
