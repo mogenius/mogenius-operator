@@ -48,7 +48,7 @@ func getHealthz(w http.ResponseWriter, _ *http.Request) {
 		"branch":  version.Branch,
 		"hash":    version.GitCommitHash,
 		"buildAt": version.BuildTimestamp,
-		"stage":   utils.CONFIG.Misc.Stage,
+		"stage":   config.Get("MO_STAGE"),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

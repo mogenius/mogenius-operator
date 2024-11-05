@@ -350,7 +350,7 @@ func CreateMogeniusContainerRegistryIngress() {
 }
 
 func CreateMogeniusContainerRegistryTlsSecret(crt string, key string) error {
-	if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
+	if config.Get("MO_STAGE") == utils.STAGE_LOCAL {
 		return nil
 	}
 

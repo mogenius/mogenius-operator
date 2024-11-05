@@ -6,7 +6,9 @@ import (
 )
 
 var serviceLogger *slog.Logger
+var config interfaces.ConfigModule
 
-func Setup(logManager interfaces.LogManagerModule) {
-	serviceLogger = logManager.CreateLogger("services")
+func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
+	serviceLogger = logManagerModule.CreateLogger("services")
+	config = configModule
 }

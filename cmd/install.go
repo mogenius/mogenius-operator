@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/utils"
 	"os"
 
 	"github.com/fatih/color"
@@ -21,6 +22,16 @@ var installCmd = &cobra.Command{
 	This cmd installs the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
+		if err != nil {
+			panic(err)
+		}
+		logFilter := cmdConfig.Get("MO_LOG_FILTER")
+		err = slogManager.SetLogFilter(logFilter)
+		if err != nil {
+			panic(err)
+		}
+		utils.PrintLogo()
 		preRun()
 		yellow := color.New(color.FgYellow).SprintFunc()
 		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you realy want to install mogenius-k8s-manager to '%s' context?", yellow(kubernetes.CurrentContextName()))) {

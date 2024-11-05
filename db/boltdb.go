@@ -56,7 +56,7 @@ func Start() {
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		dbLogger.Error("Error opening bbolt database", "dbPath", dbPath, "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 	// ### BUILD BUCKET ###
@@ -137,11 +137,11 @@ func Start() {
 	// RESET STARTED JOBS TO PENDING
 	resetStartedJobsToPendingOnInit()
 
-	dbLogger.Info("bbold started 🚀", "dbPath", dbPath)
+	dbLogger.Debug("bbold started 🚀", "dbPath", dbPath)
 }
 
 func close() {
-	dbLogger.Info("Shutting down db...")
+	dbLogger.Debug("Shutting down db...")
 	if db != nil {
 		db.Close()
 	}

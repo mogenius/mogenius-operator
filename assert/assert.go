@@ -1,4 +1,10 @@
-package utils
+package assert
+
+import (
+	"log"
+)
+
+var logger *log.Logger = log.Default()
 
 // In some cases it is better to stop the World.
 //
@@ -9,6 +15,7 @@ package utils
 //   - `nil` values where they should never happen. For example injected functions.
 func Assert(condition bool, message any) {
 	if !condition {
-		panic(message)
+		logger.Println("ASSERTION FAILED: ", message)
+		panic("ASSERTION FAILED")
 	}
 }

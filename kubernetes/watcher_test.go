@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"fmt"
 	"mogenius-k8s-manager/interfaces"
+	"mogenius-k8s-manager/utils"
 	"testing"
 )
 
@@ -77,37 +78,37 @@ spec:
 	}
 
 	// LIST ITEMS IN WORKLOAD
-	deplList, err := GetUnstructuredResourceList("apps/v1", "", "deployments", true)
+	deplList, err := GetUnstructuredResourceList("apps/v1", "", "deployments", utils.Pointer(""))
 	if err != nil {
 		t.Errorf("Error GetUnstructuredResourceList deployments: %s", err.Error())
 	} else {
 		t.Logf("%d deployments found ✅", len(deplList.Items))
 	}
-	podList, err := GetUnstructuredResourceList("", "v1", "pods", true)
+	podList, err := GetUnstructuredResourceList("", "v1", "pods", utils.Pointer(""))
 	if err != nil {
 		t.Errorf("Error GetUnstructuredResourceList pods: %s", err.Error())
 	} else {
 		t.Logf("%d pods found ✅", len(podList.Items))
 	}
-	secList, err := GetUnstructuredResourceList("", "v1", "secrets", true)
+	secList, err := GetUnstructuredResourceList("", "v1", "secrets", utils.Pointer(""))
 	if err != nil {
 		t.Errorf("Error GetUnstructuredResourceList pods: %s", err.Error())
 	} else {
 		t.Logf("%d secrets found ✅", len(secList.Items))
 	}
-	pvList, err := GetUnstructuredResourceList("", "v1", "persistentvolumes", true)
+	pvList, err := GetUnstructuredResourceList("", "v1", "persistentvolumes", utils.Pointer(""))
 	if err != nil {
 		t.Errorf("Error GetUnstructuredResourceList pods: %s", err.Error())
 	} else {
 		t.Logf("%d persistentvolumes found ✅", len(pvList.Items))
 	}
-	nsList, err := GetUnstructuredResourceList("", "v1", "namespaces", false)
+	nsList, err := GetUnstructuredResourceList("", "v1", "namespaces", nil)
 	if err != nil {
 		t.Errorf("Error GetUnstructuredResourceList namespaces: %s", err.Error())
 	} else {
 		t.Logf("%d namespaces found ✅", len(nsList.Items))
 	}
-	k3sAddonsList, err := GetUnstructuredResourceList("k3s.cattle.io/v1", "v1", "addons", true)
+	k3sAddonsList, err := GetUnstructuredResourceList("k3s.cattle.io/v1", "v1", "addons", utils.Pointer(""))
 	if err != nil {
 		t.Errorf("Error GetUnstructuredResourceList k3sAddons: %s", err.Error())
 	} else {
@@ -133,7 +134,7 @@ spec:
 	}
 
 	// NEW WORKLOAD
-	depl, err := CreateUnstructuredResource("apps/v1", "", "deployments", true, createNewDeplString)
+	depl, err := CreateUnstructuredResource("apps/v1", "", "deployments", utils.Pointer(""), createNewDeplString)
 	if err != nil {
 		t.Errorf("Error creating deployment: %s", err.Error())
 	} else {
@@ -141,7 +142,7 @@ spec:
 	}
 
 	// UPDATE WORKLOAD
-	deplUpdated, err := UpdateUnstructuredResource("apps/v1", "", "deployments", true, updatedDeplString)
+	deplUpdated, err := UpdateUnstructuredResource("apps/v1", "", "deployments", utils.Pointer(""), updatedDeplString)
 	if err != nil {
 		t.Errorf("Error updating deployment: %s", err.Error())
 	} else {

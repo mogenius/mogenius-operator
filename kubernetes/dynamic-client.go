@@ -121,7 +121,7 @@ func GetDefaultKubeConfig() []string {
 
 	if len(validConfigs) == 0 {
 		k8sLogger.Error("Error: No valid kubeconfig file found. Ensure that the $KUBECONFIG environment variable or the default kubeconfig is set correctly. For more info, see https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/.")
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 

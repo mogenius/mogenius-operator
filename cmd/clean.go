@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/utils"
 	"os"
 
 	"github.com/fatih/color"
@@ -21,6 +22,16 @@ var cleanCmd = &cobra.Command{
 	This cmd removes all remaining parts of the daemonset, configs, etc. from your cluster. 
 	This can be used if something went wrong during automatic cleanup.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
+		if err != nil {
+			panic(err)
+		}
+		logFilter := cmdConfig.Get("MO_LOG_FILTER")
+		err = slogManager.SetLogFilter(logFilter)
+		if err != nil {
+			panic(err)
+		}
+		utils.PrintLogo()
 		preRun()
 		yellow := color.New(color.FgYellow).SprintFunc()
 		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you realy want to remove mogenius-k8s-manager from '%s' context?", yellow(kubernetes.CurrentContextName()))) {

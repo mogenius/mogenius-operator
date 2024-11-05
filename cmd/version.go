@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 
 	"github.com/fatih/color"
@@ -16,6 +17,16 @@ var versionCmd = &cobra.Command{
 	Short: "Print version information and exit",
 	Long:  `Print version information and exit`,
 	Run: func(cmd *cobra.Command, args []string) {
+		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
+		if err != nil {
+			panic(err)
+		}
+		logFilter := cmdConfig.Get("MO_LOG_FILTER")
+		err = slogManager.SetLogFilter(logFilter)
+		if err != nil {
+			panic(err)
+		}
+		utils.PrintLogo()
 		preRun()
 		yellow := color.New(color.FgYellow).SprintFunc()
 		fmt.Printf("CLI: \t\t%s\n", yellow(version.Ver))

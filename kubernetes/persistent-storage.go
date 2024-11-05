@@ -33,7 +33,7 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for watcher. Cannot continue because it is vital.", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 

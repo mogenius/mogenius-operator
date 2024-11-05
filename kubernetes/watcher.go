@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/interfaces"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/store"
@@ -236,14 +237,14 @@ func WatchAllResources(watcher interfaces.WatcherModule) {
 			if err != nil {
 				k8sLogger.Error("failed to initialize watchhandler for resource", "kind", v.Kind, "version", v.Version, "error", err)
 			} else {
-				k8sLogger.Info("🚀 Watching resource", "kind", v.Kind, "group", v.Group)
+				k8sLogger.Debug("🚀 Watching resource", "kind", v.Kind, "group", v.Group)
 			}
 		}
 		return nil
 	})
 	if err != nil {
 		k8sLogger.Error("Error watching resources", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 }
@@ -343,7 +344,7 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 }
 
 func InitAllWorkloads() {
-	utils.Assert(IacManagerShouldWatchResources != nil, "func IacManagerShouldWatchResources has to be initialized")
+	assert.Assert(IacManagerShouldWatchResources != nil, "func IacManagerShouldWatchResources has to be initialized")
 	allResources, err := GetAvailableResources()
 	if err != nil {
 		k8sLogger.Error("Error getting available resources", "error", err)

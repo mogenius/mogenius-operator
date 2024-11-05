@@ -4,6 +4,7 @@ import (
 	"context"
 	json1 "encoding/json"
 	"fmt"
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
@@ -116,7 +117,7 @@ func getProvider() *punq.KubeProvider {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 	return provider
@@ -144,7 +145,7 @@ func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
 
 func CurrentContextName() string {
 	if utils.CONFIG.Kubernetes.RunInCluster {
-		return utils.CONFIG.Kubernetes.ClusterName
+		return config.Get("MO_CLUSTER_NAME")
 	}
 
 	var kubeconfig string = ""
@@ -178,14 +179,14 @@ func ListNodes() []core.Node {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("error creating kubeprovider")
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("failed to list nodes", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 	return nodeMetricsList.Items
@@ -293,7 +294,7 @@ func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string)
 
 // mount nfs server in k8s-manager
 func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) {
-	if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
+	if config.Get("MO_STAGE") == utils.STAGE_LOCAL {
 		return
 	}
 
@@ -481,12 +482,12 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 }
 
 func DeleteResourceYaml(kind, namespace, name string, obj interface{}) {
-	utils.Assert(IacManagerDeleteResourceYaml != nil, "func IacManageDeleteResourceYaml has to be initialized")
+	assert.Assert(IacManagerDeleteResourceYaml != nil, "func IacManageDeleteResourceYaml has to be initialized")
 	IacManagerDeleteResourceYaml(kind, namespace, name, obj)
 }
 
 func WriteResourceYaml(kind, namespace, name string, obj interface{}) {
-	utils.Assert(IacManagerWriteResourceYaml != nil, "func IacManagerWriteResourceYaml has to be initialized")
+	assert.Assert(IacManagerWriteResourceYaml != nil, "func IacManagerWriteResourceYaml has to be initialized")
 	IacManagerWriteResourceYaml(kind, namespace, name, obj)
 }
 

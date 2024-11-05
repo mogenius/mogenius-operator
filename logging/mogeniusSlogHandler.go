@@ -7,25 +7,32 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
+	"slices"
 	"strings"
+	"sync"
 
 	"github.com/go-git/go-git/v5/plumbing/color"
 	"github.com/nwidger/jsoncolor"
 )
 
 type MogeniusSlogHandler struct {
-	stdout *os.File
-	inner  *slog.JSONHandler
-	attrs  []slog.Attr
-	group  string
+	logLevel          *slog.Level
+	logFilter         *string
+	loggerHandlerLock *sync.RWMutex
+	stdout            *os.File
+	inner             *slog.JSONHandler
+	attrs             []slog.Attr
+	group             string
 }
 
-func NewMogeniusSlogHandler(writers ...io.Writer) slog.Handler {
-
+func NewMogeniusSlogHandler(logLevel *slog.Level, logFilter *string, loggerHandlerLock *sync.RWMutex, writers ...io.Writer) slog.Handler {
 	return &MogeniusSlogHandler{
-		stdout: os.Stdout,
-		attrs:  []slog.Attr{},
-		group:  "",
+		logLevel:          logLevel,
+		logFilter:         logFilter,
+		loggerHandlerLock: loggerHandlerLock,
+		stdout:            os.Stdout,
+		attrs:             []slog.Attr{},
+		group:             "",
 		inner: slog.NewJSONHandler(io.MultiWriter(writers...), &slog.HandlerOptions{
 			AddSource: true,
 			Level:     slog.LevelDebug,
@@ -51,23 +58,41 @@ func (h *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) er
 		return err
 	}
 
+	h.loggerHandlerLock.RLock()
+	slogLevel := *h.logLevel
+	logFilter := *h.logFilter
+	h.loggerHandlerLock.RUnlock()
+	logFilterComponents := strings.Split(logFilter, ",")
+
+	var recordLevel slog.Level
 	level := record.Level.String()
 	switch level {
 	case "DEBUG":
 		level = color.Cyan + level + color.Reset
+		recordLevel = slog.LevelDebug
 	case "INFO":
 		level = color.Green + level + color.Reset
+		recordLevel = slog.LevelInfo
 	case "WARN":
 		level = color.Yellow + level + color.Reset
+		recordLevel = slog.LevelWarn
 	case "ERROR":
 		level = color.Red + level + color.Reset
+		recordLevel = slog.LevelError
 	default:
 		panic(fmt.Errorf("unsupported error level: %s", level))
+	}
+
+	if int(recordLevel) < int(slogLevel) {
+		return nil
 	}
 
 	component, err := h.getComponent()
 	if err != nil {
 		panic("The LogManager enforces an component attribute to exist: " + err.Error())
+	}
+	if logFilter != "" && !slices.Contains(logFilterComponents, component) {
+		return nil
 	}
 	component = color.Magenta + component + color.Reset
 

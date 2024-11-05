@@ -32,7 +32,7 @@ func Start() {
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		dbStatsLogger.Error("Error opening bbolt database.", "dbPath", dbPath, "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 	dbStats = database
@@ -41,7 +41,7 @@ func Start() {
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(TRAFFIC_BUCKET_NAME))
 		if err == nil {
-			dbStatsLogger.Info("Bucket created 🚀.", "bucket", TRAFFIC_BUCKET_NAME)
+			dbStatsLogger.Debug("Bucket created 🚀.", "bucket", TRAFFIC_BUCKET_NAME)
 		}
 		return err
 	})
@@ -53,7 +53,7 @@ func Start() {
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(POD_STATS_BUCKET_NAME))
 		if err == nil {
-			dbStatsLogger.Info("Bucket created 🚀.", "bucket", POD_STATS_BUCKET_NAME)
+			dbStatsLogger.Debug("Bucket created 🚀.", "bucket", POD_STATS_BUCKET_NAME)
 		}
 		return err
 	})
@@ -65,7 +65,7 @@ func Start() {
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(NODE_STATS_BUCKET_NAME))
 		if err == nil {
-			dbStatsLogger.Info("Bucket created 🚀.", "bucket", NODE_STATS_BUCKET_NAME)
+			dbStatsLogger.Debug("Bucket created 🚀.", "bucket", NODE_STATS_BUCKET_NAME)
 		}
 		return err
 	})
@@ -77,7 +77,7 @@ func Start() {
 	err = dbStats.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(SOCKET_STATS_BUCKET))
 		if err == nil {
-			dbStatsLogger.Info("Bucket created 🚀.", "bucket", SOCKET_STATS_BUCKET)
+			dbStatsLogger.Debug("Bucket created 🚀.", "bucket", SOCKET_STATS_BUCKET)
 		}
 		return err
 	})
@@ -96,7 +96,7 @@ func Start() {
 }
 
 func close() {
-	dbStatsLogger.Info("Shutting down db...")
+	dbStatsLogger.Debug("Shutting down db...")
 	if dbStats != nil {
 		dbStats.Close()
 	}

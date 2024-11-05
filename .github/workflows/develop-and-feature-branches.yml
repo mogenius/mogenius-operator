@@ -79,7 +79,20 @@ jobs:
       - name: go vet
         run: go vet ./...
 
-  passing-tests:
+  unit-tests:
+    needs: prepare
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: go vet
+        run: |
+          go mod download
+          go clean -testcache
+          go run gotest.tools/gotestsum@latest --format="github-actions" -- -short ./...
+
+  all-tests:
     needs: prepare
     runs-on: [self-hosted, ARM64, k3s-installed]
     continue-on-error: true # tests are not stable yet

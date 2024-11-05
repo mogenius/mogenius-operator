@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -17,16 +18,22 @@ const logfileMaxSize int = 10
 const logfileCompress bool = true
 
 type SlogManager struct {
+	loggerHandlerLock sync.RWMutex
+	logLevel          slog.Level
+	logFilter         string
 	logDir            string
 	combinedLogWriter io.Writer
 	activeLoggers     map[string]*slog.Logger
 }
 
-func NewSlogManager(logDir string) SlogManager {
+func NewSlogManager(logDir string) *SlogManager {
 	absLogDir, err := filepath.Abs(logDir)
 	assert(err == nil, fmt.Errorf("failed to resolve absolut logDir('%s'): %s", logDir, err))
 	slogManager := SlogManager{
-		logDir: absLogDir,
+		loggerHandlerLock: sync.RWMutex{},
+		logLevel:          slog.LevelDebug,
+		logFilter:         "",
+		logDir:            absLogDir,
 		combinedLogWriter: &lumberjack.Logger{
 			Filename:   filepath.Join(absLogDir, combinedLogComponentName+".log"), // Path to log file
 			MaxSize:    logfileMaxSize,                                            // Max size in megabytes before rotation
@@ -36,7 +43,7 @@ func NewSlogManager(logDir string) SlogManager {
 		activeLoggers: make(map[string]*slog.Logger),
 	}
 
-	return slogManager
+	return &slogManager
 }
 
 type LoggerOptions struct {
@@ -63,6 +70,39 @@ func (m *SlogManager) ComponentLogPath(componentId string) (string, error) {
 	return filepath.Join(m.getLogDir(), componentId+".log"), nil
 }
 
+func (m *SlogManager) SetLogLevel(level string) error {
+	m.loggerHandlerLock.Lock()
+	defer m.loggerHandlerLock.Unlock()
+
+	switch level {
+	case "debug":
+		m.logLevel = slog.LevelDebug
+	case "info":
+		m.logLevel = slog.LevelInfo
+	case "warn":
+		m.logLevel = slog.LevelWarn
+	case "error":
+		m.logLevel = slog.LevelError
+	default:
+		return fmt.Errorf("Unknown LogLevel: %s", level)
+	}
+
+	return nil
+}
+
+func (m *SlogManager) SetLogFilter(filter string) error {
+	if strings.Contains(filter, "\n") {
+		return fmt.Errorf("newlines are disallowed in log-filter")
+	}
+
+	m.loggerHandlerLock.Lock()
+	defer m.loggerHandlerLock.Unlock()
+
+	m.logFilter = filter
+
+	return nil
+}
+
 func (m *SlogManager) GetLogger(componentId string) (*slog.Logger, error) {
 	logger := m.activeLoggers[componentId]
 	if logger != nil {
@@ -80,7 +120,15 @@ func (m *SlogManager) CreateLogger(componentId string) *slog.Logger {
 	err := os.MkdirAll(m.getLogDir(), os.ModePerm)
 	assert(err == nil, fmt.Errorf("failed to create log with logDir('%s'): %#v", m.getLogDir(), err))
 
-	logger := slog.New(NewMogeniusSlogHandler(m.combinedLogWriter, logFileWriter(m.getLogDir(), componentId)))
+	logger := slog.New(
+		NewMogeniusSlogHandler(
+			&m.logLevel,
+			&m.logFilter,
+			&m.loggerHandlerLock,
+			m.combinedLogWriter,
+			logFileWriter(m.getLogDir(), componentId),
+		),
+	)
 	logger = logger.With("component", componentId)
 
 	m.activeLoggers[componentId] = logger

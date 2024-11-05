@@ -109,10 +109,7 @@ type Config struct {
 		Version int `yaml:"version" env-description:"Version of the configuration yaml."`
 	} `yaml:"config"`
 	Kubernetes struct {
-		ApiKey                     string `yaml:"api_key" env:"api_key" env-description:"Api Key to access the server"`
-		ClusterName                string `yaml:"cluster_name" env:"cluster_name" env-description:"The Name of the Kubernetes Cluster"`
 		OwnNamespace               string `yaml:"own_namespace" env:"OWN_NAMESPACE" env-description:"The Namespace of mogenius platform"`
-		ClusterMfaId               string `yaml:"cluster_mfa_id" env:"cluster_mfa_id" env-description:"NanoId of the Kubernetes Cluster for MFA purpose"`
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		HelmDataPath               string `yaml:"helm_data_path" env:"helm_data_path" env-description:"Path to the Helm data."`
 		GitVaultDataPath           string `yaml:"git_vault_data_path" env:"git_vault_data_path" env-description:"Path to the Git Vault data."`
@@ -264,7 +261,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		dirPath, err := os.MkdirTemp("", "mo_*")
 		if err != nil {
 			utilsLogger.Error("failed to create temp dir", "error", err)
-			shutdown.SendShutdownSignalAndBlockForever(true)
+			shutdown.SendShutdownSignal(true)
 			select {}
 		}
 		utilsLogger.Info("TempDir created", "path", dirPath)
@@ -291,21 +288,23 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
-		if CONFIG.Kubernetes.ClusterName == "your-cluster-name" || CONFIG.Kubernetes.ClusterName == "" {
+		clusterName := config.Get("MO_CLUSTER_NAME")
+		if clusterName == "your-cluster-name" || clusterName == "" {
 			utilsLogger.Error("Environment Variable 'cluster_name' not setup. TERMINATING.")
-			shutdown.SendShutdownSignalAndBlockForever(true)
+			shutdown.SendShutdownSignal(true)
 			select {}
 		}
-		if CONFIG.Kubernetes.ApiKey == "YOUR_API_KEY" || CONFIG.Kubernetes.ApiKey == "" {
+		apiKey := config.Get("MO_API_KEY")
+		if apiKey == "YOUR_API_KEY" || apiKey == "" {
 			utilsLogger.Error("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
-			shutdown.SendShutdownSignalAndBlockForever(true)
+			shutdown.SendShutdownSignal(true)
 			select {}
 		}
 	}
 
 	if CONFIGVERSION > CONFIG.Config.Version {
 		utilsLogger.Error("Config version is outdated. Please delete your config file and restart the application.", "ConfigPath", ConfigPath, "version", CONFIG.Config.Version, "neededVersion", CONFIGVERSION)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 
@@ -318,7 +317,7 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 			err := http.ListenAndServe("localhost:6060", nil)
 			if err != nil {
 				utilsLogger.Error("failed to start debug service", "error", err)
-				shutdown.SendShutdownSignalAndBlockForever(true)
+				shutdown.SendShutdownSignal(true)
 				select {}
 			}
 			utilsLogger.Info("1. Portforward mogenius-k8s-manager to 6060")
@@ -418,9 +417,18 @@ func PrintCurrentCONFIG() (string, error) {
 
 func SetupClusterSecret(clusterSecret ClusterSecret) {
 	if clusterSecret.ClusterMfaId != "" {
-		CONFIG.Kubernetes.ClusterMfaId = clusterSecret.ClusterMfaId
-		CONFIG.Kubernetes.ApiKey = clusterSecret.ApiKey
-		CONFIG.Kubernetes.ClusterName = clusterSecret.ClusterName
+		err := config.TrySet("MO_API_KEY", clusterSecret.ApiKey)
+		if err != nil {
+			utilsLogger.Debug("failed to set MO_API_KEY", "error", err)
+		}
+		err = config.TrySet("MO_CLUSTER_NAME", clusterSecret.ClusterName)
+		if err != nil {
+			utilsLogger.Debug("failed to set MO_CLUSTER_NAME", "error", err)
+		}
+		err = config.TrySet("MO_CLUSTER_MFA_ID", clusterSecret.ClusterMfaId)
+		if err != nil {
+			utilsLogger.Debug("failed to set MO_CLUSTER_MFA_ID", "error", err)
+		}
 		CONFIG.Iac.RepoUrl = clusterSecret.SyncRepoUrl
 		CONFIG.Iac.RepoPat = clusterSecret.SyncRepoPat
 		CONFIG.Iac.RepoBranch = clusterSecret.SyncRepoBranch
@@ -447,10 +455,10 @@ func PrintSettings() {
 		"ConfigPath", ConfigPath,
 		"Version", CONFIG.Config.Version,
 		"Kubernetes.OwnNamespace", CONFIG.Kubernetes.OwnNamespace,
-		"Kubernetes.ClusterName", CONFIG.Kubernetes.ClusterName,
-		"Kubernetes.ClusterMfaId", CONFIG.Kubernetes.ClusterMfaId,
+		"Kubernetes.ClusterName", config.Get("MO_CLUSTER_NAME"),
+		"Kubernetes.ClusterMfaId", config.Get("MO_CLUSTER_MFA_ID"),
 		"Kubernetes.RunInCluster", CONFIG.Kubernetes.RunInCluster,
-		"Kubernetes.ApiKey", CONFIG.Kubernetes.ApiKey,
+		"Kubernetes.ApiKey", config.Get("MO_API_KEY"),
 		"Kubernetes.HelmDataPath", CONFIG.Kubernetes.HelmDataPath,
 		"Kubernetes.GitVaultDataPath", CONFIG.Kubernetes.GitVaultDataPath,
 		"Kubernetes.BboltDbPath", CONFIG.Kubernetes.BboltDbPath,
@@ -476,7 +484,7 @@ func PrintSettings() {
 		"Iac.IgnoredNames", CONFIG.Iac.IgnoredNames,
 		"Iac.LogChanges", CONFIG.Iac.LogChanges,
 		"Iac.ShowDiffInLog", CONFIG.Iac.ShowDiffInLog,
-		"Misc.Stage", CONFIG.Misc.Stage,
+		"Misc.Stage", config.Get("MO_STAGE"),
 		"Misc.LogFormat", CONFIG.Misc.LogFormat,
 		"Misc.LogIncomingStats", CONFIG.Misc.LogIncomingStats,
 		"Misc.Debug", CONFIG.Misc.Debug,
@@ -574,7 +582,7 @@ func writeDefaultConfig(stage string) {
 	}
 	if err != nil {
 		utilsLogger.Error("Error writing "+configPath+" file", "configPath", configPath, "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 }

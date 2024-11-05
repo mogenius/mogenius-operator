@@ -4,11 +4,15 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/config"
+	"mogenius-k8s-manager/interfaces"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
+	"slices"
 
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
@@ -27,9 +31,10 @@ type rootCmdConfig struct {
 
 var rootConfig rootCmdConfig
 
-var slogManager logging.SlogManager
+var slogManager *logging.SlogManager
 var cmdLogger *slog.Logger
 var klogLogger *slog.Logger
+var cmdConfig *config.Config
 
 var rootCmd = &cobra.Command{
 	Use:   "mogenius-k8s-manager",
@@ -77,18 +82,108 @@ func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
 		cmdLogger.Error("rootCmd failed", "error", err)
-		shutdown.SendShutdownSignalAndBlockForever(true)
+		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 }
 
 func init() {
-	slogManager = logging.NewSlogManager("logs")
-	cmdLogger = slogManager.CreateLogger("cmd")
-	klogLogger = slogManager.CreateLogger("klog")
-	klog.SetSlogLogger(klogLogger)
+	initLogger()
+	initConfig()
 	rootCmd.PersistentFlags().StringVarP(&rootConfig.stage, "stage", "s", "", "Use different stage environment")
 	rootCmd.PersistentFlags().BoolVarP(&rootConfig.debug, "debug", "d", false, "Enable debug information")
 	rootCmd.PersistentFlags().BoolVarP(&rootConfig.resetConfig, "reset-config", "k", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
 	rootCmd.PersistentFlags().StringVarP(&rootConfig.customConfig, "config", "y", "", "Use config from custom location")
+}
+
+func initLogger() {
+	slogManager = logging.NewSlogManager("logs")
+	cmdLogger = slogManager.CreateLogger("cmd")
+	klogLogger = slogManager.CreateLogger("klog")
+	klog.SetSlogLogger(klogLogger)
+}
+
+func initConfig() {
+	cmdConfig = config.NewConfig()
+	cmdConfig.WithCobraCmd(rootCmd)
+	defer cmdConfig.Init()
+	// shutdown hook to detect unused keys
+	shutdown.Add(func() {
+		usages := cmdConfig.GetUsage()
+		for _, usage := range usages {
+			if usage.GetCalls == 0 {
+				cmdLogger.Warn("config key might be unused", "usage", usage)
+			} else {
+				cmdLogger.Debug("config usage", "usage", usage)
+			}
+		}
+	})
+
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:         "MO_API_KEY",
+		Description: utils.Pointer("Api Key to access the server"),
+		Envs:        []string{"api_key"},
+		Cobra: &interfaces.ConfigCobraFlags{
+			Name: "api-key",
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:         "MO_CLUSTER_NAME",
+		Description: utils.Pointer("The Name of the Kubernetes Cluster"),
+		Envs:        []string{"cluster_name"},
+		Cobra: &interfaces.ConfigCobraFlags{
+			Name: "cluster-name",
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:         "MO_CLUSTER_MFA_ID",
+		Description: utils.Pointer("NanoId of the Kubernetes Cluster for MFA purpose"),
+		Cobra: &interfaces.ConfigCobraFlags{
+			Name: "mfa-id",
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_STAGE",
+		DefaultValue: utils.Pointer("prod"),
+		Description:  utils.Pointer("mogenius k8s-manager stage"),
+		Envs:         []string{"STAGE", "stage"},
+	})
+	// TODO: implement feature
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_API_SERVER_HTTP",
+		DefaultValue: utils.Pointer("https://platform-api.mogenius.com"),
+	})
+	// TODO: implement feature
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_API_SERVER_WS",
+		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws"),
+	})
+	// TODO: implement feature
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_EVENT_SERVER",
+		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws-event"),
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_LOG_LEVEL",
+		DefaultValue: utils.Pointer("info"),
+		Description:  utils.Pointer(`A log level: "debug", "info", "warn" or "error"`),
+		Cobra: &interfaces.ConfigCobraFlags{
+			Name: "log-level",
+		},
+		Validate: func(val string) error {
+			allowedLogLevels := []string{"debug", "info", "warn", "error"}
+			if !slices.Contains(allowedLogLevels, val) {
+				return fmt.Errorf("'MO_LOG_LEVEL' needs to be one of '%v' but is '%s'", allowedLogLevels, val)
+			}
+			return nil
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_LOG_FILTER",
+		DefaultValue: utils.Pointer(""),
+		Description:  utils.Pointer("Optional comma separated list of components for which logs should be enabled. If none are defined all logs are collected."),
+		Cobra: &interfaces.ConfigCobraFlags{
+			Name: "log-filter",
+		},
+	})
 }

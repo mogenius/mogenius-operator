@@ -34,106 +34,123 @@ var clusterCmd = &cobra.Command{
 	This cmd starts the application permanently into your cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		mokubernetes.Setup(&slogManager)
-		controllers.Setup(&slogManager)
-		crds.Setup(&slogManager)
-		db.Setup(&slogManager)
-		dbstats.Setup(&slogManager)
-		dtos.Setup(&slogManager)
-		api.Setup(&slogManager)
-		iacmanager.Setup(&slogManager)
-		migrations.Setup(&slogManager)
-		services.Setup(&slogManager)
-		socketclient.Setup(&slogManager)
-		store.Setup(&slogManager)
-		structs.Setup(&slogManager)
-		utils.Setup(&slogManager)
-		xterm.Setup(&slogManager)
-
-		preRun()
-
-		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
-		if err != nil {
-			cmdLogger.Error("Error retrieving cluster secret. Aborting.", "error", err)
-			shutdown.SendShutdownSignalAndBlockForever(true)
-			select {}
-		}
-		clusterConfigmap, err := mokubernetes.CreateAndUpdateClusterConfigmap()
-		if err != nil {
-			cmdLogger.Error("Error retrieving cluster configmap. Aborting.", "error", err.Error())
-			shutdown.SendShutdownSignalAndBlockForever(true)
-			select {}
-		}
-		err = mokubernetes.CreateOrUpdateResourceTemplateConfigmap()
-		if err != nil {
-			cmdLogger.Error("Error creating resource template configmap", "error", err)
-			shutdown.SendShutdownSignalAndBlockForever(true)
-			select {}
-		}
-
-		utils.SetupClusterSecret(clusterSecret)
-		utils.SetupClusterConfigmap(clusterConfigmap)
-
-		if utils.CONFIG.Misc.Debug {
-			utils.PrintSettings()
-		}
-
-		db.Start()
-		store.Start()
-		defer store.Defer()
-		dbstats.Start()
-		iacmanager.Start()
-
-		migrations.ExecuteMigrations()
-
-		// INIT MOUNTS
-		if utils.CONFIG.Misc.AutoMountNfs {
-			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
-			if err != nil && utils.CONFIG.Misc.Stage != utils.STAGE_LOCAL {
-				cmdLogger.Error("GetVolumeMountsForK8sManager", "error", err)
-			}
-			for _, vol := range volumesToMount {
-				mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
-			}
-		}
-
 		go func() {
-			services.DISABLEQUEUE = true
-			basicApps, userApps := services.InstallDefaultApplications()
-			if basicApps != "" || userApps != "" {
-				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
-				cmdLogger.Info("Seeding Commands ( 🪴 🪴 🪴 )", "userApps", userApps)
-				if err != nil {
-					cmdLogger.Error("Error installing default applications", "error", err)
-					shutdown.SendShutdownSignalAndBlockForever(true)
-					select {}
+			logLevel := cmdConfig.Get("MO_LOG_LEVEL")
+			err := slogManager.SetLogLevel(logLevel)
+			if err != nil {
+				panic(err)
+			}
+			logFilter := cmdConfig.Get("MO_LOG_FILTER")
+			err = slogManager.SetLogFilter(logFilter)
+			if err != nil {
+				panic(err)
+			}
+
+			utils.PrintLogo()
+
+			mokubernetes.Setup(slogManager, cmdConfig)
+			controllers.Setup(slogManager)
+			crds.Setup(slogManager)
+			db.Setup(slogManager)
+			dbstats.Setup(slogManager)
+			dtos.Setup(slogManager)
+			api.Setup(slogManager, cmdConfig)
+			iacmanager.Setup(slogManager)
+			migrations.Setup(slogManager)
+			services.Setup(slogManager, cmdConfig)
+			socketclient.Setup(slogManager)
+			store.Setup(slogManager)
+			structs.Setup(slogManager)
+			utils.Setup(slogManager, cmdConfig)
+			xterm.Setup(slogManager)
+
+			preRun()
+
+			clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
+			if err != nil {
+				cmdLogger.Error("Error retrieving cluster secret. Aborting.", "error", err)
+				shutdown.SendShutdownSignal(true)
+				select {}
+			}
+			clusterConfigmap, err := mokubernetes.CreateAndUpdateClusterConfigmap()
+			if err != nil {
+				cmdLogger.Error("Error retrieving cluster configmap. Aborting.", "error", err.Error())
+				shutdown.SendShutdownSignal(true)
+				select {}
+			}
+			err = mokubernetes.CreateOrUpdateResourceTemplateConfigmap()
+			if err != nil {
+				cmdLogger.Error("Error creating resource template configmap", "error", err)
+				shutdown.SendShutdownSignal(true)
+				select {}
+			}
+
+			utils.SetupClusterSecret(clusterSecret)
+			utils.SetupClusterConfigmap(clusterConfigmap)
+
+			if utils.CONFIG.Misc.Debug {
+				utils.PrintSettings()
+			}
+
+			db.Start()
+			store.Start()
+			defer store.Defer()
+			dbstats.Start()
+			iacmanager.Start()
+
+			migrations.ExecuteMigrations()
+
+			// INIT MOUNTS
+			if utils.CONFIG.Misc.AutoMountNfs {
+				volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
+				if err != nil && cmdConfig.Get("MO_STAGE") != utils.STAGE_LOCAL {
+					cmdLogger.Error("GetVolumeMountsForK8sManager", "error", err)
+				}
+				for _, vol := range volumesToMount {
+					mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
 				}
 			}
-			services.DISABLEQUEUE = false
-			services.ProcessQueue() // Process the queue maybe there are builds left to build
+
+			go func() {
+				services.DISABLEQUEUE = true
+				basicApps, userApps := services.InstallDefaultApplications()
+				if basicApps != "" || userApps != "" {
+					err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
+					cmdLogger.Info("Seeding Commands ( 🪴 🪴 🪴 )", "userApps", userApps)
+					if err != nil {
+						cmdLogger.Error("Error installing default applications", "error", err)
+						shutdown.SendShutdownSignal(true)
+						select {}
+					}
+				}
+				services.DISABLEQUEUE = false
+				services.ProcessQueue() // Process the queue maybe there are builds left to build
+			}()
+
+			mokubernetes.InitOrUpdateCrds()
+
+			go api.InitApi()
+			go structs.ConnectToEventQueue()
+			go structs.ConnectToJobQueue()
+			watcherManager := kubernetes.NewWatcher()
+			go kubernetes.WatchAllResources(&watcherManager)
+
+			mokubernetes.CreateMogeniusContainerRegistryIngress()
+
+			// Init Helm Config
+			if err := mokubernetes.InitHelmConfig(); err != nil {
+				cmdLogger.Error("Error initializing Helm Config", "error", err)
+			}
+
+			// Init Network Policy Configmap
+			if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
+				cmdLogger.Error("Error initializing Network Policy Configmap", "error", err)
+			}
+
+			socketclient.StartK8sManager()
 		}()
 
-		mokubernetes.InitOrUpdateCrds()
-
-		go api.InitApi()
-		go structs.ConnectToEventQueue()
-		go structs.ConnectToJobQueue()
-		watcherManager := kubernetes.NewWatcher()
-		go kubernetes.WatchAllResources(&watcherManager)
-
-		mokubernetes.CreateMogeniusContainerRegistryIngress()
-
-		// Init Helm Config
-		if err := mokubernetes.InitHelmConfig(); err != nil {
-			cmdLogger.Error("Error initializing Helm Config", "error", err)
-		}
-
-		// Init Network Policy Configmap
-		if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
-			cmdLogger.Error("Error initializing Network Policy Configmap", "error", err)
-		}
-
-		socketclient.StartK8sManager()
+		shutdown.Listen()
 	},
 }
 

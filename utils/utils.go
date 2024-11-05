@@ -28,10 +28,12 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
+var config interfaces.ConfigModule
 var utilsLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManagerModule) {
+func Setup(logManager interfaces.LogManagerModule, iConfig interfaces.ConfigModule) {
 	utilsLogger = logManager.CreateLogger("utils")
+	config = iConfig
 }
 
 const IMAGE_PLACEHOLDER = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
@@ -89,11 +91,11 @@ func MountPath(namespaceName string, volumeName string, defaultReturnValue strin
 
 func HttpHeader(additionalName string) http.Header {
 	return http.Header{
-		"x-authorization":  []string{CONFIG.Kubernetes.ApiKey},
-		"x-cluster-mfa-id": []string{CONFIG.Kubernetes.ClusterMfaId},
+		"x-authorization":  []string{config.Get("MO_API_KEY")},
+		"x-cluster-mfa-id": []string{config.Get("MO_CLUSTER_MFA_ID")},
 		"x-app":            []string{fmt.Sprintf("%s%s", APP_NAME, additionalName)},
 		"x-app-version":    []string{version.Ver},
-		"x-cluster-name":   []string{CONFIG.Kubernetes.ClusterName}}
+		"x-cluster-name":   []string{config.Get("MO_CLUSTER_NAME")}}
 }
 
 // parseIPs parses a slice of IP address strings into a slice of net.IP.
@@ -127,7 +129,7 @@ func GetFunctionName() string {
 
 func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	result, err := utils.RunOnLocalShell(shellCmd).Output()
-	utilsLogger.Info("ExecuteShellCommandSilent", "command", shellCmd, "result", result)
+	utilsLogger.Debug("ExecuteShellCommandSilent", "command", shellCmd, "result", result)
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
 		errorMsg := string(exitErr.Stderr)
@@ -386,7 +388,7 @@ func CleanObject(data map[string]interface{}, treatment IacSecurity) (map[string
 			// Encrypt the data field values
 			if data["data"] != nil {
 				for k, v := range data["data"].(map[string]interface{}) {
-					encryptStr, err := EncryptString(CONFIG.Kubernetes.ApiKey, v.(string))
+					encryptStr, err := EncryptString(config.Get("MO_API_KEY"), v.(string))
 					if err != nil {
 						return nil, err
 					}
@@ -397,7 +399,7 @@ func CleanObject(data map[string]interface{}, treatment IacSecurity) (map[string
 			// Encrypt the data field values
 			if data["data"] != nil {
 				for k, v := range data["data"].(map[string]interface{}) {
-					decryptStr, err := DecryptString(CONFIG.Kubernetes.ApiKey, v.(string))
+					decryptStr, err := DecryptString(config.Get("MO_API_KEY"), v.(string))
 					if err != nil {
 						return nil, err
 					}
@@ -426,7 +428,7 @@ func EncryptSecretIfNecessary(filePath string) (changedFile bool, error error) {
 	for k, v := range dataMap["data"].(map[string]interface{}) {
 		isEncrypted := IsEncrypted(v.(string))
 		if !isEncrypted {
-			encryptStr, err := EncryptString(CONFIG.Kubernetes.ApiKey, v.(string))
+			encryptStr, err := EncryptString(config.Get("MO_API_KEY"), v.(string))
 			if err != nil {
 				return false, err
 			}
@@ -502,7 +504,7 @@ func isEmptyValue(value interface{}) bool {
 }
 
 func IsEncrypted(stringTocheck string) bool {
-	_, err := DecryptString(CONFIG.Kubernetes.ApiKey, stringTocheck)
+	_, err := DecryptString(config.Get("MO_API_KEY"), stringTocheck)
 	return err == nil
 }
 

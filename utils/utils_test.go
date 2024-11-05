@@ -13,7 +13,8 @@ func TestUtilsUtils(t *testing.T) {
 	testEncryptionKey := "testEncryptionKey"
 	encryptedTestStringOk := "mj7mD+eJA+MNKU9ftuPdpmxNH0V+8c9Gwk7HXuRhSZZapEsSZyIw+Wz/qitFPzLG"               // Encrypted string "myLittleTestSecret ;-)" using key "testEncryptionKey"
 	encryptedTestStringMessedUp := "mj7mD+eJA+MNKU9ftuPdpmxNH0V+8c9GwkXXXXXXXX7HXuRhSZZapEsSZyIw+Wz/qitFPzLG" // Encrypted string modified and by that invalid
-	CONFIG.Kubernetes.ApiKey = testEncryptionKey
+	// TODO: fix this test with interfaces.Config
+	// CONFIG.Kubernetes.ApiKey = testEncryptionKey
 
 	// ENCRYPT
 	encryptedStr, err := EncryptString(testEncryptionKey, testSecret)

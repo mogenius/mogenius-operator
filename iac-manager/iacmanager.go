@@ -363,7 +363,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 		return
 	}
 	if utils.CONFIG.Iac.LogChanges {
-		iacLogger.Info("🧹 Detected change. Updated resource.", "kind", kind, "namespace", namespace, "resourceName", resourceName)
+		iacLogger.Debug("🧹 Detected change. Updated resource.", "kind", kind, "namespace", namespace, "resourceName", resourceName)
 	}
 	UpdateResourceStatus(kind, namespace, resourceName, SyncStatePendingSync, err)
 

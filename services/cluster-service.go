@@ -706,7 +706,7 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 			serviceLogger.Error("EnergyConsumption", "error", "kepler service not found.")
 			return structs.CurrentEnergyConsumptionResponse
 		}
-		// if utils.CONFIG.Misc.Stage == utils.STAGE_LOCAL {
+		// if config.Get("MO_STAGE") == utils.STAGE_LOCAL {
 		// 	ServiceLogger.Warning("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
 		// 	keplerHostAndPort = "127.0.0.1:9102"
 		// }
@@ -753,7 +753,7 @@ func InstallTrafficCollector() (string, error) {
 		HelmValues: fmt.Sprintf(`global:
   namespace: %s
   stage: %s
-`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+`, utils.CONFIG.Kubernetes.OwnNamespace, config.Get("MO_STAGE")),
 	}
 	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
@@ -766,7 +766,7 @@ func UpgradeTrafficCollector() (string, error) {
 		Values: fmt.Sprintf(`global:
   namespace: %s
   stage: %s
-`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+`, utils.CONFIG.Kubernetes.OwnNamespace, config.Get("MO_STAGE")),
 	}
 	return mokubernetes.HelmReleaseUpgrade(r)
 }
@@ -780,7 +780,7 @@ func InstallPodStatsCollector() (string, error) {
 		HelmValues: fmt.Sprintf(`global:
   namespace: %s
   stage: %s
-`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+`, utils.CONFIG.Kubernetes.OwnNamespace, config.Get("MO_STAGE")),
 	}
 	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
@@ -793,7 +793,7 @@ func UpgradePodStatsCollector() (string, error) {
 		Values: fmt.Sprintf(`global:
   namespace: %s
   stage: %s
-`, utils.CONFIG.Kubernetes.OwnNamespace, utils.CONFIG.Misc.Stage),
+`, utils.CONFIG.Kubernetes.OwnNamespace, config.Get("MO_STAGE")),
 	}
 	return mokubernetes.HelmReleaseUpgrade(r)
 }
