@@ -726,7 +726,6 @@ func ListAllNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
 
 	policies, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.NetworkPolicy{}), "NetworkPolicy", namespaceName)
 	if err != nil {
-		k8sLogger.Error("ListAllNetworkPolicies", "error", err)
 		return result, err
 	}
 
