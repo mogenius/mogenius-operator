@@ -478,7 +478,7 @@ func GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.Interface
 		return nil
 	})
 	if err != nil {
-		dbStatsLogger.Error("GetTrafficStatsEntriesSumForNamespace", "error", err)
+		dbStatsLogger.Warn("GetTrafficStatsEntriesSumForNamespace", "error", err)
 	}
 	return result
 }

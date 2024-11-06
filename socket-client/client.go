@@ -169,7 +169,7 @@ func updateCheck() {
 	socketClientLogger.Info("Checking for updates ...")
 
 	if !punqUtils.IsProduction() {
-		socketClientLogger.Warn(" (skipped) [not production].")
+		socketClientLogger.Info(" (skipped) [not production].")
 		return
 	}
 

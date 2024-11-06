@@ -279,7 +279,7 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 		result.SyncWorkloads = syncWorkloads
 		result.IgnoredNamespaces = CommaSeperatedStringToArray(existingConfigMap.Data["ignoredNamespaces"])
 		result.IgnoredNames = CommaSeperatedStringToArray(existingConfigMap.Data["ignoredNames"])
-		k8sLogger.Info("🗺️ Using existing mogenius configmap.")
+		k8sLogger.Info("🗺️  Using existing mogenius configmap.")
 	}
 
 	if data != nil {

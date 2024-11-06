@@ -317,9 +317,14 @@ func SystemCheck() SystemCheckResponse {
 	go SysCheckExec("CheckClusterIssuer", &wg, &entries, func() SystemCheckEntry {
 		_, clusterIssuerInstalledErr := punq.GetClusterIssuer(NameClusterIssuerResource, nil)
 		clusterIssuerMsg := fmt.Sprintf("%s is installed.", NameClusterIssuerResource)
+		helmstatus := kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
+		if helmstatus == release.StatusUnknown {
+			clusterIssuerInstalledErr = nil
+			clusterIssuerMsg = "Cluster Issuer not installed."
+		}
 		clusterIssuerEntry := CreateSystemCheckEntry(
 			utils.HelmReleaseNameClusterIssuer,
-			clusterIssuerInstalledErr == nil,
+			clusterIssuerInstalledErr == nil && helmstatus != release.StatusUnknown,
 			clusterIssuerMsg,
 			fmt.Sprintf("%s is not installed.\nTo issue ssl certificates you need to install this component.", NameClusterIssuerResource),
 			clusterIssuerInstalledErr,
@@ -330,7 +335,7 @@ func SystemCheck() SystemCheckResponse {
 			"")
 		clusterIssuerEntry.InstallPattern = structs.PAT_INSTALL_CLUSTER_ISSUER
 		clusterIssuerEntry.UninstallPattern = structs.PAT_UNINSTALL_CLUSTER_ISSUER
-		clusterIssuerEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
+		clusterIssuerEntry.HelmStatus = helmstatus
 		return clusterIssuerEntry
 	})
 
@@ -427,11 +432,16 @@ func SystemCheck() SystemCheckResponse {
 			externalSecretsName := "external-secrets"
 			externalSecretsVersion, externalSecretsInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, externalSecretsName)
 			externalSecretsMsg := fmt.Sprintf("%s (Version: %s) is installed.", externalSecretsName, externalSecretsVersion)
+			helmstatus := kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameExternalSecrets)
+			if helmstatus == release.StatusUnknown {
+				externalSecretsInstalledErr = nil
+				externalSecretsMsg = "External Secrets not installed."
+			}
 
 			currentExternalSecretsVersion := getMostCurrentHelmChartVersion(ExternalSecretsHelmIndex, "docker-registry")
 			externalSecretsEntry := CreateSystemCheckEntry(
 				NameExternalSecrets,
-				externalSecretsInstalledErr == nil,
+				externalSecretsInstalledErr == nil && helmstatus != release.StatusUnknown,
 				externalSecretsMsg,
 				fmt.Sprintf("%s is not installed.\nTo load secrets from 3rd party vaults (e.g. e.g. Hashicorp Vault, AWS KMS or Azure Key Vault), you need to install this component.", externalSecretsName),
 				externalSecretsInstalledErr,
@@ -443,7 +453,7 @@ func SystemCheck() SystemCheckResponse {
 			externalSecretsEntry.InstallPattern = structs.PAT_INSTALL_EXTERNAL_SECRETS
 			externalSecretsEntry.UninstallPattern = structs.PAT_UNINSTALL_EXTERNAL_SECRETS
 			externalSecretsEntry.UpgradePattern = "" // NONE?
-			externalSecretsEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameExternalSecrets)
+			externalSecretsEntry.HelmStatus = helmstatus
 			return externalSecretsEntry
 		})
 	}
@@ -553,7 +563,7 @@ func GenerateSystemCheckResponse(entries []SystemCheckEntry) SystemCheckResponse
 
 func SystemCheckTerminalString(entries []SystemCheckEntry) string {
 	t := table.NewWriter()
-	t.AppendHeader(table.Row{"Check", "HelmStatus", "IsRunning", "Required", "ExecTime", "Message"})
+	t.AppendHeader(table.Row{"Check", "HelmStatus", "IsRunning", "Required", "ExecTime", "Message", "Error"})
 	for index, entry := range entries {
 		reqStr := "yes"
 		if !entry.IsRequired {
@@ -563,15 +573,15 @@ func SystemCheckTerminalString(entries []SystemCheckEntry) string {
 		if !entry.IsRunning {
 			isRunningStr = "no"
 		}
+
+		errStr := ""
 		if entry.ErrorMessage != nil {
-			t.AppendRow(
-				table.Row{entry.CheckName, StatusEmoji(entry.HelmStatus), isRunningStr, reqStr, entry.ProcessTimeInMs, string(*entry.ErrorMessage)},
-			)
-		} else {
-			t.AppendRow(
-				table.Row{entry.CheckName, StatusEmoji(entry.HelmStatus), isRunningStr, reqStr, entry.ProcessTimeInMs, entry.SuccessMessage},
-			)
+			errStr = *entry.ErrorMessage
 		}
+
+		t.AppendRow(
+			table.Row{entry.CheckName, StatusEmoji(entry.HelmStatus), isRunningStr, reqStr, entry.ProcessTimeInMs, entry.SuccessMessage, errStr},
+		)
 		if index < len(entries)-1 {
 			t.AppendSeparator()
 		}

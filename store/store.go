@@ -143,7 +143,7 @@ func (s *Store) GetByKeyParts(resultType reflect.Type, keys ...string) interface
 	key := CreateKey(keys...)
 	value, err := s.Get(key, resultType)
 	if err != nil {
-		storeLogger.Error("failed to get value", "key", key, "error", err)
+		storeLogger.Warn("failed to get value", "key", key, "error", err)
 		return nil
 	}
 	return value
