@@ -549,7 +549,7 @@ func CreateDenyAllNetworkPolicy(namespaceName string) error {
 
 func cleanupUnusedDenyAll(namespaceName string) {
 	// list all network policies and find all that have the marker label
-	policies, err := ListAllNetworkPolicies(namespaceName)
+	policies, err := ListNetworkPolicies(namespaceName)
 	if err != nil {
 		k8sLogger.Error("cleanupNetworkPolicies", "error", err)
 		return
@@ -701,7 +701,7 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 }
 
 func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyList, error) {
-	policies, err := ListAllNetworkPolicies(namespaceName)
+	policies, err := ListNetworkPolicies(namespaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -721,7 +721,7 @@ func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyL
 	}, nil
 }
 
-func ListAllNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
+func ListNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
 	result := []v1.NetworkPolicy{}
 
 	policies, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.NetworkPolicy{}), "NetworkPolicy", namespaceName)
@@ -810,7 +810,7 @@ func ListControllerLabeledNetworkPolicies(
 
 	netpols := []dtos.K8sLabeledNetworkPolicyDto{}
 
-	policies, err := ListAllNetworkPolicies(namespaceName)
+	policies, err := ListNetworkPolicies(namespaceName)
 	if err != nil {
 		return nil, err
 	}
