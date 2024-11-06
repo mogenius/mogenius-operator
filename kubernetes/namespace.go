@@ -89,11 +89,7 @@ func ListAllNamespaces() ([]coreV1.Namespace, error) {
 }
 
 func GetNamespace(name string) *coreV1.Namespace {
-	ref, err := store.GlobalStore.Get(fmt.Sprintf("%s-%s", "Namespace", name), reflect.TypeOf(coreV1.Namespace{}))
-	if err != nil {
-		return nil
-	}
-
+	ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(coreV1.Namespace{}), "Namespace", name)
 	if ref == nil {
 		return nil
 	}
