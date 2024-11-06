@@ -10,9 +10,6 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
-	scheme "k8s.io/client-go/kubernetes/scheme"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/record"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -153,16 +150,36 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 	}
 
 	// Set up a dynamic event broadcaster for the specific namespace
-	broadcaster := record.NewBroadcaster()
-	eventInterface := provider.ClientSet.CoreV1().Events(netPol.Namespace)
-	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
-	netPolRecoderLogger := broadcaster.NewRecorder(scheme.Scheme, v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"})
+	// broadcaster := record.NewBroadcaster()
+	// eventInterface := provider.ClientSet.CoreV1().Events(netPol.Namespace)
+	// broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
+	// netPolRecoderLogger := broadcaster.NewRecorder(scheme.Scheme, v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"})
 
 	annotations := createAnnotations("mogenius.io/created", time.Now().String())
 
 	// Trigger custom event
 	k8sLogger.Debug("Netpol is being updated in namespace, triggering event", "netpol", netPol.Name, "namespace", netPol.Namespace)
-	netPolRecoderLogger.AnnotatedEventf(netPol, annotations, v1Core.EventTypeNormal, reason, "NetPol %s is being %s", netPol.Name, reason)
+	// netPolRecoderLogger.AnnotatedEventf(netPol, annotations, v1Core.EventTypeNormal, reason, "NetPol %s is being %s", netPol.Name, reason)
+
+	// create a new event
+	event := &v1Core.Event{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   netPol.Namespace,
+			Annotations: annotations,
+		},
+		InvolvedObject: v1Core.ObjectReference{
+			Kind:            "NetworkPolicy",
+			Namespace:       netPol.Namespace,
+			Name:            netPol.Name,
+			UID:             netPol.UID,
+			ResourceVersion: netPol.ResourceVersion,
+		},
+		Reason:  reason,
+		Message: fmt.Sprintf("NetPol %s is being %s", netPol.Name, reason),
+		Type:    v1Core.EventTypeNormal,
+	}
+
+	ProcessEvent(event)
 }
 
 func createAnnotations(items ...string) map[string]string {
