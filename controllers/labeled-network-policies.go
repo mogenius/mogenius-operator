@@ -260,8 +260,23 @@ func createNetworkPolicyDto(name string, spec v1.NetworkPolicySpec) dtos.K8sLabe
 	}
 }
 
+type ListNamespaceLabeledNetworkPoliciesRequest struct {
+	NamespaceName string `json:"namespaceName" validate:"required"`
+}
+
+func ListNamespaceNetworkPolicies(data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListNetworkPolicyNamespace, error) {
+	namespace := kubernetes.GetNamespace(data.NamespaceName)
+	if namespace == nil {
+		return nil, fmt.Errorf("failed to get namespace")
+	}
+
+	// ignore errors
+	policies, _ := kubernetes.ListAllNetworkPolicies(data.NamespaceName)
+
+	return listNetworkPoliciesByNamespaces([]v1Core.Namespace{*namespace}, policies)
+}
+
 func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
-	//
 	namespaces, err := kubernetes.ListAllNamespaces()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list all namespaces, err: %s", err.Error())
@@ -270,6 +285,10 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 	// ignore errors
 	policies, _ := kubernetes.ListAllNetworkPolicies("")
 
+	return listNetworkPoliciesByNamespaces(namespaces, policies)
+}
+
+func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v1.NetworkPolicy) ([]ListNetworkPolicyNamespace, error) {
 	managedMap := make(map[string]int)
 	unmanagedMap := make(map[string][]int)
 
@@ -287,6 +306,7 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 	}
 
 	var namespacesDto []ListNetworkPolicyNamespace
+
 	for _, namespace := range namespaces {
 		namespaceDto := ListNetworkPolicyNamespace{
 			Name: namespace.Name,
