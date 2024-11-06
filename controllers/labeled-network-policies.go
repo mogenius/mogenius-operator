@@ -262,7 +262,7 @@ func ListNamespaceNetworkPolicies(data ListNamespaceLabeledNetworkPoliciesReques
 	}
 
 	// ignore errors
-	policies, _ := kubernetes.ListAllNetworkPolicies(data.NamespaceName)
+	policies, _ := kubernetes.ListNetworkPolicies(data.NamespaceName)
 
 	return listNetworkPoliciesByNamespaces([]v1Core.Namespace{*namespace}, policies)
 }
@@ -274,7 +274,7 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 	}
 
 	// ignore errors
-	policies, _ := kubernetes.ListAllNetworkPolicies("")
+	policies, _ := kubernetes.ListNetworkPolicies("")
 
 	return listNetworkPoliciesByNamespaces(namespaces, policies)
 }
