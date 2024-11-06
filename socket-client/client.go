@@ -18,24 +18,11 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	mokubernetes "mogenius-k8s-manager/kubernetes"
-
 	punqStructs "github.com/mogenius/punq/structs"
 	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func StartK8sManager() {
-	if utils.CONFIG.Kubernetes.RunInCluster {
-		utils.PrintVersionInfo()
-		utils.PrintSettings()
-	} else {
-		fmt.Printf("\n%s\n###   CURRENT CONTEXT: %s   ###\n%s\n",
-			punqUtils.FillWith("", 90, "#"),
-			punqUtils.FillWith(mokubernetes.CurrentContextName(), 61, " "),
-			punqUtils.FillWith("", 90, "#"),
-		)
-	}
-
 	updateCheck()
 	versionTicker()
 

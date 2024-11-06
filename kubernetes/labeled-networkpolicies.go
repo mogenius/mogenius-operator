@@ -876,6 +876,9 @@ func getNetworkPolicyName(labelPolicy dtos.K8sLabeledNetworkPolicyDto) string {
 }
 
 func ensureDenyAllRule(namespaceName string) error {
+	if namespaceName == utils.CONFIG.Kubernetes.OwnNamespace {
+		return fmt.Errorf("cannot create network-policies in %s namespace", utils.CONFIG.Kubernetes.OwnNamespace)
+	}
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 
 	_, err := netPolClient.Get(context.TODO(), DenyAllNetPolName, metav1.GetOptions{})

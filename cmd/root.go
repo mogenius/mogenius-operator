@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"log/slog"
+	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
@@ -44,6 +45,12 @@ func preRun() {
 	}
 	utils.InitConfigYaml(rootConfig.debug, rootConfig.customConfig, rootConfig.stage)
 	punq.InitKubernetes(utils.CONFIG.Kubernetes.RunInCluster)
+
+	if utils.CONFIG.Kubernetes.RunInCluster {
+		utils.PrintVersionInfo()
+	} else {
+		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
+	}
 
 	if utils.ClusterProviderCached == punqDtos.UNKNOWN {
 		foundProvider, err := punq.GuessClusterProvider(nil)

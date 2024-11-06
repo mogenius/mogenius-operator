@@ -72,7 +72,6 @@ var clusterCmd = &cobra.Command{
 			utils.PrintSettings()
 		}
 
-		cmdLogger.Info("Init DB ...")
 		db.Start()
 		store.Start()
 		defer store.Defer()

@@ -149,17 +149,7 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 		select {}
 	}
 
-	// Set up a dynamic event broadcaster for the specific namespace
-	// broadcaster := record.NewBroadcaster()
-	// eventInterface := provider.ClientSet.CoreV1().Events(netPol.Namespace)
-	// broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
-	// netPolRecoderLogger := broadcaster.NewRecorder(scheme.Scheme, v1Core.EventSource{Component: "mogenius.io/WatchNetworkPolicies"})
-
 	annotations := createAnnotations("mogenius.io/created", time.Now().String())
-
-	// Trigger custom event
-	k8sLogger.Debug("Netpol is being updated in namespace, triggering event", "netpol", netPol.Name, "namespace", netPol.Namespace)
-	// netPolRecoderLogger.AnnotatedEventf(netPol, annotations, v1Core.EventTypeNormal, reason, "NetPol %s is being %s", netPol.Name, reason)
 
 	// create a new event
 	event := &v1Core.Event{
@@ -178,7 +168,6 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 		Message: fmt.Sprintf("NetPol %s is being %s", netPol.Name, reason),
 		Type:    v1Core.EventTypeNormal,
 	}
-
 	ProcessEvent(event)
 }
 
