@@ -835,35 +835,27 @@ func ListControllerLabeledNetworkPolicies(
 			continue
 		}
 
-		if strings.Contains(netpol.Name, "egress") {
-			var port uint16
-			var pType dtos.PortTypeEnum
-			// our netpols only have one rule
-			if len(netpol.Spec.Egress) == 1 && len(netpol.Spec.Egress[0].Ports) == 1 && netpol.Spec.Egress[0].Ports[0].Port != nil {
-				port = uint16(netpol.Spec.Egress[0].Ports[0].Port.IntVal)
-				pType = dtos.PortTypeEnum(*netpol.Spec.Egress[0].Ports[0].Protocol)
-			}
-			netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
-				Name:     netpol.Name,
-				Type:     dtos.Egress,
-				Port:     port,
-				PortType: pType,
-			})
-		} else {
-			var port uint16
-			var pType dtos.PortTypeEnum
-			// our netpols only have one rule
-			if len(netpol.Spec.Ingress) == 1 && len(netpol.Spec.Ingress[0].Ports) == 1 && netpol.Spec.Ingress[0].Ports[0].Port != nil {
-				port = uint16(netpol.Spec.Ingress[0].Ports[0].Port.IntVal)
-				pType = dtos.PortTypeEnum(*netpol.Spec.Ingress[0].Ports[0].Protocol)
-			}
-			netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
-				Name:     netpol.Name,
-				Type:     dtos.Ingress,
-				Port:     port,
-				PortType: pType,
-			})
+		var port uint16
+		var pType dtos.PortTypeEnum
+		// our netpols only have one rule
+		if len(netpol.Spec.Ingress) == 1 && len(netpol.Spec.Ingress[0].Ports) == 1 && netpol.Spec.Ingress[0].Ports[0].Port != nil {
+			port = uint16(netpol.Spec.Ingress[0].Ports[0].Port.IntVal)
+			pType = dtos.PortTypeEnum(*netpol.Spec.Ingress[0].Ports[0].Protocol)
 		}
+		// INGRESS
+		netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
+			Name:     netpol.Name,
+			Type:     dtos.Ingress,
+			Port:     port,
+			PortType: pType,
+		})
+		// EGRESS
+		netpols = append(netpols, dtos.K8sLabeledNetworkPolicyDto{
+			Name:     netpol.Name,
+			Type:     dtos.Egress,
+			Port:     port,
+			PortType: pType,
+		})
 	}
 	return netpols, nil
 }
