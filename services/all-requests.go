@@ -1172,6 +1172,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return NewMessageResponse(nil, controllers.UpdateNetworkPolicyTemplate(data))
 	case structs.PAT_LIST_ALL_NETWORK_POLICIES:
 		return NewMessageResponse(controllers.ListAllNetworkPolicies())
+	case structs.PAT_LIST_NAMESPACE_NETWORK_POLICIES:
+		data := controllers.ListNamespaceLabeledNetworkPoliciesRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return NewMessageResponse(controllers.ListNamespaceNetworkPolicies(data))
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

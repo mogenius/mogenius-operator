@@ -216,40 +216,14 @@ func createNetworkPolicyDto(name string, spec v1.NetworkPolicySpec) dtos.K8sLabe
 	var port uint16
 	var portType dtos.PortTypeEnum
 
-	if len(spec.Ingress) > 0 {
+	if len(spec.Ingress) > 0 && len(spec.Ingress[0].Ports) == 1 && spec.Ingress[0].Ports[0].Port != nil {
 		typeOf = dtos.Ingress
-
 		port = uint16(spec.Ingress[0].Ports[0].Port.IntVal)
-
-		if spec.Ingress[0].Ports[0].Protocol == nil {
-			portType = dtos.PortTypeTCP
-		} else {
-			switch *spec.Ingress[0].Ports[0].Protocol {
-			case v1Core.ProtocolUDP:
-				portType = dtos.PortTypeUDP
-			case v1Core.ProtocolSCTP:
-				portType = dtos.PortTypeSCTP
-			default:
-				portType = dtos.PortTypeTCP
-			}
-		}
-	} else if len(spec.Egress) > 0 {
+		portType = dtos.PortTypeEnum(extractNetworkPolicyPortProtocol(spec.Ingress[0].Ports[0].Protocol))
+	} else if len(spec.Egress) > 0 && len(spec.Egress[0].Ports) == 1 && spec.Egress[0].Ports[0].Port != nil {
 		typeOf = dtos.Egress
-
 		port = uint16(spec.Egress[0].Ports[0].Port.IntVal)
-
-		if spec.Egress[0].Ports[0].Protocol == nil {
-			portType = dtos.PortTypeTCP
-		} else {
-			switch *spec.Egress[0].Ports[0].Protocol {
-			case v1Core.ProtocolUDP:
-				portType = dtos.PortTypeUDP
-			case v1Core.ProtocolSCTP:
-				portType = dtos.PortTypeSCTP
-			default:
-				portType = dtos.PortTypeTCP
-			}
-		}
+		portType = dtos.PortTypeEnum(extractNetworkPolicyPortProtocol(spec.Egress[0].Ports[0].Protocol))
 	}
 
 	return dtos.K8sLabeledNetworkPolicyDto{
@@ -258,6 +232,23 @@ func createNetworkPolicyDto(name string, spec v1.NetworkPolicySpec) dtos.K8sLabe
 		Port:     port,
 		PortType: portType,
 	}
+}
+
+func extractNetworkPolicyPortProtocol(protocol *v1Core.Protocol) dtos.PortTypeEnum {
+	var portType dtos.PortTypeEnum
+	if protocol == nil {
+		portType = dtos.PortTypeTCP
+	} else {
+		switch *protocol {
+		case v1Core.ProtocolUDP:
+			portType = dtos.PortTypeUDP
+		case v1Core.ProtocolSCTP:
+			portType = dtos.PortTypeSCTP
+		default:
+			portType = dtos.PortTypeTCP
+		}
+	}
+	return portType
 }
 
 type ListNamespaceLabeledNetworkPoliciesRequest struct {
