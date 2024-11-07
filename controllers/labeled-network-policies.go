@@ -255,6 +255,23 @@ type ListNamespaceLabeledNetworkPoliciesRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
 }
 
+type EnforceNetworkPolicyManagerRequest struct {
+	NamespaceName string `json:"namespaceName" validate:"required"`
+}
+
+func EnforceNetworkPolicyManager(namespaceName string) error {
+	if namespaceName == "" {
+		return fmt.Errorf("namespace name is required")
+	}
+	if namespaceName == "kube-system" {
+		return fmt.Errorf("cannot enforce network policy in kube-system namespace")
+	}
+	if namespaceName == "mogenius" {
+		return fmt.Errorf("cannot enforce network policy in mogenius namespace")
+	}
+	return kubernetes.EnforceNetworkPolicyManagerForNamespace(namespaceName)
+}
+
 func ListNamespaceNetworkPolicies(data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListNetworkPolicyNamespace, error) {
 	namespace := kubernetes.GetNamespace(data.NamespaceName)
 	if namespace == nil {

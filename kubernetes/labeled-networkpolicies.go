@@ -706,6 +706,21 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 	return nil
 }
 
+func EnforceNetworkPolicyManagerForNamespace(namespaceName string) error {
+	// delete all conflicting network policies
+	err := RemoveAllConflictingNetworkPolicies(namespaceName)
+	if err != nil {
+		return fmt.Errorf("failed to remove all conflicting network policies: %v", err)
+	}
+	// add deny-all network policy
+	err = CreateDenyAllNetworkPolicy(namespaceName)
+	if err != nil {
+		return fmt.Errorf("failed to create deny-all network policy: %v", err)
+	}
+
+	return nil
+}
+
 func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyList, error) {
 	policies, err := ListNetworkPolicies(namespaceName)
 	if err != nil {

@@ -8,12 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	punqUtils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -60,64 +57,64 @@ func DeleteNetworkPolicy(namespaceName, name string) error {
 	return nil
 }
 
-func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Create NetworkPolicy Service", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Creating NetworkPolicy")
+// func CreateOrUpdateNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+// 	cmd := structs.CreateCommand("create", "Create NetworkPolicy Service", job)
+// 	wg.Add(1)
+// 	go func(wg *sync.WaitGroup) {
+// 		defer wg.Done()
+// 		cmd.Start(job, "Creating NetworkPolicy")
 
-		client := GetNetworkingClient()
-		netPolClient := client.NetworkPolicies(namespace.Name)
-		netpol := punqUtils.InitNetPolService()
-		netpol.ObjectMeta.Name = service.ControllerName
-		netpol.ObjectMeta.Namespace = namespace.Name
-		netpol.Spec.Ingress[0].Ports = []v1.NetworkPolicyPort{} //reset before using
+// 		client := GetNetworkingClient()
+// 		netPolClient := client.NetworkPolicies(namespace.Name)
+// 		netpol := punqUtils.InitNetPolService()
+// 		netpol.ObjectMeta.Name = service.ControllerName
+// 		netpol.ObjectMeta.Namespace = namespace.Name
+// 		netpol.Spec.Ingress[0].Ports = []v1.NetworkPolicyPort{} //reset before using
 
-		for _, aPort := range service.Ports {
-			if aPort.Expose {
-				port := intstr.FromInt32(int32(aPort.InternalPort))
-				proto := v1Core.ProtocolTCP // default
-				if aPort.PortType == dtos.PortTypeUDP {
-					proto = v1Core.ProtocolUDP
-				}
-				netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
-					Port: &port, Protocol: &proto,
-				})
-			}
-		}
+// 		for _, aPort := range service.Ports {
+// 			if aPort.Expose {
+// 				port := intstr.FromInt32(int32(aPort.InternalPort))
+// 				proto := v1Core.ProtocolTCP // default
+// 				if aPort.PortType == dtos.PortTypeUDP {
+// 					proto = v1Core.ProtocolUDP
+// 				}
+// 				netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
+// 					Port: &port, Protocol: &proto,
+// 				})
+// 			}
+// 		}
 
-		// TODO REMOVE
-		//for _, container := range service.Containers {
-		//	for _, aPort := range container.Ports {
-		//		if aPort.Expose {
-		//			port := intstr.FromInt(aPort.InternalPort)
-		//			proto := v1Core.ProtocolTCP // default
-		//			if aPort.PortType == dtos.PortTypeUDP {
-		//				proto = v1Core.ProtocolUDP
-		//			}
-		//			netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
-		//				Port: &port, Protocol: &proto,
-		//			})
-		//		}
-		//	}
-		//}
-		netpol.Spec.PodSelector.MatchLabels["app"] = service.ControllerName
+// 		// TODO REMOVE
+// 		//for _, container := range service.Containers {
+// 		//	for _, aPort := range container.Ports {
+// 		//		if aPort.Expose {
+// 		//			port := intstr.FromInt(aPort.InternalPort)
+// 		//			proto := v1Core.ProtocolTCP // default
+// 		//			if aPort.PortType == dtos.PortTypeUDP {
+// 		//				proto = v1Core.ProtocolUDP
+// 		//			}
+// 		//			netpol.Spec.Ingress[0].Ports = append(netpol.Spec.Ingress[0].Ports, v1.NetworkPolicyPort{
+// 		//				Port: &port, Protocol: &proto,
+// 		//			})
+// 		//		}
+// 		//	}
+// 		//}
+// 		netpol.Spec.PodSelector.MatchLabels["app"] = service.ControllerName
 
-		netpol.Labels = MoUpdateLabels(&netpol.Labels, nil, nil, &service)
+// 		netpol.Labels = MoUpdateLabels(&netpol.Labels, nil, nil, &service)
 
-		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
-		if err != nil {
-			if apierrors.IsAlreadyExists(err) {
-				cmd.Success(job, fmt.Sprintf("NetworkPolicy already exists '%s'.", service.ControllerName))
-			} else {
-				cmd.Fail(job, fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
-			}
-		} else {
-			cmd.Success(job, "Created NetworkPolicy")
-		}
-	}(wg)
-}
+// 		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+// 		if err != nil {
+// 			if apierrors.IsAlreadyExists(err) {
+// 				cmd.Success(job, fmt.Sprintf("NetworkPolicy already exists '%s'.", service.ControllerName))
+// 			} else {
+// 				cmd.Fail(job, fmt.Sprintf("CreateNetworkPolicyService ERROR: %s", err.Error()))
+// 			}
+// 		} else {
+// 			cmd.Success(job, "Created NetworkPolicy")
+// 		}
+// 	}(wg)
+// }
 
 func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", "Delete NetworkPolicy Service.", job)

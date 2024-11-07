@@ -41,7 +41,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
+	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
@@ -210,7 +210,7 @@ func Restart(r ServiceRestartRequest) interface{} {
 	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
+	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
@@ -261,7 +261,7 @@ func StartService(r ServiceStartRequest) interface{} {
 	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
+	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
