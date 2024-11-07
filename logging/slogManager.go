@@ -57,12 +57,6 @@ func (m *SlogManager) LogDir() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// if we run in a cluster, we need to write logs to /db/logs
-	// TODO: in clusters this should be /db/logs but must be refactored with new config @daniel
-	datafolder, err := os.Stat("/db")
-	if os.IsExist(err) && datafolder.IsDir() {
-		cwd = "/db"
-	}
 
 	path := filepath.Join(cwd, m.logPath)
 	path, err = filepath.Abs(path)
