@@ -227,25 +227,27 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 
 	configMap, getErr := configmapClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
 
-	if apierrors.IsNotFound(getErr) {
-		// create empty config map
-		newConfigmap := core.ConfigMap{}
-		newConfigmap.ObjectMeta.Name = NAMESPACE
-		newConfigmap.ObjectMeta.Namespace = NAMESPACE
-		newConfigmap.Data = make(map[string]string)
-		newConfigmap.Data["syncWorkloads"] = ""
-		newConfigmap.Data["availableWorkloads"] = ""
-		newConfigmap.Data["ignoredNamespaces"] = ""
-		newConfigmap.Data["ignoredNames"] = ""
-		configMap, err = configmapClient.Create(context.TODO(), &newConfigmap, MoCreateOptions())
-		if err != nil {
-			k8sLogger.Error("failed to create mogenius configmap.", "error", err)
-			return utils.ClusterConfigmap{}, err
+	if getErr != nil {
+		if apierrors.IsNotFound(getErr) {
+			// create empty config map
+			newConfigmap := core.ConfigMap{}
+			newConfigmap.ObjectMeta.Name = NAMESPACE
+			newConfigmap.ObjectMeta.Namespace = NAMESPACE
+			newConfigmap.Data = make(map[string]string)
+			newConfigmap.Data["syncWorkloads"] = ""
+			newConfigmap.Data["availableWorkloads"] = ""
+			newConfigmap.Data["ignoredNamespaces"] = ""
+			newConfigmap.Data["ignoredNames"] = ""
+			configMap, err = configmapClient.Create(context.TODO(), &newConfigmap, MoCreateOptions())
+			if err != nil {
+				k8sLogger.Error("failed to create mogenius configmap.", "error", err)
+				return utils.ClusterConfigmap{}, err
+			}
+			k8sLogger.Debug("🗺️ Created new mogenius configmap.")
+		} else {
+			k8sLogger.Error("failed to get mogenius configmap.", "error", getErr)
+			return utils.ClusterConfigmap{}, getErr
 		}
-		k8sLogger.Debug("🗺️ Created new mogenius configmap.")
-	} else {
-		k8sLogger.Error("failed to get mogenius configmap.", "error", getErr)
-		return utils.ClusterConfigmap{}, getErr
 	}
 	utils.Assert(configMap != nil, "configMap cant be nil at this point")
 
@@ -263,11 +265,11 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 
 	// TODO: this field should not reflect ALL resources but only the resources we want to actually watch!
 	syncWorkloadsYaml, err := utils.ToYaml(configMapData.SyncWorkloads)
-	utils.Assert(err != nil, "serializing the SyncWorkloads struct field should never fail: "+err.Error())
+	utils.Assert(err == nil, fmt.Sprintf("serializing the SyncWorkloads struct field should never fail: %#v", err))
 	configMap.Data["syncWorkloads"] = syncWorkloadsYaml
 
 	availableWorkloadsYaml, err := utils.ToYaml(configMapData.AvailableWorkloads)
-	utils.Assert(err != nil, "serializing the SyncWorkloads struct field should never fail: "+err.Error())
+	utils.Assert(err == nil, fmt.Sprintf("serializing the SyncWorkloads struct field should never fail: %#v", err))
 	configMap.Data["availableWorkloads"] = availableWorkloadsYaml
 
 	configMap.Data["ignoredNamespaces"] = strings.Join(configMapData.IgnoredNamespaces, ",")
