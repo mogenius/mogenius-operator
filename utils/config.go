@@ -71,14 +71,13 @@ func (s *SyncResourceEntry) YamlString() string {
 	return string(bytes)
 }
 
-func YamlStringFromSyncResource(s []SyncResourceEntry) string {
-	bytes, err := yaml.Marshal(s)
+func ToYaml(data interface{}) (string, error) {
+	bytes, err := yaml.Marshal(data)
 	if err != nil {
-		utilsLogger.Error("Error marshalling SyncResourceEntry", "error", err)
-		return ""
+		return "", err
 	}
 
-	return string(bytes)
+	return string(bytes), nil
 }
 
 func YamlStringFromSyncResourceDescription(s []SyncResourceEntry) string {
