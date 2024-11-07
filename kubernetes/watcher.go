@@ -224,6 +224,7 @@ func WatchAllResources(watcher interfaces.KubernetesWatcher) {
 		Factor:   2.0,
 		Jitter:   0.1,
 	}, apierrors.IsServiceUnavailable, func() error {
+		// TODO: this has to keep running and Watch/Unwatch resources instead of only registering on startup
 		for _, v := range utils.CONFIG.Iac.SyncWorkloads {
 			err := watcher.Watch(interfaces.KubernetesWatcherResourceIdentifier{
 				Name:         v.Name,

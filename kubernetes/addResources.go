@@ -8,7 +8,7 @@ import (
 
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/shutdown"
-	utils "mogenius-k8s-manager/utils"
+	"mogenius-k8s-manager/utils"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -215,7 +215,7 @@ func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterS
 	return writeMogeniusSecret(secretClient, existingSecret, getErr, syncRepoReq)
 }
 
-func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.ClusterConfigmap, error) {
+func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
@@ -225,7 +225,29 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 
 	configmapClient := provider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
 
-	existingConfigMap, getErr := configmapClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+	configMap, getErr := configmapClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+
+	if apierrors.IsNotFound(getErr) {
+		// create empty config map
+		newConfigmap := core.ConfigMap{}
+		newConfigmap.ObjectMeta.Name = NAMESPACE
+		newConfigmap.ObjectMeta.Namespace = NAMESPACE
+		newConfigmap.Data = make(map[string]string)
+		newConfigmap.Data["syncWorkloads"] = ""
+		newConfigmap.Data["availableWorkloads"] = ""
+		newConfigmap.Data["ignoredNamespaces"] = ""
+		newConfigmap.Data["ignoredNames"] = ""
+		configMap, err = configmapClient.Create(context.TODO(), &newConfigmap, MoCreateOptions())
+		if err != nil {
+			k8sLogger.Error("failed to create mogenius configmap.", "error", err)
+			return utils.ClusterConfigmap{}, err
+		}
+		k8sLogger.Debug("🗺️ Created new mogenius configmap.")
+	} else {
+		k8sLogger.Error("failed to get mogenius configmap.", "error", getErr)
+		return utils.ClusterConfigmap{}, getErr
+	}
+	utils.Assert(configMap != nil, "configMap cant be nil at this point")
 
 	availableRes, err := GetAvailableResources()
 	if err != nil {
@@ -233,70 +255,32 @@ func CreateOrUpdateClusterConfigmap(data *utils.ClusterConfigmap) (utils.Cluster
 	}
 
 	// CONSTRUCT THE OBJECT
-	result := utils.ClusterConfigmap{}
-	result.SyncWorkloads = availableRes
-	result.AvailableWorkloads = availableRes
-	result.IgnoredNamespaces = dtos.DefaultIgnoredNamespaces()
-	result.IgnoredNames = []string{""}
-	if data != nil {
-		result.SyncWorkloads = data.SyncWorkloads
-		result.AvailableWorkloads = data.AvailableWorkloads
-		result.IgnoredNamespaces = data.IgnoredNamespaces
-		result.IgnoredNames = data.IgnoredNames
+	configMapData := utils.ClusterConfigmap{}
+	configMapData.SyncWorkloads = availableRes
+	configMapData.AvailableWorkloads = availableRes
+	configMapData.IgnoredNamespaces = dtos.DefaultIgnoredNamespaces()
+	configMapData.IgnoredNames = []string{""}
+
+	// TODO: this field should not reflect ALL resources but only the resources we want to actually watch!
+	syncWorkloadsYaml, err := utils.ToYaml(configMapData.SyncWorkloads)
+	utils.Assert(err != nil, "serializing the SyncWorkloads struct field should never fail: "+err.Error())
+	configMap.Data["syncWorkloads"] = syncWorkloadsYaml
+
+	availableWorkloadsYaml, err := utils.ToYaml(configMapData.AvailableWorkloads)
+	utils.Assert(err != nil, "serializing the SyncWorkloads struct field should never fail: "+err.Error())
+	configMap.Data["availableWorkloads"] = availableWorkloadsYaml
+
+	configMap.Data["ignoredNamespaces"] = strings.Join(configMapData.IgnoredNamespaces, ",")
+	configMap.Data["ignoredNames"] = strings.Join(configMapData.IgnoredNames, ",")
+
+	configMap, err = configmapClient.Update(context.TODO(), configMap, MoUpdateOptions())
+	if err != nil {
+		k8sLogger.Error("failed to update mogenius configmap.", "error", err)
+		return utils.ClusterConfigmap{}, err
 	}
+	k8sLogger.Debug("🗺️ Updated mogenius configmap.")
 
-	if apierrors.IsNotFound(getErr) {
-		// CREATE
-		k8sLogger.Info("🔑 Creating new mogenius configmap ...")
-		configmap := core.ConfigMap{}
-		configmap.ObjectMeta.Name = NAMESPACE
-		configmap.ObjectMeta.Namespace = NAMESPACE
-		configmap.Data = make(map[string]string)
-		configmap.Data["syncWorkloads"] = utils.YamlStringFromSyncResource(result.SyncWorkloads)
-		configmap.Data["availableWorkloads"] = GetAvailableResourcesSerialized()
-		configmap.Data["ignoredNamespaces"] = strings.Join(result.IgnoredNamespaces, ",")
-		configmap.Data["ignoredNames"] = strings.Join(result.IgnoredNames, ",")
-		_, err := configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())
-		if err != nil {
-			k8sLogger.Error("Error creating mogenius configmap.", "error", err)
-			return result, err
-		}
-		k8sLogger.Info("🗺️ Created new mogenius configmap.")
-	} else {
-		// USE EXISTING
-		availableWorkloads, err := GetSyncResourcesFromString(existingConfigMap.Data["availableWorkloads"])
-		if err != nil {
-			k8sLogger.Error("Error getting available workloads.", "error", err)
-			return result, err
-		}
-
-		syncWorkloads, err := GetSyncResourcesFromString(existingConfigMap.Data["syncWorkloads"])
-		if err != nil {
-			k8sLogger.Error("Error getting sync workloads.", "error", err)
-			return result, err
-		}
-		result.AvailableWorkloads = availableWorkloads
-		result.SyncWorkloads = syncWorkloads
-		result.IgnoredNamespaces = CommaSeperatedStringToArray(existingConfigMap.Data["ignoredNamespaces"])
-		result.IgnoredNames = CommaSeperatedStringToArray(existingConfigMap.Data["ignoredNames"])
-		k8sLogger.Info("🗺️  Using existing mogenius configmap.")
-	}
-
-	if data != nil {
-		// UPDATE EXISTING
-		existingConfigMap.Data["syncWorkloads"] = utils.YamlStringFromSyncResource(result.SyncWorkloads)
-		existingConfigMap.Data["availableWorkloads"] = GetAvailableResourcesSerialized()
-		existingConfigMap.Data["ignoredNamespaces"] = strings.Join(result.IgnoredNamespaces, ",")
-		existingConfigMap.Data["ignoredNames"] = strings.Join(result.IgnoredNames, ",")
-		_, err := configmapClient.Update(context.TODO(), existingConfigMap, MoUpdateOptions())
-		if err != nil {
-			k8sLogger.Error("Error updating mogenius configmap.", "error", err.Error())
-			return result, err
-		}
-		k8sLogger.Info("🗺️ Updated mogenius configmap.")
-	}
-
-	return result, nil
+	return configMapData, nil
 }
 
 func GetSyncRepoData() (*dtos.SyncRepoData, error) {

@@ -58,7 +58,7 @@ var clusterCmd = &cobra.Command{
 			shutdown.SendShutdownSignalAndBlockForever(true)
 			select {}
 		}
-		clusterConfigmap, err := mokubernetes.CreateOrUpdateClusterConfigmap(nil)
+		clusterConfigmap, err := mokubernetes.CreateAndUpdateClusterConfigmap()
 		if err != nil {
 			cmdLogger.Error("Error retrieving cluster configmap. Aborting.", "error", err.Error())
 			shutdown.SendShutdownSignalAndBlockForever(true)
