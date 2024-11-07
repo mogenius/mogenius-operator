@@ -27,7 +27,7 @@ type rootCmdConfig struct {
 
 var rootConfig rootCmdConfig
 
-var slogManager logging.SlogManager = logging.NewSlogManager()
+var slogManager logging.SlogManager
 var cmdLogger *slog.Logger
 var klogLogger *slog.Logger
 
@@ -83,7 +83,7 @@ func Execute() {
 }
 
 func init() {
-	slogManager = logging.NewSlogManager()
+	slogManager = logging.NewSlogManager("logs")
 	cmdLogger = slogManager.CreateLogger("cmd")
 	klogLogger = slogManager.CreateLogger("klog")
 	klog.SetSlogLogger(klogLogger)
