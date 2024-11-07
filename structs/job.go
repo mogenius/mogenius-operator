@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"mogenius-k8s-manager/utils"
+
 	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
 )
@@ -138,7 +140,10 @@ func stateLogJob(data *Job) {
 		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
-	logWithFields := structsLogger.With("namespace", data.NamespaceName, "controllerName", data.ControllerName)
+	serviceLogger, err := logManager.GetLogger("services")
+	if err != nil {
+		utils.Assert(serviceLogger != nil, "serviceLogger has to be initialized for stateLogJob")
+	}
 
 	var message string
 	switch data.State {
@@ -153,7 +158,7 @@ func stateLogJob(data *Job) {
 	default:
 		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	}
-	logWithFields.Info(message)
+	serviceLogger.Info(message, "namespace", data.NamespaceName, "controllerName", data.ControllerName)
 }
 
 func stateLogCmd(data *Command, ns string, controllerName string) {
@@ -175,7 +180,10 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 		duration = LONG(fmt.Sprintf("%d", durationMs))
 	}
 
-	logWithFields := structsLogger.With("namespace", ns, "controllerName", controllerName)
+	serviceLogger, err := logManager.GetLogger("services")
+	if err != nil {
+		utils.Assert(serviceLogger != nil, "serviceLogger has to be initialized for stateLogCmd")
+	}
 
 	var message string
 	switch data.State {
@@ -190,5 +198,5 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 	default:
 		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
 	}
-	logWithFields.Info(message)
+	serviceLogger.Info(message, "namespace", ns, "controllerName", controllerName)
 }
