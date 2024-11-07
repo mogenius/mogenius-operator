@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
 	"os/exec"
@@ -23,9 +22,14 @@ func XTermComponentStreamConnection(
 ) {
 	cmdType := "log"
 
-	filename := logManager.CombinedLogPath()
-	if component != structs.ComponentAll {
-		filename = fmt.Sprintf("%s/%s.log", utils.CONFIG.Kubernetes.LogDataPath, component)
+	filename, err := logManager.ComponentLogPath(string(component))
+	if err != nil {
+		xtermLogger.Error("couldnt get component logfile path", "component", component, "error", err)
+		return
+	}
+	if _, err := os.Stat(filename); err != nil {
+		xtermLogger.Error("component logfile does not exist", "component", component, "path", filename)
+		return
 	}
 
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("tail -F -n %s %s", MAX_TAIL_LINES, filename))
