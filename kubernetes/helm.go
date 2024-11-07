@@ -721,7 +721,7 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmInstallLogger.Info); err != nil {
-		HelmInstallLogger.Error("HelmInstall Init", "error", err)
+		HelmInstallLogger.Error(fmt.Sprintf("HelmInstall Init %s", err.Error()), "error", err)
 		return "", err
 	}
 
@@ -739,26 +739,26 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 
 	chartPath, err := install.LocateChart(data.Chart, settings)
 	if err != nil {
-		HelmInstallLogger.Error("HelmInstall LocateChart", "error", err)
+		HelmInstallLogger.Error(fmt.Sprintf("HelmInstall LocateChart %s", err.Error()), "error", err)
 		return "", err
 	}
 
 	chartRequested, err := loader.Load(chartPath)
 	if err != nil {
-		HelmInstallLogger.Error("HelmInstall Load", "error", err)
+		HelmInstallLogger.Error(fmt.Sprintf("HelmInstall Load %s", err.Error()), "error", err)
 		return "", err
 	}
 
 	// Parse the values string into a map
 	valuesMap := map[string]interface{}{}
 	if err := yaml.Unmarshal([]byte(data.Values), &valuesMap); err != nil {
-		HelmInstallLogger.Error("failed to Unmarshal HelmInstall Values", "error", err)
+		HelmInstallLogger.Error(fmt.Sprintf("failed to Unmarshal HelmInstall Values %s", err.Error()), "error", err)
 		return "", err
 	}
 
 	re, err := install.Run(chartRequested, valuesMap)
 	if err != nil {
-		HelmInstallLogger.Error("HelmInstall Run", "error", err)
+		HelmInstallLogger.Error(fmt.Sprintf("HelmInstall Run: %s", err.Error()), "error", err)
 		return "", err
 	}
 	if re == nil {
@@ -778,7 +778,7 @@ func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
 
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseUpgradeLogger.Info); err != nil {
-		HelmReleaseUpgradeLogger.Error("HelmUpgrade Init", "error", err)
+		HelmReleaseUpgradeLogger.Error(fmt.Sprintf("HelmUpgrade Init %s", err.Error()), "error", err)
 		return "", err
 	}
 
@@ -791,26 +791,26 @@ func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
 
 	chartPath, err := upgrade.LocateChart(data.Chart, settings)
 	if err != nil {
-		HelmReleaseUpgradeLogger.Error("HelmUpgrade LocateChart", "error", err)
+		HelmReleaseUpgradeLogger.Error(fmt.Sprintf("HelmUpgrade LocateChart %s", err.Error()), "error", err)
 		return "", err
 	}
 
 	chartRequested, err := loader.Load(chartPath)
 	if err != nil {
-		HelmReleaseUpgradeLogger.Error("HelmUpgrade Load", "error", err)
+		HelmReleaseUpgradeLogger.Error(fmt.Sprintf("HelmUpgrade Load %s", err.Error()), "error", err)
 		return "", err
 	}
 
 	// Parse the values string into a map
 	valuesMap := map[string]interface{}{}
 	if err := yaml.Unmarshal([]byte(data.Values), &valuesMap); err != nil {
-		HelmReleaseUpgradeLogger.Error("failed to Unmarshal HelmUpgrade Values", "error", err)
+		HelmReleaseUpgradeLogger.Error(fmt.Sprintf("failed to Unmarshal HelmUpgrade Values %s", err.Error()), "error", err)
 		return "", err
 	}
 
 	re, err := upgrade.Run(data.Release, chartRequested, valuesMap)
 	if err != nil {
-		HelmReleaseUpgradeLogger.Error("HelmUpgrade Run", "error", err)
+		HelmReleaseUpgradeLogger.Error(fmt.Sprintf("HelmUpgrade Run %s", err.Error()), "error", err)
 		return "", err
 	}
 	if re == nil {
@@ -828,7 +828,7 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, os.Getenv("HELM_DRIVER"), HelmReleaseUninstallLogger.Info); err != nil {
-		HelmReleaseUninstallLogger.Error("HelmUninstall Init", "error", err)
+		HelmReleaseUninstallLogger.Error(fmt.Sprintf("HelmUninstall Init %s", err.Error()), "error", err)
 		return "", err
 	}
 
@@ -837,7 +837,7 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 	uninstall.Wait = false
 	_, err := uninstall.Run(data.Release)
 	if err != nil {
-		HelmReleaseUninstallLogger.Error("HelmUninstall Run", "error", err)
+		HelmReleaseUninstallLogger.Error(fmt.Sprintf("HelmUninstall Run %s", err.Error()), "error", err)
 		return "", err
 	}
 
