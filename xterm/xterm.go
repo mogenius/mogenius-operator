@@ -29,10 +29,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var logManager interfaces.LogManager
+var logManager interfaces.LogManagerModule
 var xtermLogger *slog.Logger
 
-func Setup(interfaceLogManager interfaces.LogManager) {
+func Setup(interfaceLogManager interfaces.LogManagerModule) {
 	logManager = interfaceLogManager
 	xtermLogger = logManager.CreateLogger("xterm")
 }

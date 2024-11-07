@@ -8,7 +8,7 @@ import (
 
 var dbStatsLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManager) {
+func Setup(logManager interfaces.LogManagerModule) {
 	dbStatsLogger = logManager.CreateLogger("db-stats")
 
 	shutdown.Add(func() {

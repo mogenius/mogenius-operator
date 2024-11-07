@@ -2,7 +2,7 @@ package interfaces
 
 import "log/slog"
 
-type LogManager interface {
+type LogManagerModule interface {
 	LogDir() string
 	CombinedLogPath() string
 	// Get the pointer to an existing logger by its componentId

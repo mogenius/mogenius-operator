@@ -6,9 +6,9 @@ import (
 )
 
 var structsLogger *slog.Logger
-var logManager interfaces.LogManager
+var logManager interfaces.LogManagerModule
 
-func Setup(interfaceLogManager interfaces.LogManager) {
+func Setup(interfaceLogManager interfaces.LogManagerModule) {
 	logManager = interfaceLogManager
 	structsLogger = logManager.CreateLogger("structs")
 }
