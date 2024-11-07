@@ -15,7 +15,7 @@ import (
 
 var storeLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManager) {
+func Setup(logManager interfaces.LogManagerModule) {
 	storeLogger = logManager.CreateLogger("store")
 }
 

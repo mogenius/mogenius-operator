@@ -7,6 +7,6 @@ import (
 
 var serviceLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManager) {
+func Setup(logManager interfaces.LogManagerModule) {
 	serviceLogger = logManager.CreateLogger("services")
 }

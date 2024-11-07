@@ -7,6 +7,6 @@ import (
 
 var httpLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManager) {
+func Setup(logManager interfaces.LogManagerModule) {
 	httpLogger = logManager.CreateLogger("http")
 }

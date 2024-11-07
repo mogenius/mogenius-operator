@@ -9,7 +9,7 @@ import (
 // compile time check
 func TestWatcherAdheresToInterface(t *testing.T) {
 	watcher := NewWatcher()
-	testfunc := func(w interfaces.KubernetesWatcher) {}
+	testfunc := func(w interfaces.WatcherModule) {}
 	testfunc(&watcher) // this checks if the typesystem allows to call it
 }
 

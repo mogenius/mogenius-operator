@@ -30,7 +30,7 @@ import (
 
 var utilsLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManager) {
+func Setup(logManager interfaces.LogManagerModule) {
 	utilsLogger = logManager.CreateLogger("utils")
 }
 

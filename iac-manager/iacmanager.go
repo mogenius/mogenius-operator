@@ -45,7 +45,7 @@ var gitSyncLock sync.Mutex
 
 var iacLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManager) {
+func Setup(logManager interfaces.LogManagerModule) {
 	iacLogger = logManager.CreateLogger("iac")
 }
 

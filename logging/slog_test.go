@@ -9,6 +9,6 @@ import (
 // compile time check
 func TestSlogerManagerAdheresToLogManagerInterface(t *testing.T) {
 	slogManager := logging.NewSlogManager()
-	testfunc := func(w interfaces.LogManager) {}
+	testfunc := func(w interfaces.LogManagerModule) {}
 	testfunc(&slogManager) // this checks if the typesystem allows to call it
 }

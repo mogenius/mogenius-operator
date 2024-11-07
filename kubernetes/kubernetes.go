@@ -8,7 +8,7 @@ import (
 var helmLogger *slog.Logger
 var k8sLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManager) {
+func Setup(logManager interfaces.LogManagerModule) {
 	k8sLogger = logManager.CreateLogger("kubernetes")
 	helmLogger = logManager.CreateLogger("helm")
 

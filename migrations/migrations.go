@@ -14,7 +14,7 @@ import (
 
 var migrationLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManager) {
+func Setup(logManager interfaces.LogManagerModule) {
 	migrationLogger = logManager.CreateLogger("migrations")
 }
 

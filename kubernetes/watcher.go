@@ -35,23 +35,23 @@ var AvailableResources []utils.SyncResourceEntry
 
 type Watcher struct {
 	handlerMapLock sync.Mutex
-	activeHandlers map[interfaces.KubernetesWatcherResourceIdentifier]resourceContext
+	activeHandlers map[interfaces.WatcherResourceIdentifier]resourceContext
 }
 
 func NewWatcher() Watcher {
 	return Watcher{
 		handlerMapLock: sync.Mutex{},
-		activeHandlers: make(map[interfaces.KubernetesWatcherResourceIdentifier]resourceContext, 0),
+		activeHandlers: make(map[interfaces.WatcherResourceIdentifier]resourceContext, 0),
 	}
 }
 
 type resourceContext struct {
-	state    interfaces.KubernetesWatcherResourceState
+	state    interfaces.WatcherResourceState
 	informer cache.SharedIndexInformer
 	handler  cache.ResourceEventHandlerRegistration
 }
 
-func (m *Watcher) Watch(resource interfaces.KubernetesWatcherResourceIdentifier, onAdd interfaces.KubernetesWatcherOnAdd, onUpdate interfaces.KubernetesWatcherOnUpdate, onDelete interfaces.KubernetesWatcherOnDelete) error {
+func (m *Watcher) Watch(resource interfaces.WatcherResourceIdentifier, onAdd interfaces.WatcherOnAdd, onUpdate interfaces.WatcherOnUpdate, onDelete interfaces.WatcherOnDelete) error {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
@@ -174,7 +174,7 @@ func (m *Watcher) Watch(resource interfaces.KubernetesWatcherResourceIdentifier,
 	return nil
 }
 
-func (m *Watcher) Unwatch(resource interfaces.KubernetesWatcherResourceIdentifier) error {
+func (m *Watcher) Unwatch(resource interfaces.WatcherResourceIdentifier) error {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
@@ -192,11 +192,11 @@ func (m *Watcher) Unwatch(resource interfaces.KubernetesWatcherResourceIdentifie
 	return nil
 }
 
-func (m *Watcher) ListWatchedResources() []interfaces.KubernetesWatcherResourceIdentifier {
+func (m *Watcher) ListWatchedResources() []interfaces.WatcherResourceIdentifier {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
-	resources := make([]interfaces.KubernetesWatcherResourceIdentifier, len(m.activeHandlers))
+	resources := make([]interfaces.WatcherResourceIdentifier, len(m.activeHandlers))
 	for r := range m.activeHandlers {
 		resources = append(resources, r)
 	}
@@ -204,7 +204,7 @@ func (m *Watcher) ListWatchedResources() []interfaces.KubernetesWatcherResourceI
 	return resources
 }
 
-func (m *Watcher) State(resource interfaces.KubernetesWatcherResourceIdentifier) (interfaces.KubernetesWatcherResourceState, error) {
+func (m *Watcher) State(resource interfaces.WatcherResourceIdentifier) (interfaces.WatcherResourceState, error) {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
@@ -216,7 +216,7 @@ func (m *Watcher) State(resource interfaces.KubernetesWatcherResourceIdentifier)
 	return resourceContext.state, nil
 }
 
-func WatchAllResources(watcher interfaces.KubernetesWatcher) {
+func WatchAllResources(watcher interfaces.WatcherModule) {
 	// Retry watching resources with exponential backoff in case of failures
 	err := retry.OnError(wait.Backoff{
 		Steps:    5,
@@ -227,7 +227,7 @@ func WatchAllResources(watcher interfaces.KubernetesWatcher) {
 		// TODO: this has to keep running and Watch/Unwatch resources instead of only registering on startup
 		workloads := utils.CONFIG.Iac.SyncWorkloads
 		for _, v := range workloads {
-			err := watcher.Watch(interfaces.KubernetesWatcherResourceIdentifier{
+			err := watcher.Watch(interfaces.WatcherResourceIdentifier{
 				Name:         v.Name,
 				Kind:         v.Kind,
 				GroupVersion: v.Group,
