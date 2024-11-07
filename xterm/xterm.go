@@ -445,6 +445,9 @@ func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc,
 				}
 
 				if conn != nil {
+					if !(strings.HasSuffix(entry.Message, "\n") || strings.HasSuffix(entry.Message, "\n\r")) {
+						entry.Message = entry.Message + "\n"
+					}
 					messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
 					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
 					if err != nil {

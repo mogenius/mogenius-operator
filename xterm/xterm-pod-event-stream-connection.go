@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -29,7 +30,10 @@ func readChannelPodEvent(ch chan string, conn *websocket.Conn, ctx context.Conte
 				}
 				for _, event := range events {
 					formattedTime := event.FirstTimestamp.Time.Format("2006-01-02 15:04:05")
-					err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s\n\r", formattedTime, event.Message)))
+					if !strings.HasSuffix(event.Message, "\n") && !strings.HasSuffix(event.Message, "\n\r") {
+						event.Message = event.Message + "\n\r"
+					}
+					err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s", formattedTime, event.Message)))
 					if err != nil {
 						xtermLogger.Error("WriteMessage", "error", err)
 					}
