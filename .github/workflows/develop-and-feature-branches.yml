@@ -86,11 +86,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-      - name: go vet
+      - name: Execute Tests
         run: |
           go mod download
           go clean -testcache
-          go run gotest.tools/gotestsum@latest --format="github-actions" -- -short ./...
+          go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -short ./...
 
   all-tests:
     needs: prepare
