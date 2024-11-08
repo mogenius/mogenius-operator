@@ -737,12 +737,6 @@ func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyL
 			_, exists := policy.ObjectMeta.Labels["mo-app"]
 			return !exists
 		}()
-		// not used at the moment
-		isLegacyMogeniusAppNetworkPolicy := hasLabels && policy.ObjectMeta.Labels["mo-created-by"] == "mogenius-k8s-manager" && func() bool {
-			_, exists := policy.ObjectMeta.Labels["mo-app"]
-			return exists
-		}()
-
 		isMogeniusNetworkPolicy := isManagedMogeniusNetworkPolicy || isLegacyMogeniusNamespaceNetworkPolicy
 		if isMogeniusNetworkPolicy {
 			continue
