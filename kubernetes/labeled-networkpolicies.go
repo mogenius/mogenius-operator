@@ -714,7 +714,7 @@ func EnforceNetworkPolicyManagerForNamespace(namespaceName string) error {
 	}
 	// add deny-all network policy
 	err = CreateDenyAllNetworkPolicy(namespaceName)
-	if err != nil {
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("failed to create deny-all network policy: %v", err)
 	}
 

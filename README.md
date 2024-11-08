@@ -2,10 +2,19 @@
   <img src="https://imagedelivery.net/T7YEW5IAgZJ0dY4-LDTpyQ/3ae4fcf0-289c-48d2-3323-d2c5bc932300/detail" alt="drawing" width="200"/>
 </p>
 
-# run build locally
+# run locally
+setup your .env file with the following content:
+```.env
+MO_API_KEY=
+MO_CLUSTER_NAME=
+MO_CLUSTER_MFA_ID=
+MO_STAGE=
+```
+Then run:
 
 ```sh
-go build .
+set -o allexport; source .env; set +o allexport
+go run main.go cluster
 ```
 
 # run local instance with go
