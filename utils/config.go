@@ -37,20 +37,20 @@ type ClusterConfigmap struct {
 }
 
 type SyncResourceEntry struct {
-	Kind       string `json:"kind"`
-	Name       string `json:"name"`
-	Group      string `json:"group"`
-	Version    string `json:"version"`
-	Namespaced bool   `json:"namespaced"`
+	Kind      string  `json:"kind"`
+	Name      string  `json:"name"`
+	Group     string  `json:"group"`
+	Version   string  `json:"version"`
+	Namespace *string `json:"namespace"`
 }
 
 type SyncResourceData struct {
-	Kind       string `json:"kind"`
-	Name       string `json:"name"`
-	Group      string `json:"group"`
-	Version    string `json:"version"`
-	Namespaced bool   `json:"namespaced"`
-	YamlData   string `json:"yamlData"`
+	Kind      string  `json:"kind"`
+	Name      string  `json:"name"`
+	Group     string  `json:"group"`
+	Version   string  `json:"version"`
+	Namespace *string `json:"namespace"`
+	YamlData  string  `json:"yamlData"`
 }
 
 type SyncResourceItem struct {
@@ -83,7 +83,7 @@ func ToYaml(data interface{}) (string, error) {
 func YamlStringFromSyncResourceDescription(s []SyncResourceEntry) string {
 	result := "\n"
 	for _, v := range s {
-		result += fmt.Sprintf("Name: %s, Group: %s, Namespaced: %t\n", v.Name, v.Group, v.Namespaced)
+		result += fmt.Sprintf("Name: %s, Group: %s, Namespace: %v\n", v.Name, v.Group, v.Namespace)
 	}
 	return result
 }
