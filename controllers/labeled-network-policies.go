@@ -342,7 +342,7 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 			}
 
 			if ctrl.GetLabels() != nil {
-				for key, _ := range ctrl.GetLabels() {
+				for key := range ctrl.GetLabels() {
 					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
 					if idx, ok := managedMap[managedKey]; ok {
 						networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)

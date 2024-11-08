@@ -81,7 +81,6 @@ func TestSecretStoreCreate(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	props := externalSecretStorePropsExample()
 
@@ -136,7 +135,6 @@ func TestListAvailSecrets(t *testing.T) {
 	}
 	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
 
-	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 	// prereq
 	// _, err := kubernetes.CreateSecret(utils.CONFIG.Kubernetes.OwnNamespace, &v1.Secret{
 	// 	Data: map[string][]byte{
@@ -161,7 +159,6 @@ func TestSecretStoreDelete(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 	name := utils.GetSecretStoreName(NamePrefix)
 
 	err := DeleteExternalSecretsStore(name)

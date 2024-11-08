@@ -22,6 +22,8 @@ var installCmd = &cobra.Command{
 	This cmd installs the application permanently into you cluster. 
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		cmdConfig.Validate()
+
 		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
 		if err != nil {
 			panic(err)

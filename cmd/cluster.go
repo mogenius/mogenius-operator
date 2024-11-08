@@ -16,6 +16,7 @@ import (
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/migrations"
 	"mogenius-k8s-manager/services"
+	servicesExternal "mogenius-k8s-manager/services-external"
 	"mogenius-k8s-manager/shutdown"
 	socketclient "mogenius-k8s-manager/socket-client"
 	"mogenius-k8s-manager/store"
@@ -35,6 +36,8 @@ var clusterCmd = &cobra.Command{
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		go func() {
+			cmdConfig.Validate()
+
 			logLevel := cmdConfig.Get("MO_LOG_LEVEL")
 			err := slogManager.SetLogLevel(logLevel)
 			if err != nil {
@@ -55,9 +58,10 @@ var clusterCmd = &cobra.Command{
 			dbstats.Setup(slogManager)
 			dtos.Setup(slogManager)
 			api.Setup(slogManager, cmdConfig)
-			iacmanager.Setup(slogManager)
+			iacmanager.Setup(slogManager, cmdConfig)
 			migrations.Setup(slogManager)
 			services.Setup(slogManager, cmdConfig)
+			servicesExternal.Setup(cmdConfig)
 			socketclient.Setup(slogManager)
 			store.Setup(slogManager)
 			structs.Setup(slogManager)

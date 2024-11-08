@@ -78,7 +78,7 @@ func addRbac(provider *punq.KubeProvider) error {
 			{
 				Kind:      "ServiceAccount",
 				Name:      SERVICEACCOUNTNAME,
-				Namespace: NAMESPACE,
+				Namespace: config.Get("MO_OWN_NAMESPACE"),
 			},
 		},
 	}
@@ -86,7 +86,7 @@ func addRbac(provider *punq.KubeProvider) error {
 	// CREATE RBAC
 	k8sLogger.Info("Creating mogenius-k8s-manager RBAC ...")
 
-	err := ApplyServiceAccount(SERVICEACCOUNTNAME, NAMESPACE, nil)
+	err := ApplyServiceAccount(SERVICEACCOUNTNAME, config.Get("MO_OWN_NAMESPACE"), nil)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
@@ -105,7 +105,7 @@ func addRbac(provider *punq.KubeProvider) error {
 func applyNamespace(provider *punq.KubeProvider) {
 	serviceClient := provider.ClientSet.CoreV1().Namespaces()
 
-	namespace := applyconfcore.Namespace(NAMESPACE)
+	namespace := applyconfcore.Namespace(config.Get("MO_OWN_NAMESPACE"))
 
 	applyOptions := metav1.ApplyOptions{
 		Force:        true,
@@ -209,9 +209,9 @@ func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterS
 		select {}
 	}
 
-	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
+	secretClient := provider.ClientSet.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
 
-	existingSecret, getErr := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+	existingSecret, getErr := secretClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
 	return writeMogeniusSecret(secretClient, existingSecret, getErr, syncRepoReq)
 }
 
@@ -223,16 +223,16 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 		select {}
 	}
 
-	configmapClient := provider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
+	configmapClient := provider.ClientSet.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
-	configMap, getErr := configmapClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+	configMap, getErr := configmapClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
 
 	if getErr != nil {
 		if apierrors.IsNotFound(getErr) {
 			// create empty config map
 			newConfigmap := core.ConfigMap{}
-			newConfigmap.ObjectMeta.Name = NAMESPACE
-			newConfigmap.ObjectMeta.Namespace = NAMESPACE
+			newConfigmap.ObjectMeta.Name = config.Get("MO_OWN_NAMESPACE")
+			newConfigmap.ObjectMeta.Namespace = config.Get("MO_OWN_NAMESPACE")
 			newConfigmap.Data = make(map[string]string)
 			newConfigmap.Data["syncWorkloads"] = ""
 			newConfigmap.Data["availableWorkloads"] = ""
@@ -293,9 +293,9 @@ func GetSyncRepoData() (*dtos.SyncRepoData, error) {
 		select {}
 	}
 
-	secretClient := provider.ClientSet.CoreV1().Secrets(NAMESPACE)
+	secretClient := provider.ClientSet.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
 
-	existingSecret, getErr := secretClient.Get(context.TODO(), NAMESPACE, metav1.GetOptions{})
+	existingSecret, getErr := secretClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
 	if getErr != nil {
 		return nil, getErr
 	}
@@ -344,8 +344,8 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	}
 
 	secret := punqUtils.InitSecret()
-	secret.ObjectMeta.Name = NAMESPACE
-	secret.ObjectMeta.Namespace = NAMESPACE
+	secret.ObjectMeta.Name = config.Get("MO_OWN_NAMESPACE")
+	secret.ObjectMeta.Namespace = config.Get("MO_OWN_NAMESPACE")
 	delete(secret.StringData, "exampleData") // delete example data
 	secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 	secret.StringData["api-key"] = clusterSecret.ApiKey
@@ -420,7 +420,7 @@ func InitOrUpdateCrds() {
 }
 
 func addDeployment(provider *punq.KubeProvider) {
-	deploymentClient := provider.ClientSet.AppsV1().Deployments(NAMESPACE)
+	deploymentClient := provider.ClientSet.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
 
 	deploymentContainer := applyconfcore.Container()
 	deploymentContainer.WithImagePullPolicy(core.PullAlways)
@@ -471,7 +471,7 @@ func addDeployment(provider *punq.KubeProvider) {
 	})
 	podTemplate.WithSpec(podSpec)
 
-	deployment := applyconfapp.Deployment(DEPLOYMENTNAME, NAMESPACE)
+	deployment := applyconfapp.Deployment(DEPLOYMENTNAME, config.Get("MO_OWN_NAMESPACE"))
 	deployment.WithSpec(applyconfapp.DeploymentSpec().WithSelector(labelSelector).WithTemplate(podTemplate))
 
 	// Create Deployment

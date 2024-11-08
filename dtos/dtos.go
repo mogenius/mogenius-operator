@@ -8,7 +8,7 @@ import (
 var logManager interfaces.LogManagerModule
 var dtosLogger *slog.Logger
 
-func Setup(interfaceLogManager interfaces.LogManagerModule) {
-	logManager = interfaceLogManager
-	dtosLogger = interfaceLogManager.CreateLogger("dtos")
+func Setup(logManagerModule interfaces.LogManagerModule) {
+	logManager = logManagerModule
+	dtosLogger = logManagerModule.CreateLogger("dtos")
 }

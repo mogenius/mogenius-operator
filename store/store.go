@@ -15,8 +15,8 @@ import (
 
 var storeLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManagerModule) {
-	storeLogger = logManager.CreateLogger("store")
+func Setup(logManagerModule interfaces.LogManagerModule) {
+	storeLogger = logManagerModule.CreateLogger("store")
 }
 
 type Store struct {

@@ -7,6 +7,6 @@ import (
 
 var controllerLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManagerModule) {
-	controllerLogger = logManager.CreateLogger("controllers")
+func Setup(logManagerModule interfaces.LogManagerModule) {
+	controllerLogger = logManagerModule.CreateLogger("controllers")
 }

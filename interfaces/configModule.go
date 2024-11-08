@@ -38,6 +38,9 @@ type ConfigModule interface {
 
 	// Provide a cobra cmd to utilize cobra's CLI. Required for `ConfigDeclaration.Cobra` to work.
 	WithCobraCmd(cmd *cobra.Command)
+
+	// Check all values are initialized. Exits the program if issues have been found.
+	Validate()
 }
 
 type ConfigDeclaration struct {

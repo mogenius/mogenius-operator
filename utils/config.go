@@ -105,11 +105,7 @@ const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
 
 type Config struct {
-	Config struct {
-		Version int `yaml:"version" env-description:"Version of the configuration yaml."`
-	} `yaml:"config"`
 	Kubernetes struct {
-		OwnNamespace               string `yaml:"own_namespace" env:"OWN_NAMESPACE" env-description:"The Namespace of mogenius platform"`
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 		HelmDataPath               string `yaml:"helm_data_path" env:"helm_data_path" env-description:"Path to the Helm data."`
 		GitVaultDataPath           string `yaml:"git_vault_data_path" env:"git_vault_data_path" env-description:"Path to the Git Vault data."`
@@ -144,24 +140,16 @@ type Config struct {
 		LogChanges         bool                `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
-		Stage                     string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
-		LogFormat                 string   `yaml:"log_format" env:"log_format" env-description:"Setup the log format. Available are: json | text" env-default:"json"`
-		LogLevel                  string   `yaml:"log_level" env:"log_level" env-description:"Setup the log level. Available are: error, warn, info, debug" env-default:"info"`
-		LogIncomingStats          bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
-		Debug                     bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
-		DebugLogCaller            bool     `yaml:"debug_log_caller" env:"debug_log_caller" env-description:"If set to true, the calling function will be logged." env-default:"false"`
-		LogKubernetesEvents       bool     `yaml:"log_kubernetes_events" env:"log_kubernetes_events" env-description:"If set to true, all kubernetes events will be logged to std-out." env-default:"false"`
-		DefaultMountPath          string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
-		IgnoreNamespaces          []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
-		LogRotationSizeInBytes    int      `yaml:"log_rotation_size_in_bytes" env:"log_rotation_size_in_bytes" env-description:"Size of the logfile when it is rotated." env-default:"5242880"`
-		LogRotationMaxSizeInBytes int      `yaml:"log_rotation_max_size_in_bytes" env:"log_rotation_max_size_in_bytes" env-description:"Size of the max logfile when it is rotated." env-default:"314572800"`
-		LogRetentionDays          int      `yaml:"log_retention_days" env:"log_retention_days" env-description:"Number of days to keep log files." env-default:"7"`
-		AutoMountNfs              bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
-		IgnoreResourcesBackup     []string `yaml:"ignore_resources_backup" env:"ignore_resources_backup" env-description:"List of all ignored resources while backup." env-default:""`
-		CheckForUpdates           int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
-		HelmIndex                 string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
-		NfsPodPrefix              string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
-		ExternalSecretsEnabled    bool     `yaml:"external_secrets_enabled" env:"external_secrets_enabled" env-description:"If set to true, external secrets will be enabled." env-default:"false"`
+		Stage                  string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
+		LogIncomingStats       bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
+		Debug                  bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
+		DefaultMountPath       string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
+		IgnoreNamespaces       []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
+		AutoMountNfs           bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
+		CheckForUpdates        int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
+		HelmIndex              string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
+		NfsPodPrefix           string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
+		ExternalSecretsEnabled bool     `yaml:"external_secrets_enabled" env:"external_secrets_enabled" env-description:"If set to true, external secrets will be enabled." env-default:"false"`
 	} `yaml:"misc"`
 	Builder struct {
 		BuildTimeout        int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
@@ -302,12 +290,6 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		}
 	}
 
-	if CONFIGVERSION > CONFIG.Config.Version {
-		utilsLogger.Error("Config version is outdated. Please delete your config file and restart the application.", "ConfigPath", ConfigPath, "version", CONFIG.Config.Version, "neededVersion", CONFIGVERSION)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-
 	// SET LOGGING
 	// setupLogging()
 
@@ -338,52 +320,6 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		}()
 	}
 }
-
-//func setupLogging() {
-//	// Create a log file
-//	err := os.MkdirAll(CONFIG.Kubernetes.LogDataPath, os.ModePerm)
-//	if err != nil {
-//		log.Fatalf("Failed to create parent directories: %v", err)
-//	}
-//	file, err := os.OpenFile(MainLogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-//	if err != nil {
-//		log.Fatalf("Failed to open log file: %v", err)
-//	}
-//
-//	mw := io.MultiWriter(os.Stdout, file)
-//
-//	log.SetOutput(mw)
-//	log.SetLevel(log.TraceLevel)
-//
-//	log.AddHook(&SecretRedactionHook{})
-//	log.AddHook(&LogRotationHook{})
-//
-//	log.SetFormatter(&log.TextFormatter{
-//		ForceColors:      true,
-//		DisableTimestamp: false,
-//		DisableQuote:     true,
-//	})
-//
-//	log.SetReportCaller(CONFIG.Misc.DebugLogCaller)
-//	logLevel, err := log.ParseLevel(CONFIG.Misc.LogLevel)
-//	if err != nil {
-//		logLevel = log.InfoLevel
-//		log.Error("Error parsing log level. Using default log level: info")
-//	}
-//	log.SetLevel(logLevel)
-//
-//	if strings.ToLower(CONFIG.Misc.LogFormat) == "json" {
-//		log.SetFormatter(&log.JSONFormatter{})
-//	} else if strings.ToLower(CONFIG.Misc.LogFormat) == "text" {
-//		log.SetFormatter(&log.TextFormatter{
-//			ForceColors:      true,
-//			DisableTimestamp: false,
-//			DisableQuote:     true,
-//		})
-//	} else {
-//		log.SetFormatter(&log.TextFormatter{})
-//	}
-//}
 
 func PrintCurrentCONFIG() (string, error) {
 	// create a deep copy of the Config instance
@@ -453,8 +389,7 @@ func SetupClusterConfigmap(clusterConfigmap ClusterConfigmap) {
 func PrintSettings() {
 	utilsLogger.Info("PrintSettings",
 		"ConfigPath", ConfigPath,
-		"Version", CONFIG.Config.Version,
-		"Kubernetes.OwnNamespace", CONFIG.Kubernetes.OwnNamespace,
+		"Kubernetes.OwnNamespace", config.Get("MO_OWN_NAMESPACE"),
 		"Kubernetes.ClusterName", config.Get("MO_CLUSTER_NAME"),
 		"Kubernetes.ClusterMfaId", config.Get("MO_CLUSTER_MFA_ID"),
 		"Kubernetes.RunInCluster", CONFIG.Kubernetes.RunInCluster,
@@ -485,18 +420,11 @@ func PrintSettings() {
 		"Iac.LogChanges", CONFIG.Iac.LogChanges,
 		"Iac.ShowDiffInLog", CONFIG.Iac.ShowDiffInLog,
 		"Misc.Stage", config.Get("MO_STAGE"),
-		"Misc.LogFormat", CONFIG.Misc.LogFormat,
 		"Misc.LogIncomingStats", CONFIG.Misc.LogIncomingStats,
 		"Misc.Debug", CONFIG.Misc.Debug,
-		"Misc.DebugLogCaller", CONFIG.Misc.DebugLogCaller,
 		"Misc.AutoMountNfs", CONFIG.Misc.AutoMountNfs,
-		"Misc.LogKubernetesEvents", CONFIG.Misc.LogKubernetesEvents,
 		"Misc.DefaultMountPath", CONFIG.Misc.DefaultMountPath,
-		"Misc.IgnoreResourcesBackup", CONFIG.Misc.IgnoreResourcesBackup,
 		"Misc.IgnoreNamespaces", CONFIG.Misc.IgnoreNamespaces,
-		"Misc.LogRotationSizeInBytes", CONFIG.Misc.LogRotationSizeInBytes,
-		"Misc.LogRotationMaxSizeInBytes", CONFIG.Misc.LogRotationMaxSizeInBytes,
-		"Misc.LogRetentionDays", CONFIG.Misc.LogRetentionDays,
 		"Misc.CheckForUpdates", CONFIG.Misc.CheckForUpdates,
 		"Misc.HelmIndex", CONFIG.Misc.HelmIndex,
 		"Misc.NfsPodPrefix", CONFIG.Misc.NfsPodPrefix,

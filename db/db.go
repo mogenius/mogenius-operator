@@ -8,8 +8,8 @@ import (
 
 var dbLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManagerModule) {
-	dbLogger = logManager.CreateLogger("db")
+func Setup(logManagerModule interfaces.LogManagerModule) {
+	dbLogger = logManagerModule.CreateLogger("db")
 
 	shutdown.Add(func() {
 		dbLogger.Debug("Shutting down...")

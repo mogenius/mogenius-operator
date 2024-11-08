@@ -170,7 +170,7 @@ type HelmReleaseStatusInfo struct {
 // Only for internal usage
 func CreateHelmChart(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmChartName string, helmValues string) (output string, err error) {
 	data := HelmChartInstallRequest{
-		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Chart:     helmChartName,
 		Release:   helmReleaseName,
 		Values:    helmValues,

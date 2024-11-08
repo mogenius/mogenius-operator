@@ -38,6 +38,43 @@ func NewConfig() *Config {
 	}
 }
 
+func (c *Config) Validate() {
+	errs := []error{}
+	func() {
+		c.dataLock.Lock()
+		defer c.dataLock.Unlock()
+
+		for key, cv := range c.data {
+			if cv.value == nil {
+				errs = append(errs, fmt.Errorf("Value for Key '%s' is not initialized.", key))
+				continue
+			}
+			if cv.declaration.Validate != nil {
+				err := cv.declaration.Validate(*cv.value)
+				if err != nil {
+					errs = append(errs, fmt.Errorf("Validation for Key '%s' failed: %s", key, err.Error()))
+					continue
+				}
+			}
+		}
+	}()
+
+	if len(errs) > 0 {
+		for _, err := range errs {
+			fmt.Printf("ERROR: %s\n", err.Error())
+		}
+		fmt.Printf("Found %d error(s) when validating configuration values.\n", len(errs))
+		fmt.Println()
+		fmt.Println("Configuration Values")
+		fmt.Println()
+		fmt.Println("```env")
+		fmt.Print(c.AsEnvs())
+		fmt.Println("```")
+		fmt.Println()
+		os.Exit(1)
+	}
+}
+
 func (c *Config) WithCobraCmd(cmd *cobra.Command) {
 	if cmd == nil {
 		return
@@ -306,7 +343,11 @@ func (c *Config) AsEnvs() string {
 		}
 
 		if cv.declaration.DefaultValue != nil {
-			data = data + "## Default: " + strings.ReplaceAll(*cv.declaration.DefaultValue, "\n", "\\n") + "\n"
+			defaultValue := strings.ReplaceAll(*cv.declaration.DefaultValue, "\n", "\\n")
+			if defaultValue == "" {
+				defaultValue = `""`
+			}
+			data = data + "## Default: " + defaultValue + "\n"
 		}
 
 		data = data + "## Has Validation: " + strconv.FormatBool(cv.declaration.Validate != nil) + "\n"

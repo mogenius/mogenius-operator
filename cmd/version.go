@@ -17,6 +17,8 @@ var versionCmd = &cobra.Command{
 	Short: "Print version information and exit",
 	Long:  `Print version information and exit`,
 	Run: func(cmd *cobra.Command, args []string) {
+		cmdConfig.Validate()
+
 		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
 		if err != nil {
 			panic(err)

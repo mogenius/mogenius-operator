@@ -157,7 +157,7 @@ func SystemCheck() SystemCheckResponse {
 		ingrEntry.UninstallPattern = structs.PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
 		ingrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
 		ingrEntry.VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
-		ingrEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTraefik)
+		ingrEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTraefik)
 		return ingrEntry
 	})
 
@@ -180,7 +180,7 @@ func SystemCheck() SystemCheckResponse {
 		metricsEntry.UninstallPattern = structs.PAT_UNINSTALL_METRICS_SERVER
 		metricsEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METRICS_SERVER
 		metricsEntry.VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
-		metricsEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetricsServer)
+		metricsEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameMetricsServer)
 		return metricsEntry
 	})
 
@@ -308,7 +308,7 @@ func SystemCheck() SystemCheckResponse {
 		certMgrEntry.InstallPattern = structs.PAT_INSTALL_CERT_MANAGER
 		certMgrEntry.UninstallPattern = structs.PAT_UNINSTALL_CERT_MANAGER
 		certMgrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CERT_MANAGER
-		certMgrEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameCertManager)
+		certMgrEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameCertManager)
 		return certMgrEntry
 	})
 
@@ -317,7 +317,7 @@ func SystemCheck() SystemCheckResponse {
 	go SysCheckExec("CheckClusterIssuer", &wg, &entries, func() SystemCheckEntry {
 		_, clusterIssuerInstalledErr := punq.GetClusterIssuer(NameClusterIssuerResource, nil)
 		clusterIssuerMsg := fmt.Sprintf("%s is installed.", NameClusterIssuerResource)
-		helmstatus := kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameClusterIssuer)
+		helmstatus := kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameClusterIssuer)
 		if helmstatus == release.StatusUnknown {
 			clusterIssuerInstalledErr = nil
 			clusterIssuerMsg = "Cluster Issuer not installed."
@@ -346,7 +346,7 @@ func SystemCheck() SystemCheckResponse {
 		if err != nil {
 			serviceLogger.Error("getCurrentTrafficCollectorVersion", "error", err)
 		}
-		trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
+		trafficCollectorVersion, trafficCollectorInstalledErr := punq.IsDaemonSetInstalled(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTrafficCollector)
 		if trafficCollectorVersion == "" && trafficCollectorInstalledErr == nil {
 			trafficCollectorVersion = "6.6.6" // flag local version without tag
 		}
@@ -365,7 +365,7 @@ func SystemCheck() SystemCheckResponse {
 		trafficEntry.InstallPattern = structs.PAT_INSTALL_TRAFFIC_COLLECTOR
 		trafficEntry.UninstallPattern = structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR
 		trafficEntry.UpgradePattern = structs.PAT_UPGRADE_TRAFFIC_COLLECTOR
-		trafficEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameTrafficCollector)
+		trafficEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTrafficCollector)
 		return trafficEntry
 	})
 
@@ -376,7 +376,7 @@ func SystemCheck() SystemCheckResponse {
 		if err != nil {
 			serviceLogger.Error("getCurrentPodStatsCollectorVersion", "error", err)
 		}
-		podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
+		podStatsCollectorVersion, podStatsCollectorInstalledErr := punq.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNamePodStatsCollector)
 		if podStatsCollectorVersion == "" && podStatsCollectorInstalledErr == nil {
 			podStatsCollectorVersion = "6.6.6" // flag local version without tag
 		}
@@ -396,7 +396,7 @@ func SystemCheck() SystemCheckResponse {
 		podEntry.InstallPattern = structs.PAT_INSTALL_POD_STATS_COLLECTOR
 		podEntry.UninstallPattern = structs.PAT_UNINSTALL_POD_STATS_COLLECTOR
 		podEntry.UpgradePattern = structs.PAT_UPGRADE_PODSTATS_COLLECTOR
-		podEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNamePodStatsCollector)
+		podEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNamePodStatsCollector)
 		return podEntry
 	})
 
@@ -404,7 +404,7 @@ func SystemCheck() SystemCheckResponse {
 	wg.Add(1)
 	go SysCheckExec("CheckDistributionRegistry", &wg, &entries, func() SystemCheckEntry {
 		distributionRegistryName := "distribution-registry-docker-registry"
-		distriRegistryVersion, distriRegistryInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, distributionRegistryName)
+		distriRegistryVersion, distriRegistryInstalledErr := punq.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), distributionRegistryName)
 		distriRegistryMsg := fmt.Sprintf("%s (Version: %s) is installed.", distributionRegistryName, distriRegistryVersion)
 		currentDistriRegistryVersion := getMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
 		distriEntry := CreateSystemCheckEntry(
@@ -421,7 +421,7 @@ func SystemCheck() SystemCheckResponse {
 		distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
 		distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
 		distriEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CONTAINER_REGISTRY
-		distriEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameDistributionRegistry)
+		distriEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameDistributionRegistry)
 		return distriEntry
 	})
 
@@ -430,9 +430,9 @@ func SystemCheck() SystemCheckResponse {
 		wg.Add(1)
 		go SysCheckExec("CheckExternalSecrets", &wg, &entries, func() SystemCheckEntry {
 			externalSecretsName := "external-secrets"
-			externalSecretsVersion, externalSecretsInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, externalSecretsName)
+			externalSecretsVersion, externalSecretsInstalledErr := punq.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), externalSecretsName)
 			externalSecretsMsg := fmt.Sprintf("%s (Version: %s) is installed.", externalSecretsName, externalSecretsVersion)
-			helmstatus := kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameExternalSecrets)
+			helmstatus := kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameExternalSecrets)
 			if helmstatus == release.StatusUnknown {
 				externalSecretsInstalledErr = nil
 				externalSecretsMsg = "External Secrets not installed."
@@ -461,7 +461,7 @@ func SystemCheck() SystemCheckResponse {
 	// check for metallb
 	wg.Add(1)
 	go SysCheckExec("CheckMetalLb", &wg, &entries, func() SystemCheckEntry {
-		metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(utils.CONFIG.Kubernetes.OwnNamespace, "metallb-controller")
+		metallbVersion, metallbInstalledErr := punq.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), "metallb-controller")
 		metallbMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameMetalLB, metallbVersion)
 		currentMetallbVersion := getMostCurrentHelmChartVersion(MetalLBHelmIndex, utils.HelmReleaseNameMetalLb)
 		metallbEntry := CreateSystemCheckEntry(
@@ -478,7 +478,7 @@ func SystemCheck() SystemCheckResponse {
 		metallbEntry.InstallPattern = structs.PAT_INSTALL_METALLB
 		metallbEntry.UninstallPattern = structs.PAT_UNINSTALL_METALLB
 		metallbEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METALLB
-		metallbEntry.HelmStatus = kubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameMetalLb)
+		metallbEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameMetalLb)
 		return metallbEntry
 	})
 

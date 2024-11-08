@@ -8,7 +8,7 @@ import (
 var httpLogger *slog.Logger
 var config interfaces.ConfigModule
 
-func Setup(logManager interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
-	httpLogger = logManager.CreateLogger("http")
+func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
+	httpLogger = logManagerModule.CreateLogger("http")
 	config = configModule
 }

@@ -52,7 +52,7 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	key := fmt.Sprintf("%srole-%s", utils.StoreAnnotationPrefix, props.Role)
 	annotations[key] = fmt.Sprintf("Used to read secrets from vault path: %s", props.SecretPath)
 
-	err := mokubernetes.ApplyServiceAccount(props.ServiceAccount, utils.CONFIG.Kubernetes.OwnNamespace, annotations)
+	err := mokubernetes.ApplyServiceAccount(props.ServiceAccount, config.Get("MO_OWN_NAMESPACE"), annotations)
 	if err != nil {
 		logger.Log.Info("ServiceAccount apply failed")
 		return err
@@ -106,7 +106,7 @@ func GetExternalSecretsStore(name string) (*mokubernetes.SecretStoreSchema, erro
 func ListAvailableExternalSecrets(namePrefix string) []string {
 	response, err := mokubernetes.GetDecodedSecret(
 		utils.GetSecretListName(namePrefix),
-		utils.CONFIG.Kubernetes.OwnNamespace,
+		config.Get("MO_OWN_NAMESPACE"),
 	)
 	if err != nil {
 		logger.Log.Error("Getting secret list failed")
@@ -161,7 +161,8 @@ func DeleteExternalSecretsStore(name string) error {
 }
 
 func deleteUnusedServiceAccount(role, projectId, moSharedPath string) error {
-	serviceAccount, err := mokubernetes.GetServiceAccount(utils.GetServiceAccountName(role), utils.CONFIG.Kubernetes.OwnNamespace)
+	_ = moSharedPath
+	serviceAccount, err := mokubernetes.GetServiceAccount(utils.GetServiceAccountName(role), config.Get("MO_OWN_NAMESPACE"))
 	if err != nil {
 		return err
 	}
@@ -215,7 +216,7 @@ func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretSto
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<VAULT_SERVER_URL>", props.VaultServerUrl)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<ROLE>", props.Role)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SERVICE_ACC>", props.ServiceAccount)
-	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<MO_DEFAULT_NS>", utils.CONFIG.Kubernetes.OwnNamespace)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<MO_DEFAULT_NS>", config.Get("MO_OWN_NAMESPACE"))
 
 	return yamlTemplateString
 }

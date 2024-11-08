@@ -160,7 +160,7 @@ func InitMogeniusContainerRegistrySecret(crt string, key string) corev1.Secret {
 	secret.StringData = make(map[string]string)
 	secret.StringData["tls.crt"] = crt
 	secret.StringData["tls.key"] = key
-	secret.Namespace = CONFIG.Kubernetes.OwnNamespace
+	secret.Namespace = config.Get("MO_OWN_NAMESPACE")
 
 	return secret
 }

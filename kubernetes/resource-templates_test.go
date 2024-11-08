@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	utils "mogenius-k8s-manager/utils"
 	"testing"
 )
 
@@ -10,7 +9,6 @@ func TestResourceTemplates(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	utils.CONFIG.Kubernetes.OwnNamespace = "mogenius"
 
 	// CREATE
 	err := CreateOrUpdateResourceTemplateConfigmap()

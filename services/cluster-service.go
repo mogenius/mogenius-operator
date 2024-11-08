@@ -753,20 +753,20 @@ func InstallTrafficCollector() (string, error) {
 		HelmValues: fmt.Sprintf(`global:
   namespace: %s
   stage: %s
-`, utils.CONFIG.Kubernetes.OwnNamespace, config.Get("MO_STAGE")),
+`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
 	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradeTrafficCollector() (string, error) {
 	r := mokubernetes.HelmReleaseUpgradeRequest{
-		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameTrafficCollector,
 		Chart:     "mogenius/" + utils.HelmReleaseNameTrafficCollector,
 		Values: fmt.Sprintf(`global:
   namespace: %s
   stage: %s
-`, utils.CONFIG.Kubernetes.OwnNamespace, config.Get("MO_STAGE")),
+`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
 	return mokubernetes.HelmReleaseUpgrade(r)
 }
@@ -780,20 +780,20 @@ func InstallPodStatsCollector() (string, error) {
 		HelmValues: fmt.Sprintf(`global:
   namespace: %s
   stage: %s
-`, utils.CONFIG.Kubernetes.OwnNamespace, config.Get("MO_STAGE")),
+`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
 	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradePodStatsCollector() (string, error) {
 	r := mokubernetes.HelmReleaseUpgradeRequest{
-		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNamePodStatsCollector,
 		Chart:     "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
 		Values: fmt.Sprintf(`global:
   namespace: %s
   stage: %s
-`, utils.CONFIG.Kubernetes.OwnNamespace, config.Get("MO_STAGE")),
+`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
 	return mokubernetes.HelmReleaseUpgrade(r)
 }
@@ -863,14 +863,14 @@ func InstallCertManager() (string, error) {
 startupapicheck:
   enabled: false
 installCRDs: true
-`, utils.CONFIG.Kubernetes.OwnNamespace),
+`, config.Get("MO_OWN_NAMESPACE")),
 	}
 	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradeCertManager() (string, error) {
 	r := mokubernetes.HelmReleaseUpgradeRequest{
-		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameCertManager,
 		Chart:     "jetstack/" + utils.HelmReleaseNameCertManager,
 		Values:    "startupapicheck.enabled=false\ninstallCRDs=true",
@@ -902,7 +902,7 @@ func InstallExternalSecrets() (string, error) {
 
 func UpgradeContainerRegistry() (string, error) {
 	r := mokubernetes.HelmReleaseUpgradeRequest{
-		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameDistributionRegistry,
 		Chart:     "phntom/docker-registry",
 	}
@@ -939,7 +939,7 @@ func InstallMetalLb() (string, error) {
 
 func UpgradeMetalLb() (string, error) {
 	r := mokubernetes.HelmReleaseUpgradeRequest{
-		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameMetalLb,
 		Chart:     utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
 	}
@@ -958,14 +958,14 @@ extraEnvVars:
   EXPOSE_IRQ_COUNTER_METRICS: "false"
   EXPOSE_KUBELET_METRICS: "false"
   ENABLE_PROCESS_METRICS: "false"
-`, utils.CONFIG.Kubernetes.OwnNamespace),
+`, config.Get("MO_OWN_NAMESPACE")),
 	}
 	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradeKepler() (string, error) {
 	r := mokubernetes.HelmReleaseUpgradeRequest{
-		Namespace: utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Chart:     utils.HelmReleaseNameKepler + "/" + utils.HelmReleaseNameKepler,
 		Release:   utils.HelmReleaseNameKepler,
 		Values: fmt.Sprintf(`global:
@@ -974,7 +974,7 @@ extraEnvVars:
   EXPOSE_IRQ_COUNTER_METRICS: "false"
   EXPOSE_KUBELET_METRICS: "false"
   ENABLE_PROCESS_METRICS: "false"
-`, utils.CONFIG.Kubernetes.OwnNamespace),
+`, config.Get("MO_OWN_NAMESPACE")),
 	}
 	return mokubernetes.HelmReleaseUpgrade(r)
 }
@@ -1022,7 +1022,7 @@ func InstallClusterIssuer(email string, currentRetries int) (string, error) {
 
 func UninstallTrafficCollector() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
 	}
 	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
@@ -1030,7 +1030,7 @@ func UninstallTrafficCollector() (string, error) {
 
 func UninstallPodStatsCollector() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
 	}
 	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
@@ -1054,7 +1054,7 @@ func UninstallIngressControllerTreafik() (string, error) {
 
 func UninstallCertManager() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameCertManager,
 	}
 	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
@@ -1062,7 +1062,7 @@ func UninstallCertManager() (string, error) {
 
 func UninstallContainerRegistry() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameDistributionRegistry,
 	}
 	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
@@ -1070,7 +1070,7 @@ func UninstallContainerRegistry() (string, error) {
 
 func UninstallExternalSecrets() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
 	}
 	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
@@ -1078,7 +1078,7 @@ func UninstallExternalSecrets() (string, error) {
 
 func UninstallMetalLb() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameMetalLb,
 	}
 	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
@@ -1086,7 +1086,7 @@ func UninstallMetalLb() (string, error) {
 
 func UninstallKepler() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameKepler,
 	}
 	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
@@ -1094,7 +1094,7 @@ func UninstallKepler() (string, error) {
 
 func UninstallClusterIssuer() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       utils.CONFIG.Kubernetes.OwnNamespace,
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameClusterIssuer,
 	}
 	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
@@ -1214,7 +1214,7 @@ EOF
 cat kubeconfig.tmpl | sed -e s/@@CACRT@@/$(echo -n "$(cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt)" | base64 | tr -d '\n')/| sed -e s/@@TOKEN@@/$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)/ | sed -e s/@@IP@@/$(kubectl get nodes -o json | jq '.items[0].status.addresses[0].address' | sed -e s/\"//g)/ > kubeconfig.yaml
 echo "KUBECONFIG created. 🚀"
 `
-	defaultAppsConfigmap := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false, nil)
+	defaultAppsConfigmap := punq.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false, nil)
 	if defaultAppsConfigmap != nil {
 		if installCommands, exists := defaultAppsConfigmap.Data["install-commands"]; exists {
 			userApps = installCommands

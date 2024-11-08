@@ -5,17 +5,14 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/utils"
 	"net/http"
 	"sort"
-	"strings"
 	"time"
 
 	realJson "encoding/json"
 
 	punq "github.com/mogenius/punq/kubernetes"
 	punqStructs "github.com/mogenius/punq/structs"
-	punqUtils "github.com/mogenius/punq/utils"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -148,7 +145,7 @@ func ApplyUnstructured(ctx context.Context, dynamicClient dynamic.Interface, res
 	var dri dynamic.ResourceInterface
 	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
 		if unstructuredObj.GetNamespace() == "" {
-			unstructuredObj.SetNamespace(utils.CONFIG.Kubernetes.OwnNamespace)
+			unstructuredObj.SetNamespace(config.Get("MO_OWN_NAMESPACE"))
 		}
 		dri = dynamicClient.Resource(mapping.Resource).Namespace(unstructuredObj.GetNamespace())
 	} else {
@@ -288,9 +285,6 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	}
 	// Iterate over each resource type and backup all resources in the namespace
 	for _, resource := range resourceList {
-		if punqUtils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, resource.GroupVersion) {
-			continue
-		}
 		gv, _ := schema.ParseGroupVersion(resource.GroupVersion)
 		if len(resource.APIResources) <= 0 {
 			continue
@@ -300,9 +294,6 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 			allResources.Add(aApiResource.Name)
 			if !aApiResource.Namespaced && namespace != "" {
 				skippedGroups.Add(aApiResource.Name)
-				continue
-			}
-			if punqUtils.Contains(utils.CONFIG.Misc.IgnoreResourcesBackup, aApiResource.Name) {
 				continue
 			}
 
@@ -351,7 +342,6 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 
 	//os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 0777)
 
-	k8sLogger.Info("SKIP", "resources", strings.Join(utils.CONFIG.Misc.IgnoreResourcesBackup, ", "))
 	k8sLogger.Info("ALL", "resources", allResources.Display())
 	k8sLogger.Info("SKIPPED", "resources", skippedGroups.Display())
 	k8sLogger.Info("USED", "resources", usedResources.Display())
