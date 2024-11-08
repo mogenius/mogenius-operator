@@ -6,7 +6,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"sigs.k8s.io/yaml"
 )
@@ -54,11 +53,15 @@ func GetResourceTemplateYaml(group, version, name, kind, namespace, resourcename
 
 	// default response
 	obj := unstructured.Unstructured{}
-	obj.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   group,
-		Version: version,
-		Kind:    name,
-	})
+	obj.SetKind(kind)
+
+	if group != "" && version == "" {
+		obj.SetAPIVersion(group)
+	}
+	if group != "" && version != "" {
+		obj.SetAPIVersion(fmt.Sprintf("%s/%s", group, version))
+	}
+
 	if namespace != "" {
 		obj.SetNamespace(namespace)
 	}

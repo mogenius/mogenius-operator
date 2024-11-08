@@ -605,7 +605,7 @@ func CommaSeperatedStringToArray(str string) []string {
 }
 
 func createResourceVersion(group, version, name string) schema.GroupVersionResource {
-	// fore core apis we need change the group to empty string
+	// for core apis we need change the group to empty string
 	if group == "v1" && version == "" {
 		return schema.GroupVersionResource{
 			Group:    "",

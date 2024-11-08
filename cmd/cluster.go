@@ -64,6 +64,12 @@ var clusterCmd = &cobra.Command{
 			shutdown.SendShutdownSignalAndBlockForever(true)
 			select {}
 		}
+		err = mokubernetes.CreateOrUpdateResourceTemplateConfigmap()
+		if err != nil {
+			cmdLogger.Error("Error creating resource template configmap", "error", err)
+			shutdown.SendShutdownSignalAndBlockForever(true)
+			select {}
+		}
 
 		utils.SetupClusterSecret(clusterSecret)
 		utils.SetupClusterConfigmap(clusterConfigmap)
