@@ -928,7 +928,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_GET_WORKLOAD_LIST:
 		data := utils.SyncResourceEntry{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		list, err := kubernetes.GetUnstructuredResourceList(data.Group, data.Version, data.Name, data.Namespaced)
+		list, err := kubernetes.GetUnstructuredResourceList(data.Group, data.Version, data.Name, data.Namespace)
 		return NewMessageResponse(list, err)
 	case structs.PAT_DESCRIBE_WORKLOAD:
 		data := utils.SyncResourceItem{}
@@ -938,7 +938,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_CREATE_NEW_WORKLOAD:
 		data := utils.SyncResourceData{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		newObj, err := kubernetes.CreateUnstructuredResource(data.Group, data.Version, data.Name, data.Namespaced, data.YamlData)
+		newObj, err := kubernetes.CreateUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.YamlData)
 		return NewMessageResponse(newObj, err)
 	case structs.PAT_GET_WORKLOAD:
 		data := utils.SyncResourceItem{}
@@ -952,7 +952,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_UPDATE_WORKLOAD:
 		data := utils.SyncResourceData{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		updatedObj, err := kubernetes.UpdateUnstructuredResource(data.Group, data.Version, data.Name, data.Namespaced, data.YamlData)
+		updatedObj, err := kubernetes.UpdateUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.YamlData)
 		return NewMessageResponse(updatedObj, err)
 	case structs.PAT_DELETE_WORKLOAD:
 		data := utils.SyncResourceItem{}

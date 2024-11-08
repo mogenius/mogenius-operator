@@ -9,6 +9,7 @@ import (
 	punqUtils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const logType = "NETWORK POLICY"
@@ -301,7 +302,7 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 	unmanagedMap := make(map[string][]int)
 
 	for idx, policy := range policies {
-		isManaged := policy.Labels != nil && policy.Labels[kubernetes.NetpolLabel] == "true"
+		isManaged := policy.Labels != nil && policy.Labels[kubernetes.NetpolLabel] == "true" && policy.Name != kubernetes.DenyAllNetPolName
 		if isManaged {
 			// managed
 			managedKey := fmt.Sprintf("%s--%s", policy.Namespace, policy.Name)
@@ -320,37 +321,28 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 			Name: namespace.Name,
 		}
 
-		// ignore errors
-		deployments, _ := kubernetes.ListAllDeployments(namespace.Name)
-		for _, deployment := range deployments {
-			controllerDto := ListNetworkPolicyController{
-				ControllerName: deployment.Name,
-				ControllerType: dtos.DEPLOYMENT,
-			}
-
-			if deployment.Spec.Template.Labels != nil {
-				for key, _ := range deployment.Spec.Template.Labels {
-					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
-					if idx, ok := managedMap[managedKey]; ok {
-						networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
-						controllerDto.LabeledNetworkPolicies = append(controllerDto.LabeledNetworkPolicies, networkPolicyDto)
-					}
-				}
-			}
-
-			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
+		controllers := []unstructured.Unstructured{}
+		depls, _ := kubernetes.GetUnstructuredResourceList("apps/v1", "", "deployments", &namespace.Name)
+		if depls != nil {
+			controllers = append(controllers, depls.Items...)
+		}
+		dmSets, _ := kubernetes.GetUnstructuredResourceList("apps/v1", "", "daemonsets", &namespace.Name)
+		if dmSets != nil {
+			controllers = append(controllers, dmSets.Items...)
+		}
+		sfs, _ := kubernetes.GetUnstructuredResourceList("apps/v1", "", "statefulsets", &namespace.Name)
+		if sfs != nil {
+			controllers = append(controllers, sfs.Items...)
 		}
 
-		// ignore errors
-		daemonsets, _ := kubernetes.ListAllDaemonSets(namespace.Name)
-		for _, daemonset := range daemonsets {
+		for _, ctrl := range controllers {
 			controllerDto := ListNetworkPolicyController{
-				ControllerName: daemonset.Name,
-				ControllerType: dtos.DAEMON_SET,
+				ControllerName: ctrl.GetName(),
+				ControllerType: dtos.K8sServiceControllerEnum(ctrl.GetKind()),
 			}
 
-			if daemonset.Spec.Template.Labels != nil {
-				for key, _ := range daemonset.Spec.Template.Labels {
+			if ctrl.GetLabels() != nil {
+				for key, _ := range ctrl.GetLabels() {
 					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
 					if idx, ok := managedMap[managedKey]; ok {
 						networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
@@ -358,28 +350,6 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 					}
 				}
 			}
-
-			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
-		}
-
-		// ignore errors
-		statefulsets, _ := kubernetes.ListAllStatefulSets(namespace.Name)
-		for _, statefulset := range statefulsets {
-			controllerDto := ListNetworkPolicyController{
-				ControllerName: statefulset.Name,
-				ControllerType: dtos.STATEFUL_SET,
-			}
-
-			if statefulset.Spec.Template.Labels != nil {
-				for key, _ := range statefulset.Spec.Template.Labels {
-					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
-					if idx, ok := managedMap[managedKey]; ok {
-						networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
-						controllerDto.LabeledNetworkPolicies = append(controllerDto.LabeledNetworkPolicies, networkPolicyDto)
-					}
-				}
-			}
-
 			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
 		}
 

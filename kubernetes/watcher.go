@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	v1Net "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -350,7 +351,7 @@ func InitAllWorkloads() {
 	}
 	for _, resource := range allResources {
 		if IacManagerShouldWatchResources() {
-			list, err := GetUnstructuredResourceList(resource.Group, resource.Version, resource.Kind, resource.Namespaced)
+			list, err := GetUnstructuredResourceList(resource.Group, resource.Version, resource.Kind, punqUtils.Pointer(""))
 			if err != nil {
 				k8sLogger.Error("Error getting resource list", "kind", resource.Kind, "error", err)
 				continue
@@ -362,15 +363,15 @@ func InitAllWorkloads() {
 	}
 }
 
-func GetUnstructuredResourceList(group, version, name string, namespaced bool) (*unstructured.UnstructuredList, error) {
+func GetUnstructuredResourceList(group, version, name string, namespace *string) (*unstructured.UnstructuredList, error) {
 	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for GetUnstructuredResourceList. Cannot continue.", "error", err)
 		return nil, err
 	}
 
-	if namespaced {
-		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace("").List(context.TODO(), metav1.ListOptions{})
+	if namespace != nil {
+		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(*namespace).List(context.TODO(), metav1.ListOptions{})
 		return removeManagedFieldsFromList(result), err
 	} else {
 		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).List(context.TODO(), metav1.ListOptions{})
@@ -394,7 +395,7 @@ func GetUnstructuredResource(group, version, name string, namespace, resourceNam
 	}
 }
 
-func CreateUnstructuredResource(group, version, name string, namespaced bool, yamlData string) (*unstructured.Unstructured, error) {
+func CreateUnstructuredResource(group, version, name string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
 	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for CreateUnstructuredResource. Cannot continue.", "error", err)
@@ -407,7 +408,7 @@ func CreateUnstructuredResource(group, version, name string, namespaced bool, ya
 		return nil, err
 	}
 
-	if namespaced {
+	if namespace != nil {
 		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	} else {
@@ -416,7 +417,7 @@ func CreateUnstructuredResource(group, version, name string, namespaced bool, ya
 	}
 }
 
-func UpdateUnstructuredResource(group, version, name string, namespaced bool, yamlData string) (*unstructured.Unstructured, error) {
+func UpdateUnstructuredResource(group, version, name string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
 	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for UpdatedUnstructuredResource. Cannot continue.", "error", err)
@@ -429,7 +430,7 @@ func UpdateUnstructuredResource(group, version, name string, namespaced bool, ya
 		return nil, err
 	}
 
-	if namespaced {
+	if namespace != nil {
 		result, err := provider.DynamicClient.Resource(createResourceVersion(group, version, name)).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	} else {
@@ -558,12 +559,17 @@ func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
 	for _, resourceList := range resources {
 		for _, resource := range resourceList.APIResources {
 			if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
+				var namespace *string
+				if resource.Namespaced {
+					namespace = punqUtils.Pointer("")
+				}
+
 				availableResources = append(availableResources, utils.SyncResourceEntry{
-					Group:      resourceList.GroupVersion,
-					Name:       resource.Name,
-					Kind:       resource.Kind,
-					Version:    resource.Version,
-					Namespaced: resource.Namespaced,
+					Group:     resourceList.GroupVersion,
+					Name:      resource.Name,
+					Kind:      resource.Kind,
+					Version:   resource.Version,
+					Namespace: namespace,
 				})
 			}
 		}
