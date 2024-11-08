@@ -258,6 +258,7 @@ const (
 	PAT_LIST_ALL_NETWORK_POLICIES           string = "list/all_network_policies"
 	PAT_LIST_NAMESPACE_NETWORK_POLICIES     string = "list/namespace_network_policies"
 	PAT_ENFORCE_NETWORK_POLICY_MANAGER      string = "enforce/network_policy_manager"
+	PAT_REMOVE_UNMANAGED_NETWORK_POLICIES   string = "remove/unmanaged_network_policies"
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -485,6 +486,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_LIST_ALL_NETWORK_POLICIES,
 	PAT_LIST_NAMESPACE_NETWORK_POLICIES,
 	PAT_ENFORCE_NETWORK_POLICY_MANAGER,
+	PAT_REMOVE_UNMANAGED_NETWORK_POLICIES,
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
