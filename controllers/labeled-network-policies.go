@@ -407,11 +407,11 @@ type RemoveUnmanagedNetworkPoliciesRequest struct {
 	Policies  []string `json:"policies" validate:"required"`
 }
 
-func RemoveUnmanagedNetworkPolicies(data RemoveUnmanagedNetworkPoliciesRequest) (bool, error) {
+func RemoveUnmanagedNetworkPolicies(data RemoveUnmanagedNetworkPoliciesRequest) error {
 	err := kubernetes.RemoveUnmanagedNetworkPolicies(data.Namespace, data.Policies)
 	if err != nil {
-		return false, fmt.Errorf("failed to remove unmanaged network policies, err: %s", err.Error())
+		return fmt.Errorf("failed to remove unmanaged network policies, err: %s", err.Error())
 	}
 
-	return true, nil
+	return nil
 }

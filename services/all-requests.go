@@ -1193,7 +1193,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(controllers.RemoveUnmanagedNetworkPolicies(data))
+		return NewMessageResponse(nil, controllers.RemoveUnmanagedNetworkPolicies(data))
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
