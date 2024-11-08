@@ -730,7 +730,15 @@ func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyL
 	// filter out all policies that are not created by mogenius
 	var netpols []v1.NetworkPolicy
 	for _, policy := range policies {
-		if policy.ObjectMeta.Labels != nil && policy.ObjectMeta.Labels[NetpolLabel] != "true" {
+
+		hasLabels := policy.ObjectMeta.Labels != nil
+		isManagedMogeniusNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[NetpolLabel] == "true"
+		isLegacyMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels["mo-created-by"] == "mogenius-k8s-manager" && func() bool {
+			_, exists := policy.ObjectMeta.Labels["mo-app"]
+			return !exists
+		}()
+		isMogeniusNetworkPolicy := isManagedMogeniusNetworkPolicy || isLegacyMogeniusNamespaceNetworkPolicy
+		if isMogeniusNetworkPolicy {
 			continue
 		}
 		netpols = append(netpols, policy)
@@ -911,5 +919,37 @@ func ensureDenyAllRule(namespaceName string) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func RemoveUnmanagedNetworkPolicies(namespaceName string, policies []string) error {
+	if namespaceName == "kube-system" {
+		return fmt.Errorf("cannot remove network-policies from kube-system namespace")
+	}
+
+	netpols, err := ListAllConflictingNetworkPolicies(namespaceName)
+	if err != nil {
+		return fmt.Errorf("failed to list all network policies: %v", err)
+	}
+
+	client := GetNetworkingClient()
+	netPolClient := client.NetworkPolicies(namespaceName)
+
+	errors := []error{}
+	for _, netpol := range netpols.Items {
+		if !utils.ContainsString(policies, netpol.Name) {
+			continue
+		}
+
+		err = netPolClient.Delete(context.TODO(), netpol.Name, metav1.DeleteOptions{})
+		if err != nil {
+			k8sLogger.Error("RemoveUnmanagedNetworkPolicies", "error", err)
+			errors = append(errors, err)
+		}
+	}
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to remove unmanaged network policies: %v", errors)
+	}
+
 	return nil
 }

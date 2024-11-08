@@ -371,3 +371,17 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 
 	return namespacesDto, nil
 }
+
+type RemoveUnmanagedNetworkPoliciesRequest struct {
+	Namespace string   `json:"namespaceName" validate:"required"`
+	Policies  []string `json:"policies" validate:"required"`
+}
+
+func RemoveUnmanagedNetworkPolicies(data RemoveUnmanagedNetworkPoliciesRequest) error {
+	err := kubernetes.RemoveUnmanagedNetworkPolicies(data.Namespace, data.Policies)
+	if err != nil {
+		return fmt.Errorf("failed to remove unmanaged network policies, err: %s", err.Error())
+	}
+
+	return nil
+}
