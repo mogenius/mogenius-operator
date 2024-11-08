@@ -9,8 +9,8 @@ var config interfaces.ConfigModule
 var helmLogger *slog.Logger
 var k8sLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManagerModule, iConfig interfaces.ConfigModule) {
-	k8sLogger = logManager.CreateLogger("kubernetes")
-	helmLogger = logManager.CreateLogger("helm")
-	config = iConfig
+func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
+	k8sLogger = logManagerModule.CreateLogger("kubernetes")
+	helmLogger = logManagerModule.CreateLogger("helm")
+	config = configModule
 }

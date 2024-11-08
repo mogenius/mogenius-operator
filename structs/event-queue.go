@@ -108,11 +108,6 @@ func processEventQueueNow() {
 
 			err := EventQueueConnection.WriteJSON(element.Datagram)
 			if err == nil {
-				if element.K8sKind != "" && element.K8sReason != "" && element.K8sMessage != "" {
-					if utils.CONFIG.Misc.LogKubernetesEvents {
-						element.Datagram.DisplaySentSummaryEvent(element.K8sKind, element.K8sReason, element.K8sMessage, element.Count)
-					}
-				}
 				eventDataQueue = RemoveEventIndex(eventDataQueue, i)
 			} else {
 				structsLogger.Error("Error sending data to EventServer", "error", err)

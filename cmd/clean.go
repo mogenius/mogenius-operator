@@ -22,6 +22,8 @@ var cleanCmd = &cobra.Command{
 	This cmd removes all remaining parts of the daemonset, configs, etc. from your cluster. 
 	This can be used if something went wrong during automatic cleanup.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		cmdConfig.Validate()
+
 		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
 		if err != nil {
 			panic(err)

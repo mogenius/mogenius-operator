@@ -7,6 +7,6 @@ import (
 
 var crdLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManagerModule) {
-	crdLogger = logManager.CreateLogger("crds")
+func Setup(logManagerModule interfaces.LogManagerModule) {
+	crdLogger = logManagerModule.CreateLogger("crds")
 }

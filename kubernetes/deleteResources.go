@@ -23,7 +23,7 @@ func Remove() {
 }
 
 func removeDeployment(provider *punq.KubeProvider) {
-	deploymentClient := provider.ClientSet.AppsV1().Deployments(NAMESPACE)
+	deploymentClient := provider.ClientSet.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
 
 	// DELETE Deployment
 	k8sLogger.Info("Deleting mogenius-k8s-manager deployment ...")
@@ -39,7 +39,7 @@ func removeDeployment(provider *punq.KubeProvider) {
 func removeRbac(provider *punq.KubeProvider) {
 	// CREATE RBAC
 	k8sLogger.Info("Deleting mogenius-k8s-manager RBAC ...")
-	err := provider.ClientSet.CoreV1().ServiceAccounts(NAMESPACE).Delete(context.TODO(), SERVICEACCOUNTNAME, metav1.DeleteOptions{})
+	err := provider.ClientSet.CoreV1().ServiceAccounts(config.Get("MO_OWN_NAMESPACE")).Delete(context.TODO(), SERVICEACCOUNTNAME, metav1.DeleteOptions{})
 	if err != nil {
 		k8sLogger.Error("Error deleting mogenius-k8s-manager ServiceAccounts", "error", err)
 		return

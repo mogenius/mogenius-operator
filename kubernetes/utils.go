@@ -42,7 +42,6 @@ var IacManagerApplyRepoStateToCluster func() error
 var IacManagerDeleteDataRetries int
 
 var (
-	NAMESPACE       = utils.CONFIG.Kubernetes.OwnNamespace
 	DEPLOYMENTNAME  = "mogenius-k8s-manager"
 	DEPLOYMENTIMAGE = "ghcr.io/mogenius/mogenius-k8s-manager:" + version.Ver
 
@@ -106,10 +105,6 @@ func ValidateContainerRegistryAuthString(input string) error {
 
 func init() {
 	// SETUP DOWNFAULT VALUE
-	if NAMESPACE == "" {
-		NAMESPACE = "mogenius"
-	}
-
 	dtos.KubernetesGetSecretValueByPrefixControllerNameAndKey = GetSecretValueByPrefixControllerNameAndKey
 }
 
@@ -358,7 +353,7 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 		k8sLogger.Error("GetCustomDeploymentTemplate", "error", err)
 		return nil
 	}
-	client := provider.ClientSet.CoreV1().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
+	client := provider.ClientSet.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 	configmap, err := client.Get(context.TODO(), utils.MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME, metav1.GetOptions{})
 	if err != nil {
 		return nil

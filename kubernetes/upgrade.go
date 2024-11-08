@@ -22,12 +22,12 @@ func ClusterForceReconnect() bool {
 	if err != nil {
 		return false
 	}
-	podClient := provider.ClientSet.CoreV1().Pods(utils.CONFIG.Kubernetes.OwnNamespace)
+	podClient := provider.ClientSet.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", utils.HelmReleaseNameTrafficCollector, nil)...)
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", utils.HelmReleaseNamePodStatsCollector, nil)...)
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", utils.HelmReleaseNameTrafficCollector, nil)...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", utils.HelmReleaseNamePodStatsCollector, nil)...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME, nil)...)
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod ...", "podName", podName)
@@ -50,10 +50,10 @@ func ClusterForceDisconnect() bool {
 	if err != nil {
 		return false
 	}
-	podClient := provider.ClientSet.CoreV1().Pods(utils.CONFIG.Kubernetes.OwnNamespace)
+	podClient := provider.ClientSet.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
 	// stop k8s-manager
-	deploymentClient := provider.ClientSet.AppsV1().Deployments(utils.CONFIG.Kubernetes.OwnNamespace)
+	deploymentClient := provider.ClientSet.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
 	deployment, _ := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
 	deployment.Spec.Paused = true
 	deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
@@ -63,7 +63,7 @@ func ClusterForceDisconnect() bool {
 	}
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(utils.CONFIG.Kubernetes.OwnNamespace, "app", DEPLOYMENTNAME, nil)...)
+	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME, nil)...)
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod...", "pod", podName)
@@ -89,15 +89,15 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
-		jobClient := provider.ClientSet.BatchV1().Jobs(NAMESPACE)
-		configmapClient := provider.ClientSet.CoreV1().ConfigMaps(NAMESPACE)
+		jobClient := provider.ClientSet.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
+		configmapClient := provider.ClientSet.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
 		configmap := utils.InitUpgradeConfigMap()
-		configmap.Namespace = NAMESPACE
+		configmap.Namespace = config.Get("MO_OWN_NAMESPACE")
 		configmap.Data["values.command"] = command
 
 		k8sjob := utils.InitUpgradeJob()
-		k8sjob.Namespace = NAMESPACE
+		k8sjob.Namespace = config.Get("MO_OWN_NAMESPACE")
 		k8sjob.Name = fmt.Sprintf("%s-%s", k8sjob.Name, punqUtils.NanoIdSmallLowerCase())
 
 		// CONFIGMAP

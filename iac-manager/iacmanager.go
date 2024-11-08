@@ -44,9 +44,11 @@ var initialRepoApplied = false
 var gitSyncLock sync.Mutex
 
 var iacLogger *slog.Logger
+var config interfaces.ConfigModule
 
-func Setup(logManager interfaces.LogManagerModule) {
-	iacLogger = logManager.CreateLogger("iac")
+func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
+	iacLogger = logManagerModule.CreateLogger("iac")
+	config = configModule
 }
 
 func isIgnoredNamespace(namespace string) bool {
@@ -62,9 +64,10 @@ func isIgnoredNamespaceInFile(file string) (result bool, namespace *string) {
 			return true, &namespace
 		}
 	}
-	if strings.Contains(file, fmt.Sprintf("%s_", utils.CONFIG.Kubernetes.OwnNamespace)) ||
-		strings.Contains(file, fmt.Sprintf("namespaces/%s", utils.CONFIG.Kubernetes.OwnNamespace)) {
-		return true, &utils.CONFIG.Kubernetes.OwnNamespace
+	if strings.Contains(file, fmt.Sprintf("%s_", config.Get("MO_OWN_NAMESPACE"))) ||
+		strings.Contains(file, fmt.Sprintf("namespaces/%s", config.Get("MO_OWN_NAMESPACE"))) {
+		ownNamespace := config.Get("MO_OWN_NAMESPACE")
+		return true, &ownNamespace
 	}
 	return false, nil
 }

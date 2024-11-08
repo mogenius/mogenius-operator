@@ -192,7 +192,7 @@ func DeleteExternalSecret(name string) error {
 		"v1beta1",
 		"externalsecrets",
 		name,
-		utils.CONFIG.Kubernetes.OwnNamespace,
+		config.Get("MO_OWN_NAMESPACE"),
 		false,
 	)
 }
@@ -200,7 +200,7 @@ func DeleteExternalSecret(name string) error {
 func renderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAME>", utils.GetSecretListName(props.NamePrefix))
 	// the list of all available secrets for a project is only ever read by the operator
-	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAMESPACE>", utils.CONFIG.Kubernetes.OwnNamespace)
+	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAMESPACE>", config.Get("MO_OWN_NAMESPACE"))
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_STORE_NAME>", props.SecretStoreName)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_PATH>", props.SecretPath)
 

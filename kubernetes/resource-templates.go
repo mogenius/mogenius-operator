@@ -26,7 +26,7 @@ func CreateOrUpdateResourceTemplateConfigmap() error {
 	}
 
 	cfgMap := unstructured.Unstructured{Object: decodedData}
-	cfgMap.SetNamespace(utils.CONFIG.Kubernetes.OwnNamespace)
+	cfgMap.SetNamespace(config.Get("MO_OWN_NAMESPACE"))
 	cfgMap.SetName(RESOURCE_TEMPLATE_CONFIGMAP)
 
 	// Marshal cfgMap back to YAML
@@ -82,7 +82,7 @@ func GetResourceTemplateYaml(group, version, name, kind, namespace, resourcename
 
 func loadResourceTemplateData(kind, namespace, resourcename string) (string, error) {
 	// load example data from file
-	configmap, err := GetUnstructuredResource("", "v1", "configmaps", utils.CONFIG.Kubernetes.OwnNamespace, RESOURCE_TEMPLATE_CONFIGMAP)
+	configmap, err := GetUnstructuredResource("", "v1", "configmaps", config.Get("MO_OWN_NAMESPACE"), RESOURCE_TEMPLATE_CONFIGMAP)
 	if err != nil {
 		return "", err
 	}

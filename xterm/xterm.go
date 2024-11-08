@@ -32,9 +32,9 @@ import (
 var logManager interfaces.LogManagerModule
 var xtermLogger *slog.Logger
 
-func Setup(interfaceLogManager interfaces.LogManagerModule) {
-	logManager = interfaceLogManager
-	xtermLogger = logManager.CreateLogger("xterm")
+func Setup(logManagerModule interfaces.LogManagerModule) {
+	logManager = logManagerModule
+	xtermLogger = logManagerModule.CreateLogger("xterm")
 }
 
 const (

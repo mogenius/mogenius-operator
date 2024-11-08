@@ -7,7 +7,7 @@
       "request": "launch",
       "mode": "debug",
       "program": "main.go",
-      "args": ["testserver", "-d"],
+      "args": ["testserver", "--debug", "true"],
       "asRoot": false,
       "console": "integratedTerminal"
     },
@@ -17,7 +17,7 @@
       "request": "launch",
       "mode": "debug",
       "program": "main.go",
-      "args": ["testclient", "-d"],
+      "args": ["testclient", "--debug", "true"],
       "asRoot": false,
       "console": "integratedTerminal"
     },
@@ -27,7 +27,7 @@
       "request": "launch",
       "mode": "debug",
       "program": "main.go",
-      "args": ["testclient", "-d", "-c", "behrang-home.yaml"],
+      "args": ["testclient", "--debug", "true", "-c", "behrang-home.yaml"],
       "asRoot": false,
       "console": "integratedTerminal"
     },
@@ -37,7 +37,7 @@
       "request": "launch",
       "mode": "debug",
       "program": "main.go",
-      "args": ["testclient", "-d", "-c", "behrang.yaml"],
+      "args": ["testclient", "--debug", "true", "-c", "behrang.yaml"],
       "asRoot": false,
       "console": "integratedTerminal"
     },
@@ -46,8 +46,9 @@
       "type": "go",
       "request": "launch",
       "mode": "debug",
+      "envFile": "${workspaceFolder}/.env",
       "program": "main.go",
-      "args": ["cluster", "-d"],
+      "args": ["cluster", "--debug", "true"],
       "asRoot": false,
       "console": "integratedTerminal"
     },
@@ -57,7 +58,7 @@
       "request": "launch",
       "mode": "test",
       "program": "kubernetes/resource-templates_test.go",
-      "args": ["-test.run", "^TestResourceTemplates$"],  
+      "args": ["-test.run", "^TestResourceTemplates$"],
       "asRoot": false,
       "console": "integratedTerminal"
     },

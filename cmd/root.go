@@ -13,6 +13,7 @@ import (
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
 	"slices"
+	"strconv"
 
 	punqDtos "github.com/mogenius/punq/dtos"
 	punq "github.com/mogenius/punq/kubernetes"
@@ -90,8 +91,6 @@ func Execute() {
 func init() {
 	initLogger()
 	initConfig()
-	rootCmd.PersistentFlags().StringVarP(&rootConfig.stage, "stage", "s", "", "Use different stage environment")
-	rootCmd.PersistentFlags().BoolVarP(&rootConfig.debug, "debug", "d", false, "Enable debug information")
 	rootCmd.PersistentFlags().BoolVarP(&rootConfig.resetConfig, "reset-config", "k", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
 	rootCmd.PersistentFlags().StringVarP(&rootConfig.customConfig, "config", "y", "", "Use config from custom location")
 }
@@ -147,7 +146,17 @@ func initConfig() {
 		DefaultValue: utils.Pointer("prod"),
 		Description:  utils.Pointer("mogenius k8s-manager stage"),
 		Envs:         []string{"STAGE", "stage"},
+		Cobra: &interfaces.ConfigCobraFlags{
+			Name: "stage",
+		},
 	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_OWN_NAMESPACE",
+		DefaultValue: utils.Pointer("mogenius"),
+		Description:  utils.Pointer("The Namespace of mogenius platform"),
+		Envs:         []string{"OWN_NAMESPACE"},
+	})
+
 	// TODO: implement feature
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_API_SERVER_HTTP",
@@ -184,6 +193,22 @@ func initConfig() {
 		Description:  utils.Pointer("Optional comma separated list of components for which logs should be enabled. If none are defined all logs are collected."),
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "log-filter",
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+		Description:  utils.Pointer("Enable debug mode"),
+		Cobra: &interfaces.ConfigCobraFlags{
+			Name:  "debug",
+			Short: utils.Pointer("d"),
+		},
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_DEBUG' needs to be a boolean: %s", err.Error())
+			}
+			return nil
 		},
 	})
 }

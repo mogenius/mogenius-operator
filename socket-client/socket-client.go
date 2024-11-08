@@ -7,6 +7,6 @@ import (
 
 var socketClientLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManagerModule) {
-	socketClientLogger = logManager.CreateLogger("socket-client")
+func Setup(logManagerModule interfaces.LogManagerModule) {
+	socketClientLogger = logManagerModule.CreateLogger("socket-client")
 }

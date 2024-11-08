@@ -31,9 +31,9 @@ import (
 var config interfaces.ConfigModule
 var utilsLogger *slog.Logger
 
-func Setup(logManager interfaces.LogManagerModule, iConfig interfaces.ConfigModule) {
-	utilsLogger = logManager.CreateLogger("utils")
-	config = iConfig
+func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
+	utilsLogger = logManagerModule.CreateLogger("utils")
+	config = configModule
 }
 
 const IMAGE_PLACEHOLDER = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"

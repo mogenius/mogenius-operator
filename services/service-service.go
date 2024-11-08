@@ -281,9 +281,9 @@ func StartService(r ServiceStartRequest) interface{} {
 
 func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
 	return dtos.TcpUdpClusterConfigurationDto{
-		IngressServices: punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller", nil),
-		TcpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-tcp", false, nil),
-		UdpServices:     punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-udp", false, nil),
+		IngressServices: punq.ServiceFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-controller", nil),
+		TcpServices:     punq.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-tcp", false, nil),
+		UdpServices:     punq.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-udp", false, nil),
 	}
 }
 

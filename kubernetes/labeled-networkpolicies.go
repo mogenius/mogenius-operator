@@ -622,7 +622,7 @@ func UpdateNetworkPolicyTemplate(policies []NetworkPolicy) error {
 		return fmt.Errorf("found duplicate network policy names: %v", duplicates)
 	}
 
-	client := GetCoreClient().ConfigMaps(utils.CONFIG.Kubernetes.OwnNamespace)
+	client := GetCoreClient().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
 	cfgMap := readDefaultConfigMap()
 
@@ -652,7 +652,7 @@ func UpdateNetworkPolicyTemplate(policies []NetworkPolicy) error {
 }
 
 func ReadNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
-	ClusterConfigMap := GetConfigMap(utils.CONFIG.Kubernetes.OwnNamespace, PolicyConfigMapName)
+	ClusterConfigMap := GetConfigMap(config.Get("MO_OWN_NAMESPACE"), PolicyConfigMapName)
 
 	var result []dtos.K8sLabeledNetworkPolicyDto
 	var policies []NetworkPolicy
@@ -904,8 +904,8 @@ func getNetworkPolicyName(labelPolicy dtos.K8sLabeledNetworkPolicyDto) string {
 }
 
 func ensureDenyAllRule(namespaceName string) error {
-	if namespaceName == utils.CONFIG.Kubernetes.OwnNamespace {
-		return fmt.Errorf("cannot create network-policies in %s namespace", utils.CONFIG.Kubernetes.OwnNamespace)
+	if namespaceName == config.Get("MO_OWN_NAMESPACE") {
+		return fmt.Errorf("cannot create network-policies in %s namespace", config.Get("MO_OWN_NAMESPACE"))
 	}
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
 

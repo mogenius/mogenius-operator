@@ -241,7 +241,7 @@ func loadDefaultAnnotations() map[string]string {
 		error_page 400 401 403 404 405 406 408 413 417 500 502 503 504 @custom;`,
 	}
 
-	defaultIngAnnotations := punq.ConfigMapFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-default-ingress-values", false, nil)
+	defaultIngAnnotations := punq.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-default-ingress-values", false, nil)
 	if defaultIngAnnotations != nil {
 		if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
 			var annotations map[string]string
@@ -285,7 +285,7 @@ func createIngressRule(hostname string, controllerName string, port int32) *v1.I
 
 func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) {
 	indexesToRemove := []int{}
-	service := punq.ServiceFor(utils.CONFIG.Kubernetes.OwnNamespace, "mogenius-ingress-nginx-controller", nil)
+	service := punq.ServiceFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-controller", nil)
 	if service != nil {
 		portsDb := []dtos.NamespaceServicePortDto{}
 		for _, port := range ports {
@@ -328,7 +328,7 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 
 func CreateMogeniusContainerRegistryIngress() {
 	ing := utils.InitMogeniusContainerRegistryIngress()
-	ing.Namespace = utils.CONFIG.Kubernetes.OwnNamespace
+	ing.Namespace = config.Get("MO_OWN_NAMESPACE")
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
@@ -355,7 +355,7 @@ func CreateMogeniusContainerRegistryTlsSecret(crt string, key string) error {
 	}
 
 	secret := utils.InitMogeniusContainerRegistrySecret(crt, key)
-	secret.Namespace = utils.CONFIG.Kubernetes.OwnNamespace
+	secret.Namespace = config.Get("MO_OWN_NAMESPACE")
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
