@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -28,7 +27,7 @@ type SlogManager struct {
 
 func NewSlogManager(logDir string) *SlogManager {
 	absLogDir, err := filepath.Abs(logDir)
-	assert(err == nil, fmt.Errorf("failed to resolve absolut logDir('%s'): %s", logDir, err))
+	assert(err == nil, fmt.Errorf("failed to resolve absolute logDir('%s'): %s", logDir, err))
 	slogManager := SlogManager{
 		loggerHandlerLock: sync.RWMutex{},
 		logLevel:          slog.LevelDebug,
@@ -115,10 +114,6 @@ func (m *SlogManager) GetLogger(componentId string) (*slog.Logger, error) {
 func (m *SlogManager) CreateLogger(componentId string) *slog.Logger {
 	assert(componentId != combinedLogComponentName, fmt.Errorf("the componentId '%s' is not disallowed because it is reserved", combinedLogComponentName))
 	assert(m.activeLoggers[componentId] == nil, fmt.Errorf("logger was requested multiple times: %s", componentId))
-	m.createLogdir()
-
-	err := os.MkdirAll(m.getLogDir(), os.ModePerm)
-	assert(err == nil, fmt.Errorf("failed to create log with logDir('%s'): %#v", m.getLogDir(), err))
 
 	logger := slog.New(
 		NewMogeniusSlogHandler(
@@ -134,11 +129,6 @@ func (m *SlogManager) CreateLogger(componentId string) *slog.Logger {
 	m.activeLoggers[componentId] = logger
 
 	return logger
-}
-
-func (m *SlogManager) createLogdir() {
-	err := os.MkdirAll(m.getLogDir(), os.ModePerm)
-	assert(err == nil, fmt.Errorf("failed to create log directory('%s'): %#v", m.logDir, err))
 }
 
 func assert(condition bool, message any) {
