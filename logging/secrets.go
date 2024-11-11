@@ -20,6 +20,14 @@ func SecretArray() []string {
 			data = append(data, *secret)
 		}
 	}
+	if config != nil {
+		configVariables := config.GetAll()
+		for _, configVariable := range configVariables {
+			if configVariable.IsSecret && configVariable.Value != "" {
+				data = append(data, configVariable.Value)
+			}
+		}
+	}
 	return data
 }
 

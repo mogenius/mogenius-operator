@@ -11,6 +11,9 @@ type ConfigModule interface {
 	// Same as `TryGet()`. Panics if it fails.
 	Get(key string) string
 
+	// Get a List of all Variables
+	GetAll() []ConfigVariable
+
 	// `Try` to `Get` a config value.
 	//
 	// Fails if the `key` was not initialized.
@@ -27,7 +30,7 @@ type ConfigModule interface {
 	TrySet(key string, value string) error
 
 	// Register a callback for whenever a `value` is `Set()`.
-	OnAfterChange(cb func(key string, value string))
+	OnAfterChange(cb func(key string, value string, isSecret bool))
 
 	// Initialize the config object.
 	// This loads env variables and, if a cobra cmd is set, registers CLI flags.
@@ -50,6 +53,8 @@ type ConfigDeclaration struct {
 	DefaultValue *string
 	// (optional) Human readable description
 	Description *string
+	// (optional) Declare the variable as confidential
+	IsSecret bool
 	// (optional) List of ENV variables to lookup while in Init()
 	Envs []string
 	// (optional) Cobra command variable to lookup while in Init()
@@ -65,4 +70,10 @@ type ConfigCobraFlags struct {
 	Short *string
 	// given to cobra to parse into
 	CobraValue *string
+}
+
+type ConfigVariable struct {
+	Key      string
+	Value    string
+	IsSecret bool
 }

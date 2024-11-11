@@ -68,7 +68,7 @@ func TestCallbackWorks(t *testing.T) {
 
 	callbackCallCounter := 0
 
-	cb := func(key string, value string) {
+	cb := func(key string, value string, isSecret bool) {
 		callbackCallCounter += 1
 	}
 
