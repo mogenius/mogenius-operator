@@ -2,11 +2,12 @@ package logging
 
 import (
 	"mogenius-k8s-manager/interfaces"
+	"slices"
 	"sync"
 )
 
 var (
-	secrets           []*string    = []*string{}
+	secrets           []string     = []string{}
 	secretsLock       sync.RWMutex = sync.RWMutex{}
 	configSecrets     []string     = []string{}
 	configSecretsLock sync.RWMutex = sync.RWMutex{}
@@ -14,17 +15,23 @@ var (
 
 const REDACTED = "***[REDACTED]***"
 
-func AddSecret(secret *string) {
+func AddSecret(secret string) {
+	if secret == "" {
+		return
+	}
+
 	secretsLock.Lock()
 	defer secretsLock.Unlock()
 
-	secrets = append(secrets, secret)
+	if !slices.Contains(secrets, secret) {
+		secrets = append(secrets, secret)
+	}
 }
 
 func UpdateConfigSecrets(configVariables []interfaces.ConfigVariable) {
 	newConfigSecrets := []string{}
 	for _, cv := range configVariables {
-		if cv.IsSecret {
+		if cv.IsSecret && cv.Value != "" && !slices.Contains(newConfigSecrets, cv.Value) {
 			newConfigSecrets = append(newConfigSecrets, cv.Value)
 		}
 	}
@@ -40,8 +47,8 @@ func SecretArray() []string {
 
 	secretsLock.RLock()
 	for _, secret := range secrets {
-		if secret != nil && *secret != "" {
-			data = append(data, *secret)
+		if secret != "" {
+			data = append(data, secret)
 		}
 	}
 	secretsLock.RUnlock()

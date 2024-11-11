@@ -111,8 +111,8 @@ type LogEntry struct {
 }
 
 func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
-	logging.AddSecret(&p.ContainerRegistryUser)
-	logging.AddSecret(&p.ContainerRegistryPat)
+	logging.AddSecret(p.ContainerRegistryUser)
+	logging.AddSecret(p.ContainerRegistryPat)
 }
 
 type ClusterToolConnectionRequest struct {
