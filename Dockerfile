@@ -66,7 +66,8 @@ ENV HELM_REGISTRY_CONFIG="/db/helm-data/helm/config.json"
 ENV HELM_REPOSITORY_CACHE="/db/helm-data/helm/cache/repository"
 ENV HELM_REPOSITORY_CONFIG="/db/helm-data/helm/repositories.yaml"
 # e.g. "--dns 1.1.1.1"
-ENV DOCKERD_ARGS="" 
+ENV DOCKERD_ARGS=""
+ENV MO_CLUSTER_MFA_ID=""
 
 # Todo: remove when logs is configurable
 RUN ln -sf /db/logs /app/logs
