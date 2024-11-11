@@ -827,8 +827,7 @@ func StatusServiceDebounced(r ServiceStatusRequest) interface{} {
 }
 
 func statusService(r ServiceStatusRequest) interface{} {
-	resultType := reflect.TypeOf(corev1.Event{})
-	events, err := store.GlobalStore.SearchByPrefix(resultType, "Event", r.Namespace)
+	events, err := store.ListEvents(r.Namespace)
 	if err != nil {
 		serviceLogger.Warn("failed to fetch events", "error", err)
 	}
@@ -846,15 +845,10 @@ func statusService(r ServiceStatusRequest) interface{} {
 		}
 	}
 
-	for _, eventRef := range events {
-		event := eventRef.(*corev1.Event)
-		if event == nil {
-			continue
-		}
-
+	for _, event := range events {
 		for i, item := range resourceItems {
 			if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
-				resourceItems[i].Events = append(resourceItems[i].Events, *event)
+				resourceItems[i].Events = append(resourceItems[i].Events, event)
 			}
 		}
 	}
@@ -874,18 +868,12 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
 
 	// Fetch pods
-	resultType := reflect.TypeOf(corev1.Pod{})
-	pods, err := store.GlobalStore.SearchByPrefix(resultType, "Pod", metaNamespace, metaName)
+	pods, err := store.ListPods(metaNamespace, metaName)
 	if err != nil {
 		serviceLogger.Warn("failed to fetch pods", "error", err)
 		return resourceItems, err
 	}
-	for _, podRef := range pods {
-		pod := podRef.(*corev1.Pod)
-		if pod == nil {
-			continue
-		}
-
+	for _, pod := range pods {
 		if pod.Status.Phase == corev1.PodSucceeded {
 			continue
 		}
@@ -896,8 +884,8 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 			}
 		}
 
-		resourceItems = containerItems(*pod, resourceItems)
-		resourceItems = podItem(*pod, resourceItems)
+		resourceItems = containerItems(pod, resourceItems)
+		resourceItems = podItem(pod, resourceItems)
 
 		// Owner reference kind and name
 		if len(pod.OwnerReferences) > 0 {

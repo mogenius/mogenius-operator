@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -600,29 +598,4 @@ func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
 		return WorkloadResult(nil, err)
 	}
 	return WorkloadResult(deployment, err)
-}
-
-func ListAllDeployments(namespace string) ([]v1.Deployment, error) {
-	result := []v1.Deployment{}
-	deployments, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(v1.Deployment{}), "Deployment", namespace)
-
-	if err != nil {
-		k8sLogger.Warn("ListAllDeployments", "warning", err)
-		return result, err
-	}
-
-	for _, ref := range deployments {
-		if ref == nil {
-			continue
-		}
-
-		deployment := ref.(*v1.Deployment)
-		if deployment == nil {
-			continue
-		}
-
-		result = append(result, *deployment)
-	}
-
-	return result, nil
 }

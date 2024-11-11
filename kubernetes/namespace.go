@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/dtos"
-	"mogenius-k8s-manager/store"
 	"mogenius-k8s-manager/structs"
-	"reflect"
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	coreV1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 )
@@ -62,42 +59,4 @@ func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.
 			cmd.Success(job, "Deleted namespace")
 		}
 	}(wg)
-}
-
-func ListAllNamespaces() ([]coreV1.Namespace, error) {
-	result := []coreV1.Namespace{}
-	namespaces, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(coreV1.Namespace{}), "Namespace")
-
-	if err != nil {
-		return result, err
-	}
-
-	for _, ref := range namespaces {
-		if ref == nil {
-			continue
-		}
-
-		namespace := ref.(*coreV1.Namespace)
-		if namespace == nil {
-			continue
-		}
-
-		result = append(result, *namespace)
-	}
-
-	return result, nil
-}
-
-func GetNamespace(name string) *coreV1.Namespace {
-	ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(coreV1.Namespace{}), "Namespace", name)
-	if ref == nil {
-		return nil
-	}
-
-	namespace := ref.(*coreV1.Namespace)
-	if namespace == nil {
-		return nil
-	}
-
-	return namespace
 }
