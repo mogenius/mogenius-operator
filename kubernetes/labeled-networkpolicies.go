@@ -687,7 +687,7 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 	}
 
 	netpols, err := ListAllConflictingNetworkPolicies(namespaceName)
-	if err != nil && !strings.HasPrefix(err.Error(), "No entry found for") {
+	if err != nil {
 		return fmt.Errorf("failed to list all network policies: %v", err)
 	}
 
