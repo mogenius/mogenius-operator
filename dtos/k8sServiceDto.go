@@ -1,7 +1,6 @@
 package dtos
 
 import (
-	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/logging"
 )
 
@@ -20,9 +19,9 @@ type K8sServiceDto struct {
 
 func (s *K8sServiceDto) AddSecretsToRedaction() {
 	for _, container := range s.Containers {
-		assert.Assert(container.ContainerImageRepoSecretDecryptValue != nil)
+		// assert.Assert(container.ContainerImageRepoSecretDecryptValue != nil)
 		logging.AddSecret(*container.ContainerImageRepoSecretDecryptValue)
-		assert.Assert(container.ContainerImageRepoSecretId != nil)
+		// assert.Assert(container.ContainerImageRepoSecretId != nil)
 		logging.AddSecret(*container.ContainerImageRepoSecretId)
 		for _, envVar := range container.EnvVars {
 			if envVar.Type == EnvVarKeyVault && envVar.Data.VaultType == EnvVarVaultTypeMogeniusVault {

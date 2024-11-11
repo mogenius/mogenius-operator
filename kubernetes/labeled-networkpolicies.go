@@ -624,8 +624,6 @@ func UpdateNetworkPolicyTemplate(policies []NetworkPolicy) error {
 		return fmt.Errorf("found duplicate network policy names: %v", duplicates)
 	}
 
-	client := GetCoreClient().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
-
 	cfgMap := readDefaultConfigMap()
 
 	yamlStr, err := yaml.Marshal(policies)
@@ -637,6 +635,7 @@ func UpdateNetworkPolicyTemplate(policies []NetworkPolicy) error {
 	cfgMap.Data[PolicyConfigMapKey] = string(yamlStr)
 
 	// check if the configmap already exists
+	client := GetCoreClient().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 	_, err = client.Update(context.TODO(), cfgMap, metav1.UpdateOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
