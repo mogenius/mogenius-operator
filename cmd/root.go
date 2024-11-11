@@ -13,6 +13,7 @@ import (
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
+	"net/url"
 	"os"
 	"slices"
 	"strconv"
@@ -191,10 +192,26 @@ func initConfigDeclarations() {
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_API_SERVER",
 		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws"),
+		Description:  utils.Pointer("URL of API Server"),
+		Validate: func(value string) error {
+			_, err := url.Parse(value)
+			if err != nil {
+				return fmt.Errorf("'MO_API_SERVER' needs to be a URL: %s", err.Error())
+			}
+			return nil
+		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_EVENT_SERVER",
 		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws-event"),
+		Description:  utils.Pointer("URL of Event Server"),
+		Validate: func(value string) error {
+			_, err := url.Parse(value)
+			if err != nil {
+				return fmt.Errorf("'MO_EVENT_SERVER' needs to be a URL: %s", err.Error())
+			}
+			return nil
+		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
