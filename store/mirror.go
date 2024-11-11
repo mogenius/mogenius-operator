@@ -147,7 +147,7 @@ func ListEvents(namespace string) ([]coreV1.Event, error) {
 func ListPods(parts ...string) ([]coreV1.Pod, error) {
 	result := []coreV1.Pod{}
 
-	args := append([]string{"Pods"}, parts...)
+	args := append([]string{"Pod"}, parts...)
 	pods, err := GlobalStore.SearchByPrefix(reflect.TypeOf(coreV1.Pod{}), args...)
 	if errors.Is(err, ErrNotFound) {
 		return result, nil
