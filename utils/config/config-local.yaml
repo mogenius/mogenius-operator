@@ -2,10 +2,7 @@ config:
   version: 2
 
 kubernetes:
-  api_key: 94E23575-A689-4F88-8D67-215A274F4E6E
-  cluster_name: BenesTestCluster
   own_namespace: mogenius
-  cluster_mfa_id:
   run_in_cluster: false
   helm_data_path: 
   git_vault_data_path: 
@@ -13,12 +10,6 @@ kubernetes:
   log_data_path: 
   bbolt_db_stats_path: mogenius-stats.db
   local_registry_host: mocr.local.mogenius.io
-
-api_server:
-  http_server: https://platform-api.dev.mogenius.com
-  ws_server: 127.0.0.1:8080
-  ws_server_scheme: ws
-  ws_path: /ws
 
 event_server:
   server: 127.0.0.1:8080
@@ -38,7 +29,6 @@ iac:
   log_changes: true
 
 misc:
-  stage: local
   log_format: text # json or text
   log_level: info # panic, fatal, error, warn, info, debug, trace
   log_incoming_stats: false
