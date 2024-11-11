@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
@@ -27,8 +28,11 @@ type ScanImageRequest struct {
 }
 
 func (s *ScanImageRequest) AddSecretsToRedaction() {
-	logging.AddSecret(s.ContainerRegistryUser)
-	logging.AddSecret(s.ContainerRegistryPat)
+	assert.Assert(s.ContainerRegistryUser != nil)
+	logging.AddSecret(*s.ContainerRegistryUser)
+
+	assert.Assert(s.ContainerRegistryPat != nil)
+	logging.AddSecret(*s.ContainerRegistryPat)
 }
 
 func ScanImageRequestExample() ScanImageRequest {

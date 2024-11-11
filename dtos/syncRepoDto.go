@@ -32,7 +32,7 @@ type SyncRepoData struct {
 
 func (p *SyncRepoData) AddSecretsToRedaction() {
 	if p.Pat != "***" {
-		logging.AddSecret(&p.Pat)
+		logging.AddSecret(p.Pat)
 	}
 }
 

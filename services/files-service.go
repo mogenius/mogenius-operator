@@ -286,7 +286,7 @@ type ClusterIssuerInstallRequest struct {
 }
 
 func (p *ClusterIssuerInstallRequest) AddSecretsToRedaction() {
-	logging.AddSecret(&p.Email)
+	logging.AddSecret(p.Email)
 }
 
 func ClusterIssuerInstallRequestExample() ClusterIssuerInstallRequest {

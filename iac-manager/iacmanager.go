@@ -526,7 +526,7 @@ func insertPATIntoURL(gitRepoURL, pat string) string {
 	if !strings.HasPrefix(gitRepoURL, "https://") {
 		return gitRepoURL // Non-HTTPS URLs are not handled here
 	}
-	logging.AddSecret(&utils.CONFIG.Iac.RepoPat)
+	logging.AddSecret(utils.CONFIG.Iac.RepoPat)
 	return strings.Replace(gitRepoURL, "https://", "https://"+pat+"@", 1)
 }
 
