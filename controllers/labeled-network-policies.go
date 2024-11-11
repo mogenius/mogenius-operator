@@ -131,12 +131,14 @@ type ListConflictingNetworkPoliciesRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
 }
 
-type K8sConflictingNetworkPolicyDto struct {
+type K8sNetworkPolicyDto struct {
 	NamespaceName string               `json:"namespaceName"`
 	Name          *string              `json:"name,omitempty"`
 	Spec          v1.NetworkPolicySpec `json:"spec"`
 	// NetworkPolicy  v1.NetworkPolicy               `json:"networkPolicy"`
 }
+
+type K8sConflictingNetworkPolicyDto = K8sNetworkPolicyDto
 
 func ListAllConflictingNetworkPolicies(data ListConflictingNetworkPoliciesRequest) ([]K8sConflictingNetworkPolicyDto, error) {
 	policies, err := kubernetes.ListAllConflictingNetworkPolicies(data.NamespaceName)
@@ -198,13 +200,13 @@ type ListNetworkPolicyResponse struct {
 }
 
 type ListNetworkPolicyNamespace struct {
-	Id                string                            `json:"id" validate:"required"`
-	DisplayName       string                            `json:"displayName" validate:"required"`
-	Name              string                            `json:"name" validate:"required"`
-	ProjectId         string                            `json:"projectId" validate:"required"`
-	Controllers       []ListNetworkPolicyController     `json:"controllers" validate:"required"`
-	UnmanagedPolicies []K8sConflictingNetworkPolicyDto  `json:"unmanagedPolicies" validate:"required"`
-	ManagedPolicies   []dtos.K8sLabeledNetworkPolicyDto `json:"managedPolicies" validate:"required"`
+	Id                string                           `json:"id" validate:"required"`
+	DisplayName       string                           `json:"displayName" validate:"required"`
+	Name              string                           `json:"name" validate:"required"`
+	ProjectId         string                           `json:"projectId" validate:"required"`
+	Controllers       []ListNetworkPolicyController    `json:"controllers" validate:"required"`
+	UnmanagedPolicies []K8sConflictingNetworkPolicyDto `json:"unmanagedPolicies" validate:"required"`
+	ManagedPolicies   []K8sNetworkPolicyDto            `json:"managedPolicies" validate:"required"`
 }
 
 type ListNetworkPolicyController struct {
@@ -371,7 +373,15 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 		}
 
 		for _, idx := range managedMap[namespace.Name] {
-			networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
+			policy := policies[idx]
+
+			networkPolicyDto := K8sNetworkPolicyDto{
+				Name:          punqUtils.Pointer(policy.Name),
+				NamespaceName: policy.Namespace,
+				Spec:          policy.Spec,
+				// NetworkPolicy:  policy,
+			}
+
 			namespaceDto.ManagedPolicies = append(namespaceDto.ManagedPolicies, networkPolicyDto)
 		}
 
