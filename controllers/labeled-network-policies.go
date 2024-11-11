@@ -198,12 +198,13 @@ type ListNetworkPolicyResponse struct {
 }
 
 type ListNetworkPolicyNamespace struct {
-	Id                string                           `json:"id" validate:"required"`
-	DisplayName       string                           `json:"displayName" validate:"required"`
-	Name              string                           `json:"name" validate:"required"`
-	ProjectId         string                           `json:"projectId" validate:"required"`
-	Controllers       []ListNetworkPolicyController    `json:"controllers" validate:"required"`
-	UnmanagedPolicies []K8sConflictingNetworkPolicyDto `json:"unmanagedPolicies" validate:"required"`
+	Id                string                            `json:"id" validate:"required"`
+	DisplayName       string                            `json:"displayName" validate:"required"`
+	Name              string                            `json:"name" validate:"required"`
+	ProjectId         string                            `json:"projectId" validate:"required"`
+	Controllers       []ListNetworkPolicyController     `json:"controllers" validate:"required"`
+	UnmanagedPolicies []K8sConflictingNetworkPolicyDto  `json:"unmanagedPolicies" validate:"required"`
+	ManagedPolicies   []dtos.K8sLabeledNetworkPolicyDto `json:"managedPolicies" validate:"required"`
 }
 
 type ListNetworkPolicyController struct {
@@ -303,15 +304,26 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 }
 
 func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v1.NetworkPolicy) ([]ListNetworkPolicyNamespace, error) {
-	managedMap := make(map[string]int)
+	managedControllerMap := make(map[string]int)
 	unmanagedMap := make(map[string][]int)
+	managedMap := make(map[string][]int)
 
 	for idx, policy := range policies {
-		isManaged := policy.Labels != nil && policy.Labels[kubernetes.NetpolLabel] == "true" && policy.Name != kubernetes.DenyAllNetPolName
-		if isManaged {
-			// managed
+		hasLabels := policy.ObjectMeta.Labels != nil
+		isManagedMogeniusControllerNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name != kubernetes.DenyAllNetPolName
+		isManagedMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name == kubernetes.DenyAllNetPolName
+		isManagedLegacyMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels["mo-created-by"] == "mogenius-k8s-manager" && func() bool {
+			_, exists := policy.ObjectMeta.Labels["mo-app"]
+			return !exists
+		}()
+		if isManagedMogeniusControllerNetworkPolicy {
+			// managed controller
 			managedKey := fmt.Sprintf("%s--%s", policy.Namespace, policy.Name)
-			managedMap[managedKey] = idx
+			managedControllerMap[managedKey] = idx
+		} else if isManagedMogeniusNamespaceNetworkPolicy || isManagedLegacyMogeniusNamespaceNetworkPolicy {
+			// managed namespace
+			managedKey := policy.Namespace
+			managedMap[managedKey] = append(managedMap[managedKey], idx)
 		} else {
 			// unmanaged
 			unmanagedKey := policy.Namespace
@@ -349,13 +361,18 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 			if ctrl.GetLabels() != nil {
 				for key := range ctrl.GetLabels() {
 					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
-					if idx, ok := managedMap[managedKey]; ok {
+					if idx, ok := managedControllerMap[managedKey]; ok {
 						networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
 						controllerDto.LabeledNetworkPolicies = append(controllerDto.LabeledNetworkPolicies, networkPolicyDto)
 					}
 				}
 			}
 			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
+		}
+
+		for _, idx := range managedMap[namespace.Name] {
+			networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
+			namespaceDto.ManagedPolicies = append(namespaceDto.ManagedPolicies, networkPolicyDto)
 		}
 
 		for _, idx := range unmanagedMap[namespace.Name] {
