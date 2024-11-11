@@ -606,11 +606,12 @@ func checkForDuplicatedItems(items []NetworkPolicy) []NetworkPolicy {
 	duplicates := []NetworkPolicy{}
 
 	for _, item := range items {
-		if !seen[item.Name] {
-			seen[item.Name] = true
+		itemName := item.Name + "-" + item.Type
+		if !seen[itemName] {
+			seen[itemName] = true
 		} else {
 			duplicates = append(duplicates, item)
-			k8sLogger.Warn("Duplicate network policy name", "networkpolicy", item.Name)
+			k8sLogger.Warn("Duplicate network policy name", "networkpolicy", itemName)
 		}
 	}
 
