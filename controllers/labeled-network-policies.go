@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/store"
+	"sort"
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -131,12 +132,14 @@ type ListConflictingNetworkPoliciesRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
 }
 
-type K8sConflictingNetworkPolicyDto struct {
+type K8sNetworkPolicyDto struct {
 	NamespaceName string               `json:"namespaceName"`
 	Name          *string              `json:"name,omitempty"`
 	Spec          v1.NetworkPolicySpec `json:"spec"`
 	// NetworkPolicy  v1.NetworkPolicy               `json:"networkPolicy"`
 }
+
+type K8sConflictingNetworkPolicyDto = K8sNetworkPolicyDto
 
 func ListAllConflictingNetworkPolicies(data ListConflictingNetworkPoliciesRequest) ([]K8sConflictingNetworkPolicyDto, error) {
 	policies, err := kubernetes.ListAllConflictingNetworkPolicies(data.NamespaceName)
@@ -204,6 +207,7 @@ type ListNetworkPolicyNamespace struct {
 	ProjectId         string                           `json:"projectId" validate:"required"`
 	Controllers       []ListNetworkPolicyController    `json:"controllers" validate:"required"`
 	UnmanagedPolicies []K8sConflictingNetworkPolicyDto `json:"unmanagedPolicies" validate:"required"`
+	ManagedPolicies   []K8sNetworkPolicyDto            `json:"managedPolicies" validate:"required"`
 }
 
 type ListNetworkPolicyController struct {
@@ -303,15 +307,26 @@ func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
 }
 
 func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v1.NetworkPolicy) ([]ListNetworkPolicyNamespace, error) {
-	managedMap := make(map[string]int)
+	managedControllerMap := make(map[string]int)
 	unmanagedMap := make(map[string][]int)
+	managedMap := make(map[string][]int)
 
 	for idx, policy := range policies {
-		isManaged := policy.Labels != nil && policy.Labels[kubernetes.NetpolLabel] == "true" && policy.Name != kubernetes.DenyAllNetPolName
-		if isManaged {
-			// managed
+		hasLabels := policy.ObjectMeta.Labels != nil
+		isManagedMogeniusControllerNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name != kubernetes.DenyAllNetPolName
+		isManagedMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name == kubernetes.DenyAllNetPolName
+		isManagedLegacyMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels["mo-created-by"] == "mogenius-k8s-manager" && func() bool {
+			_, exists := policy.ObjectMeta.Labels["mo-app"]
+			return !exists
+		}()
+		if isManagedMogeniusControllerNetworkPolicy {
+			// managed controller
 			managedKey := fmt.Sprintf("%s--%s", policy.Namespace, policy.Name)
-			managedMap[managedKey] = idx
+			managedControllerMap[managedKey] = idx
+		} else if isManagedMogeniusNamespaceNetworkPolicy || isManagedLegacyMogeniusNamespaceNetworkPolicy {
+			// managed namespace
+			managedKey := policy.Namespace
+			managedMap[managedKey] = append(managedMap[managedKey], idx)
 		} else {
 			// unmanaged
 			unmanagedKey := policy.Namespace
@@ -349,13 +364,35 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 			if ctrl.GetLabels() != nil {
 				for key := range ctrl.GetLabels() {
 					managedKey := fmt.Sprintf("%s--%s", namespace.Name, key)
-					if idx, ok := managedMap[managedKey]; ok {
+					if idx, ok := managedControllerMap[managedKey]; ok {
 						networkPolicyDto := createNetworkPolicyDto(policies[idx].Name, policies[idx].Spec)
 						controllerDto.LabeledNetworkPolicies = append(controllerDto.LabeledNetworkPolicies, networkPolicyDto)
 					}
 				}
 			}
+
+			sort.Slice(controllerDto.LabeledNetworkPolicies, func(i, j int) bool {
+				// sort by port
+				if controllerDto.LabeledNetworkPolicies[i].Port != controllerDto.LabeledNetworkPolicies[j].Port {
+					return controllerDto.LabeledNetworkPolicies[i].Port < controllerDto.LabeledNetworkPolicies[j].Port
+				}
+				// sort type
+				return controllerDto.LabeledNetworkPolicies[i].Type < controllerDto.LabeledNetworkPolicies[j].Type
+			})
+
 			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
+		}
+
+		for _, idx := range managedMap[namespace.Name] {
+			policy := policies[idx]
+
+			networkPolicyDto := K8sNetworkPolicyDto{
+				Name:          punqUtils.Pointer(policy.Name),
+				NamespaceName: policy.Namespace,
+				Spec:          policy.Spec,
+			}
+
+			namespaceDto.ManagedPolicies = append(namespaceDto.ManagedPolicies, networkPolicyDto)
 		}
 
 		for _, idx := range unmanagedMap[namespace.Name] {
@@ -365,7 +402,6 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 				Name:          punqUtils.Pointer(policy.Name),
 				NamespaceName: policy.Namespace,
 				Spec:          policy.Spec,
-				// NetworkPolicy:  policy,
 			}
 
 			namespaceDto.UnmanagedPolicies = append(namespaceDto.UnmanagedPolicies, conflictingNetworkPolicyDto)
