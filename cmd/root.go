@@ -105,6 +105,10 @@ func initLogger() {
 func initConfig() {
 	cmdConfig = config.NewConfig()
 	cmdConfig.WithCobraCmd(rootCmd)
+	cmdConfig.OnAfterChange(func(key string, value string, isSecret bool) {
+		configValues := cmdConfig.GetAll()
+		logging.UpdateConfigSecrets(configValues)
+	})
 	defer cmdConfig.Init()
 	// shutdown hook to detect unused keys
 	shutdown.Add(func() {
@@ -121,6 +125,7 @@ func initConfig() {
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:         "MO_API_KEY",
 		Description: utils.Pointer("Api Key to access the server"),
+		IsSecret:    true,
 		Envs:        []string{"api_key"},
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "api-key",
@@ -137,6 +142,7 @@ func initConfig() {
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:         "MO_CLUSTER_MFA_ID",
 		Description: utils.Pointer("NanoId of the Kubernetes Cluster for MFA purpose"),
+		IsSecret:    true,
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "mfa-id",
 		},

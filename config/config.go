@@ -17,7 +17,7 @@ import (
 type Config struct {
 	data     map[string]*configValue
 	dataLock sync.RWMutex
-	cbs      []func(key string, value string)
+	cbs      []func(key string, value string, isSecret bool)
 	cbsLock  sync.RWMutex
 	cobraCmd *cobra.Command
 }
@@ -33,7 +33,7 @@ func NewConfig() *Config {
 	return &Config{
 		data:     make(map[string]*configValue),
 		dataLock: sync.RWMutex{},
-		cbs:      []func(key string, value string){},
+		cbs:      []func(key string, value string, isSecret bool){},
 		cbsLock:  sync.RWMutex{},
 	}
 }
@@ -41,8 +41,8 @@ func NewConfig() *Config {
 func (c *Config) Validate() {
 	errs := []error{}
 	func() {
-		c.dataLock.Lock()
-		defer c.dataLock.Unlock()
+		c.dataLock.RLock()
+		defer c.dataLock.RUnlock()
 
 		for key, cv := range c.data {
 			if cv.value == nil {
@@ -151,7 +151,7 @@ func (c *Config) Declare(opts interfaces.ConfigDeclaration) {
 		c.data[key] = &cv
 	}()
 	if opts.DefaultValue != nil {
-		c.runCallbacks(opts.Key, *opts.DefaultValue)
+		c.runCallbacks(opts.Key, *opts.DefaultValue, opts.IsSecret)
 	}
 }
 
@@ -197,9 +197,23 @@ func (c *Config) TrySet(key string, value string) error {
 	if err != nil {
 		return err
 	}
-	c.runCallbacks(key, value)
+	isSecret := c.isSecret(key)
+	c.runCallbacks(key, value, isSecret)
 
 	return nil
+}
+
+func (c *Config) isSecret(key string) bool {
+	c.dataLock.RLock()
+	defer c.dataLock.RUnlock()
+
+	for _, cv := range c.data {
+		if cv.declaration.Key == key {
+			return cv.declaration.IsSecret
+		}
+	}
+
+	return false
 }
 
 func (c *Config) set(key string, value string) error {
@@ -224,18 +238,19 @@ func (c *Config) set(key string, value string) error {
 	return nil
 }
 
-func (c *Config) runCallbacks(key string, value string) {
+func (c *Config) runCallbacks(key string, value string, isSecret bool) {
 	c.cbsLock.RLock()
 	defer c.cbsLock.RUnlock()
 
 	for _, cb := range c.cbs {
-		cb(key, value)
+		cb(key, value, isSecret)
 	}
 }
 
-func (c *Config) OnAfterChange(cb func(key string, value string)) {
+func (c *Config) OnAfterChange(cb func(key string, value string, isSecret bool)) {
 	c.cbsLock.Lock()
 	defer c.cbsLock.Unlock()
+
 	c.cbs = append(c.cbs, cb)
 }
 
@@ -247,8 +262,8 @@ type Usage struct {
 }
 
 func (c *Config) GetUsage() []Usage {
-	c.dataLock.Lock()
-	defer c.dataLock.Unlock()
+	c.dataLock.RLock()
+	defer c.dataLock.RUnlock()
 
 	usages := []Usage{}
 	for key, value := range c.data {
@@ -322,8 +337,8 @@ func (c *Config) Init() {
 }
 
 func (c *Config) AsEnvs() string {
-	c.dataLock.Lock()
-	defer c.dataLock.Unlock()
+	c.dataLock.RLock()
+	defer c.dataLock.RUnlock()
 
 	keys := []string{}
 	for key := range c.data {
@@ -377,4 +392,18 @@ func (c *Config) AsEnvs() string {
 	data = strings.TrimSpace(data) + "\n"
 
 	return data
+}
+
+func (c *Config) GetAll() []interfaces.ConfigVariable {
+	configVariables := []interfaces.ConfigVariable{}
+	for key, cv := range c.data {
+		if cv.value != nil {
+			configVariables = append(configVariables, interfaces.ConfigVariable{
+				Key:      key,
+				Value:    *cv.value,
+				IsSecret: cv.declaration.IsSecret,
+			})
+		}
+	}
+	return configVariables
 }
