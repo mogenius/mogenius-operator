@@ -275,7 +275,7 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 	configMap.Data["ignoredNamespaces"] = strings.Join(configMapData.IgnoredNamespaces, ",")
 	configMap.Data["ignoredNames"] = strings.Join(configMapData.IgnoredNames, ",")
 
-	configMap, err = configmapClient.Update(context.TODO(), configMap, MoUpdateOptions())
+	_, err = configmapClient.Update(context.TODO(), configMap, MoUpdateOptions())
 	if err != nil {
 		k8sLogger.Error("failed to update mogenius configmap.", "error", err)
 		return utils.ClusterConfigmap{}, err
