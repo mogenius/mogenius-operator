@@ -53,7 +53,12 @@ func ConnectToJobQueue() {
 }
 
 func connectJob(ctx context.Context) {
-	JobConnectionUrl = url.URL{Scheme: utils.CONFIG.ApiServer.Ws_Scheme, Host: utils.CONFIG.ApiServer.Ws_Server, Path: utils.CONFIG.ApiServer.WS_Path}
+	JobConnectionUrl, err := url.Parse(config.Get("MO_API_SERVER"))
+	if err != nil {
+		structsLogger.Error("failed to parse MO_API_SERVER as URL", "error", err)
+		JobConnectionStatus <- false
+		return
+	}
 
 	connection, _, err := websocket.DefaultDialer.Dial(JobConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {

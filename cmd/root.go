@@ -189,21 +189,17 @@ func initConfigDeclarations() {
 		Envs:         []string{"OWN_NAMESPACE"},
 	})
 
-	// TODO: implement feature
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
-		Key:          "MO_API_SERVER_HTTP",
-		DefaultValue: utils.Pointer("https://platform-api.mogenius.com"),
-	})
-	// TODO: implement feature
-	cmdConfig.Declare(interfaces.ConfigDeclaration{
-		Key:          "MO_API_SERVER_WS",
+		Key:          "MO_API_SERVER",
 		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws"),
 	})
+
 	// TODO: implement feature
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_EVENT_SERVER",
 		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws-event"),
 	})
+
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),

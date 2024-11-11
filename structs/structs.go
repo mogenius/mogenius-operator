@@ -7,8 +7,10 @@ import (
 
 var structsLogger *slog.Logger
 var logManager interfaces.LogManagerModule
+var config interfaces.ConfigModule
 
-func Setup(logManagerModule interfaces.LogManagerModule) {
+func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
 	logManager = logManagerModule
 	structsLogger = logManager.CreateLogger("structs")
+	config = configModule
 }

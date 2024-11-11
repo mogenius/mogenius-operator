@@ -2,10 +2,7 @@ config:
   version: 2
 
 kubernetes:
-  api_key: YOUR_API_KEY
-  cluster_name: your-cluster-name
   own_namespace: mogenius
-  cluster_mfa_id:
   run_in_cluster: true
   helm_data_path: /db/helm-data
   git_vault_data_path: /db/git-vault-data
@@ -13,12 +10,6 @@ kubernetes:
   log_data_path: /db/logs
   bbolt_db_stats_path: /db/mogenius-stats.db
   local_registry_host: mocr.local.mogenius.io
-
-api_server:
-  http_server: https://platform-api.dev.mogenius.com
-  ws_server: k8s-ws.dev.mogenius.com
-  ws_server_scheme: wss
-  ws_path: /ws
 
 event_server:
   server: k8s-dispatcher.dev.mogenius.com
@@ -38,7 +29,6 @@ iac:
   log_changes: true
 
 misc:
-  stage: dev
   log_format: json # json or text
   log_level: info # panic, fatal, error, warn, info, debug, trace
   log_incoming_stats: false

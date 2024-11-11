@@ -114,12 +114,6 @@ type Config struct {
 		LogDataPath                string `yaml:"log_data_path" env:"log_data_path" env-description:"Path to the log data."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
 	} `yaml:"kubernetes"`
-	ApiServer struct {
-		Http_Server string `yaml:"http_server" env:"api_http_server" env-description:"Server host" env-default:"https://platform-api.mogenius.com"`
-		Ws_Server   string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
-		Ws_Scheme   string `yaml:"ws_server_scheme" env:"api_ws_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
-		WS_Path     string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
-	} `yaml:"api_server"`
 	EventServer struct {
 		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
 		Scheme string `yaml:"scheme" env:"event_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
@@ -400,10 +394,6 @@ func PrintSettings() {
 		"Kubernetes.BboltDbStatsPath", CONFIG.Kubernetes.BboltDbStatsPath,
 		"Kubernetes.LogDataPath", CONFIG.Kubernetes.LogDataPath,
 		"Kubernetes.LocalContainerRegistryHost", CONFIG.Kubernetes.LocalContainerRegistryHost,
-		"ApiServer.Http_Server", CONFIG.ApiServer.Http_Server,
-		"ApiServer.Ws_Server", CONFIG.ApiServer.Ws_Server,
-		"ApiServer.Ws_Scheme", CONFIG.ApiServer.Ws_Scheme,
-		"ApiServer.WS_Path", CONFIG.ApiServer.WS_Path,
 		"EventServer.Server", CONFIG.EventServer.Server,
 		"EventServer.Scheme", CONFIG.EventServer.Scheme,
 		"EventServer.Path", CONFIG.EventServer.Path,
