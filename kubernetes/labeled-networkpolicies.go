@@ -601,32 +601,26 @@ type NetworkPolicy struct {
 	Type     string `yaml:"type" validate:"required"`
 }
 
-func checkForDuplicatedItems(items []NetworkPolicy) []NetworkPolicy {
+func makeListUnique(items []NetworkPolicy) []NetworkPolicy {
 	seen := make(map[string]bool)
-	duplicates := []NetworkPolicy{}
+	unique := []NetworkPolicy{}
 
 	for _, item := range items {
-		itemName := item.Name + "-" + item.Type
-		if !seen[itemName] {
-			seen[itemName] = true
-		} else {
-			duplicates = append(duplicates, item)
-			k8sLogger.Warn("Duplicate network policy name", "networkpolicy", itemName)
+		if !seen[item.Name] {
+			seen[item.Name] = true
+			unique = append(unique, item)
 		}
 	}
 
-	return duplicates
+	return unique
 }
 
 func UpdateNetworkPolicyTemplate(policies []NetworkPolicy) error {
-	duplicates := checkForDuplicatedItems(policies)
-	if len(duplicates) > 0 {
-		return fmt.Errorf("found duplicate network policy names: %v", duplicates)
-	}
+	uniquePolicies := makeListUnique(policies)
 
 	cfgMap := readDefaultConfigMap()
 
-	yamlStr, err := yaml.Marshal(policies)
+	yamlStr, err := yaml.Marshal(uniquePolicies)
 	if err != nil {
 		k8sLogger.Error("UpdateNetworkPolicyTemplate", "error", err)
 		return err
