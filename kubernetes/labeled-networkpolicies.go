@@ -595,9 +595,10 @@ func readDefaultConfigMap() *v1Core.ConfigMap {
 }
 
 type NetworkPolicy struct {
-	Name     string `yaml:"name"`
-	Protocol string `yaml:"protocol"`
-	Port     uint16 `yaml:"port"`
+	Name     string `yaml:"name" validate:"required"`
+	Protocol string `yaml:"protocol" validate:"required"`
+	Port     uint16 `yaml:"port" validate:"required"`
+	Type     string `yaml:"type" validate:"required"`
 }
 
 func checkForDuplicatedItems(items []NetworkPolicy) []NetworkPolicy {
