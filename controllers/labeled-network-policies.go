@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/store"
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -274,25 +275,29 @@ func EnforceNetworkPolicyManager(namespaceName string) error {
 }
 
 func ListNamespaceNetworkPolicies(data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListNetworkPolicyNamespace, error) {
-	namespace := kubernetes.GetNamespace(data.NamespaceName)
+	namespace := store.GetNamespace(data.NamespaceName)
 	if namespace == nil {
 		return nil, fmt.Errorf("failed to get namespace")
 	}
 
-	// ignore errors
-	policies, _ := kubernetes.ListNetworkPolicies(data.NamespaceName)
+	policies, err := store.ListNetworkPolicies(data.NamespaceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list network policies, err: %s", err.Error())
+	}
 
 	return listNetworkPoliciesByNamespaces([]v1Core.Namespace{*namespace}, policies)
 }
 
 func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
-	namespaces, err := kubernetes.ListAllNamespaces()
+	namespaces, err := store.ListAllNamespaces()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list all namespaces, err: %s", err.Error())
 	}
 
-	// ignore errors
-	policies, _ := kubernetes.ListNetworkPolicies("")
+	policies, err := store.ListNetworkPolicies("")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list network policies, err: %s", err.Error())
+	}
 
 	return listNetworkPoliciesByNamespaces(namespaces, policies)
 }

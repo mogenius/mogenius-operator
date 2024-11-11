@@ -2,6 +2,7 @@ package store
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/interfaces"
@@ -27,6 +28,12 @@ type Store struct {
 
 var GlobalStore *Store
 var garbageCollectionTicker *time.Ticker
+
+var ErrNotFound = errors.New("not found")
+
+func IsNotFound(err error) bool {
+	return errors.Is(err, ErrNotFound)
+}
 
 func Start() {
 	var err error
@@ -220,7 +227,8 @@ func (s *Store) SearchByPrefix(resultType reflect.Type, parts ...string) ([]inte
 	})
 
 	if len(items) == 0 {
-		return nil, fmt.Errorf("No entry found for %s", key)
+		return nil, ErrNotFound
+
 	}
 
 	return items, err
@@ -254,7 +262,7 @@ func (s *Store) SearchByUUID(uuid string, result interface{}) (interface{}, erro
 	})
 
 	if result == nil {
-		return nil, fmt.Errorf("No entry found for %s", uuid)
+		return nil, ErrNotFound
 	}
 
 	return result, err
@@ -289,7 +297,7 @@ func (s *Store) SearchByNames(namespace string, name string, result interface{})
 	})
 
 	if result == nil {
-		return nil, fmt.Errorf("No entry found for %s/%s", namespace, name)
+		return nil, ErrNotFound
 	}
 
 	return result, err
