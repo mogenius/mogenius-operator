@@ -60,7 +60,12 @@ func ConnectToEventQueue() {
 }
 
 func connectEvent(ctx context.Context) {
-	EventConnectionUrl = url.URL{Scheme: utils.CONFIG.EventServer.Scheme, Host: utils.CONFIG.EventServer.Server, Path: utils.CONFIG.EventServer.Path}
+	EventConnectionUrl, err := url.Parse(config.Get("MO_EVENT_SERVER"))
+	if err != nil {
+		structsLogger.Error("failed to parse MO_EVENT_SERVER as URL", "error", err)
+		EventConnectionStatus <- false
+		return
+	}
 
 	connection, _, err := websocket.DefaultDialer.Dial(EventConnectionUrl.String(), utils.HttpHeader(""))
 	if err != nil {
