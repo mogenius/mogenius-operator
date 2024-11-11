@@ -70,6 +70,6 @@ ENV DOCKERD_ARGS=""
 ENV MO_CLUSTER_MFA_ID=""
 
 # Todo: remove when logs is configurable
-RUN ln -sf /db/logs /app/logs
+RUN mkdir -p /db/logs && ln -sf /db/logs /app/logs
 
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false ${DOCKERD_ARGS} > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]
