@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/store"
+	"sort"
 	"strings"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -369,6 +370,16 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 					}
 				}
 			}
+
+			sort.Slice(controllerDto.LabeledNetworkPolicies, func(i, j int) bool {
+				// sort by port
+				if controllerDto.LabeledNetworkPolicies[i].Port != controllerDto.LabeledNetworkPolicies[j].Port {
+					return controllerDto.LabeledNetworkPolicies[i].Port < controllerDto.LabeledNetworkPolicies[j].Port
+				}
+				// sort type
+				return controllerDto.LabeledNetworkPolicies[i].Type < controllerDto.LabeledNetworkPolicies[j].Type
+			})
+
 			namespaceDto.Controllers = append(namespaceDto.Controllers, controllerDto)
 		}
 
@@ -379,7 +390,6 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 				Name:          punqUtils.Pointer(policy.Name),
 				NamespaceName: policy.Namespace,
 				Spec:          policy.Spec,
-				// NetworkPolicy:  policy,
 			}
 
 			namespaceDto.ManagedPolicies = append(namespaceDto.ManagedPolicies, networkPolicyDto)
@@ -392,7 +402,6 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 				Name:          punqUtils.Pointer(policy.Name),
 				NamespaceName: policy.Namespace,
 				Spec:          policy.Spec,
-				// NetworkPolicy:  policy,
 			}
 
 			namespaceDto.UnmanagedPolicies = append(namespaceDto.UnmanagedPolicies, conflictingNetworkPolicyDto)
