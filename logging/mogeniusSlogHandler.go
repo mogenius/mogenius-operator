@@ -2,6 +2,7 @@ package logging
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/go-git/go-git/v5/plumbing/color"
+	"github.com/mattn/go-isatty"
 	"github.com/nwidger/jsoncolor"
 )
 
@@ -68,21 +70,18 @@ func (h *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) er
 	level := record.Level.String()
 	switch level {
 	case "DEBUG":
-		level = color.Cyan + level + color.Reset
 		recordLevel = slog.LevelDebug
 	case "INFO":
-		level = color.Green + level + color.Reset
 		recordLevel = slog.LevelInfo
 	case "WARN":
-		level = color.Yellow + level + color.Reset
 		recordLevel = slog.LevelWarn
 	case "ERROR":
-		level = color.Red + level + color.Reset
 		recordLevel = slog.LevelError
 	default:
 		panic(fmt.Errorf("unsupported error level: %s", level))
 	}
 
+	// Apply LOG_LEVEL
 	if int(recordLevel) < int(slogLevel) {
 		return nil
 	}
@@ -91,33 +90,81 @@ func (h *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) er
 	if err != nil {
 		panic("The LogManager enforces an component attribute to exist: " + err.Error())
 	}
+
+	// Apply LOG_FILTER
 	if logFilter != "" && !slices.Contains(logFilterComponents, component) {
 		return nil
 	}
-	component = color.Magenta + component + color.Reset
 
 	source, err := getSourceString(record)
 	if err != nil {
 		panic("Source string should always be parsable within this handler: " + err.Error())
 	}
-	source = color.Faint + source + color.Reset
 
 	message := record.Message
 
-	logLine := level + " " + component + " " + source + " " + message
-
 	payload := getPayload(record)
-	if len(payload) > 0 {
-		prettyData, err := jsoncolor.Marshal(payload)
-		if err != nil {
-			panic(fmt.Errorf("failed to prettify json: %s\n", err.Error()))
-		}
-		prettyStringData := string(prettyData)
 
-		logLine = logLine + " " + prettyStringData
+	err = printLogLine(h.stdout, isatty.IsTerminal(h.stdout.Fd()), level, component, source, message, payload)
+	if err != nil {
+		return err
 	}
 
-	_, err = h.stdout.Write([]byte(logLine + "\n"))
+	return nil
+}
+
+func printLogLine(
+	writer io.Writer,
+	enableColor bool,
+	level string,
+	component string,
+	source string,
+	message string,
+	payload map[string]any,
+) error {
+	payloadString := ""
+	if enableColor {
+		switch level {
+		case "DEBUG":
+			level = color.Cyan + level + color.Reset
+		case "INFO":
+			level = color.Green + level + color.Reset
+		case "WARN":
+			level = color.Yellow + level + color.Reset
+		case "ERROR":
+			level = color.Red + level + color.Reset
+		default:
+			panic(fmt.Errorf("unsupported error level: %s", level))
+		}
+		component = color.Magenta + component + color.Reset
+		source = color.Faint + source + color.Reset
+		message = color.Normal + message + color.Reset
+
+		if len(payload) > 0 {
+			data, err := jsoncolor.Marshal(payload)
+			if err != nil {
+				panic(fmt.Errorf("failed to marshal json: %s\n", err.Error()))
+			}
+			payloadString = string(data)
+		}
+	} else {
+		if len(payload) > 0 {
+			data, err := json.Marshal(payload)
+			if err != nil {
+				panic(fmt.Errorf("failed to marshal json: %s\n", err.Error()))
+			}
+			payloadString = string(data)
+		}
+	}
+
+	_, err := writer.Write([]byte(fmt.Sprintf(
+		"%s %s %s %s %s",
+		level,
+		component,
+		source,
+		message,
+		payloadString,
+	) + "\n"))
 	if err != nil {
 		return err
 	}
