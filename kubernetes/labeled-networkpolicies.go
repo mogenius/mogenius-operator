@@ -685,7 +685,7 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 	}
 
 	netpols, err := ListAllConflictingNetworkPolicies(namespaceName)
-	if err != nil {
+	if err != nil && !strings.HasPrefix(err.Error(), "No entry found for") {
 		return fmt.Errorf("failed to list all network policies: %v", err)
 	}
 
@@ -693,15 +693,17 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 	netPolClient := client.NetworkPolicies(namespaceName)
 
 	errors := []error{}
-	for _, netpol := range netpols.Items {
-		err = netPolClient.Delete(context.TODO(), netpol.Name, metav1.DeleteOptions{})
-		if err != nil {
-			k8sLogger.Error("RemoveAllConflictingNetworkPolicies", "error", err)
-			errors = append(errors, err)
+	if netpols != nil {
+		for _, netpol := range netpols.Items {
+			err = netPolClient.Delete(context.TODO(), netpol.Name, metav1.DeleteOptions{})
+			if err != nil {
+				k8sLogger.Error("RemoveAllConflictingNetworkPolicies", "error", err)
+				errors = append(errors, err)
+			}
 		}
-	}
-	if len(errors) > 0 {
-		return fmt.Errorf("failed to remove all network policies: %v", errors)
+		if len(errors) > 0 {
+			return fmt.Errorf("failed to remove all network policies: %v", errors)
+		}
 	}
 	return nil
 }
@@ -773,15 +775,6 @@ func ListNetworkPolicies(namespaceName string) ([]v1.NetworkPolicy, error) {
 
 	return result, nil
 }
-
-// func ListAllNetworkPolicies(namespaceName string) punqUtils.K8sWorkloadResult {
-// 	result, err := listAllNetworkPolicies(namespaceName)
-// 	if err != nil {
-// 		return punq.WorkloadResult(nil, err)
-// 	}
-
-// 	return punq.WorkloadResult(result, nil)
-// }
 
 func extractLabels(maps ...map[string]string) map[string]string {
 	mergedLabels := make(map[string]string)
