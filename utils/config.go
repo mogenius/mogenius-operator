@@ -114,11 +114,6 @@ type Config struct {
 		LogDataPath                string `yaml:"log_data_path" env:"log_data_path" env-description:"Path to the log data."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
 	} `yaml:"kubernetes"`
-	EventServer struct {
-		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
-		Scheme string `yaml:"scheme" env:"event_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
-		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
-	} `yaml:"event_server"`
 	Iac struct {
 		RepoUrl            string              `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url."`
 		RepoPat            string              `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat."`
@@ -394,9 +389,6 @@ func PrintSettings() {
 		"Kubernetes.BboltDbStatsPath", CONFIG.Kubernetes.BboltDbStatsPath,
 		"Kubernetes.LogDataPath", CONFIG.Kubernetes.LogDataPath,
 		"Kubernetes.LocalContainerRegistryHost", CONFIG.Kubernetes.LocalContainerRegistryHost,
-		"EventServer.Server", CONFIG.EventServer.Server,
-		"EventServer.Scheme", CONFIG.EventServer.Scheme,
-		"EventServer.Path", CONFIG.EventServer.Path,
 		"Iac.RepoUrl", CONFIG.Iac.RepoUrl,
 		"Iac.RepoPat", CONFIG.Iac.RepoPat,
 		"Iac.RepoBranch", CONFIG.Iac.RepoBranch,

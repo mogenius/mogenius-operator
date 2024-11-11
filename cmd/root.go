@@ -188,18 +188,14 @@ func initConfigDeclarations() {
 		Description:  utils.Pointer("The Namespace of mogenius platform"),
 		Envs:         []string{"OWN_NAMESPACE"},
 	})
-
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_API_SERVER",
 		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws"),
 	})
-
-	// TODO: implement feature
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_EVENT_SERVER",
 		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws-event"),
 	})
-
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),

@@ -11,11 +11,6 @@ kubernetes:
   bbolt_db_stats_path: /db/mogenius-stats.db
   local_registry_host: mocr.local.mogenius.io
 
-event_server:
-  server: k8s-dispatcher.dev.mogenius.com
-  scheme: wss
-  path: /ws
-
 iac:
   repo_url:
   repo_pat:
