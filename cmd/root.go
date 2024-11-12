@@ -116,10 +116,11 @@ func init() {
 	assert.Assert(slogManager != nil, "slogManager has to be initialized before cmdConfig")
 	cmdConfig = config.NewConfig()
 	cmdConfig.WithCobraCmd(rootCmd)
-	cmdConfig.OnAfterChange(func(key string, value string, isSecret bool) {
+	cmdConfig.OnChanged(nil, func(key string, value string, isSecret bool) {
 		configValues := cmdConfig.GetAll()
 		logging.UpdateConfigSecrets(configValues)
 	})
+	cmdConfig.OnFinalized(applyStageOverrides)
 	defer cmdConfig.Init()
 	// shutdown hook to detect unused keys
 	shutdown.Add(func() {
@@ -142,9 +143,6 @@ func init() {
 	// logger directly requests os.Getenv("MO_LOG_DIR") for the value.
 	_, err := cmdConfig.TryGet("MO_LOG_DIR")
 	assert.Assert(err == nil, "MO_LOG_DIR has to be declared before it is requested.")
-
-	rootCmd.PersistentFlags().BoolVarP(&rootConfig.resetConfig, "reset-config", "k", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
-	rootCmd.PersistentFlags().StringVarP(&rootConfig.customConfig, "config", "y", "", "Use config from custom location")
 }
 
 func initConfigDeclarations() {
@@ -177,10 +175,22 @@ func initConfigDeclarations() {
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_STAGE",
 		DefaultValue: utils.Pointer("prod"),
-		Description:  utils.Pointer("mogenius k8s-manager stage"),
+		Description:  utils.Pointer("The stage automatically overrides API Server configs"),
 		Envs:         []string{"STAGE", "stage"},
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "stage",
+		},
+		Validate: func(val string) error {
+			allowedStages := []string{
+				"prod",
+				"stage",
+				"dev",
+				"", // empty skips the the override hook which allows to directly provide MO_API_SERVER and MO_EVENT_SERVER
+			}
+			if !slices.Contains(allowedStages, val) {
+				return fmt.Errorf("'MO_STAGE' needs to be one of '%v' but is '%s'", allowedStages, val)
+			}
+			return nil
 		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
@@ -270,4 +280,19 @@ func initConfigDeclarations() {
 			return nil
 		},
 	})
+}
+
+func applyStageOverrides() {
+	stage := cmdConfig.Get("MO_STAGE")
+	switch stage {
+	case "prod":
+		cmdConfig.Set("MO_API_SERVER", "wss://k8s-ws.mogenius.com/ws")
+		cmdConfig.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.mogenius.com/ws")
+	case "dev":
+		cmdConfig.Set("MO_API_SERVER", "wss://k8s-ws.dev.mogenius.com/ws")
+		cmdConfig.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.dev.mogenius.com/ws")
+	case "local":
+		cmdConfig.Set("MO_API_SERVER", "wss://127.0.0.1:8080/ws")
+		cmdConfig.Set("MO_EVENT_SERVER", "wss://127.0.0.1:8080/ws-event")
+	}
 }

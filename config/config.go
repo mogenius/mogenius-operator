@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/interfaces"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,11 +16,13 @@ import (
 )
 
 type Config struct {
-	data     map[string]*configValue
-	dataLock sync.RWMutex
-	cbs      []func(key string, value string, isSecret bool)
-	cbsLock  sync.RWMutex
-	cobraCmd *cobra.Command
+	data                     map[string]*configValue
+	dataLock                 sync.RWMutex
+	onChangedCallbacks       []onChangeCallbackConfig
+	onChangedCallbacksLock   sync.RWMutex
+	onFinalizedCallbacks     []func()
+	onFinalizedCallbacksLock sync.RWMutex
+	cobraCmd                 *cobra.Command
 }
 
 type configValue struct {
@@ -29,12 +32,19 @@ type configValue struct {
 	setCounter  atomic.Uint64
 }
 
+type onChangeCallbackConfig struct {
+	onKeys   []string
+	callback func(key string, value string, isSecret bool)
+}
+
 func NewConfig() *Config {
 	return &Config{
-		data:     make(map[string]*configValue),
-		dataLock: sync.RWMutex{},
-		cbs:      []func(key string, value string, isSecret bool){},
-		cbsLock:  sync.RWMutex{},
+		data:                     make(map[string]*configValue),
+		dataLock:                 sync.RWMutex{},
+		onChangedCallbacks:       []onChangeCallbackConfig{},
+		onChangedCallbacksLock:   sync.RWMutex{},
+		onFinalizedCallbacks:     []func(){},
+		onFinalizedCallbacksLock: sync.RWMutex{},
 	}
 }
 
@@ -76,36 +86,38 @@ func (c *Config) Validate() {
 }
 
 func (c *Config) WithCobraCmd(cmd *cobra.Command) {
-	if cmd == nil {
-		return
-	}
+	assert.Assert(cmd != nil)
+	assert.Assert(c.cobraCmd == nil)
 	c.cobraCmd = cmd
 	cobra.OnInitialize(c.loadCobraArgs)
 }
 
 func (c *Config) loadCobraArgs() {
-	c.dataLock.Lock()
-	defer c.dataLock.Unlock()
+	func() {
+		c.dataLock.Lock()
+		defer c.dataLock.Unlock()
 
-	if c.cobraCmd == nil {
-		return
-	}
-	for _, cv := range c.data {
-		if cv.declaration.Cobra == nil {
-			continue
+		if c.cobraCmd == nil {
+			return
 		}
-		if cv.declaration.Cobra.CobraValue == nil {
-			continue
+		for _, cv := range c.data {
+			if cv.declaration.Cobra == nil {
+				continue
+			}
+			if cv.declaration.Cobra.CobraValue == nil {
+				continue
+			}
+			if !c.cobraCmd.Flags().Changed(cv.declaration.Cobra.Name) {
+				continue
+			}
+			if cv.declaration.Validate != nil {
+				err := cv.declaration.Validate(*cv.declaration.Cobra.CobraValue)
+				assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing cli argument '%s' -> %s", cv.declaration.Key, "--"+cv.declaration.Cobra.Name, err))
+			}
+			cv.value = cv.declaration.Cobra.CobraValue
 		}
-		if !c.cobraCmd.Flags().Changed(cv.declaration.Cobra.Name) {
-			continue
-		}
-		if cv.declaration.Validate != nil {
-			err := cv.declaration.Validate(*cv.declaration.Cobra.CobraValue)
-			assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing cli argument '%s' -> %s", cv.declaration.Key, "--"+cv.declaration.Cobra.Name, err))
-		}
-		cv.value = cv.declaration.Cobra.CobraValue
-	}
+	}()
+	c.runOnFinalizedCallbacks()
 }
 
 func (c *Config) Declare(opts interfaces.ConfigDeclaration) {
@@ -151,7 +163,7 @@ func (c *Config) Declare(opts interfaces.ConfigDeclaration) {
 		c.data[key] = &cv
 	}()
 	if opts.DefaultValue != nil {
-		c.runCallbacks(opts.Key, *opts.DefaultValue, opts.IsSecret)
+		c.runOnChangedCallbacks(opts.Key, *opts.DefaultValue, opts.IsSecret)
 	}
 }
 
@@ -198,7 +210,7 @@ func (c *Config) TrySet(key string, value string) error {
 		return err
 	}
 	isSecret := c.isSecret(key)
-	c.runCallbacks(key, value, isSecret)
+	c.runOnChangedCallbacks(key, value, isSecret)
 
 	return nil
 }
@@ -242,20 +254,58 @@ func (c *Config) set(key string, value string) error {
 	return nil
 }
 
-func (c *Config) runCallbacks(key string, value string, isSecret bool) {
-	c.cbsLock.RLock()
-	defer c.cbsLock.RUnlock()
+func (c *Config) runOnChangedCallbacks(key string, value string, isSecret bool) {
+	c.onChangedCallbacksLock.RLock()
+	defer c.onChangedCallbacksLock.RUnlock()
 
-	for _, cb := range c.cbs {
-		cb(key, value, isSecret)
+	for _, callbackConfig := range c.onChangedCallbacks {
+		assert.Assert(callbackConfig.onKeys != nil, "the API is expected to prevent callbackConfig.onKeys being nil")
+		// trigger if `onKeys` is empty
+		if len(callbackConfig.onKeys) == 0 {
+			callbackConfig.callback(key, value, isSecret)
+			continue
+		}
+		// trigger if `onKeys` contains the changed key
+		if slices.Contains(callbackConfig.onKeys, key) {
+			callbackConfig.callback(key, value, isSecret)
+			continue
+		}
 	}
 }
 
-func (c *Config) OnAfterChange(cb func(key string, value string, isSecret bool)) {
-	c.cbsLock.Lock()
-	defer c.cbsLock.Unlock()
+func (c *Config) OnChanged(keys []string, callback func(key string, value string, isSecret bool)) {
+	assert.Assert(callback != nil)
+	c.onChangedCallbacksLock.Lock()
+	defer c.onChangedCallbacksLock.Unlock()
 
-	c.cbs = append(c.cbs, cb)
+	if keys == nil {
+		keys = []string{}
+	}
+
+	callbackConfig := onChangeCallbackConfig{
+		onKeys:   keys,
+		callback: callback,
+	}
+
+	c.onChangedCallbacks = append(c.onChangedCallbacks, callbackConfig)
+}
+
+func (c *Config) runOnFinalizedCallbacks() {
+	c.onFinalizedCallbacksLock.RLock()
+	defer c.onFinalizedCallbacksLock.RUnlock()
+
+	for _, callback := range c.onFinalizedCallbacks {
+		assert.Assert(callback != nil, "the API is expected to prevent callback being nil")
+		callback()
+	}
+}
+
+func (c *Config) OnFinalized(callback func()) {
+	assert.Assert(callback != nil)
+	c.onFinalizedCallbacksLock.Lock()
+	defer c.onFinalizedCallbacksLock.Unlock()
+
+	c.onFinalizedCallbacks = append(c.onFinalizedCallbacks, callback)
 }
 
 type Usage struct {
@@ -287,56 +337,65 @@ func (c *Config) GetUsage() []Usage {
 }
 
 func (c *Config) Init() {
-	c.dataLock.Lock()
-	defer c.dataLock.Unlock()
+	triggerFinalizedCallbacks := false
+	func() {
+		c.dataLock.Lock()
+		defer c.dataLock.Unlock()
 
-	// Load ENV variables
-	for key, cv := range c.data {
-		value, ok := os.LookupEnv(key)
-		if ok {
-			if cv.declaration.Validate != nil {
-				err := cv.declaration.Validate(value)
-				assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing env '%s' -> %s", cv.declaration.Key, key, err))
-			}
-			cv.value = &value
-			continue
-		}
-		for _, envAlias := range cv.declaration.Envs {
-			value, ok := os.LookupEnv(envAlias)
+		// Load ENV variables
+		for key, cv := range c.data {
+			value, ok := os.LookupEnv(key)
 			if ok {
 				if cv.declaration.Validate != nil {
 					err := cv.declaration.Validate(value)
-					assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing env '%s' -> %s", cv.declaration.Key, envAlias, err))
+					assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing env '%s' -> %s", cv.declaration.Key, key, err))
 				}
 				cv.value = &value
-				break
+				continue
+			}
+			for _, envAlias := range cv.declaration.Envs {
+				value, ok := os.LookupEnv(envAlias)
+				if ok {
+					if cv.declaration.Validate != nil {
+						err := cv.declaration.Validate(value)
+						assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing env '%s' -> %s", cv.declaration.Key, envAlias, err))
+					}
+					cv.value = &value
+					break
+				}
 			}
 		}
-	}
 
-	// Initialize cobra args
-	if c.cobraCmd != nil {
-		for _, cv := range c.data {
-			if cv.declaration.Cobra != nil {
-				v := ""
-				cv.declaration.Cobra.CobraValue = &v
-				name := cv.declaration.Cobra.Name
-				value := ""
-				if cv.declaration.DefaultValue != nil {
-					value = *cv.declaration.DefaultValue
-				}
-				usage := fmt.Sprintf(`(env "%s")`, cv.declaration.Key)
-				if cv.declaration.Description != nil {
-					usage = *cv.declaration.Description + fmt.Sprintf(` (env "%s")`, cv.declaration.Key)
-				}
-				switch cv.declaration.Cobra.Short == nil {
-				case true:
-					c.cobraCmd.PersistentFlags().StringVar(cv.declaration.Cobra.CobraValue, name, value, usage)
-				case false:
-					c.cobraCmd.PersistentFlags().StringVarP(cv.declaration.Cobra.CobraValue, name, *cv.declaration.Cobra.Short, value, usage)
+		// Initialize cobra args
+		if c.cobraCmd != nil {
+			for _, cv := range c.data {
+				if cv.declaration.Cobra != nil {
+					v := ""
+					cv.declaration.Cobra.CobraValue = &v
+					name := cv.declaration.Cobra.Name
+					value := ""
+					if cv.declaration.DefaultValue != nil {
+						value = *cv.declaration.DefaultValue
+					}
+					usage := fmt.Sprintf(`(env "%s")`, cv.declaration.Key)
+					if cv.declaration.Description != nil {
+						usage = *cv.declaration.Description + fmt.Sprintf(` (env "%s")`, cv.declaration.Key)
+					}
+					switch cv.declaration.Cobra.Short == nil {
+					case true:
+						c.cobraCmd.PersistentFlags().StringVar(cv.declaration.Cobra.CobraValue, name, value, usage)
+					case false:
+						c.cobraCmd.PersistentFlags().StringVarP(cv.declaration.Cobra.CobraValue, name, *cv.declaration.Cobra.Short, value, usage)
+					}
 				}
 			}
 		}
+
+		triggerFinalizedCallbacks = c.cobraCmd == nil
+	}()
+
+	if triggerFinalizedCallbacks {
+		c.runOnFinalizedCallbacks()
 	}
 }
 
