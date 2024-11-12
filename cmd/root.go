@@ -214,6 +214,18 @@ func initConfigDeclarations() {
 		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_GIT_USER_NAME",
+		DefaultValue: utils.Pointer("mogenius git-user"),
+		Description:  utils.Pointer("User name which is used when interacting with git."),
+		Envs:         []string{"git_user_name"},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_GIT_USER_EMAIL",
+		DefaultValue: utils.Pointer("git@mogenius.com"),
+		Description:  utils.Pointer("Email address which is used when interacting with git."),
+		Envs:         []string{"git_user_email"},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
 		Description:  utils.Pointer(`A log level: "debug", "info", "warn" or "error"`),
