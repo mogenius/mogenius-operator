@@ -78,6 +78,10 @@ jobs:
     needs: prepare
     runs-on: [self-hosted]
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version: stable
