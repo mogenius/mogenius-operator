@@ -33,8 +33,9 @@ func InitApi() {
 		mux.Handle("GET /debug/list-templates", withRequestLogging(http.HandlerFunc(debugListTemplates)))
 	}
 
-	httpLogger.Info("Starting API server...", "port", 1338)
-	err := http.ListenAndServe(":1337", mux)
+	port := "1337"
+	httpLogger.Info("Starting API server...", "port", port)
+	err := http.ListenAndServe(":"+port, mux)
 	if err != nil {
 		httpLogger.Error("failed to start api server", "error", err)
 	}

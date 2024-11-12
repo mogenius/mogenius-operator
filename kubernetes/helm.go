@@ -255,7 +255,9 @@ func HelmStatus(namespace string, chartname string) release.Status {
 	settings.SetNamespace(namespace)
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(fmt.Sprintf(msg, args))
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+		)
 	}
 
 	actionConfig := new(action.Configuration)
@@ -641,7 +643,9 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 	settings := NewCli()
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(fmt.Sprintf(msg, args))
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+		)
 	}
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), "", os.Getenv("HELM_DRIVER"), logFn); err != nil {
@@ -725,8 +729,8 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 	settings.Debug = true
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(
-			fmt.Sprintf(msg, args),
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
 			"releaseName", data.Release,
 			"namespace", data.Namespace,
 		)
@@ -808,8 +812,8 @@ func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
 	settings.SetNamespace(data.Namespace)
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(
-			fmt.Sprintf(msg, args),
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
 			"releaseName", data.Release,
 			"namespace", data.Namespace,
 		)
@@ -880,7 +884,11 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 	settings.SetNamespace(data.Namespace)
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(fmt.Sprintf(msg, args), "releaseName", data.Release, "namespace", data.Namespace)
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+		)
 	}
 
 	actionConfig := new(action.Configuration)
@@ -922,7 +930,11 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
 	settings.SetNamespace(data.Namespace)
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(fmt.Sprintf(msg, args), "namespace", data.Namespace)
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+			"namespace",
+			data.Namespace,
+		)
 	}
 
 	actionConfig := new(action.Configuration)
@@ -953,7 +965,12 @@ func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, e
 	settings.SetNamespace(data.Namespace)
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(fmt.Sprintf(msg, args), "releaseName", data.Release, "namespace", data.Namespace)
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+			"releaseName",
+			data.Release, "namespace",
+			data.Namespace,
+		)
 	}
 
 	actionConfig := new(action.Configuration)
@@ -989,7 +1006,12 @@ func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, err
 	settings.SetNamespace(data.Namespace)
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(fmt.Sprintf(msg, args), "releaseName", data.Release, "namespace", data.Namespace)
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+			"releaseName", data.Release,
+			"namespace",
+			data.Namespace,
+		)
 	}
 
 	actionConfig := new(action.Configuration)
@@ -1021,7 +1043,11 @@ func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
 	settings.SetNamespace(data.Namespace)
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(fmt.Sprintf(msg, args), "releaseName", data.Release, "namespace", data.Namespace)
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+		)
 	}
 
 	actionConfig := new(action.Configuration)
@@ -1046,7 +1072,11 @@ func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
 	settings.SetNamespace(data.Namespace)
 
 	logFn := func(msg string, args ...interface{}) {
-		helmLogger.Debug(fmt.Sprintf(msg, args), "releaseName", data.Release, "namespace", data.Namespace)
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+		)
 	}
 
 	actionConfig := new(action.Configuration)
