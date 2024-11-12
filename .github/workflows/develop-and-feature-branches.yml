@@ -66,7 +66,7 @@ jobs:
 
 
   staticcheck:
-    needs: prepare
+    needs: [prepare, golangci]
     runs-on: [self-hosted]
     steps:
       - uses: actions/setup-go@v5
@@ -79,7 +79,7 @@ jobs:
           go run honnef.co/go/tools/cmd/staticcheck@2024.1.1      
 
   govet:
-    needs: prepare
+    needs: [prepare, golangci, staticcheck]
     runs-on: [self-hosted]
     steps:
       - name: Checkout repository
@@ -99,7 +99,7 @@ jobs:
       
 
   unit-tests:
-    needs: prepare
+    needs: [prepare, golangci, staticcheck, govet]
     runs-on: [self-hosted]
     steps:
       - name: Checkout repository
