@@ -19,10 +19,12 @@ type K8sServiceDto struct {
 
 func (s *K8sServiceDto) AddSecretsToRedaction() {
 	for _, container := range s.Containers {
-		// assert.Assert(container.ContainerImageRepoSecretDecryptValue != nil)
-		logging.AddSecret(*container.ContainerImageRepoSecretDecryptValue)
-		// assert.Assert(container.ContainerImageRepoSecretId != nil)
-		logging.AddSecret(*container.ContainerImageRepoSecretId)
+		if container.ContainerImageRepoSecretDecryptValue != nil {
+			logging.AddSecret(*container.ContainerImageRepoSecretDecryptValue)
+		}
+		if container.ContainerImageRepoSecretId != nil {
+			logging.AddSecret(*container.ContainerImageRepoSecretId)
+		}
 		for _, envVar := range container.EnvVars {
 			if envVar.Type == EnvVarKeyVault && envVar.Data.VaultType == EnvVarVaultTypeMogeniusVault {
 				logging.AddSecret(envVar.Value)
