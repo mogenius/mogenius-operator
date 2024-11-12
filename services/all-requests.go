@@ -1171,7 +1171,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return NewMessageResponse(controllers.ListNamespaceNetworkPolicies(data))
-
 	case structs.PAT_ENFORCE_NETWORK_POLICY_MANAGER:
 		data := controllers.EnforceNetworkPolicyManagerRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -1186,6 +1185,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return NewMessageResponse(nil, controllers.RemoveUnmanagedNetworkPolicies(data))
+	case structs.PAT_LIST_ONLY_NAMESPACE_NETWORK_POLICIES:
+		data := controllers.ListNamespaceLabeledNetworkPoliciesRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return NewMessageResponse(controllers.ListManagedAndUnmanagedNamespaceNetworkPolicies(data))
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
