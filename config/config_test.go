@@ -73,7 +73,7 @@ func TestCallbackWorks(t *testing.T) {
 	}
 
 	c := config.NewConfig()
-	c.OnAfterChange(cb)
+	c.OnChanged([]string{}, cb)
 
 	assert.Equal(0, callbackCallCounter)
 

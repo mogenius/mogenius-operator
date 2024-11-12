@@ -30,7 +30,22 @@ type ConfigModule interface {
 	TrySet(key string, value string) error
 
 	// Register a callback for whenever a `value` is `Set()`.
-	OnAfterChange(cb func(key string, value string, isSecret bool))
+	//
+	// Providing `keys == nil` normalizes to `keys = []string{}`.
+	//
+	// - if `len(keys) == 0`: trigger on **all** changes
+	// - else: trigger only when the provided keys change
+	OnChanged(keys []string, cb func(key string, value string, isSecret bool))
+
+	// Register a callback for when the initial loading of the config module has finished.
+	//
+	// Multiple callbacks can be provided.
+	//
+	// This callback is called once when the initialization finished:
+	//
+	// 	- if `*cobra.Command == nil`: gets triggered right after `ConfigModule.Init()`
+	// 	- if `*cobra.Command != nil`: gets triggered after cobra was initialized and all values have been loaded
+	OnFinalized(callback func())
 
 	// Initialize the config object.
 	// This loads env variables and, if a cobra cmd is set, registers CLI flags.
