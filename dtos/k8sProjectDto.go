@@ -1,7 +1,6 @@
 package dtos
 
 import (
-	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/logging"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -42,17 +41,21 @@ func K8sProjectDtoExampleData() K8sProjectDto {
 }
 
 func (p *K8sProjectDto) AddSecretsToRedaction() {
-	assert.Assert(p.GitAccessToken != nil)
-	logging.AddSecret(*p.GitAccessToken)
+	if p.GitAccessToken != nil {
+		logging.AddSecret(*p.GitAccessToken)
+	}
 
-	assert.Assert(p.GitUserId != nil)
-	logging.AddSecret(*p.GitUserId)
+	if p.GitUserId != nil {
+		logging.AddSecret(*p.GitUserId)
+	}
 
 	logging.AddSecret(p.ClusterMfaId)
 
-	assert.Assert(p.ContainerRegistryUser != nil)
-	logging.AddSecret(*p.ContainerRegistryUser)
+	if p.ContainerRegistryUser != nil {
+		logging.AddSecret(*p.ContainerRegistryUser)
+	}
 
-	assert.Assert(p.ContainerRegistryPat != nil)
-	logging.AddSecret(*p.ContainerRegistryPat)
+	if p.ContainerRegistryPat != nil {
+		logging.AddSecret(*p.ContainerRegistryPat)
+	}
 }
