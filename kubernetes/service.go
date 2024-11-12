@@ -307,30 +307,6 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 		}
 	}
 
-	//for _, container := range service.Containers {
-	//	for _, port := range container.Ports {
-	//		if port.PortType == dtos.PortTypeHTTPS {
-	//			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-	//				Port: int32(port.InternalPort),
-	//				Name: fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
-	//			})
-	//		} else {
-	//			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-	//				Port:     int32(port.InternalPort),
-	//				Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
-	//				Protocol: v1.Protocol(port.PortType),
-	//			})
-	//			if port.ExternalPort != 0 {
-	//				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-	//					Port:     int32(port.ExternalPort),
-	//					Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.ControllerName),
-	//					Protocol: v1.Protocol(port.PortType),
-	//				})
-	//			}
-	//		}
-	//	}
-	//}
-
 	return *newService
 }
 

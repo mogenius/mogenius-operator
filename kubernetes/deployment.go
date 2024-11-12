@@ -430,86 +430,10 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 				}
 			}
 		}
-
-		// TODO REMOVE
-		// PORTS
-		//var internalHttpPort *int
-		//if len(container.Ports) > 0 {
-		//	for _, port := range container.Ports {
-		//		if port.PortType == dtos.PortTypeHTTPS {
-		//			tmp := int(port.InternalPort)
-		//			internalHttpPort = &tmp
-		//		}
-		//	}
-		//}
-		//
-		//// PROBES
-		//if !container.KubernetesLimits.ProbesOn {
-		//	spec.Template.Spec.Containers[index].StartupProbe = nil
-		//	spec.Template.Spec.Containers[index].LivenessProbe = nil
-		//	spec.Template.Spec.Containers[index].ReadinessProbe = nil
-		//} else if internalHttpPort != nil {
-		//	// StartupProbe
-		//	if spec.Template.Spec.Containers[index].StartupProbe == nil {
-		//		spec.Template.Spec.Containers[index].StartupProbe = &v1Core.Probe{}
-		//		spec.Template.Spec.Containers[index].StartupProbe.HTTPGet = &v1Core.HTTPGetAction{}
-		//	}
-		//	spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
-		//
-		//	// LivenessProbe
-		//	if spec.Template.Spec.Containers[index].LivenessProbe == nil {
-		//		spec.Template.Spec.Containers[index].LivenessProbe = &v1Core.Probe{}
-		//		spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet = &v1Core.HTTPGetAction{}
-		//	}
-		//	spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
-		//
-		//	// ReadinessProbe
-		//	if spec.Template.Spec.Containers[index].ReadinessProbe == nil {
-		//		spec.Template.Spec.Containers[index].ReadinessProbe = &v1Core.Probe{}
-		//		spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet = &v1Core.HTTPGetAction{}
-		//	}
-		//	spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(*internalHttpPort))
-		//}
 	}
 
 	return objectMeta, &SpecDeployment{spec, previousSpec}, &newDeployment, nil
 }
-
-// func SetDeploymentImage(job *structs.Job, namespaceName string, controllerName string, containerName string, imageName string, wg *sync.WaitGroup) {
-// 	cmd := structs.CreateCommand("setImage", "Set Deployment Image", job)
-// 	wg.Add(1)
-// 	go func(wg *sync.WaitGroup) {
-// 		defer wg.Done()
-// 		cmd.Start(job, "Set Image in Deployment")
-
-// 		provider, err := punq.NewKubeProvider(nil)
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-// 			return
-// 		}
-// 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
-// 		deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("SetImage ERROR: %s", err.Error()))
-// 			return
-// 		}
-
-// 		// SET NEW IMAGE
-// 		for index, container := range deploymentToUpdate.Spec.Template.Spec.Containers {
-// 			if container.Name == containerName {
-// 				deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
-// 			}
-// 		}
-// 		deploymentToUpdate.Spec.Paused = false
-
-// 		_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("SetImage ERROR: %s", err.Error()))
-// 		} else {
-// 			cmd.Success(job, "Set new image in Deployment")
-// 		}
-// 	}(wg)
-// }
 
 func UpdateDeploymentImage(namespaceName string, controllerName string, containerName string, imageName string) error {
 	provider, err := punq.NewKubeProvider(nil)
