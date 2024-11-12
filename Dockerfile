@@ -69,7 +69,7 @@ ENV HELM_REPOSITORY_CONFIG="/db/helm-data/helm/repositories.yaml"
 ENV DOCKERD_ARGS=""
 ENV MO_CLUSTER_MFA_ID=""
 
-# Todo: remove when logs is configurable
-RUN mkdir -p /db/logs && ln -sf /db/logs /app/logs
+ENV MO_LOG_DIR="/db/logs"
+RUN mkdir -p "${MO_LOG_DIR}"
 
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false ${DOCKERD_ARGS} > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]

@@ -55,6 +55,8 @@ type ConfigDeclaration struct {
 	Description *string
 	// (optional) Declare the variable as confidential
 	IsSecret bool
+	// (optional) Declare the variable as read-only
+	ReadOnly bool
 	// (optional) List of ENV variables to lookup while in Init()
 	Envs []string
 	// (optional) Cobra command variable to lookup while in Init()
