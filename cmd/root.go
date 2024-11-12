@@ -191,7 +191,7 @@ func initConfigDeclarations() {
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_API_SERVER",
-		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws"),
+		DefaultValue: utils.Pointer("wss://k8s-ws.mogenius.com/ws"),
 		Description:  utils.Pointer("URL of API Server"),
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
@@ -203,7 +203,7 @@ func initConfigDeclarations() {
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_EVENT_SERVER",
-		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws-event"),
+		DefaultValue: utils.Pointer("wss://k8s-dispatcher.mogenius.com/ws"),
 		Description:  utils.Pointer("URL of Event Server"),
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
