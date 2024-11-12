@@ -135,7 +135,6 @@ const (
 	PAT_STATS_PODSTAT_FOR_CONTROLLER_LAST               string = "stats/podstat/last-for-controller"
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL                 string = "stats/podstat/all-for-namespace"
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST                string = "stats/podstat/last-for-namespace"
-	PAT_STATS_CHART_FOR_POD                             string = "stats/chart/for-pod"
 
 	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION string = "metrics/deployment/average-utilization"
 
@@ -362,7 +361,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_STATS_TRAFFIC_FOR_POD_LAST,        // legacy-support TODO: REMOVE
 	PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST, // legacy-support TODO: REMOVE
 	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST,  // legacy-support TODO: REMOVE
-	PAT_STATS_CHART_FOR_POD,
 
 	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION,
 

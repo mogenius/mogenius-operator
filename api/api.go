@@ -6,7 +6,6 @@ import (
 	"io"
 	dbstats "mogenius-k8s-manager/db-stats"
 	iacmanager "mogenius-k8s-manager/iac-manager"
-	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
@@ -30,7 +29,6 @@ func InitApi() {
 		mux.Handle("GET /debug/traffic", withRequestLogging(http.HandlerFunc(debugGetTraffic)))
 		mux.Handle("GET /debug/last-ns", withRequestLogging(http.HandlerFunc(debugGetLastNs)))
 		mux.Handle("GET /debug/ns", withRequestLogging(http.HandlerFunc(debugGetNs)))
-		mux.Handle("GET /debug/chart", withRequestLogging(http.HandlerFunc(debugChart)))
 		mux.Handle("GET /debug/iac", withRequestLogging(http.HandlerFunc(debugIac)))
 		mux.Handle("GET /debug/list-templates", withRequestLogging(http.HandlerFunc(debugListTemplates)))
 	}
@@ -190,20 +188,6 @@ func debugGetNs(w http.ResponseWriter, r *http.Request) {
 	err := json.NewEncoder(w).Encode(stats)
 	if err != nil {
 		httpLogger.Error("failed to json encode response", "error", err)
-	}
-}
-
-func debugChart(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	ns := query.Get("namespace")
-	podname := query.Get("podname")
-	html := services.RenderPodNetworkTreePageHtml(ns, podname)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte(html))
-	if err != nil {
-		httpLogger.Debug("failed to write response", "error", err)
-		return
 	}
 }
 
