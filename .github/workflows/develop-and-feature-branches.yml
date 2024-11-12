@@ -38,6 +38,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true          
+
   golangci:
     needs: prepare
     runs-on: [self-hosted]
@@ -59,6 +65,12 @@ jobs:
           only-new-issues: true
           args: --timeout=30m
 
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+
   staticcheck:
     needs: prepare
     runs-on: [self-hosted]
@@ -69,6 +81,12 @@ jobs:
       - name: go vet
         run: go run honnef.co/go/tools/cmd/staticcheck@2024.1.1
 
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true        
+
   govet:
     needs: prepare
     runs-on: [self-hosted]
@@ -78,6 +96,12 @@ jobs:
           go-version: stable
       - name: go vet
         run: go vet ./...
+
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true        
 
   unit-tests:
     needs: prepare
@@ -91,6 +115,12 @@ jobs:
           go mod download
           go clean -testcache
           go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -short ./...
+
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true          
 
   all-tests:
     needs: prepare
@@ -135,6 +165,12 @@ jobs:
           kubectl delete namespace mogenius
           helm uninstall external-secrets
 
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true          
+
   build-amd64:
     needs: prepare
     runs-on: [self-hosted, X64]
@@ -170,6 +206,12 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
 
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+
   build-arm64-linux:
     needs: prepare
     runs-on: [self-hosted, ARM64]
@@ -203,6 +245,12 @@ jobs:
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
+
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true          
 
   build-arm64:
     needs: prepare
@@ -238,6 +286,12 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
 
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+
   build-armv7:
     needs: prepare
     runs-on: [self-hosted, ARM64]
@@ -271,6 +325,12 @@ jobs:
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
+
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
 
   merge-images:
     if: github.ref == 'refs/heads/develop'
@@ -307,6 +367,12 @@ jobs:
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm7 \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
           docker manifest push ${{ env.IMAGE_NAME }}:latest
+
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
 
   helm-chart:
     if: github.ref == 'refs/heads/develop'

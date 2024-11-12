@@ -37,6 +37,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+
   build-amd64:
     needs: prepare
     runs-on: [self-hosted, X64]
@@ -71,6 +77,12 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
 
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
+
   build-arm64-linux:
     needs: prepare
     runs-on: [self-hosted, ARM64]
@@ -104,6 +116,12 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
 
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true          
+
   build-arm64:
     needs: prepare
     runs-on: [self-hosted, ARM64]
@@ -135,6 +153,12 @@ jobs:
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
+
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true          
 
   build-armv7:
     needs: prepare
@@ -168,6 +192,12 @@ jobs:
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
+
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true
 
   merge-images:
     if: github.ref == 'refs/heads/main'
@@ -204,6 +234,12 @@ jobs:
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm7 \
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
           docker manifest push ${{ env.IMAGE_NAME }}:latest
+
+      - name: Cleanup build folder
+        run: |
+          ls -la ./
+          rm -rf ./* || true
+          rm -rf ./.??* || true          
 
   helm-chart:
     if: github.ref == 'refs/heads/main'
