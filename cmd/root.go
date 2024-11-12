@@ -13,6 +13,7 @@ import (
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
+	"net/url"
 	"os"
 	"slices"
 	"strconv"
@@ -188,21 +189,41 @@ func initConfigDeclarations() {
 		Description:  utils.Pointer("The Namespace of mogenius platform"),
 		Envs:         []string{"OWN_NAMESPACE"},
 	})
-
-	// TODO: implement feature
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
-		Key:          "MO_API_SERVER_HTTP",
-		DefaultValue: utils.Pointer("https://platform-api.mogenius.com"),
+		Key:          "MO_API_SERVER",
+		DefaultValue: utils.Pointer("wss://k8s-ws.mogenius.com/ws"),
+		Description:  utils.Pointer("URL of API Server"),
+		Validate: func(value string) error {
+			_, err := url.Parse(value)
+			if err != nil {
+				return fmt.Errorf("'MO_API_SERVER' needs to be a URL: %s", err.Error())
+			}
+			return nil
+		},
 	})
-	// TODO: implement feature
-	cmdConfig.Declare(interfaces.ConfigDeclaration{
-		Key:          "MO_API_SERVER_WS",
-		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws"),
-	})
-	// TODO: implement feature
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_EVENT_SERVER",
-		DefaultValue: utils.Pointer("wss://127.0.0.1:8080/ws-event"),
+		DefaultValue: utils.Pointer("wss://k8s-dispatcher.mogenius.com/ws"),
+		Description:  utils.Pointer("URL of Event Server"),
+		Validate: func(value string) error {
+			_, err := url.Parse(value)
+			if err != nil {
+				return fmt.Errorf("'MO_EVENT_SERVER' needs to be a URL: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_GIT_USER_NAME",
+		DefaultValue: utils.Pointer("mogenius git-user"),
+		Description:  utils.Pointer("User name which is used when interacting with git."),
+		Envs:         []string{"git_user_name"},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_GIT_USER_EMAIL",
+		DefaultValue: utils.Pointer("git@mogenius.com"),
+		Description:  utils.Pointer("Email address which is used when interacting with git."),
+		Envs:         []string{"git_user_email"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",

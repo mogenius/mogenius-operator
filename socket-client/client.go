@@ -2,12 +2,14 @@ package socketclient
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/services"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -119,7 +121,9 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				datagram.DisplayReceiveSummary()
 
 				if isSuppressed := punqUtils.Contains(structs.SUPPRESSED_OUTPUT_PATTERN, datagram.Pattern); !isSuppressed {
-					if utils.CONFIG.Misc.Debug {
+					moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+					assert.Assert(err == nil)
+					if moDebug {
 						socketClientLogger.Info("received datagram", "datagram", datagram)
 					}
 				}

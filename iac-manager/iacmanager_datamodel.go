@@ -345,7 +345,7 @@ func PrintIacStatus() string {
 
 // CHANGED FILES
 func AddChangedFile(file ChangedFile) {
-	file.Author = utils.CONFIG.Git.GitUserName + "<" + utils.CONFIG.Git.GitUserEmail + ">"
+	file.Author = config.Get("MO_GIT_USER_NAME") + "<" + config.Get("MO_GIT_USER_EMAIL") + ">"
 	file.Timestamp = time.Now().Format(time.RFC3339)
 	// skip if already exists
 	for _, v := range changedFiles {

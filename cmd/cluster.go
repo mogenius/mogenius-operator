@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"mogenius-k8s-manager/api"
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/controllers"
 	"mogenius-k8s-manager/crds"
 	"mogenius-k8s-manager/db"
@@ -23,6 +24,7 @@ import (
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/xterm"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -62,9 +64,9 @@ var clusterCmd = &cobra.Command{
 			migrations.Setup(slogManager)
 			services.Setup(slogManager, cmdConfig)
 			servicesExternal.Setup(cmdConfig)
-			socketclient.Setup(slogManager)
+			socketclient.Setup(slogManager, cmdConfig)
 			store.Setup(slogManager)
-			structs.Setup(slogManager)
+			structs.Setup(slogManager, cmdConfig)
 			utils.Setup(slogManager, cmdConfig)
 			xterm.Setup(slogManager)
 
@@ -92,7 +94,9 @@ var clusterCmd = &cobra.Command{
 			utils.SetupClusterSecret(clusterSecret)
 			utils.SetupClusterConfigmap(clusterConfigmap)
 
-			if utils.CONFIG.Misc.Debug {
+			moDebug, err := strconv.ParseBool(cmdConfig.Get("MO_DEBUG"))
+			assert.Assert(err == nil)
+			if moDebug {
 				utils.PrintSettings()
 			}
 

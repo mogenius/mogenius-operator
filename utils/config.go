@@ -3,11 +3,13 @@ package utils
 import (
 	_ "embed"
 	"fmt"
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/version"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	punqDtos "github.com/mogenius/punq/dtos"
@@ -114,17 +116,6 @@ type Config struct {
 		LogDataPath                string `yaml:"log_data_path" env:"log_data_path" env-description:"Path to the log data."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
 	} `yaml:"kubernetes"`
-	ApiServer struct {
-		Http_Server string `yaml:"http_server" env:"api_http_server" env-description:"Server host" env-default:"https://platform-api.mogenius.com"`
-		Ws_Server   string `yaml:"ws_server" env:"api_ws_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
-		Ws_Scheme   string `yaml:"ws_server_scheme" env:"api_ws_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
-		WS_Path     string `yaml:"ws_path" env:"api_ws_path" env-description:"Server Path" env-default:"/ws"`
-	} `yaml:"api_server"`
-	EventServer struct {
-		Server string `yaml:"server" env:"event_server" env-description:"Server host" env-default:"127.0.0.1:8080"`
-		Scheme string `yaml:"scheme" env:"event_scheme" env-description:"Server host scheme. (ws/wss)" env-default:"wss"`
-		Path   string `yaml:"path" env:"event_path" env-description:"Server Path" env-default:"/ws-event"`
-	} `yaml:"event_server"`
 	Iac struct {
 		RepoUrl            string              `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url."`
 		RepoPat            string              `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat."`
@@ -142,7 +133,6 @@ type Config struct {
 	Misc struct {
 		Stage                  string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		LogIncomingStats       bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
-		Debug                  bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		DefaultMountPath       string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
 		IgnoreNamespaces       []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
 		AutoMountNfs           bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
@@ -293,7 +283,9 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// SET LOGGING
 	// setupLogging()
 
-	if CONFIG.Misc.Debug {
+	moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+	assert.Assert(err == nil)
+	if moDebug {
 		utilsLogger.Info("Starting service for pprof in localhost:6060")
 		go func() {
 			err := http.ListenAndServe("localhost:6060", nil)
@@ -400,13 +392,6 @@ func PrintSettings() {
 		"Kubernetes.BboltDbStatsPath", CONFIG.Kubernetes.BboltDbStatsPath,
 		"Kubernetes.LogDataPath", CONFIG.Kubernetes.LogDataPath,
 		"Kubernetes.LocalContainerRegistryHost", CONFIG.Kubernetes.LocalContainerRegistryHost,
-		"ApiServer.Http_Server", CONFIG.ApiServer.Http_Server,
-		"ApiServer.Ws_Server", CONFIG.ApiServer.Ws_Server,
-		"ApiServer.Ws_Scheme", CONFIG.ApiServer.Ws_Scheme,
-		"ApiServer.WS_Path", CONFIG.ApiServer.WS_Path,
-		"EventServer.Server", CONFIG.EventServer.Server,
-		"EventServer.Scheme", CONFIG.EventServer.Scheme,
-		"EventServer.Path", CONFIG.EventServer.Path,
 		"Iac.RepoUrl", CONFIG.Iac.RepoUrl,
 		"Iac.RepoPat", CONFIG.Iac.RepoPat,
 		"Iac.RepoBranch", CONFIG.Iac.RepoBranch,
@@ -421,7 +406,7 @@ func PrintSettings() {
 		"Iac.ShowDiffInLog", CONFIG.Iac.ShowDiffInLog,
 		"Misc.Stage", config.Get("MO_STAGE"),
 		"Misc.LogIncomingStats", CONFIG.Misc.LogIncomingStats,
-		"Misc.Debug", CONFIG.Misc.Debug,
+		"Misc.Debug", config.Get("MO_DEBUG"),
 		"Misc.AutoMountNfs", CONFIG.Misc.AutoMountNfs,
 		"Misc.DefaultMountPath", CONFIG.Misc.DefaultMountPath,
 		"Misc.IgnoreNamespaces", CONFIG.Misc.IgnoreNamespaces,
@@ -431,8 +416,8 @@ func PrintSettings() {
 		"Builder.BuildTimeout", CONFIG.Builder.BuildTimeout,
 		"Builder.ScanTimeout", CONFIG.Builder.ScanTimeout,
 		"Builder.MaxConcurrentBuilds", CONFIG.Builder.MaxConcurrentBuilds,
-		"Git.GitUserEmail", CONFIG.Git.GitUserEmail,
-		"Git.GitUserName", CONFIG.Git.GitUserName,
+		"Git.GitUserEmail", config.Get("MO_GIT_USER_EMAIL"),
+		"Git.GitUserName", config.Get("MO_GIT_USER_NAME"),
 		"Stats.MaxDataPoints", CONFIG.Stats.MaxDataPoints,
 	)
 }

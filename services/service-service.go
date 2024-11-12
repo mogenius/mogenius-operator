@@ -344,7 +344,14 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 					return
 				}
 
-				err = gitmanager.Commit(gitDir, []string{fmt.Sprintf(".mogenius/%s.yaml", *container.GitBranch)}, []string{}, "[skip ci]: Update infrastructure yaml.", utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+				err = gitmanager.Commit(
+					gitDir,
+					[]string{fmt.Sprintf(".mogenius/%s.yaml", *container.GitBranch)},
+					[]string{},
+					"[skip ci]: Update infrastructure yaml.",
+					config.Get("MO_GIT_USER_NAME"),
+					config.Get("MO_GIT_USER_EMAIL"),
+				)
 				if err != nil {
 					cmd.Fail(job, fmt.Sprintf("Error commiting: %s", err.Error()))
 					return

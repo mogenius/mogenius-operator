@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"mogenius-k8s-manager/assert"
 	dbstats "mogenius-k8s-manager/db-stats"
 	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
 	"mogenius-k8s-manager/version"
 	"net/http"
+	"strconv"
 
 	punq "github.com/mogenius/punq/kubernetes"
 )
@@ -24,7 +26,9 @@ func InitApi() {
 	mux.Handle("POST /podstats", withRequestLogging(http.HandlerFunc(postPodStats)))
 	mux.Handle("POST /nodestats", withRequestLogging(http.HandlerFunc(postNodeStats)))
 
-	if utils.CONFIG.Misc.Debug {
+	moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+	assert.Assert(err == nil)
+	if moDebug {
 		mux.Handle("GET /debug/sum-traffic", withRequestLogging(http.HandlerFunc(debugGetTrafficSum)))
 		mux.Handle("GET /debug/traffic", withRequestLogging(http.HandlerFunc(debugGetTraffic)))
 		mux.Handle("GET /debug/last-ns", withRequestLogging(http.HandlerFunc(debugGetLastNs)))
@@ -35,7 +39,7 @@ func InitApi() {
 
 	port := "1337"
 	httpLogger.Info("Starting API server...", "port", port)
-	err := http.ListenAndServe(":"+port, mux)
+	err = http.ListenAndServe(":"+port, mux)
 	if err != nil {
 		httpLogger.Error("failed to start api server", "error", err)
 	}
