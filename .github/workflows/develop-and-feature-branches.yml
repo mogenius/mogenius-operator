@@ -70,7 +70,8 @@ jobs:
           go-version: stable
       - name: go vet
         run: |
-          go mod tidy
+          if [ -z "$HOME" ]; then export HOME=$(mktemp -d) ; fi
+          if [ -z "$GOCACHE" ]; then export GOCACHE="${HOME}/.cache/go-build"; fi
           go run honnef.co/go/tools/cmd/staticcheck@2024.1.1      
 
   govet:
