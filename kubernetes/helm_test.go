@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"os"
 	"testing"
 
@@ -58,7 +57,7 @@ func deleteFolder(folderPath string) error {
 
 func createRepoForTest(t *testing.T) error {
 	// prerequisite configs
-	utils.CONFIG.Kubernetes.HelmDataPath = helmConfPath
+	config.Set("MO_HELM_DATA_PATH", helmConfPath)
 	err := InitHelmConfig()
 	if err != nil {
 		t.Error(err)
@@ -77,7 +76,7 @@ func createRepoForTest(t *testing.T) error {
 
 func installForTests(t *testing.T) error {
 	// prerequisite configs
-	utils.CONFIG.Kubernetes.HelmDataPath = helmConfPath
+	config.Set("MO_HELM_DATA_PATH", helmConfPath)
 	err := InitHelmConfig()
 	if err != nil {
 		t.Error(err)
@@ -99,7 +98,7 @@ func installForTests(t *testing.T) error {
 }
 
 func testSetup() error {
-	utils.CONFIG.Kubernetes.HelmDataPath = helmConfPath
+	config.Set("MO_HELM_DATA_PATH", helmConfPath)
 	err := InitHelmConfig()
 	if err != nil {
 		return err
