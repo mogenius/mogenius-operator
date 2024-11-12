@@ -37,12 +37,7 @@ jobs:
         uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true          
+        
 
   golangci:
     needs: prepare
@@ -65,11 +60,6 @@ jobs:
           only-new-issues: true
           args: --timeout=30m
 
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true
 
   staticcheck:
     needs: prepare
@@ -79,13 +69,7 @@ jobs:
         with:
           go-version: stable
       - name: go vet
-        run: go run honnef.co/go/tools/cmd/staticcheck@2024.1.1
-
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true        
+        run: go run honnef.co/go/tools/cmd/staticcheck@2024.1.1      
 
   govet:
     needs: prepare
@@ -96,12 +80,7 @@ jobs:
           go-version: stable
       - name: go vet
         run: go vet ./...
-
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true        
+      
 
   unit-tests:
     needs: prepare
@@ -115,12 +94,7 @@ jobs:
           go mod download
           go clean -testcache
           go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -short ./...
-
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true          
+         
 
   all-tests:
     needs: prepare
@@ -163,13 +137,7 @@ jobs:
         if: always()
         run: |
           kubectl delete namespace mogenius
-          helm uninstall external-secrets
-
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true          
+          helm uninstall external-secrets        
 
   build-amd64:
     needs: prepare
@@ -206,11 +174,6 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
 
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true
 
   build-arm64-linux:
     needs: prepare
@@ -245,12 +208,7 @@ jobs:
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
-
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true          
+        
 
   build-arm64:
     needs: prepare
@@ -286,12 +244,6 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
 
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true
-
   build-armv7:
     needs: prepare
     runs-on: [self-hosted, ARM64]
@@ -325,12 +277,6 @@ jobs:
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
-
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true
 
   merge-images:
     if: github.ref == 'refs/heads/develop'
@@ -368,12 +314,6 @@ jobs:
               --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
           docker manifest push ${{ env.IMAGE_NAME }}:latest
 
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true
-
   helm-chart:
     if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
@@ -408,9 +348,4 @@ jobs:
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
-
-      - name: Cleanup build folder
-        run: |
-          ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true      
+     
