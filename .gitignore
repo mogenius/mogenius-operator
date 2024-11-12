@@ -22,3 +22,4 @@ helm-data
 bin
 /log_errors.txt
 .env
+/dist
