@@ -254,8 +254,12 @@ func HelmStatus(namespace string, chartname string) release.Status {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 
+	logFn := func(msg string, args ...interface{}) {
+		helmLogger.Debug(fmt.Sprintf(msg, args))
+	}
+
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), helmLogger.Info); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), logFn); err != nil {
 		helmLogger.Error("HelmStatus Init", "error", err)
 		helmCache.Set(cacheKey, release.StatusUnknown, cacheTime)
 		return release.StatusUnknown
@@ -636,8 +640,11 @@ func filterCharts(charts []HelmChartInfo, query string) []HelmChartInfo {
 func HelmChartShow(data HelmChartShowRequest) (string, error) {
 	settings := NewCli()
 
+	logFn := func(msg string, args ...interface{}) {
+		helmLogger.Debug(fmt.Sprintf(msg, args))
+	}
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), "", os.Getenv("HELM_DRIVER"), helmLogger.Info); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), "", os.Getenv("HELM_DRIVER"), logFn); err != nil {
 		helmLogger.Error("HelmChartShow Init", "error", err)
 		return "", err
 	}
