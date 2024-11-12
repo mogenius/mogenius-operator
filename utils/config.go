@@ -3,11 +3,13 @@ package utils
 import (
 	_ "embed"
 	"fmt"
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/version"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	punqDtos "github.com/mogenius/punq/dtos"
@@ -131,7 +133,6 @@ type Config struct {
 	Misc struct {
 		Stage                  string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		LogIncomingStats       bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
-		Debug                  bool     `yaml:"debug" env:"debug" env-description:"If set to true, debug features will be enabled." env-default:"false"`
 		DefaultMountPath       string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
 		IgnoreNamespaces       []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
 		AutoMountNfs           bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
@@ -282,7 +283,9 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	// SET LOGGING
 	// setupLogging()
 
-	if CONFIG.Misc.Debug {
+	moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+	assert.Assert(err == nil)
+	if moDebug {
 		utilsLogger.Info("Starting service for pprof in localhost:6060")
 		go func() {
 			err := http.ListenAndServe("localhost:6060", nil)
@@ -403,7 +406,7 @@ func PrintSettings() {
 		"Iac.ShowDiffInLog", CONFIG.Iac.ShowDiffInLog,
 		"Misc.Stage", config.Get("MO_STAGE"),
 		"Misc.LogIncomingStats", CONFIG.Misc.LogIncomingStats,
-		"Misc.Debug", CONFIG.Misc.Debug,
+		"Misc.Debug", config.Get("MO_DEBUG"),
 		"Misc.AutoMountNfs", CONFIG.Misc.AutoMountNfs,
 		"Misc.DefaultMountPath", CONFIG.Misc.DefaultMountPath,
 		"Misc.IgnoreNamespaces", CONFIG.Misc.IgnoreNamespaces,
@@ -413,8 +416,8 @@ func PrintSettings() {
 		"Builder.BuildTimeout", CONFIG.Builder.BuildTimeout,
 		"Builder.ScanTimeout", CONFIG.Builder.ScanTimeout,
 		"Builder.MaxConcurrentBuilds", CONFIG.Builder.MaxConcurrentBuilds,
-		"Git.GitUserEmail", CONFIG.Git.GitUserEmail,
-		"Git.GitUserName", CONFIG.Git.GitUserName,
+		"Git.GitUserEmail", config.Get("MO_GIT_USER_EMAIL"),
+		"Git.GitUserName", config.Get("MO_GIT_USER_NAME"),
 		"Stats.MaxDataPoints", CONFIG.Stats.MaxDataPoints,
 	)
 }

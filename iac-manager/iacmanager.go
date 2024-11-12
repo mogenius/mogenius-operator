@@ -208,7 +208,14 @@ func initializeRemoteBranch(remoteRepoUrl string, localRepoPath string, branchNa
 		return err
 	}
 
-	err = gitmanager.Commit(localRepoPath, []string{}, []string{}, "init", utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+	err = gitmanager.Commit(
+		localRepoPath,
+		[]string{},
+		[]string{},
+		"init",
+		config.Get("MO_GIT_USER_NAME"),
+		config.Get("MO_GIT_USER_EMAIL"),
+	)
 	if err != nil {
 		iacLogger.Error("Error creating initial commit", "error", err)
 		return err
@@ -372,7 +379,7 @@ func WriteResourceYaml(kind string, namespace string, resourceName string, dataI
 
 	if diff != "" {
 		AddChangedFile(ChangedFile{
-			Author:     utils.CONFIG.Git.GitUserName + " <" + utils.CONFIG.Git.GitUserEmail + ">",
+			Author:     config.Get("MO_GIT_USER_NAME") + " <" + config.Get("MO_GIT_USER_EMAIL") + ">",
 			Kind:       kind,
 			Name:       resourceName,
 			Path:       gitFilePath,
@@ -715,7 +722,14 @@ func ResetFile(filePath, commitHash string) error {
 		return err
 	}
 
-	err = gitmanager.Commit(utils.CONFIG.Kubernetes.GitVaultDataPath, []string{filePath}, []string{}, fmt.Sprintf("Reset [%s] %s to %s.", kind, name, commitHash), utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+	err = gitmanager.Commit(
+		utils.CONFIG.Kubernetes.GitVaultDataPath,
+		[]string{filePath},
+		[]string{},
+		fmt.Sprintf("Reset [%s] %s to %s.", kind, name, commitHash),
+		config.Get("MO_GIT_USER_NAME"),
+		config.Get("MO_GIT_USER_EMAIL"),
+	)
 	if err != nil {
 		iacLogger.Error("Error committing reset", "error", err)
 		return err
@@ -802,7 +816,14 @@ func pushChanges() error {
 		}
 		commitMsg += file.Message + "\n"
 	}
-	err := gitmanager.Commit(utils.CONFIG.Kubernetes.GitVaultDataPath, updatedOrAddedFiles, deletedFiles, commitMsg, utils.CONFIG.Git.GitUserName, utils.CONFIG.Git.GitUserEmail)
+	err := gitmanager.Commit(
+		utils.CONFIG.Kubernetes.GitVaultDataPath,
+		updatedOrAddedFiles,
+		deletedFiles,
+		commitMsg,
+		config.Get("MO_GIT_USER_NAME"),
+		config.Get("MO_GIT_USER_EMAIL"),
+	)
 	if err != nil {
 		return fmt.Errorf("Error running git commit: %s", err.Error())
 	}

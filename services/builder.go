@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/db"
 	"mogenius-k8s-manager/dtos"
 	"mogenius-k8s-manager/gitmanager"
@@ -13,6 +14,7 @@ import (
 	"mogenius-k8s-manager/xterm"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -114,9 +116,12 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	pwd, _ := os.Getwd()
 	workingDir := fmt.Sprintf("%s/temp/%s", pwd, punqUtils.NanoId())
 
+	moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+	assert.Assert(err == nil)
+
 	defer func() {
 		// reset everything if done
-		if !utils.CONFIG.Misc.Debug {
+		if !moDebug {
 			err := executeCmd(job, nil, db.PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
 			if err != nil {
 				serviceLogger.Error("Error cleaning up prefix", "error", err)
@@ -130,7 +135,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	_, tagName, latestTagName := db.ImageNamesFromBuildJob(*buildJob)
 
 	// CLEANUP
-	if !utils.CONFIG.Misc.Debug {
+	if !moDebug {
 		err := executeCmd(job, nil, db.PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
 		if err != nil {
 			serviceLogger.Error("Error cleaning up prefix", "error", err)
@@ -139,7 +144,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// CLONE
 	cloneCmd := structs.CreateCommand(string(structs.PrefixGitClone), "Clone repository", job)
-	err := gitmanager.CloneFast(*container.GitRepository, workingDir, *container.GitBranch)
+	err = gitmanager.CloneFast(*container.GitRepository, workingDir, *container.GitBranch)
 	cloneCmd.Success(job, cloneCmd.Message)
 	if err != nil {
 		serviceLogger.Error("failed to git clone", "error", err)
@@ -479,7 +484,10 @@ func executeCmd(job *structs.Job, reportCmd *structs.Command, prefix structs.Bui
 			return waitErr
 		}
 	}
-	if utils.CONFIG.Misc.Debug && buildJob != nil {
+
+	moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+	assert.Assert(err == nil)
+	if moDebug && buildJob != nil {
 		elapsedTime := time.Since(startTime)
 		buildJob.DurationMs = int(elapsedTime.Milliseconds()) + buildJob.DurationMs
 		serviceLogger.Info("build info",
