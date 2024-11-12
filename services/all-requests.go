@@ -351,14 +351,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return dbstats.GetTrafficStatsEntriesSumForNamespace(data.Namespace)
 
-	case structs.PAT_STATS_CHART_FOR_POD:
-		data := ChartPodDataRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return RenderPodNetworkTreePageJson(data.Namespace, data.PodName)
-
 	case structs.PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION:
 		data := kubernetes.K8sController{}
 		data.Kind = "Deployment"
