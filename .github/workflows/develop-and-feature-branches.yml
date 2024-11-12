@@ -87,6 +87,8 @@ jobs:
           go-version: stable
       - name: go vet
         run: |
+          ls -lisa
+          ls -la ../
           if [ -z "$HOME" ]; then export HOME=$(mktemp -d) ; fi
           if [ -z "$GOCACHE" ]; then export GOCACHE="${HOME}/.cache/go-build"; fi
           go vet ./...
