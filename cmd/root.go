@@ -6,12 +6,14 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/assert"
 	"mogenius-k8s-manager/config"
 	"mogenius-k8s-manager/interfaces"
 	mokubernetes "mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/utils"
+	"os"
 	"slices"
 	"strconv"
 
@@ -29,6 +31,8 @@ type rootCmdConfig struct {
 	debug        bool
 	customConfig string
 }
+
+const defaultLogDir string = "logs"
 
 var rootConfig rootCmdConfig
 
@@ -89,20 +93,26 @@ func Execute() {
 }
 
 func init() {
-	initLogger()
-	initConfig()
-	rootCmd.PersistentFlags().BoolVarP(&rootConfig.resetConfig, "reset-config", "k", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
-	rootCmd.PersistentFlags().StringVarP(&rootConfig.customConfig, "config", "y", "", "Use config from custom location")
-}
-
-func initLogger() {
-	slogManager = logging.NewSlogManager("logs")
+	//===============================================================
+	//====================== Initialize Logger ======================
+	//===============================================================
+	// Since the ConfigModule is initialized AFTER the LoggingModule
+	// this is an edge case. We have to directly access the MO_LOG_DIR
+	// variable. For documentation purposes there is also a key in the
+	// ConfigModule which loads the same ENV variable.
+	logDir := defaultLogDir
+	if path := os.Getenv("MO_LOG_DIR"); path != "" {
+		logDir = path
+	}
+	slogManager = logging.NewSlogManager(logDir)
 	cmdLogger = slogManager.CreateLogger("cmd")
 	klogLogger = slogManager.CreateLogger("klog")
 	klog.SetSlogLogger(klogLogger)
-}
 
-func initConfig() {
+	//===============================================================
+	//====================== Initialize Config ======================
+	//===============================================================
+	assert.Assert(slogManager != nil, "slogManager has to be initialized before cmdConfig")
 	cmdConfig = config.NewConfig()
 	cmdConfig.WithCobraCmd(rootCmd)
 	cmdConfig.OnAfterChange(func(key string, value string, isSecret bool) {
@@ -121,7 +131,23 @@ func initConfig() {
 			}
 		}
 	})
+	initConfigDeclarations()
 
+	//===============================================================
+	//========================== Post Init ==========================
+	//===============================================================
+	// The value of "MO_LOG_DIR" is explicitly requested once to silence
+	// the warning of being unused. Due to initialization order the
+	// logger directly requests os.Getenv("MO_LOG_DIR") for the value.
+	_, err := cmdConfig.TryGet("MO_LOG_DIR")
+	assert.Assert(err == nil, "MO_LOG_DIR has to be declared before it is requested.")
+
+	rootCmd.PersistentFlags().BoolVarP(&rootConfig.resetConfig, "reset-config", "k", false, "Reset Config YAML File '~/.mogenius-k8s-manager/config.yaml'.")
+	rootCmd.PersistentFlags().StringVarP(&rootConfig.customConfig, "config", "y", "", "Use config from custom location")
+}
+
+func initConfigDeclarations() {
+	assert.Assert(cmdConfig != nil, "This has to be called **after** initializing `cmdConfig`")
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:         "MO_API_KEY",
 		Description: utils.Pointer("Api Key to access the server"),
@@ -200,6 +226,12 @@ func initConfig() {
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "log-filter",
 		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_LOG_DIR",
+		DefaultValue: utils.Pointer(defaultLogDir),
+		Description:  utils.Pointer(`Path in which logs are stored in the filesystem`),
+		ReadOnly:     true,
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_DEBUG",

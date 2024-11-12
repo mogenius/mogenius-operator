@@ -225,6 +225,10 @@ func (c *Config) set(key string, value string) error {
 		return fmt.Errorf("key '%s' has to be declared before a value can be set", key)
 	}
 
+	if cv.declaration.ReadOnly {
+		return fmt.Errorf("tried to set config value for Read-Only key: %s", key)
+	}
+
 	if cv.declaration.Validate != nil {
 		err := cv.declaration.Validate(value)
 		if err != nil {
