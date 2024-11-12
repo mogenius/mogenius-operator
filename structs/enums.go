@@ -248,17 +248,18 @@ const (
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Labeled Network Policies
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	PAT_ATTACH_LABELED_NETWORK_POLICY       string = "attach/labeled_network_policy"
-	PAT_DETACH_LABELED_NETWORK_POLICY       string = "detach/labeled_network_policy"
-	PAT_LIST_LABELED_NETWORK_POLICY_PORTS   string = "list/labeled_network_policy_ports"
-	PAT_LIST_CONFLICTING_NETWORK_POLICIES   string = "list/conflicting_network_policies"
-	PAT_LIST_CONTROLLER_NETWORK_POLICIES    string = "list/controller_network_policies"
-	PAT_REMOVE_CONFLICTING_NETWORK_POLICIES string = "remove/conflicting_network_policies"
-	PAT_UPDATE_NETWORK_POLICIES_TEMPLATE    string = "update/network_policies_template"
-	PAT_LIST_ALL_NETWORK_POLICIES           string = "list/all_network_policies"
-	PAT_LIST_NAMESPACE_NETWORK_POLICIES     string = "list/namespace_network_policies"
-	PAT_ENFORCE_NETWORK_POLICY_MANAGER      string = "enforce/network_policy_manager"
-	PAT_REMOVE_UNMANAGED_NETWORK_POLICIES   string = "remove/unmanaged_network_policies"
+	PAT_ATTACH_LABELED_NETWORK_POLICY        string = "attach/labeled_network_policy"
+	PAT_DETACH_LABELED_NETWORK_POLICY        string = "detach/labeled_network_policy"
+	PAT_LIST_LABELED_NETWORK_POLICY_PORTS    string = "list/labeled_network_policy_ports"
+	PAT_LIST_CONFLICTING_NETWORK_POLICIES    string = "list/conflicting_network_policies"
+	PAT_LIST_CONTROLLER_NETWORK_POLICIES     string = "list/controller_network_policies"
+	PAT_REMOVE_CONFLICTING_NETWORK_POLICIES  string = "remove/conflicting_network_policies"
+	PAT_UPDATE_NETWORK_POLICIES_TEMPLATE     string = "update/network_policies_template"
+	PAT_LIST_ALL_NETWORK_POLICIES            string = "list/all_network_policies"
+	PAT_LIST_NAMESPACE_NETWORK_POLICIES      string = "list/namespace_network_policies"
+	PAT_ENFORCE_NETWORK_POLICY_MANAGER       string = "enforce/network_policy_manager"
+	PAT_REMOVE_UNMANAGED_NETWORK_POLICIES    string = "remove/unmanaged_network_policies"
+	PAT_LIST_ONLY_NAMESPACE_NETWORK_POLICIES string = "list/only_namespace_network_policies"
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -487,6 +488,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_LIST_NAMESPACE_NETWORK_POLICIES,
 	PAT_ENFORCE_NETWORK_POLICY_MANAGER,
 	PAT_REMOVE_UNMANAGED_NETWORK_POLICIES,
+	PAT_LIST_ONLY_NAMESPACE_NETWORK_POLICIES,
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Cronjobs
