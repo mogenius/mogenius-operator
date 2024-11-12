@@ -15,6 +15,7 @@ import (
 	"mogenius-k8s-manager/utils"
 	"net/url"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 
@@ -146,6 +147,10 @@ func init() {
 }
 
 func initConfigDeclarations() {
+	workDir, err := os.Getwd()
+	if err != nil {
+		panic(fmt.Errorf("failed to get current workdir: %s", err.Error()))
+	}
 	assert.Assert(cmdConfig != nil, "This has to be called **after** initializing `cmdConfig`")
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:         "MO_API_KEY",
@@ -223,6 +228,12 @@ func initConfigDeclarations() {
 			}
 			return nil
 		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_HELM_DATA_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(workDir, "helm-data")),
+		Description:  utils.Pointer("Path to the Helm data"),
+		Envs:         []string{"helm_data_path"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",

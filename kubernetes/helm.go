@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/shutdown"
 	"mogenius-k8s-manager/structs"
-	"mogenius-k8s-manager/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -308,12 +307,12 @@ func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 
 func InitHelmConfig() error {
 	// Set the registryConfig, repositoryConfig and repositoryCache variables
-	registryConfig = fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_REGISTRY_CONFIG_FILE)
-	repositoryConfig = fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_REPOSITORY_CONFIG_FILE)
-	repositoryCache = fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_REPOSITORY_CACHE_FOLDER)
+	registryConfig = fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_REGISTRY_CONFIG_FILE)
+	repositoryConfig = fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CONFIG_FILE)
+	repositoryCache = fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CACHE_FOLDER)
 
 	// Set the HELM_HOME environment variable
-	path := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_DATA_HOME)
+	path := fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME)
 
 	// create helm home directory if it does not exist
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -335,7 +334,7 @@ func InitHelmConfig() error {
 		}
 
 		// create plugins directory if it does not exist
-		pluginsFolder := fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_PLUGINS)
+		pluginsFolder := fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_PLUGINS)
 		if _, err := os.Stat(pluginsFolder); os.IsNotExist(err) {
 			err := os.MkdirAll(pluginsFolder, 0755)
 			if err != nil {
@@ -345,10 +344,10 @@ func InitHelmConfig() error {
 			helmLogger.Info("Helm plugins directory created successfully", "path", pluginsFolder)
 		}
 	}
-	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_CACHE_HOME))
-	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_CONFIG_HOME))
-	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_DATA_HOME))
-	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", utils.CONFIG.Kubernetes.HelmDataPath, HELM_PLUGINS))
+	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CACHE_HOME))
+	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CONFIG_HOME))
+	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME))
+	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_PLUGINS))
 	os.Setenv("HELM_REGISTRY_CONFIG", registryConfig)
 	os.Setenv("HELM_REPOSITORY_CACHE", repositoryCache)
 	os.Setenv("HELM_REPOSITORY_CONFIG", repositoryConfig)
