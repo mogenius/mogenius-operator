@@ -183,9 +183,10 @@ func initConfigDeclarations() {
 		Validate: func(val string) error {
 			allowedStages := []string{
 				"prod",
-				"stage",
+				"pre-prod",
 				"dev",
-				"", // empty skips the the override hook which allows to directly provide MO_API_SERVER and MO_EVENT_SERVER
+				"local",
+				"", // empty to skip overrides
 			}
 			if !slices.Contains(allowedStages, val) {
 				return fmt.Errorf("'MO_STAGE' needs to be one of '%v' but is '%s'", allowedStages, val)
@@ -288,11 +289,16 @@ func applyStageOverrides() {
 	case "prod":
 		cmdConfig.Set("MO_API_SERVER", "wss://k8s-ws.mogenius.com/ws")
 		cmdConfig.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.mogenius.com/ws")
+	case "pre-prod":
+		cmdConfig.Set("MO_API_SERVER", "wss://k8s-ws.pre-prod.mogenius.com/ws")
+		cmdConfig.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.pre-prod.mogenius.com/ws")
 	case "dev":
 		cmdConfig.Set("MO_API_SERVER", "wss://k8s-ws.dev.mogenius.com/ws")
 		cmdConfig.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.dev.mogenius.com/ws")
 	case "local":
-		cmdConfig.Set("MO_API_SERVER", "wss://127.0.0.1:8080/ws")
-		cmdConfig.Set("MO_EVENT_SERVER", "wss://127.0.0.1:8080/ws-event")
+		cmdConfig.Set("MO_API_SERVER", "ws://127.0.0.1:8080/ws")
+		cmdConfig.Set("MO_EVENT_SERVER", "ws://127.0.0.1:8080/ws")
+	case "":
+		// does not override
 	}
 }
