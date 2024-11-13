@@ -12,12 +12,14 @@ import (
 
 // compile time check
 func TestSlogManagerAdheresToLogManagerInterface(t *testing.T) {
+	t.Parallel()
 	c := config.NewConfig()
 	testfunc := func(w interfaces.ConfigModule) {}
 	testfunc(c) // this checks if the typesystem allows to call it
 }
 
 func TestSetUndeclaredValue(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	c := config.NewConfig()
@@ -26,6 +28,7 @@ func TestSetUndeclaredValue(t *testing.T) {
 }
 
 func TestTrySetUndeclaredValue(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	c := config.NewConfig()
@@ -35,6 +38,7 @@ func TestTrySetUndeclaredValue(t *testing.T) {
 }
 
 func TestGetUndeclaredPanics(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	c := config.NewConfig()
@@ -43,6 +47,7 @@ func TestGetUndeclaredPanics(t *testing.T) {
 }
 
 func TestTryGetUndeclaredPanics(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	c := config.NewConfig()
@@ -53,6 +58,7 @@ func TestTryGetUndeclaredPanics(t *testing.T) {
 }
 
 func TestGetUninitializedPanics(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	c := config.NewConfig()
@@ -64,6 +70,7 @@ func TestGetUninitializedPanics(t *testing.T) {
 }
 
 func TestCallbackWorks(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	callbackCallCounter := 0
@@ -91,6 +98,7 @@ func TestCallbackWorks(t *testing.T) {
 }
 
 func TestSetAndGetMultiple(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	c := config.NewConfig()
@@ -113,6 +121,7 @@ func TestSetAndGetMultiple(t *testing.T) {
 }
 
 func TestUsageSummaryEmpty(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	c := config.NewConfig()
@@ -122,6 +131,7 @@ func TestUsageSummaryEmpty(t *testing.T) {
 }
 
 func TestUsageSummaryUninitialized(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	c := config.NewConfig()
@@ -137,6 +147,7 @@ func TestUsageSummaryUninitialized(t *testing.T) {
 }
 
 func TestUsageSummaryWorks(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	c := config.NewConfig()

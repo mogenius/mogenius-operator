@@ -9,9 +9,6 @@ import (
 )
 
 func TestEnvironment(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	name := "test"
 	namespace := "default"
 	newEnvironmentName := name + punqUtils.NanoIdSmallLowerCase()

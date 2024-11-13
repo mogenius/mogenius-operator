@@ -26,11 +26,7 @@ func externalSecretListExample() kubernetes.ExternalSecretListProps {
 }
 
 func TestSecretListRender(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
@@ -77,11 +73,7 @@ type YamlDataList struct {
 }
 
 func TestCreateExternalSecretList(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{

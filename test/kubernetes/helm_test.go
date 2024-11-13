@@ -107,11 +107,7 @@ func testSetup() error {
 }
 
 func TestHelmRepoAdd(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
@@ -145,11 +141,7 @@ func TestHelmRepoAdd(t *testing.T) {
 }
 
 func TestHelmRepoUpdate(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
@@ -171,11 +163,7 @@ func TestHelmRepoUpdate(t *testing.T) {
 }
 
 func TestHelmRepoList(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
@@ -214,11 +202,7 @@ func TestHelmRepoList(t *testing.T) {
 }
 
 func TestHelmInstallRequest(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
@@ -249,11 +233,7 @@ func TestHelmInstallRequest(t *testing.T) {
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
@@ -293,11 +273,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 }
 
 func TestHelmListRequest(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
@@ -344,11 +320,7 @@ func TestHelmListRequest(t *testing.T) {
 }
 
 func TestHelmReleases(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{

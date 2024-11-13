@@ -9,7 +9,8 @@ import (
 )
 
 func TestUtilsUtils(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager()
+	t.Parallel()
+	logManager := interfaces.NewMockSlogManager(t)
 	configModule := config.NewConfig()
 	utils.Setup(logManager, configModule)
 
