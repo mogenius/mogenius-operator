@@ -4,26 +4,26 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/config"
 	"mogenius-k8s-manager/interfaces"
-	"mogenius-k8s-manager/logging"
 	"mogenius-k8s-manager/utils"
 	"testing"
 )
 
 func TestUtilsUtils(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-	logManager := logging.NewSlogManager("/tmp/TestUtilsUtils")
+	logManager := interfaces.NewMockSlogManager()
 	configModule := config.NewConfig()
 	utils.Setup(logManager, configModule)
+
 	testSecret := "myLittleTestSecret ;-)"
 	testEncryptionKey := "testEncryptionKey"
-	encryptedTestStringOk := "mj7mD+eJA+MNKU9ftuPdpmxNH0V+8c9Gwk7HXuRhSZZapEsSZyIw+Wz/qitFPzLG"               // Encrypted string "myLittleTestSecret ;-)" using key "testEncryptionKey"
-	encryptedTestStringMessedUp := "mj7mD+eJA+MNKU9ftuPdpmxNH0V+8c9GwkXXXXXXXX7HXuRhSZZapEsSZyIw+Wz/qitFPzLG" // Encrypted string modified and by that invalid
 	configModule.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_API_KEY",
 		DefaultValue: &testEncryptionKey,
 	})
+
+	// Encrypted string "myLittleTestSecret ;-)" using key "testEncryptionKey"
+	encryptedTestStringOk := "mj7mD+eJA+MNKU9ftuPdpmxNH0V+8c9Gwk7HXuRhSZZapEsSZyIw+Wz/qitFPzLG"
+	// Encrypted string modified and by that invalid
+	encryptedTestStringMessedUp := "mj7mD+eJA+MNKU9ftuPdpmxNH0V+8c9GwkXXXXXXXX7HXuRhSZZapEsSZyIw+Wz/qitFPzLG"
 
 	// ENCRYPT
 	encryptedStr, err := utils.EncryptString(testEncryptionKey, testSecret)

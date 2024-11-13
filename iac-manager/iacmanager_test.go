@@ -1,7 +1,8 @@
-package iacmanager
+package iacmanager_test
 
 import (
 	"fmt"
+	iacmanager "mogenius-k8s-manager/iac-manager"
 	"mogenius-k8s-manager/utils"
 	"os"
 	"testing"
@@ -13,7 +14,7 @@ func TestIacManager(t *testing.T) {
 	}
 	utils.InitConfigSimple(utils.STAGE_DEV)
 
-	InitDataModel()
+	iacmanager.InitDataModel()
 
 	// SETUP TEST REPO
 	utils.CONFIG.Iac.RepoUrl = "https://github.com/mogenius/docs.git"
@@ -23,14 +24,14 @@ func TestIacManager(t *testing.T) {
 	utils.CONFIG.Iac.SyncFrequencyInSec = 10
 	utils.CONFIG.Kubernetes.GitVaultDataPath = os.TempDir()
 
-	err := gitInitRepo()
+	err := iacmanager.GitInitRepo()
 	if err != nil {
 		t.Errorf("Error initializing git repo: %v", err)
 	} else {
 		t.Log("Repo initialized ✅")
 	}
 
-	data := PrintIacStatus()
+	data := iacmanager.PrintIacStatus()
 	if len(data) < 100 {
 		t.Errorf("Error getting IAC status")
 	} else {
@@ -46,7 +47,7 @@ func TestIacManager(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating example configmap: %s", err.Error())
 	}
-	diff, err := createDiffFromFile(exampleConfigmapYaml, tempPath, "bla")
+	diff, err := iacmanager.CreateDiffFromFile(exampleConfigmapYaml, tempPath, "bla")
 	if err != nil {
 		t.Errorf("Error creating diff: %v", err)
 	} else {

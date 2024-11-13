@@ -1,11 +1,19 @@
-package kubernetes
+package kubernetes_test
 
 import (
 	"context"
+	"mogenius-k8s-manager/config"
 	"mogenius-k8s-manager/dtos"
+	"mogenius-k8s-manager/interfaces"
+	"mogenius-k8s-manager/kubernetes"
+	"mogenius-k8s-manager/store"
+	"mogenius-k8s-manager/utils"
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
+	v1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -29,18 +37,66 @@ var labelPolicy2 = dtos.K8sLabeledNetworkPolicyDto{
 	PortType: dtos.PortTypeUDP,
 }
 
+func createNginxDeployment() *v1.Deployment {
+	replicas := int32(1)
+	labels := map[string]string{
+		"app": "nginx",
+	}
+
+	return &v1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nginx-deployment",
+		},
+		Spec: v1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "nginx",
+							Image: "nginx:latest",
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	var namespaceName = "mogenius"
 
-	err := EnsureLabeledNetworkPolicy(namespaceName, labelPolicy1)
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_OWN_NAMESPACE",
+		DefaultValue: utils.Pointer("mogenius"),
+	})
+
+	err := kubernetes.EnsureLabeledNetworkPolicy("default", labelPolicy1)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
 
-	err = EnsureLabeledNetworkPolicy(namespaceName, labelPolicy2)
+	err = kubernetes.EnsureLabeledNetworkPolicy("default", labelPolicy2)
 	if err != nil {
 		t.Errorf("Error creating network policy: %s", err.Error())
 	}
@@ -50,7 +106,12 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	err := InitNetworkPolicyConfigMap()
+
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+
+	err := kubernetes.InitNetworkPolicyConfigMap()
 	if err != nil {
 		t.Errorf("Error initializing network policy config map: %s", err.Error())
 	}
@@ -60,7 +121,16 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	ports, err := ReadNetworkPolicyPorts()
+
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_OWN_NAMESPACE",
+		DefaultValue: utils.Pointer("mogenius"),
+	})
+
+	ports, err := kubernetes.ReadNetworkPolicyPorts()
 	if err != nil {
 		t.Errorf("Error reading network policy ports: %s", err.Error())
 	}
@@ -90,7 +160,7 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()
 
-	client := GetAppClient()
+	client := kubernetes.GetAppClient()
 	_, err := client.Deployments(namespaceName).Create(context.TODO(), exampleDeploy, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		t.Errorf("Error creating deployment: %s", err.Error())
@@ -107,7 +177,7 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	}()
 
 	// attach network policy
-	err = AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy1})
+	err = kubernetes.AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy1})
 	if err != nil {
 		t.Errorf("Error attaching network policy: %s", err.Error())
 	}
@@ -117,7 +187,7 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// detach network policy
-	err = DetachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)
+	err = kubernetes.DetachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)
 	if err != nil {
 		t.Errorf("Error detaching network policy: %s", err.Error())
 	}
@@ -127,7 +197,8 @@ func TestListAllConflictingNetworkPolicies(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	list, err := ListAllConflictingNetworkPolicies("mogenius")
+	store.Start()
+	list, err := kubernetes.ListAllConflictingNetworkPolicies("mogenius")
 	if err != nil {
 		t.Errorf("Error listing conflicting network policies: %s", err.Error())
 	}
@@ -140,7 +211,7 @@ func TestRemoveAllNetworkPolicies(t *testing.T) {
 	}
 	t.Skip("skipping this test for manual testing")
 
-	err := RemoveAllConflictingNetworkPolicies("mogenius")
+	err := kubernetes.RemoveAllConflictingNetworkPolicies("mogenius")
 	if err != nil {
 		t.Error(err)
 	}
@@ -150,7 +221,12 @@ func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	err := CleanupLabeledNetworkPolicies("mogenius")
+
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+
+	err := kubernetes.CleanupLabeledNetworkPolicies("mogenius")
 	if err != nil {
 		t.Errorf("Error TestCleanupMogeniusNetworkPolicies: %s", err.Error())
 	}
@@ -162,10 +238,14 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	}
 	var namespaceName = "mogenius"
 
+	logManager := interfaces.NewMockSlogManager()
+	store.Setup(logManager)
+	store.Start()
+
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()
 
-	client := GetAppClient()
+	client := kubernetes.GetAppClient()
 	_, err := client.Deployments(namespaceName).Create(context.TODO(), exampleDeploy, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		t.Errorf("Error creating deployment: %s", err.Error())
@@ -181,7 +261,7 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	}()
 
 	// attach network policy
-	err = AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy1})
+	err = kubernetes.AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy1})
 	if err != nil {
 		t.Errorf("Error attaching network policy: %s", err.Error())
 	}
@@ -191,12 +271,12 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	// attach network policy
-	err = AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy2})
+	err = kubernetes.AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy2})
 	if err != nil {
 		t.Errorf("Error attaching network policy: %s", err.Error())
 	}
 
-	list, err := ListControllerLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName)
+	list, err := kubernetes.ListControllerLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName)
 	if err != nil {
 		t.Errorf("Error listing conflicting network policies: %s", err.Error())
 	}
@@ -207,13 +287,16 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	var namespaceName = "mogenius"
 
-	err := DeleteNetworkPolicy(namespaceName, getNetworkPolicyName(labelPolicy1))
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+
+	err := kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy1))
 	if err != nil {
 		t.Errorf("Error deleting network policy: %s. %s", PolicyName1, err.Error())
 	}
-	err = DeleteNetworkPolicy(namespaceName, getNetworkPolicyName(labelPolicy2))
+	err = kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy2))
 	if err != nil {
 		t.Errorf("Error deleting network policy: %s. %s", PolicyName2, err.Error())
 	}

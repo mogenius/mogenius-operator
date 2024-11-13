@@ -56,18 +56,9 @@ type ExternalSecretListProps struct {
 	SecretPath      string
 }
 
-func externalSecretListExample() ExternalSecretListProps {
-	return ExternalSecretListProps{
-		NamePrefix:      "fsd87fdh",
-		SecretName:      "database-credentials",
-		SecretStoreName: "fsd87fdh" + utils.SecretStoreSuffix,
-		SecretPath:      "mogenius-external-secrets/data/team-blue",
-	}
-}
-
 func CreateExternalSecretList(props ExternalSecretListProps) error {
 	return ApplyResource(
-		renderExternalSecretList(
+		RenderExternalSecretList(
 			utils.InitExternalSecretListYaml(),
 			props,
 		),
@@ -197,7 +188,7 @@ func DeleteExternalSecret(name string) error {
 	)
 }
 
-func renderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {
+func RenderExternalSecretList(yamlTemplateString string, props ExternalSecretListProps) string {
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAME>", utils.GetSecretListName(props.NamePrefix))
 	// the list of all available secrets for a project is only ever read by the operator
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<NAMESPACE>", config.Get("MO_OWN_NAMESPACE"))

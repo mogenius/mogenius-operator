@@ -1,6 +1,9 @@
-package kubernetes
+package kubernetes_test
 
 import (
+	"mogenius-k8s-manager/config"
+	"mogenius-k8s-manager/interfaces"
+	"mogenius-k8s-manager/kubernetes"
 	"testing"
 )
 
@@ -9,6 +12,11 @@ func TestCustomResource(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
+
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+
 	yamlData := `apiVersion: v1
 kind: Pod
 metadata:
@@ -20,43 +28,33 @@ spec:
     command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
 `
 	// CREATE
-	err := ApplyResource(yamlData, false)
+	err := kubernetes.ApplyResource(yamlData, false)
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resource applied ✅")
 	}
 
 	// UPDATE (same resource), on second call the update client call is tested
-	err = ApplyResource(yamlData, false)
+	err = kubernetes.ApplyResource(yamlData, false)
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resource updated ✅")
 	}
 
 	// GET
-	_, err = GetResource("", "v1", "Pods", "mypod", "default", false)
+	_, err = kubernetes.GetResource("", "v1", "Pods", "mypod", "default", false)
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resource retrieved ✅")
 	}
 
 	// LIST
-	_, err = ListResources("", "v1", "Pods", "default", false)
+	_, err = kubernetes.ListResources("", "v1", "Pods", "default", false)
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resources listed ✅")
 	}
 
 	// DELETE
-	err = DeleteResource("", "v1", "Pods", "mypod", "default", false)
+	err = kubernetes.DeleteResource("", "v1", "Pods", "mypod", "default", false)
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resource deleted ✅")
 	}
 }
 
@@ -66,6 +64,11 @@ func TestSecretStoreResource(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
+
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+
 	yamlData := `apiVersion: external-secrets.io/v1beta1
 kind: ClusterSecretStore
 metadata:
@@ -83,52 +86,42 @@ spec:
             name: "external-secrets-sa"
 `
 	// prereq:
-	err := ApplyServiceAccount("external-secrets-sa", "default", nil)
+	err := kubernetes.ApplyServiceAccount("external-secrets-sa", "default", nil)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// CREATE
-	err = ApplyResource(yamlData, true)
+	err = kubernetes.ApplyResource(yamlData, true)
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resource applied ✅")
 	}
 
 	// UPDATE (same resource), on second call the update client call is tested
-	err = ApplyResource(yamlData, true)
+	err = kubernetes.ApplyResource(yamlData, true)
 	if err != nil {
 		t.Errorf("Error applying resource: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resource updated ✅")
 	}
 
 	// LIST
-	_, err = ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
+	_, err = kubernetes.ListResources("external-secrets.io", "v1beta1", "clustersecretstores", "", true)
 	if err != nil {
 		t.Errorf("Error listing resources: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resources listed ✅")
 	}
 
 	// GET
-	_, err = GetResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
+	_, err = kubernetes.GetResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
 	if err != nil {
 		t.Errorf("Error getting resource: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resource retrieved ✅")
 	}
 
 	// DELETE
-	err = DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
+	err = kubernetes.DeleteResource("external-secrets.io", "v1beta1", "clustersecretstores", "test-secret-store", "", true)
 	if err != nil {
 		t.Errorf("Error deleting resource: %s", err.Error())
-	} else {
-		k8sLogger.Info("Resource deleted ✅")
 	}
 
-	err = DeleteServiceAccount("external-secrets-sa", "default")
+	err = kubernetes.DeleteServiceAccount("external-secrets-sa", "default")
 	if err != nil {
 		t.Error(err)
 	}

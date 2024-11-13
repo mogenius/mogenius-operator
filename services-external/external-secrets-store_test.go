@@ -1,7 +1,10 @@
-package servicesExternal
+package servicesExternal_test
 
 import (
+	"mogenius-k8s-manager/config"
+	"mogenius-k8s-manager/interfaces"
 	"mogenius-k8s-manager/kubernetes"
+	servicesExternal "mogenius-k8s-manager/services-external"
 	"time"
 
 	"mogenius-k8s-manager/utils"
@@ -38,10 +41,27 @@ type SecretStoreSchema struct {
 	} `yaml:"spec"`
 }
 
+func externalSecretStorePropsExample() servicesExternal.ExternalSecretStoreProps {
+	return servicesExternal.ExternalSecretStoreProps{
+		DisplayName:    "Vault Secret Store 1",
+		ProjectId:      "jkhdfjk66-lkj4fdklfj-lkdsjfkl-4rt645-dalksf",
+		Role:           "mogenius-external-secrets",
+		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
+		SecretPath:     "mogenius-external-secrets/data/phoenix",
+	}
+}
+
 func TestSecretStoreRender(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
+
+	config := config.NewConfig()
+	servicesExternal.Setup(config)
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_OWN_NAMESPACE",
+		DefaultValue: utils.Pointer("mogenius"),
+	})
 
 	yamlTemplate := utils.InitExternalSecretsStoreYaml()
 
@@ -50,7 +70,7 @@ func TestSecretStoreRender(t *testing.T) {
 	secretStore.NamePrefix = "4jdh7e9dk7"
 	secretStore.ProjectId = "djsajfh74-23423-234123-32fdsf"
 	secretStore.Role = "mo-external-secrets-002"
-	yamlDataUpdated := renderClusterSecretStore(yamlTemplate, secretStore)
+	yamlDataUpdated := servicesExternal.RenderClusterSecretStore(yamlTemplate, secretStore)
 
 	if yamlTemplate == yamlDataUpdated {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
@@ -60,7 +80,7 @@ func TestSecretStoreRender(t *testing.T) {
 
 	expectedPath := "secrets/data/mo-ex-secr-test-003"
 	secretStore.SecretPath = expectedPath
-	yamlDataUpdated = renderClusterSecretStore(yamlTemplate, secretStore)
+	yamlDataUpdated = servicesExternal.RenderClusterSecretStore(yamlTemplate, secretStore)
 
 	// check if the values are replaced
 	var data SecretStoreSchema
@@ -82,6 +102,15 @@ func TestSecretStoreCreate(t *testing.T) {
 		t.Skip()
 	}
 
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	servicesExternal.Setup(config)
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_OWN_NAMESPACE",
+		DefaultValue: utils.Pointer("mogenius"),
+	})
+	kubernetes.Setup(logManager, config)
+
 	props := externalSecretStorePropsExample()
 
 	// assume composed name: 4jdh7e9dk7-vault-secret-store
@@ -91,11 +120,9 @@ func TestSecretStoreCreate(t *testing.T) {
 	props.ProjectId = ProjectId
 	props.Role = Role
 
-	err := CreateExternalSecretsStore(props)
+	err := servicesExternal.CreateExternalSecretsStore(props)
 	if err != nil {
 		t.Errorf("Error creating secret store: %s", err.Error())
-	} else {
-		logger.Log.Info("Secret store created ✅")
 	}
 }
 
@@ -124,8 +151,6 @@ func TestSecretStoreList(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix))
-		} else {
-			logger.Log.Info("Secret stores listed ✅")
 		}
 	}
 }
@@ -135,23 +160,10 @@ func TestListAvailSecrets(t *testing.T) {
 	}
 	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
 
-	// prereq
-	// _, err := kubernetes.CreateSecret(utils.CONFIG.Kubernetes.OwnNamespace, &v1.Secret{
-	// 	Data: map[string][]byte{
-	// 		"backend-project": []byte("{\"postgresURL\":\"postgres\",\"postgressPW\":\"fjksdhf7\"}"),
-	// 	},
-	// })
-	// if err != nil {
-	// 	logger.Log.Info("Secret list already exists.")
-	// } else {
-	// 	logger.Log.Info("Secret list created ✅")
-	// }
-	availSecrets := ListAvailableExternalSecrets(NamePrefix)
+	availSecrets := servicesExternal.ListAvailableExternalSecrets(NamePrefix)
 
 	if len(availSecrets) == 0 {
 		t.Errorf("Error listing available secrets: No secrets found")
-	} else {
-		logger.Log.Info("Available secrets list ✅", "secrets", availSecrets)
 	}
 }
 
@@ -161,10 +173,8 @@ func TestSecretStoreDelete(t *testing.T) {
 	}
 	name := utils.GetSecretStoreName(NamePrefix)
 
-	err := DeleteExternalSecretsStore(name)
+	err := servicesExternal.DeleteExternalSecretsStore(name)
 	if err != nil {
 		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", utils.GetSecretStoreName(NamePrefix), err.Error())
-	} else {
-		logger.Log.Info("Secret store deletion confirmed ✅")
 	}
 }

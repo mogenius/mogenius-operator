@@ -1,7 +1,8 @@
-package crds
+package crds_test
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/crds"
 	"testing"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -16,7 +17,7 @@ func TestEnvironment(t *testing.T) {
 	newEnvironmentName := name + punqUtils.NanoIdSmallLowerCase()
 
 	// CREATE
-	err := CreateEnvironment(namespace, newEnvironmentName, CrdEnvironment{})
+	err := crds.CreateEnvironment(namespace, newEnvironmentName, crds.CrdEnvironment{})
 	if err != nil {
 		t.Fatalf("Error creating Environment: %s", err.Error())
 	} else {
@@ -24,7 +25,7 @@ func TestEnvironment(t *testing.T) {
 	}
 
 	// GET
-	environment, _, err := GetEnvironment(namespace, newEnvironmentName)
+	environment, _, err := crds.GetEnvironment(namespace, newEnvironmentName)
 	if err != nil {
 		t.Fatalf("Error getting Environment: %s", err.Error())
 	} else {
@@ -34,7 +35,7 @@ func TestEnvironment(t *testing.T) {
 	environment.DisplayName = "Updated Test environment"
 	environment.CreatedBy = "Updated " + name
 	// UPDATE
-	err = UpdateEnvironment(namespace, newEnvironmentName, environment)
+	err = crds.UpdateEnvironment(namespace, newEnvironmentName, environment)
 	if err != nil {
 		t.Fatalf("Error updating environment: %s", err.Error())
 	} else {
@@ -42,7 +43,7 @@ func TestEnvironment(t *testing.T) {
 	}
 
 	// DELETE
-	err = DeleteEnvironment(namespace, newEnvironmentName)
+	err = crds.DeleteEnvironment(namespace, newEnvironmentName)
 	if err != nil {
 		t.Fatalf("Error deleting environment: %s", err.Error())
 	} else {
@@ -50,7 +51,7 @@ func TestEnvironment(t *testing.T) {
 	}
 
 	// LIST
-	_, _, err = ListEnvironments(namespace)
+	_, _, err = crds.ListEnvironments(namespace)
 	if err != nil {
 		t.Fatalf("Error listing environments: %s", err.Error())
 	} else {

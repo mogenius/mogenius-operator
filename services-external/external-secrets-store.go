@@ -26,16 +26,6 @@ type ExternalSecretStoreProps struct {
 	ServiceAccount string
 }
 
-func externalSecretStorePropsExample() ExternalSecretStoreProps {
-	return ExternalSecretStoreProps{
-		DisplayName:    "Vault Secret Store 1",
-		ProjectId:      "jkhdfjk66-lkj4fdklfj-lkdsjfkl-4rt645-dalksf",
-		Role:           "mogenius-external-secrets",
-		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		SecretPath:     "mogenius-external-secrets/data/phoenix",
-	}
-}
-
 func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	// init some dynamic properties
 	if props.NamePrefix == "" {
@@ -60,7 +50,7 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 
 	// create the secret store which connects to the vault and is able to fetch secrets
 	err = mokubernetes.ApplyResource(
-		renderClusterSecretStore(
+		RenderClusterSecretStore(
 			utils.InitExternalSecretsStoreYaml(),
 			props,
 		),
@@ -207,7 +197,7 @@ func deleteUnusedServiceAccount(role, projectId, moSharedPath string) error {
 	return nil
 }
 
-func renderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
+func RenderClusterSecretStore(yamlTemplateString string, props ExternalSecretStoreProps) string {
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<VAULT_STORE_NAME>", props.Name)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<SECRET_PATH>", props.SecretPath)
 	yamlTemplateString = strings.ReplaceAll(yamlTemplateString, "<DISPLAY_NAME>", props.DisplayName)

@@ -46,7 +46,7 @@ func AttachLabeledNetworkPolicy(controllerName string,
 	labelPolicy dtos.K8sLabeledNetworkPolicyDto,
 ) error {
 	client := GetAppClient()
-	label := getNetworkPolicyName(labelPolicy)
+	label := GetNetworkPolicyName(labelPolicy)
 
 	switch controllerType {
 	case dtos.DEPLOYMENT:
@@ -159,7 +159,7 @@ func AttachLabeledNetworkPolicies(controllerName string,
 	}
 
 	for _, labelPolicy := range labelPolicy {
-		label := getNetworkPolicyName(labelPolicy)
+		label := GetNetworkPolicyName(labelPolicy)
 		switch controllerType {
 		case dtos.DEPLOYMENT:
 			deployment.Spec.Template.ObjectMeta.Labels[label] = "true"
@@ -204,7 +204,7 @@ func DetachLabeledNetworkPolicy(controllerName string,
 	labelPolicy dtos.K8sLabeledNetworkPolicyDto,
 ) error {
 	client := GetAppClient()
-	label := getNetworkPolicyName(labelPolicy)
+	label := GetNetworkPolicyName(labelPolicy)
 
 	switch controllerType {
 	case dtos.DEPLOYMENT:
@@ -397,10 +397,10 @@ func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabele
 	netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
 	netpol.Spec.Egress = []v1.NetworkPolicyEgressRule{}
 
-	netpol.ObjectMeta.Name = getNetworkPolicyName(labelPolicy)
+	netpol.ObjectMeta.Name = GetNetworkPolicyName(labelPolicy)
 	netpol.ObjectMeta.Namespace = namespaceName
 
-	netpol.Spec.PodSelector.MatchLabels = map[string]string{getNetworkPolicyName(labelPolicy): "true"}
+	netpol.Spec.PodSelector.MatchLabels = map[string]string{GetNetworkPolicyName(labelPolicy): "true"}
 
 	// this label is marking all netpols that "need" a deny-all rule
 	netpol.ObjectMeta.Labels = map[string]string{MarkerLabel: "true"}
@@ -465,10 +465,10 @@ func EnsureLabeledNetworkPolicies(namespaceName string, labelPolicy []dtos.K8sLa
 		netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
 		netpol.Spec.Egress = []v1.NetworkPolicyEgressRule{}
 
-		netpol.ObjectMeta.Name = getNetworkPolicyName(labelPolicy)
+		netpol.ObjectMeta.Name = GetNetworkPolicyName(labelPolicy)
 		netpol.ObjectMeta.Namespace = namespaceName
 
-		label := getNetworkPolicyName(labelPolicy)
+		label := GetNetworkPolicyName(labelPolicy)
 		netpol.Spec.PodSelector.MatchLabels = map[string]string{label: "true"}
 
 		// this label is marking all netpols that "need" a deny-all rule
@@ -861,7 +861,7 @@ func ListControllerLabeledNetworkPolicies(
 	return netpols, nil
 }
 
-func getNetworkPolicyName(labelPolicy dtos.K8sLabeledNetworkPolicyDto) string {
+func GetNetworkPolicyName(labelPolicy dtos.K8sLabeledNetworkPolicyDto) string {
 	return strings.ToLower(
 		fmt.Sprintf("%s-%s-%s", PoliciesLabelPrefix, labelPolicy.Name, labelPolicy.Type),
 	)
