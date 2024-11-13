@@ -3,7 +3,8 @@
 #
 FROM golang:1.23-alpine AS builder
 
-LABEL org.opencontainers.image.description mogenius-k8s-manager: TODO add commit-log here.
+# TODO add commit-log here.
+LABEL org.opencontainers.image.description="mogenius-k8s-manager"
 
 RUN apk add --no-cache curl bash
 
@@ -30,7 +31,9 @@ RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
   -X 'mogenius-k8s-manager/version.GitCommitHash=${COMMIT_HASH}' \
   -X 'mogenius-k8s-manager/version.Branch=${GIT_BRANCH}' \
   -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
-  -X 'mogenius-k8s-manager/version.Ver=$VERSION'" -o bin/mogenius-k8s-manager .
+  -X 'mogenius-k8s-manager/version.Ver=$VERSION'" \
+  -o "bin/mogenius-k8s-manager" \
+  ./src/main.go
 
 RUN apk add --no-cache upx
 RUN upx -9 --lzma /app/bin/mogenius-k8s-manager
