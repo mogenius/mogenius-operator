@@ -17,12 +17,9 @@ import (
 
 // test the functionality of the custom resource with a basic pod
 func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	stat := generateRandomInterfaceStats()
 
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	dbstats.Setup(logManager)
 
 	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test01.db"
@@ -44,7 +41,7 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 
 	// check if db has a bucket for the namespace
 	if !bucketExists(tx, stat.Namespace) {
-		fmt.Printf("Bucket for namespace does not exist and should be created once the stat is added: %v\n", stat.Namespace)
+		t.Logf("Bucket for namespace does not exist and should be created once the stat is added: %v\n", stat.Namespace)
 	}
 	err = tx.Rollback()
 	if err != nil {
@@ -66,9 +63,6 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 }
 
 func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test02.db"
 	utils.CONFIG.Stats.MaxDataPoints = 3
 	dbstats.Start()

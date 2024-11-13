@@ -7,9 +7,7 @@ import (
 )
 
 func TestStore(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
+	t.Parallel()
 	// NEW STORE
 	store, err := store.NewStore()
 	if err != nil {

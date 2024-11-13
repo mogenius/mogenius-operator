@@ -64,7 +64,6 @@ jobs:
           only-new-issues: true
           args: --timeout=30m
 
-
   staticcheck:
     needs: [prepare, golangci]
     runs-on: [self-hosted]
@@ -96,7 +95,6 @@ jobs:
           if [ -z "$HOME" ]; then export HOME=$(mktemp -d) ; fi
           if [ -z "$GOCACHE" ]; then export GOCACHE="${HOME}/.cache/go-build"; fi
           go vet ./...
-      
 
   unit-tests:
     needs: [prepare, golangci, staticcheck, govet]
@@ -111,15 +109,14 @@ jobs:
           go-version: stable
       - name: Execute Tests
         run: |
-          go mod tidy
-          # go mod download
+          go mod download
           go clean -testcache
-          go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -short ./...
-         
+          go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- ./src/...
 
-  all-tests:
+  integration-tests:
     needs: prepare
     runs-on: [self-hosted, ARM64, k3s-installed]
+    if: github.ref == 'refs/heads/develop'
     continue-on-error: true # tests are not stable yet
     concurrency:
       group: passing-tests-LOCK
@@ -153,12 +150,12 @@ jobs:
         run: |
           go mod download
           go clean -testcache
-          go run gotest.tools/gotestsum@latest --format="github-actions" -- ./...
+          go run gotest.tools/gotestsum@latest --format="github-actions" -- ./test/...
       - name: Clean up k3s
         if: always()
         run: |
           kubectl delete namespace mogenius
-          helm uninstall external-secrets        
+          helm uninstall external-secrets
 
   build-amd64:
     needs: prepare
@@ -195,7 +192,6 @@ jobs:
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
 
-
   build-arm64-linux:
     needs: prepare
     runs-on: [self-hosted, ARM64]
@@ -229,7 +225,6 @@ jobs:
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
           docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
-        
 
   build-arm64:
     needs: prepare
@@ -369,4 +364,3 @@ jobs:
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
-     

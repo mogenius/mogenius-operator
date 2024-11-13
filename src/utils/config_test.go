@@ -6,9 +6,7 @@ import (
 )
 
 func TestUtilsConfig(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
+	t.Parallel()
 	conf, err := utils.PrintCurrentCONFIG()
 	if err != nil {
 		t.Errorf("Error printing CONFIG: %s", err.Error())

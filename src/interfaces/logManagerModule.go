@@ -2,8 +2,9 @@ package interfaces
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
-	"os"
+	"testing"
 )
 
 type LogManagerModule interface {
@@ -27,10 +28,23 @@ type LogManagerModule interface {
 // TODO: replace with a mocking framework like: https://github.com/uber-go/mock
 //
 // Since this is only a logger we san simply always provide a default logger from golangs stdlib
-type MockSlogManager struct{}
+type MockSlogManager struct {
+	writer io.Writer
+}
 
-func NewMockSlogManager() *MockSlogManager {
-	return &MockSlogManager{}
+type testWriter struct {
+	t *testing.T
+}
+
+func (w *testWriter) Write(p []byte) (n int, err error) {
+	w.t.Log(p)
+	return len(p), nil
+}
+
+func NewMockSlogManager(t *testing.T) *MockSlogManager {
+	return &MockSlogManager{
+		writer: &testWriter{t: t},
+	}
 }
 
 func (m *MockSlogManager) ComponentLogPath(componentId string) (string, error) {
@@ -38,11 +52,11 @@ func (m *MockSlogManager) ComponentLogPath(componentId string) (string, error) {
 }
 
 func (m *MockSlogManager) GetLogger(componentId string) (*slog.Logger, error) {
-	return slog.New(slog.NewJSONHandler(os.Stderr, nil)).With("component", componentId), nil
+	return slog.New(slog.NewJSONHandler(m.writer, nil)).With("component", componentId), nil
 }
 
 func (m *MockSlogManager) CreateLogger(componentId string) *slog.Logger {
-	return slog.New(slog.NewJSONHandler(os.Stderr, nil)).With("component", componentId)
+	return slog.New(slog.NewJSONHandler(m.writer, nil)).With("component", componentId)
 }
 
 func (m *MockSlogManager) SetLogLevel(componentId string) error {

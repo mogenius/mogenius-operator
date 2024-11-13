@@ -79,11 +79,7 @@ func createNginxDeployment() *v1.Deployment {
 }
 
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
@@ -103,11 +99,7 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 }
 
 func TestInitNetworkPolicyConfigMap(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 
@@ -118,11 +110,7 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 }
 
 func TestReadNetworkPolicyPorts(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
@@ -152,9 +140,6 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 }
 
 func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	var namespaceName = "mogenius"
 
 	// create simple nginx deployment with k8s
@@ -194,9 +179,6 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 }
 
 func TestListAllConflictingNetworkPolicies(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	store.Start()
 	list, err := kubernetes.ListAllConflictingNetworkPolicies("mogenius")
 	if err != nil {
@@ -206,9 +188,6 @@ func TestListAllConflictingNetworkPolicies(t *testing.T) {
 }
 
 func TestRemoveAllNetworkPolicies(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	t.Skip("skipping this test for manual testing")
 
 	err := kubernetes.RemoveAllConflictingNetworkPolicies("mogenius")
@@ -218,11 +197,7 @@ func TestRemoveAllNetworkPolicies(t *testing.T) {
 }
 
 func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 
@@ -233,12 +208,9 @@ func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 }
 
 func TestListControllerLabeledNetworkPolicy(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	var namespaceName = "mogenius"
 
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	store.Setup(logManager)
 	store.Start()
 
@@ -284,11 +256,7 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 }
 
 func TestDeleteNetworkPolicy(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 

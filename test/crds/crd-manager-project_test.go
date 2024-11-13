@@ -9,9 +9,6 @@ import (
 )
 
 func TestProject(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	name := "test"
 	newProjectName := name + punqUtils.NanoIdSmallLowerCase()
 

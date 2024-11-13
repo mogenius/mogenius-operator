@@ -11,9 +11,6 @@ import (
 )
 
 func TestGitManager(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	repoUrl := "https://github.com/mogenius/docs.git"
 	localPath := os.TempDir() + "/test-repo"
 	localPathInit := os.TempDir() + "/test-repo-init"

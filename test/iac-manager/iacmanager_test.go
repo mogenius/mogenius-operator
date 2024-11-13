@@ -9,9 +9,6 @@ import (
 )
 
 func TestIacManager(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
 	utils.InitConfigSimple(utils.STAGE_DEV)
 
 	iacmanager.InitDataModel()

@@ -10,11 +10,7 @@ import (
 
 // test the functionality of the custom resource with a basic pod
 func TestResourceTemplates(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
-	logManager := interfaces.NewMockSlogManager()
+	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	kubernetes.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
