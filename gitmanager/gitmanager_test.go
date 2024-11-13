@@ -1,7 +1,8 @@
-package gitmanager
+package gitmanager_test
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/gitmanager"
 	"os"
 	"testing"
 
@@ -24,22 +25,22 @@ func TestGitManager(t *testing.T) {
 
 	// CLEANUP
 	defer func() {
-		err := DeletePath(localPath)
+		err := gitmanager.DeletePath(localPath)
 		if err != nil {
 			t.Errorf("Error removing repo: %s", err.Error())
 		}
-		err = DeletePath(localPathInit)
+		err = gitmanager.DeletePath(localPathInit)
 		if err != nil {
 			t.Errorf("Error removing init-repo: %s", err.Error())
 		}
-		err = DeletePath(localPathFast)
+		err = gitmanager.DeletePath(localPathFast)
 		if err != nil {
 			t.Errorf("Error removing fast-repo: %s", err.Error())
 		}
 	}()
 
 	// CLONE
-	err := Clone(repoUrl, localPath)
+	err := gitmanager.Clone(repoUrl, localPath)
 	if err != nil {
 		t.Errorf("Error cloning repo: %s", err.Error())
 	} else {
@@ -47,7 +48,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// PULL
-	_, err = Pull(localPath, "origin", mainBranch)
+	_, err = gitmanager.Pull(localPath, "origin", mainBranch)
 	if err != nil {
 		t.Errorf("Error pulling repo: %s", err.Error())
 	} else {
@@ -55,7 +56,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// PUSH
-	err = Push(localPath, "origin")
+	err = gitmanager.Push(localPath, "origin")
 	if err != nil && err != transport.ErrAuthenticationRequired {
 		t.Errorf("Error pushing repo: %s", err.Error())
 	} else {
@@ -67,7 +68,7 @@ func TestGitManager(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error writing commit-test-file: %s", err.Error())
 	}
-	err = Commit(localPath, []string{"testfile.yaml"}, []string{}, "Test commit", "testuser", "testuseremail@mogenius.com")
+	err = gitmanager.Commit(localPath, []string{"testfile.yaml"}, []string{}, "Test commit", "testuser", "testuseremail@mogenius.com")
 	if err != nil {
 		t.Errorf("Error committing repo: %s", err.Error())
 	} else {
@@ -75,7 +76,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// GET LAST COMMIT
-	commits, err := GetLastCommits(localPath, 3)
+	commits, err := gitmanager.GetLastCommits(localPath, 3)
 	if err != nil {
 		t.Errorf("Error getting last commit: %s", err.Error())
 	} else {
@@ -83,7 +84,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// INIT
-	err = InitGit(localPathInit)
+	err = gitmanager.InitGit(localPathInit)
 	if err != nil {
 		t.Errorf("Error initializing repo: %s", err.Error())
 	} else {
@@ -91,7 +92,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// CHECKOUT
-	err = CheckoutBranch(localPath, mainBranch)
+	err = gitmanager.CheckoutBranch(localPath, mainBranch)
 	if err != nil {
 		t.Errorf("Error checking out branch: %s", err.Error())
 	} else {
@@ -99,7 +100,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// SWITCH
-	err = CheckoutBranch(localPath, switchBranch)
+	err = gitmanager.CheckoutBranch(localPath, switchBranch)
 	if err != nil {
 		t.Errorf("Error switching branch (%s): %s", switchBranch, err.Error())
 	} else {
@@ -107,7 +108,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// Fetch
-	err = Fetch(localPath)
+	err = gitmanager.Fetch(localPath)
 	if err != nil {
 		t.Errorf("Error fetching repo: %s", err.Error())
 	} else {
@@ -115,7 +116,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// LIST REMOTE BRANCHES
-	branches, err := ListRemoteBranches(localPath)
+	branches, err := gitmanager.ListRemoteBranches(localPath)
 	if err != nil {
 		t.Errorf("Error listing branches: %s", err.Error())
 	} else {
@@ -123,7 +124,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// GET TAG
-	tag, err := GetHeadTag(localPath)
+	tag, err := gitmanager.GetHeadTag(localPath)
 	if err != nil {
 		t.Errorf("Error getting tag: %s", err.Error())
 	} else {
@@ -131,7 +132,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// CLONE FAST
-	err = CloneFast(repoUrl, localPathFast, devBranch)
+	err = gitmanager.CloneFast(repoUrl, localPathFast, devBranch)
 	if err != nil {
 		t.Errorf("Error fast cloning repo: %s", err.Error())
 	} else {
@@ -139,7 +140,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// LOG DECORATED
-	log, err := LastLogDecorate(localPath)
+	log, err := gitmanager.LastLogDecorate(localPath)
 	if err != nil {
 		t.Errorf("Error decorating log: %s", err.Error())
 	} else {
@@ -147,7 +148,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// ADD REMOTE
-	err = AddRemote(localPath, "https://mogenius.com/testremote", "originTEST")
+	err = gitmanager.AddRemote(localPath, "https://mogenius.com/testremote", "originTEST")
 	if err != nil {
 		t.Errorf("Error adding remote: %s", err.Error())
 	} else {
@@ -155,7 +156,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// LS REMOTE
-	remotes, err := LsRemotes(repoUrl)
+	remotes, err := gitmanager.LsRemotes(repoUrl)
 	if err != nil {
 		t.Errorf("Error listing remotes: %s", err.Error())
 	} else {
@@ -163,7 +164,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// LIST LOCAL REMOTES
-	remotes, err = ListLocalAvailableRemotes(localPath)
+	remotes, err = gitmanager.ListLocalAvailableRemotes(localPath)
 	if err != nil {
 		t.Errorf("Error listing local remotes: %s", err.Error())
 	} else {
@@ -171,7 +172,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// HAS REMOTES
-	hasRemotes := HasRemotes(localPath)
+	hasRemotes := gitmanager.HasRemotes(localPath)
 	if !hasRemotes {
 		t.Errorf("Error checking has remotes")
 	} else {
@@ -179,7 +180,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// GET LAST MODIFIED AND UPDATED FILES
-	files, err := GetLastUpdatedAndModifiedFiles(localPath)
+	files, err := gitmanager.GetLastUpdatedAndModifiedFiles(localPath)
 	if err != nil {
 		t.Errorf("Error getting last modified and updated files: %s", err.Error())
 	} else {
@@ -187,7 +188,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// GET LAST DELETED FILES
-	deletedFiles, err := GetLastDeletedFiles(localPath)
+	deletedFiles, err := gitmanager.GetLastDeletedFiles(localPath)
 	if err != nil {
 		t.Errorf("Error getting last deleted files: %s", err.Error())
 	} else {
@@ -195,7 +196,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// DIFF
-	diff, err := unifiedDiff(localPath, localPath, "grype.yaml")
+	diff, err := gitmanager.UnifiedDiff(localPath, localPath, "grype.yaml")
 	fmt.Println(diff)
 	if err != nil {
 		t.Errorf("Error getting last diff: %s", err.Error())
@@ -204,7 +205,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// GET CONTRIBUTORS
-	contributors, err := GetContributors(localPath)
+	contributors, err := gitmanager.GetContributors(localPath)
 	if err != nil {
 		t.Errorf("Error getting contributors: %s", err.Error())
 	} else {
@@ -212,7 +213,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// GET FILEREVISIONS
-	fileRevisions, err := ListFileRevisions(localPath, testFileInRepo, "bla.yaml")
+	fileRevisions, err := gitmanager.ListFileRevisions(localPath, testFileInRepo, "bla.yaml")
 	if err != nil {
 		t.Errorf("Error getting file revisions: %s", err.Error())
 	} else {
@@ -220,7 +221,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// DIFF FOR COMMIT
-	specificDiff, err := DiffForCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", testFileInRepo, "bla.yaml")
+	specificDiff, err := gitmanager.DiffForCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", testFileInRepo, "bla.yaml")
 	if err != nil {
 		t.Errorf("Error getting diff for commit: %s", err.Error())
 	} else {
@@ -228,7 +229,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// RESET FILE TO COMMIT
-	err = ResetFileToCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", testFileInRepo)
+	err = gitmanager.ResetFileToCommit(localPath, "6f17091c598b21db9027a079564e9011f0f43ceb", testFileInRepo)
 	if err != nil {
 		t.Errorf("Error resetting file to commit: %s", err.Error())
 	} else {
@@ -236,7 +237,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// DISCARD UNSTAGED CHANGES
-	err = DiscardUnstagedChanges(localPath, testFileInRepo)
+	err = gitmanager.DiscardUnstagedChanges(localPath, testFileInRepo)
 	if err != nil {
 		t.Errorf("Error resetting file to commit: %s", err.Error())
 	} else {
@@ -244,7 +245,7 @@ func TestGitManager(t *testing.T) {
 	}
 
 	// PULSE DIAGRAM
-	commitsPerWeek, err := GeneratePulseDiagramData(localPath)
+	commitsPerWeek, err := gitmanager.GeneratePulseDiagramData(localPath)
 	if err != nil {
 		t.Errorf("Error generating pulse diagram data: %s", err.Error())
 	} else {

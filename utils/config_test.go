@@ -1,12 +1,15 @@
-package utils
+package utils_test
 
-import "testing"
+import (
+	"mogenius-k8s-manager/utils"
+	"testing"
+)
 
 func TestUtilsConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-	conf, err := PrintCurrentCONFIG()
+	conf, err := utils.PrintCurrentCONFIG()
 	if err != nil {
 		t.Errorf("Error printing CONFIG: %s", err.Error())
 	} else {

@@ -94,7 +94,7 @@ func Start() {
 		return
 	}
 
-	SetRepoError(gitInitRepo())
+	SetRepoError(GitInitRepo())
 
 	// Set up the remote repository
 	if !gitHasRemotes() {
@@ -109,7 +109,7 @@ func ShouldWatchResources() bool {
 	return utils.CONFIG.Iac.AllowPull || utils.CONFIG.Iac.AllowPush
 }
 
-func gitInitRepo() error {
+func GitInitRepo() error {
 	var err error
 
 	// Create a git repository
@@ -253,7 +253,7 @@ func ResetCurrentRepoData(tries int) error {
 		}
 	}
 
-	err = gitInitRepo()
+	err = GitInitRepo()
 	SetRepoError(err)
 	if err != nil {
 		return err
@@ -471,10 +471,10 @@ func createDiff(kind string, namespace string, resourceName string, dataInf inte
 		return "", fmt.Errorf("Error cleaning yaml: %s\n", err.Error())
 	}
 
-	return createDiffFromFile(yamlData2Str, filePath1, resourceName)
+	return CreateDiffFromFile(yamlData2Str, filePath1, resourceName)
 }
 
-func createDiffFromFile(yaml string, filePath string, resourceName string) (string, error) {
+func CreateDiffFromFile(yaml string, filePath string, resourceName string) (string, error) {
 	yamlData, err := os.ReadFile(filePath)
 	if err != nil {
 		// this happens if the file has not been created yet

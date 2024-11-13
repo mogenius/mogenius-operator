@@ -1,6 +1,9 @@
-package kubernetes
+package kubernetes_test
 
 import (
+	"mogenius-k8s-manager/config"
+	"mogenius-k8s-manager/interfaces"
+	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/utils"
 	"testing"
 
@@ -13,31 +16,44 @@ const (
 	MoSharedPath = "mogenius-external-secrets/data/backend-project"
 )
 
+func externalSecretListExample() kubernetes.ExternalSecretListProps {
+	return kubernetes.ExternalSecretListProps{
+		NamePrefix:      "fsd87fdh",
+		SecretName:      "database-credentials",
+		SecretStoreName: "fsd87fdh" + utils.SecretStoreSuffix,
+		SecretPath:      "mogenius-external-secrets/data/team-blue",
+	}
+}
+
 func TestSecretListRender(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
 
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_OWN_NAMESPACE",
+		DefaultValue: utils.Pointer("mogenius"),
+	})
+
 	yamlTemplate := utils.InitExternalSecretListYaml()
 	secretListProps := externalSecretListExample()
 
 	// rendering overall works
-	yamlDataRendered := renderExternalSecretList(yamlTemplate, secretListProps)
+	yamlDataRendered := kubernetes.RenderExternalSecretList(yamlTemplate, secretListProps)
 	if yamlTemplate == yamlDataRendered {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
-	} else {
-		k8sLogger.Info("Yaml data updated (1/2) ✅")
 	}
 
 	// change values and compare
 	expectedName := NamePrefix + "-" + utils.SecretListSuffix // lowercase only
 	secretListProps.NamePrefix = NamePrefix
 	secretListProps.SecretName = "projectMayhem"
-	yamlDataRenderedChanged := renderExternalSecretList(yamlTemplate, secretListProps)
+	yamlDataRenderedChanged := kubernetes.RenderExternalSecretList(yamlTemplate, secretListProps)
 	if yamlDataRenderedChanged == yamlDataRendered {
 		t.Errorf("Error updating yaml data: %s", yamlTemplate)
-	} else {
-		k8sLogger.Info("Yaml data updated (2/2) ✅")
 	}
 
 	// check if the values are replaced as expected
@@ -49,8 +65,6 @@ func TestSecretListRender(t *testing.T) {
 
 	if data.Spec.Target.Name != expectedName {
 		t.Errorf("Error updating Name: expected: %s, got: %s", expectedName, data.Spec.Target.Name)
-	} else {
-		k8sLogger.Info("MoSharedPath updated ✅")
 	}
 }
 
@@ -67,33 +81,18 @@ func TestCreateExternalSecretList(t *testing.T) {
 		t.Skip()
 	}
 
+	logManager := interfaces.NewMockSlogManager()
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_OWN_NAMESPACE",
+		DefaultValue: utils.Pointer("mogenius"),
+	})
+
 	testReq := externalSecretListExample()
 
-	err := CreateExternalSecretList(testReq)
+	err := kubernetes.CreateExternalSecretList(testReq)
 	if err != nil {
 		t.Errorf("Error creating external secret list. Err: %s", err.Error())
-	} else {
-		k8sLogger.Info("Secret store created ✅")
-	}
-}
-
-func TestCreateExternalSecret(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
-
-	props := CreateExternalSecretProps{
-		ServiceName:  "test-service",
-		Namespace:    "mogenius",
-		PropertyName: "postgresURL",
-		NamePrefix:   NamePrefix,
-	}
-
-	secretName, err := CreateExternalSecret(props)
-	if err != nil {
-		t.Errorf("Error creating external secret list. Err: %s", err.Error())
-	} else {
-		k8sLogger.Info("Secret store created ✅", "store", secretName)
 	}
 }

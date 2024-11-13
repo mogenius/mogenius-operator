@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"mogenius-k8s-manager/assert"
 	"reflect"
 
 	appsV1 "k8s.io/api/apps/v1"
@@ -12,6 +13,7 @@ import (
 func ListNetworkPolicies(namespace string) ([]networkingV1.NetworkPolicy, error) {
 	result := []networkingV1.NetworkPolicy{}
 
+	assert.Assert(GlobalStore != nil)
 	policies, err := GlobalStore.SearchByPrefix(reflect.TypeOf(networkingV1.NetworkPolicy{}), "NetworkPolicy", namespace)
 	if errors.Is(err, ErrNotFound) {
 		return result, nil

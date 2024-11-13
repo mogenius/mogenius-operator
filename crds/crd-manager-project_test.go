@@ -1,7 +1,8 @@
-package crds
+package crds_test
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/crds"
 	"testing"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -15,9 +16,9 @@ func TestProject(t *testing.T) {
 	newProjectName := name + punqUtils.NanoIdSmallLowerCase()
 
 	// CREATE
-	err := CreateProject(newProjectName, CrdProject{Id: name, DisplayName: "Test Project", ProjectName: name, CreatedBy: name, ProductId: name, ClusterId: name,
+	err := crds.CreateProject(newProjectName, crds.CrdProject{Id: name, DisplayName: "Test Project", ProjectName: name, CreatedBy: name, ProductId: name, ClusterId: name,
 		EnvironmentRefs: []string{name},
-		Limits:          ProjectLimits{LimitMemoryMB: 1024, LimitCpuCores: 1.0, EphemeralStorageMB: 1024, MaxVolumeSizeGb: 10}},
+		Limits:          crds.ProjectLimits{LimitMemoryMB: 1024, LimitCpuCores: 1.0, EphemeralStorageMB: 1024, MaxVolumeSizeGb: 10}},
 	)
 	if err != nil {
 		t.Fatalf("Error creating project: %s", err.Error())
@@ -26,7 +27,7 @@ func TestProject(t *testing.T) {
 	}
 
 	// GET
-	project, _, err := GetProject(newProjectName)
+	project, _, err := crds.GetProject(newProjectName)
 	if err != nil {
 		t.Fatalf("Error getting project: %s", err.Error())
 	} else {
@@ -40,7 +41,7 @@ func TestProject(t *testing.T) {
 	project.EnvironmentRefs = []string{"Updated " + name}
 
 	// UPDATE
-	err = UpdateProject(newProjectName, project.Id, project.ProjectName, project.DisplayName, project.ProductId, project.Limits)
+	err = crds.UpdateProject(newProjectName, project.Id, project.ProjectName, project.DisplayName, project.ProductId, project.Limits)
 	if err != nil {
 		t.Fatalf("Error updating project: %s", err.Error())
 	} else {
@@ -48,7 +49,7 @@ func TestProject(t *testing.T) {
 	}
 
 	// DELETE
-	err = DeleteProject(newProjectName)
+	err = crds.DeleteProject(newProjectName)
 	if err != nil {
 		t.Fatalf("Error deleting project: %s", err.Error())
 	} else {
@@ -56,7 +57,7 @@ func TestProject(t *testing.T) {
 	}
 
 	// LIST
-	_, _, err = ListProjects()
+	_, _, err = crds.ListProjects()
 	if err != nil {
 		t.Fatalf("Error listing projects: %s", err.Error())
 	} else {

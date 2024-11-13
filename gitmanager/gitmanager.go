@@ -359,7 +359,7 @@ func AddRemote(path string, remoteUrl string, remoteName string) error {
 	return nil
 }
 
-func unifiedDiff(filePath1 string, filePath2 string, resourceName string) (string, error) {
+func UnifiedDiff(filePath1 string, filePath2 string, resourceName string) (string, error) {
 	cmd := exec.Command("diff", "-u", "-N", "-u", "--label", resourceName, "--label", resourceName, filePath1, filePath2)
 	cmd.Dir = os.TempDir()
 	out, err := cmd.CombinedOutput()
@@ -456,7 +456,7 @@ func DiffForCommit(path string, commitHash string, filePath string, resourceName
 		}
 		defer os.Remove(os.TempDir() + "/" + parent)
 
-		diffOutput, _ = unifiedDiff(parent, current, resourceName)
+		diffOutput, _ = UnifiedDiff(parent, current, resourceName)
 		if diffOutput != "" {
 			return DiffFound
 		}

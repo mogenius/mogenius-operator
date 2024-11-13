@@ -1,7 +1,9 @@
-package dbstats
+package dbstats_test
 
 import (
 	"fmt"
+	dbstats "mogenius-k8s-manager/db-stats"
+	"mogenius-k8s-manager/interfaces"
 	"mogenius-k8s-manager/kubernetes"
 	"mogenius-k8s-manager/structs"
 	"mogenius-k8s-manager/utils"
@@ -20,34 +22,37 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	}
 	stat := generateRandomInterfaceStats()
 
+	logManager := interfaces.NewMockSlogManager()
+	dbstats.Setup(logManager)
+
 	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test01.db"
 	utils.CONFIG.Stats.MaxDataPoints = 1000
 
-	getControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
+	dbstats.GetControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
 		return &kubernetes.K8sController{
 			Kind:      "Deployment",
 			Name:      podName,
 			Namespace: namespace,
 		}
 	}
-	Start()
+	dbstats.Start()
 
-	tx, err := dbStats.Begin(false)
+	tx, err := dbstats.DbStats.Begin(false)
 	if err != nil {
 		t.Errorf("Error beginning transaction: %v", err)
 	}
 
 	// check if db has a bucket for the namespace
 	if !bucketExists(tx, stat.Namespace) {
-		dbStatsLogger.Info("Bucket for namespace does not exist and should be created once the stat is added", "namespace", stat.Namespace)
+		fmt.Printf("Bucket for namespace does not exist and should be created once the stat is added: %v\n", stat.Namespace)
 	}
 	err = tx.Rollback()
 	if err != nil {
 		t.Error(err)
 	}
-	AddInterfaceStatsToDb(stat)
+	dbstats.AddInterfaceStatsToDb(stat)
 
-	tx, err = dbStats.Begin(false)
+	tx, err = dbstats.DbStats.Begin(false)
 	if err != nil {
 		t.Errorf("Error beginning transaction: %v", err)
 	}
@@ -66,9 +71,9 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	}
 	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test02.db"
 	utils.CONFIG.Stats.MaxDataPoints = 3
-	Start()
+	dbstats.Start()
 
-	getControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
+	dbstats.GetControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
 		_ = podName
 		return &kubernetes.K8sController{
 			Kind:      "Deployment",
@@ -80,10 +85,10 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		stats := generateRandomInterfaceStats()
 		stats.Namespace = "TESTNS"
-		AddInterfaceStatsToDb(stats)
+		dbstats.AddInterfaceStatsToDb(stats)
 	}
 
-	tx, err := dbStats.Begin(false)
+	tx, err := dbstats.DbStats.Begin(false)
 	if err != nil {
 		t.Errorf("Error beginning transaction: %v", err)
 	}
@@ -107,8 +112,7 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 }
 
 func getNestedBucket(tx *bolt.Tx, bucketChain []string) *bolt.Bucket {
-
-	mainBucket := tx.Bucket([]byte(TRAFFIC_BUCKET_NAME))
+	mainBucket := tx.Bucket([]byte(dbstats.TRAFFIC_BUCKET_NAME))
 	if mainBucket == nil {
 		return nil
 	}

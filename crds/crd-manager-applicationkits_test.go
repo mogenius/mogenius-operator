@@ -1,7 +1,8 @@
-package crds
+package crds_test
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/crds"
 	"testing"
 
 	punqUtils "github.com/mogenius/punq/utils"
@@ -16,7 +17,7 @@ func TestApplicationKit(t *testing.T) {
 	newAppkitName := name + punqUtils.NanoIdSmallLowerCase()
 
 	// CREATE
-	err := CreateApplicationKit(namespace, newAppkitName, CrdApplicationKit{Id: name, DisplayName: "Test Project", CreatedBy: name, Controller: "tesst", AppId: "gtesdf"})
+	err := crds.CreateApplicationKit(namespace, newAppkitName, crds.CrdApplicationKit{Id: name, DisplayName: "Test Project", CreatedBy: name, Controller: "tesst", AppId: "gtesdf"})
 	if err != nil {
 		t.Fatalf("Error creating appkit: %s", err.Error())
 	} else {
@@ -24,7 +25,7 @@ func TestApplicationKit(t *testing.T) {
 	}
 
 	// GET
-	appkit, _, err := GetApplicationKit(namespace, newAppkitName)
+	appkit, _, err := crds.GetApplicationKit(namespace, newAppkitName)
 	if err != nil {
 		t.Fatalf("Error getting appkit: %s", err.Error())
 	} else {
@@ -37,7 +38,7 @@ func TestApplicationKit(t *testing.T) {
 	appkit.AppId = "Updated " + name
 
 	// UPDATE
-	err = UpdateApplicationKit(namespace, newAppkitName, &appkit)
+	err = crds.UpdateApplicationKit(namespace, newAppkitName, &appkit)
 	if err != nil {
 		t.Fatalf("Error updating appkit: %s", err.Error())
 	} else {
@@ -45,7 +46,7 @@ func TestApplicationKit(t *testing.T) {
 	}
 
 	// DELETE
-	err = DeleteApplicationKit(namespace, newAppkitName)
+	err = crds.DeleteApplicationKit(namespace, newAppkitName)
 	if err != nil {
 		t.Fatalf("Error deleting appkit: %s", err.Error())
 	} else {
@@ -53,7 +54,7 @@ func TestApplicationKit(t *testing.T) {
 	}
 
 	// LIST
-	_, _, err = ListProjects()
+	_, _, err = crds.ListProjects()
 	if err != nil {
 		t.Fatalf("Error listing appkits: %s", err.Error())
 	} else {

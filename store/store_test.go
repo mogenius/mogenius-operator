@@ -1,6 +1,7 @@
-package store
+package store_test
 
 import (
+	"mogenius-k8s-manager/store"
 	"reflect"
 	"testing"
 )
@@ -10,7 +11,7 @@ func TestStore(t *testing.T) {
 		t.Skip()
 	}
 	// NEW STORE
-	store, err := NewStore()
+	store, err := store.NewStore()
 	if err != nil {
 		t.Errorf("Error creating store: %s", err.Error())
 	} else {
