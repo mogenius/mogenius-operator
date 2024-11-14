@@ -76,7 +76,7 @@ var helmDataVersion = cache.New(2*time.Hour, 30*time.Minute)
 
 func MountPath(namespaceName string, volumeName string, defaultReturnValue string) string {
 	if CONFIG.Kubernetes.RunInCluster {
-		return fmt.Sprintf("%s/%s_%s", CONFIG.Misc.DefaultMountPath, namespaceName, volumeName)
+		return fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), namespaceName, volumeName)
 	} else {
 		pwd, err := os.Getwd()
 		pwd += "/temp"
