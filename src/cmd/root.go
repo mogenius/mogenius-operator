@@ -206,9 +206,8 @@ func initConfigDeclarations() {
 		Envs:         []string{"OWN_NAMESPACE"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
-		Key:          "MO_API_SERVER",
-		DefaultValue: utils.Pointer("wss://k8s-ws.mogenius.com/ws"),
-		Description:  utils.Pointer("URL of API Server"),
+		Key:         "MO_API_SERVER",
+		Description: utils.Pointer("URL of API Server"),
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
 			if err != nil {
@@ -218,9 +217,8 @@ func initConfigDeclarations() {
 		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
-		Key:          "MO_EVENT_SERVER",
-		DefaultValue: utils.Pointer("wss://k8s-dispatcher.mogenius.com/ws"),
-		Description:  utils.Pointer("URL of Event Server"),
+		Key:         "MO_EVENT_SERVER",
+		Description: utils.Pointer("URL of Event Server"),
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
 			if err != nil {
