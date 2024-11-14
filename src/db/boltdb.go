@@ -674,8 +674,8 @@ func ImageNamesFromBuildJob(buildJob structs.BuildJob) (imageName string, imageT
 	imageName = fmt.Sprintf("%s-%s", buildJob.Namespace.Name, buildJob.Service.ControllerName)
 	// overwrite images name for local builds
 	if /*buildJob.Project.ContainerRegistryUser == nil &&*/ buildJob.Project.ContainerRegistryPat == nil {
-		imageTag = fmt.Sprintf("%s/%s:%d", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName, buildJob.BuildId)
-		imageTagLatest = fmt.Sprintf("%s/%s:latest", utils.CONFIG.Kubernetes.LocalContainerRegistryHost, imageName)
+		imageTag = fmt.Sprintf("%s/%s:%d", config.Get("MO_LOCAL_CONTAINER_REGISTRY_HOST"), imageName, buildJob.BuildId)
+		imageTagLatest = fmt.Sprintf("%s/%s:latest", config.Get("MO_LOCAL_CONTAINER_REGISTRY_HOST"), imageName)
 	} else {
 		if *buildJob.Project.ContainerRegistryPath == "docker.io" {
 			imageName = fmt.Sprintf("%s/%s", *buildJob.Project.ContainerRegistryUser, imageName)

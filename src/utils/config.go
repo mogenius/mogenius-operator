@@ -108,8 +108,7 @@ const STAGE_LOCAL = "local"
 
 type Config struct {
 	Kubernetes struct {
-		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
-		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
+		RunInCluster bool `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
 	} `yaml:"kubernetes"`
 	Iac struct {
 		RepoUrl            string              `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url."`
@@ -145,9 +144,6 @@ type Config struct {
 		GitUserEmail string `yaml:"git_user_email" env:"git_user_email" env-description:"Email address which is used when interacting with git." env-default:"git@mogenius.com"`
 		GitUserName  string `yaml:"git_user_name" env:"git_user_name" env-description:"User name which is used when interacting with git." env-default:"mogenius git-user"`
 	} `yaml:"git"`
-	Stats struct {
-		MaxDataPoints int `yaml:"max_data_points" env:"max_data_points" env-description:"After x data points in bucket will be overwritten LIFO principle." env-default:"6000"`
-	} `yaml:"stats"`
 }
 
 //go:embed config/config-local.yaml
@@ -366,7 +362,7 @@ func PrintSettings() {
 		"Kubernetes.BboltDbPath", config.Get("MO_BBOLT_DB_PATH"),
 		"Kubernetes.BboltDbStatsPath", config.Get("MO_BBOLT_DB_STATS_PATH"),
 		"Kubernetes.LogDataPath", config.Get("MO_LOG_DIR"),
-		"Kubernetes.LocalContainerRegistryHost", CONFIG.Kubernetes.LocalContainerRegistryHost,
+		"Kubernetes.LocalContainerRegistryHost", config.Get("MO_LOCAL_CONTAINER_REGISTRY_HOST"),
 		"Iac.RepoUrl", CONFIG.Iac.RepoUrl,
 		"Iac.RepoPat", CONFIG.Iac.RepoPat,
 		"Iac.RepoBranch", CONFIG.Iac.RepoBranch,
@@ -393,7 +389,7 @@ func PrintSettings() {
 		"Builder.MaxConcurrentBuilds", CONFIG.Builder.MaxConcurrentBuilds,
 		"Git.GitUserEmail", config.Get("MO_GIT_USER_EMAIL"),
 		"Git.GitUserName", config.Get("MO_GIT_USER_NAME"),
-		"Stats.MaxDataPoints", CONFIG.Stats.MaxDataPoints,
+		"Stats.MaxDataPoints", config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"),
 	)
 }
 

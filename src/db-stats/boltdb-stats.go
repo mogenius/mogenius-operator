@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"strconv"
 	"strings"
 	"time"
 
@@ -129,7 +130,9 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		}
 
 		// DELETE FIRST IF TO MANY DATA POINTS
-		if controllerBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
+		maxDataPoints, err := strconv.Atoi(config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"))
+		assert.Assert(err == nil)
+		if controllerBucket.Stats().KeyN > maxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()
 			err := controllerBucket.Delete(k)
@@ -202,8 +205,10 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 			return err
 		}
 
+		maxDataPoints, err := strconv.Atoi(config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"))
+		assert.Assert(err == nil)
 		// DELETE FIRST IF TO MANY DATA POINTS
-		if nodeBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
+		if nodeBucket.Stats().KeyN > maxDataPoints {
 			c := nodeBucket.Cursor()
 			k, _ := c.First()
 			err := nodeBucket.Delete(k)
@@ -250,7 +255,9 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		}
 
 		// DELETE FIRST IF TO MANY DATA POINTS
-		if controllerBucket.Stats().KeyN > utils.CONFIG.Stats.MaxDataPoints {
+		maxDataPoints, err := strconv.Atoi(config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"))
+		assert.Assert(err == nil)
+		if controllerBucket.Stats().KeyN > maxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()
 			err := controllerBucket.Delete(k)

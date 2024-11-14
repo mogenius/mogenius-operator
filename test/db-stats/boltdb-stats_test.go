@@ -2,6 +2,7 @@ package dbstats_test
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	"mogenius-k8s-manager/src/interfaces"
@@ -9,6 +10,7 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -28,8 +30,10 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 		Key:          "MO_BBOLT_DB_STATS_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "test01.db")),
 	})
-
-	utils.CONFIG.Stats.MaxDataPoints = 1000
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_STATS_MAX_DATA_POINTS",
+		DefaultValue: utils.Pointer("1000"),
+	})
 
 	dbstats.GetControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
 		return &kubernetes.K8sController{
@@ -76,7 +80,10 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 		Key:          "MO_BBOLT_DB_STATS_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "test02.db")),
 	})
-	utils.CONFIG.Stats.MaxDataPoints = 3
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_STATS_MAX_DATA_POINTS",
+		DefaultValue: utils.Pointer("3"),
+	})
 
 	dbstats.Start()
 
@@ -112,8 +119,10 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 		t.Errorf("Bucket for namespace TESTCONTROLLER does not exist but should have been created!") //TODO subbucket should exist but bolt 'forgets' it
 	}
 
-	if bucket.Stats().KeyN != utils.CONFIG.Stats.MaxDataPoints+1 {
-		t.Errorf("Expected %d data points but got %d", utils.CONFIG.Stats.MaxDataPoints, bucket.Stats().KeyN)
+	maxDataPoints, err := strconv.Atoi(config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"))
+	assert.Assert(err == nil)
+	if bucket.Stats().KeyN != maxDataPoints+1 {
+		t.Errorf("Expected %d data points but got %d", maxDataPoints, bucket.Stats().KeyN)
 	}
 
 }
