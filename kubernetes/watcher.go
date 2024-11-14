@@ -259,6 +259,7 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 			var event v1.Event
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
 			if err != nil {
+				k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 				return
 			}
 			processEvent(&event)
@@ -283,6 +284,7 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 		var netPol v1Net.NetworkPolicy
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
 		if err != nil {
+			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 			return
 		}
 
@@ -301,6 +303,7 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 			var event v1.Event
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
 			if err != nil {
+				k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 				return
 			}
 			processEvent(&event)
@@ -320,6 +323,7 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 		var pv v1.PersistentVolume
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &pv)
 		if err != nil {
+			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 			return
 		}
 		handlePVDeletion(&pv)
@@ -335,6 +339,7 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 		var netPol v1Net.NetworkPolicy
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
 		if err != nil {
+			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 			return
 		}
 
