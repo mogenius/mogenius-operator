@@ -328,6 +328,19 @@ func initConfigDeclarations() {
 		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_AUTO_MOUNT_NFS",
+		DefaultValue: utils.Pointer("true"),
+		Description:  utils.Pointer("if set to true, nfs pvc will automatically be mounted"),
+		Envs:         []string{"auto_mount_nfs"},
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_AUTO_MOUNT_NFS' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
 		Description:  utils.Pointer(`a log level: "debug", "info", "warn" or "error"`),

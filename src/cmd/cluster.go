@@ -109,7 +109,9 @@ var clusterCmd = &cobra.Command{
 			migrations.ExecuteMigrations()
 
 			// INIT MOUNTS
-			if utils.CONFIG.Misc.AutoMountNfs {
+			autoMountNfs, err := strconv.ParseBool(cmdConfig.Get("MO_AUTO_MOUNT_NFS"))
+			assert.Assert(err == nil)
+			if autoMountNfs {
 				volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
 				if err != nil && cmdConfig.Get("MO_STAGE") != utils.STAGE_LOCAL {
 					cmdLogger.Error("GetVolumeMountsForK8sManager", "error", err)

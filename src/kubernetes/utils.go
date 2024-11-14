@@ -11,6 +11,7 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"net"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -302,7 +303,9 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 			if nfsService != nil {
 				time.Sleep(15 * time.Second)
 			}
-			if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
+			autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
+			assert.Assert(err == nil)
+			if autoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
 				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
 				mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
@@ -328,7 +331,9 @@ func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Servic
 // umount nfs server in k8s-manager
 func Umount(volumeNamespace string, volumeName string) {
 	go func() {
-		if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
+		autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
+		assert.Assert(err == nil)
+		if autoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
