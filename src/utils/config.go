@@ -109,7 +109,6 @@ const STAGE_LOCAL = "local"
 type Config struct {
 	Kubernetes struct {
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
-		LogDataPath                string `yaml:"log_data_path" env:"log_data_path" env-description:"Path to the log data."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
 	} `yaml:"kubernetes"`
 	Iac struct {
@@ -244,9 +243,6 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if CONFIG.Misc.DefaultMountPath == "" {
 		CONFIG.Misc.DefaultMountPath = filepath.Join(dirPath, "mo-data")
 	}
-	if CONFIG.Kubernetes.LogDataPath == "" {
-		CONFIG.Kubernetes.LogDataPath = filepath.Join(dirPath, "logs")
-	}
 
 	// CHECKS FOR CLUSTER
 	if CONFIG.Kubernetes.RunInCluster {
@@ -311,7 +307,6 @@ func PrintCurrentCONFIG() (string, error) {
 
 	// reset data for local usage
 	configCopy.Misc.DefaultMountPath = ""
-	configCopy.Kubernetes.LogDataPath = ""
 	configCopy.Kubernetes.RunInCluster = false
 
 	// marshal the copy to yaml
@@ -370,7 +365,7 @@ func PrintSettings() {
 		"Kubernetes.GitVaultDataPath", config.Get("MO_GIT_VAULT_DATA_PATH"),
 		"Kubernetes.BboltDbPath", config.Get("MO_BBOLT_DB_PATH"),
 		"Kubernetes.BboltDbStatsPath", config.Get("MO_BBOLT_DB_STATS_PATH"),
-		"Kubernetes.LogDataPath", CONFIG.Kubernetes.LogDataPath,
+		"Kubernetes.LogDataPath", config.Get("MO_LOG_DIR"),
 		"Kubernetes.LocalContainerRegistryHost", CONFIG.Kubernetes.LocalContainerRegistryHost,
 		"Iac.RepoUrl", CONFIG.Iac.RepoUrl,
 		"Iac.RepoPat", CONFIG.Iac.RepoPat,
