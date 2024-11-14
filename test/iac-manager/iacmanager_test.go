@@ -1,14 +1,25 @@
 package iacmanager_test
 
 import (
-	"fmt"
+	"mogenius-k8s-manager/src/config"
 	iacmanager "mogenius-k8s-manager/src/iac-manager"
+	"mogenius-k8s-manager/src/interfaces"
+	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"os"
 	"testing"
 )
 
 func TestIacManager(t *testing.T) {
+	logManager := interfaces.NewMockSlogManager(t)
+	config := config.NewConfig()
+	kubernetes.Setup(logManager, config)
+	iacmanager.Setup(logManager, config)
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_GIT_VAULT_DATA_PATH",
+		DefaultValue: utils.Pointer(os.TempDir()),
+	})
+
 	utils.InitConfigSimple(utils.STAGE_DEV)
 
 	iacmanager.InitDataModel()
@@ -19,7 +30,6 @@ func TestIacManager(t *testing.T) {
 	utils.CONFIG.Iac.RepoBranch = "main"
 	utils.CONFIG.Iac.AllowPull = true
 	utils.CONFIG.Iac.SyncFrequencyInSec = 10
-	utils.CONFIG.Kubernetes.GitVaultDataPath = os.TempDir()
 
 	err := iacmanager.GitInitRepo()
 	if err != nil {
@@ -32,7 +42,7 @@ func TestIacManager(t *testing.T) {
 	if len(data) < 100 {
 		t.Errorf("Error getting IAC status")
 	} else {
-		fmt.Print(data)
+		t.Log(data)
 		t.Log("IAC status retrieved ✅")
 	}
 
@@ -48,7 +58,7 @@ func TestIacManager(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating diff: %v", err)
 	} else {
-		fmt.Print(diff)
+		t.Log(diff)
 		t.Log("Diff created ✅")
 	}
 }

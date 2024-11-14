@@ -134,15 +134,15 @@ func InitDataModel() {
 	dataModel.SyncInfo.RecentlyDeletedFiles = []string{}
 	dataModel.LastSuccessfullyAppliedCommit = nil
 
-	addedFiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
+	addedFiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(config.Get("MO_GIT_VAULT_DATA_PATH"))
 	if err == nil {
 		dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = addedFiles
 	}
-	deletedFiles, err := gitmanager.GetLastDeletedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
+	deletedFiles, err := gitmanager.GetLastDeletedFiles(config.Get("MO_GIT_VAULT_DATA_PATH"))
 	if err == nil {
 		dataModel.SyncInfo.RecentlyDeletedFiles = deletedFiles
 	}
-	pulse, err := gitmanager.GeneratePulseDiagramData(utils.CONFIG.Kubernetes.GitVaultDataPath)
+	pulse, err := gitmanager.GeneratePulseDiagramData(config.Get("MO_GIT_VAULT_DATA_PATH"))
 	if err == nil {
 		dataModel.RepoPulse = pulse
 	}
@@ -248,11 +248,11 @@ func SetResourceState(key string, state IacManagerResourceState) {
 func SetSyncInfo(timeInMs int64) {
 	dataModel.SyncInfo.ExecutionTimeInMs = timeInMs
 
-	addedOrUpdatedfiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
+	addedOrUpdatedfiles, err := gitmanager.GetLastUpdatedAndModifiedFiles(config.Get("MO_GIT_VAULT_DATA_PATH"))
 	if err == nil && len(addedOrUpdatedfiles) > 0 {
 		dataModel.SyncInfo.RecentlyAddedOrUpdatedFiles = addedOrUpdatedfiles
 	}
-	deletedFiles, err := gitmanager.GetLastDeletedFiles(utils.CONFIG.Kubernetes.GitVaultDataPath)
+	deletedFiles, err := gitmanager.GetLastDeletedFiles(config.Get("MO_GIT_VAULT_DATA_PATH"))
 	if err == nil && len(deletedFiles) > 0 {
 		dataModel.SyncInfo.RecentlyDeletedFiles = deletedFiles
 	}
@@ -312,7 +312,7 @@ func UpdateResourceStatus(kind string, namespace string, name string, state Sync
 		newStatus.Error = errMsg.Error()
 	}
 
-	revisions, _ := gitmanager.ListFileRevisions(utils.CONFIG.Kubernetes.GitVaultDataPath, key, name+".yaml")
+	revisions, _ := gitmanager.ListFileRevisions(config.Get("MO_GIT_VAULT_DATA_PATH"), key, name+".yaml")
 	for index, rev := range revisions {
 		// latest revision
 		if index == 0 {
@@ -353,7 +353,7 @@ func AddChangedFile(file ChangedFile) {
 			return
 		}
 	}
-	revisions, _ := gitmanager.ListFileRevisions(utils.CONFIG.Kubernetes.GitVaultDataPath, file.Path, file.Name+".yaml")
+	revisions, _ := gitmanager.ListFileRevisions(config.Get("MO_GIT_VAULT_DATA_PATH"), file.Path, file.Name+".yaml")
 	for index, rev := range revisions {
 		// latest revision
 		if index == 0 {
