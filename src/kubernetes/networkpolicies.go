@@ -140,6 +140,7 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 	// create a new event
 	event := &v1Core.Event{
 		ObjectMeta: metav1.ObjectMeta{
+			Name:        fmt.Sprintf("%s.%s.%s", netPol.Name, netPol.Namespace, time.Now().String()),
 			Namespace:   netPol.Namespace,
 			Annotations: annotations,
 		},
@@ -150,9 +151,10 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 			UID:             netPol.UID,
 			ResourceVersion: netPol.ResourceVersion,
 		},
-		Reason:  reason,
-		Message: fmt.Sprintf("NetPol %s is being %s", netPol.Name, reason),
-		Type:    v1Core.EventTypeNormal,
+		Reason:    reason,
+		Message:   fmt.Sprintf("NetPol %s is being %s", netPol.Name, reason),
+		Type:      v1Core.EventTypeNormal,
+		EventTime: metav1.MicroTime{Time: time.Now()},
 	}
 
 	k8sLogger.Info("Sending custom network policy event to dispatcher", "event", event)
