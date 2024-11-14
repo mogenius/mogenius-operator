@@ -154,7 +154,7 @@ func initConfigDeclarations() {
 	assert.Assert(cmdConfig != nil, "This has to be called **after** initializing `cmdConfig`")
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:         "MO_API_KEY",
-		Description: utils.Pointer("Api Key to access the server"),
+		Description: utils.Pointer("API key to access the server"),
 		IsSecret:    true,
 		Envs:        []string{"api_key"},
 		Cobra: &interfaces.ConfigCobraFlags{
@@ -163,7 +163,7 @@ func initConfigDeclarations() {
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:         "MO_CLUSTER_NAME",
-		Description: utils.Pointer("The Name of the Kubernetes Cluster"),
+		Description: utils.Pointer("the name of the kubernetes cluster"),
 		Envs:        []string{"cluster_name"},
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "cluster-name",
@@ -180,7 +180,7 @@ func initConfigDeclarations() {
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_STAGE",
 		DefaultValue: utils.Pointer("prod"),
-		Description:  utils.Pointer("The stage automatically overrides API Server configs"),
+		Description:  utils.Pointer("the stage automatically overrides API server configs"),
 		Envs:         []string{"STAGE", "stage"},
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "stage",
@@ -202,7 +202,7 @@ func initConfigDeclarations() {
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
-		Description:  utils.Pointer("The Namespace of mogenius platform"),
+		Description:  utils.Pointer("the Namespace of mogenius platform"),
 		Envs:         []string{"OWN_NAMESPACE"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
@@ -252,21 +252,40 @@ func initConfigDeclarations() {
 		Envs:         []string{"bbolt_db_path"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_STATS_MAX_DATA_POINTS",
+		DefaultValue: utils.Pointer("6000"),
+		Description:  utils.Pointer(`after n data points in bucket will be overwritten following the "Last In - First Out" principle`),
+		Envs:         []string{"max_data_points"},
+		Validate: func(value string) error {
+			_, err := strconv.Atoi(value)
+			if err != nil {
+				return fmt.Errorf("'MO_BBOLT_DB_STATS_MAX_DATA_POINTS' needs to be an integer: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",
 		DefaultValue: utils.Pointer("mogenius git-user"),
-		Description:  utils.Pointer("User name which is used when interacting with git."),
+		Description:  utils.Pointer("user name which is used when interacting with git"),
 		Envs:         []string{"git_user_name"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_GIT_USER_EMAIL",
 		DefaultValue: utils.Pointer("git@mogenius.com"),
-		Description:  utils.Pointer("Email address which is used when interacting with git."),
+		Description:  utils.Pointer("email address which is used when interacting with git"),
 		Envs:         []string{"git_user_email"},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_LOCAL_CONTAINER_REGISTRY_HOST",
+		DefaultValue: utils.Pointer("mocr.local.mogenius.io"),
+		Description:  utils.Pointer("local container registry inside the cluster"),
+		Envs:         []string{"local_registry_host"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
-		Description:  utils.Pointer(`A log level: "debug", "info", "warn" or "error"`),
+		Description:  utils.Pointer(`a log level: "debug", "info", "warn" or "error"`),
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "log-level",
 		},
@@ -289,13 +308,13 @@ func initConfigDeclarations() {
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_DIR",
 		DefaultValue: utils.Pointer(defaultLogDir),
-		Description:  utils.Pointer(`Path in which logs are stored in the filesystem`),
+		Description:  utils.Pointer(`path in which logs are stored in the filesystem`),
 		ReadOnly:     true,
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_DEBUG",
 		DefaultValue: utils.Pointer("false"),
-		Description:  utils.Pointer("Enable debug mode"),
+		Description:  utils.Pointer("enable debug mode"),
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name:  "debug",
 			Short: utils.Pointer("d"),
