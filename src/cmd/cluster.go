@@ -56,7 +56,7 @@ var clusterCmd = &cobra.Command{
 			mokubernetes.Setup(slogManager, cmdConfig)
 			controllers.Setup(slogManager)
 			crds.Setup(slogManager)
-			db.Setup(slogManager)
+			db.Setup(slogManager, cmdConfig)
 			dbstats.Setup(slogManager)
 			dtos.Setup(slogManager)
 			api.Setup(slogManager, cmdConfig)

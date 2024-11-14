@@ -52,7 +52,7 @@ func BuildJobKey(buildId uint64) string {
 var db *bolt.DB
 
 func Start() {
-	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
+	dbPath := strings.ReplaceAll(config.Get("MO_BBOLT_DB_PATH"), ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		dbLogger.Error("Error opening bbolt database", "dbPath", dbPath, "error", err)
