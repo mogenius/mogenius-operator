@@ -154,6 +154,9 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 		Message: fmt.Sprintf("NetPol %s is being %s", netPol.Name, reason),
 		Type:    v1Core.EventTypeNormal,
 	}
+
+	k8sLogger.Debug("Sending custom network policy event to dispatcher", "event", event)
+
 	ProcessEvent(event)
 }
 
