@@ -246,6 +246,12 @@ func initConfigDeclarations() {
 		Envs:         []string{"bbolt_db_path"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_STATS_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(workDir, "mogenius-stats.db")),
+		Description:  utils.Pointer("path to the bbolt database"),
+		Envs:         []string{"bbolt_db_path"},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",
 		DefaultValue: utils.Pointer("mogenius git-user"),
 		Description:  utils.Pointer("User name which is used when interacting with git."),

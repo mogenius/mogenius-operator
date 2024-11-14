@@ -29,7 +29,7 @@ var DbStats *bolt.DB
 var cleanupTimer = time.NewTicker(1 * time.Minute)
 
 func Start() {
-	dbPath := strings.ReplaceAll(utils.CONFIG.Kubernetes.BboltDbStatsPath, ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
+	dbPath := strings.ReplaceAll(config.Get("MO_BBOLT_DB_STATS_PATH"), ".db", fmt.Sprintf("-%s.db", DB_SCHEMA_VERSION))
 	database, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		dbStatsLogger.Error("Error opening bbolt database.", "dbPath", dbPath, "error", err)
