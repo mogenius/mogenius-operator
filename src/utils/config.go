@@ -125,7 +125,6 @@ type Config struct {
 		LogChanges         bool                `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
-		Stage                  string   `yaml:"stage" env:"stage" env-description:"mogenius k8s-manager stage" env-default:"prod"`
 		LogIncomingStats       bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
 		DefaultMountPath       string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
 		IgnoreNamespaces       []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
@@ -367,7 +366,6 @@ func PrintSettings() {
 		"Iac.LogChanges", CONFIG.Iac.LogChanges,
 		"Iac.ShowDiffInLog", CONFIG.Iac.ShowDiffInLog,
 		"Misc.Stage", config.Get("MO_STAGE"),
-		"Misc.LogIncomingStats", CONFIG.Misc.LogIncomingStats,
 		"Misc.Debug", config.Get("MO_DEBUG"),
 		"Misc.AutoMountNfs", CONFIG.Misc.AutoMountNfs,
 		"Misc.DefaultMountPath", CONFIG.Misc.DefaultMountPath,
