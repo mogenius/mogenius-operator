@@ -154,7 +154,9 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 }
 
 func versionTicker() {
-	updateTicker := time.NewTicker(time.Second * time.Duration(utils.CONFIG.Misc.CheckForUpdates))
+	interval, err := strconv.Atoi(config.Get("MO_UPDATE_INTERVAL"))
+	assert.Assert(err == nil)
+	updateTicker := time.NewTicker(time.Second * time.Duration(interval))
 	done := make(chan bool)
 
 	go func() {
