@@ -128,7 +128,6 @@ type Config struct {
 		LogChanges         bool                `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
-		DefaultMountPath string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
 		IgnoreNamespaces []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
 		AutoMountNfs     bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
 		CheckForUpdates  int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
@@ -212,9 +211,6 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
 	}
 
-	// SET DEFAULTS if missing
-	dirPath, _ := os.Getwd()
-
 	if !CONFIG.Kubernetes.RunInCluster {
 		dirPath, err := os.MkdirTemp("", "mo_*")
 		if err != nil {
@@ -223,10 +219,6 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 			select {}
 		}
 		utilsLogger.Info("TempDir created", "path", dirPath)
-	}
-
-	if CONFIG.Misc.DefaultMountPath == "" {
-		CONFIG.Misc.DefaultMountPath = filepath.Join(dirPath, "mo-data")
 	}
 
 	// CHECKS FOR CLUSTER
@@ -291,7 +283,6 @@ func PrintCurrentCONFIG() (string, error) {
 	}
 
 	// reset data for local usage
-	configCopy.Misc.DefaultMountPath = ""
 	configCopy.Kubernetes.RunInCluster = false
 
 	// marshal the copy to yaml
@@ -367,7 +358,7 @@ func PrintSettings() {
 		"Misc.Stage", config.Get("MO_STAGE"),
 		"Misc.Debug", config.Get("MO_DEBUG"),
 		"Misc.AutoMountNfs", CONFIG.Misc.AutoMountNfs,
-		"Misc.DefaultMountPath", CONFIG.Misc.DefaultMountPath,
+		"Misc.DefaultMountPath", config.Get("MO_DEFAULT_MOUNT_PATH"),
 		"Misc.IgnoreNamespaces", CONFIG.Misc.IgnoreNamespaces,
 		"Misc.CheckForUpdates", CONFIG.Misc.CheckForUpdates,
 		"Builder.BuildTimeout", config.Get("MO_BUILDER_BUILD_TIMEOUT"),

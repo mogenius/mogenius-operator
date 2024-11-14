@@ -304,7 +304,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 			}
 			if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
 				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
-				mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
+				mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
 				punqUtils.CreateDirIfNotExist(mountDir)
 				punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
@@ -330,7 +330,7 @@ func Umount(volumeNamespace string, volumeName string) {
 	go func() {
 		if utils.CONFIG.Misc.AutoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
-			mountDir := fmt.Sprintf("%s/%s_%s", utils.CONFIG.Misc.DefaultMountPath, volumeNamespace, volumeName)
+			mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
 			punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
 			punqUtils.DeleteDirIfExist(mountDir)

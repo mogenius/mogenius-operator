@@ -309,6 +309,12 @@ func initConfigDeclarations() {
 		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_DEFAULT_MOUNT_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(workDir, "mo-data")),
+		Description:  utils.Pointer("all containers have access to this mount point"),
+		Envs:         []string{"default_mount_path"},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
 		Description:  utils.Pointer(`a log level: "debug", "info", "warn" or "error"`),
