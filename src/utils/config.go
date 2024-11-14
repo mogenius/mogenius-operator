@@ -130,7 +130,6 @@ type Config struct {
 	Misc struct {
 		IgnoreNamespaces []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
 		AutoMountNfs     bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
-		CheckForUpdates  int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
 	} `yaml:"misc"`
 }
 
@@ -360,7 +359,7 @@ func PrintSettings() {
 		"Misc.AutoMountNfs", CONFIG.Misc.AutoMountNfs,
 		"Misc.DefaultMountPath", config.Get("MO_DEFAULT_MOUNT_PATH"),
 		"Misc.IgnoreNamespaces", CONFIG.Misc.IgnoreNamespaces,
-		"Misc.CheckForUpdates", CONFIG.Misc.CheckForUpdates,
+		"Misc.CheckForUpdates", config.Get("MO_UPDATE_INTERVAL"),
 		"Builder.BuildTimeout", config.Get("MO_BUILDER_BUILD_TIMEOUT"),
 		"Builder.MaxConcurrentBuilds", config.Get("MO_BUILDER_MAX_CONCURRENT_BUILDS"),
 		"Git.GitUserEmail", config.Get("MO_GIT_USER_EMAIL"),
