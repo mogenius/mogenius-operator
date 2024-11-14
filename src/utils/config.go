@@ -109,7 +109,6 @@ const STAGE_LOCAL = "local"
 type Config struct {
 	Kubernetes struct {
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
-		GitVaultDataPath           string `yaml:"git_vault_data_path" env:"git_vault_data_path" env-description:"Path to the Git Vault data."`
 		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
 		BboltDbStatsPath           string `yaml:"bbolt_db_stats_path" env:"bbolt_db_stats_path" env-description:"Path to the bbolt database. This db stores stats-related information."`
 		LogDataPath                string `yaml:"log_data_path" env:"log_data_path" env-description:"Path to the log data."`
@@ -247,9 +246,6 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 	if CONFIG.Kubernetes.BboltDbPath == "" {
 		CONFIG.Kubernetes.BboltDbPath = filepath.Join(dirPath, "mogenius.db")
 	}
-	if CONFIG.Kubernetes.GitVaultDataPath == "" {
-		CONFIG.Kubernetes.GitVaultDataPath = filepath.Join(dirPath, "git-vault-data")
-	}
 	if CONFIG.Kubernetes.BboltDbStatsPath == "" {
 		CONFIG.Kubernetes.BboltDbStatsPath = filepath.Join(dirPath, "mogenius-stats.db")
 	}
@@ -323,7 +319,6 @@ func PrintCurrentCONFIG() (string, error) {
 
 	// reset data for local usage
 	configCopy.Misc.DefaultMountPath = ""
-	configCopy.Kubernetes.GitVaultDataPath = ""
 	configCopy.Kubernetes.BboltDbPath = ""
 	configCopy.Kubernetes.BboltDbStatsPath = ""
 	configCopy.Kubernetes.LogDataPath = ""
@@ -382,7 +377,7 @@ func PrintSettings() {
 		"Kubernetes.RunInCluster", CONFIG.Kubernetes.RunInCluster,
 		"Kubernetes.ApiKey", config.Get("MO_API_KEY"),
 		"Kubernetes.HelmDataPath", config.Get("MO_HELM_DATA_PATH"),
-		"Kubernetes.GitVaultDataPath", CONFIG.Kubernetes.GitVaultDataPath,
+		"Kubernetes.GitVaultDataPath", config.Get("MO_GIT_VAULT_DATA_PATH"),
 		"Kubernetes.BboltDbPath", CONFIG.Kubernetes.BboltDbPath,
 		"Kubernetes.BboltDbStatsPath", CONFIG.Kubernetes.BboltDbStatsPath,
 		"Kubernetes.LogDataPath", CONFIG.Kubernetes.LogDataPath,

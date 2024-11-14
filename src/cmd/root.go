@@ -230,8 +230,14 @@ func initConfigDeclarations() {
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "helm-data")),
-		Description:  utils.Pointer("Path to the Helm data"),
+		Description:  utils.Pointer("path to the helm data"),
 		Envs:         []string{"helm_data_path"},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_GIT_VAULT_DATA_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(workDir, "git-vault-data")),
+		Description:  utils.Pointer("path to the git vault data"),
+		Envs:         []string{"git_vault_data_path"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",
