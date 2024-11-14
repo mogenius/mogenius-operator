@@ -318,7 +318,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Service {
 	services := punq.AllServices(volumeNamespace, nil)
 	for _, srv := range services {
-		if strings.Contains(srv.Name, fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)) {
+		if strings.Contains(srv.Name, fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)) {
 			return &srv
 		}
 	}

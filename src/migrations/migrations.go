@@ -33,8 +33,8 @@ func _PvcMigration1() (string, error) {
 
 	pvcs := punq.AllPersistentVolumeClaims("", nil)
 	for _, pvc := range pvcs {
-		if strings.HasPrefix(pvc.Name, utils.CONFIG.Misc.NfsPodPrefix) {
-			volumeName := strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
+		if strings.HasPrefix(pvc.Name, utils.NFS_POD_PREFIX) {
+			volumeName := strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.NFS_POD_PREFIX), "", 1)
 			pvc.Labels = kubernetes.MoAddLabels(&pvc.Labels, map[string]string{
 				kubernetes.LabelKeyVolumeIdentifier: pvc.Name,
 				kubernetes.LabelKeyVolumeName:       volumeName,
@@ -56,12 +56,12 @@ func _PvcMigration1() (string, error) {
 	pvs := punq.AllPersistentVolumesRaw(nil)
 	for _, pv := range pvs {
 		if pv.Spec.ClaimRef != nil {
-			if strings.HasPrefix(pv.Spec.ClaimRef.Name, utils.CONFIG.Misc.NfsPodPrefix) {
+			if strings.HasPrefix(pv.Spec.ClaimRef.Name, utils.NFS_POD_PREFIX) {
 				pv.Labels = kubernetes.MoAddLabels(&pv.Labels, map[string]string{
 					kubernetes.LabelKeyVolumeIdentifier: pv.Spec.ClaimRef.Name,
 					kubernetes.LabelKeyVolumeName: strings.Replace(
 						pv.Spec.ClaimRef.Name,
-						fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix),
+						fmt.Sprintf("%s-", utils.NFS_POD_PREFIX),
 						"",
 						1,
 					),

@@ -19,6 +19,7 @@ import (
 )
 
 const HELM_INDEX string = "https://helm.mogenius.com/public/index.yaml"
+const NFS_POD_PREFIX string = "nfs-server"
 
 // This object will initially created in secrets when the software is installed into the cluster for the first time (resource: secret -> mogenius/mogenius)
 type ClusterSecret struct {
@@ -127,14 +128,10 @@ type Config struct {
 		LogChanges         bool                `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
 	Misc struct {
-		LogIncomingStats       bool     `yaml:"log_incoming_stats" env:"log_incoming_stats" env-description:"Scraper data input will be logged visibly when set to true." env-default:"false"`
-		DefaultMountPath       string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
-		IgnoreNamespaces       []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
-		AutoMountNfs           bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
-		CheckForUpdates        int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
-		HelmIndex              string   `yaml:"helm_index" env:"helm_index" env-description:"URL of the helm index file." env-default:"https://helm.mogenius.com/public/index.yaml"`
-		NfsPodPrefix           string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
-		ExternalSecretsEnabled bool     `yaml:"external_secrets_enabled" env:"external_secrets_enabled" env-description:"If set to true, external secrets will be enabled." env-default:"false"`
+		DefaultMountPath string   `yaml:"default_mount_path" env:"default_mount_path" env-description:"All containers will have access to this mount point"`
+		IgnoreNamespaces []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
+		AutoMountNfs     bool     `yaml:"auto_mount_nfs" env:"auto_mount_nfs" env-description:"If set to true, nfs pvc will automatically be mounted." env-default:"true"`
+		CheckForUpdates  int      `yaml:"check_for_updates" env:"check_for_updates" env-description:"Time interval between update checks." env-default:"86400"`
 	} `yaml:"misc"`
 }
 
@@ -373,7 +370,6 @@ func PrintSettings() {
 		"Misc.DefaultMountPath", CONFIG.Misc.DefaultMountPath,
 		"Misc.IgnoreNamespaces", CONFIG.Misc.IgnoreNamespaces,
 		"Misc.CheckForUpdates", CONFIG.Misc.CheckForUpdates,
-		"Misc.NfsPodPrefix", CONFIG.Misc.NfsPodPrefix,
 		"Builder.BuildTimeout", config.Get("MO_BUILDER_BUILD_TIMEOUT"),
 		"Builder.MaxConcurrentBuilds", config.Get("MO_BUILDER_MAX_CONCURRENT_BUILDS"),
 		"Git.GitUserEmail", config.Get("MO_GIT_USER_EMAIL"),
