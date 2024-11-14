@@ -1,9 +1,9 @@
 {
   "workbench.colorCustomizations": {
-    "activityBar.activeBackground": "#505516",
-    "activityBar.background": "#cbd441",
+    "activityBar.activeBackground": "#296883",
+    "activityBar.background": "#296883",
     "activityBar.foreground": "#e7e7e7",
-    "activityBar.inactiveForeground": "#40393999",
+    "activityBar.inactiveForeground": "#e7e7e799",
     "activityBarBadge.background": "#49173a",
     "activityBarBadge.foreground": "#e7e7e7",
     "commandCenter.border": "#e7e7e799",
@@ -19,5 +19,13 @@
     "titleBar.inactiveForeground": "#e7e7e799"
   },
   "peacock.color": "#1D495C",
-  "editor.stickyScroll.enabled": true
+  "editor.stickyScroll.enabled": true,
+  "emeraldwalk.runonsave": {
+    "commands": [
+      {
+        "match": "\\.go$",
+        "cmd": "gofmt -w ${file}"
+      }
+    ]
+  }
 }
