@@ -1237,7 +1237,7 @@ spec:
 }
 
 func getCurrentTrafficCollectorVersion() (string, error) {
-	data, err := utils.GetVersionData(utils.CONFIG.Misc.HelmIndex)
+	data, err := utils.GetVersionData(utils.HELM_INDEX)
 	if err != nil {
 		return "NO_VERSION_FOUND", err
 	}
@@ -1250,7 +1250,7 @@ func getCurrentTrafficCollectorVersion() (string, error) {
 }
 
 func getCurrentPodStatsCollectorVersion() (string, error) {
-	data, err := utils.GetVersionData(utils.CONFIG.Misc.HelmIndex)
+	data, err := utils.GetVersionData(utils.HELM_INDEX)
 	if err != nil {
 		return "NO_VERSION_FOUND", err
 	}

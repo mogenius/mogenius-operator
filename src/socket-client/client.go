@@ -177,23 +177,23 @@ func updateCheck() {
 		return
 	}
 
-	helmData, err := utils.GetVersionData(utils.CONFIG.Misc.HelmIndex)
+	helmData, err := utils.GetVersionData(utils.HELM_INDEX)
 	if err != nil {
 		socketClientLogger.Error("GetVersionData", "error", err.Error())
 		return
 	}
 	// VALIDATE RESPONSE
 	if len(helmData.Entries) < 1 {
-		socketClientLogger.Error("HelmIndex Entries length <= 0. Check the HelmIndex for errors.", "HelmIndex", utils.CONFIG.Misc.HelmIndex)
+		socketClientLogger.Error("HelmIndex Entries length <= 0. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
 		return
 	}
 	mogeniusPlatform, doesExist := helmData.Entries["mogenius-platform"]
 	if !doesExist {
-		socketClientLogger.Error("HelmIndex does not contain the field 'mogenius-platform'. Check the HelmIndex for errors.", "HelmIndex", utils.CONFIG.Misc.HelmIndex)
+		socketClientLogger.Error("HelmIndex does not contain the field 'mogenius-platform'. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
 		return
 	}
 	if len(mogeniusPlatform) <= 0 {
-		socketClientLogger.Error("Field 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors.", "HelmIndex", utils.CONFIG.Misc.HelmIndex)
+		socketClientLogger.Error("Field 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
 		return
 	}
 	var mok8smanager *punqStructs.HelmDependency = nil
@@ -204,7 +204,7 @@ func updateCheck() {
 		}
 	}
 	if mok8smanager == nil {
-		socketClientLogger.Error("The umbrella chart 'mogenius-platform' does not contain a dependency for 'mogenius-k8s-manager'. Check the HelmIndex for errors.", "HelmIndex", utils.CONFIG.Misc.HelmIndex)
+		socketClientLogger.Error("The umbrella chart 'mogenius-platform' does not contain a dependency for 'mogenius-k8s-manager'. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
 		return
 	}
 
