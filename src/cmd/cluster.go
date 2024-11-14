@@ -68,7 +68,7 @@ var clusterCmd = &cobra.Command{
 			store.Setup(slogManager)
 			structs.Setup(slogManager, cmdConfig)
 			utils.Setup(slogManager, cmdConfig)
-			xterm.Setup(slogManager)
+			xterm.Setup(slogManager, cmdConfig)
 
 			preRun()
 

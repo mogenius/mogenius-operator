@@ -2,10 +2,11 @@ package xterm
 
 import (
 	"context"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/db"
 	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -39,9 +40,11 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		return
 	}
 
+	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
+	assert.Assert(err == nil)
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 	// websocket connection
 	readMessages, conn, err := generateWsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
