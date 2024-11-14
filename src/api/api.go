@@ -1,14 +1,12 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
 	"mogenius-k8s-manager/src/assert"
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	iacmanager "mogenius-k8s-manager/src/iac-manager"
 	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"net/http"
 	"strconv"
@@ -62,19 +60,26 @@ func getHealthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 func postTraffic(w http.ResponseWriter, r *http.Request) {
-	var out bytes.Buffer
-	body, _ := io.ReadAll(r.Body)
-
-	err := json.Indent(&out, []byte(body), "", "  ")
+	debugMode, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+	assert.Assert(err == nil)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		httpLogger.Error("Error indenting json", "error", err)
+		httpLogger.Error("failed to read request body", "error", err)
+		return
 	}
-	if utils.CONFIG.Misc.LogIncomingStats {
-		httpLogger.Info(out.String())
+
+	if debugMode {
+		var parsedJson interface{}
+		err = json.Unmarshal(body, &parsedJson)
+		if err != nil {
+			httpLogger.Error("failed to indent json", "error", err)
+			return
+		}
+		httpLogger.Debug("POST /traffic", "body", parsedJson)
 	}
 
 	stat := &structs.InterfaceStats{}
-	err = structs.UnmarshalInterfaceStats(stat, out.Bytes())
+	err = structs.UnmarshalInterfaceStats(stat, body)
 	if err != nil {
 		httpLogger.Error("failed to unmarshal interface stats", "error", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -92,19 +97,26 @@ func postTraffic(w http.ResponseWriter, r *http.Request) {
 }
 
 func postPodStats(w http.ResponseWriter, r *http.Request) {
-	var out bytes.Buffer
-	body, _ := io.ReadAll(r.Body)
-
-	err := json.Indent(&out, []byte(body), "", "  ")
+	debugMode, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+	assert.Assert(err == nil)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		httpLogger.Error("Error indenting json", "error", err)
+		httpLogger.Error("failed to read request body", "error", err)
+		return
 	}
-	if utils.CONFIG.Misc.LogIncomingStats {
-		httpLogger.Info(out.String())
+
+	if debugMode {
+		var parsedJson interface{}
+		err = json.Unmarshal(body, &parsedJson)
+		if err != nil {
+			httpLogger.Error("failed to indent json", "error", err)
+			return
+		}
+		httpLogger.Debug("POST /podstats", "body", parsedJson)
 	}
 
 	stat := &structs.PodStats{}
-	err = structs.UnmarshalPodStats(stat, out.Bytes())
+	err = structs.UnmarshalPodStats(stat, body)
 	if err != nil {
 		httpLogger.Error("failed to unmarshal interface stats", "error", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -122,19 +134,26 @@ func postPodStats(w http.ResponseWriter, r *http.Request) {
 }
 
 func postNodeStats(w http.ResponseWriter, r *http.Request) {
-	var out bytes.Buffer
-	body, _ := io.ReadAll(r.Body)
-
-	err := json.Indent(&out, []byte(body), "", "  ")
+	debugMode, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+	assert.Assert(err == nil)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		httpLogger.Error("Error indenting json", "error", err)
+		httpLogger.Error("failed to read request body", "error", err)
+		return
 	}
-	if utils.CONFIG.Misc.LogIncomingStats {
-		httpLogger.Info(out.String())
+
+	if debugMode {
+		var parsedJson interface{}
+		err = json.Unmarshal(body, &parsedJson)
+		if err != nil {
+			httpLogger.Error("failed to indent json", "error", err)
+			return
+		}
+		httpLogger.Debug("POST /nodestats", "body", parsedJson)
 	}
 
 	stat := &structs.NodeStats{}
-	err = structs.UnmarshalNodeStats(stat, out.Bytes())
+	err = structs.UnmarshalNodeStats(stat, body)
 	if err != nil {
 		httpLogger.Error("failed to unmarshal interface stats", "error", err)
 		w.Header().Set("Content-Type", "application/json")
