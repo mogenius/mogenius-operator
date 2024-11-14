@@ -104,7 +104,7 @@ func StatusMogeniusNfs(r NfsStatusRequest) interface{} {
 }
 
 func StatusMogeniusNfs2(r NfsStatusRequest) NfsStatusResponse {
-	prefix := fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix)
+	prefix := fmt.Sprintf("%s-", utils.NFS_POD_PREFIX)
 	// normalize name, convert no prefixed 'nfs-server-pod-' to prefixed and vice versa
 	nonPrefixName := strings.TrimPrefix(r.Name, prefix)
 	prefixName := prefix + nonPrefixName
@@ -611,7 +611,7 @@ func (s *VolumeStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, ch
 		return
 	}
 
-	prefix := fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix)
+	prefix := fmt.Sprintf("%s-", utils.NFS_POD_PREFIX)
 
 	var usedBy []string
 	for _, pod := range pods.Items {

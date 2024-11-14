@@ -187,32 +187,30 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 				})
 			}
 			// EXTERNAL SECRETS OPERATOR
-			if utils.CONFIG.Misc.ExternalSecretsEnabled {
-				if envVar.Type == dtos.EnvVarKeyVault && envVar.Data.VaultType == dtos.EnvVarVaultTypeHashicorpExternalVault {
-					// create secret
-					namePrefix, propertyName := dtos.SplitEsoEnvVarValues(envVar)
-					SecretName, err := CreateExternalSecret(CreateExternalSecretProps{
-						namespace.Name,
-						propertyName,
-						namePrefix,
-						service.ControllerName,
-					})
-					if err != nil {
-						k8sLogger.Error("Error creating external secret: %s, Secret will not be set for service.", "error", err, "secret name", envVar.Name, "service name", service.ControllerName)
-					} else {
-						// link created secret to container env
-						specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
-							Name: envVar.Name,
-							ValueFrom: &v1core.EnvVarSource{
-								SecretKeyRef: &v1core.SecretKeySelector{
-									Key: propertyName,
-									LocalObjectReference: v1core.LocalObjectReference{
-										Name: SecretName,
-									},
+			if envVar.Type == dtos.EnvVarKeyVault && envVar.Data.VaultType == dtos.EnvVarVaultTypeHashicorpExternalVault {
+				// create secret
+				namePrefix, propertyName := dtos.SplitEsoEnvVarValues(envVar)
+				SecretName, err := CreateExternalSecret(CreateExternalSecretProps{
+					namespace.Name,
+					propertyName,
+					namePrefix,
+					service.ControllerName,
+				})
+				if err != nil {
+					k8sLogger.Error("Error creating external secret: %s, Secret will not be set for service.", "error", err, "secret name", envVar.Name, "service name", service.ControllerName)
+				} else {
+					// link created secret to container env
+					specTemplate.Spec.Containers[index].Env = append(specTemplate.Spec.Containers[index].Env, v1core.EnvVar{
+						Name: envVar.Name,
+						ValueFrom: &v1core.EnvVarSource{
+							SecretKeyRef: &v1core.SecretKeySelector{
+								Key: propertyName,
+								LocalObjectReference: v1core.LocalObjectReference{
+									Name: SecretName,
 								},
 							},
-						})
-					}
+						},
+					})
 				}
 			}
 			if envVar.Type == dtos.EnvVarPlainText || envVar.Type == dtos.EnvVarHostname {

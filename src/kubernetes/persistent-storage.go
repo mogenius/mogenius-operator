@@ -83,9 +83,9 @@ func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
 		return result, err
 	}
 	for _, pvc := range pvcList.Items {
-		if strings.HasPrefix(pvc.Name, utils.CONFIG.Misc.NfsPodPrefix) {
+		if strings.HasPrefix(pvc.Name, utils.NFS_POD_PREFIX) {
 			capacity := pvc.Spec.Resources.Requests[v1.ResourceStorage]
-			volName := strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.CONFIG.Misc.NfsPodPrefix), "", 1)
+			volName := strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.NFS_POD_PREFIX), "", 1)
 			result = append(result, structs.Volume{
 				Namespace:  pvc.Namespace,
 				VolumeName: volName,
@@ -117,7 +117,7 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		}
 
 		pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
-		pvc.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
+		pvc.Name = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 		pvc.Namespace = namespaceName
 		pvc.Spec.StorageClassName = punqUtils.Pointer(storageClass)
 		pvc.Spec.Resources.Requests = v1.ResourceList{}
@@ -125,7 +125,7 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 
 		// add labels
 		pvc.Labels = MoAddLabels(&pvc.Labels, map[string]string{
-			LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
+			LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName),
 			LabelKeyVolumeName:       volumeName,
 		})
 
@@ -157,7 +157,7 @@ func DeleteMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 			return
 		}
 		pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
-		err = pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
+		err = pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 		} else {
@@ -189,7 +189,7 @@ func CreateMogeniusNfsPersistentVolumeForService(job *structs.Job, namespaceName
 
 		// add labels
 		pv.Labels = MoAddLabels(&pv.Labels, map[string]string{
-			LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName),
+			LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName),
 			LabelKeyVolumeName:       volumeName,
 		})
 
@@ -312,9 +312,9 @@ func CreateMogeniusNfsServiceSync(job *structs.Job, namespaceName string, volume
 	cmd.Start(job, "Creating PersistentVolume Service")
 
 	service := utils.InitMogeniusNfsService()
-	service.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
+	service.Name = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 	service.Namespace = namespaceName
-	service.Spec.Selector["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
+	service.Spec.Selector["app"] = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 
 	provider, err := punq.NewKubeProvider(nil)
 	if err != nil {
@@ -343,7 +343,7 @@ func DeleteMogeniusNfsService(job *structs.Job, namespaceName string, volumeName
 			return
 		}
 		pvcClient := provider.ClientSet.CoreV1().Services(namespaceName)
-		err = pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
+		err = pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteMogeniusNfsService ERROR: %s", err.Error()))
 		} else {
@@ -360,13 +360,13 @@ func CreateMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		cmd.Start(job, "Creating PersistentVolume Deployment")
 
 		deployment := utils.InitMogeniusNfsDeployment()
-		deployment.Name = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
+		deployment.Name = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 		deployment.Namespace = namespaceName
 		deployment.Spec.Template.Labels = make(map[string]string)
-		deployment.Spec.Template.Labels["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
+		deployment.Spec.Template.Labels["app"] = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 		deployment.Spec.Selector.MatchLabels = make(map[string]string)
-		deployment.Spec.Selector.MatchLabels["app"] = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
-		deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName = fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName)
+		deployment.Spec.Selector.MatchLabels["app"] = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
+		deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 
 		provider, err := punq.NewKubeProvider(nil)
 		if err != nil {
@@ -396,7 +396,7 @@ func DeleteMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 			return
 		}
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
-		err = deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.CONFIG.Misc.NfsPodPrefix, volumeName), metav1.DeleteOptions{})
+		err = deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteMogeniusNfsDeployment ERROR: %s", err.Error()))
 		} else {
