@@ -31,10 +31,12 @@ import (
 
 var logManager interfaces.LogManagerModule
 var xtermLogger *slog.Logger
+var config interfaces.ConfigModule
 
-func Setup(logManagerModule interfaces.LogManagerModule) {
+func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
 	logManager = logManagerModule
 	xtermLogger = logManagerModule.CreateLogger("xterm")
+	config = configModule
 }
 
 const (

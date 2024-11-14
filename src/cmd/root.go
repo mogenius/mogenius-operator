@@ -283,6 +283,32 @@ func initConfigDeclarations() {
 		Envs:         []string{"local_registry_host"},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BUILDER_BUILD_TIMEOUT",
+		DefaultValue: utils.Pointer("3600"),
+		Description:  utils.Pointer("seconds until the build will be canceled"),
+		Envs:         []string{"max_build_time"},
+		Validate: func(value string) error {
+			_, err := strconv.Atoi(value)
+			if err != nil {
+				return fmt.Errorf("'MO_BUILDER_BUILD_TIMEOUT' needs to be an integer: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BUILDER_MAX_CONCURRENT_BUILDS",
+		DefaultValue: utils.Pointer("1"),
+		Description:  utils.Pointer("number of concurrent builds"),
+		Envs:         []string{"max_concurrent_builds"},
+		Validate: func(value string) error {
+			_, err := strconv.Atoi(value)
+			if err != nil {
+				return fmt.Errorf("'MO_BUILDER_MAX_CONCURRENT_BUILDS' needs to be an integer: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
 		Description:  utils.Pointer(`a log level: "debug", "info", "warn" or "error"`),

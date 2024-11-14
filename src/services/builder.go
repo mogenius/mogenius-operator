@@ -36,7 +36,12 @@ var currentBuildJob *structs.BuildJob
 var currentNumberOfRunningJobs int = 0
 
 func ProcessQueue() {
-	if DISABLEQUEUE || currentNumberOfRunningJobs >= utils.CONFIG.Builder.MaxConcurrentBuilds {
+	maxConcurrentBuilds, err := strconv.Atoi(config.Get("MO_BUILDER_MAX_CONCURRENT_BUILDS"))
+	assert.Assert(err == nil)
+	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
+	assert.Assert(err == nil)
+
+	if DISABLEQUEUE || currentNumberOfRunningJobs >= maxConcurrentBuilds {
 		time.Sleep(3 * time.Second)
 		ProcessQueue()
 		return
@@ -45,7 +50,7 @@ func ProcessQueue() {
 	jobsToBuild := db.GetJobsToBuildFromDb()
 
 	// this must happen outside the transaction to avoid dead-locks
-	serviceLogger.Info("Queued jobs in build-queue", "current", len(jobsToBuild), "max", utils.CONFIG.Builder.MaxConcurrentBuilds)
+	serviceLogger.Info("Queued jobs in build-queue", "current", len(jobsToBuild), "max", maxConcurrentBuilds)
 	for _, buildJob := range jobsToBuild {
 		for _, container := range buildJob.Service.Containers {
 			// only build git-repositories
@@ -55,7 +60,7 @@ func ProcessQueue() {
 
 			currentBuildChannel = make(chan structs.JobStateEnum, 1)
 
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 			currentBuildContext = &ctx
 			currentBuildJob = &buildJob
 			defer cancel()
@@ -71,7 +76,9 @@ func ProcessQueue() {
 
 			select {
 			case <-ctx.Done():
-				serviceLogger.Error("BUILD TIMEOUT!", "duration", utils.CONFIG.Builder.BuildTimeout, "error", ctx.Err())
+				buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
+				assert.Assert(err == nil)
+				serviceLogger.Error("BUILD TIMEOUT!", "duration", buildTimeout, "error", ctx.Err())
 				job.State = structs.JobStateTimeout
 				buildJob.State = structs.JobStateTimeout
 				saveJob(buildJob)

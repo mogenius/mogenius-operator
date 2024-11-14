@@ -3,12 +3,13 @@ package xterm
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/utils"
 	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/creack/pty"
@@ -16,7 +17,9 @@ import (
 )
 
 func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, scanImageType string, conn *websocket.Conn, tty *os.File) {
-	toolLoadingCtx, toolLoadingCancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
+	assert.Assert(err == nil)
+	toolLoadingCtx, toolLoadingCancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 
 	defer func() {
 		toolLoadingCancel()
@@ -105,7 +108,9 @@ func XTermScanImageLogStreamConnection(
 
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(utils.CONFIG.Builder.BuildTimeout))
+	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
+	assert.Assert(err == nil)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 	// websocket connection
 	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {

@@ -135,11 +135,6 @@ type Config struct {
 		NfsPodPrefix           string   `yaml:"nfs_pod_prefix" env:"nfs_pod_prefix" env-description:"A prefix for the nfs-server pod. This will always be applied in order to detect the pod."`
 		ExternalSecretsEnabled bool     `yaml:"external_secrets_enabled" env:"external_secrets_enabled" env-description:"If set to true, external secrets will be enabled." env-default:"false"`
 	} `yaml:"misc"`
-	Builder struct {
-		BuildTimeout        int `yaml:"max_build_time" env:"max_build_time" env-description:"Seconds until the build will be canceled." env-default:"3600"`
-		ScanTimeout         int `yaml:"max_scan_time" env:"max_build_time" env-description:"Seconds until the vulnerability scan will be canceled." env-default:"200"`
-		MaxConcurrentBuilds int `yaml:"max_concurrent_builds" env:"max_concurrent_builds" env-description:"Number of concurrent builds." env-default:"1"`
-	} `yaml:"builder"`
 }
 
 //go:embed config/config-local.yaml
@@ -380,9 +375,8 @@ func PrintSettings() {
 		"Misc.CheckForUpdates", CONFIG.Misc.CheckForUpdates,
 		"Misc.HelmIndex", CONFIG.Misc.HelmIndex,
 		"Misc.NfsPodPrefix", CONFIG.Misc.NfsPodPrefix,
-		"Builder.BuildTimeout", CONFIG.Builder.BuildTimeout,
-		"Builder.ScanTimeout", CONFIG.Builder.ScanTimeout,
-		"Builder.MaxConcurrentBuilds", CONFIG.Builder.MaxConcurrentBuilds,
+		"Builder.BuildTimeout", config.Get("MO_BUILDER_BUILD_TIMEOUT"),
+		"Builder.MaxConcurrentBuilds", config.Get("MO_BUILDER_MAX_CONCURRENT_BUILDS"),
 		"Git.GitUserEmail", config.Get("MO_GIT_USER_EMAIL"),
 		"Git.GitUserName", config.Get("MO_GIT_USER_NAME"),
 		"Stats.MaxDataPoints", config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"),
