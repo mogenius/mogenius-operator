@@ -7,9 +7,11 @@ import (
 )
 
 var dbStatsLogger *slog.Logger
+var config interfaces.ConfigModule
 
-func Setup(logManagerModule interfaces.LogManagerModule) {
+func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
 	dbStatsLogger = logManagerModule.CreateLogger("db-stats")
+	config = configModule
 
 	shutdown.Add(func() {
 		dbStatsLogger.Debug("Shutting down...")

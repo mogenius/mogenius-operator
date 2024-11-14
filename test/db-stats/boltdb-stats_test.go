@@ -2,11 +2,13 @@ package dbstats_test
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/src/config"
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -20,9 +22,13 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	stat := generateRandomInterfaceStats()
 
 	logManager := interfaces.NewMockSlogManager(t)
-	dbstats.Setup(logManager)
+	config := config.NewConfig()
+	dbstats.Setup(logManager, config)
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_STATS_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "test01.db")),
+	})
 
-	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test01.db"
 	utils.CONFIG.Stats.MaxDataPoints = 1000
 
 	dbstats.GetControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {
@@ -63,8 +69,15 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 }
 
 func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
-	utils.CONFIG.Kubernetes.BboltDbStatsPath = "/tmp/test02.db"
+	logManager := interfaces.NewMockSlogManager(t)
+	config := config.NewConfig()
+	dbstats.Setup(logManager, config)
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_STATS_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "test02.db")),
+	})
 	utils.CONFIG.Stats.MaxDataPoints = 3
+
 	dbstats.Start()
 
 	dbstats.GetControllerFunc = func(namespace string, podName string) *kubernetes.K8sController {

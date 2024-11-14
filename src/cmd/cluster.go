@@ -57,7 +57,7 @@ var clusterCmd = &cobra.Command{
 			controllers.Setup(slogManager)
 			crds.Setup(slogManager)
 			db.Setup(slogManager, cmdConfig)
-			dbstats.Setup(slogManager)
+			dbstats.Setup(slogManager, cmdConfig)
 			dtos.Setup(slogManager)
 			api.Setup(slogManager, cmdConfig)
 			iacmanager.Setup(slogManager, cmdConfig)
