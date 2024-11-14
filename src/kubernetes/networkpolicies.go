@@ -157,7 +157,7 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 		EventTime: metav1.MicroTime{Time: time.Now()},
 	}
 
-	k8sLogger.Info("Sending custom network policy event to dispatcher", "event", event)
+	k8sLogger.Debug("Sending custom network policy event to dispatcher", "event", event)
 
 	ProcessEvent(event)
 }
