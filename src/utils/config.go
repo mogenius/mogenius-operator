@@ -109,7 +109,6 @@ const STAGE_LOCAL = "local"
 type Config struct {
 	Kubernetes struct {
 		RunInCluster               bool   `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
-		BboltDbPath                string `yaml:"bbolt_db_path" env:"bbolt_db_path" env-description:"Path to the bbolt database. This db stores build-related information."`
 		BboltDbStatsPath           string `yaml:"bbolt_db_stats_path" env:"bbolt_db_stats_path" env-description:"Path to the bbolt database. This db stores stats-related information."`
 		LogDataPath                string `yaml:"log_data_path" env:"log_data_path" env-description:"Path to the log data."`
 		LocalContainerRegistryHost string `yaml:"local_registry_host" env:"local_registry_host" env-description:"Local container registry inside the cluster" env-default:"mocr.local.mogenius.io"`
@@ -243,9 +242,6 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		utilsLogger.Info("TempDir created", "path", dirPath)
 	}
 
-	if CONFIG.Kubernetes.BboltDbPath == "" {
-		CONFIG.Kubernetes.BboltDbPath = filepath.Join(dirPath, "mogenius.db")
-	}
 	if CONFIG.Kubernetes.BboltDbStatsPath == "" {
 		CONFIG.Kubernetes.BboltDbStatsPath = filepath.Join(dirPath, "mogenius-stats.db")
 	}
@@ -319,7 +315,6 @@ func PrintCurrentCONFIG() (string, error) {
 
 	// reset data for local usage
 	configCopy.Misc.DefaultMountPath = ""
-	configCopy.Kubernetes.BboltDbPath = ""
 	configCopy.Kubernetes.BboltDbStatsPath = ""
 	configCopy.Kubernetes.LogDataPath = ""
 	configCopy.Kubernetes.RunInCluster = false
@@ -378,7 +373,7 @@ func PrintSettings() {
 		"Kubernetes.ApiKey", config.Get("MO_API_KEY"),
 		"Kubernetes.HelmDataPath", config.Get("MO_HELM_DATA_PATH"),
 		"Kubernetes.GitVaultDataPath", config.Get("MO_GIT_VAULT_DATA_PATH"),
-		"Kubernetes.BboltDbPath", CONFIG.Kubernetes.BboltDbPath,
+		"Kubernetes.BboltDbPath", config.Get("MO_BBOLT_DB_PATH"),
 		"Kubernetes.BboltDbStatsPath", CONFIG.Kubernetes.BboltDbStatsPath,
 		"Kubernetes.LogDataPath", CONFIG.Kubernetes.LogDataPath,
 		"Kubernetes.LocalContainerRegistryHost", CONFIG.Kubernetes.LocalContainerRegistryHost,
