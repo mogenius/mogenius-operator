@@ -18,6 +18,8 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+const HELM_INDEX string = "https://helm.mogenius.com/public/index.yaml"
+
 // This object will initially created in secrets when the software is installed into the cluster for the first time (resource: secret -> mogenius/mogenius)
 type ClusterSecret struct {
 	ApiKey             string
@@ -371,7 +373,6 @@ func PrintSettings() {
 		"Misc.DefaultMountPath", CONFIG.Misc.DefaultMountPath,
 		"Misc.IgnoreNamespaces", CONFIG.Misc.IgnoreNamespaces,
 		"Misc.CheckForUpdates", CONFIG.Misc.CheckForUpdates,
-		"Misc.HelmIndex", CONFIG.Misc.HelmIndex,
 		"Misc.NfsPodPrefix", CONFIG.Misc.NfsPodPrefix,
 		"Builder.BuildTimeout", config.Get("MO_BUILDER_BUILD_TIMEOUT"),
 		"Builder.MaxConcurrentBuilds", config.Get("MO_BUILDER_MAX_CONCURRENT_BUILDS"),
