@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/shutdown"
-	utils "mogenius-k8s-manager/src/utils"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,10 +21,9 @@ type KubeProvider struct {
 }
 
 func NewKubeProvider() (*KubeProvider, error) {
-	var provider *KubeProvider
-	var err error
-	if utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = newKubeProviderInCluster()
+	provider, err := newKubeProviderInCluster()
+	if err == nil {
+		return provider, nil
 	} else {
 		provider, err = newKubeProviderLocal()
 	}

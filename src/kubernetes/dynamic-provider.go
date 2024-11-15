@@ -1,8 +1,6 @@
 package kubernetes
 
 import (
-	"mogenius-k8s-manager/src/utils"
-
 	punq "github.com/mogenius/punq/kubernetes"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -14,10 +12,9 @@ type DynamicKubeProvider struct {
 }
 
 func NewDynamicKubeProvider(contextId *string) (*DynamicKubeProvider, error) {
-	var provider *DynamicKubeProvider
-	var err error
-	if utils.CONFIG.Kubernetes.RunInCluster {
-		provider, err = newDynamicKubeProviderInCluster(contextId)
+	provider, err := newDynamicKubeProviderInCluster(contextId)
+	if err == nil {
+		return provider, nil
 	} else {
 		provider, err = newDynamicKubeProviderLocal(contextId)
 	}
@@ -26,6 +23,11 @@ func NewDynamicKubeProvider(contextId *string) (*DynamicKubeProvider, error) {
 		k8sLogger.Error("failed to create dynamic kube provider", "error", err)
 	}
 	return provider, err
+}
+
+func RunsInCluster() bool {
+	_, err := rest.InClusterConfig()
+	return err == nil
 }
 
 func newDynamicKubeProviderLocal(contextId *string) (*DynamicKubeProvider, error) {

@@ -74,8 +74,8 @@ var YamlTemplatesFolder embed.FS
 
 var helmDataVersion = cache.New(2*time.Hour, 30*time.Minute)
 
-func MountPath(namespaceName string, volumeName string, defaultReturnValue string) string {
-	if CONFIG.Kubernetes.RunInCluster {
+func MountPath(namespaceName string, volumeName string, defaultReturnValue string, runsInCluster bool) string {
+	if runsInCluster {
 		return fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), namespaceName, volumeName)
 	} else {
 		pwd, err := os.Getwd()

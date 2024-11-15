@@ -118,7 +118,7 @@ func DeleteMogeniusNfsVolume(r NfsVolumeRequest) structs.DefaultResponse {
 }
 
 func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
-	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "/")
+	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "/", mokubernetes.RunsInCluster())
 	free, used, total, _ := diskUsage(mountPath)
 	result := NfsVolumeStatsResponse{
 		VolumeName: r.VolumeName,
@@ -175,7 +175,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 			TotalBytes: 0,
 		}
 
-		mountPath := utils.MountPath(r.NamespaceName, pvc.Name, "/")
+		mountPath := utils.MountPath(r.NamespaceName, pvc.Name, "/", mokubernetes.RunsInCluster())
 
 		if utils.ClusterProviderCached == punqDtos.DOCKER_DESKTOP || utils.ClusterProviderCached == punqDtos.K3S {
 			var usedBytes uint64 = sumAllBytesOfFolder(mountPath)

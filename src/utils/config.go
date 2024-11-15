@@ -110,9 +110,6 @@ const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
 
 type Config struct {
-	Kubernetes struct {
-		RunInCluster bool `yaml:"run_in_cluster" env:"run_in_cluster" env-description:"If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context." env-default:"false"`
-	} `yaml:"kubernetes"`
 	Iac struct {
 		RepoUrl            string              `yaml:"repo_url" env:"sync_repo_url" env-description:"Sync repo url."`
 		RepoPat            string              `yaml:"repo_pat" env:"sync_repo_pat" env-description:"Sync repo pat."`
@@ -202,35 +199,35 @@ func InitConfigYaml(showDebug bool, customConfigName string, stage string) {
 		utilsLogger.Error("Error reading config", "path", ConfigPath, "error", err)
 	}
 
-	if CONFIG.Kubernetes.RunInCluster {
-		ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
-	}
+	// if kubernetes.RunsInCluster() {
+	// 	ConfigPath = "RUNS_IN_CLUSTER_NO_CONFIG_NEEDED"
+	// }
 
-	if !CONFIG.Kubernetes.RunInCluster {
-		dirPath, err := os.MkdirTemp("", "mo_*")
-		if err != nil {
-			utilsLogger.Error("failed to create temp dir", "error", err)
-			shutdown.SendShutdownSignal(true)
-			select {}
-		}
-		utilsLogger.Info("TempDir created", "path", dirPath)
-	}
+	// if !kubernetes.RunsInCluster() {
+	// dirPath, err := os.MkdirTemp("", "mo_*")
+	// if err != nil {
+	// 	utilsLogger.Error("failed to create temp dir", "error", err)
+	// 	shutdown.SendShutdownSignal(true)
+	// 	select {}
+	// }
+	// utilsLogger.Info("TempDir created", "path", dirPath)
+	// }
 
 	// CHECKS FOR CLUSTER
-	if CONFIG.Kubernetes.RunInCluster {
-		clusterName := config.Get("MO_CLUSTER_NAME")
-		if clusterName == "your-cluster-name" || clusterName == "" {
-			utilsLogger.Error("Environment Variable 'cluster_name' not setup. TERMINATING.")
-			shutdown.SendShutdownSignal(true)
-			select {}
-		}
-		apiKey := config.Get("MO_API_KEY")
-		if apiKey == "YOUR_API_KEY" || apiKey == "" {
-			utilsLogger.Error("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
-			shutdown.SendShutdownSignal(true)
-			select {}
-		}
-	}
+	// if kubernetes.RunsInCluster() {
+	// 	clusterName := config.Get("MO_CLUSTER_NAME")
+	// 	if clusterName == "your-cluster-name" || clusterName == "" {
+	// 		utilsLogger.Error("Environment Variable 'cluster_name' not setup. TERMINATING.")
+	// 		shutdown.SendShutdownSignal(true)
+	// 		select {}
+	// 	}
+	// 	apiKey := config.Get("MO_API_KEY")
+	// 	if apiKey == "YOUR_API_KEY" || apiKey == "" {
+	// 		utilsLogger.Error("Environment Variable 'api_key' not setup or default value not overwritten. TERMINATING.")
+	// 		shutdown.SendShutdownSignal(true)
+	// 		select {}
+	// 	}
+	// }
 
 	// SET LOGGING
 	// setupLogging()
@@ -276,9 +273,6 @@ func PrintCurrentCONFIG() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	// reset data for local usage
-	configCopy.Kubernetes.RunInCluster = false
 
 	// marshal the copy to yaml
 	yamlData, err = yaml.Marshal(&configCopy)
@@ -330,7 +324,7 @@ func PrintSettings() {
 		"Kubernetes.OwnNamespace", config.Get("MO_OWN_NAMESPACE"),
 		"Kubernetes.ClusterName", config.Get("MO_CLUSTER_NAME"),
 		"Kubernetes.ClusterMfaId", config.Get("MO_CLUSTER_MFA_ID"),
-		"Kubernetes.RunInCluster", CONFIG.Kubernetes.RunInCluster,
+		// "Kubernetes.RunsInCluster", kubernetes.RunsInCluster(),
 		"Kubernetes.ApiKey", config.Get("MO_API_KEY"),
 		"Kubernetes.HelmDataPath", config.Get("MO_HELM_DATA_PATH"),
 		"Kubernetes.GitVaultDataPath", config.Get("MO_GIT_VAULT_DATA_PATH"),

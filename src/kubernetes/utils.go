@@ -140,8 +140,9 @@ func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
 }
 
 func CurrentContextName() string {
-	if utils.CONFIG.Kubernetes.RunInCluster {
-		return config.Get("MO_CLUSTER_NAME")
+	context := config.Get("MO_CLUSTER_NAME")
+	if context != "" {
+		return context
 	}
 
 	var kubeconfig string = ""
@@ -156,7 +157,7 @@ func CurrentContextName() string {
 		}).RawConfig()
 
 	if err != nil {
-		return fmt.Sprintf("Error: %v", err)
+		return "No context found. Probably running in a cluster."
 	}
 
 	return config.CurrentContext
@@ -305,7 +306,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 			}
 			autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
 			assert.Assert(err == nil)
-			if autoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
+			if autoMountNfs && RunsInCluster() {
 				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
 				mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
@@ -333,7 +334,7 @@ func Umount(volumeNamespace string, volumeName string) {
 	go func() {
 		autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
 		assert.Assert(err == nil)
-		if autoMountNfs && utils.CONFIG.Kubernetes.RunInCluster {
+		if autoMountNfs && RunsInCluster() {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
