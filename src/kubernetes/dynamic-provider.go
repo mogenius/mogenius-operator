@@ -1,6 +1,9 @@
 package kubernetes
 
 import (
+	"fmt"
+	"sync"
+
 	punq "github.com/mogenius/punq/kubernetes"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -25,9 +28,40 @@ func NewDynamicKubeProvider(contextId *string) (*DynamicKubeProvider, error) {
 	return provider, err
 }
 
+var executionContext ExecutionContext = unknown
+var executionContextLock sync.Mutex = sync.Mutex{}
+
+type ExecutionContext int8
+
+const (
+	unknown ExecutionContext = iota
+	runs_in_cluster
+	runs_local
+)
+
 func RunsInCluster() bool {
-	_, err := rest.InClusterConfig()
-	return err == nil
+	executionContextLock.Lock()
+	defer executionContextLock.Unlock()
+
+	if executionContext == unknown {
+		_, err := rest.InClusterConfig()
+		if err == nil {
+			executionContext = runs_in_cluster
+		} else {
+			executionContext = runs_local
+		}
+	}
+
+	switch executionContext {
+	case unknown:
+		panic("unreachable")
+	case runs_in_cluster:
+		return true
+	case runs_local:
+		return false
+	default:
+		panic(fmt.Errorf("unreachable: unhandled execution context"))
+	}
 }
 
 func newDynamicKubeProviderLocal(contextId *string) (*DynamicKubeProvider, error) {

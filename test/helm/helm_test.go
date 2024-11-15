@@ -1,8 +1,9 @@
-package kubernetes_test
+package helm_test
 
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
@@ -27,10 +28,10 @@ const (
 func cleanupRepo() {
 	// PAT_NAMESPACE_HELM_REPO_REMOVE - remove repo is purposely placed at the end
 	// no futher testing needed no error is sufficient
-	repoRemoveData := kubernetes.HelmRepoRemoveRequest{
+	repoRemoveData := helm.HelmRepoRemoveRequest{
 		Name: testRepo,
 	}
-	_, err := kubernetes.HelmRepoRemove(repoRemoveData)
+	_, err := helm.HelmRepoRemove(repoRemoveData)
 	if err != nil {
 		fmt.Printf("failed to remove helm repo: %s", err.Error())
 	}
@@ -39,12 +40,12 @@ func cleanupRepo() {
 func cleanupInstall() {
 	// PAT_NAMESPACE_HELM_UNINSTALL - remove repo is purposely placed at the end
 	// no futher testing needed no error is sufficient
-	releaseUninstallData := kubernetes.HelmReleaseUninstallRequest{
+	releaseUninstallData := helm.HelmReleaseUninstallRequest{
 		Namespace: testNamespace,
 		Release:   testRelease,
 		DryRun:    testDryRun,
 	}
-	_, err := kubernetes.HelmReleaseUninstall(releaseUninstallData)
+	_, err := helm.HelmReleaseUninstall(releaseUninstallData)
 	if err != nil {
 		fmt.Printf("failed to uninstall helmrelease: %s", err.Error())
 	}
@@ -60,16 +61,16 @@ func deleteFolder(folderPath string) error {
 
 func createRepoForTest(t *testing.T) error {
 	// prerequisite configs
-	err := kubernetes.InitHelmConfig()
+	err := helm.InitHelmConfig()
 	if err != nil {
 		t.Error(err)
 	}
 
-	repoAddData := kubernetes.HelmRepoAddRequest{
+	repoAddData := helm.HelmRepoAddRequest{
 		Name: testRepo,
 		Url:  testChartUrl,
 	}
-	_, err = kubernetes.HelmRepoAdd(repoAddData)
+	_, err = helm.HelmRepoAdd(repoAddData)
 	if err != nil {
 		t.Log(err)
 	}
@@ -78,19 +79,19 @@ func createRepoForTest(t *testing.T) error {
 
 func installForTests(t *testing.T) error {
 	// prerequisite configs
-	err := kubernetes.InitHelmConfig()
+	err := helm.InitHelmConfig()
 	if err != nil {
 		t.Error(err)
 	}
 
-	helmInstallData := kubernetes.HelmChartInstallRequest{
+	helmInstallData := helm.HelmChartInstallRequest{
 		Namespace: testNamespace,
 		Chart:     testChart,
 		Release:   testRelease,
 		Values:    testValues,
 		DryRun:    testDryRun,
 	}
-	_, err = kubernetes.HelmChartInstall(helmInstallData)
+	_, err = helm.HelmChartInstall(helmInstallData)
 	if err != nil {
 		t.Log(err)
 		return err
@@ -99,7 +100,7 @@ func installForTests(t *testing.T) error {
 }
 
 func testSetup() error {
-	err := kubernetes.InitHelmConfig()
+	err := helm.InitHelmConfig()
 	if err != nil {
 		return err
 	}
@@ -109,7 +110,7 @@ func testSetup() error {
 func TestHelmRepoAdd(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	helm.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -143,7 +144,7 @@ func TestHelmRepoAdd(t *testing.T) {
 func TestHelmRepoUpdate(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	helm.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -156,7 +157,7 @@ func TestHelmRepoUpdate(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_REPO_UPDATE
 	// no futher testing needed no error is sufficient
-	_, err = kubernetes.HelmRepoUpdate()
+	_, err = helm.HelmRepoUpdate()
 	if err != nil {
 		t.Error(err)
 	}
@@ -184,7 +185,7 @@ func TestHelmRepoList(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_REPO_LIST
 	// check if repo is added
-	listRepoData, err := kubernetes.HelmRepoList()
+	listRepoData, err := helm.HelmRepoList()
 	if err != nil {
 		t.Error(err)
 	}
@@ -204,7 +205,7 @@ func TestHelmRepoList(t *testing.T) {
 func TestHelmInstallRequest(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	helm.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -235,7 +236,7 @@ func TestHelmInstallRequest(t *testing.T) {
 func TestHelmUpgradeRequest(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	helm.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -259,14 +260,14 @@ func TestHelmUpgradeRequest(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_UPGRADE
 	// no futher testing needed no error is sufficient
-	releaseUpgradeData := kubernetes.HelmReleaseUpgradeRequest{
+	releaseUpgradeData := helm.HelmReleaseUpgradeRequest{
 		Namespace: testNamespace,
 		Chart:     testChart,
 		Release:   testRelease,
 		Values:    testValues,
 		DryRun:    testDryRun,
 	}
-	_, err = kubernetes.HelmReleaseUpgrade(releaseUpgradeData)
+	_, err = helm.HelmReleaseUpgrade(releaseUpgradeData)
 	if err != nil {
 		t.Error(err)
 	}
@@ -275,7 +276,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 func TestHelmListRequest(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	helm.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -299,10 +300,10 @@ func TestHelmListRequest(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_LIST
 	// check if release is added
-	releaseListData := kubernetes.HelmReleaseListRequest{
+	releaseListData := helm.HelmReleaseListRequest{
 		Namespace: testNamespace,
 	}
-	releaseList, err := kubernetes.HelmReleaseList(releaseListData)
+	releaseList, err := helm.HelmReleaseList(releaseListData)
 	if err != nil {
 		t.Error(err)
 	}
@@ -322,7 +323,7 @@ func TestHelmListRequest(t *testing.T) {
 func TestHelmReleases(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	helm.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -347,45 +348,45 @@ func TestHelmReleases(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_STATUS
 	// no futher testing needed no error is sufficient
-	releaseStatusData := kubernetes.HelmReleaseStatusRequest{
+	releaseStatusData := helm.HelmReleaseStatusRequest{
 		Namespace: testNamespace,
 		Release:   testRelease,
 	}
-	_, err = kubernetes.HelmReleaseStatus(releaseStatusData)
+	_, err = helm.HelmReleaseStatus(releaseStatusData)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// PAT_NAMESPACE_HELM_SHOW
 	// no futher testing needed no error is sufficient
-	chartShowData := kubernetes.HelmChartShowRequest{
+	chartShowData := helm.HelmChartShowRequest{
 		Chart:      testChart,
 		ShowFormat: action.ShowAll,
 	}
-	_, err = kubernetes.HelmChartShow(chartShowData)
+	_, err = helm.HelmChartShow(chartShowData)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// PAT_NAMESPACE_HELM_GET
 	// no futher testing needed no error is sufficient
-	releaseGet := kubernetes.HelmReleaseGetRequest{
+	releaseGet := helm.HelmReleaseGetRequest{
 		Namespace: testNamespace,
 		Release:   testRelease,
 		GetFormat: structs.HelmGetAll,
 	}
-	_, err = kubernetes.HelmReleaseGet(releaseGet)
+	_, err = helm.HelmReleaseGet(releaseGet)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// PAT_NAMESPACE_HELM_HISTORY
 	// history should have at least 1 entry
-	releaseHistoryData := kubernetes.HelmReleaseHistoryRequest{
+	releaseHistoryData := helm.HelmReleaseHistoryRequest{
 		Namespace: testNamespace,
 		Release:   testRelease,
 	}
-	historyList, err := kubernetes.HelmReleaseHistory(releaseHistoryData)
+	historyList, err := helm.HelmReleaseHistory(releaseHistoryData)
 	if err != nil {
 		t.Error(err)
 	}
@@ -395,12 +396,12 @@ func TestHelmReleases(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_ROLLBACK
 	// no futher testing needed no error is sufficient
-	releaseRollbackData := kubernetes.HelmReleaseRollbackRequest{
+	releaseRollbackData := helm.HelmReleaseRollbackRequest{
 		Namespace: testNamespace,
 		Release:   testRelease,
 		Revision:  1,
 	}
-	_, err = kubernetes.HelmReleaseRollback(releaseRollbackData)
+	_, err = helm.HelmReleaseRollback(releaseRollbackData)
 	if err != nil {
 		t.Error(err)
 	}

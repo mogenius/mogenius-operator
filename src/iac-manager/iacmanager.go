@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
 	"os"
 	"os/exec"
@@ -18,6 +19,9 @@ import (
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/retry"
 
 	"sigs.k8s.io/yaml"
 
@@ -45,10 +49,16 @@ var gitSyncLock sync.Mutex
 
 var iacLogger *slog.Logger
 var config interfaces.ConfigModule
+var watcher interfaces.WatcherModule
 
-func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
+func Setup(
+	logManagerModule interfaces.LogManagerModule,
+	configModule interfaces.ConfigModule,
+	watcherModule interfaces.WatcherModule,
+) {
 	iacLogger = logManagerModule.CreateLogger("iac")
 	config = configModule
+	watcher = watcherModule
 }
 
 func isIgnoredNamespace(namespace string) bool {
@@ -100,6 +110,8 @@ func Start() {
 	if !gitHasRemotes() {
 		SetRemoteError(addRemote())
 	}
+
+	go WatchAllResources()
 
 	// START SYNCING CHANGES
 	syncChangesTimer()
@@ -1081,4 +1093,44 @@ func shouldSkipResource(path string) bool {
 	}
 
 	return false
+}
+
+func WatchAllResources() {
+	// Retry watching resources with exponential backoff in case of failures
+	err := retry.OnError(wait.Backoff{
+		Steps:    5,
+		Duration: 1 * time.Second,
+		Factor:   2.0,
+		Jitter:   0.1,
+	}, apierrors.IsServiceUnavailable, func() error {
+		// TODO: this has to keep running and Watch/Unwatch resources instead of only registering on startup
+		workloads := utils.CONFIG.Iac.SyncWorkloads
+		for _, v := range workloads {
+			err := watcher.Watch(iacLogger, interfaces.WatcherResourceIdentifier{
+				Name:         v.Name,
+				Kind:         v.Kind,
+				GroupVersion: v.Group,
+			}, func(resource interfaces.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+				kubernetes.SetStoreIfNeeded(resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+				WriteResourceYaml(resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			}, func(resource interfaces.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
+				kubernetes.SetStoreIfNeeded(resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
+				WriteResourceYaml(resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
+			}, func(resource interfaces.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+				kubernetes.DeleteFromStoreIfNeeded(resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+				DeleteResourceYaml(resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			})
+			if err != nil {
+				iacLogger.Error("failed to initialize watchhandler for resource", "kind", v.Kind, "version", v.Version, "error", err)
+			} else {
+				iacLogger.Debug("🚀 Watching resource", "kind", v.Kind, "group", v.Group)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		iacLogger.Error("Error watching resources", "error", err)
+		shutdown.SendShutdownSignal(true)
+		select {}
+	}
 }

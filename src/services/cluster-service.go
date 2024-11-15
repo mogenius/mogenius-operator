@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/src/helm"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -59,7 +60,7 @@ func UpgradeK8sManager(r K8sManagerUpgradeRequest) *structs.Job {
 func InstallHelmChart(r ClusterHelmRequest) *structs.Job {
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
-	result, err := mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	result, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 	if err != nil {
 		job.Fail(fmt.Sprintf("Failed to install helm chart %s: %s\n%s", r.HelmReleaseName, result, err.Error()))
 	}
@@ -70,7 +71,7 @@ func InstallHelmChart(r ClusterHelmRequest) *structs.Job {
 func DeleteHelmChart(r ClusterHelmUninstallRequest) *structs.Job {
 	job := structs.CreateJob("Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
-	result, err := mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.NamespaceId)
+	result, err := helm.DeleteHelmChart(r.HelmReleaseName, r.NamespaceId)
 	if err != nil {
 		job.Fail(fmt.Sprintf("Failed to delete helm chart %s: %s\n%s", r.HelmReleaseName, result, err.Error()))
 	}
@@ -755,11 +756,11 @@ func InstallTrafficCollector() (string, error) {
   stage: %s
 `, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
-	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradeTrafficCollector() (string, error) {
-	r := mokubernetes.HelmReleaseUpgradeRequest{
+	r := helm.HelmReleaseUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameTrafficCollector,
 		Chart:     "mogenius/" + utils.HelmReleaseNameTrafficCollector,
@@ -768,7 +769,7 @@ func UpgradeTrafficCollector() (string, error) {
   stage: %s
 `, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
-	return mokubernetes.HelmReleaseUpgrade(r)
+	return helm.HelmReleaseUpgrade(r)
 }
 
 func InstallPodStatsCollector() (string, error) {
@@ -782,11 +783,11 @@ func InstallPodStatsCollector() (string, error) {
   stage: %s
 `, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
-	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradePodStatsCollector() (string, error) {
-	r := mokubernetes.HelmReleaseUpgradeRequest{
+	r := helm.HelmReleaseUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNamePodStatsCollector,
 		Chart:     "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
@@ -795,7 +796,7 @@ func UpgradePodStatsCollector() (string, error) {
   stage: %s
 `, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
-	return mokubernetes.HelmReleaseUpgrade(r)
+	return helm.HelmReleaseUpgrade(r)
 }
 
 func InstallMetricsServer() (string, error) {
@@ -813,11 +814,11 @@ func InstallMetricsServer() (string, error) {
   - "--metric-resolution=15s"
 `,
 	}
-	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradeMetricsServer() (string, error) {
-	r := mokubernetes.HelmReleaseUpgradeRequest{
+	r := helm.HelmReleaseUpgradeRequest{
 		Namespace: "default",
 		Release:   utils.HelmReleaseNameMetricsServer,
 		Chart:     utils.HelmReleaseNameMetricsServer + "/" + utils.HelmReleaseNameMetricsServer,
@@ -830,7 +831,7 @@ func UpgradeMetricsServer() (string, error) {
   - "--metric-resolution=15s"
 `,
 	}
-	return mokubernetes.HelmReleaseUpgrade(r)
+	return helm.HelmReleaseUpgrade(r)
 }
 
 func InstallIngressControllerTreafik() (string, error) {
@@ -841,16 +842,16 @@ func InstallIngressControllerTreafik() (string, error) {
 		HelmChartName:   utils.HelmReleaseNameTraefik + "/" + utils.HelmReleaseNameTraefik,
 		HelmValues:      "",
 	}
-	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradeIngressControllerTreafik() (string, error) {
-	r := mokubernetes.HelmReleaseUpgradeRequest{
+	r := helm.HelmReleaseUpgradeRequest{
 		Namespace: "default",
 		Release:   utils.HelmReleaseNameTraefik,
 		Chart:     utils.HelmReleaseNameTraefik + "/" + utils.HelmReleaseNameTraefik,
 	}
-	return mokubernetes.HelmReleaseUpgrade(r)
+	return helm.HelmReleaseUpgrade(r)
 }
 
 func InstallCertManager() (string, error) {
@@ -865,17 +866,17 @@ startupapicheck:
 installCRDs: true
 `, config.Get("MO_OWN_NAMESPACE")),
 	}
-	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradeCertManager() (string, error) {
-	r := mokubernetes.HelmReleaseUpgradeRequest{
+	r := helm.HelmReleaseUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameCertManager,
 		Chart:     "jetstack/" + utils.HelmReleaseNameCertManager,
 		Values:    "startupapicheck.enabled=false\ninstallCRDs=true",
 	}
-	return mokubernetes.HelmReleaseUpgrade(r)
+	return helm.HelmReleaseUpgrade(r)
 }
 
 func InstallContainerRegistry() (string, error) {
@@ -886,7 +887,7 @@ func InstallContainerRegistry() (string, error) {
 		HelmChartName:   "phntom/docker-registry",
 		HelmValues:      "",
 	}
-	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func InstallExternalSecrets() (string, error) {
@@ -897,16 +898,16 @@ func InstallExternalSecrets() (string, error) {
 		HelmChartName:   "external-secrets/external-secrets",
 		HelmValues:      "",
 	}
-	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradeContainerRegistry() (string, error) {
-	r := mokubernetes.HelmReleaseUpgradeRequest{
+	r := helm.HelmReleaseUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameDistributionRegistry,
 		Chart:     "phntom/docker-registry",
 	}
-	return mokubernetes.HelmReleaseUpgrade(r)
+	return helm.HelmReleaseUpgrade(r)
 }
 
 func InstallMetalLb() (string, error) {
@@ -917,7 +918,7 @@ func InstallMetalLb() (string, error) {
 		HelmChartName:   utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
 		HelmValues:      "",
 	}
-	helmResultStr, err := mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	helmResultStr, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 	if err == nil {
 		for {
 			// this is important because the control plane needs some time to make the CRDs available
@@ -938,12 +939,12 @@ func InstallMetalLb() (string, error) {
 }
 
 func UpgradeMetalLb() (string, error) {
-	r := mokubernetes.HelmReleaseUpgradeRequest{
+	r := helm.HelmReleaseUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameMetalLb,
 		Chart:     utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
 	}
-	return mokubernetes.HelmReleaseUpgrade(r)
+	return helm.HelmReleaseUpgrade(r)
 }
 
 func InstallKepler() (string, error) {
@@ -960,11 +961,11 @@ extraEnvVars:
   ENABLE_PROCESS_METRICS: "false"
 `, config.Get("MO_OWN_NAMESPACE")),
 	}
-	return mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 }
 
 func UpgradeKepler() (string, error) {
-	r := mokubernetes.HelmReleaseUpgradeRequest{
+	r := helm.HelmReleaseUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Chart:     utils.HelmReleaseNameKepler + "/" + utils.HelmReleaseNameKepler,
 		Release:   utils.HelmReleaseNameKepler,
@@ -976,7 +977,7 @@ extraEnvVars:
   ENABLE_PROCESS_METRICS: "false"
 `, config.Get("MO_OWN_NAMESPACE")),
 	}
-	return mokubernetes.HelmReleaseUpgrade(r)
+	return helm.HelmReleaseUpgrade(r)
 }
 
 func InstallClusterIssuer(email string, currentRetries int) (string, error) {
@@ -1000,7 +1001,7 @@ func InstallClusterIssuer(email string, currentRetries int) (string, error) {
   ingressclass: "%s"
 `, email, strings.ToLower(ingType.String())),
 			}
-			result, err := mokubernetes.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+			result, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
 			if err != nil {
 				currentRetries++
 				_, err := InstallClusterIssuer(email, currentRetries)
@@ -1025,7 +1026,7 @@ func UninstallTrafficCollector() (string, error) {
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallPodStatsCollector() (string, error) {
@@ -1033,7 +1034,7 @@ func UninstallPodStatsCollector() (string, error) {
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallMetricsServer() (string, error) {
@@ -1041,7 +1042,7 @@ func UninstallMetricsServer() (string, error) {
 		Namespace:       "default",
 		HelmReleaseName: utils.HelmReleaseNameMetricsServer,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallIngressControllerTreafik() (string, error) {
@@ -1049,7 +1050,7 @@ func UninstallIngressControllerTreafik() (string, error) {
 		Namespace:       "default",
 		HelmReleaseName: utils.HelmReleaseNameTraefik,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallCertManager() (string, error) {
@@ -1057,7 +1058,7 @@ func UninstallCertManager() (string, error) {
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameCertManager,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallContainerRegistry() (string, error) {
@@ -1065,7 +1066,7 @@ func UninstallContainerRegistry() (string, error) {
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameDistributionRegistry,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallExternalSecrets() (string, error) {
@@ -1073,7 +1074,7 @@ func UninstallExternalSecrets() (string, error) {
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallMetalLb() (string, error) {
@@ -1081,7 +1082,7 @@ func UninstallMetalLb() (string, error) {
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameMetalLb,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallKepler() (string, error) {
@@ -1089,7 +1090,7 @@ func UninstallKepler() (string, error) {
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameKepler,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallClusterIssuer() (string, error) {
@@ -1097,7 +1098,7 @@ func UninstallClusterIssuer() (string, error) {
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameClusterIssuer,
 	}
-	return mokubernetes.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func InstallDefaultApplications() (string, string) {
