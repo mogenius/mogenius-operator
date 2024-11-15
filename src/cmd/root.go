@@ -123,6 +123,11 @@ func init() {
 		logging.UpdateConfigSecrets(configValues)
 	})
 	cmdConfig.OnFinalized(applyStageOverrides)
+	cmdConfig.OnFinalized(func() {
+		enabled, err := strconv.ParseBool(cmdConfig.Get("MO_LOG_STDERR"))
+		assert.Assert(err == nil)
+		slogManager.SetStderr(enabled)
+	})
 	defer cmdConfig.Init()
 	// shutdown hook to detect unused keys
 	shutdown.Add(func() {
@@ -376,6 +381,21 @@ func initConfigDeclarations() {
 		Description:  utils.Pointer("Comma separated list of components for which logs should be enabled. If none are defined all logs are collected."),
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "log-filter",
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_LOG_STDERR",
+		DefaultValue: utils.Pointer("true"),
+		Description:  utils.Pointer("enable logging to stderr"),
+		Cobra: &interfaces.ConfigCobraFlags{
+			Name: "log-stderr",
+		},
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_LOG_STDERR' needs to be a boolean: %s", err.Error())
+			}
+			return nil
 		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{

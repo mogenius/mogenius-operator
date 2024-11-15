@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -21,6 +22,7 @@ type SlogManager struct {
 	logLevel          slog.Level
 	logFilter         string
 	logDir            string
+	enableStderr      atomic.Bool
 	combinedLogWriter io.Writer
 	activeLoggers     map[string]*slog.Logger
 }
@@ -28,11 +30,13 @@ type SlogManager struct {
 func NewSlogManager(logDir string) *SlogManager {
 	absLogDir, err := filepath.Abs(logDir)
 	assert(err == nil, fmt.Errorf("failed to resolve absolute logDir('%s'): %s", logDir, err))
+
 	slogManager := SlogManager{
 		loggerHandlerLock: sync.RWMutex{},
 		logLevel:          slog.LevelDebug,
 		logFilter:         "",
 		logDir:            absLogDir,
+		enableStderr:      atomic.Bool{},
 		combinedLogWriter: &lumberjack.Logger{
 			Filename:   filepath.Join(absLogDir, combinedLogComponentName+".log"), // Path to log file
 			MaxSize:    logfileMaxSize,                                            // Max size in megabytes before rotation
@@ -41,6 +45,7 @@ func NewSlogManager(logDir string) *SlogManager {
 		},
 		activeLoggers: make(map[string]*slog.Logger),
 	}
+	slogManager.enableStderr.Store(true)
 
 	return &slogManager
 }
@@ -120,6 +125,7 @@ func (m *SlogManager) CreateLogger(componentId string) *slog.Logger {
 			&m.logLevel,
 			&m.logFilter,
 			&m.loggerHandlerLock,
+			&m.enableStderr,
 			m.combinedLogWriter,
 			logFileWriter(m.getLogDir(), componentId),
 		),
@@ -129,6 +135,10 @@ func (m *SlogManager) CreateLogger(componentId string) *slog.Logger {
 	m.activeLoggers[componentId] = logger
 
 	return logger
+}
+
+func (m *SlogManager) SetStderr(enabled bool) {
+	m.enableStderr.Store(enabled)
 }
 
 func assert(condition bool, message any) {
