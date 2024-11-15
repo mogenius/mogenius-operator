@@ -4,6 +4,7 @@ Copyright © 2022 mogenius, Benedikt Iltisberger
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
@@ -341,6 +342,20 @@ func initConfigDeclarations() {
 		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_IGNORE_NAMESPACES",
+		DefaultValue: utils.Pointer(`["kube-system"]`),
+		Description:  utils.Pointer("list of all ignored namespaces"),
+		Envs:         []string{"ignore_namespaces"},
+		Validate: func(value string) error {
+			var ignoreNamespaces []string
+			err := json.Unmarshal([]byte(value), &ignoreNamespaces)
+			if err != nil {
+				return fmt.Errorf("'MO_IGNORE_NAMESPACES' needs to be a json `[]string`: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
 		Description:  utils.Pointer(`a log level: "debug", "info", "warn" or "error"`),
@@ -358,7 +373,7 @@ func initConfigDeclarations() {
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_LOG_FILTER",
 		DefaultValue: utils.Pointer(""),
-		Description:  utils.Pointer("Optional comma separated list of components for which logs should be enabled. If none are defined all logs are collected."),
+		Description:  utils.Pointer("Comma separated list of components for which logs should be enabled. If none are defined all logs are collected."),
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "log-filter",
 		},
