@@ -13,9 +13,8 @@ import (
 // compile time check
 func TestSlogManagerAdheresToLogManagerInterface(t *testing.T) {
 	t.Parallel()
-	c := config.NewConfig()
 	testfunc := func(w interfaces.ConfigModule) {}
-	testfunc(c) // this checks if the typesystem allows to call it
+	testfunc(config.NewConfig()) // this checks if the typesystem allows to call it
 }
 
 func TestSetUndeclaredValue(t *testing.T) {

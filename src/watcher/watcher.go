@@ -23,8 +23,8 @@ type Watcher struct {
 	activeHandlers map[interfaces.WatcherResourceIdentifier]resourceContext
 }
 
-func NewWatcher() Watcher {
-	return Watcher{
+func NewWatcher() *Watcher {
+	return &Watcher{
 		handlerMapLock: sync.Mutex{},
 		activeHandlers: make(map[interfaces.WatcherResourceIdentifier]resourceContext, 0),
 	}

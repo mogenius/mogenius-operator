@@ -28,16 +28,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-type rootCmdConfig struct {
-	resetConfig  bool
-	stage        string
-	debug        bool
-	customConfig string
-}
-
 const defaultLogDir string = "logs"
-
-var rootConfig rootCmdConfig
 
 var slogManager *logging.SlogManager
 var cmdLogger *slog.Logger
@@ -53,11 +44,6 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 
 // TODO: this needs to be integrated in some smarter way
 func preRun() {
-	if rootConfig.resetConfig {
-		utils.DeleteCurrentConfig()
-	}
-	utils.InitConfigYaml(rootConfig.debug, rootConfig.customConfig, rootConfig.stage)
-
 	utils.PrintVersionInfo()
 	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 

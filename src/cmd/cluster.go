@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/api"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/crds"
@@ -13,6 +12,7 @@ import (
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
+	"mogenius-k8s-manager/src/httpService"
 	iacmanager "mogenius-k8s-manager/src/iac-manager"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/migrations"
@@ -45,8 +45,6 @@ var clusterCmd = &cobra.Command{
 			utils.PrintLogo()
 			cmdConfig.Validate()
 
-			watcherModule := watcher.NewWatcher()
-
 			helm.Setup(slogManager, cmdConfig)
 			mokubernetes.Setup(slogManager, cmdConfig)
 			controllers.Setup(slogManager)
@@ -54,9 +52,8 @@ var clusterCmd = &cobra.Command{
 			db.Setup(slogManager, cmdConfig)
 			dbstats.Setup(slogManager, cmdConfig)
 			dtos.Setup(slogManager)
-			api.Setup(slogManager, cmdConfig)
 			if IAC_MANAGER_ENABLED {
-				iacmanager.Setup(slogManager, cmdConfig, &watcherModule)
+				iacmanager.Setup(slogManager, cmdConfig, watcher.NewWatcher())
 			}
 			migrations.Setup(slogManager)
 			services.Setup(slogManager, cmdConfig)
@@ -66,6 +63,7 @@ var clusterCmd = &cobra.Command{
 			structs.Setup(slogManager, cmdConfig)
 			utils.Setup(slogManager, cmdConfig)
 			xterm.Setup(slogManager, cmdConfig)
+			httpApi := httpService.NewHttpApi(slogManager, cmdConfig)
 
 			preRun()
 
@@ -104,6 +102,7 @@ var clusterCmd = &cobra.Command{
 			if IAC_MANAGER_ENABLED {
 				iacmanager.Start()
 			}
+			go httpApi.Run(":1337")
 
 			migrations.ExecuteMigrations()
 
@@ -138,7 +137,6 @@ var clusterCmd = &cobra.Command{
 
 			mokubernetes.InitOrUpdateCrds()
 
-			go api.InitApi()
 			go structs.ConnectToEventQueue()
 			go structs.ConnectToJobQueue()
 
