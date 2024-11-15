@@ -102,11 +102,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		os.Exit(0)
 		return nil
 	case structs.PAT_SYSTEM_PRINT_CURRENT_CONFIG:
-		conf, err := utils.PrintCurrentCONFIG()
-		if err != nil {
-			return err
-		}
-		return conf
+		return config.AsEnvs()
 
 	case structs.PAT_IAC_FORCE_SYNC:
 		return NewMessageResponse(nil, iacmanager.SyncChanges())
