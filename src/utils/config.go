@@ -127,9 +127,6 @@ type Config struct {
 		IgnoredNames       []string            `yaml:"ignored_names" env:"sync_ignored_names" env-description:"List of strings which are ignored when for sync. This list may include regex."`
 		LogChanges         bool                `yaml:"log_changes" env:"sync_log_changes" env-description:"Resource changes in kubernetes will create a log entry."`
 	} `yaml:"iac"`
-	Misc struct {
-		IgnoreNamespaces []string `yaml:"ignore_namespaces" env:"ignore_namespaces" env-description:"List of all ignored namespaces." env-default:""`
-	} `yaml:"misc"`
 }
 
 //go:embed config/config-local.yaml
@@ -357,7 +354,7 @@ func PrintSettings() {
 		"Misc.Debug", config.Get("MO_DEBUG"),
 		"Misc.AutoMountNfs", config.Get("MO_AUTO_MOUNT_NFS"),
 		"Misc.DefaultMountPath", config.Get("MO_DEFAULT_MOUNT_PATH"),
-		"Misc.IgnoreNamespaces", CONFIG.Misc.IgnoreNamespaces,
+		"Misc.IgnoreNamespaces", config.Get("MO_IGNORE_NAMESPACES"),
 		"Misc.CheckForUpdates", config.Get("MO_UPDATE_INTERVAL"),
 		"Builder.BuildTimeout", config.Get("MO_BUILDER_BUILD_TIMEOUT"),
 		"Builder.MaxConcurrentBuilds", config.Get("MO_BUILDER_MAX_CONCURRENT_BUILDS"),
