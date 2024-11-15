@@ -12,8 +12,8 @@ import (
 	"mogenius-k8s-manager/src/db"
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	"mogenius-k8s-manager/src/dtos"
+	"mogenius-k8s-manager/src/helm"
 	iacmanager "mogenius-k8s-manager/src/iac-manager"
-	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/migrations"
 	"mogenius-k8s-manager/src/services"
@@ -23,11 +23,15 @@ import (
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/watcher"
 	"mogenius-k8s-manager/src/xterm"
 	"strconv"
 
 	"github.com/spf13/cobra"
 )
+
+// the IAC Manager is not readily implemented and development has been put on hold
+const IAC_MANAGER_ENABLED bool = false
 
 // clusterCmd represents the cluster command
 var clusterCmd = &cobra.Command{
@@ -40,19 +44,11 @@ var clusterCmd = &cobra.Command{
 		go func() {
 			cmdConfig.Validate()
 
-			logLevel := cmdConfig.Get("MO_LOG_LEVEL")
-			err := slogManager.SetLogLevel(logLevel)
-			if err != nil {
-				panic(err)
-			}
-			logFilter := cmdConfig.Get("MO_LOG_FILTER")
-			err = slogManager.SetLogFilter(logFilter)
-			if err != nil {
-				panic(err)
-			}
+			watcherModule := watcher.NewWatcher()
 
 			utils.PrintLogo()
 
+			helm.Setup(slogManager, cmdConfig)
 			mokubernetes.Setup(slogManager, cmdConfig)
 			controllers.Setup(slogManager)
 			crds.Setup(slogManager)
@@ -60,7 +56,9 @@ var clusterCmd = &cobra.Command{
 			dbstats.Setup(slogManager, cmdConfig)
 			dtos.Setup(slogManager)
 			api.Setup(slogManager, cmdConfig)
-			iacmanager.Setup(slogManager, cmdConfig)
+			if IAC_MANAGER_ENABLED {
+				iacmanager.Setup(slogManager, cmdConfig, &watcherModule)
+			}
 			migrations.Setup(slogManager)
 			services.Setup(slogManager, cmdConfig)
 			servicesExternal.Setup(cmdConfig)
@@ -104,7 +102,9 @@ var clusterCmd = &cobra.Command{
 			store.Start()
 			defer store.Defer()
 			dbstats.Start()
-			iacmanager.Start()
+			if IAC_MANAGER_ENABLED {
+				iacmanager.Start()
+			}
 
 			migrations.ExecuteMigrations()
 
@@ -142,14 +142,12 @@ var clusterCmd = &cobra.Command{
 			go api.InitApi()
 			go structs.ConnectToEventQueue()
 			go structs.ConnectToJobQueue()
-			watcherManager := kubernetes.NewWatcher()
-			go kubernetes.WatchAllResources(&watcherManager)
 
 			mokubernetes.CreateMogeniusContainerRegistryIngress()
 
 			// Init Helm Config
 			go func() {
-				if err := mokubernetes.InitHelmConfig(); err != nil {
+				if err := helm.InitHelmConfig(); err != nil {
 					cmdLogger.Error("Error initializing Helm Config", "error", err)
 				} else {
 					cmdLogger.Info("Helm Config initialized")

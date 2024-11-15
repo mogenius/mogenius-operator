@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/watcher"
 	"os"
 	"testing"
 )
@@ -13,8 +14,9 @@ import (
 func TestIacManager(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
+	watcherModule := watcher.NewWatcher()
 	kubernetes.Setup(logManager, config)
-	iacmanager.Setup(logManager, config)
+	iacmanager.Setup(logManager, config, &watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_GIT_VAULT_DATA_PATH",
 		DefaultValue: utils.Pointer(os.TempDir()),

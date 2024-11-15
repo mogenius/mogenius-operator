@@ -123,6 +123,16 @@ func init() {
 		enabled, err := strconv.ParseBool(cmdConfig.Get("MO_LOG_STDERR"))
 		assert.Assert(err == nil)
 		slogManager.SetStderr(enabled)
+
+		logLevel := cmdConfig.Get("MO_LOG_LEVEL")
+		err = slogManager.SetLogLevel(logLevel)
+		assert.Assert(err == nil)
+
+		logFilter := cmdConfig.Get("MO_LOG_FILTER")
+		err = slogManager.SetLogFilter(logFilter)
+		if err != nil {
+			panic(fmt.Errorf("failed to configure logfilter: %s", err.Error()))
+		}
 	})
 	defer cmdConfig.Init()
 	// shutdown hook to detect unused keys

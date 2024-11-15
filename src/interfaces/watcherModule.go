@@ -1,11 +1,15 @@
 package interfaces
 
-import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+import (
+	"log/slog"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
 
 // A generic kubernetes resource watcher
 type WatcherModule interface {
 	// Register a watcher for the given resource
-	Watch(resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error
+	Watch(logger *slog.Logger, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error
 	// Stop the watcher for the given resource
 	Unwatch(resource WatcherResourceIdentifier) error
 	// Query the status of the resource

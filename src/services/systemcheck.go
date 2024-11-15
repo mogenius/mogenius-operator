@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -157,7 +158,7 @@ func SystemCheck() SystemCheckResponse {
 		ingrEntry.UninstallPattern = structs.PAT_UNINSTALL_INGRESS_CONTROLLER_TREAFIK
 		ingrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_INGRESS_CONTROLLER_TREAFIK
 		ingrEntry.VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
-		ingrEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTraefik)
+		ingrEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTraefik)
 		return ingrEntry
 	})
 
@@ -180,7 +181,7 @@ func SystemCheck() SystemCheckResponse {
 		metricsEntry.UninstallPattern = structs.PAT_UNINSTALL_METRICS_SERVER
 		metricsEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METRICS_SERVER
 		metricsEntry.VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
-		metricsEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameMetricsServer)
+		metricsEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameMetricsServer)
 		return metricsEntry
 	})
 
@@ -308,7 +309,7 @@ func SystemCheck() SystemCheckResponse {
 		certMgrEntry.InstallPattern = structs.PAT_INSTALL_CERT_MANAGER
 		certMgrEntry.UninstallPattern = structs.PAT_UNINSTALL_CERT_MANAGER
 		certMgrEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CERT_MANAGER
-		certMgrEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameCertManager)
+		certMgrEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameCertManager)
 		return certMgrEntry
 	})
 
@@ -317,7 +318,7 @@ func SystemCheck() SystemCheckResponse {
 	go SysCheckExec("CheckClusterIssuer", &wg, &entries, func() SystemCheckEntry {
 		_, clusterIssuerInstalledErr := punq.GetClusterIssuer(NameClusterIssuerResource, nil)
 		clusterIssuerMsg := fmt.Sprintf("%s is installed.", NameClusterIssuerResource)
-		helmstatus := kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameClusterIssuer)
+		helmstatus := helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameClusterIssuer)
 		if helmstatus == release.StatusUnknown {
 			clusterIssuerInstalledErr = nil
 			clusterIssuerMsg = "Cluster Issuer not installed."
@@ -365,7 +366,7 @@ func SystemCheck() SystemCheckResponse {
 		trafficEntry.InstallPattern = structs.PAT_INSTALL_TRAFFIC_COLLECTOR
 		trafficEntry.UninstallPattern = structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR
 		trafficEntry.UpgradePattern = structs.PAT_UPGRADE_TRAFFIC_COLLECTOR
-		trafficEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTrafficCollector)
+		trafficEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTrafficCollector)
 		return trafficEntry
 	})
 
@@ -396,7 +397,7 @@ func SystemCheck() SystemCheckResponse {
 		podEntry.InstallPattern = structs.PAT_INSTALL_POD_STATS_COLLECTOR
 		podEntry.UninstallPattern = structs.PAT_UNINSTALL_POD_STATS_COLLECTOR
 		podEntry.UpgradePattern = structs.PAT_UPGRADE_PODSTATS_COLLECTOR
-		podEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNamePodStatsCollector)
+		podEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNamePodStatsCollector)
 		return podEntry
 	})
 
@@ -421,7 +422,7 @@ func SystemCheck() SystemCheckResponse {
 		distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
 		distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
 		distriEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CONTAINER_REGISTRY
-		distriEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameDistributionRegistry)
+		distriEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameDistributionRegistry)
 		return distriEntry
 	})
 
@@ -431,7 +432,7 @@ func SystemCheck() SystemCheckResponse {
 		externalSecretsName := "external-secrets"
 		externalSecretsVersion, externalSecretsInstalledErr := punq.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), externalSecretsName)
 		externalSecretsMsg := fmt.Sprintf("%s (Version: %s) is installed.", externalSecretsName, externalSecretsVersion)
-		helmstatus := kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameExternalSecrets)
+		helmstatus := helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameExternalSecrets)
 		if helmstatus == release.StatusUnknown {
 			externalSecretsInstalledErr = nil
 			externalSecretsMsg = "External Secrets not installed."
@@ -476,7 +477,7 @@ func SystemCheck() SystemCheckResponse {
 		metallbEntry.InstallPattern = structs.PAT_INSTALL_METALLB
 		metallbEntry.UninstallPattern = structs.PAT_UNINSTALL_METALLB
 		metallbEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METALLB
-		metallbEntry.HelmStatus = kubernetes.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameMetalLb)
+		metallbEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameMetalLb)
 		return metallbEntry
 	})
 

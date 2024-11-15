@@ -1,7 +1,9 @@
-package kubernetes
+package helm
 
 import (
 	"fmt"
+	"log/slog"
+	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"os"
@@ -44,7 +46,15 @@ var (
 	repositoryCache  string
 )
 
+var helmLogger *slog.Logger
+var config interfaces.ConfigModule
+
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
+
+func Setup(logManager interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
+	helmLogger = logManager.CreateLogger("helm")
+	config = configModule
+}
 
 type HelmRepoAddRequest struct {
 	Name string `json:"name" validate:"required"`
@@ -353,7 +363,7 @@ func InitHelmConfig() error {
 	os.Setenv("HELM_REPOSITORY_CONFIG", repositoryConfig)
 	os.Setenv("HELM_LOG_LEVEL", "trace")
 
-	k8sLogger.Info(
+	helmLogger.Info(
 		"detected helm config",
 		"HELM_CACHE_HOME",
 		os.Getenv("HELM_CACHE_HOME"),

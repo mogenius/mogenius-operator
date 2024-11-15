@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/db"
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	"mogenius-k8s-manager/src/dtos"
+	"mogenius-k8s-manager/src/helm"
 	iacmanager "mogenius-k8s-manager/src/iac-manager"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
@@ -623,107 +624,107 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return result
 
 	case structs.PAT_CLUSTER_HELM_REPO_ADD:
-		data := kubernetes.HelmRepoAddRequest{}
+		data := helm.HelmRepoAddRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmRepoAdd(data))
+		return NewMessageResponse(helm.HelmRepoAdd(data))
 	case structs.PAT_CLUSTER_HELM_REPO_PATCH:
-		data := kubernetes.HelmRepoPatchRequest{}
+		data := helm.HelmRepoPatchRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmRepoPatch(data))
+		return NewMessageResponse(helm.HelmRepoPatch(data))
 	case structs.PAT_CLUSTER_HELM_REPO_UPDATE:
-		return NewMessageResponse(kubernetes.HelmRepoUpdate())
+		return NewMessageResponse(helm.HelmRepoUpdate())
 	case structs.PAT_CLUSTER_HELM_REPO_LIST:
-		return NewMessageResponse(kubernetes.HelmRepoList())
+		return NewMessageResponse(helm.HelmRepoList())
 	case structs.PAT_CLUSTER_HELM_REPO_REMOVE:
-		data := kubernetes.HelmRepoRemoveRequest{}
+		data := helm.HelmRepoRemoveRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmRepoRemove(data))
+		return NewMessageResponse(helm.HelmRepoRemove(data))
 	case structs.PAT_CLUSTER_HELM_CHART_SEARCH:
-		data := kubernetes.HelmChartSearchRequest{}
+		data := helm.HelmChartSearchRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmChartSearch(data))
+		return NewMessageResponse(helm.HelmChartSearch(data))
 	case structs.PAT_CLUSTER_HELM_CHART_INSTALL:
-		data := kubernetes.HelmChartInstallRequest{}
+		data := helm.HelmChartInstallRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmChartInstall(data))
+		return NewMessageResponse(helm.HelmChartInstall(data))
 	case structs.PAT_CLUSTER_HELM_CHART_SHOW:
-		data := kubernetes.HelmChartShowRequest{}
+		data := helm.HelmChartShowRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmChartShow(data))
+		return NewMessageResponse(helm.HelmChartShow(data))
 	case structs.PAT_CLUSTER_HELM_CHART_VERSIONS:
-		data := kubernetes.HelmChartVersionRequest{}
+		data := helm.HelmChartVersionRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmChartVersion(data))
+		return NewMessageResponse(helm.HelmChartVersion(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_UPGRADE:
-		data := kubernetes.HelmReleaseUpgradeRequest{}
+		data := helm.HelmReleaseUpgradeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmReleaseUpgrade(data))
+		return NewMessageResponse(helm.HelmReleaseUpgrade(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_UNINSTALL:
-		data := kubernetes.HelmReleaseUninstallRequest{}
+		data := helm.HelmReleaseUninstallRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmReleaseUninstall(data))
+		return NewMessageResponse(helm.HelmReleaseUninstall(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_LIST:
-		data := kubernetes.HelmReleaseListRequest{}
+		data := helm.HelmReleaseListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmReleaseList(data))
+		return NewMessageResponse(helm.HelmReleaseList(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_STATUS:
-		data := kubernetes.HelmReleaseStatusRequest{}
+		data := helm.HelmReleaseStatusRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmReleaseStatus(data))
+		return NewMessageResponse(helm.HelmReleaseStatus(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_HISTORY:
-		data := kubernetes.HelmReleaseHistoryRequest{}
+		data := helm.HelmReleaseHistoryRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmReleaseHistory(data))
+		return NewMessageResponse(helm.HelmReleaseHistory(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_ROLLBACK:
-		data := kubernetes.HelmReleaseRollbackRequest{}
+		data := helm.HelmReleaseRollbackRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmReleaseRollback(data))
+		return NewMessageResponse(helm.HelmReleaseRollback(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_GET:
-		data := kubernetes.HelmReleaseGetRequest{}
+		data := helm.HelmReleaseGetRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return NewMessageResponse(kubernetes.HelmReleaseGet(data))
+		return NewMessageResponse(helm.HelmReleaseGet(data))
 
 	case structs.PAT_SERVICE_CREATE:
 		data := ServiceUpdateRequest{}
