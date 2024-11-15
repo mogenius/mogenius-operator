@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/services"
+	"mogenius-k8s-manager/src/version"
 
 	"github.com/mogenius/punq/utils"
 
@@ -19,17 +22,14 @@ var checkCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cmdConfig.Validate()
 
-		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
-		if err != nil {
-			panic(err)
-		}
-		logFilter := cmdConfig.Get("MO_LOG_FILTER")
-		err = slogManager.SetLogFilter(logFilter)
-		if err != nil {
-			panic(err)
-		}
 		utils.PrintLogo()
+
+		versionModule := version.NewVersion(slogManager)
+		versionModule.PrintVersionInfo()
+		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
+
 		preRun()
+
 		services.SystemCheck()
 	},
 }
@@ -39,7 +39,7 @@ var infoCmd = &cobra.Command{
 	Short: "Print information and exit",
 	Long:  `Print information and exit`,
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.PrintSettings()
+		fmt.Println(cmdConfig.AsEnvs())
 	},
 }
 

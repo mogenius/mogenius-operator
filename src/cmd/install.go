@@ -6,7 +6,9 @@ package cmd
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/kubernetes"
+	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/version"
 	"os"
 
 	"github.com/fatih/color"
@@ -24,19 +26,15 @@ var installCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cmdConfig.Validate()
 
-		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
-		if err != nil {
-			panic(err)
-		}
-		logFilter := cmdConfig.Get("MO_LOG_FILTER")
-		err = slogManager.SetLogFilter(logFilter)
-		if err != nil {
-			panic(err)
-		}
 		utils.PrintLogo()
+		versionModule := version.NewVersion(slogManager)
+		versionModule.PrintVersionInfo()
+		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
+
 		preRun()
+
 		yellow := color.New(color.FgYellow).SprintFunc()
-		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you realy want to install mogenius-k8s-manager to '%s' context?", yellow(kubernetes.CurrentContextName()))) {
+		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you really want to install mogenius-k8s-manager to '%s' context?", yellow(kubernetes.CurrentContextName()))) {
 			os.Exit(0)
 		}
 

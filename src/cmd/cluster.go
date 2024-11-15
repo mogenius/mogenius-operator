@@ -23,6 +23,7 @@ import (
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/watcher"
 	"mogenius-k8s-manager/src/xterm"
 	"strconv"
@@ -42,8 +43,12 @@ var clusterCmd = &cobra.Command{
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		go func() {
-			utils.PrintLogo()
 			cmdConfig.Validate()
+
+			utils.PrintLogo()
+			versionModule := version.NewVersion(slogManager)
+			versionModule.PrintVersionInfo()
+			cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
 			helm.Setup(slogManager, cmdConfig)
 			mokubernetes.Setup(slogManager, cmdConfig)
@@ -88,12 +93,6 @@ var clusterCmd = &cobra.Command{
 
 			utils.SetupClusterSecret(clusterSecret)
 			utils.SetupClusterConfigmap(clusterConfigmap)
-
-			moDebug, err := strconv.ParseBool(cmdConfig.Get("MO_DEBUG"))
-			assert.Assert(err == nil)
-			if moDebug {
-				utils.PrintSettings()
-			}
 
 			db.Start()
 			store.Start()
