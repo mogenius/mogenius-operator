@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 
@@ -19,17 +20,14 @@ var versionCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cmdConfig.Validate()
 
-		err := slogManager.SetLogLevel(cmdConfig.Get("MO_LOG_LEVEL"))
-		if err != nil {
-			panic(err)
-		}
-		logFilter := cmdConfig.Get("MO_LOG_FILTER")
-		err = slogManager.SetLogFilter(logFilter)
-		if err != nil {
-			panic(err)
-		}
 		utils.PrintLogo()
+
+		versionModule := version.NewVersion(slogManager)
+		versionModule.PrintVersionInfo()
+		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
+
 		preRun()
+
 		yellow := color.New(color.FgYellow).SprintFunc()
 		fmt.Printf("CLI: \t\t%s\n", yellow(version.Ver))
 		fmt.Printf("Container: \t%s\n", yellow(version.Ver))

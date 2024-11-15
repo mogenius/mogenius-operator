@@ -10,7 +10,6 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
-	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
@@ -44,9 +43,6 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 
 // TODO: this needs to be integrated in some smarter way
 func preRun() {
-	utils.PrintVersionInfo()
-	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
-
 	if utils.ClusterProviderCached == punqDtos.UNKNOWN {
 		foundProvider, err := punq.GuessClusterProvider(nil)
 		if err != nil {

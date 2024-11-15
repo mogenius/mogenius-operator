@@ -21,8 +21,6 @@ func TestIacManager(t *testing.T) {
 		DefaultValue: utils.Pointer(os.TempDir()),
 	})
 
-	utils.InitConfigSimple(utils.STAGE_DEV)
-
 	iacmanager.InitDataModel()
 
 	// SETUP TEST REPO
