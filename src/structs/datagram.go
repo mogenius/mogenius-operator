@@ -26,7 +26,7 @@ func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	// delay for timing issue caused by events being triggered too closely together
 	time.Sleep(100 * time.Millisecond)
 	datagram := Datagram{
-		Id:        punqUtils.NanoId(),
+		Id:        utils.NanoId(),
 		Pattern:   "K8sNotificationDto",
 		Payload:   data,
 		CreatedAt: data.Started,
@@ -36,7 +36,7 @@ func CreateDatagramNotificationFromJob(data *Job) Datagram {
 
 func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	datagram := Datagram{
-		Id:        punqUtils.NanoId(),
+		Id:        utils.NanoId(),
 		Pattern:   pattern,
 		Payload:   data,
 		CreatedAt: time.Now(),
@@ -46,7 +46,7 @@ func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 
 // func CreateDatagram(pattern string) Datagram {
 // 	datagram := Datagram{
-// 		Id:        punqUtils.NanoId(),
+// 		Id:        utils.NanoId(),
 // 		Pattern:   pattern,
 // 		CreatedAt: time.Now(),
 // 	}
@@ -56,7 +56,7 @@ func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 func CreateDatagramBuildLogs(payload BuildJobInfo) Datagram {
 	// func CreateDatagramBuildLogs(prefix string, namespace string, controllerName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
 	datagram := Datagram{
-		Id:      punqUtils.NanoId(),
+		Id:      utils.NanoId(),
 		Pattern: "build-logs-notification",
 		Payload: payload,
 		//Payload: map[string]interface{}{
@@ -83,7 +83,7 @@ func CreateDatagramAck(pattern string, id string) Datagram {
 
 func CreateEmptyDatagram() Datagram {
 	datagram := Datagram{
-		Id:        punqUtils.NanoId(),
+		Id:        utils.NanoId(),
 		Username:  "",
 		Pattern:   "",
 		CreatedAt: time.Now(),

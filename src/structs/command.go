@@ -3,12 +3,11 @@ package structs
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/utils"
 	"os/exec"
 	"strconv"
 	"sync"
 	"time"
-
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 type Command struct {
@@ -23,7 +22,7 @@ type Command struct {
 
 func CreateCommand(command string, title string, job *Job) *Command {
 	cmd := &Command{
-		Id:      punqUtils.NanoId(),
+		Id:      utils.NanoId(),
 		Command: command,
 		Title:   title,
 		Message: "",

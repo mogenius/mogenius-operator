@@ -7,13 +7,12 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"os"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 var cleanCmd = &cobra.Command{
@@ -32,7 +31,7 @@ var cleanCmd = &cobra.Command{
 		preRun()
 
 		yellow := color.New(color.FgYellow).SprintFunc()
-		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you realy want to remove mogenius-k8s-manager from '%s' context?", yellow(kubernetes.CurrentContextName()))) {
+		if !utils.ConfirmTask(fmt.Sprintf("Do you realy want to remove mogenius-k8s-manager from '%s' context?", yellow(kubernetes.CurrentContextName()))) {
 			os.Exit(0)
 		}
 

@@ -3,14 +3,13 @@ package crds_test
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/crds"
+	"mogenius-k8s-manager/src/utils"
 	"testing"
-
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func TestProject(t *testing.T) {
 	name := "test"
-	newProjectName := name + punqUtils.NanoIdSmallLowerCase()
+	newProjectName := name + utils.NanoIdSmallLowerCase()
 
 	// CREATE
 	err := crds.CreateProject(newProjectName, crds.CrdProject{Id: name, DisplayName: "Test Project", ProjectName: name, CreatedBy: name, ProductId: name, ClusterId: name,

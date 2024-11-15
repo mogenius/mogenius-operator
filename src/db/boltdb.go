@@ -15,7 +15,6 @@ import (
 	v1Core "k8s.io/api/core/v1"
 
 	punqStructs "github.com/mogenius/punq/structs"
-	punqUtils "github.com/mogenius/punq/utils"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -629,7 +628,7 @@ func DeleteBuildJobFromDb(bucket string, buildId uint64) error {
 func AddToDb(buildJob structs.BuildJob) (int, error) {
 	// setup usefull defaults
 	if buildJob.JobId == "" {
-		buildJob.JobId = punqUtils.NanoId()
+		buildJob.JobId = utils.NanoId()
 	}
 	if buildJob.State == "" {
 		buildJob.State = structs.JobStatePending

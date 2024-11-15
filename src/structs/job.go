@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/utils"
 
 	"github.com/fatih/color"
 	punqUtils "github.com/mogenius/punq/utils"
@@ -32,7 +33,7 @@ type Job struct {
 
 func CreateJob(title string, projectId string, namespace string, controllerName string) *Job {
 	job := &Job{
-		Id:             punqUtils.NanoId(),
+		Id:             utils.NanoId(),
 		ProjectId:      projectId,
 		NamespaceName:  namespace,
 		ControllerName: controllerName,

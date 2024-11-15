@@ -249,7 +249,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		clusterSecret.SyncFrequencyInSec = syncdata.SyncFrequencyInSec
 	}
 	if clusterSecret.ClusterMfaId == "" {
-		clusterSecret.ClusterMfaId = punqUtils.NanoId()
+		clusterSecret.ClusterMfaId = utils.NanoId()
 	}
 	if syncRepoReq != nil {
 		clusterSecret.SyncRepoUrl = syncRepoReq.Repo

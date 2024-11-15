@@ -13,8 +13,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 var installCmd = &cobra.Command{
@@ -34,7 +32,7 @@ var installCmd = &cobra.Command{
 		preRun()
 
 		yellow := color.New(color.FgYellow).SprintFunc()
-		if !punqUtils.ConfirmTask(fmt.Sprintf("Do you really want to install mogenius-k8s-manager to '%s' context?", yellow(kubernetes.CurrentContextName()))) {
+		if !utils.ConfirmTask(fmt.Sprintf("Do you really want to install mogenius-k8s-manager to '%s' context?", yellow(kubernetes.CurrentContextName()))) {
 			os.Exit(0)
 		}
 

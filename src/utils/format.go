@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/jaevor/go-nanoid"
 )
 
 var validate *validator.Validate
@@ -57,4 +58,28 @@ func FormatJsonTimePretty(jsonTimestamp string) string {
 		return jsonTimestamp
 	}
 	return t.Format("2006-01-02 15:04:05")
+}
+
+func NanoId() string {
+	id, err := nanoid.Custom("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890", 21)
+	if err != nil {
+		utilsLogger.Error("NanoId() failed ", "error", err)
+	}
+	return id()
+}
+
+func NanoIdSmallLowerCase() string {
+	id, err := nanoid.Custom("abcdefghijklmnopqrstuvwxyz1234567890", 10)
+	if err != nil {
+		utilsLogger.Error("NanoIdSmallLowerCase() failed", "error", err)
+	}
+	return id()
+}
+
+func NanoIdExtraLong() string {
+	id, err := nanoid.Custom("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890", 21)
+	if err != nil {
+		utilsLogger.Error("NanoIdExtraLong() failed", "error", err)
+	}
+	return id()
 }

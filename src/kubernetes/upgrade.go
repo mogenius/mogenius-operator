@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	punqUtils "github.com/mogenius/punq/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -98,7 +97,7 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 
 		k8sjob := utils.InitUpgradeJob()
 		k8sjob.Namespace = config.Get("MO_OWN_NAMESPACE")
-		k8sjob.Name = fmt.Sprintf("%s-%s", k8sjob.Name, punqUtils.NanoIdSmallLowerCase())
+		k8sjob.Name = fmt.Sprintf("%s-%s", k8sjob.Name, utils.NanoIdSmallLowerCase())
 
 		// CONFIGMAP
 		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})

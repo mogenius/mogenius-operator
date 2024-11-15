@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
@@ -9,6 +10,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/logging"
@@ -98,22 +100,23 @@ func HttpHeader(additionalName string) http.Header {
 		"x-cluster-name":   []string{config.Get("MO_CLUSTER_NAME")}}
 }
 
-// parseIPs parses a slice of IP address strings into a slice of net.IP.
-// func parseIPs(ips []string) ([]net.IP, error) {
-// 	var parsed []net.IP
-// 	for _, ip := range ips {
-// 		parsedIP := net.ParseIP(ip)
-// 		if parsedIP == nil {
-// 			return nil, fmt.Errorf("invalid IP address: %s", ip)
-// 		}
-// 		parsed = append(parsed, parsedIP.To4())
-// 	}
-// 	return parsed, nil
-// }
+func ConfirmTask(s string) bool {
+	r := bufio.NewReader(os.Stdin)
 
-// func Prepend[T any](s []T, values ...T) []T {
-// 	return append(values, s...)
-// }
+	fmt.Printf("%s [Y/n]: ", s)
+
+	res, err := r.ReadString('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Empty input (i.e. "\n")
+	if res == "\n" {
+		return true
+	}
+
+	return strings.ToLower(strings.TrimSpace(res)) == "y"
+}
 
 func GetFunctionName() string {
 	pc, _, _, _ := runtime.Caller(1)

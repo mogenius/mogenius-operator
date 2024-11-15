@@ -3,15 +3,14 @@ package crds_test
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/crds"
+	"mogenius-k8s-manager/src/utils"
 	"testing"
-
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func TestEnvironment(t *testing.T) {
 	name := "test"
 	namespace := "default"
-	newEnvironmentName := name + punqUtils.NanoIdSmallLowerCase()
+	newEnvironmentName := name + utils.NanoIdSmallLowerCase()
 
 	// CREATE
 	err := crds.CreateEnvironment(namespace, newEnvironmentName, crds.CrdEnvironment{})

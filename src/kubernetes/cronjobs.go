@@ -91,7 +91,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 			ObjectMeta: cronjob.Spec.JobTemplate.ObjectMeta,
 			Spec:       cronjob.Spec.JobTemplate.Spec,
 		}
-		jobSpec.Name = fmt.Sprintf("%s-%s", controller, punqutils.NanoIdSmallLowerCase())
+		jobSpec.Name = fmt.Sprintf("%s-%s", controller, utils.NanoIdSmallLowerCase())
 
 		// set owner reference to cronjob
 		ownerReference := metav1.OwnerReference{
@@ -99,8 +99,8 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 			Kind:               "CronJob",
 			Name:               cronjob.Name,
 			UID:                cronjob.UID,
-			Controller:         punqutils.Pointer(true),
-			BlockOwnerDeletion: punqutils.Pointer(true),
+			Controller:         utils.Pointer(true),
+			BlockOwnerDeletion: utils.Pointer(true),
 		}
 		jobSpec.SetOwnerReferences([]metav1.OwnerReference{ownerReference})
 
@@ -112,7 +112,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		// force pod restartPolicy: Never
 		jobSpec.Spec.Template.Spec.RestartPolicy = v1core.RestartPolicyNever
 		// set backofflimit=0 to avoid weird behavior for restartPolicy: Never
-		jobSpec.Spec.BackoffLimit = punqutils.Pointer(int32(0))
+		jobSpec.Spec.BackoffLimit = utils.Pointer(int32(0))
 
 		// create job
 		_, err = jobs.Create(context.TODO(), jobSpec, metav1.CreateOptions{})
@@ -176,7 +176,7 @@ func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: punqutils.Pointer[int64](5),
+			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
 		err = cronJobClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
@@ -276,7 +276,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
 		}
 		cronJob := newController.(*v1job.CronJob)
-		cronJob.Spec.Suspend = punqutils.Pointer(true)
+		cronJob.Spec.Suspend = utils.Pointer(true)
 
 		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
 		if err != nil {
@@ -356,24 +356,24 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 
 	// SUSPEND -> PAUSE
 	if freshlyCreated && service.HasContainerWithGitRepo() {
-		spec.Suspend = punqutils.Pointer(true)
+		spec.Suspend = utils.Pointer(true)
 	} else {
-		spec.Suspend = punqutils.Pointer(!(service.ReplicaCount > 0))
+		spec.Suspend = utils.Pointer(!(service.ReplicaCount > 0))
 	}
 
 	// CRON_JOB SETTINGS
 	spec.Schedule = service.CronJobSettings.Schedule
 
 	if service.CronJobSettings.ActiveDeadlineSeconds > 0 {
-		spec.JobTemplate.Spec.ActiveDeadlineSeconds = punqutils.Pointer(service.CronJobSettings.ActiveDeadlineSeconds)
+		spec.JobTemplate.Spec.ActiveDeadlineSeconds = utils.Pointer(service.CronJobSettings.ActiveDeadlineSeconds)
 	}
 
 	// HISTORY LIMITS
 	if service.CronJobSettings.FailedJobsHistoryLimit > 0 {
-		spec.FailedJobsHistoryLimit = punqutils.Pointer(service.CronJobSettings.FailedJobsHistoryLimit)
+		spec.FailedJobsHistoryLimit = utils.Pointer(service.CronJobSettings.FailedJobsHistoryLimit)
 	}
 	if service.CronJobSettings.SuccessfulJobsHistoryLimit > 0 {
-		spec.SuccessfulJobsHistoryLimit = punqutils.Pointer(service.CronJobSettings.SuccessfulJobsHistoryLimit)
+		spec.SuccessfulJobsHistoryLimit = utils.Pointer(service.CronJobSettings.SuccessfulJobsHistoryLimit)
 	}
 
 	// disable TTL to keep history limit
@@ -384,7 +384,7 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	// force pod restartPolicy: Never
 	spec.JobTemplate.Spec.Template.Spec.RestartPolicy = v1core.RestartPolicyNever
 	// set backofflimit=0 to avoid weird behavior for restartPolicy: Never
-	spec.JobTemplate.Spec.BackoffLimit = punqutils.Pointer(int32(0))
+	spec.JobTemplate.Spec.BackoffLimit = utils.Pointer(int32(0))
 
 	return objectMeta, &SpecCronJob{spec, previousSpec}, &newCronJob, nil
 }
@@ -406,7 +406,7 @@ func UpdateCronjobImage(namespaceName string, controllerName string, containerNa
 			crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
 		}
 	}
-	// crontjobToUpdate.Spec.Suspend = punqutils.Pointer(false)
+	// crontjobToUpdate.Spec.Suspend = utils.Pointer(false)
 
 	_, err = client.Update(context.TODO(), crontjobToUpdate, metav1.UpdateOptions{})
 	return err

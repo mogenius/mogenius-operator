@@ -16,7 +16,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	punq "github.com/mogenius/punq/kubernetes"
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func UpdateService(r ServiceUpdateRequest) interface{} {
@@ -323,7 +322,7 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 				}
 
 				tempDir := os.TempDir()
-				gitDir := fmt.Sprintf("%s/%s", tempDir, punqUtils.NanoId())
+				gitDir := fmt.Sprintf("%s/%s", tempDir, utils.NanoId())
 
 				err := utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
 				if err != nil {

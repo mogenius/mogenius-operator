@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/fatih/color"
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 var DISABLEQUEUE bool = true
@@ -121,7 +120,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	UpdateSecrets(r)
 
 	pwd, _ := os.Getwd()
-	workingDir := fmt.Sprintf("%s/temp/%s", pwd, punqUtils.NanoId())
+	workingDir := fmt.Sprintf("%s/temp/%s", pwd, utils.NanoId())
 
 	moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
 	assert.Assert(err == nil)

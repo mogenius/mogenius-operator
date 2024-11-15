@@ -7,8 +7,6 @@ import (
 
 	"mogenius-k8s-manager/src/utils"
 
-	punqUtils "github.com/mogenius/punq/utils"
-
 	"strings"
 
 	"github.com/mogenius/punq/logger"
@@ -29,7 +27,7 @@ type ExternalSecretStoreProps struct {
 func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 	// init some dynamic properties
 	if props.NamePrefix == "" {
-		props.NamePrefix = punqUtils.NanoIdSmallLowerCase()
+		props.NamePrefix = utils.NanoIdSmallLowerCase()
 	}
 	if strings.Contains(props.SecretPath, "/v1/") {
 		props.SecretPath = strings.ReplaceAll(props.SecretPath, "/v1/", "")
