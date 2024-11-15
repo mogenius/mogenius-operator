@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	punq "github.com/mogenius/punq/kubernetes"
+	"github.com/mogenius/punq/utils"
 	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/apps/v1"
 	v1Core "k8s.io/api/core/v1"
@@ -35,7 +36,7 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: punqUtils.Pointer[int64](5),
+			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
 		err = deploymentClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
@@ -151,7 +152,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		// deployment := generateDeployment(namespace, service, false, deploymentClient)
 		deployment := newController.(*v1.Deployment)
 
-		deployment.Spec.Replicas = punqUtils.Pointer[int32](0)
+		deployment.Spec.Replicas = utils.Pointer[int32](0)
 
 		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
@@ -241,7 +242,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	}
 
 	// REPLICAS
-	spec.Replicas = punqUtils.Pointer(int32(service.ReplicaCount))
+	spec.Replicas = utils.Pointer(int32(service.ReplicaCount))
 
 	// PAUSE only on "freshly created" or Repository-Types which needs a build beforehand
 	if freshlyCreated && service.HasContainerWithGitRepo() {

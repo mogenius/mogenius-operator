@@ -77,7 +77,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 				continue
 			}
 			if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
-				preparedFileName = punqUtils.Pointer(fmt.Sprintf("%s.zip", punqUtils.NanoId()))
+				preparedFileName = utils.Pointer(fmt.Sprintf("%s.zip", punqUtils.NanoId()))
 				rawDataStr = strings.Replace(rawDataStr, "######START_UPLOAD######;", "", 1)
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {

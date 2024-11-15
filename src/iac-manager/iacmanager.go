@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/gitmanager"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -84,14 +85,14 @@ func isIgnoredNamespaceInFile(file string) (result bool, namespace *string) {
 
 func Start() {
 	// dependency injection to avoid circular dependencies
-	kubernetes.IacManagerDeleteResourceYaml = DeleteResourceYaml
-	kubernetes.IacManagerWriteResourceYaml = WriteResourceYaml
-	kubernetes.IacManagerShouldWatchResources = ShouldWatchResources
-	kubernetes.IacManagerSetupInProcess = &SetupInProcess
-	kubernetes.IacManagerResetCurrentRepoData = ResetCurrentRepoData
-	kubernetes.IacManagerSyncChanges = SyncChanges
-	kubernetes.IacManagerApplyRepoStateToCluster = ApplyRepoStateToCluster
-	kubernetes.IacManagerDeleteDataRetries = DELETE_DATA_RETRIES
+	// kubernetes.IacManagerDeleteResourceYaml = DeleteResourceYaml
+	// kubernetes.IacManagerWriteResourceYaml = WriteResourceYaml
+	// kubernetes.IacManagerShouldWatchResources = ShouldWatchResources
+	// kubernetes.IacManagerSetupInProcess = &SetupInProcess
+	// kubernetes.IacManagerResetCurrentRepoData = ResetCurrentRepoData
+	// kubernetes.IacManagerSyncChanges = SyncChanges
+	// kubernetes.IacManagerApplyRepoStateToCluster = ApplyRepoStateToCluster
+	// kubernetes.IacManagerDeleteDataRetries = DELETE_DATA_RETRIES
 
 	InitDataModel()
 
@@ -1133,4 +1134,106 @@ func WatchAllResources() {
 		shutdown.SendShutdownSignal(true)
 		select {}
 	}
+}
+
+func InitAllWorkloads() {
+	resources, err := kubernetes.GetAvailableResources()
+	if err != nil {
+		iacLogger.Error("Error updating available resources", "error", err)
+		return
+	}
+
+	for _, resource := range resources {
+		if ShouldWatchResources() {
+			list, err := kubernetes.GetUnstructuredResourceList(resource.Group, resource.Version, resource.Kind, utils.Pointer(""))
+			if err != nil {
+				iacLogger.Error("Error getting resource list", "kind", resource.Kind, "error", err)
+				continue
+			}
+			for _, res := range list.Items {
+				WriteResourceYaml(resource.Kind, res.GetNamespace(), res.GetName(), res.Object)
+			}
+		}
+	}
+}
+
+func UpdateSyncRepoData(syncRepoReq *dtos.SyncRepoData) error {
+	// Save previous data for comparison
+	previousData, err := kubernetes.GetSyncRepoData()
+	if err != nil {
+		return err
+	}
+
+	// update data
+	secret, err := kubernetes.CreateOrUpdateClusterSecret(syncRepoReq)
+	if err == nil {
+		utils.CONFIG.Iac.RepoUrl = secret.SyncRepoUrl
+		utils.CONFIG.Iac.RepoPat = secret.SyncRepoPat
+		utils.CONFIG.Iac.RepoBranch = secret.SyncRepoBranch
+		utils.CONFIG.Iac.AllowPull = secret.SyncAllowPull
+		utils.CONFIG.Iac.AllowPush = secret.SyncAllowPush
+		utils.CONFIG.Iac.SyncFrequencyInSec = secret.SyncFrequencyInSec
+	}
+
+	// check if essential data is changed
+	if previousData.Repo != syncRepoReq.Repo ||
+		syncRepoReq.Pat != "***" ||
+		previousData.Branch != syncRepoReq.Branch ||
+		previousData.AllowPull != syncRepoReq.AllowPull ||
+		previousData.AllowPush != syncRepoReq.AllowPush {
+		iacLogger.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
+		SetupInProcess.Store(true)
+		defer SetupInProcess.Store(false)
+		// Push/Pull
+		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
+			err := ResetLocalRepo()
+			if err != nil {
+				return err
+			}
+		}
+		// Push
+		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
+			err = ResetCurrentRepoData(DELETE_DATA_RETRIES)
+			if err != nil {
+				return err
+			}
+			SetupInProcess.Store(false)
+			InitAllWorkloads()
+		}
+		// Pull
+		if syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
+			err := ResetLocalRepo()
+			if err != nil {
+				return err
+			}
+		}
+		// None
+		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
+			err = ResetCurrentRepoData(DELETE_DATA_RETRIES)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
+
+func ResetLocalRepo() error {
+	SetupInProcess.Store(true)
+	err := ResetCurrentRepoData(DELETE_DATA_RETRIES)
+	if err != nil {
+		return err
+	}
+	SetupInProcess.Store(false)
+	InitAllWorkloads()
+	err = SyncChanges()
+	if err != nil {
+		return err
+	}
+	err = ApplyRepoStateToCluster()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

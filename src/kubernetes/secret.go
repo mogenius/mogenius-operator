@@ -243,7 +243,7 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 		secretClient := GetCoreClient().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: punqUtils.Pointer[int64](5),
+			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
 		_, err := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
@@ -351,7 +351,7 @@ func DeleteControllerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, se
 		secretClient := GetCoreClient().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: punqUtils.Pointer[int64](5),
+			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
 		_, err := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})

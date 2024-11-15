@@ -120,87 +120,6 @@ func applyNamespace(provider *punq.KubeProvider) {
 	k8sLogger.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
-func UpdateSynRepoData(syncRepoReq *dtos.SyncRepoData) error {
-	// Save previous data for comparison
-	previousData, err := GetSyncRepoData()
-	if err != nil {
-		return err
-	}
-
-	// update data
-	secret, err := CreateOrUpdateClusterSecret(syncRepoReq)
-	if err == nil {
-		utils.CONFIG.Iac.RepoUrl = secret.SyncRepoUrl
-		utils.CONFIG.Iac.RepoPat = secret.SyncRepoPat
-		utils.CONFIG.Iac.RepoBranch = secret.SyncRepoBranch
-		utils.CONFIG.Iac.AllowPull = secret.SyncAllowPull
-		utils.CONFIG.Iac.AllowPush = secret.SyncAllowPush
-		utils.CONFIG.Iac.SyncFrequencyInSec = secret.SyncFrequencyInSec
-	}
-
-	// check if essential data is changed
-	if previousData.Repo != syncRepoReq.Repo ||
-		syncRepoReq.Pat != "***" ||
-		previousData.Branch != syncRepoReq.Branch ||
-		previousData.AllowPull != syncRepoReq.AllowPull ||
-		previousData.AllowPush != syncRepoReq.AllowPush {
-		k8sLogger.Warn("⚠️ ⚠️ ⚠️  SyncRepoData has changed in a way that requires the deletion of current repo ...")
-		IacManagerSetupInProcess.Store(true)
-		defer IacManagerSetupInProcess.Store(false)
-		// Push/Pull
-		if syncRepoReq.AllowPull && syncRepoReq.AllowPush {
-			err := ResetLocalRepo()
-			if err != nil {
-				return err
-			}
-		}
-		// Push
-		if !syncRepoReq.AllowPull && syncRepoReq.AllowPush {
-			err = IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
-			if err != nil {
-				return err
-			}
-			IacManagerSetupInProcess.Store(false)
-			InitAllWorkloads()
-		}
-		// Pull
-		if syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
-			err := ResetLocalRepo()
-			if err != nil {
-				return err
-			}
-		}
-		// None
-		if !syncRepoReq.AllowPull && !syncRepoReq.AllowPush {
-			err = IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return err
-}
-
-func ResetLocalRepo() error {
-	IacManagerSetupInProcess.Store(true)
-	err := IacManagerResetCurrentRepoData(IacManagerDeleteDataRetries)
-	if err != nil {
-		return err
-	}
-	IacManagerSetupInProcess.Store(false)
-	InitAllWorkloads()
-	err = IacManagerSyncChanges()
-	if err != nil {
-		return err
-	}
-	err = IacManagerApplyRepoStateToCluster()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
 	provider, err := punq.NewKubeProvider(nil)
 	if provider == nil || err != nil {
@@ -429,12 +348,12 @@ func addDeployment(provider *punq.KubeProvider) {
 
 	envVars := []applyconfcore.EnvVarApplyConfiguration{}
 	envVars = append(envVars, applyconfcore.EnvVarApplyConfiguration{
-		Name:  punqUtils.Pointer("cluster_name"),
-		Value: punqUtils.Pointer("TestClusterFromCode"),
+		Name:  utils.Pointer("cluster_name"),
+		Value: utils.Pointer("TestClusterFromCode"),
 	})
 	envVars = append(envVars, applyconfcore.EnvVarApplyConfiguration{
-		Name:  punqUtils.Pointer("api_key"),
-		Value: punqUtils.Pointer("94E23575-A689-4F88-8D67-215A274F4E6E"), // dont worry. this is a test key
+		Name:  utils.Pointer("api_key"),
+		Value: utils.Pointer("94E23575-A689-4F88-8D67-215A274F4E6E"), // dont worry. this is a test key
 	})
 	deploymentContainer.Env = envVars
 	agentResourceLimits := core.ResourceList{

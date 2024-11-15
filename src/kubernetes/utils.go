@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	punqDtos "github.com/mogenius/punq/dtos"
@@ -33,14 +32,14 @@ import (
 	"k8s.io/kubectl/pkg/scheme"
 )
 
-var IacManagerWriteResourceYaml func(string, string, string, interface{})
-var IacManagerDeleteResourceYaml func(string, string, string, interface{})
-var IacManagerShouldWatchResources func() bool
-var IacManagerSetupInProcess *atomic.Bool
-var IacManagerResetCurrentRepoData func(int) error
-var IacManagerSyncChanges func() error
-var IacManagerApplyRepoStateToCluster func() error
-var IacManagerDeleteDataRetries int
+// var IacManagerWriteResourceYaml func(string, string, string, interface{})
+// var IacManagerDeleteResourceYaml func(string, string, string, interface{})
+// var IacManagerShouldWatchResources func() bool
+// var IacManagerSetupInProcess *atomic.Bool
+// var IacManagerResetCurrentRepoData func(int) error
+// var IacManagerSyncChanges func() error
+// var IacManagerApplyRepoStateToCluster func() error
+// var IacManagerDeleteDataRetries int
 
 var (
 	DEPLOYMENTNAME  = "mogenius-k8s-manager"
@@ -482,41 +481,31 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 	return ok
 }
 
-func DeleteResourceYaml(kind, namespace, name string, obj interface{}) {
-	assert.Assert(IacManagerDeleteResourceYaml != nil, "func IacManageDeleteResourceYaml has to be initialized")
-	IacManagerDeleteResourceYaml(kind, namespace, name, obj)
-}
-
-func WriteResourceYaml(kind, namespace, name string, obj interface{}) {
-	assert.Assert(IacManagerWriteResourceYaml != nil, "func IacManagerWriteResourceYaml has to be initialized")
-	IacManagerWriteResourceYaml(kind, namespace, name, obj)
-}
-
 func FindResourceKind(namespace string, name string) (*dtos.K8sServiceControllerEnum, error) {
 	clientset := getProvider().ClientSet
 
 	if _, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return punqUtils.Pointer(dtos.DEPLOYMENT), nil
+		return utils.Pointer(dtos.DEPLOYMENT), nil
 	}
 
 	if _, err := clientset.AppsV1().ReplicaSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return punqUtils.Pointer(dtos.REPLICA_SET), nil
+		return utils.Pointer(dtos.REPLICA_SET), nil
 	}
 
 	if _, err := clientset.AppsV1().StatefulSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return punqUtils.Pointer(dtos.STATEFUL_SET), nil
+		return utils.Pointer(dtos.STATEFUL_SET), nil
 	}
 
 	if _, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return punqUtils.Pointer(dtos.DAEMON_SET), nil
+		return utils.Pointer(dtos.DAEMON_SET), nil
 	}
 
 	if _, err := clientset.BatchV1().Jobs(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return punqUtils.Pointer(dtos.JOB), nil
+		return utils.Pointer(dtos.JOB), nil
 	}
 
 	if _, err := clientset.BatchV1beta1().CronJobs(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return punqUtils.Pointer(dtos.CRON_JOB), nil
+		return utils.Pointer(dtos.CRON_JOB), nil
 	}
 
 	return nil, fmt.Errorf("Resource not found")

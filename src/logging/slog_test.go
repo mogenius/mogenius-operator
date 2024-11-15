@@ -7,9 +7,15 @@ import (
 )
 
 // compile time check
-func TestSlogerManagerAdheresToLogManagerInterface(t *testing.T) {
+func TestSlogManagerAdheresToLogManagerInterface(t *testing.T) {
 	t.Parallel()
-	slogManager := logging.NewSlogManager(t.TempDir())
 	testfunc := func(w interfaces.LogManagerModule) {}
-	testfunc(slogManager) // this checks if the typesystem allows to call it
+	testfunc(logging.NewSlogManager(t.TempDir())) // this checks if the typesystem allows to call it
+}
+
+// compile time check
+func TestMockSlogManagerAdheresToLogManagerInterface(t *testing.T) {
+	t.Parallel()
+	testfunc := func(w interfaces.LogManagerModule) {}
+	testfunc(interfaces.NewMockSlogManager(t)) // this checks if the typesystem allows to call it
 }
