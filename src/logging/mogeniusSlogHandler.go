@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/go-git/go-git/v5/plumbing/color"
 	"github.com/mattn/go-isatty"
@@ -21,18 +22,20 @@ type MogeniusSlogHandler struct {
 	logLevel          *slog.Level
 	logFilter         *string
 	loggerHandlerLock *sync.RWMutex
-	stdout            *os.File
+	enableStderr      *atomic.Bool
+	stderr            *os.File
 	inner             *slog.JSONHandler
 	attrs             []slog.Attr
 	group             string
 }
 
-func NewMogeniusSlogHandler(logLevel *slog.Level, logFilter *string, loggerHandlerLock *sync.RWMutex, writers ...io.Writer) slog.Handler {
+func NewMogeniusSlogHandler(logLevel *slog.Level, logFilter *string, loggerHandlerLock *sync.RWMutex, enableStderr *atomic.Bool, writers ...io.Writer) slog.Handler {
 	return &MogeniusSlogHandler{
 		logLevel:          logLevel,
 		logFilter:         logFilter,
 		loggerHandlerLock: loggerHandlerLock,
-		stdout:            os.Stdout,
+		enableStderr:      enableStderr,
+		stderr:            os.Stderr,
 		attrs:             []slog.Attr{},
 		group:             "",
 		inner: slog.NewJSONHandler(io.MultiWriter(writers...), &slog.HandlerOptions{
@@ -58,6 +61,10 @@ func (h *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) er
 	err := h.inner.Handle(ctx, record)
 	if err != nil {
 		return err
+	}
+
+	if !h.enableStderr.Load() {
+		return nil
 	}
 
 	h.loggerHandlerLock.RLock()
@@ -105,7 +112,7 @@ func (h *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) er
 
 	payload := getPayload(record)
 
-	err = printLogLine(h.stdout, isatty.IsTerminal(h.stdout.Fd()), level, component, source, message, payload)
+	err = printLogLine(h.stderr, isatty.IsTerminal(h.stderr.Fd()), level, component, source, message, payload)
 	if err != nil {
 		return err
 	}
