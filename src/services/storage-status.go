@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"sort"
 	"strings"
@@ -261,7 +262,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 		// pv, pvc and nfs-pod are bounded and running
 		if bounded && boundedPodRunning {
 			if s.PersistentVolumeClaim != nil {
-				mountPath := utils.MountPath(s.Namespace, v.VolumeName, "/")
+				mountPath := utils.MountPath(s.Namespace, v.VolumeName, "/", mokubernetes.RunsInCluster())
 
 				if utils.ClusterProviderCached == punqDtos.DOCKER_DESKTOP || utils.ClusterProviderCached == punqDtos.K3S {
 					var usedBytes uint64 = sumAllBytesOfFolder(mountPath)

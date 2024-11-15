@@ -57,13 +57,9 @@ func preRun() {
 		utils.DeleteCurrentConfig()
 	}
 	utils.InitConfigYaml(rootConfig.debug, rootConfig.customConfig, rootConfig.stage)
-	punq.InitKubernetes(utils.CONFIG.Kubernetes.RunInCluster)
 
-	if utils.CONFIG.Kubernetes.RunInCluster {
-		utils.PrintVersionInfo()
-	} else {
-		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
-	}
+	utils.PrintVersionInfo()
+	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
 	if utils.ClusterProviderCached == punqDtos.UNKNOWN {
 		foundProvider, err := punq.GuessClusterProvider(nil)
