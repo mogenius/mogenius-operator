@@ -110,7 +110,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_IAC_GET_STATUS:
 		return NewMessageResponse(iacmanager.GetDataModel(), nil)
 	case structs.PAT_IAC_RESET_LOCAL_REPO:
-		return NewMessageResponse(nil, kubernetes.ResetLocalRepo())
+		return NewMessageResponse(nil, iacmanager.ResetLocalRepo())
 	case structs.PAT_IAC_RESET_FILE:
 		data := dtos.ResetFileRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
@@ -136,7 +136,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		data.AddSecretsToRedaction()
-		err := kubernetes.UpdateSynRepoData(&data)
+		err := iacmanager.UpdateSyncRepoData(&data)
 		if err != nil {
 			return err
 		}

@@ -3,7 +3,7 @@ package dtos
 import (
 	"mogenius-k8s-manager/src/logging"
 
-	punqUtils "github.com/mogenius/punq/utils"
+	"github.com/mogenius/punq/utils"
 )
 
 type K8sProjectDto struct {
@@ -27,16 +27,16 @@ func K8sProjectDtoExampleData() K8sProjectDto {
 		Id:                    "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		DisplayName:           "displayName",
 		Name:                  "name",
-		GitAccessToken:        punqUtils.Pointer("gitAccessToken"),
-		GitUserId:             punqUtils.Pointer("gitUserId"),
-		GitConnectionType:     punqUtils.Pointer(GitConGitHub),
+		GitAccessToken:        utils.Pointer("gitAccessToken"),
+		GitUserId:             utils.Pointer("gitUserId"),
+		GitConnectionType:     utils.Pointer(GitConGitHub),
 		ClusterId:             "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		ClusterDisplayName:    "clusterName",
 		ClusterMfaId:          "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		ContainerRegistryPath: punqUtils.Pointer("docker.io/mogee1"),
-		ContainerRegistryUrl:  punqUtils.Pointer("https://index.docker.io/v1"),
-		ContainerRegistryUser: punqUtils.Pointer("YYY_FAKE_USER"),
-		ContainerRegistryPat:  punqUtils.Pointer("YYY_FAKE_PAT-pqKg4"),
+		ContainerRegistryPath: utils.Pointer("docker.io/mogee1"),
+		ContainerRegistryUrl:  utils.Pointer("https://index.docker.io/v1"),
+		ContainerRegistryUser: utils.Pointer("YYY_FAKE_USER"),
+		ContainerRegistryPat:  utils.Pointer("YYY_FAKE_PAT-pqKg4"),
 	}
 }
 

@@ -12,7 +12,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 const PingSeconds = 3
@@ -78,9 +77,9 @@ func UnmarshalJobListEntry(dst *BuildJob, data []byte) error {
 			if container.GitRepository != nil {
 				u, err := url.Parse(*container.GitRepository)
 				if err != nil {
-					dst.Service.Containers[index].GitRepository = punqUtils.Pointer("")
+					dst.Service.Containers[index].GitRepository = utils.Pointer("")
 				} else {
-					dst.Service.Containers[index].GitRepository = punqUtils.Pointer(fmt.Sprintf("%s%s", u.Host, u.Path))
+					dst.Service.Containers[index].GitRepository = utils.Pointer(fmt.Sprintf("%s%s", u.Host, u.Path))
 				}
 			}
 		}

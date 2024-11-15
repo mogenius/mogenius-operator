@@ -42,11 +42,10 @@ var clusterCmd = &cobra.Command{
 	Please run cleanup if you want to remove it again.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		go func() {
+			utils.PrintLogo()
 			cmdConfig.Validate()
 
 			watcherModule := watcher.NewWatcher()
-
-			utils.PrintLogo()
 
 			helm.Setup(slogManager, cmdConfig)
 			mokubernetes.Setup(slogManager, cmdConfig)

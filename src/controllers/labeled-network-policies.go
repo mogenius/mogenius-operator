@@ -5,10 +5,10 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/store"
+	"mogenius-k8s-manager/src/utils"
 	"sort"
 	"strings"
 
-	punqUtils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -150,7 +150,7 @@ func ListAllConflictingNetworkPolicies(data ListConflictingNetworkPoliciesReques
 	var dataList []K8sConflictingNetworkPolicyDto
 	for _, policy := range policies.Items {
 		data := K8sConflictingNetworkPolicyDto{
-			Name:          punqUtils.Pointer(policy.Name),
+			Name:          utils.Pointer(policy.Name),
 			NamespaceName: policy.Namespace,
 			Spec:          policy.Spec,
 			// NetworkPolicy:  policy,
@@ -396,7 +396,7 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 			policy := policies[idx]
 
 			networkPolicyDto := K8sNetworkPolicyDto{
-				Name:          punqUtils.Pointer(policy.Name),
+				Name:          utils.Pointer(policy.Name),
 				NamespaceName: policy.Namespace,
 				Spec:          policy.Spec,
 			}
@@ -408,7 +408,7 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 			policy := policies[idx]
 
 			conflictingNetworkPolicyDto := K8sConflictingNetworkPolicyDto{
-				Name:          punqUtils.Pointer(policy.Name),
+				Name:          utils.Pointer(policy.Name),
 				NamespaceName: policy.Namespace,
 				Spec:          policy.Spec,
 			}
@@ -473,7 +473,7 @@ func listManagedAndUnmanagedNamespaceNetworkPoliciesByNamespaces(namespaces []v1
 			policy := policies[idx]
 
 			networkPolicyDto := K8sNetworkPolicyDto{
-				Name:          punqUtils.Pointer(policy.Name),
+				Name:          utils.Pointer(policy.Name),
 				NamespaceName: policy.Namespace,
 				Spec:          policy.Spec,
 			}
@@ -485,7 +485,7 @@ func listManagedAndUnmanagedNamespaceNetworkPoliciesByNamespaces(namespaces []v1
 			policy := policies[idx]
 
 			conflictingNetworkPolicyDto := K8sConflictingNetworkPolicyDto{
-				Name:          punqUtils.Pointer(policy.Name),
+				Name:          utils.Pointer(policy.Name),
 				NamespaceName: policy.Namespace,
 				Spec:          policy.Spec,
 			}

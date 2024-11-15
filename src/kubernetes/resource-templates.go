@@ -4,7 +4,6 @@ import (
 	"fmt"
 	utils "mogenius-k8s-manager/src/utils"
 
-	punqUtils "github.com/mogenius/punq/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -36,7 +35,7 @@ func CreateOrUpdateResourceTemplateConfigmap() error {
 	}
 
 	// check if configmap exists
-	_, err = CreateUnstructuredResource("", "v1", "configmaps", punqUtils.Pointer(""), string(updatedYaml))
+	_, err = CreateUnstructuredResource("", "v1", "configmaps", utils.Pointer(""), string(updatedYaml))
 	if apierrors.IsAlreadyExists(err) {
 		k8sLogger.Info("Resource template configmap already exists")
 		return nil

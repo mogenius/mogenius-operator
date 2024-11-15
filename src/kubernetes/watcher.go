@@ -3,14 +3,12 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"os"
 	"slices"
 	"strings"
 
-	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	v1Net "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -118,28 +116,6 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 
 		HandleNetworkPolicyChange(&netPol, "Deleted")
 		return
-	}
-}
-
-func InitAllWorkloads() {
-	assert.Assert(IacManagerShouldWatchResources != nil, "func IacManagerShouldWatchResources has to be initialized")
-	resources, err := GetAvailableResources()
-	if err != nil {
-		k8sLogger.Error("Error updating available resources", "error", err)
-		return
-	}
-
-	for _, resource := range resources {
-		if IacManagerShouldWatchResources() {
-			list, err := GetUnstructuredResourceList(resource.Group, resource.Version, resource.Kind, punqUtils.Pointer(""))
-			if err != nil {
-				k8sLogger.Error("Error getting resource list", "kind", resource.Kind, "error", err)
-				continue
-			}
-			for _, res := range list.Items {
-				IacManagerWriteResourceYaml(resource.Kind, res.GetNamespace(), res.GetName(), res.Object)
-			}
-		}
 	}
 }
 
@@ -346,7 +322,7 @@ func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
 			if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
 				var namespace *string
 				if resource.Namespaced {
-					namespace = punqUtils.Pointer("")
+					namespace = utils.Pointer("")
 				}
 
 				availableResources = append(availableResources, utils.SyncResourceEntry{

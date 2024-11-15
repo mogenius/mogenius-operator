@@ -27,7 +27,7 @@ import (
 // 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
 
 // 		deleteOptions := metav1.DeleteOptions{
-// 			GracePeriodSeconds: punqUtils.Pointer[int64](5),
+// 			GracePeriodSeconds: utils.Pointer[int64](5),
 // 		}
 
 // 		err = configMapClient.Delete(context.TODO(), service.ControllerName, deleteOptions)

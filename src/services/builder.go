@@ -69,8 +69,8 @@ func ProcessQueue() {
 			job := structs.CreateJob(fmt.Sprintf("Building '%s'", buildJob.Service.ControllerName), buildJob.Project.Id, buildJob.Namespace.Name, buildJob.Service.ControllerName)
 			job.BuildId = buildJob.BuildId
 			job.ContainerName = container.Name
-			container.GitCommitAuthor = punqUtils.Pointer(utils.Escape(*container.GitCommitAuthor))
-			container.GitCommitMessage = punqUtils.Pointer(utils.Escape(*container.GitCommitMessage))
+			container.GitCommitAuthor = utils.Pointer(utils.Escape(*container.GitCommitAuthor))
+			container.GitCommitMessage = utils.Pointer(utils.Escape(*container.GitCommitMessage))
 
 			go build(job, &buildJob, &container, currentBuildChannel, &ctx)
 

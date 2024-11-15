@@ -453,7 +453,7 @@ func ServiceGetLogRequestExample() ServiceGetLogRequest {
 	return ServiceGetLogRequest{
 		Namespace: "gcp2-new-xrrllb-y0y3g6",
 		PodId:     "nginx-63uleb-686867bb6c-bsdvl",
-		Timestamp: punqUtils.Pointer(time.Now()),
+		Timestamp: utils.Pointer(time.Now()),
 	}
 }
 

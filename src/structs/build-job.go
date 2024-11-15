@@ -7,8 +7,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"time"
 
-	punqUtils "github.com/mogenius/punq/utils"
-
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -45,8 +43,8 @@ func ScanImageRequestExample() ScanImageRequest {
 		ControllerName:        "alpinetest",
 		ContainerName:         "alpinetest-container",
 		ContainerImage:        "mysql:latest",
-		ContainerRegistryPath: punqUtils.Pointer("docker.io/biltisberger"),
-		ContainerRegistryUrl:  punqUtils.Pointer("docker.io"),
+		ContainerRegistryPath: utils.Pointer("docker.io/biltisberger"),
+		ContainerRegistryUrl:  utils.Pointer("docker.io"),
 		ContainerRegistryUser: nil,
 		ContainerRegistryPat:  nil,
 	}

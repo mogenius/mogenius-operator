@@ -86,9 +86,9 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		}
 
 		if ingressControllerType == punq.NGINX {
-			ingressToUpdate.Spec.IngressClassName = punqUtils.Pointer("nginx")
+			ingressToUpdate.Spec.IngressClassName = utils.Pointer("nginx")
 		} else if ingressControllerType == punq.TRAEFIK {
-			ingressToUpdate.Spec.IngressClassName = punqUtils.Pointer("traefik")
+			ingressToUpdate.Spec.IngressClassName = utils.Pointer("traefik")
 		}
 		tlsHosts := []string{}
 
