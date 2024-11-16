@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mogenius/punq/utils"
+	"mogenius-k8s-manager/src/utils"
 )
 
 type K8sContainerDto struct {

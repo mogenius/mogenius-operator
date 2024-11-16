@@ -14,18 +14,18 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-type KubeProvider struct {
+type KubeProviderDynamic struct {
 	ClientSet     *kubernetes.Clientset
 	DynamicClient *dynamic.DynamicClient
 	ClientConfig  rest.Config
 }
 
-func NewKubeProvider() (*KubeProvider, error) {
-	provider, err := newKubeProviderInCluster()
+func NewKubeProviderDynamic() (*KubeProviderDynamic, error) {
+	provider, err := newKubeProviderDynamicInCluster()
 	if err == nil {
 		return provider, nil
 	} else {
-		provider, err = newKubeProviderLocal()
+		provider, err = newKubeProviderDynamicLocal()
 	}
 
 	if err != nil {
@@ -34,7 +34,7 @@ func NewKubeProvider() (*KubeProvider, error) {
 	return provider, err
 }
 
-func newKubeProviderLocal() (*KubeProvider, error) {
+func newKubeProviderDynamicLocal() (*KubeProviderDynamic, error) {
 	config, err := GetRestConfig()
 	if err != nil {
 		return nil, err
@@ -50,14 +50,14 @@ func newKubeProviderLocal() (*KubeProvider, error) {
 		return nil, err
 	}
 
-	return &KubeProvider{
+	return &KubeProviderDynamic{
 		ClientSet:     clientSet,
 		DynamicClient: dynamicClient,
 		ClientConfig:  *config,
 	}, nil
 }
 
-func newKubeProviderInCluster() (*KubeProvider, error) {
+func newKubeProviderDynamicInCluster() (*KubeProviderDynamic, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func newKubeProviderInCluster() (*KubeProvider, error) {
 		return nil, err
 	}
 
-	return &KubeProvider{
+	return &KubeProviderDynamic{
 		ClientSet:     clientset,
 		DynamicClient: dynamicClient,
 		ClientConfig:  *config,

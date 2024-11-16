@@ -12,8 +12,6 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"net/http"
 	"strconv"
-
-	punq "github.com/mogenius/punq/kubernetes"
 )
 
 type HttpService struct {
@@ -53,7 +51,6 @@ func (self *HttpService) Run(addr string) {
 		mux.Handle("GET /debug/last-ns", self.withRequestLogging(http.HandlerFunc(self.debugGetLastNs)))
 		mux.Handle("GET /debug/ns", self.withRequestLogging(http.HandlerFunc(self.debugGetNs)))
 		mux.Handle("GET /debug/iac", self.withRequestLogging(http.HandlerFunc(self.debugIac)))
-		mux.Handle("GET /debug/list-templates", self.withRequestLogging(http.HandlerFunc(self.debugListTemplates)))
 	}
 
 	self.logger.Info("starting API server", "addr", addr)
@@ -243,17 +240,6 @@ func (self *HttpService) debugIac(w http.ResponseWriter, _ *http.Request) {
 	if err != nil {
 		self.logger.Debug("failed to write response", "error", err)
 		return
-	}
-}
-
-func (self *HttpService) debugListTemplates(w http.ResponseWriter, _ *http.Request) {
-	data := punq.ListCreateTemplates()
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(data)
-	if err != nil {
-		self.logger.Error("failed to json encode response", "error", err)
 	}
 }
 

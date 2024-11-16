@@ -61,7 +61,7 @@ func DeleteProjectCmd(job *structs.Job, name string, wg *sync.WaitGroup) {
 }
 
 func CreateProject(name string, newObj CrdProject) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -79,7 +79,7 @@ func CreateProject(name string, newObj CrdProject) error {
 }
 
 func UpdateProject(name string, id string, projectName string, displayName string, productId string, limits ProjectLimits) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -114,7 +114,7 @@ func UpdateProject(name string, id string, projectName string, displayName strin
 }
 
 func DeleteProject(name string) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -133,7 +133,7 @@ func DeleteProject(name string) error {
 func GetProject(name string) (project *CrdProject, projectRaw *unstructured.Unstructured, err error) {
 	result := CrdProject{}
 
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return nil, nil, err
@@ -163,7 +163,7 @@ func GetProject(name string) (project *CrdProject, projectRaw *unstructured.Unst
 func ListProjects() (project []CrdProject, projectRaw *unstructured.UnstructuredList, err error) {
 	result := []CrdProject{}
 
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return result, nil, err
@@ -194,7 +194,7 @@ func ListProjects() (project []CrdProject, projectRaw *unstructured.Unstructured
 }
 
 func CountProject() (count int, err error) {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return 0, err
@@ -211,7 +211,7 @@ func CountProject() (count int, err error) {
 }
 
 func AddEnvironmentToProject(name string, environmentName string) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -242,7 +242,7 @@ func AddEnvironmentToProject(name string, environmentName string) error {
 }
 
 func RemoveEnvironmentFromProject(name string, environmentName string) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err

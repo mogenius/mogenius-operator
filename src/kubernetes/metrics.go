@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"context"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	corev1 "k8s.io/api/core/v1" // Add this line to import the corev1 package
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -33,12 +32,12 @@ type ContainerMetrics struct {
 }
 
 func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
-	kubeProvider, err := punq.NewKubeProvider(nil)
+	kubeProvider, err := NewKubeProvider()
 	if err != nil {
 		return nil
 	}
 
-	metricsProvider, err := punq.NewKubeProviderMetrics(nil)
+	metricsProvider, err := NewKubeProviderMetrics()
 	if err != nil {
 		return nil
 	}

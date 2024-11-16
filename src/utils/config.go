@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 
-	punqDtos "github.com/mogenius/punq/dtos"
 	"gopkg.in/yaml.v3"
 )
 
@@ -118,7 +117,7 @@ type Config struct {
 
 var CONFIG Config
 var ConfigPath string
-var ClusterProviderCached punqDtos.KubernetesProvider = punqDtos.UNKNOWN
+var ClusterProviderCached KubernetesProvider = UNKNOWN
 
 // preconfigure with dtos
 var IacWorkloadConfigMap map[string]bool

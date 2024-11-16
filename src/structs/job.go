@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 
 	"github.com/fatih/color"
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 type DefaultResponse struct {
@@ -149,15 +148,15 @@ func stateLogJob(data *Job) {
 	var message string
 	switch data.State {
 	case JobStatePending:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, PEND(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	case JobStateStarted:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, STAR(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	case JobStateFailed, JobStateTimeout, JobStateCanceled:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, ERRO(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	case JobStateSucceeded:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, SUCC(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	default:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	}
 	serviceLogger.Info(message, "namespace", data.NamespaceName, "controllerName", data.ControllerName)
 }
@@ -189,15 +188,15 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 	var message string
 	switch data.State {
 	case JobStatePending:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, PEND(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, PEND(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	case JobStateStarted:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, STAR(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, STAR(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	case JobStateFailed, JobStateTimeout, JobStateCanceled:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, ERRO(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, ERRO(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	case JobStateSucceeded:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, SUCC(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, SUCC(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	default:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(punqUtils.FillWith(string(data.State), 15, " ")), punqUtils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
 	}
 	serviceLogger.Info(message, "namespace", ns, "controllerName", controllerName)
 }

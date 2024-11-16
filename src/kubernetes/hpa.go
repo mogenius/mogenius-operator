@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	v2 "k8s.io/api/autoscaling/v2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +21,7 @@ func HandleHpa(job *structs.Job, namespaceName, controllerName string, service d
 	if service.HpaEnabled() {
 		CreateOrUpdateHpa(job, namespaceName, service.ControllerName, service.HpaSettings, wg)
 	} else {
-		hpa, error := punq.GetHpa(namespaceName, service.ControllerName+HpaNameSuffix, nil)
+		hpa, error := GetHpa(namespaceName, service.ControllerName+HpaNameSuffix, nil)
 		if error == nil && hpa.DeletionTimestamp == nil {
 			DeleteHpa(job, namespaceName, service.ControllerName, wg)
 		}
@@ -36,7 +35,7 @@ func DeleteHpa(job *structs.Job, namespaceName, controllerName string, wg *sync.
 		defer wg.Done()
 		cmd.Start(job, "Delete hpa")
 
-		err := punq.DeleteK8sHpaBy(namespaceName, controllerName+HpaNameSuffix, nil)
+		err := DeleteK8sHpaBy(namespaceName, controllerName+HpaNameSuffix, nil)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("Deleting hpa ERROR: '%s'", err.Error()))
 		} else {
@@ -45,8 +44,29 @@ func DeleteHpa(job *structs.Job, namespaceName, controllerName string, wg *sync.
 	}(wg)
 }
 
+func GetHpa(namespaceName string, name string, contextId *string) (*v2.HorizontalPodAutoscaler, error) {
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return nil, err
+	}
+	hpa, err := provider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
+	hpa.Kind = "HorizontalPodAutoscaler"
+	hpa.APIVersion = "autoscaling/v2"
+
+	return hpa, err
+}
+
+func DeleteK8sHpaBy(namespace string, name string, contextId *string) error {
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return err
+	}
+	client := provider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespace)
+	return client.Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
 func CreateHpa(namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto) (*v2.HorizontalPodAutoscaler, error) {
-	deployment, err := punq.GetK8sDeployment(namespaceName, controllerName, nil)
+	deployment, err := GetK8sDeployment(namespaceName, controllerName)
 	if err != nil || deployment == nil {
 		return nil, fmt.Errorf("Cannot create hpa, Deployment not found")
 	}
@@ -93,7 +113,7 @@ func CreateOrUpdateHpa(job *structs.Job, namespaceName, controllerName string, h
 		defer wg.Done()
 		cmd.Start(job, "CreateOrUpdate hpa")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
 			return

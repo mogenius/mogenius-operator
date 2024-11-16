@@ -5,14 +5,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/src/structs"
 	"net/http"
 	"sort"
 	"time"
 
 	realJson "encoding/json"
-
-	punq "github.com/mogenius/punq/kubernetes"
-	punqStructs "github.com/mogenius/punq/structs"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -78,7 +76,7 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 	sortWithPreference(unstructList)
 
 	// SEND DATA TO K8S
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		return result, err
 	}
@@ -169,89 +167,7 @@ func ApplyUnstructured(ctx context.Context, dynamicClient dynamic.Interface, res
 		return nil, err
 	}
 	return nil, nil
-
-	// modified, err := util.GetModifiedConfiguration(obj, true, unstructured.UnstructuredJSONScheme)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("retrieving modified configuration from:\n%s\nfor:%v", unstructuredObj.GetName(), err)
-	// }
-
-	// currentUnstr, err := dri.Get(ctx, unstructuredObj.GetName(), metav1.GetOptions{})
-	// if err != nil {
-	// 	if !apierrors.IsNotFound(err) {
-	// 		return nil, fmt.Errorf("retrieving current configuration of:\n%s\nfrom server for:%v", unstructuredObj.GetName(), err)
-	// 	}
-
-	// 	K8sLogger.Infof("The resource %s creating", unstructuredObj.GetName())
-	// 	// Create the resource if it doesn't exist
-	// 	// First, update the annotation such as kubectl apply
-	// 	if err := util.CreateApplyAnnotation(&unstructuredObj, unstructured.UnstructuredJSONScheme); err != nil {
-	// 		return nil, fmt.Errorf("creating %s error: %v", unstructuredObj.GetName(), err)
-	// 	}
-
-	// 	return dri.Create(ctx, &unstructuredObj, metav1.CreateOptions{})
-	// }
-
-	// metadata, _ := meta.Accessor(currentUnstr)
-	// annotationMap := metadata.GetAnnotations()
-	// if _, ok := annotationMap[corev1.LastAppliedConfigAnnotation]; !ok {
-	// 	K8sLogger.Warningf("[%s] apply should be used on resource created by either kubectl create --save-config or apply", metadata.GetName())
-	// }
-
-	// patchBytes, patchType, err := Patch(currentUnstr, modified, unstructuredObj.GetName(), *gvk)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// return dri.Patch(ctx, unstructuredObj.GetName(), patchType, patchBytes, metav1.PatchOptions{})
 }
-
-// Taken from https://github.com/pytimer/k8sutil
-// func Patch(currentUnstr *unstructured.Unstructured, modified []byte, name string, gvk schema.GroupVersionKind) ([]byte, types.PatchType, error) {
-// 	current, err := currentUnstr.MarshalJSON()
-// 	if err != nil {
-// 		return nil, "", fmt.Errorf("serializing current configuration from: %v, %v", currentUnstr, err)
-// 	}
-
-// 	original, err := util.GetOriginalConfiguration(currentUnstr)
-// 	if err != nil {
-// 		return nil, "", fmt.Errorf("retrieving original configuration from: %s, %v", name, err)
-// 	}
-
-// 	var patchType types.PatchType
-// 	var patch []byte
-
-// 	Scheme := runtime.NewScheme()
-// 	versionedObject, err := Scheme.New(gvk)
-// 	switch {
-// 	case runtime.IsNotRegisteredError(err):
-// 		patchType = types.MergePatchType
-// 		preconditions := []mergepatch.PreconditionFunc{
-// 			mergepatch.RequireKeyUnchanged("apiVersion"),
-// 			mergepatch.RequireKeyUnchanged("kind"),
-// 			mergepatch.RequireKeyUnchanged("name"),
-// 		}
-// 		patch, err = jsonmergepatch.CreateThreeWayJSONMergePatch(original, modified, current, preconditions...)
-// 		if err != nil {
-// 			if mergepatch.IsPreconditionFailed(err) {
-// 				return nil, "", fmt.Errorf("At least one of apiVersion, kind and name was changed")
-// 			}
-// 			return nil, "", fmt.Errorf("unable to apply patch, %v", err)
-// 		}
-// 	case err == nil:
-// 		patchType = types.StrategicMergePatchType
-// 		lookupPatchMeta, err := strategicpatch.NewPatchMetaFromStruct(versionedObject)
-// 		if err != nil {
-// 			return nil, "", err
-// 		}
-// 		patch, err = strategicpatch.CreateThreeWayMergePatch(original, modified, current, lookupPatchMeta, true)
-// 		if err != nil {
-// 			return nil, "", err
-// 		}
-// 	case err != nil:
-// 		return nil, "", fmt.Errorf("getting instance of versioned object %v for: %v", gvk, err)
-// 	}
-
-// 	return patch, patchType, nil
-// }
 
 func isIncompatibleServerError(err error) bool {
 	if _, ok := err.(*apierrors.StatusError); !ok {
@@ -264,11 +180,11 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	result := NamespaceBackupResponse{
 		NamespaceName: namespace,
 	}
-	skippedGroups := punqStructs.NewUniqueStringArray()
-	allResources := punqStructs.NewUniqueStringArray()
-	usedResources := punqStructs.NewUniqueStringArray()
+	skippedGroups := structs.NewUniqueStringArray()
+	allResources := structs.NewUniqueStringArray()
+	usedResources := structs.NewUniqueStringArray()
 
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		return result, err
 	}

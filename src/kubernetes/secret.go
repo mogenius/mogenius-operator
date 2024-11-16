@@ -10,8 +10,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"sync"
 
-	punq "github.com/mogenius/punq/kubernetes"
-	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +17,28 @@ import (
 
 const ClusterImagePullSecretName = "cluster-img-pull-sec"
 const ContainerImagePullSecretName = "container-img-pull-sec"
+
+func AllSecrets(namespaceName string) []v1.Secret {
+	result := []v1.Secret{}
+
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return result
+	}
+	secretList, err := provider.ClientSet.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		k8sLogger.Error("AllSecrets", "error", err.Error())
+		return result
+	}
+
+	for _, secret := range secretList.Items {
+		secret.Kind = "Secret"
+		secret.APIVersion = "v1"
+		result = append(result, secret)
+
+	}
+	return result
+}
 
 func CreateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
 	client := GetCoreClient()
@@ -74,6 +94,15 @@ func GetDecodedSecret(secretName string, namespace string) (map[string]string, e
 	return decodedData, nil
 }
 
+func DeleteK8sSecretBy(namespace string, name string) error {
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return err
+	}
+	secretClient := provider.ClientSet.CoreV1().Secrets(namespace)
+	return secretClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
+}
+
 // -----------------------------------------------------
 // Cluster Image Pull Secret
 // -----------------------------------------------------
@@ -84,7 +113,7 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 	// delete old secret
 	// TODO: remove this after a while
 	containerSecretName := "container-secret-" + namespace.Name
-	err := punq.DeleteK8sSecretBy(namespace.Name, containerSecretName, nil)
+	err := DeleteK8sSecretBy(namespace.Name, containerSecretName)
 	if err != nil {
 		k8sLogger.Error("Error deleting secret", "namespace", namespace.Name, "secret", containerSecretName, "error", err)
 	}
@@ -92,7 +121,7 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
 	if project.ContainerRegistryUser == nil || project.ContainerRegistryPat == nil || project.ContainerRegistryUrl == nil {
 		// delete if exists
-		err := punq.DeleteK8sSecretBy(namespace.Name, secretName, nil)
+		err := DeleteK8sSecretBy(namespace.Name, secretName)
 		if err != nil {
 			k8sLogger.Error("Error deleting secret", "namespace", namespace.Name, "secret", secretName, "error", err)
 		}
@@ -107,7 +136,7 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 
 		secretClient := GetCoreClient().Secrets(namespace.Name)
 
-		secret := punqUtils.InitContainerSecret()
+		secret := utils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
 		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
@@ -161,7 +190,7 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 	// delete old secret
 	// TODO: remove this after a while
 	containerSecretServiceName := "container-secret-service-" + service.ControllerName
-	err := punq.DeleteK8sSecretBy(namespace.Name, containerSecretServiceName, nil)
+	err := DeleteK8sSecretBy(namespace.Name, containerSecretServiceName)
 	if err != nil {
 		k8sLogger.Error("Error deleting secret", "namespace", namespace.Name, "secret", containerSecretServiceName, "error", err)
 	}
@@ -170,7 +199,7 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 	authStr := service.GetImageRepoSecretDecryptValue()
 	if authStr == nil {
 		// delete if exists
-		err := punq.DeleteK8sSecretBy(namespace.Name, secretName, nil)
+		err := DeleteK8sSecretBy(namespace.Name, secretName)
 		if err != nil {
 			k8sLogger.Error("Error deleting secret", "namespace", namespace.Name, "secret", secretName, "error", err)
 		}
@@ -193,7 +222,7 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 
 		secretClient := GetCoreClient().Secrets(namespace.Name)
 
-		secret := punqUtils.InitContainerSecret()
+		secret := utils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
 
@@ -229,7 +258,7 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 
 	// delete old secret
 	// TODO: remove this after a while
-	err := punq.DeleteK8sSecretBy(namespace.Name, "container-secret-service-"+service.ControllerName, nil)
+	err := DeleteK8sSecretBy(namespace.Name, "container-secret-service-"+service.ControllerName)
 	if err != nil {
 		k8sLogger.Error("Error deleting secret", "error", err)
 	}
@@ -278,7 +307,7 @@ func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespac
 		cmd.Start(job, "Updating secret")
 
 		secretClient := GetCoreClient().Secrets(namespace.Name)
-		secret := punqUtils.InitSecret()
+		secret := utils.InitSecret()
 		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
 		delete(secret.StringData, "exampleData") // delete example data

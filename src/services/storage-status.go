@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	punqDtos "github.com/mogenius/punq/dtos"
-	punq "github.com/mogenius/punq/kubernetes"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -123,7 +121,7 @@ func StatusMogeniusNfs2(r NfsStatusRequest) NfsStatusResponse {
 		nfsStatusResponse.NamespaceName = r.Namespace
 	}
 
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := mokubernetes.NewKubeProvider()
 	if err != nil {
 		serviceLogger.Warn("failed to create kube provider", "error", err)
 		nfsStatusResponse.ProcessNfsStatusResponse(nil, err)
@@ -264,7 +262,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 			if s.PersistentVolumeClaim != nil {
 				mountPath := utils.MountPath(s.Namespace, v.VolumeName, "/", mokubernetes.RunsInCluster())
 
-				if utils.ClusterProviderCached == punqDtos.DOCKER_DESKTOP || utils.ClusterProviderCached == punqDtos.K3S {
+				if utils.ClusterProviderCached == utils.DOCKER_DESKTOP || utils.ClusterProviderCached == utils.K3S {
 					var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
 					v.FreeBytes = uint64(s.PersistentVolumeClaim.Spec.Resources.Requests.Storage().Value()) - usedBytes
 					v.UsedBytes = usedBytes

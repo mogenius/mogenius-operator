@@ -120,7 +120,7 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 }
 
 func GetUnstructuredResourceList(group, version, name string, namespace *string) (*unstructured.UnstructuredList, error) {
-	provider, err := NewKubeProvider()
+	provider, err := NewKubeProviderDynamic()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for GetUnstructuredResourceList. Cannot continue.", "error", err)
 		return nil, err
@@ -136,7 +136,7 @@ func GetUnstructuredResourceList(group, version, name string, namespace *string)
 }
 
 func GetUnstructuredResource(group, version, name string, namespace, resourceName string) (*unstructured.Unstructured, error) {
-	provider, err := NewKubeProvider()
+	provider, err := NewKubeProviderDynamic()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for GetUnstructuredResource. Cannot continue.", "error", err)
 		return nil, err
@@ -152,7 +152,7 @@ func GetUnstructuredResource(group, version, name string, namespace, resourceNam
 }
 
 func CreateUnstructuredResource(group, version, name string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
-	provider, err := NewKubeProvider()
+	provider, err := NewKubeProviderDynamic()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for CreateUnstructuredResource. Cannot continue.", "error", err)
 		return nil, err
@@ -174,7 +174,7 @@ func CreateUnstructuredResource(group, version, name string, namespace *string, 
 }
 
 func UpdateUnstructuredResource(group, version, name string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
-	provider, err := NewKubeProvider()
+	provider, err := NewKubeProviderDynamic()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for UpdatedUnstructuredResource. Cannot continue.", "error", err)
 		return nil, err
@@ -196,7 +196,7 @@ func UpdateUnstructuredResource(group, version, name string, namespace *string, 
 }
 
 func DeleteUnstructuredResource(group, version, name string, namespace string, resourceName string) error {
-	provider, err := NewKubeProvider()
+	provider, err := NewKubeProviderDynamic()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for watcher. Cannot continue.", "error", err)
 		return err
@@ -241,7 +241,7 @@ func DescribeUnstructuredResource(group, version, name string, namespace, resour
 }
 
 func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
-	provider, err := NewKubeProvider()
+	provider, err := NewKubeProviderDynamic()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating provider for watcher. Cannot continue.", "error", err)
 		return nil, err

@@ -9,7 +9,6 @@ import (
 
 	"strings"
 
-	"github.com/mogenius/punq/logger"
 	"sigs.k8s.io/yaml"
 )
 
@@ -42,7 +41,7 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 
 	err := mokubernetes.ApplyServiceAccount(props.ServiceAccount, config.Get("MO_OWN_NAMESPACE"), annotations)
 	if err != nil {
-		logger.Log.Info("ServiceAccount apply failed")
+		esoLogger.Info("ServiceAccount apply failed", "error", err)
 		return err
 	}
 
@@ -73,11 +72,11 @@ func CreateExternalSecretsStore(props ExternalSecretStoreProps) error {
 func GetExternalSecretsStore(name string) (*mokubernetes.SecretStoreSchema, error) {
 	response, err := mokubernetes.GetResource("external-secrets.io", "v1beta1", "clustersecretstores", name, "", true)
 	if err != nil {
-		logger.Log.Info("GetResource failed for SecretStore: " + name)
+		esoLogger.Error("GetResource failed for SecretStore: ", "error", name)
 		return nil, err
 	}
 
-	logger.Log.Info("SecretStore retrieved", "name", response.GetName())
+	esoLogger.Info("SecretStore retrieved", "name", response.GetName())
 
 	yamlOutput, err := yaml.Marshal(response.Object)
 	if err != nil {
@@ -97,7 +96,7 @@ func ListAvailableExternalSecrets(namePrefix string) []string {
 		config.Get("MO_OWN_NAMESPACE"),
 	)
 	if err != nil {
-		logger.Log.Error("Getting secret list failed")
+		esoLogger.Error("Getting secret list failed", "error", err)
 	}
 	// Initialize result with an empty slice for SecretsInProject
 	result := []string{}
@@ -106,7 +105,7 @@ func ListAvailableExternalSecrets(namePrefix string) []string {
 		var secretMap map[string]interface{}
 		err := json.Unmarshal([]byte(secretValue), &secretMap)
 		if err != nil {
-			logger.Log.Errorf("Error unmarshalling secret: %s", err.Error())
+			esoLogger.Error("Error unmarshalling secret", "error", err.Error())
 			return nil
 		}
 
@@ -154,7 +153,7 @@ func deleteUnusedServiceAccount(role, projectId, moSharedPath string) error {
 	if err != nil {
 		return err
 	}
-	logger.Log.Info("ServiceAccount retrieved", "namespace", serviceAccount.GetNamespace(), "name", serviceAccount.GetName())
+	esoLogger.Info("ServiceAccount retrieved", "namespace", serviceAccount.GetNamespace(), "name", serviceAccount.GetName())
 
 	if serviceAccount.Annotations != nil {
 		// remove current claim of using this service account

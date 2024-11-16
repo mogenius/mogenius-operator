@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	punqStructs "github.com/mogenius/punq/structs"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -143,7 +142,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 
 		// save socketConnections to separate bucket and remove from stats
 		socketBucket := tx.Bucket([]byte(SOCKET_STATS_BUCKET))
-		err = socketBucket.Put([]byte(stats.PodName), []byte(punqStructs.PrettyPrintString(cleanSocketConnections(stats.SocketConnections))))
+		err = socketBucket.Put([]byte(stats.PodName), []byte(utils.PrettyPrintString(cleanSocketConnections(stats.SocketConnections))))
 		if err != nil {
 			dbStatsLogger.Error("Error adding socket connections", "namespace", stats.Namespace, "podName", stats.PodName, "error", err.Error())
 		}
@@ -154,7 +153,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 		if err != nil {
 			return fmt.Errorf("Cant create next id: %s", err.Error())
 		}
-		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
+		return controllerBucket.Put(utils.SequenceToKey(id), []byte(utils.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		dbStatsLogger.Error("Error adding interface stats", "namespace", stats.Namespace, "podName", stats.PodName, "error", err.Error())
@@ -222,7 +221,7 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 		if err != nil {
 			return fmt.Errorf("Cant create next id: %s", err.Error())
 		}
-		return nodeBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
+		return nodeBucket.Put(utils.SequenceToKey(id), []byte(utils.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		dbStatsLogger.Error("Error adding node stats", "name", stats.Name, "error", err)
@@ -271,7 +270,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 		if err != nil {
 			return fmt.Errorf("Cant create next id: %s", err.Error())
 		}
-		return controllerBucket.Put(utils.SequenceToKey(id), []byte(punqStructs.PrettyPrintString(stats)))
+		return controllerBucket.Put(utils.SequenceToKey(id), []byte(utils.PrettyPrintString(stats)))
 	})
 	if err != nil {
 		dbStatsLogger.Error("Error adding pod stats", "namespace", stats.Namespace, "podName", stats.PodName, "error", err)

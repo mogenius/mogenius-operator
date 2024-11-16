@@ -13,8 +13,6 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"time"
 
-	punq "github.com/mogenius/punq/kubernetes"
-	punqutils "github.com/mogenius/punq/utils"
 	v1Core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -89,7 +87,7 @@ func AllEventsForNamespace(namespaceName string) []v1Core.Event {
 func AllEventsForNamespace2(namespaceName string) []v1Core.Event {
 	result := []v1Core.Event{}
 
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return result
 	}
@@ -104,7 +102,7 @@ func AllEventsForNamespace2(namespaceName string) []v1Core.Event {
 	err = json.Unmarshal([]byte(moIgnoreNamespaces), &ignoreNamespaces)
 	assert.Assert(err == nil)
 	for _, event := range eventList.Items {
-		if !punqutils.Contains(ignoreNamespaces, event.ObjectMeta.Namespace) {
+		if !utils.Contains(ignoreNamespaces, event.ObjectMeta.Namespace) {
 			event.Kind = "Event"
 			event.APIVersion = "v1"
 			result = append(result, event)

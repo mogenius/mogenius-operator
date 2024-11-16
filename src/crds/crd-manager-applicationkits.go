@@ -77,7 +77,7 @@ func CreateOrUpdateApplicationKit(namespace string, name string, newObj CrdAppli
 }
 
 func CreateApplicationKit(namespace string, name string, newObj CrdApplicationKit) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -94,7 +94,7 @@ func CreateApplicationKit(namespace string, name string, newObj CrdApplicationKi
 }
 
 func UpdateApplicationKit(namespace string, name string, updatedObj *CrdApplicationKit) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -124,7 +124,7 @@ func UpdateApplicationKit(namespace string, name string, updatedObj *CrdApplicat
 }
 
 func DeleteApplicationKit(namespace string, name string) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -142,7 +142,7 @@ func DeleteApplicationKit(namespace string, name string) error {
 func GetApplicationKit(namespace string, name string) (appkit CrdApplicationKit, appkitRaw *unstructured.Unstructured, err error) {
 	result := CrdApplicationKit{}
 
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return result, nil, err
@@ -172,7 +172,7 @@ func GetApplicationKit(namespace string, name string) (appkit CrdApplicationKit,
 func ListApplicationKits(namespace string) (appkit []CrdApplicationKit, appkitRaw *unstructured.UnstructuredList, err error) {
 	result := []CrdApplicationKit{}
 
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return result, nil, err

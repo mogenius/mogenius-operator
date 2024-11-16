@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestUtilsutils.Pointer(t *testing.T) {
+func TestUtils(t *testing.T) {
 	t.Parallel()
 	logManager := interfaces.NewMockSlogManager(t)
 	configModule := config.NewConfig()

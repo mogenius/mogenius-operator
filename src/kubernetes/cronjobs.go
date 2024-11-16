@@ -12,8 +12,6 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 
-	punq "github.com/mogenius/punq/kubernetes"
-	punqutils "github.com/mogenius/punq/utils"
 	apipatchv1 "k8s.io/api/batch/v1"
 	v1job "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
@@ -71,7 +69,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		defer wg.Done()
 		cmd.Start(job, "Trigger Job from CronJob")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -131,7 +129,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 // 		defer wg.Done()
 // 		cmd.Start(job, "Creating CronJob")
 
-// 		provider, err := punq.NewKubeProvider(nil)
+// 		provider, err := NewKubeProvider()
 // 		if err != nil {
 // 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 // 			return
@@ -168,7 +166,7 @@ func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Deleting CronJob")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -196,7 +194,7 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Updating CronJob")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -235,7 +233,7 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		defer wg.Done()
 		cmd.Start(job, "Starting CronJob")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -265,7 +263,7 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 		defer wg.Done()
 		cmd.Start(job, "Stopping CronJob")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -294,7 +292,7 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		defer wg.Done()
 		cmd.Start(job, "Restarting CronJob ")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -330,7 +328,7 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 		previousSpec = &(*previousCronjob).Spec
 	}
 
-	newCronJob := punqutils.InitCronJob()
+	newCronJob := utils.InitCronJob()
 
 	objectMeta := &newCronJob.ObjectMeta
 	spec := &newCronJob.Spec
@@ -390,7 +388,7 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 }
 
 func UpdateCronjobImage(namespaceName string, controllerName string, containerName string, imageName string) error {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return err
 	}
@@ -413,7 +411,7 @@ func UpdateCronjobImage(namespaceName string, controllerName string, containerNa
 }
 
 func GetCronJob(namespaceName string, controllerName string) (*v1job.CronJob, error) {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return nil, err
 	}
@@ -472,7 +470,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 
 	var jobInfos []JobInfo
 
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		k8sLogger.Warn("Error creating provider for ListJobs", "error", err)
 		return list

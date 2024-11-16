@@ -9,8 +9,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"sync"
 
-	punq "github.com/mogenius/punq/kubernetes"
-	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +18,27 @@ const (
 	INGRESS_PREFIX = "ingress"
 )
 
+func AllIngresses(namespaceName string) []v1.Ingress {
+	result := []v1.Ingress{}
+
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return result
+	}
+	ingressList, err := provider.ClientSet.NetworkingV1().Ingresses(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		k8sLogger.Error("AllIngresses", "error", err.Error())
+		return result
+	}
+
+	for _, ingress := range ingressList.Items {
+		ingress.Kind = "Ingress"
+		ingress.APIVersion = "networking.k8s.io/v1"
+		result = append(result, ingress)
+	}
+	return result
+}
+
 func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("update", "Update Ingress", job)
 	wg.Add(1)
@@ -27,17 +46,17 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Updating ingress")
 
-		ingressControllerType, err := punq.DetermineIngressControllerType(nil)
+		ingressControllerType, err := DetermineIngressControllerType()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
-		if ingressControllerType == punq.UNKNOWN || ingressControllerType == punq.NONE {
+		if ingressControllerType == UNKNOWN || ingressControllerType == NONE {
 			cmd.Fail(job, "ERROR: Unknown or NONE ingress controller installed. Supported are NGINX and TRAEFIK")
 			return
 		}
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -85,9 +104,9 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			delete(ingressToUpdate.Annotations, "cert-manager.io/cluster-issuer")
 		}
 
-		if ingressControllerType == punq.NGINX {
+		if ingressControllerType == NGINX {
 			ingressToUpdate.Spec.IngressClassName = utils.Pointer("nginx")
-		} else if ingressControllerType == punq.TRAEFIK {
+		} else if ingressControllerType == TRAEFIK {
 			ingressToUpdate.Spec.IngressClassName = utils.Pointer("traefik")
 		}
 		tlsHosts := []string{}
@@ -201,7 +220,7 @@ func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Deleting ingress")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -241,7 +260,7 @@ func loadDefaultAnnotations() map[string]string {
 		error_page 400 401 403 404 405 406 408 413 417 500 502 503 504 @custom;`,
 	}
 
-	defaultIngAnnotations := punq.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-default-ingress-values", false, nil)
+	defaultIngAnnotations := ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-default-ingress-values", false)
 	if defaultIngAnnotations != nil {
 		if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
 			var annotations map[string]string
@@ -285,7 +304,7 @@ func createIngressRule(hostname string, controllerName string, port int32) *v1.I
 
 func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) {
 	indexesToRemove := []int{}
-	service := punq.ServiceFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-controller", nil)
+	service := ServiceFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-controller")
 	if service != nil {
 		portsDb := []dtos.NamespaceServicePortDto{}
 		for _, port := range ports {
@@ -312,7 +331,7 @@ func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) 
 			k8sLogger.Info("indexes will be removed", "indexes", indexesToRemove)
 			if len(indexesToRemove) > 0 {
 				for _, indexToRemove := range indexesToRemove {
-					service.Spec.Ports = punqUtils.Remove(service.Spec.Ports, indexToRemove)
+					service.Spec.Ports = utils.Remove(service.Spec.Ports, indexToRemove)
 				}
 				k8sLogger.Info("indexes successfully removed", "amount", len(indexesToRemove))
 
@@ -330,7 +349,7 @@ func CreateMogeniusContainerRegistryIngress() {
 	ing := utils.InitMogeniusContainerRegistryIngress()
 	ing.Namespace = config.Get("MO_OWN_NAMESPACE")
 
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		k8sLogger.Error("CreateMogeniusContainerRegistryIngress", "error", err)
 	}
@@ -357,7 +376,7 @@ func CreateMogeniusContainerRegistryTlsSecret(crt string, key string) error {
 	secret := utils.InitMogeniusContainerRegistrySecret(crt, key)
 	secret.Namespace = config.Get("MO_OWN_NAMESPACE")
 
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		k8sLogger.Error("CreateMogeniusContainerRegistryTlsSecret", "error", err)
 	}

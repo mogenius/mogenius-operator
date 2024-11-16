@@ -7,23 +7,27 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"net"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	punqDtos "github.com/mogenius/punq/dtos"
-	punq "github.com/mogenius/punq/kubernetes"
-	punqStructs "github.com/mogenius/punq/structs"
-	punqUtils "github.com/mogenius/punq/utils"
+	version2 "k8s.io/apimachinery/pkg/version"
+	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
+	"sigs.k8s.io/yaml"
+
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/client-go/dynamic"
 	appsV1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	netV1 "k8s.io/client-go/kubernetes/typed/networking/v1"
@@ -31,15 +35,6 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/scheme"
 )
-
-// var IacManagerWriteResourceYaml func(string, string, string, interface{})
-// var IacManagerDeleteResourceYaml func(string, string, string, interface{})
-// var IacManagerShouldWatchResources func() bool
-// var IacManagerSetupInProcess *atomic.Bool
-// var IacManagerResetCurrentRepoData func(int) error
-// var IacManagerSyncChanges func() error
-// var IacManagerApplyRepoStateToCluster func() error
-// var IacManagerDeleteDataRetries int
 
 var (
 	DEPLOYMENTNAME  = "mogenius-k8s-manager"
@@ -59,6 +54,20 @@ const (
 	MO_LABEL_NAMESPACE_DISPLAYNAME = "mo-namespace-display-name"
 	MO_LABEL_APP_DISPLAYNAME       = "mo-app-display-name"
 )
+
+type IngressType int
+
+const (
+	NGINX IngressType = iota
+	TRAEFIK
+	MULTIPLE
+	NONE
+	UNKNOWN
+)
+
+func (i IngressType) String() string {
+	return [...]string{"NGINX", "TRAEFIK", "MULTIPLE", "NONE", "UNKNOWN"}[i]
+}
 
 type K8sWorkloadResult struct {
 	Result interface{} `json:"result"`
@@ -108,8 +117,8 @@ func init() {
 	dtos.KubernetesGetSecretValueByPrefixControllerNameAndKey = GetSecretValueByPrefixControllerNameAndKey
 }
 
-func getProvider() *punq.KubeProvider {
-	provider, err := punq.NewKubeProvider(nil)
+func getProvider() *KubeProvider {
+	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignal(true)
@@ -163,7 +172,7 @@ func CurrentContextName() string {
 }
 
 // func Hostname() string {
-// 	provider, err := punq.NewKubeProvider(nil)
+// 	provider, err := NewKubeProvider()
 // 	if provider == nil || err != nil {
 // 		K8sLogger.Fatal("error creating kubeprovider")
 // 	}
@@ -172,7 +181,7 @@ func CurrentContextName() string {
 // }
 
 func ListNodes() []core.Node {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		k8sLogger.Error("error creating kubeprovider")
 		shutdown.SendShutdownSignal(true)
@@ -188,53 +197,18 @@ func ListNodes() []core.Node {
 	return nodeMetricsList.Items
 }
 
-// TAKEN FROM Kubernetes apimachineryv0.25.1
-// func HumanDuration(d time.Duration) string {
-// 	// Allow deviation no more than 2 seconds(excluded) to tolerate machine time
-// 	// inconsistence, it can be considered as almost now.
-// 	if seconds := int(d.Seconds()); seconds < -1 {
-// 		return "<invalid>"
-// 	} else if seconds < 0 {
-// 		return "0s"
-// 	} else if seconds < 60*2 {
-// 		return fmt.Sprintf("%ds", seconds)
-// 	}
-// 	minutes := int(d / time.Minute)
-// 	if minutes < 10 {
-// 		s := int(d/time.Second) % 60
-// 		if s == 0 {
-// 			return fmt.Sprintf("%dm", minutes)
-// 		}
-// 		return fmt.Sprintf("%dm%ds", minutes, s)
-// 	} else if minutes < 60*3 {
-// 		return fmt.Sprintf("%dm", minutes)
-// 	}
-// 	hours := int(d / time.Hour)
-// 	if hours < 8 {
-// 		m := int(d/time.Minute) % 60
-// 		if m == 0 {
-// 			return fmt.Sprintf("%dh", hours)
-// 		}
-// 		return fmt.Sprintf("%dh%dm", hours, m)
-// 	} else if hours < 48 {
-// 		return fmt.Sprintf("%dh", hours)
-// 	} else if hours < 24*8 {
-// 		h := hours % 24
-// 		if h == 0 {
-// 			return fmt.Sprintf("%dd", hours/24)
-// 		}
-// 		return fmt.Sprintf("%dd%dh", hours/24, h)
-// 	} else if hours < 24*365*2 {
-// 		return fmt.Sprintf("%dd", hours/24)
-// 	} else if hours < 24*365*8 {
-// 		dy := int(hours/24) % 365
-// 		if dy == 0 {
-// 			return fmt.Sprintf("%dy", hours/24/365)
-// 		}
-// 		return fmt.Sprintf("%dy%dd", hours/24/365, dy)
-// 	}
-// 	return fmt.Sprintf("%dy", int(hours/24/365))
-// }
+func KubernetesVersion() *version2.Info {
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return nil
+	}
+	info, err := provider.ClientSet.Discovery().ServerVersion()
+	if err != nil {
+		k8sLogger.Error("Error KubernetesVersion", "error", err)
+		return nil
+	}
+	return info
+}
 
 func MoCreateOptions() metav1.CreateOptions {
 	return metav1.CreateOptions{
@@ -309,8 +283,8 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
 				mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
-				punqUtils.CreateDirIfNotExist(mountDir)
-				punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
+				utils.CreateDirIfNotExist(mountDir)
+				utils.ExecuteShellCommandWithResponse(title, shellCmd)
 			}
 		} else {
 			k8sLogger.Warn("No ClusterIP found.", "volumeNamespace", volumeNamespace, "volumeName", volumeName, "resource", "nfs-server-pod-"+volumeName)
@@ -319,7 +293,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 }
 
 func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Service {
-	services := punq.AllServices(volumeNamespace, nil)
+	services := AllServices(volumeNamespace)
 	for _, srv := range services {
 		if strings.Contains(srv.Name, fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)) {
 			return &srv
@@ -337,15 +311,15 @@ func Umount(volumeNamespace string, volumeName string) {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
-			punqStructs.ExecuteShellCommandWithResponse(title, shellCmd)
-			punqUtils.DeleteDirIfExist(mountDir)
+			utils.ExecuteShellCommandWithResponse(title, shellCmd)
+			utils.DeleteDirIfExist(mountDir)
 		}
 	}()
 }
 
 func IsLocalClusterSetup() bool {
-	ips := punq.GetClusterExternalIps(nil)
-	if punqUtils.Contains(ips, "192.168.66.1") || punqUtils.Contains(ips, "localhost") {
+	ips := GetClusterExternalIps()
+	if utils.Contains(ips, "192.168.66.1") || utils.Contains(ips, "localhost") {
 		return true
 	} else {
 		return false
@@ -353,7 +327,7 @@ func IsLocalClusterSetup() bool {
 }
 
 func GetCustomDeploymentTemplate() *v1.Deployment {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		k8sLogger.Error("GetCustomDeploymentTemplate", "error", err)
 		return nil
@@ -375,11 +349,26 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 	}
 }
 
-func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider) string {
+func ListNodeMetricss() []v1beta1.NodeMetrics {
+	provider, err := NewKubeProviderMetrics()
+	if provider == nil || err != nil {
+		k8sLogger.Error("ListNodeMetricss", "error", err.Error())
+		return []v1beta1.NodeMetrics{}
+	}
+
+	nodeMetricsList, err := provider.ClientSet.MetricsV1beta1().NodeMetricses().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		k8sLogger.Error("ListNodeMetrics", "error", err.Error())
+		return []v1beta1.NodeMetrics{}
+	}
+	return nodeMetricsList.Items
+}
+
+func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) string {
 	var nfsStorageClassStr string = ""
 
 	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		k8sLogger.Error("failed to create kube provider", "error", err)
 		return nfsStorageClassStr
@@ -398,19 +387,19 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 
 	// 2. SOMETIMES WE KNOW IT BETTER THAN KUBERNETES (REASONS: TO EXPENSIVE OR NOT COMPATIBLE WITH OUR NFS SERVER)
 	switch clusterProvider {
-	case punqDtos.EKS:
+	case utils.EKS:
 		nfsStorageClassStr = "gp2"
-	case punqDtos.GKE:
+	case utils.GKE:
 		nfsStorageClassStr = "standard-rwo"
-	case punqDtos.AKS:
+	case utils.AKS:
 		nfsStorageClassStr = "default"
-	case punqDtos.OTC:
+	case utils.OTC:
 		nfsStorageClassStr = "csi-disk"
-	case punqDtos.BRING_YOUR_OWN:
+	case utils.BRING_YOUR_OWN:
 		nfsStorageClassStr = "default"
-	case punqDtos.DOCKER_DESKTOP, punqDtos.KIND:
+	case utils.DOCKER_DESKTOP, utils.KIND:
 		nfsStorageClassStr = "hostpath"
-	case punqDtos.K3S:
+	case utils.K3S:
 		nfsStorageClassStr = "local-path"
 	}
 
@@ -423,8 +412,8 @@ func StorageClassForClusterProvider(clusterProvider punqDtos.KubernetesProvider)
 
 func GatherNamesForIps(ips []string) map[string]string {
 	result := map[string]string{}
-	pods := punq.AllPods("", nil)
-	services := punq.AllServices("", nil)
+	pods := AllPods("")
+	services := AllServices("")
 
 outerLoop:
 	for _, ip := range ips {
@@ -509,4 +498,382 @@ func FindResourceKind(namespace string, name string) (*dtos.K8sServiceController
 	}
 
 	return nil, fmt.Errorf("Resource not found")
+}
+
+func GuessClusterProvider() (utils.KubernetesProvider, error) {
+	provider, err := NewKubeProvider()
+	if provider == nil || err != nil {
+		return utils.SELF_HOSTED, err
+	}
+
+	nodes, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return utils.SELF_HOSTED, err
+	}
+
+	return GuessCluserProviderFromNodeList(nodes)
+}
+
+func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProvider, error) {
+
+	for _, node := range nodes.Items {
+		nodeInfo := map[string]string{}
+		nodeInfo["kubeProxyVersion"] = node.Status.NodeInfo.KubeProxyVersion
+		nodeInfo["kubeletVersion"] = node.Status.NodeInfo.KubeletVersion
+
+		labelsAndAnnotations := utils.MergeMaps(node.GetLabels(), node.GetAnnotations(), nodeInfo)
+
+		if LabelsContain(labelsAndAnnotations, "eks.amazonaws.com/") {
+			return utils.EKS, nil
+		} else if LabelsContain(labelsAndAnnotations, "docker-desktop") {
+			return utils.DOCKER_DESKTOP, nil
+		} else if LabelsContain(labelsAndAnnotations, "kubernetes.azure.com/role") {
+			return utils.AKS, nil
+		} else if LabelsContain(labelsAndAnnotations, "cloud.google.com/gke-nodepool") {
+			return utils.GKE, nil
+		} else if LabelsContain(labelsAndAnnotations, "k3s.io/hostname") {
+			return utils.K3S, nil
+		} else if LabelsContain(labelsAndAnnotations, "ibm-cloud.kubernetes.io/worker-version") {
+			return utils.IBM, nil
+		} else if LabelsContain(labelsAndAnnotations, "doks.digitalocean.com/node-id") {
+			return utils.DOKS, nil
+		} else if LabelsContain(labelsAndAnnotations, "oke.oraclecloud.com/node-pool") {
+			return utils.OKE, nil
+		} else if LabelsContain(labelsAndAnnotations, "ack.aliyun.com") {
+			return utils.ACK, nil
+		} else if LabelsContain(labelsAndAnnotations, "node-role.kubernetes.io/master") && LabelsContain(labelsAndAnnotations, "node.openshift.io/os_id") {
+			return utils.OPEN_SHIFT, nil
+		} else if LabelsContain(labelsAndAnnotations, "vmware-system-vmware.io/role") || ImagesContain(node.Status.Images, "vmware.com/tkg/kube-apiserver") {
+			return utils.VMWARE, nil
+		} else if LabelsContain(labelsAndAnnotations, "io.rancher.os/hostname") {
+			return utils.RKE, nil
+		} else if LabelsContain(labelsAndAnnotations, "linode-lke/") {
+			return utils.LINODE, nil
+		} else if LabelsContain(labelsAndAnnotations, "scaleway-kapsule/") {
+			return utils.SCALEWAY, nil
+		} else if LabelsContain(labelsAndAnnotations, "microk8s.io/cluster") {
+			return utils.MICROK8S, nil
+		} else if strings.ToLower(node.Name) == "minikube" {
+			return utils.MINIKUBE, nil
+		} else if LabelsContain(labelsAndAnnotations, "io.k8s.sigs.kind/role") {
+			return utils.KIND, nil
+		} else if LabelsContain(labelsAndAnnotations, "civo-node-pool") {
+			return utils.CIVO, nil
+		} else if LabelsContain(labelsAndAnnotations, "giantswarm.io/") {
+			return utils.GIANTSWARM, nil
+		} else if LabelsContain(labelsAndAnnotations, "ovhcloud/") {
+			return utils.OVHCLOUD, nil
+		} else if LabelsContain(labelsAndAnnotations, "gardener.cloud/role") {
+			return utils.GARDENER, nil
+		} else if LabelsContain(labelsAndAnnotations, "cce.huawei.com") {
+			return utils.HUAWEI, nil
+		} else if LabelsContain(labelsAndAnnotations, "nirmata.io") {
+			return utils.NIRMATA, nil
+		} else if LabelsContain(labelsAndAnnotations, "-CCE") || ImagesContain(node.Status.Images, "cce-addons") {
+			return utils.OTC, nil
+		} else if LabelsContain(labelsAndAnnotations, "platform9.com/role") {
+			return utils.PF9, nil
+		} else if LabelsContain(labelsAndAnnotations, "nks.netapp.io") {
+			return utils.NKS, nil
+		} else if LabelsContain(labelsAndAnnotations, "appscode.com") {
+			return utils.APPSCODE, nil
+		} else if LabelsContain(labelsAndAnnotations, "loft.sh") {
+			return utils.LOFT, nil
+		} else if LabelsContain(labelsAndAnnotations, "spectrocloud.com") {
+			return utils.SPECTROCLOUD, nil
+		} else if LabelsContain(labelsAndAnnotations, "diamanti.com") {
+			return utils.DIAMANTI, nil
+		} else if strings.HasPrefix(strings.ToLower(node.Name), "k3d-") {
+			return utils.K3D, nil
+		} else if LabelsContain(labelsAndAnnotations, "cloud.google.com/gke-on-prem") {
+			return utils.GKE_ON_PREM, nil
+		} else if LabelsContain(labelsAndAnnotations, "rke.cattle.io") {
+			return utils.RKE, nil
+		} else {
+			fmt.Println("This cluster's provider is unknown or it might be self-managed.")
+			return utils.UNKNOWN, nil
+		}
+	}
+	return utils.UNKNOWN, nil
+}
+
+func ImagesContain(images []core.ContainerImage, str string) bool {
+	for _, image := range images {
+		for _, name := range image.Names {
+			if strings.Contains(name, str) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func LabelsContain(labels map[string]string, str string) bool {
+	// Keys EQUAL
+	if _, ok := labels[strings.ToLower(str)]; ok {
+		return true
+	}
+
+	// Values
+	for key, label := range labels {
+		if strings.EqualFold(label, str) {
+			return true
+		}
+		// KEY CONTAINS
+		if strings.Contains(key, str) {
+			return true
+		}
+	}
+	return false
+}
+
+func ClusterStatus() dtos.ClusterStatusDto {
+	var currentPods = make(map[string]core.Pod)
+	pods := AllPods("")
+	for _, pod := range pods {
+		currentPods[pod.Name] = pod
+	}
+
+	result, err := PodStats(currentPods)
+	if err != nil {
+		k8sLogger.Error("podStats:", "error", err)
+	}
+
+	var cpu int64 = 0
+	var cpuLimit int64 = 0
+	var memory int64 = 0
+	var memoryLimit int64 = 0
+	var ephemeralStorageLimit int64 = 0
+	for _, pod := range result {
+		cpu += pod.Cpu
+		cpuLimit += pod.CpuLimit
+		memory += pod.Memory
+		memoryLimit += pod.MemoryLimit
+		ephemeralStorageLimit += pod.EphemeralStorageLimit
+	}
+
+	kubernetesVersion := ""
+	platform := ""
+
+	info := KubernetesVersion()
+	if info != nil {
+		kubernetesVersion = info.String()
+		platform = info.Platform
+	}
+
+	country, err := utils.GuessClusterCountry()
+	if err != nil {
+		k8sLogger.Error("GuessClusterCountry: ", "error", err)
+	}
+
+	return dtos.ClusterStatusDto{
+		ClusterName:                  config.Get("MO_CLUSTER_NAME"),
+		Pods:                         len(result),
+		PodCpuUsageInMilliCores:      int(cpu),
+		PodCpuLimitInMilliCores:      int(cpuLimit),
+		PodMemoryUsageInBytes:        memory,
+		PodMemoryLimitInBytes:        memoryLimit,
+		EphemeralStorageLimitInBytes: ephemeralStorageLimit,
+		KubernetesVersion:            kubernetesVersion,
+		Platform:                     platform,
+		Country:                      country,
+	}
+}
+
+func PodStats(pods map[string]core.Pod) ([]structs.Stats, error) {
+	provider, err := NewKubeProviderMetrics()
+	if provider == nil || err != nil {
+		k8sLogger.Error(err.Error())
+		return []structs.Stats{}, err
+	}
+
+	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var result []structs.Stats
+	// I HATE THIS BUT I DONT SEE ANY OTHER SOLUTION! SPEND HOURS (to find something better) ON THIS UGGLY SHIT!!!!
+
+	for _, podMetrics := range podMetricsList.Items {
+		var pod = pods[podMetrics.Name]
+
+		var entry = structs.Stats{}
+		entry.Cluster = config.Get("MO_CLUSTER_NAME")
+		entry.Namespace = podMetrics.Namespace
+		entry.PodName = podMetrics.Name
+		if pod.Status.StartTime != nil {
+			entry.StartTime = pod.Status.StartTime.Format(time.RFC3339)
+		}
+		for _, container := range pod.Spec.Containers {
+			entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()
+			entry.MemoryLimit += container.Resources.Limits.Memory().Value()
+			entry.EphemeralStorageLimit += container.Resources.Limits.StorageEphemeral().Value()
+		}
+		for _, containerMetric := range podMetrics.Containers {
+			entry.Cpu += containerMetric.Usage.Cpu().MilliValue()
+			entry.Memory += containerMetric.Usage.Memory().Value()
+		}
+
+		result = append(result, entry)
+	}
+
+	return result, nil
+}
+
+func AllResourcesFrom(namespace string, resourcesToLookFor []string) ([]interface{}, error) {
+	ignoredResources := []string{
+		"events.k8s.io/v1",
+		"events.k8s.io/v1beta1",
+		"metrics.k8s.io/v1beta1",
+		"discovery.k8s.io/v1",
+	}
+
+	result := []interface{}{}
+
+	provider, err := NewKubeProvider()
+	if provider == nil || err != nil {
+		return result, err
+	}
+
+	// Get a list of all resource types in the cluster
+	resourceList, err := provider.ClientSet.Discovery().ServerPreferredResources()
+	if err != nil {
+		return result, err
+	}
+
+	// Iterate over each resource type and backup all resources in the namespace
+	for _, resource := range resourceList {
+		if utils.Contains(ignoredResources, resource.GroupVersion) {
+			continue
+		}
+		gv, _ := schema.ParseGroupVersion(resource.GroupVersion)
+		if len(resource.APIResources) <= 0 {
+			continue
+		}
+
+		for _, aApiResource := range resource.APIResources {
+			if !aApiResource.Namespaced {
+				continue
+			}
+
+			resourceId := schema.GroupVersionResource{
+				Group:    gv.Group,
+				Version:  gv.Version,
+				Resource: aApiResource.Name,
+			}
+			// Get the REST client for this resource type
+			restClient := dynamic.New(provider.ClientSet.RESTClient()).Resource(resourceId).Namespace(namespace)
+
+			// Get a list of all resources of this type in the namespace
+			list, err := restClient.List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				k8sLogger.Error("error listing namespaces", "resourceId", resourceId.Resource, "error", err.Error())
+				continue
+			}
+
+			// Iterate over each resource and write it to a file
+			for _, obj := range list.Items {
+				obj.SetManagedFields(nil)
+				delete(obj.Object, "status")
+				obj.SetUID("")
+				obj.SetResourceVersion("")
+				obj.SetCreationTimestamp(metav1.Time{})
+
+				if len(resourcesToLookFor) > 0 {
+					if utils.ContainsToLowercase(resourcesToLookFor, obj.GetKind()) {
+						result = append(result, obj.Object)
+					}
+				} else {
+					result = append(result, obj.Object)
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
+func AllResourcesFromToCombinedYaml(namespace string, resourcesToLookFor []string) (string, error) {
+	result := ""
+	resources, err := AllResourcesFrom(namespace, resourcesToLookFor)
+	if err != nil {
+		return result, err
+	}
+	for _, res := range resources {
+		yamlData, err := yaml.Marshal(res)
+		if err != nil {
+			return result, err
+		}
+
+		// Print the YAML string.
+		result += fmt.Sprintf("---\n%s\n", string(yamlData))
+	}
+	return result, err
+}
+
+func ApiVersions() ([]string, error) {
+	result := []string{}
+
+	provider, err := NewKubeProvider()
+	if provider == nil || err != nil {
+		return result, err
+	}
+
+	groupResources, err := provider.ClientSet.DiscoveryClient.ServerPreferredResources()
+	if err != nil {
+		return result, err
+	}
+
+	for _, groupList := range groupResources {
+		result = append(result, groupList.GroupVersion)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i] < result[j]
+	})
+
+	return result, nil
+}
+
+func IsMetricsServerAvailable() (bool, string, error) {
+	// kube-system would be the right namespace but if somebody installed it in another namespace we want to find it
+	deployments := AllDeploymentsIncludeIgnored("")
+
+	for _, deployment := range deployments {
+		for _, label := range deployment.Labels {
+			if label == "metrics-server" {
+				if deployment.Status.UnavailableReplicas > 0 {
+					return false, "", fmt.Errorf("metrics-server installed but not running")
+				}
+				return true, deployment.Spec.Template.Spec.Containers[0].Image, nil
+			}
+		}
+	}
+
+	return false, "", fmt.Errorf("no metrics-server found")
+}
+
+func DetermineIngressControllerType() (IngressType, error) {
+	ingressClasses := AllIngressClasses()
+
+	if len(ingressClasses) > 1 {
+		return MULTIPLE, fmt.Errorf("multiple ingress controllers found")
+	}
+
+	if len(ingressClasses) == 0 {
+		return NONE, fmt.Errorf("no ingress controller found")
+	}
+
+	unknownController := ""
+	for _, ingressClass := range ingressClasses {
+		if ingressClass.Spec.Controller == "k8s.io/ingress-nginx" || ingressClass.Spec.Controller == "nginx.org/ingress-controller" {
+			return NGINX, nil
+		} else if ingressClass.Spec.Controller == "traefik.io/ingress-controller" {
+			return TRAEFIK, nil
+		} else {
+			unknownController = ingressClass.Spec.Controller
+		}
+	}
+
+	return UNKNOWN, fmt.Errorf("unknown ingress controller: %s", unknownController)
 }

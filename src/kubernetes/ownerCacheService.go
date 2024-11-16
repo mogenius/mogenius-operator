@@ -1,8 +1,8 @@
 package kubernetes
 
 import (
-	punq "github.com/mogenius/punq/kubernetes"
-	"github.com/mogenius/punq/utils"
+	"mogenius-k8s-manager/src/utils"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,7 +33,7 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 		return utils.Pointer(foundOwner)
 	}
 
-	pod := punq.GetPod(namespace, podName, nil)
+	pod := GetPod(namespace, podName)
 	if pod == nil {
 		k8sLogger.Error("Pod: '%s/%s' not found.", namespace, podName)
 		return nil
@@ -54,7 +54,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 
 		switch owner.Kind {
 		case "ReplicaSet":
-			data, err := punq.GetReplicaset(namespace, owner.Name, nil)
+			data, err := GetReplicaset(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
 					return utils.Pointer(NewK8sController("ReplicaSet", data.Name, namespace))
@@ -65,7 +65,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			return nil
 		case "Deployment":
-			data, err := punq.GetK8sDeployment(namespace, owner.Name, nil)
+			data, err := GetK8sDeployment(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
 					return utils.Pointer(NewK8sController("Deployment", data.Name, namespace))
@@ -76,7 +76,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			return nil
 		case "StatefulSet":
-			data, err := punq.GetStatefulSet(namespace, owner.Name, nil)
+			data, err := GetStatefulSet(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
 					return utils.Pointer(NewK8sController("StatefulSet", data.Name, namespace))
@@ -87,7 +87,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			return nil
 		case "DaemonSet":
-			data, err := punq.GetK8sDaemonset(namespace, owner.Name, nil)
+			data, err := GetK8sDaemonset(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
 					return utils.Pointer(NewK8sController("DaemonSet", data.Name, namespace))
@@ -98,7 +98,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			return nil
 		case "Job":
-			data, err := punq.GetJob(namespace, owner.Name, nil)
+			data, err := GetJob(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
 					return utils.Pointer(NewK8sController("Job", data.Name, namespace))
@@ -109,7 +109,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			return nil
 		case "CronJob":
-			data, err := punq.GetCronjob(namespace, owner.Name, nil)
+			data, err := GetCronJob(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
 					return utils.Pointer(NewK8sController("CronJob", data.Name, namespace))
@@ -120,7 +120,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			return nil
 		case "Pod":
-			data := punq.GetPod(namespace, owner.Name, nil)
+			data := GetPod(namespace, owner.Name)
 			if data != nil {
 				if data.OwnerReferences == nil {
 					return utils.Pointer(NewK8sController("Pod", data.Name, namespace))
@@ -131,7 +131,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			return nil
 		case "Node":
-			data, err := punq.GetK8sNode(owner.Name, nil)
+			data, err := GetK8sNode(owner.Name)
 			if err != nil {
 				k8sLogger.Error("Error getting node", "error", err)
 				return nil

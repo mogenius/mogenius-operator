@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"sync"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -17,16 +16,16 @@ func ClusterForceReconnect() bool {
 	// - podstats
 	// - k8s-manager
 
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return false
 	}
 	podClient := provider.ClientSet.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", utils.HelmReleaseNameTrafficCollector, nil)...)
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", utils.HelmReleaseNamePodStatsCollector, nil)...)
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME, nil)...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", utils.HelmReleaseNameTrafficCollector)...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", utils.HelmReleaseNamePodStatsCollector)...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME)...)
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod ...", "podName", podName)
@@ -45,7 +44,7 @@ func ClusterForceDisconnect() bool {
 	// - podstats
 	// - k8s-manager
 
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return false
 	}
@@ -62,7 +61,7 @@ func ClusterForceDisconnect() bool {
 	}
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, punq.AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME, nil)...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME)...)
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod...", "pod", podName)
@@ -83,7 +82,7 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(job, "Upgrade mogenius platform ...")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return

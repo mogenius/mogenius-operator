@@ -9,7 +9,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"strings"
 
-	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	v1core "k8s.io/api/core/v1"
@@ -120,10 +119,10 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 		if container.Type == dtos.CONTAINER_CONTAINER_IMAGE {
 			specTemplate.Spec.Containers[index].Image = *container.ContainerImage
 			if container.ContainerImageCommand != nil {
-				specTemplate.Spec.Containers[index].Command = punqUtils.ParseJsonStringArray(*container.ContainerImageCommand)
+				specTemplate.Spec.Containers[index].Command = utils.ParseJsonStringArray(*container.ContainerImageCommand)
 			}
 			if container.ContainerImageCommandArgs != nil {
-				specTemplate.Spec.Containers[index].Args = punqUtils.ParseJsonStringArray(*container.ContainerImageCommandArgs)
+				specTemplate.Spec.Containers[index].Args = utils.ParseJsonStringArray(*container.ContainerImageCommandArgs)
 			}
 			if container.ContainerImageRepoSecretDecryptValue != nil {
 				specTemplate.Spec.ImagePullSecrets = []v1core.LocalObjectReference{}

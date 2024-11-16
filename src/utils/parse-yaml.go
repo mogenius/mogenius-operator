@@ -165,6 +165,86 @@ func InitMogeniusContainerRegistrySecret(crt string, key string) corev1.Secret {
 	return secret
 }
 
+func InitSecret() corev1.Secret {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/secret.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app corev1.Secret
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitContainerSecret() corev1.Secret {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/container-secret.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app corev1.Secret
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitNetPolNamespace() netv1.NetworkPolicy {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/network-policy-namespace.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app netv1.NetworkPolicy
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitCronJob() v1job.CronJob {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/cronjob-example.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app v1job.CronJob
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
+func InitDeployment() v1.Deployment {
+	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/deployment.yaml")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
+
+	var app v1.Deployment
+	_, _, err = s.Decode(yaml, nil, &app)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
 func InitMogeniusCrdProjectsYaml() string {
 	return readYaml("yaml-templates/crds-projects.yaml")
 }

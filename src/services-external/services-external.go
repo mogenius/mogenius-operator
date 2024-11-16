@@ -1,9 +1,14 @@
 package servicesExternal
 
-import "mogenius-k8s-manager/src/interfaces"
+import (
+	"log/slog"
+	"mogenius-k8s-manager/src/interfaces"
+)
 
 var config interfaces.ConfigModule
+var esoLogger *slog.Logger
 
-func Setup(configModule interfaces.ConfigModule) {
+func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
 	config = configModule
+	esoLogger = logManagerModule.CreateLogger("eso")
 }

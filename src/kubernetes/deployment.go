@@ -5,21 +5,40 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"strings"
 	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	punq "github.com/mogenius/punq/kubernetes"
-	"github.com/mogenius/punq/utils"
-	punqUtils "github.com/mogenius/punq/utils"
 	v1 "k8s.io/api/apps/v1"
 	v1Core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1depl "k8s.io/client-go/kubernetes/typed/apps/v1"
 )
+
+func AllDeployments(namespaceName string) []v1.Deployment {
+	result := []v1.Deployment{}
+
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return result
+	}
+	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		k8sLogger.Error("AllDeployments", "error", err.Error())
+		return result
+	}
+
+	for _, deployment := range deploymentList.Items {
+		deployment.Kind = "Deployment"
+		deployment.APIVersion = "apps/v1"
+		result = append(result, deployment)
+	}
+	return result
+}
 
 func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("delete", "Delete Deployment", job)
@@ -28,7 +47,7 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(job, "Deleting Deployment")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -49,7 +68,7 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 }
 
 func GetDeployment(namespaceName string, controllerName string) (*v1.Deployment, error) {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +120,7 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(job, "Starting Deployment")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -136,7 +155,7 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		defer wg.Done()
 		cmd.Start(job, "Stopping Deployment")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -172,7 +191,7 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		defer wg.Done()
 		cmd.Start(job, "Restarting Deployment")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -217,7 +236,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 		previousSpec = &(*previousDeployment).Spec
 	}
 
-	newDeployment := punqUtils.InitDeployment()
+	newDeployment := utils.InitDeployment()
 
 	// check if default deployment exists
 	defaultDeployment := GetCustomDeploymentTemplate()
@@ -437,7 +456,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 }
 
 func UpdateDeploymentImage(namespaceName string, controllerName string, containerName string, imageName string) error {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return err
 	}
@@ -460,7 +479,7 @@ func UpdateDeploymentImage(namespaceName string, controllerName string, containe
 }
 
 func GetDeploymentImage(namespaceName string, controllerName string, containerName string) (string, error) {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return "", err
 	}
@@ -478,7 +497,7 @@ func GetDeploymentImage(namespaceName string, controllerName string, containerNa
 }
 
 func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return WorkloadResult(nil, err)
 	}
@@ -503,7 +522,7 @@ func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, pr
 
 func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
 	result := []v1.Deployment{}
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return result, err
 	}
@@ -518,9 +537,57 @@ func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]
 }
 
 func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
-	deployment, err := punq.GetK8sDeployment(namespace, name, nil)
+	deployment, err := GetK8sDeployment(namespace, name)
 	if err != nil {
 		return WorkloadResult(nil, err)
 	}
 	return WorkloadResult(deployment, err)
+}
+
+func GetK8sDeployment(namespaceName string, name string) (*v1.Deployment, error) {
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return nil, err
+	}
+	deployment, err := provider.ClientSet.AppsV1().Deployments(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
+	deployment.Kind = "Deployment"
+	deployment.APIVersion = "apps/v1"
+
+	return deployment, err
+}
+
+func IsDeploymentInstalled(namespaceName string, name string) (string, error) {
+	ownDeployment, err := GetDeployment(namespaceName, name)
+	if err != nil {
+		return "", err
+	}
+
+	result := ""
+	split := strings.Split(ownDeployment.Spec.Template.Spec.Containers[0].Image, ":")
+	if len(split) > 1 {
+		result = split[1]
+	}
+
+	return result, nil
+}
+
+func AllDeploymentsIncludeIgnored(namespaceName string) []v1.Deployment {
+	result := []v1.Deployment{}
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return result
+	}
+	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		k8sLogger.Error("AllDeployment", "error", err.Error())
+		return result
+	}
+
+	for _, deployment := range deploymentList.Items {
+		deployment.Kind = "Deployment"
+		deployment.APIVersion = "apps/v1"
+		result = append(result, deployment)
+	}
+
+	return result
 }

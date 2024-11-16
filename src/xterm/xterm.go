@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/interfaces"
+	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -19,7 +20,6 @@ import (
 	"syscall"
 	"time"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/creack/pty"
@@ -153,7 +153,7 @@ func isPodAvailable(pod *v1.Pod) bool {
 	return false
 }
 
-func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *punq.KubeProvider, namespace string, podName string, conn *websocket.Conn) {
+func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernetes.KubeProvider, namespace string, podName string, conn *websocket.Conn) {
 	defer func() {
 		wg.Done()
 	}()

@@ -6,7 +6,7 @@ import (
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/version"
 
-	"github.com/mogenius/punq/utils"
+	"mogenius-k8s-manager/src/utils"
 
 	"github.com/spf13/cobra"
 )

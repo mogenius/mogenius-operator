@@ -19,8 +19,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func List(r FilesListRequest) []dtos.PersistentFileDto {
@@ -178,7 +176,7 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	if err != nil {
 		serviceLogger.Error("Error verifying file", "error", err.Error())
 	}
-	serviceLogger.Info("verified file", "VolumeName", fileReq.File.VolumeName, "targetDestionation", targetDestination, "size", punqUtils.BytesToHumanReadable(fileReq.SizeInBytes), "path", fileReq.File.Path)
+	serviceLogger.Info("verified file", "VolumeName", fileReq.File.VolumeName, "targetDestionation", targetDestination, "size", utils.BytesToHumanReadable(fileReq.SizeInBytes), "path", fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
@@ -222,26 +220,26 @@ func Rename(r FilesRenameRequest) error {
 func Chown(r FilesChownRequest) interface{} {
 	pathToDir, err := verify(&r.File)
 	if err != nil {
-		return punqUtils.CreateError(err)
+		return utils.CreateError(err)
 	}
 
 	gid, err := strconv.Atoi(r.Gid)
 	if err != nil {
-		return punqUtils.CreateError(err)
+		return utils.CreateError(err)
 	}
 	uid, err := strconv.Atoi(r.Uid)
 	if err != nil {
-		return punqUtils.CreateError(err)
+		return utils.CreateError(err)
 	}
 
 	maxInt := int(math.Pow(2, 32))
 	if gid > 0 && gid < maxInt && uid > 0 && uid < maxInt {
 		err = os.Chown(pathToDir, uid, gid)
 		if err != nil {
-			return punqUtils.CreateError(err)
+			return utils.CreateError(err)
 		}
 	} else {
-		return punqUtils.CreateError(fmt.Errorf("gid/uid > 0 and < 2^32"))
+		return utils.CreateError(fmt.Errorf("gid/uid > 0 and < 2^32"))
 	}
 	return nil
 }
@@ -249,7 +247,7 @@ func Chown(r FilesChownRequest) interface{} {
 func Chmod(r FilesChmodRequest) interface{} {
 	pathToDir, err := verify(&r.File)
 	if err != nil {
-		return punqUtils.CreateError(err)
+		return utils.CreateError(err)
 	}
 
 	// padding left leading zero if missing
@@ -480,7 +478,7 @@ func ListDir(ctx context.Context, root string) ([]dtos.PersistentFileDto, error)
 						return
 					}
 					item.SizeInBytes = size
-					item.Size = punqUtils.BytesToHumanReadable(size)
+					item.Size = utils.BytesToHumanReadable(size)
 					mu.Lock()
 					items = append(items, item)
 					mu.Unlock()

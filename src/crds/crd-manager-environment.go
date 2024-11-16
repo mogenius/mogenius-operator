@@ -70,7 +70,7 @@ func DeleteEnvironmentCmd(job *structs.Job, projectName string, namespace string
 }
 
 func CreateEnvironment(namespace string, name string, newObj CrdEnvironment) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -88,7 +88,7 @@ func CreateEnvironment(namespace string, name string, newObj CrdEnvironment) err
 }
 
 func UpdateEnvironment(namespace string, name string, updatedObj *CrdEnvironment) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -118,7 +118,7 @@ func UpdateEnvironment(namespace string, name string, updatedObj *CrdEnvironment
 }
 
 func DeleteEnvironment(namespace string, name string) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -137,7 +137,7 @@ func DeleteEnvironment(namespace string, name string) error {
 func GetEnvironment(namespace string, name string) (environment *CrdEnvironment, EnvironmentRaw *unstructured.Unstructured, err error) {
 	result := CrdEnvironment{}
 
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return nil, nil, err
@@ -167,7 +167,7 @@ func GetEnvironment(namespace string, name string) (environment *CrdEnvironment,
 func ListEnvironments(namespace string) (Environment []CrdEnvironment, EnvironmentRaw *unstructured.UnstructuredList, err error) {
 	result := []CrdEnvironment{}
 
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return result, nil, err
@@ -198,7 +198,7 @@ func ListEnvironments(namespace string) (Environment []CrdEnvironment, Environme
 }
 
 func AddAppKitToEnvironment(namespace string, appkitName string) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err
@@ -234,7 +234,7 @@ func AddAppKitToEnvironment(namespace string, appkitName string) error {
 }
 
 func RemoveAppKitFromEnvironment(namespace string, appkitName string) error {
-	provider, err := kubernetes.NewDynamicKubeProvider(nil)
+	provider, err := kubernetes.NewDynamicKubeProvider()
 	if provider == nil || err != nil {
 		crdLogger.Error("Error creating provider. Cannot continue because it is vital.", "error", err)
 		return err

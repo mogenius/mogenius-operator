@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
@@ -14,12 +13,12 @@ type DynamicKubeProvider struct {
 	ClientConfig rest.Config
 }
 
-func NewDynamicKubeProvider(contextId *string) (*DynamicKubeProvider, error) {
-	provider, err := newDynamicKubeProviderInCluster(contextId)
+func NewDynamicKubeProvider() (*DynamicKubeProvider, error) {
+	provider, err := newDynamicKubeProviderInCluster()
 	if err == nil {
 		return provider, nil
 	} else {
-		provider, err = newDynamicKubeProviderLocal(contextId)
+		provider, err = newDynamicKubeProviderLocal()
 	}
 
 	if err != nil {
@@ -64,8 +63,8 @@ func RunsInCluster() bool {
 	}
 }
 
-func newDynamicKubeProviderLocal(contextId *string) (*DynamicKubeProvider, error) {
-	config, err := punq.ContextSwitcher(contextId)
+func newDynamicKubeProviderLocal() (*DynamicKubeProvider, error) {
+	config, err := ContextConfigLoader()
 	if err != nil {
 		return nil, err
 	}
@@ -81,17 +80,10 @@ func newDynamicKubeProviderLocal(contextId *string) (*DynamicKubeProvider, error
 	}, nil
 }
 
-func newDynamicKubeProviderInCluster(contextId *string) (*DynamicKubeProvider, error) {
+func newDynamicKubeProviderInCluster() (*DynamicKubeProvider, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
-	}
-
-	if contextId != nil {
-		config, err = punq.ContextSwitcher(contextId)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	clientset, err := dynamic.NewForConfig(config)

@@ -3,7 +3,7 @@ package dtos
 import (
 	"mogenius-k8s-manager/src/logging"
 
-	"github.com/mogenius/punq/utils"
+	"mogenius-k8s-manager/src/utils"
 )
 
 type K8sProjectDto struct {

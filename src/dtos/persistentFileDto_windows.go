@@ -3,11 +3,10 @@ package dtos
 import (
 	"fmt"
 	"io/fs"
+	"mogenius-k8s-manager/src/utils"
 	"os"
 	"path/filepath"
 	"time"
-
-	punq "github.com/mogenius/punq/utils"
 )
 
 type PersistentFileDto struct {
@@ -44,7 +43,7 @@ func PersistentFileDtoExampleData() PersistentFileDto {
 func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 	info, err := os.Stat(path)
 	if err != nil {
-		DtosLogger.Warningf("FileStat Err: %s", err.Error())
+		dtosLogger.Warn("FileStat Err:", "error", err.Error())
 		return PersistentFileDto{}
 	}
 
@@ -78,8 +77,8 @@ func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 		RelativePath: relPath,
 		Extension:    filepath.Ext(path),
 		SizeInBytes:  size,
-		Size:         punq.BytesToHumanReadable(size),
-		Hash:         punq.QuickHash(path),
+		Size:         utils.BytesToHumanReadable(size),
+		Hash:         utils.QuickHash(path),
 		CreatedAt:    createTime,
 		ModifiedAt:   modTime,
 		Uid_gid:      uidGid,

@@ -8,8 +8,6 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"strings"
-
-	punq "github.com/mogenius/punq/kubernetes"
 )
 
 var migrationLogger *slog.Logger
@@ -31,7 +29,7 @@ func _PvcMigration1() (string, error) {
 		return migrationName, fmt.Errorf("Migration already applied.")
 	}
 
-	pvcs := punq.AllPersistentVolumeClaims("", nil)
+	pvcs := kubernetes.AllPersistentVolumeClaims("")
 	for _, pvc := range pvcs {
 		if strings.HasPrefix(pvc.Name, utils.NFS_POD_PREFIX) {
 			volumeName := strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.NFS_POD_PREFIX), "", 1)
@@ -39,21 +37,21 @@ func _PvcMigration1() (string, error) {
 				kubernetes.LabelKeyVolumeIdentifier: pvc.Name,
 				kubernetes.LabelKeyVolumeName:       volumeName,
 			})
-			punq.UpdateK8sPersistentVolumeClaim(pvc, nil)
+			kubernetes.UpdateK8sPersistentVolumeClaim(pvc)
 			// now also update auto-created PVC
-			connectedPvc, err := punq.GetPersistentVolumeClaim(pvc.Namespace, volumeName, nil)
+			connectedPvc, err := kubernetes.GetPersistentVolumeClaim(pvc.Namespace, volumeName)
 			if err == nil && connectedPvc != nil {
 				connectedPvc.Labels = kubernetes.MoAddLabels(&connectedPvc.Labels, map[string]string{
 					kubernetes.LabelKeyVolumeIdentifier: pvc.Name,
 					kubernetes.LabelKeyVolumeName:       volumeName,
 				})
-				punq.UpdateK8sPersistentVolumeClaim(*connectedPvc, nil)
+				kubernetes.UpdateK8sPersistentVolumeClaim(*connectedPvc)
 			}
 
 			migrationLogger.Info("Updated PVC", "name", pvc.Name)
 		}
 	}
-	pvs := punq.AllPersistentVolumesRaw(nil)
+	pvs := kubernetes.AllPersistentVolumesRaw()
 	for _, pv := range pvs {
 		if pv.Spec.ClaimRef != nil {
 			if strings.HasPrefix(pv.Spec.ClaimRef.Name, utils.NFS_POD_PREFIX) {
@@ -66,7 +64,7 @@ func _PvcMigration1() (string, error) {
 						1,
 					),
 				})
-				punq.UpdateK8sPersistentVolume(pv, nil)
+				kubernetes.UpdateK8sPersistentVolume(pv)
 				migrationLogger.Info("Updated PV", "name", pv.Name)
 			}
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"io"
+	"mogenius-k8s-manager/src/kubernetes"
 	"net/url"
 	"os"
 	"os/exec"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
-	punq "github.com/mogenius/punq/kubernetes"
 )
 
 func injectContent(content io.Reader, conn *websocket.Conn) {
@@ -98,7 +98,7 @@ func XTermCommandStreamConnection(
 	}()
 
 	// Check if pod exists
-	podExists := punq.PodExists(namespace, podName, nil)
+	podExists := kubernetes.PodExists(namespace, podName)
 	if !podExists.PodExists {
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
@@ -111,7 +111,7 @@ func XTermCommandStreamConnection(
 	}
 
 	// kube provider
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := kubernetes.NewKubeProvider()
 	if err != nil {
 		xtermLogger.Warn("Unable to create kube provider", "error", err)
 		return

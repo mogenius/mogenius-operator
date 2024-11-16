@@ -14,7 +14,6 @@ import (
 
 	v1Core "k8s.io/api/core/v1"
 
-	punqStructs "github.com/mogenius/punq/structs"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -204,7 +203,7 @@ func resetStartedJobsToPendingOnInit() {
 			if job.State == structs.JobStateStarted {
 				job.State = structs.JobStatePending
 				key := BuildJobKey(job.BuildId)
-				err := bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
+				err := bucket.Put([]byte(key), []byte(utils.PrettyPrintString(job)))
 				if err != nil {
 					dbLogger.Error("Init (update)", "error", err)
 				}
@@ -549,7 +548,7 @@ func UpdateStateInDb(buildJob structs.BuildJob, newState structs.JobStateEnum) {
 		err := structs.UnmarshalJob(&job, jobData)
 		if err == nil {
 			job.State = newState
-			return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(job)))
+			return bucket.Put([]byte(key), []byte(utils.PrettyPrintString(job)))
 		}
 		return err
 	})
@@ -591,7 +590,7 @@ func SaveJobInDb(buildJob structs.BuildJob) {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(BUILD_BUCKET_NAME))
 		key := BuildJobKey(buildJob.BuildId)
-		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
+		return bucket.Put([]byte(key), []byte(utils.PrettyPrintString(buildJob)))
 	})
 	if err != nil {
 		dbLogger.Error("Error saving job.", "buildId", buildJob.BuildId, "error", err)
@@ -664,7 +663,7 @@ func AddToDb(buildJob structs.BuildJob) (int, error) {
 		_, imageTag, _ := ImageNamesFromBuildJob(buildJob)
 		buildJob.Image = imageTag
 		key := BuildJobKey(nextBuildId)
-		return bucket.Put([]byte(key), []byte(punqStructs.PrettyPrintString(buildJob)))
+		return bucket.Put([]byte(key), []byte(utils.PrettyPrintString(buildJob)))
 	})
 	return int(nextBuildId), err
 }

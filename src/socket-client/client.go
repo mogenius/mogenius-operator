@@ -19,9 +19,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gorilla/websocket"
-
-	punqStructs "github.com/mogenius/punq/structs"
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 func StartK8sManager() {
@@ -120,7 +117,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 
 				datagram.DisplayReceiveSummary()
 
-				if isSuppressed := punqUtils.Contains(structs.SUPPRESSED_OUTPUT_PATTERN, datagram.Pattern); !isSuppressed {
+				if isSuppressed := utils.Contains(structs.SUPPRESSED_OUTPUT_PATTERN, datagram.Pattern); !isSuppressed {
 					moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
 					assert.Assert(err == nil)
 					if moDebug {
@@ -128,7 +125,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 					}
 				}
 
-				if punqUtils.Contains(structs.COMMAND_REQUESTS, datagram.Pattern) {
+				if utils.Contains(structs.COMMAND_REQUESTS, datagram.Pattern) {
 					// ####### COMMAND
 					semaphoreChan <- struct{}{}
 
@@ -140,7 +137,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 						result.Send()
 						<-semaphoreChan
 					}()
-				} else if punqUtils.Contains(structs.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
+				} else if utils.Contains(structs.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 					preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
 
 					var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
@@ -174,7 +171,7 @@ func versionTicker() {
 func updateCheck() {
 	socketClientLogger.Info("Checking for updates ...")
 
-	if !punqUtils.IsProduction() {
+	if !utils.IsProduction() {
 		socketClientLogger.Info(" (skipped) [not production].")
 		return
 	}
@@ -198,7 +195,7 @@ func updateCheck() {
 		socketClientLogger.Error("Field 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
 		return
 	}
-	var mok8smanager *punqStructs.HelmDependency = nil
+	var mok8smanager *utils.HelmDependency = nil
 	for _, dep := range mogeniusPlatform[0].Dependencies {
 		if dep.Name == "mogenius-k8s-manager" {
 			mok8smanager = &dep
@@ -233,7 +230,7 @@ func updateCheck() {
 	}
 }
 
-func notUpToDateAction(helmData *punqStructs.HelmData) {
+func notUpToDateAction(helmData *utils.HelmData) {
 	localVer, err := semver.NewVersion(version.Ver)
 	if err != nil {
 		socketClientLogger.Error("Error parsing local version", "error", err)

@@ -6,11 +6,16 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	punqStructs "github.com/mogenius/punq/structs"
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
-type Datagram punqStructs.Datagram
+type Datagram struct {
+	Id        string      `json:"id" validate:"required"`
+	Pattern   string      `json:"pattern" validate:"required"`
+	Payload   interface{} `json:"payload,omitempty"`
+	Username  string      `json:"username,omitempty"`
+	Err       string      `json:"err,omitempty"`
+	CreatedAt time.Time   `json:"-"`
+}
 
 func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
 	datagram := Datagram{
@@ -44,29 +49,11 @@ func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	return datagram
 }
 
-// func CreateDatagram(pattern string) Datagram {
-// 	datagram := Datagram{
-// 		Id:        utils.NanoId(),
-// 		Pattern:   pattern,
-// 		CreatedAt: time.Now(),
-// 	}
-// 	return datagram
-// }
-
 func CreateDatagramBuildLogs(payload BuildJobInfo) Datagram {
-	// func CreateDatagramBuildLogs(prefix string, namespace string, controllerName string, projectId string, line string, state punqStructs.JobStateEnum) Datagram {
 	datagram := Datagram{
-		Id:      utils.NanoId(),
-		Pattern: "build-logs-notification",
-		Payload: payload,
-		//Payload: map[string]interface{}{
-		//	"logId":          prefix,
-		//	"namespace":      namespace,
-		//	"controllerName": controllerName,
-		//	"projectId":      projectId,
-		//	"line":           line,
-		//	"state":          state,
-		//},
+		Id:        utils.NanoId(),
+		Pattern:   "build-logs-notification",
+		Payload:   payload,
 		CreatedAt: time.Now(),
 	}
 	return datagram
@@ -101,8 +88,8 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n", IDCOLOR("ID:      "), d.Id)
 	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
 	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
-	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), punqStructs.DurationStrSince(d.CreatedAt))
-	fmt.Printf("%s %s\n", SIZECOLOR("Size:    "), punqUtils.BytesToHumanReadable(d.GetSize()))
+	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), utils.DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s %s\n", SIZECOLOR("Size:    "), utils.BytesToHumanReadable(d.GetSize()))
 	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), utils.PrettyPrintInterface(d.Payload))
 }
 

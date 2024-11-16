@@ -294,55 +294,6 @@ func ListByProjectId(projectId string) []structs.BuildJob {
 	return result
 }
 
-// func ListByServiceId(serviceId string) []structs.BuildJob {
-// 	result := []structs.BuildJob{}
-
-// 	list := ListAll()
-// 	for _, queueEntry := range list {
-// 		if queueEntry.Service.Id == serviceId {
-// 			result = append(result, queueEntry)
-// 		}
-// 	}
-// 	return result
-// }
-
-// TODO Remove this code
-//func ListByServiceByNamespaceAndControllerName(namespace, controllerName string) []structs.BuildJob {
-//	result := []structs.BuildJob{}
-//
-//	list := ListAll()
-//	for _, queueEntry := range list {
-//		if queueEntry.Service.ControllerName == controllerName && queueEntry.Namespace.Name == namespace {
-//			result = append(result, queueEntry)
-//		}
-//	}
-//	return result
-//}
-
-// func ListByServiceIds(serviceIds []string) []structs.BuildJob {
-// 	result := []structs.BuildJob{}
-
-// 	list := ListAll()
-// 	for _, queueEntry := range list {
-// 		if punqUtils.Contains(serviceIds, queueEntry.Service.Id) {
-// 			result = append(result, queueEntry)
-// 		}
-// 	}
-// 	return result
-// }
-
-//func LastNJobsPerService(maxResults int, serviceId string) []structs.BuildJob {
-//	result := []structs.BuildJob{}
-//
-//	list := ListByServiceId(serviceId)
-//	for i := len(list) - 1; i >= 0; i-- {
-//		if len(result) < maxResults {
-//			result = append(result, list[i])
-//		}
-//	}
-//	return result
-//}
-
 func LastBuildInfosOfServices(data structs.BuildTaskListOfServicesRequest) []structs.BuildJobInfo {
 	results := []structs.BuildJobInfo{}
 

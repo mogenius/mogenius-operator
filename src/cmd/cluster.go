@@ -62,7 +62,7 @@ var clusterCmd = &cobra.Command{
 			}
 			migrations.Setup(slogManager)
 			services.Setup(slogManager, cmdConfig)
-			servicesExternal.Setup(cmdConfig)
+			servicesExternal.Setup(slogManager, cmdConfig)
 			socketclient.Setup(slogManager, cmdConfig)
 			store.Setup(slogManager)
 			structs.Setup(slogManager, cmdConfig)

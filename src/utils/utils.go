@@ -3,32 +3,37 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"embed"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"log/slog"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/version"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
-	punqStructs "github.com/mogenius/punq/structs"
-	"github.com/mogenius/punq/utils"
 	"sigs.k8s.io/yaml"
 
 	"github.com/patrickmn/go-cache"
 )
+
+var CURRENT_COUNTRY *CountryDetails
 
 var config interfaces.ConfigModule
 var utilsLogger *slog.Logger
@@ -45,6 +50,31 @@ const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-k8s-manager-default-apps"
 const MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME = "mogenius-k8s-manager-default-deployment"
 
 const MAX_NAME_LENGTH = 253
+
+type Release struct {
+	TagName    string `json:"tag_name"`
+	Published  string `json:"published_at"`
+	Prerelease bool   `json:"prerelease"`
+}
+
+type CountryDetails struct {
+	Code              string   `json:"code"`
+	Code3             string   `json:"code3"`
+	IsoID             int      `json:"isoId"`
+	Name              string   `json:"name"`
+	Currency          string   `json:"currency"`
+	CurrencyName      string   `json:"currencyName"`
+	TaxPercent        float64  `json:"taxPercent"`
+	Continent         string   `json:"continent"`
+	CapitalCity       string   `json:"capitalCity"`
+	CapitalCityLat    float64  `json:"capitalCityLat"`
+	CapitalCityLng    float64  `json:"capitalCityLng"`
+	IsEuMember        bool     `json:"isEuMember"`
+	PhoneNumberPrefix string   `json:"phoneNumberPrefix"`
+	DomainTld         string   `json:"domainTld"`
+	Languages         []string `json:"languages"`
+	IsActive          bool     `json:"isActive"`
+}
 
 const (
 	HelmReleaseNameTrafficCollector     = "mogenius-traffic-collector"
@@ -131,7 +161,7 @@ func GetFunctionName() string {
 }
 
 func ExecuteShellCommandSilent(title string, shellCmd string) error {
-	result, err := utils.RunOnLocalShell(shellCmd).Output()
+	result, err := RunOnLocalShell(shellCmd).Output()
 	utilsLogger.Debug("ExecuteShellCommandSilent", "command", shellCmd, "result", result)
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
@@ -145,7 +175,7 @@ func ExecuteShellCommandSilent(title string, shellCmd string) error {
 }
 
 func ExecuteShellCommandRealySilent(title string, shellCmd string) error {
-	result, err := utils.RunOnLocalShell(shellCmd).Output()
+	result, err := RunOnLocalShell(shellCmd).Output()
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		exitCode := exitErr.ExitCode()
 		errorMsg := string(exitErr.Stderr)
@@ -165,10 +195,10 @@ func ExecuteShellCommandRealySilent(title string, shellCmd string) error {
 // 	log.Infof("%s took %s", name, elapsed)
 // }
 
-func GetVersionData(url string) (*punqStructs.HelmData, error) {
+func GetVersionData(url string) (*HelmData, error) {
 	// Check if the data is already in the cache
 	if cachedData, found := helmDataVersion.Get(url); found {
-		return cachedData.(*punqStructs.HelmData), nil
+		return cachedData.(*HelmData), nil
 	}
 
 	// If not in cache, fetch the data from the URL
@@ -183,7 +213,7 @@ func GetVersionData(url string) (*punqStructs.HelmData, error) {
 		return nil, err
 	}
 
-	var helmData punqStructs.HelmData
+	var helmData HelmData
 	err = yaml.Unmarshal(data, &helmData)
 	if err != nil {
 		return nil, err
@@ -225,15 +255,6 @@ func GitCommitLink(gitRepository string, commitHash string) *string {
 	return &commitURL
 }
 
-// func ContainsUint64(slice []uint64, value uint64) bool {
-// 	for _, item := range slice {
-// 		if item == value {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
-
 func ContainsString(slice []string, value string) bool {
 	for _, item := range slice {
 		if item == value {
@@ -242,22 +263,6 @@ func ContainsString(slice []string, value string) bool {
 	}
 	return false
 }
-
-// func IsFirstTimestampNewer(ts1, ts2 string) bool {
-// 	// Parse the timestamps using RFC 3339 format
-// 	t1, err := time.Parse(time.RFC3339, ts1)
-// 	if err != nil {
-// 		log.Error(fmt.Errorf("error parsing ts1: %w", err))
-// 	}
-
-// 	t2, err := time.Parse(time.RFC3339, ts2)
-// 	if err != nil {
-// 		log.Error(fmt.Errorf("error parsing ts2: %w", err))
-// 	}
-
-// 	// Check if the first timestamp is strictly newer than the second
-// 	return t1.After(t2)
-// }
 
 func AppendIfNotExist(slice []string, str string) []string {
 	for _, item := range slice {
@@ -626,7 +631,7 @@ func adjustKeyLength(key []byte) []byte {
 }
 
 func PrettyPrintInterface(i interface{}) string {
-	str := punqStructs.PrettyPrintString(i)
+	str := PrettyPrintString(i)
 	return RedactString(str)
 }
 
@@ -635,4 +640,227 @@ func RedactString(targetSring string) string {
 		targetSring = strings.ReplaceAll(targetSring, secret, logging.REDACTED)
 	}
 	return targetSring
+}
+
+func PrettyPrintString(i interface{}) string {
+	iJson, err := json.MarshalIndent(i, "", "  ")
+	if err != nil {
+		utilsLogger.Error(err.Error())
+	}
+	return string(iJson)
+}
+
+type ResponseError struct {
+	Error string `json:"error,omitempty"`
+}
+
+func CreateError(err error) ResponseError {
+	return ResponseError{
+		Error: err.Error(),
+	}
+}
+
+func Contains(s []string, str string) bool {
+	for _, v := range s {
+		if strings.Contains(str, v) {
+			return true
+		}
+	}
+	return false
+}
+
+func RunOnLocalShell(cmd string) *exec.Cmd {
+	switch runtime.GOOS {
+	case "linux":
+		return exec.Command("/bin/sh", "-c", cmd)
+	case "windows":
+		return exec.Command("cmd", "/C", cmd)
+	case "darwin":
+		return exec.Command("/bin/zsh", "-c", cmd)
+	default:
+		return exec.Command("/bin/sh", "-c", cmd)
+	}
+}
+
+func ExecuteShellCommandWithResponse(title string, shellCmd string) string {
+	var err error
+	var returnStr []byte
+	returnStr, err = RunOnLocalShell(shellCmd).Output()
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		exitCode := exitErr.ExitCode()
+		errorMsg := string(exitErr.Stderr)
+		utilsLogger.Error(shellCmd)
+		utilsLogger.Error("Exitcode and errormsg", "exitCode", exitCode, "error", errorMsg)
+		return errorMsg
+	} else if err != nil {
+		utilsLogger.Error("ERROR", "title", title, "error", err.Error())
+		return err.Error()
+	}
+	return string(returnStr)
+}
+
+func MilliSecSince(since time.Time) int64 {
+	return time.Since(since).Milliseconds()
+}
+
+func MicroSecSince(since time.Time) int64 {
+	return time.Since(since).Microseconds()
+}
+
+func DurationStrSince(since time.Time) string {
+	duration := MilliSecSince(since)
+	durationStr := fmt.Sprintf("%d ms", duration)
+	if duration <= 0 {
+		duration = MicroSecSince(since)
+		durationStr = fmt.Sprintf("%d μs", duration)
+	}
+	return durationStr
+}
+
+func MergeMaps(maps ...map[string]string) map[string]string {
+	resultMap := make(map[string]string)
+
+	// Iterate over the slice of maps
+	for _, m := range maps {
+		// Add all elements from each map, potentially overwriting
+		for key, value := range m {
+			resultMap[key] = value
+		}
+	}
+	return resultMap
+}
+
+func GuessClusterCountry() (*CountryDetails, error) {
+	if CURRENT_COUNTRY != nil {
+		return CURRENT_COUNTRY, nil
+	}
+
+	allowCountryCheck, err := strconv.ParseBool(config.Get("MO_ALLOW_COUNTRY_CHECK"))
+	assert.Assert(err == nil)
+	if allowCountryCheck {
+		resp, err := http.Get("https://platform-api.mogenius.com/country/location")
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			return nil, fmt.Errorf("failed to fetch with status code: %d", resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		var country CountryDetails
+		if err := json.Unmarshal(body, &country); err != nil {
+			return CURRENT_COUNTRY, err
+		} else {
+			CURRENT_COUNTRY = &country
+			return CURRENT_COUNTRY, err
+		}
+	}
+	return nil, nil
+}
+
+func ContainsToLowercase(s []string, str string) bool {
+	for _, v := range s {
+		if strings.Contains(strings.ToLower(str), strings.ToLower(v)) {
+			return true
+		}
+	}
+	return false
+}
+
+func ContainsEqual(s []string, str string) bool {
+	for _, v := range s {
+		if str == v {
+			return true
+		}
+	}
+	return false
+}
+
+func IsProduction() bool {
+	stage := config.Get("MO_STAGE")
+	return Equals([]string{"prod", "production"}, strings.ToLower(stage))
+}
+
+func Equals(s []string, str string) bool {
+	for _, v := range s {
+		if str == v {
+			return true
+		}
+	}
+	return false
+}
+
+func Remove[T any](slice []T, s int) []T {
+	return append(slice[:s], slice[s+1:]...)
+}
+
+func CheckInternetAccess() (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Create a custom resolver
+	r := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{}
+			return d.DialContext(ctx, "udp", "1.1.1.1:53")
+		},
+	}
+
+	// Attempt to resolve a known domain
+	// If it succeeds, it means we have internet access
+	_, err := r.LookupHost(ctx, "mogenius.com")
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return false, ctx.Err()
+		}
+		// Other errors
+		return false, err
+	}
+
+	// success
+	return true, nil
+}
+
+func IsKubectlInstalled() (bool, string, error) {
+	cmd := RunOnLocalShell("kubectl version")
+	output, err := cmd.CombinedOutput()
+	return err == nil, strings.TrimRight(string(output), "\n\r"), err
+}
+
+func CreateDirIfNotExist(dir string) {
+	_, err := os.Stat(dir)
+
+	// If directory does not exist create it
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll(dir, 0755)
+		if errDir != nil {
+			utilsLogger.Error(err.Error())
+		}
+	}
+}
+
+func DeleteDirIfExist(dir string) {
+	_, err := os.Stat(dir)
+
+	// If directory does not exist create it
+	if os.IsExist(err) {
+		errDir := os.RemoveAll(dir)
+		if errDir != nil {
+			utilsLogger.Error(err.Error())
+		}
+	}
+}
+
+func ParseJsonStringArray(input string) []string {
+	val := []string{}
+	if err := json.Unmarshal([]byte(input), &val); err != nil {
+		utilsLogger.Error("jsonStringArrayToStringArray: Failed to parse into []string.", "input", input)
+	}
+	return val
 }

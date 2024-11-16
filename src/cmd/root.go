@@ -10,6 +10,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
+	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
@@ -18,9 +19,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
-
-	punqDtos "github.com/mogenius/punq/dtos"
-	punq "github.com/mogenius/punq/kubernetes"
 
 	cc "github.com/ivanpirog/coloredcobra"
 	"github.com/spf13/cobra"
@@ -43,8 +41,8 @@ Use mogenius-k8s-manager to control your kubernetes cluster. 🚀`,
 
 // TODO: this needs to be integrated in some smarter way
 func preRun() {
-	if utils.ClusterProviderCached == punqDtos.UNKNOWN {
-		foundProvider, err := punq.GuessClusterProvider(nil)
+	if utils.ClusterProviderCached == utils.UNKNOWN {
+		foundProvider, err := kubernetes.GuessClusterProvider()
 		if err != nil {
 			cmdLogger.Error("GuessClusterProvider", "error", err)
 		}
@@ -391,6 +389,15 @@ func initConfigDeclarations() {
 		DefaultValue: utils.Pointer(defaultLogDir),
 		Description:  utils.Pointer(`path in which logs are stored in the filesystem`),
 		ReadOnly:     true,
+	})
+	cmdConfig.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_ALLOW_COUNTRY_CHECK",
+		DefaultValue: utils.Pointer("true"),
+		Description:  utils.Pointer(`allow the operator to determine its location country base on the IP address`),
+		ReadOnly:     true,
+		Cobra: &interfaces.ConfigCobraFlags{
+			Name: "allow-country-check",
+		},
 	})
 	cmdConfig.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_DEBUG",

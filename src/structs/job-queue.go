@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	punqUtils "github.com/mogenius/punq/utils"
 )
 
 var jobDataQueue []Datagram = []Datagram{}
@@ -100,7 +99,7 @@ func processJobNow() {
 			err := JobQueueConnection.WriteJSON(element)
 			if err == nil {
 				element.DisplaySentSummary(i+1, len(jobDataQueue))
-				if isSuppressed := punqUtils.Contains(SUPPRESSED_OUTPUT_PATTERN, element.Pattern); !isSuppressed {
+				if isSuppressed := utils.Contains(SUPPRESSED_OUTPUT_PATTERN, element.Pattern); !isSuppressed {
 					structsLogger.Debug("sent summary", "payload", element.Payload)
 				}
 				jobDataQueue = removeJobIndex(jobDataQueue, i)

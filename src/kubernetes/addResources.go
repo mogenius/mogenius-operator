@@ -10,9 +10,6 @@ import (
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
 
-	punq "github.com/mogenius/punq/kubernetes"
-	punqUtils "github.com/mogenius/punq/utils"
-
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,7 +26,7 @@ import (
 )
 
 func Deploy() {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignal(true)
@@ -52,7 +49,7 @@ func Deploy() {
 	}
 }
 
-func addRbac(provider *punq.KubeProvider) error {
+func addRbac(provider *KubeProvider) error {
 	clusterRole := &rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: CLUSTERROLENAME,
@@ -102,7 +99,7 @@ func addRbac(provider *punq.KubeProvider) error {
 	return nil
 }
 
-func applyNamespace(provider *punq.KubeProvider) {
+func applyNamespace(provider *KubeProvider) {
 	serviceClient := provider.ClientSet.CoreV1().Namespaces()
 
 	namespace := applyconfcore.Namespace(config.Get("MO_OWN_NAMESPACE"))
@@ -121,7 +118,7 @@ func applyNamespace(provider *punq.KubeProvider) {
 }
 
 func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignal(true)
@@ -135,7 +132,7 @@ func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterS
 }
 
 func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignal(true)
@@ -205,7 +202,7 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 }
 
 func GetSyncRepoData() (*dtos.SyncRepoData, error) {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if provider == nil || err != nil {
 		k8sLogger.Error("Error creating kubeprovider")
 		shutdown.SendShutdownSignal(true)
@@ -262,7 +259,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		clusterSecret.SyncFrequencyInSec = syncRepoReq.SyncFrequencyInSec
 	}
 
-	secret := punqUtils.InitSecret()
+	secret := utils.InitSecret()
 	secret.ObjectMeta.Name = config.Get("MO_OWN_NAMESPACE")
 	secret.ObjectMeta.Namespace = config.Get("MO_OWN_NAMESPACE")
 	delete(secret.StringData, "exampleData") // delete example data
@@ -338,7 +335,7 @@ func InitOrUpdateCrds() {
 	}
 }
 
-func addDeployment(provider *punq.KubeProvider) {
+func addDeployment(provider *KubeProvider) {
 	deploymentClient := provider.ClientSet.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
 
 	deploymentContainer := applyconfcore.Container()
@@ -403,7 +400,7 @@ func addDeployment(provider *punq.KubeProvider) {
 }
 
 func CreateYamlString(yamlContent string) error {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return err
 	}
@@ -443,7 +440,7 @@ func CreateYamlString(yamlContent string) error {
 
 // todo remove this function and move to new ApplyResource function
 func CreateOrUpdateYamlString(yamlContent string) error {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return err
 	}

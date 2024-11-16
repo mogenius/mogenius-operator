@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/src/helm"
+	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -13,10 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	punqDtos "github.com/mogenius/punq/dtos"
-	punq "github.com/mogenius/punq/kubernetes"
-	punqUtils "github.com/mogenius/punq/utils"
 
 	"github.com/shirou/gopsutil/v3/disk"
 
@@ -130,9 +127,9 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 
 	serviceLogger.Info("💾: nfs volume stats",
 		"mountPath", mountPath,
-		"usedBytes", punqUtils.BytesToHumanReadable(int64(result.UsedBytes)),
-		"totalBytes", punqUtils.BytesToHumanReadable(int64(result.TotalBytes)),
-		"freeBytes", punqUtils.BytesToHumanReadable(int64(result.FreeBytes)),
+		"usedBytes", utils.BytesToHumanReadable(int64(result.UsedBytes)),
+		"totalBytes", utils.BytesToHumanReadable(int64(result.TotalBytes)),
+		"freeBytes", utils.BytesToHumanReadable(int64(result.FreeBytes)),
 	)
 	return result
 }
@@ -159,7 +156,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 	}
 
 	// get all pvc for single namespace
-	pvcs := punq.AllPersistentVolumeClaims(r.NamespaceName, nil)
+	pvcs := kubernetes.AllPersistentVolumeClaims(r.NamespaceName)
 
 	for _, pvc := range pvcs {
 		// skip pvcs which are not mogenius-nfs
@@ -178,7 +175,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 
 		mountPath := utils.MountPath(r.NamespaceName, pvc.Name, "/", mokubernetes.RunsInCluster())
 
-		if utils.ClusterProviderCached == punqDtos.DOCKER_DESKTOP || utils.ClusterProviderCached == punqDtos.K3S {
+		if utils.ClusterProviderCached == utils.DOCKER_DESKTOP || utils.ClusterProviderCached == utils.K3S {
 			var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
 			entry.FreeBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value()) - usedBytes
 			entry.UsedBytes = usedBytes
@@ -194,7 +191,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 			}
 		}
 
-		message := fmt.Sprintf("💾: '%s' -> %s / %s (Free: %s)", mountPath, punqUtils.BytesToHumanReadable(int64(entry.UsedBytes)), punqUtils.BytesToHumanReadable(int64(entry.TotalBytes)), punqUtils.BytesToHumanReadable(int64(entry.FreeBytes)))
+		message := fmt.Sprintf("💾: '%s' -> %s / %s (Free: %s)", mountPath, utils.BytesToHumanReadable(int64(entry.UsedBytes)), utils.BytesToHumanReadable(int64(entry.TotalBytes)), utils.BytesToHumanReadable(int64(entry.FreeBytes)))
 		serviceLogger.Info(message)
 		result = append(result, entry)
 	}
@@ -245,197 +242,9 @@ func sumAllBytesOfFolder(root string) uint64 {
 	return total
 }
 
-// func UnzipAndReplaceFromS3(namespaceName string, volumeName string, BackupKey string, result NfsVolumeRestoreResponse, accessKeyId string, secretAccessKey string, token string) NfsVolumeRestoreResponse {
-// 	// Set up an AWS session
-// 	sess := session.Must(session.NewSession(&aws.Config{
-// 		Region:      aws.String("eu-central-1"),
-// 		Credentials: credentials.NewStaticCredentials(accessKeyId, secretAccessKey, token),
-// 	}))
-
-// 	// Download the zip file from S3
-// 	downloader := s3manager.NewDownloader(sess)
-// 	buffer := &aws.WriteAtBuffer{}
-// 	downloadedBytes, err := downloader.Download(buffer, &s3.GetObjectInput{
-// 		Bucket: aws.String(BUCKETNAME),
-// 		Key:    aws.String(BackupKey),
-// 	})
-// 	if err != nil {
-// 		ServiceLogger.Errorf("s3 Download error: %s", err.Error())
-// 		result.Error = err.Error()
-// 		return result
-// 	}
-
-// 	// Replace files with downloaded data
-// 	r, err := zip.NewReader(bytes.NewReader(buffer.Bytes()), int64(len(buffer.Bytes())))
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	mountPath := utils.MountPath(namespaceName, volumeName, "")
-// 	mountPath = fmt.Sprintf("%s/restore", mountPath)
-// 	err = os.MkdirAll(mountPath, 0755)
-// 	if err != nil {
-// 		ServiceLogger.Fatal(err)
-// 	}
-
-// 	for _, f := range r.File {
-// 		rc, err := f.Open()
-// 		if err != nil {
-// 			ServiceLogger.Error(err)
-// 		}
-// 		defer rc.Close()
-
-// 		// Create the destination file
-// 		destFilepath := fmt.Sprintf("%s/%s", mountPath, f.Name)
-// 		destFile, err := os.Create(destFilepath)
-// 		if err != nil {
-// 			ServiceLogger.Error(err)
-// 		}
-// 		defer destFile.Close()
-
-// 		// Copy the contents of the source file to the destination file
-// 		_, err = io.Copy(destFile, rc)
-// 		if err != nil {
-// 			ServiceLogger.Error(err)
-// 		}
-
-// 		// Print the name of the unzipped file
-// 		if utils.CONFIG.Misc.Debug {
-// 			ServiceLogger.Infof("Unzipped file: %s\n", destFilepath)
-// 		}
-// 	}
-
-// 	msg := fmt.Sprintf("Successfully restored volume (%s) from S3!\n", punqUtils.BytesToHumanReadable(downloadedBytes))
-// 	ServiceLogger.Info(msg)
-// 	result.Message = msg
-
-// 	return result
-// }
-
-// func ZipDirAndUploadToS3(directoryToZip string, targetFileName string, result NfsVolumeBackupResponse, accessKeyId string, secretAccessKey string, token string) NfsVolumeBackupResponse {
-// 	// Set up an AWS session
-// 	sess := session.Must(session.NewSession(&aws.Config{
-// 		Region:      aws.String("eu-central-1"),
-// 		Credentials: credentials.NewStaticCredentials(accessKeyId, secretAccessKey, token),
-// 	}))
-
-// 	// Create a zip archive buffer
-// 	buf := new(bytes.Buffer)
-// 	zipWriter := zip.NewWriter(buf)
-
-// 	// Add all files in a directory to the archive
-// 	err := filepath.Walk(directoryToZip, func(path string, info os.FileInfo, err error) error {
-// 		if err != nil {
-// 			return err
-// 		}
-// 		if info.IsDir() {
-// 			return nil
-// 		}
-
-// 		fileBytes, err := os.ReadFile(path)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		relPath, err := filepath.Rel(directoryToZip, path)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		zipFile, err := zipWriter.Create(relPath)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		_, err = io.Copy(zipFile, bytes.NewReader(fileBytes))
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		return nil
-// 	})
-// 	if err != nil {
-// 		ServiceLogger.Errorf("s3 walk files error: %s", err.Error())
-// 		result.Error = err.Error()
-// 		return result
-// 	}
-
-// 	// Close the zip archive
-// 	err = zipWriter.Close()
-// 	if err != nil {
-// 		ServiceLogger.Errorf("s3 zip error: %s", err.Error())
-// 		result.Error = err.Error()
-// 		return result
-// 	}
-
-// 	// Upload the zip file to S3
-// 	s3svc := s3.New(sess)
-// 	_, err = s3svc.PutObject(&s3.PutObjectInput{
-// 		Bucket: aws.String(BUCKETNAME),     // Replace with your S3 bucket name
-// 		Key:    aws.String(targetFileName), // Replace with the name you want to give the zip file in S3
-// 		Body:   bytes.NewReader(buf.Bytes()),
-// 	})
-// 	if err != nil {
-// 		ServiceLogger.Errorf("s3 Send error: %s", err.Error())
-// 		result.Error = err.Error()
-// 		return result
-// 	}
-
-// 	// Get the uploaded object and presign it.
-// 	req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
-// 		Bucket: aws.String(BUCKETNAME),
-// 		Key:    aws.String(targetFileName),
-// 	})
-// 	url, err := req.Presign(15 * time.Minute)
-// 	if err != nil {
-// 		ServiceLogger.Errorf("s3 presign error: %s", err.Error())
-// 		result.Error = err.Error()
-// 		return result
-// 	}
-// 	headObj, err := s3svc.HeadObject(&s3.HeadObjectInput{
-// 		Bucket: aws.String(BUCKETNAME),
-// 		Key:    aws.String(targetFileName),
-// 	})
-// 	if err != nil {
-// 		ServiceLogger.Errorf("s3 headobject error: %s", err.Error())
-// 		result.Error = err.Error()
-// 		return result
-// 	}
-
-// 	result.DownloadUrl = url
-// 	if headObj != nil {
-// 		result.Bytes = *headObj.ContentLength
-// 	}
-
-// 	ServiceLogger.Infof("Successfully uploaded zip file (%s) to S3! -> %s\n", punqUtils.BytesToHumanReadable(result.Bytes), result.DownloadUrl)
-
-// 	return result
-// }
-
 type K8sManagerUpgradeRequest struct {
 	Command string `json:"command" validate:"required"` // complete helm command from platform ui
 }
-
-// func K8sManagerUpgradeRequestExample() K8sManagerUpgradeRequest {
-// 	return K8sManagerUpgradeRequest{
-// 		Command: `helm repo add mogenius https://helm.mogenius.com/public
-// 		helm repo update
-// 		helm upgrade mogenius mogenius/mogenius-platform -n mogenius \
-// 		--set global.cluster_name="gcp2" \
-// 		--set global.api_key="mo_e8a0ac85-c158-4d9d-83aa-d488218fc9f7_vlhqnlum2uh9q8kdhdmu" \
-// 		--set global.namespace="mogenius" \
-// 		--set k8smanager.enabled=true \
-// 		--set metrics.enabled=false \
-// 		--set traffic-collector.enabled=true \
-// 		--set pod-stats-collector.enabled=true \
-// 		--set ingress-nginx.enabled=true \
-// 		--set certmanager.enabled=true \
-// 		--set cert-manager.startupapicheck.enabled=false \
-// 		--set certmanager.namespace="mogenius" \
-// 		--set cert-manager.namespace="mogenius" \
-// 		--set cert-manager.installCRDs=true`,
-// 	}
-// }
 
 type ClusterHelmRequest struct {
 	Namespace       string `json:"namespace" validate:"required"`
@@ -551,12 +360,12 @@ func ClusterGetPersistentVolumeExample() ClusterGetPersistentVolume {
 }
 
 type NfsStorageInstallRequest struct {
-	ClusterProvider punqDtos.KubernetesProvider `json:"clusterProvider"`
+	ClusterProvider utils.KubernetesProvider `json:"clusterProvider"`
 }
 
 func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
 	return NfsStorageInstallRequest{
-		ClusterProvider: punqDtos.AKS,
+		ClusterProvider: utils.AKS,
 	}
 }
 
@@ -603,75 +412,6 @@ type NfsVolumeStatsResponse struct {
 	UsedBytes  uint64 `json:"usedBytes"`
 }
 
-// token/accesskey/accesssecret can be generated using aws sts get-session-token | jq
-// type NfsVolumeBackupRequest struct {
-// 	NamespaceId        string `json:"namespaceId" validate:"required"`
-// 	NamespaceName      string `json:"namespaceName" validate:"required"`
-// 	VolumeName         string `json:"volumeName" validate:"required"`
-// 	AwsAccessKeyId     string `json:"awsAccessKeyId"`     // TEMP Credentials. Not security relevant
-// 	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // TEMP Credentials. Not security relevant
-// 	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
-// }
-
-// func (s *NfsVolumeBackupRequest) AddSecretsToRedaction() {
-// 	utils.AddSecret(&s.AwsAccessKeyId)
-// 	utils.AddSecret(&s.AwsSecretAccessKey)
-// 	utils.AddSecret(&s.AwsSessionToken)
-// }
-
-// func NfsVolumeBackupRequestExample() NfsVolumeBackupRequest {
-// 	return NfsVolumeBackupRequest{
-// 		NamespaceId:        "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-// 		NamespaceName:      "mogenius",
-// 		VolumeName:         "my-fancy-volume-name",
-// 		AwsAccessKeyId:     DEBUG_AWS_ACCESS_KEY_ID, // TEMP Credentials. Not security relevant
-// 		AwsSecretAccessKey: DEBUG_AWS_SECRET_KEY,    // TEMP Credentials. Not security relevant
-// 		AwsSessionToken:    DEBUG_AWS_TOKEN,         // TEMP Credentials. Not security relevant
-// 	}
-// }
-
-// // token/accesskey/accesssecret can be generated using aws sts get-session-token | jq
-// type NfsVolumeRestoreRequest struct {
-// 	NamespaceId        string `json:"namespaceId" validate:"required"`
-// 	NamespaceName      string `json:"namespaceName" validate:"required"`
-// 	VolumeName         string `json:"volumeName" validate:"required"`
-// 	BackupKey          string `json:"backupKey" validate:"required"`
-// 	AwsAccessKeyId     string `json:"awsAccessKeyId"`     // TEMP Credentials. Not security relevant
-// 	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // TEMP Credentials. Not security relevant
-// 	AwsSessionToken    string `json:"awsSessionToken"`    // TEMP Credentials. Not security relevant
-// }
-
-// func (s *NfsVolumeRestoreRequest) AddSecretsToRedaction() {
-// 	utils.AddSecret(&s.AwsAccessKeyId)
-// 	utils.AddSecret(&s.AwsSecretAccessKey)
-// 	utils.AddSecret(&s.AwsSessionToken)
-// }
-
-// func NfsVolumeRestoreRequestExample() NfsVolumeRestoreRequest {
-// 	return NfsVolumeRestoreRequest{
-// 		NamespaceId:        "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-// 		NamespaceName:      "mogenius",
-// 		VolumeName:         "my-fancy-volume-name",
-// 		BackupKey:          "backup_my-fancy-volume-name_2023-04-11T13:45:00+02:00.zip",
-// 		AwsAccessKeyId:     DEBUG_AWS_ACCESS_KEY_ID, // TEMP Credentials. Not security relevant
-// 		AwsSecretAccessKey: DEBUG_AWS_SECRET_KEY,    // TEMP Credentials. Not security relevant
-// 		AwsSessionToken:    DEBUG_AWS_TOKEN,         // TEMP Credentials. Not security relevant
-// 	}
-// }
-
-// type NfsVolumeBackupResponse struct {
-// 	VolumeName  string `json:"volumeName"`
-// 	DownloadUrl string `json:"downloadUrl"`
-// 	Bytes       int64  `json:"bytes"`
-// 	Error       string `json:"error,omitempty"`
-// }
-
-// type NfsVolumeRestoreResponse struct {
-// 	VolumeName string `json:"volumeName"`
-// 	Message    string `json:"message"`
-// 	Error      string `json:"error,omitempty"`
-// }
-
 // @TODO: add request/respionse example for nfs status
 type NfsStatusRequest struct {
 	Name             string `json:"name" validate:"required"`
@@ -700,7 +440,7 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 	}
 
 	if keplerHostAndPort == "" {
-		keplerservice := mokubernetes.ServiceWithLabels("app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler", nil)
+		keplerservice := mokubernetes.ServiceWithLabels("app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler")
 		if keplerservice != nil {
 			keplerHostAndPort = fmt.Sprintf("%s:%d", keplerservice.Name, keplerservice.Spec.Ports[0].Port)
 		} else {
@@ -986,11 +726,11 @@ func InstallClusterIssuer(email string, currentRetries int) (string, error) {
 	if currentRetries >= maxRetries {
 		return "", fmt.Errorf("No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first.")
 	} else {
-		ingType, err := punq.DetermineIngressControllerType(nil)
+		ingType, err := kubernetes.DetermineIngressControllerType()
 		if err != nil {
 			serviceLogger.Error("InstallClusterIssuer: Error determining ingress controller type", "error", err)
 		}
-		if ingType == punq.TRAEFIK || ingType == punq.NGINX {
+		if ingType == kubernetes.TRAEFIK || ingType == kubernetes.NGINX {
 			r := ClusterHelmRequest{
 				HelmRepoName:    "mogenius",
 				HelmRepoUrl:     MogeniusHelmIndex,
@@ -1215,7 +955,7 @@ EOF
 cat kubeconfig.tmpl | sed -e s/@@CACRT@@/$(echo -n "$(cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt)" | base64 | tr -d '\n')/| sed -e s/@@TOKEN@@/$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)/ | sed -e s/@@IP@@/$(kubectl get nodes -o json | jq '.items[0].status.addresses[0].address' | sed -e s/\"//g)/ > kubeconfig.yaml
 echo "KUBECONFIG created. 🚀"
 `
-	defaultAppsConfigmap := punq.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false, nil)
+	defaultAppsConfigmap := kubernetes.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false)
 	if defaultAppsConfigmap != nil {
 		if installCommands, exists := defaultAppsConfigmap.Data["install-commands"]; exists {
 			userApps = installCommands

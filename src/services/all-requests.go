@@ -21,11 +21,6 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"net/url"
 
-	punqDtos "github.com/mogenius/punq/dtos"
-	punq "github.com/mogenius/punq/kubernetes"
-	punqStructs "github.com/mogenius/punq/structs"
-	punqUtils "github.com/mogenius/punq/utils"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )
@@ -62,17 +57,24 @@ func NewMessageResponse(result interface{}, err error) MessageResponse {
 	}
 }
 
+type ClusterResourceInfoDto struct {
+	LoadBalancerExternalIps []string              `json:"loadBalancerExternalIps"`
+	NodeStats               []dtos.NodeStat       `json:"nodeStats"`
+	Country                 *utils.CountryDetails `json:"country"`
+	Provider                string                `json:"provider"`
+}
+
 func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	switch datagram.Pattern {
 	case structs.PAT_K8SNOTIFICATION:
 		return K8sNotification(datagram)
 	case structs.PAT_CLUSTERSTATUS:
-		return punq.ClusterStatus(nil)
+		return kubernetes.ClusterStatus()
 	case structs.PAT_CLUSTERRESOURCEINFO:
-		nodeStats := punq.GetNodeStats(nil)
-		loadBalancerExternalIps := punq.GetClusterExternalIps(nil)
-		country, _ := punqUtils.GuessClusterCountry()
-		result := punqDtos.ClusterResourceInfoDto{
+		nodeStats := kubernetes.GetNodeStats()
+		loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
+		country, _ := utils.GuessClusterCountry()
+		result := ClusterResourceInfoDto{
 			NodeStats:               nodeStats,
 			LoadBalancerExternalIps: loadBalancerExternalIps,
 			Country:                 country,
@@ -485,7 +487,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return kubernetes.GetPersistentVolumeClaim(data.Namespace, data.Name)
+		return NewMessageResponse(kubernetes.GetPersistentVolumeClaim(data.Namespace, data.Name))
 	// TODO
 	// case structs.PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM:
 	// 	data := ClusterWritePersistentVolume{}
@@ -617,7 +619,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		result, err := punq.AllResourcesFromToCombinedYaml(data.NamespaceName, data.Resources, nil)
+		result, err := kubernetes.AllResourcesFromToCombinedYaml(data.NamespaceName, data.Resources)
 		if err != nil {
 			return err.Error()
 		}
@@ -907,9 +909,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		go XTermClusterToolStreamConnection(data)
 		return nil
-
-	case structs.PAT_LIST_CREATE_TEMPLATES:
-		return punq.ListCreateTemplates()
 
 	case structs.PAT_LIST_ALL_WORKLOADS:
 		resources, err := kubernetes.GetAvailableResources()
@@ -1216,8 +1215,8 @@ func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceL
 		return result
 	}
 
-	pod := punq.PodStatus(data.Namespace, data.PodId, false, nil)
-	terminatedState := punq.LastTerminatedStateIfAny(pod)
+	pod := kubernetes.PodStatus(data.Namespace, data.PodId, false)
+	terminatedState := kubernetes.LastTerminatedStateIfAny(pod)
 
 	var previousResReq *rest.Request
 	if terminatedState != nil {
@@ -1266,7 +1265,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	ctx := context.Background()
 	cancelCtx, endGofunc := context.WithCancel(ctx)
 
-	lastState := punq.LastTerminatedStateToString(terminatedState)
+	lastState := kubernetes.LastTerminatedStateToString(terminatedState)
 
 	var previousStream io.ReadCloser
 	if previousRestReq != nil {
@@ -1297,7 +1296,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 }
 
 func PopeyeConsole() string {
-	return punqStructs.ExecuteShellCommandWithResponse("Generate popeye report", "popeye --force-exit-zero")
+	return utils.ExecuteShellCommandWithResponse("Generate popeye report", "popeye --force-exit-zero")
 }
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
@@ -1331,8 +1330,8 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 	cancelCtx, endGofunc := context.WithCancel(ctx)
 	defer endGofunc()
 
-	pod := punq.PodStatus(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, false, nil)
-	terminatedState := punq.LastTerminatedStateIfAny(pod)
+	pod := kubernetes.PodStatus(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, false)
+	terminatedState := kubernetes.LastTerminatedStateIfAny(pod)
 
 	var previousRestReq *rest.Request
 	if terminatedState != nil {
@@ -1362,7 +1361,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 		serviceLogger.Error("failed to read data", "error", err)
 	}
 
-	lastState := punq.LastTerminatedStateToString(terminatedState)
+	lastState := kubernetes.LastTerminatedStateToString(terminatedState)
 
 	nl := strings.NewReader("\r\n")
 	previousState := strings.NewReader(lastState)

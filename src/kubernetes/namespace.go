@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"sync"
 
-	punq "github.com/mogenius/punq/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 )
@@ -16,7 +15,7 @@ func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dto
 	cmd := structs.CreateCommand("create", "Create Kubernetes namespace", job)
 	cmd.Start(job, "Creating namespace")
 
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 	}
@@ -45,7 +44,7 @@ func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.
 		defer wg.Done()
 		cmd.Start(job, "Deleting namespace")
 
-		provider, err := punq.NewKubeProvider(nil)
+		provider, err := NewKubeProvider()
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
@@ -59,4 +58,36 @@ func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.
 			cmd.Success(job, "Deleted namespace")
 		}
 	}(wg)
+}
+
+func NamespaceExists(namespaceName string) (bool, error) {
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return false, err
+	}
+	namespaceClient := provider.ClientSet.CoreV1().Namespaces()
+	ns, err := namespaceClient.Get(context.TODO(), namespaceName, metav1.GetOptions{})
+	return (ns != nil && err == nil), err
+}
+
+func ListAllNamespaceNames() []string {
+	result := []string{}
+
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return result
+	}
+	namespaceClient := provider.ClientSet.CoreV1().Namespaces()
+
+	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		k8sLogger.Error("ListAll", "error", err.Error())
+		return result
+	}
+
+	for _, ns := range namespaceList.Items {
+		result = append(result, ns.Name)
+	}
+
+	return result
 }

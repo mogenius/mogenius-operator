@@ -4,107 +4,33 @@ import (
 	"context"
 	"strings"
 
-	punq "github.com/mogenius/punq/kubernetes"
-
+	v1 "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// func DeleteConfigMap(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-// 	cmd := structs.CreateCommand("delete", "Delete Kubernetes configMap", job)
-// 	wg.Add(1)
-// 	go func(wg *sync.WaitGroup) {
-// 		defer wg.Done()
-// 		cmd.Start(job, "Deleting configMap")
+func AllConfigmaps(namespaceName string) []v1.ConfigMap {
+	result := []v1.ConfigMap{}
 
-// 		provider, err := punq.NewKubeProvider(nil)
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-// 			return
-// 		}
-// 		configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace.Name)
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return result
+	}
+	configmapList, err := provider.ClientSet.CoreV1().ConfigMaps(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	if err != nil {
+		k8sLogger.Error("AllConfigmaps", "error", err.Error())
+		return result
+	}
 
-// 		deleteOptions := metav1.DeleteOptions{
-// 			GracePeriodSeconds: utils[int64](5),
-// 		}
-
-// 		err = configMapClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
-// 		if err != nil {
-// 			cmd.Fail(job, fmt.Sprintf("DeleteConfigMap ERROR: %s", err.Error()))
-// 		} else {
-// 			cmd.Success(job, "Deleted configMap")
-// 		}
-// 	}(wg)
-// }
-
-// func AddKeyToConfigMap(job *structs.Job, namespace string, configMapName string, key string, value string, wg *sync.WaitGroup) {
-// 	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
-// 	wg.Add(1)
-// 	go func(wg *sync.WaitGroup) {
-// 		defer wg.Done()
-// 		cmd.Start(job, "Updating configMap")
-
-// 		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
-// 		if configMap != nil {
-// 			provider, err := punq.NewKubeProvider(nil)
-// 			if err != nil {
-// 				cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-// 				return
-// 			}
-// 			configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
-// 			configMap.Data[key] = value
-
-// 			_, err = configMapClient.Update(context.TODO(), configMap, metav1.UpdateOptions{})
-// 			if err != nil {
-// 				cmd.Fail(job, fmt.Sprintf("UpdateConfigMap ERROR: %s", err.Error()))
-// 				return
-// 			} else {
-// 				cmd.Success(job, "Update configMap")
-// 				return
-// 			}
-// 		}
-// 		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
-// 	}(wg)
-// }
-
-// func RemoveKeyFromConfigMap(job *structs.Job, namespace string, configMapName string, key string, wg *sync.WaitGroup) {
-// 	cmd := structs.CreateCommand("update", "Update Kubernetes configMap", job)
-// 	wg.Add(1)
-// 	go func(wg *sync.WaitGroup) {
-// 		defer wg.Done()
-// 		cmd.Start(job, "Update Kubernetes configMap.")
-
-// 		configMap := punq.ConfigMapFor(namespace, configMapName, false, nil)
-// 		if configMap != nil {
-// 			if configMap.Data == nil {
-// 				cmd.Success(job, "ConfigMap contains no data. No key was removed.")
-// 				return
-// 			} else {
-// 				delete(configMap.Data, key)
-
-// 				provider, err := punq.NewKubeProvider(nil)
-// 				if err != nil {
-// 					cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-// 					return
-// 				}
-// 				updateOptions := metav1.UpdateOptions{
-// 					FieldManager: DEPLOYMENTNAME,
-// 				}
-// 				configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
-// 				_, err = configMapClient.Update(context.TODO(), configMap, updateOptions)
-// 				if err != nil {
-// 					cmd.Fail(job, fmt.Sprintf("RemoveKey ERROR: %s", err.Error()))
-// 					return
-// 				}
-// 				cmd.Success(job, fmt.Sprintf("Key %s successfully removed.", key))
-// 				return
-// 			}
-// 		}
-// 		cmd.Fail(job, fmt.Sprintf("ConfigMap '%s/%s' not found.", namespace, configMapName))
-// 	}(wg)
-// }
+	for _, configmap := range configmapList.Items {
+		configmap.Kind = "ConfigMap"
+		configmap.APIVersion = "v1"
+		result = append(result, configmap)
+	}
+	return result
+}
 
 // only create the configmap if it does not exist
 func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
@@ -138,7 +64,7 @@ func GetConfigMap(namespace string, name string) v1Core.ConfigMap {
 }
 
 func GetConfigMapWR(namespace string, name string) K8sWorkloadResult {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return WorkloadResult(nil, err)
 	}
@@ -152,7 +78,7 @@ func GetConfigMapWR(namespace string, name string) K8sWorkloadResult {
 }
 
 func WriteConfigMap(namespace string, name string, data string, labels map[string]string) error {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return err
 	}
@@ -189,7 +115,7 @@ func WriteConfigMap(namespace string, name string, data string, labels map[strin
 }
 
 func ListConfigMapWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
-	provider, err := punq.NewKubeProvider(nil)
+	provider, err := NewKubeProvider()
 	if err != nil {
 		return WorkloadResult(nil, err)
 	}
@@ -210,4 +136,36 @@ func ListConfigMapWithFieldSelector(namespace string, labelSelector string, pref
 	}
 
 	return WorkloadResult(cfgMaps.Items, err)
+}
+
+func ConfigMapFor(namespace string, configMapName string, showError bool) *v1.ConfigMap {
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return nil
+	}
+	configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+	configMap, err := configMapClient.Get(context.TODO(), configMapName, metav1.GetOptions{})
+	if err != nil {
+		if showError {
+			k8sLogger.Error("ConfigMapFor", "error", err.Error())
+		}
+		return nil
+	}
+	configMap.Kind = "ConfigMap"
+	configMap.APIVersion = "v1"
+	return configMap
+}
+
+func UpdateK8sConfigMap(data v1.ConfigMap) error {
+	provider, err := NewKubeProvider()
+	if err != nil {
+		return err
+	}
+	client := provider.ClientSet.CoreV1().ConfigMaps(data.Namespace)
+	_, err = client.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	if err != nil {
+		k8sLogger.Error("UpdateK8sConfigMap", "error", err.Error())
+		return err
+	}
+	return nil
 }

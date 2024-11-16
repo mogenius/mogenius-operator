@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	punq "github.com/mogenius/punq/utils"
+	"mogenius-k8s-manager/src/utils"
 )
 
 type PersistentFileDto struct {
@@ -74,8 +74,8 @@ func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 		RelativePath: relPath,
 		Extension:    filepath.Ext(path),
 		SizeInBytes:  size,
-		Size:         punq.BytesToHumanReadable(size),
-		Hash:         punq.QuickHash(path),
+		Size:         utils.BytesToHumanReadable(size),
+		Hash:         utils.QuickHash(path),
 		CreatedAt:    createTime,
 		ModifiedAt:   modTime,
 		Uid_gid:      uidGid,

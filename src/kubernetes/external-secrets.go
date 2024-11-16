@@ -14,8 +14,6 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
-	punq "github.com/mogenius/punq/kubernetes"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -124,7 +122,7 @@ func DeleteUnusedSecretsForNamespace(job *structs.Job, namespace dtos.K8sNamespa
 		defer wg.Done()
 		cmd.Start(job, "Deleting unused secrets")
 
-		deployments := punq.AllDeployments(namespace.Name, nil)
+		deployments := AllDeployments(namespace.Name)
 
 		mountedSecretNames := []string{}
 		for _, deployment := range deployments {

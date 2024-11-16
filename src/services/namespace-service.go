@@ -3,13 +3,13 @@ package services
 import (
 	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/dtos"
+	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"os"
 	"sync"
 
-	punq "github.com/mogenius/punq/kubernetes"
-	punqUtils "github.com/mogenius/punq/utils"
 	"helm.sh/helm/v3/pkg/action"
 )
 
@@ -77,17 +77,17 @@ func ShutdownNamespace(r NamespaceShutdownRequest) *structs.Job {
 }
 
 func PodIds(r NamespacePodIdsRequest) interface{} {
-	return punq.PodIdsFor(r.Namespace, nil, nil)
+	return kubernetes.PodIdsFor(r.Namespace, nil)
 }
 
 func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClusterPodsDto {
 	inDbButNotInCluster := []string{}
-	clusterPodNames := punq.AllPodNames(nil)
+	clusterPodNames := kubernetes.AllPodNames()
 	for index, dbPodName := range r.DbPodNames {
-		if !punqUtils.Contains(clusterPodNames, dbPodName) {
+		if !utils.Contains(clusterPodNames, dbPodName) {
 			inDbButNotInCluster = append(inDbButNotInCluster, dbPodName)
 		} else {
-			clusterPodNames = punqUtils.Remove(clusterPodNames, index)
+			clusterPodNames = utils.Remove(clusterPodNames, index)
 		}
 	}
 	return dtos.ValidateClusterPodsDto{
@@ -108,19 +108,19 @@ func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
 }
 
 func ListAllNamespaces() []string {
-	return punq.ListAllNamespaceNames(nil)
+	return kubernetes.ListAllNamespaceNames()
 }
 
 func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.NamespaceResourcesDto {
 	result := dtos.CreateNamespaceResourcesDto()
-	result.Pods = punq.AllPods(r.NamespaceName, nil)
-	result.Services = punq.AllServices(r.NamespaceName, nil)
-	result.Deployments = punq.AllDeployments(r.NamespaceName, nil)
-	result.Daemonsets = punq.AllDaemonsets(r.NamespaceName, nil)
-	result.Replicasets = punq.AllReplicasets(r.NamespaceName, nil)
-	result.Ingresses = punq.AllIngresses(r.NamespaceName, nil)
-	result.Secrets = punq.AllSecrets(r.NamespaceName, nil)
-	result.Configmaps = punq.AllConfigmaps(r.NamespaceName, nil)
+	result.Pods = kubernetes.AllPods(r.NamespaceName)
+	result.Services = kubernetes.AllServices(r.NamespaceName)
+	result.Deployments = kubernetes.AllDeployments(r.NamespaceName)
+	result.Daemonsets = kubernetes.AllDaemonsets(r.NamespaceName)
+	result.Replicasets = kubernetes.AllReplicasets(r.NamespaceName)
+	result.Ingresses = kubernetes.AllIngresses(r.NamespaceName)
+	result.Secrets = kubernetes.AllSecrets(r.NamespaceName)
+	result.Configmaps = kubernetes.AllConfigmaps(r.NamespaceName)
 	return result
 }
 

@@ -47,7 +47,7 @@ func (m *Watcher) Watch(logger *slog.Logger, resource interfaces.WatcherResource
 		}
 	}
 
-	provider, err := kubernetes.NewKubeProvider()
+	provider, err := kubernetes.NewKubeProviderDynamic()
 	if provider == nil || err != nil {
 		return fmt.Errorf("failed to create provider for watcher: %s", err.Error())
 	}

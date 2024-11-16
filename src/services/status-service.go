@@ -712,110 +712,6 @@ func NewResourceController(resourceController string) ResourceController {
 	}
 }
 
-// Run a goroutine to fetch k8s events then push them into the channel before timeout
-//func requestEvents(namespace string, ctx context.Context, wg *sync.WaitGroup, eventsChan chan<- []corev1.Event) {
-//	defer wg.Done()
-//
-//	r := punq.AllK8sEvents(namespace, nil)
-//
-//	var events []corev1.Event
-//	if r.Error != nil {
-//		ServiceLogger.Warningf("Warning fetching events: %s", r.Error)
-//		events = []corev1.Event{}
-//		eventsChan <- events
-//		return
-//	}
-//
-//	if r.Result != nil {
-//		events = r.Result.([]corev1.Event)
-//	}
-//
-//	// Push the events into the channel
-//	select {
-//	case <-ctx.Done():
-//		ServiceLogger.Debugf("go: timeout waiting for events")
-//		return
-//	case eventsChan <- events:
-//		//ServiceLogger.Debugf("go: push the events into the channel")
-//	}
-//}
-
-//	func StatusService(r ServiceStatusRequest) interface{} {
-//		//ServiceLogger.Debugf("StatusService for (%s): %s %s", r.ControllerName, r.Namespace, r.Controller)
-//
-//		provider, err := punq.NewKubeProvider(nil)
-//		if err != nil {
-//			ServiceLogger.Warningf("Warningf: %s", err.Error())
-//			return nil
-//		}
-//
-//		// Create a channel to receive an array of events
-//		eventsChan := make(chan []corev1.Event, 1)
-//		var wg sync.WaitGroup
-//
-//		// Context with timeout to handle cancellation and timeout
-//		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-//		defer cancel()
-//
-//		wg.Add(1)
-//		// Run a goroutine to fetch k8s events then push them into the channel before timeout
-//		go requestEvents(r.Namespace, ctx, &wg, eventsChan)
-//
-//		go func() {
-//			wg.Wait()         // Wait for all goroutines to finish.
-//			close(eventsChan) // IMPORTANT!: Safely close channel after all sends are done.
-//		}()
-//
-//		resourceItems := []ResourceItem{}
-//		resourceItems, err = kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller), provider.ClientSet, resourceItems)
-//		if err != nil {
-//			ServiceLogger.Warningf("Warning statusItems: %v", err)
-//		}
-//
-//		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
-//		if err != nil {
-//			ServiceLogger.Warningf("Warning buildItem: %v", err)
-//		}
-//
-//		// Wait for the result from the channel or timeout
-//		select {
-//		case events, ok := <-eventsChan:
-//			if !ok {
-//				ServiceLogger.Warningf("Warning event channel closed.")
-//				break
-//			}
-//
-//			// Sort events by lastTimestamp from newest to oldest
-//			sort.SliceStable(events, func(i, j int) bool {
-//				return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
-//			})
-//
-//			// Iterate events and add them to resourceItems
-//		EventLoop:
-//			for _, event := range events {
-//				for i, item := range resourceItems {
-//					if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
-//						resourceItems[i].Events = append(resourceItems[i].Events, event)
-//						continue EventLoop
-//					}
-//				}
-//			}
-//		case <-ctx.Done():
-//			ServiceLogger.Warningf("Warning timeout waiting for events")
-//		}
-//
-//		// Debug logs
-//		// jsonData, err := json.MarshalIndent(resourceItems, "", "  ")
-//		// if err != nil {
-//		// 	ServiceLogger.Warningf("Warning marshaling JSON: %v", err)
-//		// 	return nil
-//		// }
-//		// ServiceLogger.Debugf("JSON: %s", jsonData)
-//
-//		// return resourceItems
-//
-//		return ProcessServiceStatusResponse(resourceItems)
-//	}
 var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
 func StatusServiceDebounced(r ServiceStatusRequest) interface{} {
@@ -905,7 +801,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 	// var err error
 	var resourceInterface interface{}
 
-	// provider, err := punq.NewKubeProvider(nil)
+	// provider, err := NewKubeProvider()
 	// if err != nil {
 	// 	ServiceLogger.Warningf("Warningf: %s", err.Error())
 	// 	return nil, nil
@@ -946,7 +842,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 
 // func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
 // 	if labelSelector != nil {
-// 		provider, err := punq.NewKubeProvider(nil)
+// 		provider, err := NewKubeProvider()
 // 		if err != nil {
 // 			ServiceLogger.Warningf("Warningf: %s", err.Error())
 // 			return nil, nil

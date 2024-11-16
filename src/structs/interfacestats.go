@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
-	punq "github.com/mogenius/punq/utils"
 )
 
 type InterfaceStats struct {
@@ -67,7 +66,7 @@ func (data *InterfaceStats) SumOrReplace(dataToAdd *InterfaceStats) {
 }
 
 func (data *InterfaceStats) PrintInfo() {
-	message := fmt.Sprintf("%s -> Packets: %d, Send: %s | Received %s\n", data.PodName, data.PacketsSum, punq.BytesToHumanReadable(int64(data.TransmitBytes+data.TransmitStartBytes+data.LocalTransmitBytes)), punq.BytesToHumanReadable(int64(data.ReceivedBytes+data.ReceivedStartBytes+data.LocalReceivedBytes)))
+	message := fmt.Sprintf("%s -> Packets: %d, Send: %s | Received %s\n", data.PodName, data.PacketsSum, utils.BytesToHumanReadable(int64(data.TransmitBytes+data.TransmitStartBytes+data.LocalTransmitBytes)), utils.BytesToHumanReadable(int64(data.ReceivedBytes+data.ReceivedStartBytes+data.LocalReceivedBytes)))
 	structsLogger.Info(message)
 }
 
