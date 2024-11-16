@@ -47,9 +47,6 @@ var clusterCmd = &cobra.Command{
 
 			utils.PrintLogo()
 			versionModule := version.NewVersion(slogManager)
-			versionModule.PrintVersionInfo()
-			cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
-
 			helm.Setup(slogManager, cmdConfig)
 			mokubernetes.Setup(slogManager, cmdConfig)
 			controllers.Setup(slogManager)
@@ -71,6 +68,9 @@ var clusterCmd = &cobra.Command{
 			httpApi := httpService.NewHttpApi(slogManager, cmdConfig)
 
 			preRun()
+
+			versionModule.PrintVersionInfo()
+			cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
 			clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
 			if err != nil {

@@ -394,7 +394,6 @@ func initConfigDeclarations() {
 		Key:          "MO_ALLOW_COUNTRY_CHECK",
 		DefaultValue: utils.Pointer("true"),
 		Description:  utils.Pointer(`allow the operator to determine its location country base on the IP address`),
-		ReadOnly:     true,
 		Cobra: &interfaces.ConfigCobraFlags{
 			Name: "allow-country-check",
 		},
