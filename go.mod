@@ -4,20 +4,19 @@ go 1.23.2
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.0
+	github.com/alecthomas/kong v1.4.0
 	github.com/cert-manager/cert-manager v1.16.1
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.4.0
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/jaevor/go-nanoid v1.4.0
 	github.com/jedib0t/go-pretty/v6 v6.6.1
 	github.com/json-iterator/go v1.1.12
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	go.etcd.io/bbolt v1.3.11
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -122,6 +121,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.3.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
+	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect

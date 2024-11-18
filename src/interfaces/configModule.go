@@ -1,9 +1,5 @@
 package interfaces
 
-import (
-	"github.com/spf13/cobra"
-)
-
 type ConfigModule interface {
 	// `Declare()` a config value without an initial value.
 	Declare(opts ConfigDeclaration)
@@ -37,25 +33,11 @@ type ConfigModule interface {
 	// - else: trigger only when the provided keys change
 	OnChanged(keys []string, cb func(key string, value string, isSecret bool))
 
-	// Register a callback for when the initial loading of the config module has finished.
-	//
-	// Multiple callbacks can be provided.
-	//
-	// This callback is called once when the initialization finished:
-	//
-	// 	- if `*cobra.Command == nil`: gets triggered right after `ConfigModule.Init()`
-	// 	- if `*cobra.Command != nil`: gets triggered after cobra was initialized and all values have been loaded
-	OnFinalized(callback func())
-
-	// Initialize the config object.
-	// This loads env variables and, if a cobra cmd is set, registers CLI flags.
-	Init()
+	// Load ENVs for declared configs.
+	LoadEnvs()
 
 	// Export all configs in a format for .env files
 	AsEnvs() string
-
-	// Provide a cobra cmd to utilize cobra's CLI. Required for `ConfigDeclaration.Cobra` to work.
-	WithCobraCmd(cmd *cobra.Command)
 
 	// Check all values are initialized. Exits the program if issues have been found.
 	Validate()
@@ -74,19 +56,8 @@ type ConfigDeclaration struct {
 	ReadOnly bool
 	// (optional) List of ENV variables to lookup while in Init()
 	Envs []string
-	// (optional) Cobra command variable to lookup while in Init()
-	Cobra *ConfigCobraFlags
 	// (optional) Validation to check if user provided values are valid
 	Validate func(value string) error
-}
-
-type ConfigCobraFlags struct {
-	// (required) Long cli Flag: --example
-	Name string
-	// (optional) Short cli Flag: -e
-	Short *string
-	// given to cobra to parse into
-	CobraValue *string
 }
 
 type ConfigVariable struct {
