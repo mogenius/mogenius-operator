@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mogenius-k8s-manager/src/shell"
 	"os"
 	"runtime"
 	"slices"
@@ -13,7 +14,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/go-git/go-git/v5/plumbing/color"
 	"github.com/mattn/go-isatty"
 	"github.com/nwidger/jsoncolor"
 )
@@ -133,19 +133,19 @@ func printLogLine(
 	if enableColor {
 		switch level {
 		case "DEBUG":
-			level = color.Cyan + level + color.Reset
+			level = shell.Cyan + level + shell.Reset
 		case "INFO":
-			level = color.Green + level + color.Reset
+			level = shell.Green + level + shell.Reset
 		case "WARN":
-			level = color.Yellow + level + color.Reset
+			level = shell.Yellow + level + shell.Reset
 		case "ERROR":
-			level = color.Red + level + color.Reset
+			level = shell.Red + level + shell.Reset
 		default:
 			panic(fmt.Errorf("unsupported error level: %s", level))
 		}
-		component = color.Magenta + component + color.Reset
-		source = color.Faint + source + color.Reset
-		message = color.Normal + message + color.Reset
+		component = shell.Magenta + component + shell.Reset
+		source = shell.Faint + source + shell.Reset
+		message = shell.Normal + message + shell.Reset
 
 		if len(payload) > 0 {
 			data, err := jsoncolor.Marshal(payload)

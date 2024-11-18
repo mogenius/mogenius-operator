@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/services"
+	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -15,7 +16,6 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/fatih/color"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/gorilla/websocket"
@@ -216,13 +216,13 @@ func updateCheck() {
 			"######                    Available: %s                    ######\n"+
 			"######                    In-Use:    %s                    ######\n"+
 			"######                                                        ######\n"+
-			"######   %s   ######\n", color.RedString("Not updating might result in service interruption.")+
+			"######   %s   ######\n", shell.Colorize("Not updating might result in service interruption.", shell.Red)+
 			"####################################################################\n"+
 			"####################################################################\n",
-			color.BlueString("NEW VERSION AVAILABLE!"),
-			color.YellowString(" UPDATE AS FAST AS POSSIBLE"),
-			color.GreenString(mok8smanager.Version),
-			color.RedString(version.Ver),
+			shell.Colorize("NEW VERSION AVAILABLE!", shell.Blue),
+			shell.Colorize(" UPDATE AS FAST AS POSSIBLE", shell.Yellow),
+			shell.Colorize(mok8smanager.Version, shell.Green),
+			shell.Colorize(version.Ver, shell.Red),
 		)
 		notUpToDateAction(helmData)
 	} else {

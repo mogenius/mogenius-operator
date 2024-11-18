@@ -2,10 +2,9 @@ package structs
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
 	"time"
-
-	"github.com/fatih/color"
 )
 
 type Datagram struct {
@@ -79,18 +78,12 @@ func CreateEmptyDatagram() Datagram {
 }
 
 func (d *Datagram) DisplayBeautiful() {
-	IDCOLOR := color.New(color.FgWhite, color.BgBlue).SprintFunc()
-	PATTERNCOLOR := color.New(color.FgBlack, color.BgYellow).SprintFunc()
-	TIMECOLOR := color.New(color.FgWhite, color.BgRed).SprintFunc()
-	SIZECOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
-	PAYLOADCOLOR := color.New(color.FgBlack, color.BgHiGreen).SprintFunc()
-
-	fmt.Printf("%s %s\n", IDCOLOR("ID:      "), d.Id)
-	fmt.Printf("%s %s\n", PATTERNCOLOR("PATTERN: "), color.BlueString(d.Pattern))
-	fmt.Printf("%s %s\n", TIMECOLOR("TIME:    "), time.Now().Format(time.RFC3339))
-	fmt.Printf("%s %s\n", TIMECOLOR("Duration:"), utils.DurationStrSince(d.CreatedAt))
-	fmt.Printf("%s %s\n", SIZECOLOR("Size:    "), utils.BytesToHumanReadable(d.GetSize()))
-	fmt.Printf("%s %s\n\n", PAYLOADCOLOR("PAYLOAD: "), utils.PrettyPrintInterface(d.Payload))
+	fmt.Printf("%s %s\n", shell.Colorize("ID:      ", shell.White, shell.BgBlue), d.Id)
+	fmt.Printf("%s %s\n", shell.Colorize("PATTERN: ", shell.White, shell.BgYellow), shell.Colorize(d.Pattern, shell.Blue))
+	fmt.Printf("%s %s\n", shell.Colorize("TIME:    ", shell.White, shell.BgRed), time.Now().Format(time.RFC3339))
+	fmt.Printf("%s %s\n", shell.Colorize("Duration:", shell.White, shell.BgRed), utils.DurationStrSince(d.CreatedAt))
+	fmt.Printf("%s %s\n", shell.Colorize("Size:    ", shell.Black, shell.BgGreen), utils.BytesToHumanReadable(d.GetSize()))
+	fmt.Printf("%s %s\n\n", shell.Colorize("PAYLOAD: ", shell.Black, shell.Green), utils.PrettyPrintInterface(d.Payload))
 }
 
 func (d *Datagram) DisplayReceiveSummary() {

@@ -12,6 +12,9 @@ import (
 )
 
 func RunSystem(logManagerModule interfaces.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+	versionModule := version.NewVersion()
+	versionModule.PrintVersionInfo()
+
 	configModule.Validate()
 
 	watcherModule := watcher.NewWatcher()
@@ -20,10 +23,6 @@ func RunSystem(logManagerModule interfaces.LogManagerModule, configModule *confi
 	services.Setup(logManagerModule, configModule)
 	utils.Setup(logManagerModule, configModule)
 
-	utils.PrintLogo()
-
-	versionModule := version.NewVersion(logManagerModule)
-	versionModule.PrintVersionInfo()
 	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
 	services.SystemCheck()
