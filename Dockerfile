@@ -28,10 +28,10 @@ COPY . .
 ARG TARGETARCH
 
 RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-  -X 'mogenius-k8s-manager/version.GitCommitHash=${COMMIT_HASH}' \
-  -X 'mogenius-k8s-manager/version.Branch=${GIT_BRANCH}' \
-  -X 'mogenius-k8s-manager/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
-  -X 'mogenius-k8s-manager/version.Ver=$VERSION'" \
+  -X 'mogenius-k8s-manager/src/version.GitCommitHash=${COMMIT_HASH}' \
+  -X 'mogenius-k8s-manager/src/version.Branch=${GIT_BRANCH}' \
+  -X 'mogenius-k8s-manager/src/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
+  -X 'mogenius-k8s-manager/src/version.Ver=$VERSION'" \
   -o "bin/mogenius-k8s-manager" \
   ./src/main.go
 
