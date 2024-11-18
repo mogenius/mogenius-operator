@@ -32,7 +32,7 @@ func externalSecretStorePropsExample() servicesExternal.ExternalSecretStoreProps
 func TestSecretStoreCreate(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	servicesExternal.Setup(config)
+	servicesExternal.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
