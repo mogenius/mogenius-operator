@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	servicesExternal "mogenius-k8s-manager/src/services-external"
+	"mogenius-k8s-manager/src/watcher"
 	"time"
 
 	"mogenius-k8s-manager/src/utils"
@@ -37,7 +38,8 @@ func TestSecretStoreCreate(t *testing.T) {
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 
 	props := externalSecretStorePropsExample()
 

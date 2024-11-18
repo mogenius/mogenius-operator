@@ -101,7 +101,7 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 
 	k8sLogger.Debug("Sending custom network policy event to dispatcher", "event", event)
 
-	ProcessEvent(event)
+	processEvent(event)
 }
 
 func createAnnotations(items ...string) map[string]string {

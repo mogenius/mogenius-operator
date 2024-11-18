@@ -37,8 +37,10 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 		configModule.Validate()
 
 		versionModule := version.NewVersion(logManagerModule)
+		watcherModule := watcher.NewWatcher()
+
 		helm.Setup(logManagerModule, configModule)
-		mokubernetes.Setup(logManagerModule, configModule)
+		mokubernetes.Setup(logManagerModule, configModule, watcherModule)
 		controllers.Setup(logManagerModule)
 		crds.Setup(logManagerModule)
 		db.Setup(logManagerModule, configModule)
@@ -92,6 +94,12 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 			iacmanager.Start()
 		}
 		go httpApi.Run(":1337")
+		err = mokubernetes.Start()
+		if err != nil {
+			cmdLogger.Error("Error starting kubernetes service", "error", err)
+			shutdown.SendShutdownSignal(true)
+			select {}
+		}
 
 		migrations.ExecuteMigrations()
 

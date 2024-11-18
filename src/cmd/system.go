@@ -8,12 +8,15 @@ import (
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
+	"mogenius-k8s-manager/src/watcher"
 )
 
 func RunSystem(logManagerModule interfaces.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
 	configModule.Validate()
 
-	mokubernetes.Setup(logManagerModule, configModule)
+	watcherModule := watcher.NewWatcher()
+
+	mokubernetes.Setup(logManagerModule, configModule, watcherModule)
 	services.Setup(logManagerModule, configModule)
 	utils.Setup(logManagerModule, configModule)
 

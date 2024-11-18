@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/watcher"
 	"testing"
 )
 
@@ -12,7 +13,8 @@ import (
 func TestResourceTemplates(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
