@@ -13,10 +13,10 @@ run: build-native
 # Build a native binary with flags similar to the production build
 build-native:
     go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-        -X 'mogenius-k8s-manager/version.GitCommitHash=XXXXXX' \
-        -X 'mogenius-k8s-manager/version.Branch=local-development' \
-        -X 'mogenius-k8s-manager/version.BuildTimestamp=$(date)' \
-        -X 'mogenius-k8s-manager/version.Ver=6.6.6'" -o dist/native/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
+        -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
+        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
+        -X 'mogenius-k8s-manager/src/version.Ver=6.6.6'" -o dist/native/mogenius-k8s-manager ./src/main.go
 
 # Build binaries for all targets
 build-all: build-linux-amd64 build-linux-arm64 build-linux-armv7
@@ -24,10 +24,10 @@ build-all: build-linux-amd64 build-linux-arm64 build-linux-armv7
 # Build binary for target linux-amd64
 build-linux-amd64:
     GOOS=linux GOARCH=amd64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-        -X 'mogenius-k8s-manager/version.GitCommitHash=XXXXXX' \
-        -X 'mogenius-k8s-manager/version.Branch=local-development' \
-        -X 'mogenius-k8s-manager/version.BuildTimestamp=$(date)' \
-        -X 'mogenius-k8s-manager/version.Ver=6.6.6'" -o dist/amd64/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
+        -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
+        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
+        -X 'mogenius-k8s-manager/src/version.Ver=6.6.6'" -o dist/amd64/mogenius-k8s-manager ./src/main.go
 
 # Build docker image for target linux-amd64
 build-docker-linux-amd64:
@@ -52,10 +52,10 @@ build-docker-linux-amd64:
 # Build binary for target linux-arm64
 build-linux-arm64:
     GOOS=linux GOARCH=amd64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-        -X 'mogenius-k8s-manager/version.GitCommitHash=XXXXXX' \
-        -X 'mogenius-k8s-manager/version.Branch=local-development' \
-        -X 'mogenius-k8s-manager/version.BuildTimestamp=$(date)' \
-        -X 'mogenius-k8s-manager/version.Ver=6.6.6'" -o dist/arm64/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
+        -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
+        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
+        -X 'mogenius-k8s-manager/src/version.Ver=6.6.6'" -o dist/arm64/mogenius-k8s-manager ./src/main.go
 
 # Build docker image for target linux-arm64
 build-docker-linux-arm64:
@@ -80,10 +80,10 @@ build-docker-linux-arm64:
 # Build binary for target linux-armv7
 build-linux-armv7:
     GOOS=linux GOARCH=arm go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-        -X 'mogenius-k8s-manager/version.GitCommitHash=XXXXXX' \
-        -X 'mogenius-k8s-manager/version.Branch=local-development' \
-        -X 'mogenius-k8s-manager/version.BuildTimestamp=$(date)' \
-        -X 'mogenius-k8s-manager/version.Ver=6.6.6'" -o dist/armv7/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
+        -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
+        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
+        -X 'mogenius-k8s-manager/src/version.Ver=6.6.6'" -o dist/armv7/mogenius-k8s-manager ./src/main.go
 
 # Build docker image for target linux-armv7
 build-docker-linux-armv7:

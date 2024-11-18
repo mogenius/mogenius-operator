@@ -30,10 +30,10 @@ import (
 
 func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
 	go func() {
-		configModule.Validate()
-
-		versionModule := version.NewVersion(logManagerModule)
+		versionModule := version.NewVersion()
 		watcherModule := watcher.NewWatcher()
+
+		configModule.Validate()
 
 		helm.Setup(logManagerModule, configModule)
 		mokubernetes.Setup(logManagerModule, configModule, watcherModule)
@@ -51,8 +51,6 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 		utils.Setup(logManagerModule, configModule)
 		xterm.Setup(logManagerModule, configModule)
 		httpApi := httpService.NewHttpApi(logManagerModule, configModule)
-
-		utils.PrintLogo()
 
 		versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())

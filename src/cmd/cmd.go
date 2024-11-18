@@ -6,9 +6,9 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
-	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/version"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -97,18 +97,6 @@ func Run() error {
 	)
 
 	//===============================================================
-	//=========================== PreRun ============================
-	//===============================================================
-	if utils.ClusterProviderCached == utils.UNKNOWN {
-		foundProvider, err := kubernetes.GuessClusterProvider()
-		if err != nil {
-			cmdLogger.Error("GuessClusterProvider", "error", err)
-		}
-		utils.ClusterProviderCached = foundProvider
-		cmdLogger.Info("🎲 🎲 🎲 ClusterProvider", "foundProvider", string(foundProvider))
-	}
-
-	//===============================================================
 	//======================= Execute Command =======================
 	//===============================================================
 	switch ctx.Command() {
@@ -137,10 +125,8 @@ func Run() error {
 		}
 		return nil
 	case "version":
-		err := RunVersion(slogManager, configModule, cmdLogger)
-		if err != nil {
-			return err
-		}
+		versionModule := version.NewVersion()
+		versionModule.PrintVersionInfo()
 		return nil
 	case "config":
 		fmt.Println(configModule.AsEnvs())

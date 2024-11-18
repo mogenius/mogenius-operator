@@ -1,26 +1,32 @@
 package version
 
 import (
-	"log/slog"
-	"mogenius-k8s-manager/src/interfaces"
+	"fmt"
+	"mogenius-k8s-manager/src/shell"
 )
 
-type Version struct {
-	logger *slog.Logger
-}
+type Version struct{}
 
-func NewVersion(logManager interfaces.LogManagerModule) *Version {
-	return &Version{
-		logger: logManager.CreateLogger("version"),
-	}
+func NewVersion() *Version {
+	return &Version{}
 }
 
 func (self *Version) PrintVersionInfo() {
-	self.logger.Info(
-		"mogenius-k8s-manager",
-		"Version", Ver,
-		"Branch", Branch,
-		"GitCommitHash", GitCommitHash,
-		"BuildTimestamp", BuildTimestamp,
+	fmt.Printf(
+		"███╗░░░███╗░█████╗░░██████╗░███████╗███╗░░██╗██╗██╗░░░██╗░██████╗\n" +
+			"████╗░████║██╔══██╗██╔════╝░██╔════╝████╗░██║██║██║░░░██║██╔════╝\n" +
+			"██╔████╔██║██║░░██║██║░░██╗░█████╗░░██╔██╗██║██║██║░░░██║╚█████╗░\n" +
+			"██║╚██╔╝██║██║░░██║██║░░╚██╗██╔══╝░░██║╚████║██║██║░░░██║░╚═══██╗\n" +
+			"██║░╚═╝░██║╚█████╔╝╚██████╔╝███████╗██║░╚███║██║╚██████╔╝██████╔╝\n" +
+			"╚═╝░░░░░╚═╝░╚════╝░░╚═════╝░╚══════╝╚═╝░░╚══╝╚═╝░╚═════╝░╚═════╝░\n\n",
 	)
+
+	versionInfo := ""
+	versionInfo = versionInfo + fmt.Sprintf("CLI:       %s\n", shell.Colorize(Ver, shell.Yellow))
+	versionInfo = versionInfo + fmt.Sprintf("Container: %s\n", shell.Colorize(Ver, shell.Yellow))
+	versionInfo = versionInfo + fmt.Sprintf("Branch:    %s\n", shell.Colorize(Branch, shell.Yellow))
+	versionInfo = versionInfo + fmt.Sprintf("Commit:    %s\n", shell.Colorize(GitCommitHash, shell.Yellow))
+	versionInfo = versionInfo + fmt.Sprintf("Timestamp: %s\n", shell.Colorize(BuildTimestamp, shell.Yellow))
+
+	fmt.Print(versionInfo)
 }

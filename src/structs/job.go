@@ -5,9 +5,8 @@ import (
 	"time"
 
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
-
-	"github.com/fatih/color"
 )
 
 type DefaultResponse struct {
@@ -123,13 +122,6 @@ func ReportCmdStateToServer(job *Job, cmd *Command) {
 
 func stateLogJob(data *Job) {
 	typeName := "JOB"
-	PEND := color.New(color.FgWhite, color.BgBlue).SprintFunc()
-	STAR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
-	ERRO := color.New(color.FgWhite, color.BgRed).SprintFunc()
-	SUCC := color.New(color.FgWhite, color.BgGreen).SprintFunc()
-	DEFA := color.New(color.FgWhite, color.BgCyan).SprintFunc()
-	LONG := color.New(color.FgRed).SprintFunc()
-
 	// COLOR MILLISECONDS IF >500
 	durationMs := data.Finished.Sub(data.Started).Milliseconds()
 	if durationMs < 0 {
@@ -137,7 +129,7 @@ func stateLogJob(data *Job) {
 	}
 	duration := fmt.Sprintf("%d", durationMs)
 	if durationMs > 500 {
-		duration = LONG(fmt.Sprintf("%d", durationMs))
+		duration = shell.Colorize(fmt.Sprintf("%d", durationMs), shell.Red)
 	}
 
 	serviceLogger, err := logManager.GetLogger("services")
@@ -148,27 +140,51 @@ func stateLogJob(data *Job) {
 	var message string
 	switch data.State {
 	case JobStatePending:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, PEND(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf(
+			"   %s %s %s (%sms)\n",
+			typeName,
+			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgBlue),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	case JobStateStarted:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, STAR(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf(
+			"   %s %s %s (%sms)\n",
+			typeName,
+			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgYellow),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	case JobStateFailed, JobStateTimeout, JobStateCanceled:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, ERRO(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf(
+			"   %s %s %s (%sms)\n",
+			typeName,
+			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgRed),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	case JobStateSucceeded:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, SUCC(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf(
+			"   %s %s %s (%sms)\n",
+			typeName,
+			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgGreen),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	default:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf(
+			"   %s %s %s (%sms)\n",
+			typeName,
+			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgCyan),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	}
 	serviceLogger.Info(message, "namespace", data.NamespaceName, "controllerName", data.ControllerName)
 }
 
 func stateLogCmd(data *Command, ns string, controllerName string) {
 	typeName := "CMD"
-	PEND := color.New(color.FgWhite, color.BgBlue).SprintFunc()
-	STAR := color.New(color.FgWhite, color.BgYellow).SprintFunc()
-	ERRO := color.New(color.FgWhite, color.BgRed).SprintFunc()
-	SUCC := color.New(color.FgWhite, color.BgGreen).SprintFunc()
-	DEFA := color.New(color.FgWhite, color.BgCyan).SprintFunc()
-	LONG := color.New(color.FgRed).SprintFunc()
 
 	// COLOR MILLISECONDS IF >500
 	durationMs := data.Finished.Sub(data.Started).Milliseconds()
@@ -177,7 +193,7 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 	}
 	duration := fmt.Sprintf("%d", durationMs)
 	if durationMs > 500 {
-		duration = LONG(fmt.Sprintf("%d", durationMs))
+		duration = shell.Colorize(fmt.Sprintf("%d", durationMs), shell.Red)
 	}
 
 	serviceLogger, err := logManager.GetLogger("services")
@@ -188,15 +204,43 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 	var message string
 	switch data.State {
 	case JobStatePending:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, PEND(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf(
+			"   %s %s %s (%sms)\n",
+			typeName, shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgYellow),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	case JobStateStarted:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, STAR(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf("   %s %s %s (%sms)\n",
+			typeName,
+			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgYellow),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	case JobStateFailed, JobStateTimeout, JobStateCanceled:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, ERRO(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf(
+			"   %s %s %s (%sms)\n",
+			typeName,
+			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgRed),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	case JobStateSucceeded:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, SUCC(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf(
+			"   %s %s %s (%sms)\n",
+			typeName,
+			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgGreen),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	default:
-		message = fmt.Sprintf("   %s %s %s (%sms)\n", typeName, DEFA(utils.FillWith(string(data.State), 15, " ")), utils.FillWith(data.Title, 96, " "), duration)
+		message = fmt.Sprintf(
+			"   %s %s %s (%sms)\n",
+			typeName,
+			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgCyan),
+			utils.FillWith(data.Title, 96, " "),
+			duration,
+		)
 	}
 	serviceLogger.Info(message, "namespace", ns, "controllerName", controllerName)
 }

@@ -3,12 +3,12 @@ package gitmanager
 import (
 	"errors"
 	"fmt"
+	"mogenius-k8s-manager/src/shell"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -653,14 +653,10 @@ func LastLogDecorate(path string) (string, error) {
 		return "", err
 	}
 
-	green := color.New(color.FgGreen).SprintFunc()
-	blue := color.New(color.FgBlue).SprintFunc()
-	yellow := color.New(color.FgYellow).SprintFunc()
-
 	decorations := findDecorations(repo, headRef.Hash())
 	shortHash := commit.Hash.String()[:7]
-	result := fmt.Sprintf("commit %s %s\n", green(shortHash), blue(strings.Join(decorations, ", ")))
-	result += fmt.Sprintf("Author: %s <%s>\n", yellow(commit.Author.Name), commit.Author.Email)
+	result := fmt.Sprintf("commit %s %s\n", shell.Colorize(shortHash, shell.Green), shell.Colorize(strings.Join(decorations, ", "), shell.Blue))
+	result += fmt.Sprintf("Author: %s <%s>\n", shell.Colorize(commit.Author.Name, shell.Yellow), commit.Author.Email)
 	result += fmt.Sprintf("Date:   %s\n\n", commit.Author.When.Format("Mon Jan 2 15:04:05 2006 -0700"))
 	result += fmt.Sprintf("    %s\n", commit.Message)
 

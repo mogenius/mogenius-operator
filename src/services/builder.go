@@ -9,6 +9,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/gitmanager"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/xterm"
@@ -23,8 +24,6 @@ import (
 	v1job "k8s.io/api/batch/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
-	"github.com/fatih/color"
 )
 
 var DISABLEQUEUE bool = true
@@ -513,7 +512,7 @@ func processLine(
 
 func applyErrorSuggestions(line string) string {
 	if strings.Contains(line, "Get \"https://mocr.local.mogenius.io/v2/\": tls: failed to verify certificate: x509: certificate is valid for") {
-		line = line + infoStr() + color.GreenString("✅  Please run 'mocli cluster local-dev-setup' to prepare everything for local registries.\r\n✅  Make sure you have installed the Local Container Registry in the cluster settings.\r\n✅  Please restart your k8s-manager pod to retrieve the new certificate.")
+		line = line + infoStr() + shell.Colorize("✅  Please run 'mocli cluster local-dev-setup' to prepare everything for local registries.\r\n✅  Make sure you have installed the Local Container Registry in the cluster settings.\r\n✅  Please restart your k8s-manager pod to retrieve the new certificate.", shell.Green)
 	}
 	return line
 }
