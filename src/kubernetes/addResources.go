@@ -174,15 +174,9 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 
 	// CONSTRUCT THE OBJECT
 	configMapData := utils.ClusterConfigmap{}
-	configMapData.SyncWorkloads = availableRes
 	configMapData.AvailableWorkloads = availableRes
 	configMapData.IgnoredNamespaces = dtos.DefaultIgnoredNamespaces()
 	configMapData.IgnoredNames = []string{""}
-
-	// TODO: this field should not reflect ALL resources but only the resources we want to actually watch!
-	syncWorkloadsYaml, err := utils.ToYaml(configMapData.SyncWorkloads)
-	assert.Assert(err == nil, fmt.Sprintf("serializing the SyncWorkloads struct field should never fail: %#v", err))
-	configMap.Data["syncWorkloads"] = syncWorkloadsYaml
 
 	availableWorkloadsYaml, err := utils.ToYaml(configMapData.AvailableWorkloads)
 	assert.Assert(err == nil, fmt.Sprintf("serializing the SyncWorkloads struct field should never fail: %#v", err))

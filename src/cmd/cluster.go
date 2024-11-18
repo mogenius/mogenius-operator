@@ -12,7 +12,6 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/httpService"
-	iacmanager "mogenius-k8s-manager/src/iac-manager"
 	"mogenius-k8s-manager/src/interfaces"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/migrations"
@@ -29,9 +28,6 @@ import (
 	"strconv"
 )
 
-// the IAC Manager is not readily implemented and development has been put on hold
-const IAC_MANAGER_ENABLED bool = false
-
 func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
 	go func() {
 		configModule.Validate()
@@ -46,9 +42,6 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 		db.Setup(logManagerModule, configModule)
 		dbstats.Setup(logManagerModule, configModule)
 		dtos.Setup(logManagerModule)
-		if IAC_MANAGER_ENABLED {
-			iacmanager.Setup(logManagerModule, configModule, watcher.NewWatcher())
-		}
 		migrations.Setup(logManagerModule)
 		services.Setup(logManagerModule, configModule)
 		servicesExternal.Setup(logManagerModule, configModule)
@@ -70,7 +63,7 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 			shutdown.SendShutdownSignal(true)
 			select {}
 		}
-		clusterConfigmap, err := mokubernetes.CreateAndUpdateClusterConfigmap()
+		_, err = mokubernetes.CreateAndUpdateClusterConfigmap()
 		if err != nil {
 			cmdLogger.Error("Error retrieving cluster configmap. Aborting.", "error", err.Error())
 			shutdown.SendShutdownSignal(true)
@@ -84,15 +77,11 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 		}
 
 		utils.SetupClusterSecret(clusterSecret)
-		utils.SetupClusterConfigmap(clusterConfigmap)
 
 		db.Start()
 		store.Start()
 		defer store.Defer()
 		dbstats.Start()
-		if IAC_MANAGER_ENABLED {
-			iacmanager.Start()
-		}
 		go httpApi.Run(":1337")
 		err = mokubernetes.Start()
 		if err != nil {

@@ -9,7 +9,6 @@ import (
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
-	iacmanager "mogenius-k8s-manager/src/iac-manager"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/xterm"
@@ -107,19 +106,19 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_SYSTEM_PRINT_CURRENT_CONFIG:
 		return config.AsEnvs()
 
-	case structs.PAT_IAC_FORCE_SYNC:
-		return NewMessageResponse(nil, iacmanager.SyncChanges())
-	case structs.PAT_IAC_GET_STATUS:
-		return NewMessageResponse(iacmanager.GetDataModel(), nil)
-	case structs.PAT_IAC_RESET_LOCAL_REPO:
-		return NewMessageResponse(nil, iacmanager.ResetLocalRepo())
-	case structs.PAT_IAC_RESET_FILE:
-		data := dtos.ResetFileRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return NewMessageResponse(nil, iacmanager.ResetFile(data.FilePath, data.CommitHash))
+	// case structs.PAT_IAC_FORCE_SYNC:
+	// 	return NewMessageResponse(nil, iacmanager.SyncChanges())
+	// case structs.PAT_IAC_GET_STATUS:
+	// 	return NewMessageResponse(iacmanager.GetDataModel(), nil)
+	// case structs.PAT_IAC_RESET_LOCAL_REPO:
+	// 	return NewMessageResponse(nil, iacmanager.ResetLocalRepo())
+	// case structs.PAT_IAC_RESET_FILE:
+	// 	data := dtos.ResetFileRequest{}
+	// 	structs.MarshalUnmarshal(&datagram, &data)
+	// 	if err := utils.ValidateJSON(data); err != nil {
+	// 		return err
+	// 	}
+	// 	return NewMessageResponse(nil, iacmanager.ResetFile(data.FilePath, data.CommitHash))
 
 	case structs.PAT_ENERGY_CONSUMPTION:
 		return EnergyConsumption()
@@ -131,22 +130,22 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return result
 
-	case structs.PAT_CLUSTER_SYNC_UPDATE:
-		data := dtos.SyncRepoData{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		data.AddSecretsToRedaction()
-		err := iacmanager.UpdateSyncRepoData(&data)
-		if err != nil {
-			return err
-		}
-		err = iacmanager.CheckRepoAccess()
-		if err != nil {
-			return err
-		}
-		return err
+	// case structs.PAT_CLUSTER_SYNC_UPDATE:
+	// 	data := dtos.SyncRepoData{}
+	// 	structs.MarshalUnmarshal(&datagram, &data)
+	// 	if err := utils.ValidateJSON(data); err != nil {
+	// 		return err
+	// 	}
+	// 	data.AddSecretsToRedaction()
+	// 	err := iacmanager.UpdateSyncRepoData(&data)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	err = iacmanager.CheckRepoAccess()
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	return err
 
 	case structs.PAT_INSTALL_TRAFFIC_COLLECTOR:
 		result, err := InstallTrafficCollector()
