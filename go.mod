@@ -14,7 +14,6 @@ require (
 	github.com/jaevor/go-nanoid v1.4.0
 	github.com/jedib0t/go-pretty/v6 v6.6.1
 	github.com/json-iterator/go v1.1.12
-	github.com/kubernetes-csi/external-snapshotter/client/v6 v6.3.0
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/shirou/gopsutil/v3 v3.24.5
