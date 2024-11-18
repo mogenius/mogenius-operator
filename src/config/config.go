@@ -11,8 +11,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	"github.com/spf13/cobra"
 )
 
 type Config struct {
@@ -22,7 +20,6 @@ type Config struct {
 	onChangedCallbacksLock   sync.RWMutex
 	onFinalizedCallbacks     []func()
 	onFinalizedCallbacksLock sync.RWMutex
-	cobraCmd                 *cobra.Command
 }
 
 type configValue struct {
@@ -85,41 +82,6 @@ func (c *Config) Validate() {
 	}
 }
 
-func (c *Config) WithCobraCmd(cmd *cobra.Command) {
-	assert.Assert(cmd != nil)
-	assert.Assert(c.cobraCmd == nil)
-	c.cobraCmd = cmd
-	cobra.OnInitialize(c.loadCobraArgs)
-}
-
-func (c *Config) loadCobraArgs() {
-	func() {
-		c.dataLock.Lock()
-		defer c.dataLock.Unlock()
-
-		if c.cobraCmd == nil {
-			return
-		}
-		for _, cv := range c.data {
-			if cv.declaration.Cobra == nil {
-				continue
-			}
-			if cv.declaration.Cobra.CobraValue == nil {
-				continue
-			}
-			if !c.cobraCmd.Flags().Changed(cv.declaration.Cobra.Name) {
-				continue
-			}
-			if cv.declaration.Validate != nil {
-				err := cv.declaration.Validate(*cv.declaration.Cobra.CobraValue)
-				assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing cli argument '%s' -> %s", cv.declaration.Key, "--"+cv.declaration.Cobra.Name, err))
-			}
-			cv.value = cv.declaration.Cobra.CobraValue
-		}
-	}()
-	c.runOnFinalizedCallbacks()
-}
-
 func (c *Config) Declare(opts interfaces.ConfigDeclaration) {
 	func() {
 		c.dataLock.Lock()
@@ -145,13 +107,6 @@ func (c *Config) Declare(opts interfaces.ConfigDeclaration) {
 		if opts.Envs != nil {
 			for _, env := range opts.Envs {
 				assert.Assert(!strings.Contains(env, "\n"), fmt.Errorf("'Envs' in 'interfaces.ConfigDeclaration' may not contain newlines: %#v", opts))
-			}
-		}
-
-		if opts.Cobra != nil {
-			assert.Assert(!strings.Contains(opts.Cobra.Name, "\n"), fmt.Errorf("'Cobra.Name' in 'interfaces.ConfigDeclaration' may not contain newlines: %#v", opts))
-			if opts.Cobra.Short != nil {
-				assert.Assert(!strings.Contains(*opts.Cobra.Short, "\n"), fmt.Errorf("'Cobra.Short' in 'interfaces.ConfigDeclaration' may not contain newlines: %#v", opts))
 			}
 		}
 
@@ -290,24 +245,6 @@ func (c *Config) OnChanged(keys []string, callback func(key string, value string
 	c.onChangedCallbacks = append(c.onChangedCallbacks, callbackConfig)
 }
 
-func (c *Config) runOnFinalizedCallbacks() {
-	c.onFinalizedCallbacksLock.RLock()
-	defer c.onFinalizedCallbacksLock.RUnlock()
-
-	for _, callback := range c.onFinalizedCallbacks {
-		assert.Assert(callback != nil, "the API is expected to prevent callback being nil")
-		callback()
-	}
-}
-
-func (c *Config) OnFinalized(callback func()) {
-	assert.Assert(callback != nil)
-	c.onFinalizedCallbacksLock.Lock()
-	defer c.onFinalizedCallbacksLock.Unlock()
-
-	c.onFinalizedCallbacks = append(c.onFinalizedCallbacks, callback)
-}
-
 type Usage struct {
 	Key         string
 	Initialized bool
@@ -336,66 +273,32 @@ func (c *Config) GetUsage() []Usage {
 	return usages
 }
 
-func (c *Config) Init() {
-	triggerFinalizedCallbacks := false
-	func() {
-		c.dataLock.Lock()
-		defer c.dataLock.Unlock()
+func (c *Config) LoadEnvs() {
+	c.dataLock.Lock()
+	defer c.dataLock.Unlock()
 
-		// Load ENV variables
-		for key, cv := range c.data {
-			value, ok := os.LookupEnv(key)
+	// Load ENV variables
+	for key, cv := range c.data {
+		value, ok := os.LookupEnv(key)
+		if ok {
+			if cv.declaration.Validate != nil {
+				err := cv.declaration.Validate(value)
+				assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing env '%s' -> %s", cv.declaration.Key, key, err))
+			}
+			cv.value = &value
+			continue
+		}
+		for _, envAlias := range cv.declaration.Envs {
+			value, ok := os.LookupEnv(envAlias)
 			if ok {
 				if cv.declaration.Validate != nil {
 					err := cv.declaration.Validate(value)
-					assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing env '%s' -> %s", cv.declaration.Key, key, err))
+					assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing env '%s' -> %s", cv.declaration.Key, envAlias, err))
 				}
 				cv.value = &value
-				continue
-			}
-			for _, envAlias := range cv.declaration.Envs {
-				value, ok := os.LookupEnv(envAlias)
-				if ok {
-					if cv.declaration.Validate != nil {
-						err := cv.declaration.Validate(value)
-						assert.Assert(err == nil, fmt.Errorf("Validation failed for '%s' while parsing env '%s' -> %s", cv.declaration.Key, envAlias, err))
-					}
-					cv.value = &value
-					break
-				}
+				break
 			}
 		}
-
-		// Initialize cobra args
-		if c.cobraCmd != nil {
-			for _, cv := range c.data {
-				if cv.declaration.Cobra != nil {
-					v := ""
-					cv.declaration.Cobra.CobraValue = &v
-					name := cv.declaration.Cobra.Name
-					value := ""
-					if cv.declaration.DefaultValue != nil {
-						value = *cv.declaration.DefaultValue
-					}
-					usage := fmt.Sprintf(`(env "%s")`, cv.declaration.Key)
-					if cv.declaration.Description != nil {
-						usage = *cv.declaration.Description + fmt.Sprintf(` (env "%s")`, cv.declaration.Key)
-					}
-					switch cv.declaration.Cobra.Short == nil {
-					case true:
-						c.cobraCmd.PersistentFlags().StringVar(cv.declaration.Cobra.CobraValue, name, value, usage)
-					case false:
-						c.cobraCmd.PersistentFlags().StringVarP(cv.declaration.Cobra.CobraValue, name, *cv.declaration.Cobra.Short, value, usage)
-					}
-				}
-			}
-		}
-
-		triggerFinalizedCallbacks = c.cobraCmd == nil
-	}()
-
-	if triggerFinalizedCallbacks {
-		c.runOnFinalizedCallbacks()
 	}
 }
 
@@ -434,16 +337,6 @@ func (c *Config) AsEnvs() string {
 			data = data + fmt.Sprintf("## Envs: %#v", cv.declaration.Envs) + "\n"
 		} else {
 			data = data + "## Envs: []string{}\n"
-		}
-
-		if cv.declaration.Cobra != nil {
-			data = data + "## CLI Args:\n"
-			data = data + "##   Long: --" + cv.declaration.Cobra.Name + "\n"
-			if cv.declaration.Cobra.Short != nil {
-				data = data + "##   Short: -" + *cv.declaration.Cobra.Short + "\n"
-			}
-		} else {
-			data = data + "## CLI Args: None\n"
 		}
 
 		value := ""

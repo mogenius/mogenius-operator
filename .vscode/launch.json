@@ -47,8 +47,11 @@
       "request": "launch",
       "mode": "debug",
       "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "MO_DEBUG": "true",
+      },
       "program": "${workspaceFolder}/src/main.go",
-      "args": ["cluster", "--debug", "true"],
+      "args": ["cluster"],
       "asRoot": false,
       "console": "integratedTerminal"
     },

@@ -1,45 +1,35 @@
-/*
-Copyright © 2022 mogenius, Benedikt Iltisberger
-*/
 package cmd
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/kubernetes"
+	"log/slog"
+	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/interfaces"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"os"
 
 	"github.com/fatih/color"
-	"github.com/spf13/cobra"
 )
 
-var installCmd = &cobra.Command{
-	Use:   "install",
-	Short: "Install the application into your cluster without auto-removal",
-	Long: `
-	This cmd installs the application permanently into you cluster. 
-	Please run cleanup if you want to remove it again.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		cmdConfig.Validate()
+func RunInstall(logManagerModule interfaces.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+	configModule.Validate()
 
-		utils.PrintLogo()
-		versionModule := version.NewVersion(slogManager)
-		versionModule.PrintVersionInfo()
-		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
+	utils.Setup(logManagerModule, configModule)
 
-		preRun()
+	utils.PrintLogo()
 
-		yellow := color.New(color.FgYellow).SprintFunc()
-		if !utils.ConfirmTask(fmt.Sprintf("Do you really want to install mogenius-k8s-manager to '%s' context?", yellow(kubernetes.CurrentContextName()))) {
-			os.Exit(0)
-		}
+	versionModule := version.NewVersion(logManagerModule)
+	versionModule.PrintVersionInfo()
+	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
-		kubernetes.Deploy()
-	},
-}
+	yellow := color.New(color.FgYellow).SprintFunc()
+	if !utils.ConfirmTask(fmt.Sprintf("Do you really want to install mogenius-k8s-manager to '%s' context?", yellow(mokubernetes.CurrentContextName()))) {
+		os.Exit(0)
+	}
 
-func init() {
-	rootCmd.AddCommand(installCmd)
+	mokubernetes.Deploy()
+
+	return nil
 }

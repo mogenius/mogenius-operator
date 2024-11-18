@@ -1,50 +1,29 @@
 package cmd
 
 import (
-	"fmt"
+	"log/slog"
+	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/interfaces"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/version"
-
 	"mogenius-k8s-manager/src/utils"
-
-	"github.com/spf13/cobra"
+	"mogenius-k8s-manager/src/version"
 )
 
-var systemCmd = &cobra.Command{
-	Use:   "system",
-	Short: "All general system commands",
-}
+func RunSystem(logManagerModule interfaces.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+	configModule.Validate()
 
-var checkCmd = &cobra.Command{
-	Use:   "check",
-	Short: "Check the system for all required components and offer healing",
-	Run: func(cmd *cobra.Command, args []string) {
-		cmdConfig.Validate()
+	mokubernetes.Setup(logManagerModule, configModule)
+	services.Setup(logManagerModule, configModule)
+	utils.Setup(logManagerModule, configModule)
 
-		utils.PrintLogo()
+	utils.PrintLogo()
 
-		versionModule := version.NewVersion(slogManager)
-		versionModule.PrintVersionInfo()
-		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
+	versionModule := version.NewVersion(logManagerModule)
+	versionModule.PrintVersionInfo()
+	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
-		preRun()
+	services.SystemCheck()
 
-		services.SystemCheck()
-	},
-}
-
-var infoCmd = &cobra.Command{
-	Use:   "info",
-	Short: "Print information and exit",
-	Long:  `Print information and exit`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(cmdConfig.AsEnvs())
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(systemCmd)
-	systemCmd.AddCommand(infoCmd)
-	systemCmd.AddCommand(checkCmd)
+	return nil
 }
