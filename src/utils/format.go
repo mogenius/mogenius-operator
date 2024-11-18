@@ -9,12 +9,6 @@ import (
 	"github.com/jaevor/go-nanoid"
 )
 
-var validate *validator.Validate
-
-func init() {
-	validate = validator.New(validator.WithRequiredStructEnabled())
-}
-
 func PrintLogo() {
 	fmt.Printf(
 		"███╗░░░███╗░█████╗░░██████╗░███████╗███╗░░██╗██╗██╗░░░██╗░██████╗\n" +

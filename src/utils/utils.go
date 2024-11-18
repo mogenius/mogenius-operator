@@ -30,6 +30,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -37,10 +38,13 @@ var CURRENT_COUNTRY *CountryDetails
 
 var config interfaces.ConfigModule
 var utilsLogger *slog.Logger
+var validate *validator.Validate
 
 func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
 	utilsLogger = logManagerModule.CreateLogger("utils")
 	config = configModule
+
+	validate = validator.New(validator.WithRequiredStructEnabled())
 }
 
 const IMAGE_PLACEHOLDER = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
