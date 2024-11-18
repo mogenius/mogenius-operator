@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/watcher"
 	"testing"
 
 	"sigs.k8s.io/yaml"
@@ -28,7 +29,8 @@ func externalSecretListExample() kubernetes.ExternalSecretListProps {
 func TestSecretListRender(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
@@ -75,7 +77,8 @@ type YamlDataList struct {
 func TestCreateExternalSecretList(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),

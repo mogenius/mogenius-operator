@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/watcher"
 	"testing"
 	"time"
 
@@ -81,7 +82,8 @@ func createNginxDeployment() *v1.Deployment {
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
@@ -101,7 +103,8 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 
 	err := kubernetes.InitNetworkPolicyConfigMap()
 	if err != nil {
@@ -112,7 +115,8 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 func TestReadNetworkPolicyPorts(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
@@ -199,7 +203,8 @@ func TestRemoveAllNetworkPolicies(t *testing.T) {
 func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 
 	err := kubernetes.CleanupLabeledNetworkPolicies("mogenius")
 	if err != nil {
@@ -258,7 +263,8 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 func TestDeleteNetworkPolicy(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 
 	err := kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy1))
 	if err != nil {

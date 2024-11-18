@@ -22,10 +22,6 @@ const CONCURRENTCONNECTIONS = 1
 
 var EventChannels = make(map[string]chan string)
 
-func ProcessEvent(event *v1Core.Event) {
-	processEvent(event)
-}
-
 func processEvent(event *v1Core.Event) {
 	if event != nil {
 		eventDto := dtos.CreateEvent(string(event.Type), event)

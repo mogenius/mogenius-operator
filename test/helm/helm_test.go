@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/watcher"
 	"os"
 	"testing"
 
@@ -166,7 +167,8 @@ func TestHelmRepoUpdate(t *testing.T) {
 func TestHelmRepoList(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),

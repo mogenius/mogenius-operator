@@ -14,7 +14,8 @@ import (
 func TestIacManager(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 	iacmanager.Setup(logManager, config, watcher.NewWatcher())
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_GIT_VAULT_DATA_PATH",

@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"os"
@@ -19,6 +20,49 @@ import (
 	"k8s.io/kubectl/pkg/describe"
 	"sigs.k8s.io/yaml"
 )
+
+func WatchStoreResources(watcher interfaces.WatcherModule) error {
+	resources, err := GetAvailableResources()
+	if err != nil {
+		return err
+	}
+	relevantResourceKinds := []string{
+		"Deployment",
+		"ReplicaSet",
+		"CronJob",
+		"Pod",
+		"Job",
+		"Event",
+		"DaemonSet",
+		"StatefulSet",
+		"Namespace",
+		"NetworkPolicy",
+	}
+	for _, v := range resources {
+		if !slices.Contains(relevantResourceKinds, v.Kind) {
+			continue
+		}
+		err := watcher.Watch(k8sLogger, interfaces.WatcherResourceIdentifier{
+			Name:         v.Name,
+			Kind:         v.Kind,
+			GroupVersion: v.Group,
+		}, func(resource interfaces.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+			SetStoreIfNeeded(resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+		}, func(resource interfaces.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
+			SetStoreIfNeeded(resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
+		}, func(resource interfaces.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+			DeleteFromStoreIfNeeded(resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+		})
+		if err != nil {
+			k8sLogger.Error("failed to initialize watchhandler for resource", "kind", v.Kind, "version", v.Version, "error", err)
+			return err
+		} else {
+			k8sLogger.Debug("🚀 Watching resource", "kind", v.Kind, "group", v.Group)
+		}
+	}
+
+	return nil
+}
 
 func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
 	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {

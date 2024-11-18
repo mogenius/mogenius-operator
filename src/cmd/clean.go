@@ -8,6 +8,7 @@ import (
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
+	"mogenius-k8s-manager/src/watcher"
 
 	"github.com/fatih/color"
 )
@@ -17,7 +18,8 @@ func RunClean(logManagerModule interfaces.LogManagerModule, configModule *config
 
 	utils.PrintLogo()
 
-	mokubernetes.Setup(logManagerModule, configModule)
+	watcherModule := watcher.NewWatcher()
+	mokubernetes.Setup(logManagerModule, configModule, watcherModule)
 
 	versionModule := version.NewVersion(logManagerModule)
 	versionModule.PrintVersionInfo()

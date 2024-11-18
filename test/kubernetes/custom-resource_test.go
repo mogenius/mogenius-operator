@@ -4,6 +4,7 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/watcher"
 	"testing"
 )
 
@@ -11,7 +12,8 @@ import (
 func TestCustomResource(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 
 	yamlData := `apiVersion: v1
 kind: Pod
@@ -59,7 +61,8 @@ spec:
 func TestSecretStoreResource(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	kubernetes.Setup(logManager, config)
+	watcherModule := watcher.NewWatcher()
+	kubernetes.Setup(logManager, config, watcherModule)
 
 	yamlData := `apiVersion: external-secrets.io/v1beta1
 kind: ClusterSecretStore
