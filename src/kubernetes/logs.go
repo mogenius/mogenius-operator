@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"io"
-	"io/ioutil"
 	"mogenius-k8s-manager/src/utils"
 	"time"
 
@@ -117,7 +116,7 @@ func GetLogError(namespace string, podId string) ServiceGetLogErrorResult {
 	}
 	defer stream.Close()
 
-	data, err := ioutil.ReadAll(stream)
+	data, err := io.ReadAll(stream)
 	if err != nil {
 		result.Log = err.Error()
 		return result

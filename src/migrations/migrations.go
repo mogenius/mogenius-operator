@@ -64,7 +64,10 @@ func _PvcMigration1() (string, error) {
 						1,
 					),
 				})
-				kubernetes.UpdateK8sPersistentVolume(pv)
+				_, err := kubernetes.UpdateK8sPersistentVolume(pv)
+				if err != nil {
+					migrationLogger.Error("failed to update k8s persistent volume", "error", err)
+				}
 				migrationLogger.Info("Updated PV", "name", pv.Name)
 			}
 		}

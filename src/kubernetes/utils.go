@@ -518,7 +518,7 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 
 	for _, node := range nodes.Items {
 		nodeInfo := map[string]string{}
-		nodeInfo["kubeProxyVersion"] = node.Status.NodeInfo.KubeProxyVersion
+		nodeInfo["kubeProxyVersion"] = node.Status.NodeInfo.KubeProxyVersion //nolint:staticcheck
 		nodeInfo["kubeletVersion"] = node.Status.NodeInfo.KubeletVersion
 
 		labelsAndAnnotations := utils.MergeMaps(node.GetLabels(), node.GetAnnotations(), nodeInfo)
