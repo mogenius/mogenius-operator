@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	dbstats "mogenius-k8s-manager/src/db-stats"
-	iacmanager "mogenius-k8s-manager/src/iac-manager"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/version"
@@ -50,7 +49,7 @@ func (self *HttpService) Run(addr string) {
 		mux.Handle("GET /debug/traffic", self.withRequestLogging(http.HandlerFunc(self.debugGetTraffic)))
 		mux.Handle("GET /debug/last-ns", self.withRequestLogging(http.HandlerFunc(self.debugGetLastNs)))
 		mux.Handle("GET /debug/ns", self.withRequestLogging(http.HandlerFunc(self.debugGetNs)))
-		mux.Handle("GET /debug/iac", self.withRequestLogging(http.HandlerFunc(self.debugIac)))
+		// mux.Handle("GET /debug/iac", self.withRequestLogging(http.HandlerFunc(self.debugIac)))
 	}
 
 	self.logger.Info("starting API server", "addr", addr)
@@ -232,16 +231,16 @@ func (self *HttpService) debugGetNs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (self *HttpService) debugIac(w http.ResponseWriter, _ *http.Request) {
-	json := iacmanager.GetDataModelJson()
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte(json))
-	if err != nil {
-		self.logger.Debug("failed to write response", "error", err)
-		return
-	}
-}
+// func (self *HttpService) debugIac(w http.ResponseWriter, _ *http.Request) {
+// 	json := iacmanager.GetDataModelJson()
+// 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+// 	w.WriteHeader(http.StatusOK)
+// 	_, err := w.Write([]byte(json))
+// 	if err != nil {
+// 		self.logger.Debug("failed to write response", "error", err)
+// 		return
+// 	}
+// }
 
 func (self *HttpService) withRequestLogging(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
