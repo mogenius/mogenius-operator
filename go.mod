@@ -17,6 +17,7 @@ require (
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/shirou/gopsutil/v4 v4.24.10
 	github.com/stretchr/testify v1.9.0
 	go.etcd.io/bbolt v1.3.11
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
