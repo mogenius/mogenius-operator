@@ -42,18 +42,9 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 		cancel()
 	}()
 
-	cmdString := ""
-	switch tool {
-	case "k9s":
-		cmdString = "k9s --kubeconfig kubeconfig.yaml"
-	default:
-		xtermLogger.Error("Tool not found", "tool", tool)
-		return
-	}
-
 	// Start pty/cmd
-	xtermLogger.Info(cmdString)
-	cmd := exec.Command("sh", "-c", cmdString)
+	xtermLogger.Info(tool)
+	cmd := exec.Command("sh", "-c", tool)
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {

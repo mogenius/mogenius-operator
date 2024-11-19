@@ -1429,6 +1429,7 @@ func scanImageLogStreamConnection(buildLogConnectionRequest xterm.ScanImageLogCo
 		&buildLogConnectionRequest.ContainerRegistryPat,
 	)
 }
+
 func XTermClusterToolStreamConnection(buildLogConnectionRequest xterm.ClusterToolConnectionRequest) {
 	xterm.XTermClusterToolStreamConnection(
 		buildLogConnectionRequest.WsConnection,

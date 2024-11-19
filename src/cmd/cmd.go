@@ -373,6 +373,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_ALLOW_COUNTRY_CHECK",
 		DefaultValue: utils.Pointer("true"),
 		Description:  utils.Pointer(`allow the operator to determine its location country base on the IP address`),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_ALLOW_COUNTRY_CHECK' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
 	})
 	configModule.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_DEBUG",

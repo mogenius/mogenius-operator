@@ -21,7 +21,7 @@ func HandleHpa(job *structs.Job, namespaceName, controllerName string, service d
 	if service.HpaEnabled() {
 		CreateOrUpdateHpa(job, namespaceName, service.ControllerName, service.HpaSettings, wg)
 	} else {
-		hpa, error := GetHpa(namespaceName, service.ControllerName+HpaNameSuffix, nil)
+		hpa, error := GetHpa(namespaceName, service.ControllerName+HpaNameSuffix)
 		if error == nil && hpa.DeletionTimestamp == nil {
 			DeleteHpa(job, namespaceName, service.ControllerName, wg)
 		}
@@ -35,7 +35,7 @@ func DeleteHpa(job *structs.Job, namespaceName, controllerName string, wg *sync.
 		defer wg.Done()
 		cmd.Start(job, "Delete hpa")
 
-		err := DeleteK8sHpaBy(namespaceName, controllerName+HpaNameSuffix, nil)
+		err := DeleteK8sHpaBy(namespaceName, controllerName+HpaNameSuffix)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("Deleting hpa ERROR: '%s'", err.Error()))
 		} else {
@@ -44,7 +44,7 @@ func DeleteHpa(job *structs.Job, namespaceName, controllerName string, wg *sync.
 	}(wg)
 }
 
-func GetHpa(namespaceName string, name string, contextId *string) (*v2.HorizontalPodAutoscaler, error) {
+func GetHpa(namespaceName string, name string) (*v2.HorizontalPodAutoscaler, error) {
 	provider, err := NewKubeProvider()
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func GetHpa(namespaceName string, name string, contextId *string) (*v2.Horizonta
 	return hpa, err
 }
 
-func DeleteK8sHpaBy(namespace string, name string, contextId *string) error {
+func DeleteK8sHpaBy(namespace string, name string) error {
 	provider, err := NewKubeProvider()
 	if err != nil {
 		return err

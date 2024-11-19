@@ -908,52 +908,6 @@ else
 	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin latest
 	echo "trivy is installed. 🚀"
 fi
-
-# install k9s
-if type k9s >/dev/null 2>&1; then
-    echo "k9s is installed. Skipping installation."
-else
-	K9S_VERSION=$(curl -sL "https://api.github.com/repos/derailed/k9s/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-	if [ "${GOARCH}" = "amd64" ]; then
-		curl -o k9s.tar.gz -L https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_amd64.tar.gz
-	elif [ "${GOARCH}" = "arm64" ]; then
-		curl -o k9s.tar.gz -L https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_arm64.tar.gz
-	elif [ "${GOARCH}" = "arm" ]; then
-		curl -o k9s.tar.gz -L https://github.com/derailed/k9s/releases/download/v${K9S_VERSION}/k9s_Linux_armv7.tar.gz
-	else
-		echo "Unsupported architecture";
-	fi
-	tar -xf k9s.tar.gz k9s
-	chmod +x k9s
-	mv k9s /usr/local/bin/k9s
-	rm k9s.tar.gz
-	echo "k9s is installed. 🚀"
-fi
-
-# create kubeconfig
-cat <<EOF > kubeconfig.tmpl
-apiVersion: v1
-clusters:
-- cluster:
-    certificate-authority-data: @@CACRT@@
-    server: https://@@IP@@:6443
-  name: local
-contexts:
-- context:
-    cluster: local
-    user: mogenius
-    namespace: mogenius
-  name: mogenius
-current-context: mogenius
-kind: Config
-preferences: {}
-users:
-- name: mogenius
-  user:
-    token: @@TOKEN@@
-EOF
-cat kubeconfig.tmpl | sed -e s/@@CACRT@@/$(echo -n "$(cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt)" | base64 | tr -d '\n')/| sed -e s/@@TOKEN@@/$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)/ | sed -e s/@@IP@@/$(kubectl get nodes -o json | jq '.items[0].status.addresses[0].address' | sed -e s/\"//g)/ > kubeconfig.yaml
-echo "KUBECONFIG created. 🚀"
 `
 	defaultAppsConfigmap := kubernetes.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false)
 	if defaultAppsConfigmap != nil {
