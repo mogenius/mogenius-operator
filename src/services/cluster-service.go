@@ -854,26 +854,6 @@ mv kubectl /usr/local/bin/kubectl
 	echo "kubectl is installed. 🚀"
 fi
 
-# install popeye
-if command -v popeye >/dev/null 2>&1; then
-    echo "popeye is installed. Skipping installation."
-else
-	if [ "${GOARCH}" = "amd64" ]; then
-		curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_x86_64.tar.gz;
-	elif [ "${GOARCH}" = "arm64" ]; then
-		curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm64.tar.gz;
-	elif [ "${GOARCH}" = "arm" ]; then
-		curl -fsSL -o popeye.tar.gz https://github.com/derailed/popeye/releases/download/v0.11.1/popeye_Linux_arm.tar.gz;
-	else
-		echo "Unsupported architecture";
-	fi
-	tar -xf popeye.tar.gz popeye
-	chmod +x popeye
-	mv popeye /usr/local/bin/popeye
-	rm popeye.tar.gz
-	echo "popeye is installed. 🚀"
-fi
-
 # install grype
 if type grype >/dev/null 2>&1; then
     echo "grype is installed. Skipping installation."

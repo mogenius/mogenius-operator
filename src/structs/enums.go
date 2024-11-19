@@ -232,8 +232,6 @@ const (
 
 	PAT_EXEC_SHELL string = "exec/shell"
 
-	PAT_POPEYE_CONSOLE string = "popeye_console"
-
 	PAT_FILES_UPLOAD string = "files/upload"
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -459,8 +457,6 @@ var COMMAND_REQUESTS = []string{
 	// PAT_BUILD_LAST_JOB_INFO_OF_SERVICE,
 
 	PAT_EXEC_SHELL,
-
-	PAT_POPEYE_CONSOLE,
 
 	PAT_LOG_LIST_ALL,
 

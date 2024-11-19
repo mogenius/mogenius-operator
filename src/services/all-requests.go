@@ -1078,10 +1078,10 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return StatusMogeniusNfs(data)
-	case structs.PAT_POPEYE_CONSOLE:
-		return PopeyeConsole()
+
 	case structs.PAT_LOG_LIST_ALL:
 		return db.ListLogFromDb()
+
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// External Secrets
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1292,10 +1292,6 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 
 	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
 	endGofunc()
-}
-
-func PopeyeConsole() string {
-	return utils.ExecuteShellCommandWithResponse("Generate popeye report", "popeye --force-exit-zero")
 }
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
