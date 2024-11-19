@@ -29,6 +29,7 @@ var CLI struct {
 	Install struct{} `cmd:"" help:"install the operator into your cluster"`
 	System  struct{} `cmd:"" help:"check the system for all required components and offer healing"`
 	Version struct{} `cmd:"" help:"print version information" default:"1"`
+	Exec    execArgs `cmd:"" help:"open an interactive shell inside a container"`
 }
 
 func Run() error {
@@ -130,6 +131,12 @@ func Run() error {
 		return nil
 	case "config":
 		fmt.Println(configModule.AsEnvs())
+		return nil
+	case "exec <command>":
+		err := RunExec(&CLI.Exec, cmdLogger)
+		if err != nil {
+			return err
+		}
 		return nil
 	default:
 		return ctx.PrintUsage(true)

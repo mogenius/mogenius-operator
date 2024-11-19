@@ -74,5 +74,6 @@ ENV MO_CLUSTER_MFA_ID=""
 
 ENV MO_LOG_DIR="/db/logs"
 RUN mkdir -p "${MO_LOG_DIR}"
+ENV MO_LOG_LEVEL="warn"
 
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false ${DOCKERD_ARGS} > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]
