@@ -61,6 +61,10 @@ COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
 
 ENV GIN_MODE=release
 
+ENV MO_LOG_LEVEL="warn"
+
+ENV MO_LOG_DIR="/data/logs"
+
 ENV MO_HELM_DATA_PATH="/data/helm-data"
 ENV HELM_CACHE_HOME="/data/helm-data/helm/cache"
 ENV HELM_CONFIG_HOME="/data/helm-data/helm"
@@ -77,9 +81,8 @@ ENV MO_BBOLT_DB_STATS_PATH="/data/db/mogenius-stats.db"
 ENV DOCKERD_ARGS=""
 ENV MO_CLUSTER_MFA_ID=""
 
-ENV MO_LOG_DIR="/data/logs"
 RUN mkdir -p "${MO_LOG_DIR}"
+RUN mkdir -p "${MO_HELM_DATA_PATH}"
 RUN mkdir -p "/data/db"
-ENV MO_LOG_LEVEL="warn"
 
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false ${DOCKERD_ARGS} > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]
