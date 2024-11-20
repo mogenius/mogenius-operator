@@ -127,7 +127,7 @@ func getConnectedBanner(namespace string, pod string, container string, command 
 
 	messages := []string{}
 	messages = append(messages, "  "+"Namespace: "+namespace+"  ")
-	messages = append(messages, "  "+"Pod: "+pod+"  ")
+	messages = append(messages, "  "+"Pod:       "+pod+"  ")
 	messages = append(messages, "  "+"Container: "+container+"  ")
 	messages = append(messages, "  "+"Executing: "+fmt.Sprintf("%v", command)+"  ")
 

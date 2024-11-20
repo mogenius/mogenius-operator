@@ -831,12 +831,6 @@ func CheckInternetAccess() (bool, error) {
 	return true, nil
 }
 
-func IsKubectlInstalled() (bool, string, error) {
-	cmd := RunOnLocalShell("kubectl version")
-	output, err := cmd.CombinedOutput()
-	return err == nil, strings.TrimRight(string(output), "\n\r"), err
-}
-
 func CreateDirIfNotExist(dir string) {
 	_, err := os.Stat(dir)
 

@@ -844,16 +844,6 @@ func UninstallClusterIssuer() (string, error) {
 func InstallDefaultApplications() (string, string) {
 	userApps := ""
 	basicApps := `
-# install kubectl
-if command -v kubectl >/dev/null 2>&1; then
-    echo "kubectl is installed. Skipping installation."
-else
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${GOARCH}/kubectl"
-chmod +x kubectl
-mv kubectl /usr/local/bin/kubectl
-	echo "kubectl is installed. 🚀"
-fi
-
 # install grype
 if type grype >/dev/null 2>&1; then
     echo "grype is installed. Skipping installation."

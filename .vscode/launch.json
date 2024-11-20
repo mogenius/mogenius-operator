@@ -2,42 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Server",
+      "name": "LOGS",
       "type": "go",
       "request": "launch",
       "mode": "debug",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "MO_DEBUG": "true",
+      },
       "program": "${workspaceFolder}/src/main.go",
-      "args": ["testserver", "--debug", "true"],
-      "asRoot": false,
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Client LOCAL",
-      "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "program": "${workspaceFolder}/src/main.go",
-      "args": ["testclient", "--debug", "true"],
-      "asRoot": false,
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Client Behrang Home",
-      "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "program": "${workspaceFolder}/src/main.go",
-      "args": ["testclient", "--debug", "true", "-c", "behrang-home.yaml"],
-      "asRoot": false,
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Client Behrang Office",
-      "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "program": "${workspaceFolder}/src/main.go",
-      "args": ["testclient", "--debug", "true", "-c", "behrang.yaml"],
+      "args": ["logs", "--namespace=default", "--pod=blaa", "--container=my-container"],
       "asRoot": false,
       "console": "integratedTerminal"
     },
@@ -64,28 +38,6 @@
       "args": ["-test.run", "^TestResourceTemplates$"],
       "asRoot": false,
       "console": "integratedTerminal"
-    },
-    {
-      "name": "system check",
-      "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "program": "${workspaceFolder}/src/main.go",
-      "args": ["system", "check"],
-      "asRoot": false,
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Attach remote :2345",
-      "type": "go",
-      "request": "attach",
-      "mode": "remote",
-      "remotePath": "/app",
-      "port": 2345,
-      "host": "127.0.0.1",
-      "showLog": true,
-      "trace": "log",
-      "logOutput": "rpc"
     }
   ]
 }
