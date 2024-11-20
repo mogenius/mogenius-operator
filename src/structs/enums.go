@@ -1,25 +1,5 @@
 package structs
 
-type ComponentEnum string
-
-const (
-	ComponentAll          ComponentEnum = "all"
-	ComponentIacManager   ComponentEnum = "iac"
-	ComponentDb           ComponentEnum = "db"
-	Store                 ComponentEnum = "store"
-	ComponentDbStats      ComponentEnum = "db-stats"
-	ComponentCrds         ComponentEnum = "crds"
-	ComponentKubernetes   ComponentEnum = "kubernetes"
-	ComponentHelm         ComponentEnum = "helm"
-	ComponentServices     ComponentEnum = "services"
-	ComponentSocketClient ComponentEnum = "socket-client"
-	ComponentHttp         ComponentEnum = "http"
-	ComponentCmd          ComponentEnum = "cmd"
-	ComponentControllers  ComponentEnum = "controllers"
-	ComponentMigrations   ComponentEnum = "migrations"
-	ComponentXterm        ComponentEnum = "xterm"
-)
-
 type JobStateEnum string
 
 const (
@@ -194,8 +174,6 @@ const (
 	PAT_SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST      string = "service/pod-event-stream-connection-request"
 	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST string = "service/scan-image-log-stream-connection-request"
 	PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST   string = "service/cluster-tool-stream-connection-request"
-
-	PAT_LIST_CREATE_TEMPLATES string = "list/create-templates"
 
 	PAT_LIST_ALL_WORKLOADS   string = "list/all-workloads"
 	PAT_GET_WORKLOAD_LIST    string = "get/workload-list"
@@ -423,8 +401,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST,
 	PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST,
 
-	PAT_LIST_CREATE_TEMPLATES,
-
 	PAT_LIST_ALL_WORKLOADS,
 	PAT_GET_WORKLOAD_LIST,
 	PAT_CREATE_NEW_WORKLOAD,
@@ -448,13 +424,11 @@ var COMMAND_REQUESTS = []string{
 	PAT_BUILD_LIST_ALL,
 	PAT_BUILD_LIST_BY_PROJECT,
 	PAT_BUILD_ADD,
-	// PAT_BUILD_SCAN,
 	PAT_BUILD_CANCEL,
 	PAT_BUILD_DELETE,
 	PAT_BUILD_LAST_JOB_OF_SERVICES,
 	PAT_BUILD_JOB_LIST_OF_SERVICE,
 	PAT_BUILD_DELETE_ALL_OF_SERVICE,
-	// PAT_BUILD_LAST_JOB_INFO_OF_SERVICE,
 
 	PAT_EXEC_SHELL,
 

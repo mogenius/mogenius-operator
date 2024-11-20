@@ -3,7 +3,6 @@ package xterm
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/structs"
 	"net/url"
 	"os"
 	"os/exec"
@@ -15,7 +14,7 @@ import (
 
 func XTermComponentStreamConnection(
 	wsConnectionRequest WsConnectionRequest,
-	component structs.ComponentEnum,
+	component string,
 	namespace *string,
 	controllerName *string,
 	release *string,
