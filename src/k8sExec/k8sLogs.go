@@ -55,7 +55,7 @@ func (e *k8sLogs) Start() error {
 	}()
 
 	// Get the logs request
-	retry.OnError(retry.DefaultRetry, func(err error) bool {
+	err := retry.OnError(retry.DefaultRetry, func(err error) bool {
 		return true
 	}, func() error {
 		req := e.restClient.GetLogs(e.pod, &v1core.PodLogOptions{
@@ -79,6 +79,5 @@ func (e *k8sLogs) Start() error {
 
 		return nil
 	})
-
-	return nil
+	return err
 }
