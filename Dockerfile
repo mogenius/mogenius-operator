@@ -61,6 +61,7 @@ COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
 
 ENV GIN_MODE=release
 
+ENV MO_HELM_DATA_PATH="/db/helm-data"
 ENV HELM_CACHE_HOME="/db/helm-data/helm/cache"
 ENV HELM_CONFIG_HOME="/db/helm-data/helm"
 ENV HELM_DATA_HOME="/db/helm-data/helm"
@@ -68,6 +69,10 @@ ENV HELM_PLUGINS="/db/helm-data/helm/plugins"
 ENV HELM_REGISTRY_CONFIG="/db/helm-data/helm/config.json"
 ENV HELM_REPOSITORY_CACHE="/db/helm-data/helm/cache/repository"
 ENV HELM_REPOSITORY_CONFIG="/db/helm-data/helm/repositories.yaml"
+
+ENV MO_BBOLT_DB_PATH="/db/mogenius.db"
+ENV MO_BBOLT_DB_STATS_PATH="/db/mogenius-stats.db"
+
 # e.g. "--dns 1.1.1.1"
 ENV DOCKERD_ARGS=""
 ENV MO_CLUSTER_MFA_ID=""
