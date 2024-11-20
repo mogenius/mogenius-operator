@@ -30,6 +30,7 @@ var CLI struct {
 	System  struct{} `cmd:"" help:"check the system for all required components and offer healing"`
 	Version struct{} `cmd:"" help:"print version information" default:"1"`
 	Exec    execArgs `cmd:"" help:"open an interactive shell inside a container"`
+	Logs    logArgs  `cmd:"" help:"retrieve streaming logs of a container"`
 }
 
 func Run() error {
@@ -134,6 +135,12 @@ func Run() error {
 		return nil
 	case "exec <command>":
 		err := RunExec(&CLI.Exec, cmdLogger)
+		if err != nil {
+			return err
+		}
+		return nil
+	case "logs":
+		err := RunLogs(&CLI.Logs, cmdLogger)
 		if err != nil {
 			return err
 		}

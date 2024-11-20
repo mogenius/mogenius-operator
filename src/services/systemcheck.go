@@ -104,22 +104,6 @@ func SystemCheck() SystemCheckResponse {
 			"")
 	})
 
-	// check for kubectl
-	wg.Add(1)
-	go SysCheckExec("CheckKubectl", &wg, &entries, func() SystemCheckEntry {
-		kubectlResult, kubectlOutput, kubectlErr := utils.IsKubectlInstalled()
-		return CreateSystemCheckEntry("kubectl",
-			kubectlResult,
-			kubectlOutput,
-			"Plase install kubectl (https://kubernetes.io/docs/tasks/tools/) on your system to proceed.",
-			kubectlErr,
-			"",
-			true,
-			false,
-			"",
-			"")
-	})
-
 	// check kubernetes version
 	wg.Add(1)
 	go SysCheckExec("CheckKubernetesVersion", &wg, &entries, func() SystemCheckEntry {

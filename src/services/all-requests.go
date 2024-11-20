@@ -1385,10 +1385,25 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 }
 
 func logStreamConnection(podCmdConnectionRequest xterm.PodCmdConnectionRequest) {
-	if podCmdConnectionRequest.LogTail == "" {
-		podCmdConnectionRequest.LogTail = "1000"
+	self, err := os.Executable()
+	if err != nil {
+		serviceLogger.Error("failed to get current executable path", "error", err)
+		return
 	}
-	cmd := exec.Command("kubectl", "logs", "-f", podCmdConnectionRequest.Pod, fmt.Sprintf("--tail=%s", podCmdConnectionRequest.LogTail), "-c", podCmdConnectionRequest.Container, "-n", podCmdConnectionRequest.Namespace)
+
+	cmd := exec.Command(
+		self,
+		"logs",
+		"--namespace",
+		podCmdConnectionRequest.Namespace,
+		"--pod",
+		podCmdConnectionRequest.Pod,
+		"--container",
+		podCmdConnectionRequest.Container,
+		"--tail-lines",
+		podCmdConnectionRequest.LogTail,
+	)
+
 	xterm.XTermCommandStreamConnection(
 		"log",
 		podCmdConnectionRequest.WsConnection,

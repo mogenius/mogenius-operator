@@ -11,7 +11,6 @@ import (
 
 type sizeQueue struct {
 	resize chan os.Signal
-	size   *remotecommand.TerminalSize
 }
 
 func NewSizeQueue() *sizeQueue {
