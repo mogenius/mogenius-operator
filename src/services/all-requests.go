@@ -1173,6 +1173,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return NewMessageResponse(nil, controllers.EnforceNetworkPolicyManager(data.NamespaceName))
+	case structs.PAT_DISABLE_NETWORK_POLICY_MANAGER:
+		data := controllers.DisableNetworkPolicyManagerRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return NewMessageResponse(nil, controllers.DisableNetworkPolicyManager(data.NamespaceName))
 	case structs.PAT_REMOVE_UNMANAGED_NETWORK_POLICIES:
 		data := controllers.RemoveUnmanagedNetworkPoliciesRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

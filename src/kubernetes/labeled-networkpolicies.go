@@ -3,6 +3,8 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
@@ -713,6 +715,142 @@ func EnforceNetworkPolicyManagerForNamespace(namespaceName string) error {
 	err = CreateDenyAllNetworkPolicy(namespaceName)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("failed to create deny-all network policy: %v", err)
+	}
+
+	return nil
+}
+
+func DeleteNetworkPolicyByName(namespaceName string, policyName string) error {
+	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
+	err := netPolClient.Delete(context.TODO(), policyName, metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to delete network policy %s: %v", policyName, err)
+	}
+
+	// find in deployment, daemonset, statefulset and remove label
+	errors := []error{}
+	controllers := []unstructured.Unstructured{}
+	provider, err := NewKubeProviderDynamic()
+
+	GetUnstructuredResourceList := func(group, version, name string, namespace *string) []unstructured.Unstructured {
+		result, _ := GetUnstructuredResourceList(group, version, name, namespace)
+		if result != nil {
+			return result.Items
+		}
+		return nil
+	}
+	controllers = append(controllers, GetUnstructuredResourceList("apps/v1", "", "deployments", &namespaceName)...)
+	controllers = append(controllers, GetUnstructuredResourceList("apps/v1", "", "daemonsets", &namespaceName)...)
+	controllers = append(controllers, GetUnstructuredResourceList("apps/v1", "", "statefulsets", &namespaceName)...)
+
+	for i := range controllers {
+		ctrl := controllers[i]
+		kind := ctrl.GetKind()
+		name := ctrl.GetName()
+		var gvr schema.GroupVersionResource
+		switch kind {
+		case "Deployment":
+			gvr = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+		case "DaemonSet":
+			gvr = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "daemonsets"}
+		case "StatefulSet":
+			gvr = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "statefulsets"}
+		default:
+			k8sLogger.Error("DeleteNetworkPolicyByName", "error", fmt.Errorf("unsupported kind: %s", kind))
+			errors = append(errors, err)
+			continue
+		}
+		latestObject, err := provider.DynamicClient.Resource(gvr).Namespace(namespaceName).Get(
+			context.TODO(),
+			name,
+			metav1.GetOptions{},
+		)
+		if err != nil {
+			k8sLogger.Error("DeleteNetworkPolicyByName", "error", err)
+			errors = append(errors, err)
+			continue
+		}
+
+		// remove labels from metadata
+		updatedLabels := latestObject.GetLabels()
+		for key := range updatedLabels {
+			if strings.HasPrefix(key, PoliciesLabelPrefix) {
+				delete(updatedLabels, key)
+			}
+		}
+		latestObject.SetLabels(updatedLabels)
+
+		// remove labels from spec.template.metadata
+		spec, ok := latestObject.Object["spec"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		template, ok := spec["template"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		metadata, ok := template["metadata"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if metadata["labels"] != nil {
+			labels := metadata["labels"].(map[string]interface{})
+			for key := range labels {
+				if strings.Contains(key, PoliciesLabelPrefix) {
+					delete(labels, key)
+				}
+			}
+		}
+
+		// update the object
+		_, err = provider.DynamicClient.Resource(gvr).Namespace(namespaceName).Update(
+			context.TODO(),
+			latestObject,
+			MoUpdateOptions(),
+		)
+		if err != nil {
+			k8sLogger.Error("DeleteNetworkPolicyByName", "error", err)
+			errors = append(errors, err)
+			continue
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to remove labels from controllers: %v", errors)
+	}
+
+	return nil
+}
+
+func DisableNetworkPolicyManagerForNamespace(namespaceName string) error {
+	// get all network policies in the namespace created by mogenius
+	netPols, err := store.ListNetworkPolicies(namespaceName)
+	if err != nil {
+		return fmt.Errorf("failed to list all network policies: %v", err)
+	}
+	errors := []error{}
+	for _, netPol := range netPols {
+		// if NetpolLabel exits in the labels and is set to false, skip
+		if netPol.Labels == nil || netPol.ObjectMeta.Labels[NetpolLabel] == "false" {
+			continue
+		}
+		// delete the network policy
+		err = DeleteNetworkPolicyByName(namespaceName, netPol.Name)
+		// err = netPolClient.Delete(context.TODO(), netPol.Name, metav1.DeleteOptions{})
+		if err != nil {
+			k8sLogger.Error("DisableNetworkPolicyManagerForNamespace", "error", err)
+			errors = append(errors, err)
+		}
+	}
+
+	err = CleanupLabeledNetworkPolicies(namespaceName)
+	if err != nil {
+		k8sLogger.Error("CleanupLabeledNetworkPolicies", "error", err)
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to remove unmanaged network policies: %v", errors)
 	}
 
 	return nil

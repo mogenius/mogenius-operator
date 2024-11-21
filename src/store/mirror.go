@@ -32,6 +32,10 @@ func ListNetworkPolicies(namespace string) ([]networkingV1.NetworkPolicy, error)
 			continue
 		}
 
+		if namespace != "" && netpol.Namespace != namespace {
+			continue
+		}
+
 		result = append(result, *netpol)
 	}
 
@@ -56,6 +60,10 @@ func ListDaemonSets(namespace string) ([]appsV1.DaemonSet, error) {
 
 		daemonset := ref.(*appsV1.DaemonSet)
 		if daemonset == nil {
+			continue
+		}
+
+		if namespace != "" && daemonset.Namespace != namespace {
 			continue
 		}
 
@@ -86,6 +94,10 @@ func ListDeployments(namespace string) ([]appsV1.Deployment, error) {
 			continue
 		}
 
+		if namespace != "" && deployment.Namespace != namespace {
+			continue
+		}
+
 		result = append(result, *deployment)
 	}
 
@@ -113,6 +125,10 @@ func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 			continue
 		}
 
+		if namespace != "" && statefulset.Namespace != namespace {
+			continue
+		}
+
 		result = append(result, *statefulset)
 	}
 
@@ -137,6 +153,10 @@ func ListEvents(namespace string) ([]coreV1.Event, error) {
 
 		event := ref.(*coreV1.Event)
 		if event == nil {
+			continue
+		}
+
+		if namespace != "" && event.Namespace != namespace {
 			continue
 		}
 

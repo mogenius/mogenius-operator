@@ -30,7 +30,7 @@ func CreateNamespace(r NamespaceCreateRequest) *structs.Job {
 
 func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) {
 	mokubernetes.CreateNamespace(job, r.Project, r.Namespace)
-	mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, wg)
+	mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, "allow-namespace-communication", wg)
 
 	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
 	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, wg)

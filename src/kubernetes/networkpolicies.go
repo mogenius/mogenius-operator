@@ -15,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
+func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, name string, wg *sync.WaitGroup) {
 	cmd := structs.CreateCommand("create", "Create NetworkPolicy namespace", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
@@ -25,7 +25,9 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 		netPolClient := GetNetworkingClient().NetworkPolicies(namespace.Name)
 
 		netpol := utils.InitNetPolNamespace()
-		netpol.ObjectMeta.Name = namespace.Name
+
+		netpol.ObjectMeta.Name = name
+		// netpol.ObjectMeta.Name = namespace.Name
 		netpol.ObjectMeta.Namespace = namespace.Name
 
 		netpol.Spec.PodSelector.MatchLabels["ns"] = namespace.Name
