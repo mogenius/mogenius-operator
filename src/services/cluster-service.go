@@ -848,7 +848,7 @@ func InstallDefaultApplications() (string, string) {
 if type grype >/dev/null 2>&1; then
     echo "grype is installed. Skipping installation."
 else
-	curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+	wget -O /dev/stdout "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin
 	echo "grype is installed. 🚀"
 fi
 
@@ -856,11 +856,11 @@ fi
 if type dive >/dev/null 2>&1; then
     echo "dive is installed. Skipping installation."
 else
-	DIVE_VERSION=$(curl -sL "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+	DIVE_VERSION=$(wget -O /dev/stdout "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
 	if [ "${GOARCH}" = "amd64" ]; then
-		curl -o dive.tar.gz -L https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.tar.gz
+		wget -O dive.tar.gz "https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.tar.gz"
 	elif [ "${GOARCH}" = "arm64" ]; then
-		curl -o dive.tar.gz -L https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_arm64.tar.gz
+		wget -O dive.tar.gz "https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_arm64.tar.gz"
 	else
 		echo "Unsupported architecture";
 	fi
@@ -875,7 +875,7 @@ fi
 if type trivy >/dev/null 2>&1; then
     echo "trivy is installed. Skipping installation."
 else
-	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin latest
+	wget -O /dev/stdout "https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh" | sh -s -- -b /usr/local/bin latest
 	echo "trivy is installed. 🚀"
 fi
 `

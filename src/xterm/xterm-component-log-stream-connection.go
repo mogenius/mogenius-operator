@@ -31,7 +31,7 @@ func XTermComponentStreamConnection(
 		return
 	}
 
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("tail -F -n %s %s", MAX_TAIL_LINES, filename))
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("tail -F -n %s %s", MAX_TAIL_LINES, filename))
 
 	if wsConnectionRequest.WebsocketScheme == "" {
 		xtermLogger.Error("WebsocketScheme is empty")

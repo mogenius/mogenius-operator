@@ -6,8 +6,6 @@ FROM golang:1.23-alpine AS builder
 # TODO add commit-log here.
 LABEL org.opencontainers.image.description="mogenius-k8s-manager"
 
-RUN apk add --no-cache curl bash
-
 ENV VERIFY_CHECKSUM=false
 ENV CGO_ENABLED=0
 
@@ -24,8 +22,6 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-
-ARG TARGETARCH
 
 RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
   -X 'mogenius-k8s-manager/src/version.GitCommitHash=${COMMIT_HASH}' \
@@ -51,34 +47,16 @@ ENV GOOS=${GOOS}
 ENV GOARCH=${GOARCH}
 ENV GOARM=${GOARM}
 
-RUN apk add --no-cache dumb-init curl nfs-utils ca-certificates jq bash
+COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
 
-RUN adduser -s /bin/sh -D mogee
+RUN apk add --no-cache dumb-init nfs-utils ca-certificates
 
 WORKDIR /app
 
-COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
-
-ENV GIN_MODE=release
-
-ENV MO_LOG_LEVEL="warn"
-
-ENV MO_LOG_DIR="/data/logs"
-
-ENV MO_HELM_DATA_PATH="/data/helm-data"
-ENV HELM_CACHE_HOME="/data/helm-data/helm/cache"
-ENV HELM_CONFIG_HOME="/data/helm-data/helm"
-ENV HELM_DATA_HOME="/data/helm-data/helm"
-ENV HELM_PLUGINS="/data/helm-data/helm/plugins"
-ENV HELM_REGISTRY_CONFIG="/data/helm-data/helm/config.json"
-ENV HELM_REPOSITORY_CACHE="/data/helm-data/helm/cache/repository"
-ENV HELM_REPOSITORY_CONFIG="/data/helm-data/helm/repositories.yaml"
-
-ENV MO_BBOLT_DB_PATH="/data/db/mogenius.db"
-ENV MO_BBOLT_DB_STATS_PATH="/data/db/mogenius-stats.db"
-
 # e.g. "--dns 1.1.1.1"
 ENV DOCKERD_ARGS=""
-ENV MO_CLUSTER_MFA_ID=""
+
+## mogenius-k8s-manager release default settings
+ENV MO_LOG_LEVEL="warn"
 
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false ${DOCKERD_ARGS} > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]
