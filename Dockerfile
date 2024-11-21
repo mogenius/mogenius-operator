@@ -6,8 +6,6 @@ FROM golang:1.23-alpine AS builder
 # TODO add commit-log here.
 LABEL org.opencontainers.image.description="mogenius-k8s-manager"
 
-RUN apk add --no-cache curl bash
-
 ENV VERIFY_CHECKSUM=false
 ENV CGO_ENABLED=0
 
@@ -49,18 +47,17 @@ ENV GOOS=${GOOS}
 ENV GOARCH=${GOARCH}
 ENV GOARM=${GOARM}
 
-RUN apk add --no-cache dumb-init curl nfs-utils ca-certificates jq bash
+COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
 
-RUN adduser -s /bin/sh -D mogee
+RUN apk add --no-cache dumb-init curl nfs-utils ca-certificates jq
 
 WORKDIR /app
 
-COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
-
-ENV MO_LOG_LEVEL="warn"
-
 # e.g. "--dns 1.1.1.1"
 ENV DOCKERD_ARGS=""
+
+## mogenius-k8s-manager release default settings
 ENV MO_CLUSTER_MFA_ID=""
+ENV MO_LOG_LEVEL="warn"
 
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false ${DOCKERD_ARGS} > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]

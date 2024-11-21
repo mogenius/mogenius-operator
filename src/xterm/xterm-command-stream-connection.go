@@ -25,8 +25,8 @@ func injectContent(content io.Reader, conn *websocket.Conn) {
 	// Encode for security reasons and send to pseudoterminal to be executed
 	// Use pty as a bridge for correct formatting
 	encodedData := base64.StdEncoding.EncodeToString(input)
-	bash := exec.Command("bash", "-c", "echo \""+encodedData+"\" | base64 -d")
-	ttytmp, err := pty.Start(bash)
+	sh := exec.Command("sh", "-c", "echo \""+encodedData+"\" | base64 -d")
+	ttytmp, err := pty.Start(sh)
 	if err != nil {
 		xtermLogger.Error("Unable to start tmp pty/cmd", "error", err)
 		if conn != nil {
