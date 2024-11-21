@@ -47,7 +47,7 @@ ENV GOOS=${GOOS}
 ENV GOARCH=${GOARCH}
 ENV GOARM=${GOARM}
 
-COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
+COPY --from=builder ["/app/bin/mogenius-k8s-manager", "/app/mogenius-k8s-manager"]
 
 RUN apk add --no-cache dumb-init nfs-utils ca-certificates
 
