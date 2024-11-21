@@ -354,27 +354,7 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, connWriteLock *sync.Mutex, tty
 			}
 		}
 	} else {
-		if conn != nil {
-			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
-			connWriteLock.Lock()
-			err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
-			connWriteLock.Unlock()
-			if err != nil {
-				xtermLogger.Error("WriteMessage", "error", err.Error())
-			}
-		}
-		err := cmd.Process.Kill()
-		if err != nil {
-			xtermLogger.Error("failed to kill process", "error", err)
-		}
-		_, err = cmd.Process.Wait()
-		if err != nil {
-			xtermLogger.Error("failed to wait for process", "error", err)
-		}
-		err = tty.Close()
-		if err != nil {
-			xtermLogger.Error("failed to close tty", "error", err)
-		}
+		closeConnection(conn, connWriteLock, cmd, tty)
 	}
 }
 
@@ -523,5 +503,29 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 				}
 			}
 		}
+	}
+}
+
+func closeConnection(conn *websocket.Conn, connWriteLock *sync.Mutex, cmd *exec.Cmd, tty *os.File) {
+	if conn != nil {
+		closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
+		connWriteLock.Lock()
+		err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+		connWriteLock.Unlock()
+		if err != nil {
+			xtermLogger.Debug("write close:", "error", err)
+		}
+	}
+	err := cmd.Process.Kill()
+	if err != nil && !strings.Contains(err.Error(), "process already finished") {
+		xtermLogger.Error("failed to kill process", "error", err)
+	}
+	_, err = cmd.Process.Wait()
+	if err != nil && !strings.Contains(err.Error(), "no child processes") {
+		xtermLogger.Error("failed to wait for process", "error", err)
+	}
+	err = tty.Close()
+	if err != nil && !strings.Contains(err.Error(), "file already closed") {
+		xtermLogger.Error("failed to close tty", "error", err)
 	}
 }

@@ -170,29 +170,7 @@ func XTermScanImageLogStreamConnection(
 		return
 	}
 
-	defer func() {
-		if conn != nil {
-			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
-			connWriteLock.Lock()
-			err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
-			connWriteLock.Unlock()
-			if err != nil {
-				xtermLogger.Debug("write close:", "error", err)
-			}
-		}
-		err := cmd.Process.Kill()
-		if err != nil {
-			xtermLogger.Error("failed to kill process", "error", err)
-		}
-		_, err = cmd.Process.Wait()
-		if err != nil {
-			xtermLogger.Error("failed to wait for process", "error", err)
-		}
-		err = tty.Close()
-		if err != nil {
-			xtermLogger.Error("failed to close tty", "error", err)
-		}
-	}()
+	defer closeConnection(conn, connWriteLock, cmd, tty)
 
 	go cmdWait(cmd, conn, connWriteLock, tty)
 

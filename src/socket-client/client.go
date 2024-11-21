@@ -51,7 +51,7 @@ func StartK8sManager() {
 	}
 }
 
-func parseMessage(done chan struct{}, c *websocket.Conn) {
+func parseMessage(done chan struct{}, conn *websocket.Conn) {
 	var preparedFileName *string
 	var preparedFileRequest *services.FilesUploadRequest
 	var openFile *os.File
@@ -64,7 +64,7 @@ func parseMessage(done chan struct{}, c *websocket.Conn) {
 		close(done)
 	}()
 	for {
-		_, message, err := c.ReadMessage()
+		_, message, err := conn.ReadMessage()
 		if err != nil {
 			socketClientLogger.Error("failed to read message from websocket connection", "jobConnectionUrl", structs.JobConnectionUrl, "error", err)
 			return
