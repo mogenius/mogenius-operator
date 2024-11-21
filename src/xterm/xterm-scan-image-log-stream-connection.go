@@ -10,13 +10,14 @@ import (
 	"os/exec"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
 )
 
-func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, scanImageType string, conn *websocket.Conn, tty *os.File) {
+func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, scanImageType string, conn *websocket.Conn, connWriteLock *sync.Mutex, tty *os.File) {
 	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
 	assert.Assert(err == nil)
 	toolLoadingCtx, toolLoadingCancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
@@ -42,7 +43,9 @@ func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.Cancel
 							return
 						default:
 							time.Sleep(1 * time.Second)
+							connWriteLock.Lock()
 							err := conn.WriteMessage(websocket.TextMessage, []byte("."))
+							connWriteLock.Unlock()
 							if err != nil {
 								xtermLogger.Error("WriteMessage", "error", err)
 							}
@@ -60,7 +63,6 @@ func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.Cancel
 					return
 				}
 				if conn != nil {
-
 					// loading
 					if !streamBeginning {
 						if len(string(buf[:read])) > 0 {
@@ -73,8 +75,9 @@ func cmdScanImageLogOutputToWebsocket(ctx context.Context, cancel context.Cancel
 							}
 						}
 					}
-
+					connWriteLock.Lock()
 					err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
+					connWriteLock.Unlock()
 					if err != nil {
 						xtermLogger.Error("WriteMessage", "error", err)
 					}
@@ -112,7 +115,7 @@ func XTermScanImageLogStreamConnection(
 	assert.Assert(err == nil)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 	// websocket connection
-	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, err := generateWsConnection(cmdType, namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -157,7 +160,9 @@ func XTermScanImageLogStreamConnection(
 	if err != nil {
 		xtermLogger.Error("Unable to start pty/cmd", "error", err)
 		if conn != nil {
+			connWriteLock.Lock()
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+			connWriteLock.Unlock()
 			if err != nil {
 				xtermLogger.Error("WriteMessage", "error", err)
 			}
@@ -168,7 +173,10 @@ func XTermScanImageLogStreamConnection(
 	defer func() {
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
-			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+			connWriteLock.Lock()
+			err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+			connWriteLock.Unlock()
+			if err != nil {
 				xtermLogger.Debug("write close:", "error", err)
 			}
 		}
@@ -186,9 +194,9 @@ func XTermScanImageLogStreamConnection(
 		}
 	}()
 
-	go cmdWait(cmd, conn, tty)
+	go cmdWait(cmd, conn, connWriteLock, tty)
 
-	go cmdScanImageLogOutputToWebsocket(ctx, cancel, scanImageType, conn, tty)
+	go cmdScanImageLogOutputToWebsocket(ctx, cancel, scanImageType, conn, connWriteLock, tty)
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)

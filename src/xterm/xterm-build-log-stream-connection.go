@@ -7,19 +7,22 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-func readChannelBuildLog(ch chan string, conn *websocket.Conn, ctx context.Context) {
+func readChannelBuildLog(ch chan string, conn *websocket.Conn, connWriteLock *sync.Mutex, ctx context.Context) {
 	for message := range ch {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 			if conn != nil {
+				connWriteLock.Lock()
 				err := conn.WriteMessage(websocket.TextMessage, []byte(message))
+				connWriteLock.Unlock()
 				if err != nil {
 					xtermLogger.Error("WriteMessage", "error", err)
 				}
@@ -46,7 +49,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 	// websocket connection
-	readMessages, conn, err := generateWsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, err := generateWsConnection("build-logs", namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -79,7 +82,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	LogChannels[key] = make(chan string)
 	ch = LogChannels[key]
 
-	go readChannelBuildLog(ch, conn, ctx)
+	go readChannelBuildLog(ch, conn, connWriteLock, ctx)
 
 	// init
 	go func(ch chan string) {

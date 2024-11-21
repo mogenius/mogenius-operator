@@ -153,7 +153,7 @@ func isPodAvailable(pod *v1.Pod) bool {
 	return false
 }
 
-func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernetes.KubeProvider, namespace string, podName string, conn *websocket.Conn) {
+func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernetes.KubeProvider, namespace string, podName string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	defer func() {
 		wg.Done()
 	}()
@@ -169,9 +169,12 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernet
 				xtermLogger.Error("Unable to get pod", "error", err)
 				if conn != nil {
 					// clear screen
-					clearScreen(conn)
+					clearScreen(conn, connWriteLock)
 					closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
-					if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+					connWriteLock.Lock()
+					err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+					connWriteLock.Unlock()
+					if err != nil {
 						xtermLogger.Debug("write close:", "error", err)
 					}
 				}
@@ -179,9 +182,9 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernet
 			}
 
 			if isPodAvailable(pod) {
-				xtermLogger.Info("Pod is ready", "podName", pod.Name)
+				xtermLogger.Debug("Pod is ready", "podName", pod.Name)
 				// clear screen
-				clearScreen(conn)
+				clearScreen(conn, connWriteLock)
 				return
 			} else {
 				// XtermLogger.Info("Pod is not ready, waiting.")
@@ -190,7 +193,9 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernet
 					firstCount = true
 					msg = "Pod is not ready, waiting."
 				}
+				connWriteLock.Lock()
 				err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
+				connWriteLock.Unlock()
 				if err != nil {
 					xtermLogger.Error("WriteMessage", "error", err)
 					ctx.Done()
@@ -202,9 +207,11 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernet
 	}
 }
 
-func clearScreen(conn *websocket.Conn) {
+func clearScreen(conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	// clear screen
+	connWriteLock.Lock()
 	err := conn.WriteMessage(websocket.BinaryMessage, []byte("\u001b[2J\u001b[H"))
+	connWriteLock.Unlock()
 	if err != nil {
 		xtermLogger.Error("WriteMessage", "error", err)
 	}
@@ -220,7 +227,7 @@ func generateWsConnection(
 	wsConnectionRequest WsConnectionRequest,
 	ctx context.Context,
 	cancel context.CancelFunc,
-) (readMessages *chan XtermReadMessages, conn *websocket.Conn, err error) {
+) (readMessages *chan XtermReadMessages, conn *websocket.Conn, connWriteLock *sync.Mutex, err error) {
 	maxRetries := 6
 	currentRetries := 0
 	xtermMessages := make(chan XtermReadMessages)
@@ -238,11 +245,13 @@ func generateWsConnection(
 
 		dialer := &websocket.Dialer{}
 		conn, _, err := dialer.Dial(u.String(), headers)
+		connWriteLock := &sync.Mutex{}
+		connReadLock := &sync.Mutex{}
 		if err != nil {
 			xtermLogger.Error("failed to connect, retrying in 5 seconds", "error", err.Error())
 			if currentRetries >= maxRetries {
 				xtermLogger.Error("Max retries reached, exiting.")
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			time.Sleep(5 * time.Second)
 			currentRetries++
@@ -256,13 +265,15 @@ func generateWsConnection(
 		if err != nil {
 			xtermLogger.Error("failed to set read deadline", "error", err)
 		}
+		connReadLock.Lock()
 		_, _, err = conn.ReadMessage()
+		connReadLock.Unlock()
 		if err != nil {
 			xtermLogger.Error("failed to receive ack-ready, retrying in 5 seconds", "error", err)
 			time.Sleep(5 * time.Second)
 			if currentRetries >= maxRetries {
 				xtermLogger.Error("Max retries reached, exiting.")
-				return &xtermMessages, conn, err
+				return &xtermMessages, conn, connWriteLock, err
 			}
 			currentRetries++
 			continue
@@ -271,12 +282,12 @@ func generateWsConnection(
 		// XtermLogger.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
 
 		// oncloseWs will close the connection and the context
-		go oncloseWs(conn, ctx, cancel, xtermMessages)
-		return &xtermMessages, conn, nil
+		go oncloseWs(conn, connReadLock, ctx, cancel, xtermMessages)
+		return &xtermMessages, conn, connWriteLock, nil
 	}
 }
 
-func oncloseWs(conn *websocket.Conn, ctx context.Context, cancel context.CancelFunc, readMessages chan XtermReadMessages) {
+func oncloseWs(conn *websocket.Conn, connReadLock *sync.Mutex, ctx context.Context, cancel context.CancelFunc, readMessages chan XtermReadMessages) {
 	defer func() {
 		cancel()
 		if conn != nil {
@@ -293,7 +304,9 @@ func oncloseWs(conn *websocket.Conn, ctx context.Context, cancel context.CancelF
 		case <-ctx.Done():
 			return
 		default:
+			connReadLock.Lock()
 			messageType, p, err := conn.ReadMessage()
+			connReadLock.Unlock()
 			if readMessages != nil {
 				readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: err}
 			}
@@ -322,7 +335,7 @@ func wsPing(conn *websocket.Conn) error {
 	return nil
 }
 
-func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
+func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, connWriteLock *sync.Mutex, tty *os.File) {
 	err := cmd.Wait()
 	if err != nil {
 		// XtermLogger.Errorf("cmd wait: %s", err.Error())
@@ -330,7 +343,9 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
 				if status.ExitStatus() == 137 {
 					if conn != nil {
+						connWriteLock.Lock()
 						err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
+						connWriteLock.Unlock()
 						if err != nil {
 							xtermLogger.Error("WriteMessage", "error", err)
 						}
@@ -341,7 +356,9 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 	} else {
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
+			connWriteLock.Lock()
 			err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+			connWriteLock.Unlock()
 			if err != nil {
 				xtermLogger.Error("WriteMessage", "error", err.Error())
 			}
@@ -361,9 +378,9 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, tty *os.File) {
 	}
 }
 
-func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader) {
+func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, connWriteLock *sync.Mutex, tty *os.File, injectPreContent io.Reader) {
 	if injectPreContent != nil {
-		injectContent(injectPreContent, conn)
+		injectContent(injectPreContent, conn, connWriteLock)
 	}
 
 	defer func() {
@@ -383,7 +400,9 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 				return
 			}
 			if conn != nil {
+				connWriteLock.Lock()
 				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
+				connWriteLock.Unlock()
 				if err != nil {
 					xtermLogger.Error("WriteMessage", "error", err)
 				}
@@ -394,10 +413,10 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 	}
 }
 
-func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, tty *os.File, injectPreContent io.Reader, component string, namespace *string, controllerName *string, release *string) {
+func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, connWriteLock *sync.Mutex, tty *os.File, injectPreContent io.Reader, component string, namespace *string, controllerName *string, release *string) {
 	_ = component
 	if injectPreContent != nil {
-		injectContent(injectPreContent, conn)
+		injectContent(injectPreContent, conn, connWriteLock)
 	}
 
 	defer func() {
@@ -445,7 +464,9 @@ func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc,
 						entry.Message = entry.Message + "\n"
 					}
 					messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+					connWriteLock.Lock()
 					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
+					connWriteLock.Unlock()
 					if err != nil {
 						fmt.Println("WriteMessage", err.Error())
 					}

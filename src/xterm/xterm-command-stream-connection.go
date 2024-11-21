@@ -15,7 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func injectContent(content io.Reader, conn *websocket.Conn) {
+func injectContent(content io.Reader, conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	// Read full content for pre-injection
 	input, err := io.ReadAll(content)
 	if err != nil {
@@ -30,7 +30,9 @@ func injectContent(content io.Reader, conn *websocket.Conn) {
 	if err != nil {
 		xtermLogger.Error("Unable to start tmp pty/cmd", "error", err)
 		if conn != nil {
+			connWriteLock.Lock()
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+			connWriteLock.Unlock()
 			if err != nil {
 				xtermLogger.Error("WriteMessage", "error", err)
 			}
@@ -52,7 +54,10 @@ func injectContent(content io.Reader, conn *websocket.Conn) {
 			break
 		}
 		if conn != nil {
-			if err := conn.WriteMessage(websocket.BinaryMessage, buf[:n]); err != nil {
+			connWriteLock.Lock()
+			err := conn.WriteMessage(websocket.BinaryMessage, buf[:n])
+			connWriteLock.Unlock()
+			if err != nil {
 				xtermLogger.Error("WriteMessage", "error", err)
 				break
 			}
@@ -86,7 +91,7 @@ func XTermCommandStreamConnection(
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30*time.Minute))
 	// websocket connection
-	readMessages, conn, err := generateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, err := generateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -102,7 +107,10 @@ func XTermCommandStreamConnection(
 	if !podExists.PodExists {
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
-			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+			connWriteLock.Lock()
+			err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+			connWriteLock.Unlock()
+			if err != nil {
 				xtermLogger.Debug("write close:", "error", err)
 			}
 		}
@@ -120,7 +128,7 @@ func XTermCommandStreamConnection(
 	var wg sync.WaitGroup
 	wg.Add(1)
 	// check if pod is ready
-	go checkPodIsReady(ctx, &wg, provider, namespace, podName, conn)
+	go checkPodIsReady(ctx, &wg, provider, namespace, podName, conn, connWriteLock)
 	wg.Wait()
 
 	// send ping
@@ -136,7 +144,9 @@ func XTermCommandStreamConnection(
 	if err != nil {
 		xtermLogger.Error("Unable to start pty/cmd", "error", err)
 		if conn != nil {
+			connWriteLock.Lock()
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+			connWriteLock.Unlock()
 			if err != nil {
 				xtermLogger.Error("WriteMessage", "error", err)
 			}
@@ -147,7 +157,10 @@ func XTermCommandStreamConnection(
 	defer func() {
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
-			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+			connWriteLock.Lock()
+			err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+			connWriteLock.Unlock()
+			if err != nil {
 				xtermLogger.Debug("write close:", "error", err)
 			}
 		}
@@ -166,10 +179,10 @@ func XTermCommandStreamConnection(
 	}()
 
 	// send cmd wait
-	go cmdWait(cmd, conn, tty)
+	go cmdWait(cmd, conn, connWriteLock, tty)
 
 	// cmd output to websocket
-	go cmdOutputToWebsocket(ctx, cancel, conn, tty, injectPreContent)
+	go cmdOutputToWebsocket(ctx, cancel, conn, connWriteLock, tty, injectPreContent)
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)

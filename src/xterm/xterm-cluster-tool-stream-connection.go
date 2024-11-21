@@ -31,7 +31,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 	// websocket connection
-	readMessages, conn, err := generateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, err := generateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -50,7 +50,9 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	if err != nil {
 		xtermLogger.Error("Unable to start pty/cmd", "error", err)
 		if conn != nil {
+			connWriteLock.Lock()
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+			connWriteLock.Unlock()
 			if err != nil {
 				xtermLogger.Error("WriteMessage", "error", err)
 			}
@@ -61,7 +63,10 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	defer func() {
 		if conn != nil {
 			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
-			if err := conn.WriteMessage(websocket.CloseMessage, closeMsg); err != nil {
+			connWriteLock.Lock()
+			err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+			connWriteLock.Unlock()
+			if err != nil {
 				xtermLogger.Debug("failed to write message", "error", err)
 			}
 		}
@@ -79,10 +84,10 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 		}
 	}()
 
-	go cmdWait(cmd, conn, tty)
+	go cmdWait(cmd, conn, connWriteLock, tty)
 
 	// cmd output to websocket
-	go cmdOutputToWebsocket(ctx, cancel, conn, tty, nil)
+	go cmdOutputToWebsocket(ctx, cancel, conn, connWriteLock, tty, nil)
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)
