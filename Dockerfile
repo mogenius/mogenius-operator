@@ -49,7 +49,7 @@ ENV GOARM=${GOARM}
 
 COPY --from=builder ["/app/bin/mogenius-k8s-manager", "."]
 
-RUN apk add --no-cache dumb-init curl nfs-utils ca-certificates jq
+RUN apk add --no-cache dumb-init curl nfs-utils ca-certificates
 
 WORKDIR /app
 
