@@ -57,7 +57,6 @@ WORKDIR /app
 ENV DOCKERD_ARGS=""
 
 ## mogenius-k8s-manager release default settings
-ENV MO_CLUSTER_MFA_ID=""
 ENV MO_LOG_LEVEL="warn"
 
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false ${DOCKERD_ARGS} > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]
