@@ -10,13 +10,14 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"
 )
 
-func readChannelPodEvent(ch chan string, conn *websocket.Conn, ctx context.Context) {
+func readChannelPodEvent(ch chan string, conn *websocket.Conn, connWriteLock *sync.Mutex, ctx context.Context) {
 	for message := range ch {
 		select {
 		case <-ctx.Done():
@@ -34,7 +35,9 @@ func readChannelPodEvent(ch chan string, conn *websocket.Conn, ctx context.Conte
 					if !strings.HasSuffix(event.Message, "\n") && !strings.HasSuffix(event.Message, "\n\r") {
 						event.Message = event.Message + "\n\r"
 					}
+					connWriteLock.Lock()
 					err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s", formattedTime, event.Message)))
+					connWriteLock.Unlock()
 					if err != nil {
 						xtermLogger.Error("WriteMessage", "error", err)
 					}
@@ -63,7 +66,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 	// websocket connection
-	readMessages, conn, err := generateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, err := generateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -95,7 +98,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	kubernetes.EventChannels[key] = make(chan string)
 	ch = kubernetes.EventChannels[key]
 
-	go readChannelPodEvent(ch, conn, ctx)
+	go readChannelPodEvent(ch, conn, connWriteLock, ctx)
 
 	// init
 	go func(ch chan string) {
