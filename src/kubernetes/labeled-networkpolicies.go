@@ -32,8 +32,9 @@ const (
 	NetpolLabel string = "mogenius-network-policy"
 
 	// deny policy
-	DenyAllNetPolName string = "deny-all"
-	MarkerLabel              = "using-" + DenyAllNetPolName
+	DenyAllNetPolName                     string = "deny-all"
+	AllowNamespaceCommunicationNetPolName string = "allow-namespace-communication"
+	MarkerLabel                                  = "using-" + DenyAllNetPolName
 
 	// allow policies
 	PoliciesLabelPrefix string = "mo-netpol"
@@ -530,6 +531,8 @@ func EnsureLabeledNetworkPolicies(namespaceName string, labelPolicy []dtos.K8sLa
 }
 
 func CreateDenyAllNetworkPolicy(namespaceName string) error {
+	// check if the deny-all policy already exists
+
 	netpol := v1.NetworkPolicy{}
 	netpol.ObjectMeta.Name = DenyAllNetPolName
 	netpol.ObjectMeta.Namespace = namespaceName
@@ -541,9 +544,66 @@ func CreateDenyAllNetworkPolicy(namespaceName string) error {
 	netpol.ObjectMeta.Labels[NetpolLabel] = "true"
 
 	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
-	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+	_, err := netPolClient.Get(context.TODO(), DenyAllNetPolName, metav1.GetOptions{})
+	if err != nil {
+		// create the deny-all policy
+		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+		if err != nil {
+			k8sLogger.Error("CreateDenyAllNetworkPolicy", "error", err)
+			return err
+		}
+		return nil
+	}
+
+	// update the deny-all policy
+	_, err = netPolClient.Update(context.TODO(), &netpol, MoUpdateOptions())
 	if err != nil {
 		k8sLogger.Error("CreateDenyAllNetworkPolicy", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func CreateAllowNamespaceCommunicationNetworkPolicy(namespaceName string) error {
+	netpol := v1.NetworkPolicy{}
+	netpol.ObjectMeta.Name = AllowNamespaceCommunicationNetPolName
+	netpol.ObjectMeta.Namespace = namespaceName
+
+	netpol.Spec.PodSelector = metav1.LabelSelector{}
+	netpol.Spec.PodSelector.MatchLabels = make(map[string]string)
+	netpol.Spec.PodSelector.MatchLabels["ns"] = namespaceName
+
+	netpol.Spec.Ingress = make([]v1.NetworkPolicyIngressRule, 1)
+	netpol.Spec.Ingress[0].From = make([]v1.NetworkPolicyPeer, 1)
+	netpol.Spec.Ingress[0].From[0] = v1.NetworkPolicyPeer{
+		PodSelector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"ns": namespaceName,
+			},
+		},
+	}
+
+	// general label for all mogenius netpols
+	netpol.ObjectMeta.Labels = make(map[string]string)
+	netpol.ObjectMeta.Labels[NetpolLabel] = "true"
+
+	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
+	_, err := netPolClient.Get(context.TODO(), AllowNamespaceCommunicationNetPolName, metav1.GetOptions{})
+	if err != nil {
+		// create the deny-all policy
+		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+		if err != nil {
+			k8sLogger.Error("CreateAllowNamespaceCommunicationNetworkPolicy", "error", err)
+			return err
+		}
+		return nil
+	}
+
+	// update the deny-all policy
+	_, err = netPolClient.Update(context.TODO(), &netpol, MoUpdateOptions())
+	if err != nil {
+		k8sLogger.Error("CreateAllowNamespaceCommunicationNetworkPolicy", "error", err)
 		return err
 	}
 	return nil
@@ -717,6 +777,24 @@ func EnforceNetworkPolicyManagerForNamespace(namespaceName string) error {
 		return fmt.Errorf("failed to create deny-all network policy: %v", err)
 	}
 
+	// add allow-namespace-communication network policy
+	err = CreateAllowNamespaceCommunicationNetworkPolicy(namespaceName)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("failed to create allow-namespace-communication network policy: %v", err)
+	}
+
+	// delete network policies named with namespace name
+	policies, err := store.ListNetworkPolicies(namespaceName)
+	if err == nil {
+		for _, policy := range policies {
+			if policy.Name == namespaceName {
+				err = DeleteNetworkPolicyByName(namespaceName, policy.Name)
+				if err != nil {
+					k8sLogger.Error("EnforceNetworkPolicyManagerForNamespace", "error", err)
+				}
+			}
+		}
+	}
 	return nil
 }
 
