@@ -1269,13 +1269,14 @@ func streamData(restReq *rest.Request, toServerUrl string) {
 
 func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, terminatedState *v1.ContainerStateTerminated, toServerUrl string) {
 	ctx := context.Background()
-	cancelCtx, endGofunc := context.WithCancel(ctx)
+	ctx, endGofunc := context.WithCancel(ctx)
+	defer endGofunc()
 
 	lastState := kubernetes.LastTerminatedStateToString(terminatedState)
 
 	var previousStream io.ReadCloser
 	if previousRestReq != nil {
-		tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
+		tmpPreviousStream, err := previousRestReq.Stream(ctx)
 		if err != nil {
 			serviceLogger.Error(err.Error())
 			previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
@@ -1284,7 +1285,7 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 		}
 	}
 
-	stream, err := restReq.Stream(cancelCtx)
+	stream, err := restReq.Stream(ctx)
 	if err != nil {
 		serviceLogger.Error(err.Error())
 		stream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
@@ -1298,7 +1299,6 @@ func multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, termi
 	mergedStream := io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, headlineCurrentLog, nl, stream)
 
 	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
-	endGofunc()
 }
 
 func ExecuteBinaryRequestUpload(datagram structs.Datagram) *FilesUploadRequest {
