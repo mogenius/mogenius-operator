@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v4/disk"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
