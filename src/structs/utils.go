@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
 	"net/http"
 	"net/url"
@@ -167,17 +168,41 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 }
 
 func Ping(conn *websocket.Conn, connWriteLock *sync.Mutex) error {
+	cancel := make(chan struct{})
 	pingTicker := time.NewTicker(time.Second * PingSeconds)
 
-	// TODO: handle shutdown with shutdown.Add(func() {}) -> https://github.com/mogenius/mogenius-k8s-manager/commit/d41220c211b158fcbe17d3638327753169be19ef#diff-9c67221ec2c7a8e91c0c4275e64b83ba5a67be0efd8eec7db6e9b08b4476c7a4L187-L199
+	shutdown.Add(func() {
+		defer close(cancel)
+		cancel <- struct{}{}
+	})
+
 	for {
-		<-pingTicker.C
-		connWriteLock.Lock()
-		err := conn.WriteMessage(websocket.PingMessage, nil)
-		connWriteLock.Unlock()
-		if err != nil {
-			structsLogger.Error("pingTicker", "error", err)
-			return err
+		select {
+		case <-pingTicker.C:
+			connWriteLock.Lock()
+			err := conn.WriteMessage(websocket.PingMessage, nil)
+			connWriteLock.Unlock()
+			if err != nil {
+				structsLogger.Error("pingTicker", "error", err)
+				return err
+			}
+		case <-cancel:
+			connWriteLock.Lock()
+			structsLogger.Debug("shutting down websocket connection")
+			err := conn.WriteMessage(
+				websocket.CloseMessage,
+				websocket.FormatCloseMessage(
+					websocket.CloseNormalClosure,
+					"",
+				),
+			)
+			connWriteLock.Unlock()
+			if err != nil {
+				structsLogger.Error("failed to shut down websocket connection", "error", err)
+				return err
+			}
+			structsLogger.Debug("websocket connection was shut down")
+			return nil
 		}
 	}
 }
