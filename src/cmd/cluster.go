@@ -75,7 +75,6 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 		utils.SetupClusterSecret(clusterSecret)
 
 		store.Start()
-		defer store.Defer()
 		dbstats.Start()
 		go httpApi.Run(":1337")
 		err = mokubernetes.Start()

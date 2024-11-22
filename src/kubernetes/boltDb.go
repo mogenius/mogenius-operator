@@ -60,10 +60,9 @@ type BoltDb interface {
 }
 
 type boldDbModule struct {
-	config        interfaces.ConfigModule
-	logger        *slog.Logger
-	db            *bbolt.DB
-	configPathKey string
+	config interfaces.ConfigModule
+	logger *slog.Logger
+	db     *bbolt.DB
 }
 
 func NewBoltDbModule(

@@ -45,31 +45,20 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	dbstats.Start()
 
 	tx, err := dbstats.DbStats.Begin(false)
-	if err != nil {
-		t.Errorf("Error beginning transaction: %v", err)
-	}
+	assert.Assert(err == nil, err)
 
-	// check if db has a bucket for the namespace
-	if !bucketExists(tx, stat.Namespace) {
-		t.Logf("Bucket for namespace does not exist and should be created once the stat is added: %v\n", stat.Namespace)
-	}
 	err = tx.Rollback()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 	dbstats.AddInterfaceStatsToDb(stat)
 
 	tx, err = dbstats.DbStats.Begin(false)
-	if err != nil {
-		t.Errorf("Error beginning transaction: %v", err)
-	}
-	if !bucketExists(tx, stat.Namespace) {
-		t.Errorf("Bucket for namespace %s does not exist but should have been created!", stat.Namespace)
-	}
+	assert.Assert(err == nil, err)
+	assert.Assert(
+		bucketExists(tx, stat.Namespace),
+		fmt.Sprintf("Bucket for namespace %s does not exist but should have been created!", stat.Namespace),
+	)
 	err = tx.Rollback()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 }
 
 func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
@@ -103,28 +92,21 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	}
 
 	tx, err := dbstats.DbStats.Begin(false)
-	if err != nil {
-		t.Errorf("Error beginning transaction: %v", err)
-	}
-	defer func() {
+	t.Cleanup(func() {
 		err := tx.Rollback()
 		if err != nil {
 			t.Error(err)
 		}
-	}()
+	})
+	assert.Assert(err == nil, err)
 
 	//check if the data points are limited to 3
 	bucket := getNestedBucket(tx, []string{"TESTNS", "TESTCONTROLLER"})
-	if bucket == nil {
-		t.Errorf("Bucket for namespace TESTCONTROLLER does not exist but should have been created!") //TODO subbucket should exist but bolt 'forgets' it
-	}
+	assert.Assert(bucket != nil, "Bucket for namespace TESTCONTROLLER does not exist but should have been created!")
 
 	maxDataPoints, err := strconv.Atoi(config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"))
 	assert.Assert(err == nil, err)
-	if bucket.Stats().KeyN != maxDataPoints+1 {
-		t.Errorf("Expected %d data points but got %d", maxDataPoints, bucket.Stats().KeyN)
-	}
-
+	assert.Assert(bucket.Stats().KeyN == maxDataPoints+1, fmt.Sprintf("Expected %d data points but got %d", maxDataPoints, bucket.Stats().KeyN))
 }
 
 func getNestedBucket(tx *bolt.Tx, bucketChain []string) *bolt.Bucket {
