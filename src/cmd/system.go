@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log/slog"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
@@ -19,7 +20,8 @@ func RunSystem(logManagerModule interfaces.LogManagerModule, configModule *confi
 
 	watcherModule := watcher.NewWatcher()
 
-	mokubernetes.Setup(logManagerModule, configModule, watcherModule)
+	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule)
+	assert.Assert(err == nil, err)
 	services.Setup(logManagerModule, configModule)
 	utils.Setup(logManagerModule, configModule)
 

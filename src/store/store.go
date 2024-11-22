@@ -44,6 +44,8 @@ func Start() {
 		select {}
 	}
 
+	shutdown.Add(onShutdown)
+
 	// Run garbage collection every 5 minutes
 	// garbageCollectionTicker = time.NewTicker(5 * time.Minute)
 	// go func() {
@@ -57,12 +59,15 @@ func Start() {
 	// }()
 }
 
-func Defer() {
+func onShutdown() {
 	if garbageCollectionTicker != nil {
 		garbageCollectionTicker.Stop()
 	}
 	if GlobalStore != nil {
-		GlobalStore.Close()
+		err := GlobalStore.Close()
+		if err != nil {
+			storeLogger.Error("failed to close GlobalStore", "error", err)
+		}
 	}
 }
 
@@ -86,7 +91,9 @@ func NewStore() (*Store, error) {
 
 	indexStore := NewReverseIndexStore()
 
-	return &Store{db: db, indexStore: indexStore}, nil
+	store := Store{db: db, indexStore: indexStore}
+
+	return &store, nil
 }
 
 func (s *Store) Set(value interface{}, keys ...string) error {

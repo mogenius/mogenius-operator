@@ -1,11 +1,14 @@
 package kubernetes_test
 
 import (
+	"fmt"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/watcher"
+	"path/filepath"
 	"testing"
 
 	"sigs.k8s.io/yaml"
@@ -29,41 +32,42 @@ func externalSecretListExample() kubernetes.ExternalSecretListProps {
 func TestSecretListRender(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	watcherModule := watcher.NewWatcher()
-	kubernetes.Setup(logManager, config, watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
+	})
+	watcherModule := watcher.NewWatcher()
+	err := kubernetes.Setup(logManager, config, watcherModule)
+	assert.Assert(err == nil, err)
 
 	yamlTemplate := utils.InitExternalSecretListYaml()
 	secretListProps := externalSecretListExample()
 
 	// rendering overall works
 	yamlDataRendered := kubernetes.RenderExternalSecretList(yamlTemplate, secretListProps)
-	if yamlTemplate == yamlDataRendered {
-		t.Errorf("Error updating yaml data: %s", yamlTemplate)
-	}
+	assert.Assert(yamlTemplate != yamlDataRendered, fmt.Sprintf("Error updating yaml data: %s", yamlTemplate))
 
 	// change values and compare
 	expectedName := NamePrefix + "-" + utils.SecretListSuffix // lowercase only
 	secretListProps.NamePrefix = NamePrefix
 	secretListProps.SecretName = "projectMayhem"
 	yamlDataRenderedChanged := kubernetes.RenderExternalSecretList(yamlTemplate, secretListProps)
-	if yamlDataRenderedChanged == yamlDataRendered {
-		t.Errorf("Error updating yaml data: %s", yamlTemplate)
-	}
+	assert.Assert(yamlDataRenderedChanged != yamlDataRendered, fmt.Sprintf("Error updating yaml data: %s", yamlTemplate))
 
 	// check if the values are replaced as expected
 	var data YamlDataList
-	err := yaml.Unmarshal([]byte(yamlDataRenderedChanged), &data)
-	if err != nil {
-		t.Fatalf("Error parsing YAML: %v", err)
-	}
+	err = yaml.Unmarshal([]byte(yamlDataRenderedChanged), &data)
+	assert.Assert(err == nil, err)
 
-	if data.Spec.Target.Name != expectedName {
-		t.Errorf("Error updating Name: expected: %s, got: %s", expectedName, data.Spec.Target.Name)
-	}
+	assert.Assert(data.Spec.Target.Name == expectedName, fmt.Sprintf(
+		"Error updating Name: expected: %s, got: %s",
+		expectedName,
+		data.Spec.Target.Name,
+	))
 }
 
 type YamlDataList struct {
@@ -77,17 +81,20 @@ type YamlDataList struct {
 func TestCreateExternalSecretList(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	watcherModule := watcher.NewWatcher()
-	kubernetes.Setup(logManager, config, watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
+	})
+	watcherModule := watcher.NewWatcher()
+	err := kubernetes.Setup(logManager, config, watcherModule)
+	assert.Assert(err == nil, err)
 
 	testReq := externalSecretListExample()
 
-	err := kubernetes.CreateExternalSecretList(testReq)
-	if err != nil {
-		t.Errorf("Error creating external secret list. Err: %s", err.Error())
-	}
+	err = kubernetes.CreateExternalSecretList(testReq)
+	assert.Assert(err == nil, err)
 }

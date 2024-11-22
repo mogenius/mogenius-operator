@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
@@ -19,7 +20,8 @@ func RunClean(logManagerModule interfaces.LogManagerModule, configModule *config
 	configModule.Validate()
 
 	watcherModule := watcher.NewWatcher()
-	mokubernetes.Setup(logManagerModule, configModule, watcherModule)
+	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule)
+	assert.Assert(err == nil, err)
 
 	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 

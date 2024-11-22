@@ -1,7 +1,7 @@
 package crds_test
 
 import (
-	"fmt"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/utils"
 	"testing"
@@ -16,19 +16,14 @@ func TestProject(t *testing.T) {
 		EnvironmentRefs: []string{name},
 		Limits:          crds.ProjectLimits{LimitMemoryMB: 1024, LimitCpuCores: 1.0, EphemeralStorageMB: 1024, MaxVolumeSizeGb: 10}},
 	)
-	if err != nil {
-		t.Fatalf("Error creating project: %s", err.Error())
-	} else {
-		fmt.Println("Project created ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("Project created ✅")
 
 	// GET
 	project, _, err := crds.GetProject(newProjectName)
-	if err != nil {
-		t.Fatalf("Error getting project: %s", err.Error())
-	} else {
-		fmt.Println("Project retrieved ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("Project retrieved ✅")
+
 	project.Id = "Updated " + name
 	project.DisplayName = "Updated Test Project"
 	project.CreatedBy = "Updated " + name
@@ -38,25 +33,16 @@ func TestProject(t *testing.T) {
 
 	// UPDATE
 	err = crds.UpdateProject(newProjectName, project.Id, project.ProjectName, project.DisplayName, project.ProductId, project.Limits)
-	if err != nil {
-		t.Fatalf("Error updating project: %s", err.Error())
-	} else {
-		fmt.Println("Project updated ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("Project updated ✅")
 
 	// DELETE
 	err = crds.DeleteProject(newProjectName)
-	if err != nil {
-		t.Fatalf("Error deleting project: %s", err.Error())
-	} else {
-		fmt.Println("Project deleted ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("Project deleted ✅")
 
 	// LIST
 	_, _, err = crds.ListProjects()
-	if err != nil {
-		t.Fatalf("Error listing projects: %s", err.Error())
-	} else {
-		fmt.Println("Projects listed ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("Projects listed ✅")
 }

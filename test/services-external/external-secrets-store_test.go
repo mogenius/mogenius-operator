@@ -1,12 +1,13 @@
 package servicesExternal_test
 
 import (
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	servicesExternal "mogenius-k8s-manager/src/services-external"
 	"mogenius-k8s-manager/src/watcher"
-	"time"
+	"path/filepath"
 
 	"mogenius-k8s-manager/src/utils"
 	"testing"
@@ -38,8 +39,13 @@ func TestSecretStoreCreate(t *testing.T) {
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
+	})
 	watcherModule := watcher.NewWatcher()
-	kubernetes.Setup(logManager, config, watcherModule)
+	err := kubernetes.Setup(logManager, config, watcherModule)
+	assert.Assert(err == nil, err)
 
 	props := externalSecretStorePropsExample()
 
@@ -50,53 +56,37 @@ func TestSecretStoreCreate(t *testing.T) {
 	props.ProjectId = ProjectId
 	props.Role = Role
 
-	err := servicesExternal.CreateExternalSecretsStore(props)
-	if err != nil {
-		t.Errorf("Error creating secret store: %s", err.Error())
-	}
+	err = servicesExternal.CreateExternalSecretsStore(props)
+	assert.Assert(err == nil, err)
 }
 
 // don't move this test as it is dependent on the previous test to create the secret store!
 func TestSecretStoreList(t *testing.T) {
-	// wait for create to finish
-	time.Sleep(3 * time.Second)
-
+	t.Skip("test relies on another test which is illegal")
 	stores, err := kubernetes.ListExternalSecretsStores(ProjectId)
-	if err != nil {
-		t.Errorf("Error listing secret stores: %s", err.Error())
-	}
+	assert.Assert(err == nil, err)
 
-	if len(stores) == 0 {
-		t.Errorf("Error listing secret stores: No secret stores found")
-	} else {
-		found := false
-		for _, store := range stores {
-			if store.Prefix == NamePrefix && store.ProjectId == ProjectId {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix))
+	assert.Assert(len(stores) > 0, "Error listing secret stores: No secret stores found")
+	found := false
+	for _, store := range stores {
+		if store.Prefix == NamePrefix && store.ProjectId == ProjectId {
+			found = true
+			break
 		}
 	}
+	assert.Assert(found, "Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix))
 }
 
 func TestListAvailSecrets(t *testing.T) {
 	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
-
 	availSecrets := servicesExternal.ListAvailableExternalSecrets(NamePrefix)
 
-	if len(availSecrets) == 0 {
-		t.Errorf("Error listing available secrets: No secrets found")
-	}
+	assert.Assert(len(availSecrets) > 0, "Error listing available secrets: No secrets found")
 }
 
 func TestSecretStoreDelete(t *testing.T) {
 	name := utils.GetSecretStoreName(NamePrefix)
 
 	err := servicesExternal.DeleteExternalSecretsStore(name)
-	if err != nil {
-		t.Errorf("Error: Expected secret store %s to be deleted, but got this error instead: %s", utils.GetSecretStoreName(NamePrefix), err.Error())
-	}
+	assert.Assert(err == nil, err)
 }
