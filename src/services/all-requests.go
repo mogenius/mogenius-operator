@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/src/controllers"
-	"mogenius-k8s-manager/src/db"
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
@@ -948,21 +947,21 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return NewMessageResponse(nil, err)
 
 	case structs.PAT_BUILDER_STATUS:
-		return BuilderStatus()
+		return kubernetes.GetDb().GetBuilderStatus()
 	case structs.PAT_BUILD_INFOS:
 		data := structs.BuildJobStatusRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return BuildJobInfos(data.BuildId)
+		return kubernetes.GetDb().GetBuildJobInfosFromDb(data.BuildId)
 	case structs.PAT_BUILD_LAST_INFOS:
 		data := structs.BuildTaskRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return LastBuildInfos(data)
+		return kubernetes.GetDb().GetLastBuildJobInfosFromDb(data)
 	case structs.PAT_BUILD_LIST_ALL:
 		return ListAll()
 	case structs.PAT_BUILD_LIST_BY_PROJECT:
@@ -1010,14 +1009,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		return BuildInfosList(data)
+		return kubernetes.GetDb().GetBuildJobInfosListFromDb(data.Namespace, data.Controller, data.Container)
 	case structs.PAT_BUILD_DELETE_ALL_OF_SERVICE:
 		data := structs.BuildTaskRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		DeleteAllBuildData(data)
+		kubernetes.GetDb().DeleteAllBuildData(data.Namespace, data.Controller, data.Container)
 		return nil
 	//case structs.PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
 	//	data := structs.BuildServiceRequest{}
@@ -1080,7 +1079,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		return StatusMogeniusNfs(data)
 
 	case structs.PAT_LOG_LIST_ALL:
-		return db.ListLogFromDb()
+		return kubernetes.GetDb().ListLogFromDb()
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// External Secrets

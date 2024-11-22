@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/db"
 	"mogenius-k8s-manager/src/dtos"
 
 	"mogenius-k8s-manager/src/structs"

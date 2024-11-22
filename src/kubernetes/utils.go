@@ -278,7 +278,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 				time.Sleep(15 * time.Second)
 			}
 			autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
-			assert.Assert(err == nil)
+			assert.Assert(err == nil, err)
 			if autoMountNfs && RunsInCluster() {
 				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
 				mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
@@ -306,7 +306,7 @@ func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Servic
 func Umount(volumeNamespace string, volumeName string) {
 	go func() {
 		autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
-		assert.Assert(err == nil)
+		assert.Assert(err == nil, err)
 		if autoMountNfs && RunsInCluster() {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)

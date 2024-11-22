@@ -65,12 +65,12 @@ func Run() error {
 	//==================== Update Logger Config =====================
 	//===============================================================
 	enabled, err := strconv.ParseBool(configModule.Get("MO_LOG_STDERR"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	slogManager.SetStderr(enabled)
 
 	logLevel := configModule.Get("MO_LOG_LEVEL")
 	err = slogManager.SetLogLevel(logLevel)
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 
 	logFilter := configModule.Get("MO_LOG_FILTER")
 	err = slogManager.SetLogFilter(logFilter)

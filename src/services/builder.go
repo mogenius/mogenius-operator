@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/db"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/gitmanager"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -35,9 +34,9 @@ var currentNumberOfRunningJobs int = 0
 
 func ProcessQueue() {
 	maxConcurrentBuilds, err := strconv.Atoi(config.Get("MO_BUILDER_MAX_CONCURRENT_BUILDS"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 
 	if DISABLEQUEUE || currentNumberOfRunningJobs >= maxConcurrentBuilds {
 		time.Sleep(3 * time.Second)
@@ -45,7 +44,7 @@ func ProcessQueue() {
 		return
 	}
 
-	jobsToBuild := db.GetJobsToBuildFromDb()
+	jobsToBuild := kubernetes.GetDb().GetJobsToBuildFromDb()
 
 	// this must happen outside the transaction to avoid dead-locks
 	serviceLogger.Info("Queued jobs in build-queue", "current", len(jobsToBuild), "max", maxConcurrentBuilds)
@@ -75,11 +74,11 @@ func ProcessQueue() {
 			select {
 			case <-ctx.Done():
 				buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
-				assert.Assert(err == nil)
+				assert.Assert(err == nil, err)
 				serviceLogger.Error("BUILD TIMEOUT!", "duration", buildTimeout, "error", ctx.Err())
 				job.State = structs.JobStateTimeout
 				buildJob.State = structs.JobStateTimeout
-				saveJob(buildJob)
+				kubernetes.GetDb().SaveJobInDb(buildJob)
 			case result := <-currentBuildChannel:
 				switch result {
 				case structs.JobStateTimeout:
@@ -96,7 +95,8 @@ func ProcessQueue() {
 				buildJob.EndTimestamp = time.Now().Format(time.RFC3339)
 				buildJob.State = result
 				job.Finish()
-				saveJob(buildJob)
+				kubernetes.GetDb().SaveJobInDb(buildJob)
+
 			}
 
 			currentBuildContext = nil
@@ -122,12 +122,12 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	workingDir := fmt.Sprintf("%s/temp/%s", pwd, utils.NanoId())
 
 	moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 
 	defer func() {
 		// reset everything if done
 		if !moDebug {
-			err := executeCmd(job, nil, db.PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+			err := executeCmd(job, nil, kubernetes.BOLT_DB_PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
 			if err != nil {
 				serviceLogger.Error("Error cleaning up prefix", "error", err)
 			}
@@ -135,13 +135,13 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 		done <- structs.JobStateSucceeded
 	}()
 
-	updateState(*buildJob, structs.JobStateStarted)
+	kubernetes.GetDb().UpdateStateInDb(*buildJob, structs.JobStateStarted)
 
-	_, tagName, latestTagName := db.ImageNamesFromBuildJob(*buildJob)
+	_, tagName, latestTagName := kubernetes.GetDb().ImageNamesFromBuildJob(*buildJob)
 
 	// CLEANUP
 	if !moDebug {
-		err := executeCmd(job, nil, db.PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+		err := executeCmd(job, nil, kubernetes.BOLT_DB_PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
 		if err != nil {
 			serviceLogger.Error("Error cleaning up prefix", "error", err)
 		}
@@ -219,29 +219,8 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	}
 }
 
-func BuilderStatus() structs.BuilderStatus {
-	return db.GetBuilderStatus()
-}
-
-func BuildJobInfos(buildId uint64) structs.BuildJobInfo {
-	return db.GetBuildJobInfosFromDb(buildId)
-}
-
-func LastBuildInfos(data structs.BuildTaskRequest) structs.BuildJobInfo {
-	return db.GetLastBuildJobInfosFromDb(data)
-}
-func LastBuildForNamespaceAndControllerName(namespace string, controllerName string) structs.BuildJobInfo {
-	return db.GetLastBuildForNamespaceAndControllerName(namespace, controllerName)
-}
-func BuildInfosList(data structs.BuildTaskRequest) []structs.BuildJobInfo {
-	return db.GetBuildJobInfosListFromDb(data.Namespace, data.Controller, data.Container)
-}
-func DeleteAllBuildData(data structs.BuildTaskRequest) {
-	db.DeleteAllBuildData(data.Namespace, data.Controller, data.Container)
-}
-
 func AddBuildJob(buildJob structs.BuildJob) structs.BuildAddResult {
-	nextBuildId, err := db.AddToDb(buildJob)
+	nextBuildId, err := kubernetes.GetDb().AddToDb(buildJob)
 	if err != nil {
 		serviceLogger.Error("failed to add job", "namespace", buildJob.Namespace.Name, "controller", buildJob.Service.ControllerName, "error", err)
 		return structs.BuildAddResult{BuildId: nextBuildId}
@@ -268,7 +247,7 @@ func Cancel(buildNo uint64) structs.BuildCancelResult {
 }
 
 func DeleteBuild(buildId uint64) structs.BuildDeleteResult {
-	err := db.DeleteBuildJobFromDb(db.BUILD_BUCKET_NAME, buildId)
+	err := kubernetes.GetDb().DeleteBuildJobFromDb(kubernetes.BOLT_DB_BUILD_BUCKET_NAME, buildId)
 	if err != nil {
 		errStr := fmt.Sprintf("Error deleting build '%d' in bucket. REASON: %s", buildId, err.Error())
 		serviceLogger.Error(errStr)
@@ -278,7 +257,7 @@ func DeleteBuild(buildId uint64) structs.BuildDeleteResult {
 }
 
 func ListAll() []structs.BuildJob {
-	return db.GetBuildJobListFromDb()
+	return kubernetes.GetDb().GetBuildJobListFromDb()
 }
 
 func ListByProjectId(projectId string) []structs.BuildJob {
@@ -297,7 +276,7 @@ func LastBuildInfosOfServices(data structs.BuildTaskListOfServicesRequest) []str
 	results := []structs.BuildJobInfo{}
 
 	for _, request := range data.Requests {
-		result := db.GetLastBuildJobInfosFromDb(request)
+		result := kubernetes.GetDb().GetLastBuildJobInfosFromDb(request)
 		results = append(results, result)
 	}
 
@@ -442,7 +421,7 @@ func executeCmd(job *structs.Job, reportCmd *structs.Command, prefix structs.Bui
 	}
 
 	moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	if moDebug && buildJob != nil {
 		elapsedTime := time.Since(startTime)
 		buildJob.DurationMs = int(elapsedTime.Milliseconds()) + buildJob.DurationMs
@@ -491,7 +470,7 @@ func processLine(
 			return
 		}
 		nextLine := applyErrorSuggestions(cmdOutput.String())
-		err := db.SaveBuildResult(structs.JobStateEnum(reportCmd.State), prefix, nextLine, startTime, job, container)
+		err := kubernetes.GetDb().SaveBuildResult(structs.JobStateEnum(reportCmd.State), prefix, nextLine, startTime, job, container)
 		if err != nil {
 			serviceLogger.Error("failed to save build result", "error", err)
 		}
@@ -504,7 +483,7 @@ func processLine(
 		// send notification
 		// send start-signal when first line is received
 		if lineNumber == 0 || lineNumber == -1 {
-			data := db.GetBuildJobInfosFromDb(job.BuildId)
+			data := kubernetes.GetDb().GetBuildJobInfosFromDb(job.BuildId)
 			structs.EventServerSendData(structs.CreateDatagramBuildLogs(data), "", "", "", 0)
 		}
 	}
@@ -618,16 +597,4 @@ func updateController(job *structs.Job, reportCmd *structs.Command, buildJob *st
 	}
 
 	return err
-}
-
-func updateState(buildJob structs.BuildJob, newState structs.JobStateEnum) {
-	db.UpdateStateInDb(buildJob, newState)
-}
-
-// func positionInQueue(buildId uint64) int {
-// 	return db.PositionInQueueFromDb(buildId)
-// }
-
-func saveJob(buildJob structs.BuildJob) {
-	db.SaveJobInDb(buildJob)
 }
