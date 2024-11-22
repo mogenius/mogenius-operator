@@ -339,8 +339,8 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 
 	for idx, policy := range policies {
 		hasLabels := policy.ObjectMeta.Labels != nil
-		isManagedMogeniusControllerNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name != kubernetes.DenyAllNetPolName
-		isManagedMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name == kubernetes.DenyAllNetPolName
+		isManagedMogeniusControllerNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name != kubernetes.DenyAllNetPolName && policy.Name != kubernetes.AllowNamespaceCommunicationNetPolName
+		isManagedMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && (policy.Name == kubernetes.DenyAllNetPolName || policy.Name == kubernetes.AllowNamespaceCommunicationNetPolName)
 		isManagedLegacyMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels["mo-created-by"] == "mogenius-k8s-manager" && func() bool {
 			_, exists := policy.ObjectMeta.Labels["mo-app"]
 			return !exists
@@ -459,8 +459,8 @@ func listManagedAndUnmanagedNamespaceNetworkPoliciesByNamespaces(namespaces []v1
 
 	for idx, policy := range policies {
 		hasLabels := policy.ObjectMeta.Labels != nil
-		isManagedMogeniusControllerNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name != kubernetes.DenyAllNetPolName
-		isManagedMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name == kubernetes.DenyAllNetPolName
+		isManagedMogeniusControllerNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && policy.Name != kubernetes.DenyAllNetPolName && policy.Name != kubernetes.AllowNamespaceCommunicationNetPolName
+		isManagedMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels[kubernetes.NetpolLabel] == "true" && (policy.Name == kubernetes.DenyAllNetPolName || policy.Name == kubernetes.AllowNamespaceCommunicationNetPolName)
 		isManagedLegacyMogeniusNamespaceNetworkPolicy := hasLabels && policy.ObjectMeta.Labels["mo-created-by"] == "mogenius-k8s-manager" && func() bool {
 			_, exists := policy.ObjectMeta.Labels["mo-app"]
 			return !exists
