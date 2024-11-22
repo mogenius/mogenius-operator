@@ -368,7 +368,7 @@ func CleanupLabeledNetworkPolicies(namespaceName string) error {
 	// delete all network policies that are not in use
 	cleanupCounter := 0
 	for _, netPol := range netPolList.Items {
-		if netPol.Name == DenyAllNetPolName {
+		if netPol.Name == DenyAllNetPolName || netPol.Name == AllowNamespaceCommunicationNetPolName {
 			continue
 		}
 		if _, ok := inUseLabels[netPol.Name]; !ok {
