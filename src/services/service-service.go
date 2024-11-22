@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/crds"
-	"mogenius-k8s-manager/src/db"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/gitmanager"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -99,7 +98,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 		time.Sleep(10 * time.Second)
 		for _, container := range r.Service.Containers {
 			serviceLogger.Info("Deleting build data", "namespace", r.Namespace.Name, "controller", r.Service.ControllerName, "container", container.Name)
-			db.DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
+			kubernetes.GetDb().DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
 		}
 	}()
 

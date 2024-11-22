@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"log/slog"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/utils"
 )
@@ -9,15 +10,21 @@ import (
 var config interfaces.ConfigModule
 var k8sLogger *slog.Logger
 var watcher interfaces.WatcherModule
+var db BoltDb
 
 func Setup(
 	logManagerModule interfaces.LogManagerModule,
 	configModule interfaces.ConfigModule,
 	watcherModule interfaces.WatcherModule,
-) {
+) error {
 	k8sLogger = logManagerModule.CreateLogger("kubernetes")
 	config = configModule
 	watcher = watcherModule
+	boltDbModule, err := NewBoltDbModule(config, logManagerModule.CreateLogger("db"))
+	if err != nil {
+		return err
+	}
+	db = boltDbModule
 
 	if utils.ClusterProviderCached == utils.UNKNOWN {
 		foundProvider, err := GuessClusterProvider()
@@ -27,6 +34,8 @@ func Setup(
 		utils.ClusterProviderCached = foundProvider
 		k8sLogger.Debug("🎲 🎲 🎲 ClusterProvider", "foundProvider", string(foundProvider))
 	}
+
+	return nil
 }
 
 func Start() error {
@@ -35,5 +44,12 @@ func Start() error {
 		return err
 	}
 
+	db.ExecuteMigrations()
+
 	return nil
+}
+
+func GetDb() BoltDb {
+	assert.Assert(db != nil)
+	return db
 }

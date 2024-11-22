@@ -26,7 +26,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	}
 
 	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))

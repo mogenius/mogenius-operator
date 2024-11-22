@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -864,7 +865,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 // }
 
 func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
-	lastJob := LastBuildForNamespaceAndControllerName(namespace, name)
+	lastJob := kubernetes.GetDb().GetLastBuildForNamespaceAndControllerName(namespace, name)
 	if lastJob.IsEmpty() {
 		return resourceItems, nil
 	}

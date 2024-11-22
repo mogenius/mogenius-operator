@@ -120,7 +120,7 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	}
 
 	maxDataPoints, err := strconv.Atoi(config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	if bucket.Stats().KeyN != maxDataPoints+1 {
 		t.Errorf("Expected %d data points but got %d", maxDataPoints, bucket.Stats().KeyN)
 	}
