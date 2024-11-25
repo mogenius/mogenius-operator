@@ -38,6 +38,7 @@ func (self *HttpService) Run(addr string) {
 	mux.Handle("GET /healtz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 	mux.Handle("POST /traffic", self.withRequestLogging(http.HandlerFunc(self.postTraffic)))
+	mux.Handle("POST /cni", self.withRequestLogging(http.HandlerFunc(self.postCni)))
 	mux.Handle("POST /podstats", self.withRequestLogging(http.HandlerFunc(self.postPodStats)))
 	mux.Handle("POST /nodestats", self.withRequestLogging(http.HandlerFunc(self.postNodeStats)))
 
@@ -109,6 +110,43 @@ func (h *HttpService) postTraffic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dbstats.AddInterfaceStatsToDb(*stat)
+}
+
+func (h *HttpService) postCni(w http.ResponseWriter, r *http.Request) {
+	debugMode, err := strconv.ParseBool(h.config.Get("MO_DEBUG"))
+	assert.Assert(err == nil)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.logger.Error("failed to read request body", "error", err)
+		return
+	}
+
+	if debugMode {
+		var parsedJson interface{}
+		err = json.Unmarshal(body, &parsedJson)
+		if err != nil {
+			h.logger.Error("failed to indent json", "error", err)
+			return
+		}
+		h.logger.Debug("POST /cni", "body", parsedJson)
+	}
+
+	cniData := &[]structs.CniData{}
+	err = structs.UnmarshalCniData(cniData, body)
+	if err != nil {
+		h.logger.Error("failed to unmarshal cniData", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		err := json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
+		if err != nil {
+			h.logger.Error("failed to json encode response", "error", err)
+		}
+		return
+	}
+
+	dbstats.ReplaceCniData(*cniData)
 }
 
 func (h *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {

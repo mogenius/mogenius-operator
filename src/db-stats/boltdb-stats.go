@@ -23,6 +23,7 @@ const (
 	POD_STATS_BUCKET_NAME  = "pod-stats"
 	NODE_STATS_BUCKET_NAME = "node-stats"
 	SOCKET_STATS_BUCKET    = "socket-stats"
+	CNI_BUCKET_NAME        = "cluster-cni-configuration"
 )
 
 var DbStats *bolt.DB
@@ -48,6 +49,18 @@ func Start() {
 	})
 	if err != nil {
 		dbStatsLogger.Error("Error creating bucket", "bucket", TRAFFIC_BUCKET_NAME, "error", err)
+	}
+
+	// ### CNI BUCKET ###
+	err = DbStats.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(CNI_BUCKET_NAME))
+		if err == nil {
+			dbStatsLogger.Debug("Bucket created 🚀.", "bucket", CNI_BUCKET_NAME)
+		}
+		return err
+	})
+	if err != nil {
+		dbStatsLogger.Error("Error creating bucket", "bucket", CNI_BUCKET_NAME, "error", err)
 	}
 
 	// ### POD STATS BUCKET ###
@@ -158,6 +171,43 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 	if err != nil {
 		dbStatsLogger.Error("Error adding interface stats", "namespace", stats.Namespace, "podName", stats.PodName, "error", err.Error())
 	}
+}
+
+func ReplaceCniData(data []structs.CniData) {
+	err := DbStats.Update(func(tx *bolt.Tx) error {
+		mainBucket := tx.Bucket([]byte(CNI_BUCKET_NAME))
+
+		// CREATE A BUCKET
+		cniDataBucket, err := mainBucket.CreateBucketIfNotExists([]byte(CNI_BUCKET_NAME))
+		if err != nil {
+			return err
+		}
+
+		// update Entry
+		return cniDataBucket.Put([]byte(CNI_BUCKET_NAME), []byte(utils.PrettyPrintString(data)))
+	})
+	if err != nil {
+		dbStatsLogger.Error("Error adding CNI data", "error", err.Error())
+	}
+}
+
+func GetCniData() ([]structs.CniData, error) {
+	result := []structs.CniData{}
+	err := DbStats.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(CNI_BUCKET_NAME))
+		data := bucket.Get([]byte(CNI_BUCKET_NAME))
+		if data != nil {
+			err := structs.UnmarshalCniData(&result, data)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		dbStatsLogger.Error("GetSocketConnectionsForPod", "error", err)
+	}
+	return result, err
 }
 
 // Only save socket connections if more than 5 connections have been made
