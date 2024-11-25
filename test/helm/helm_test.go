@@ -6,8 +6,8 @@ import (
 	"mogenius-k8s-manager/src/config"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/watcher"
@@ -112,7 +112,7 @@ func testSetup() error {
 }
 
 func TestHelmRepoAdd(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{
@@ -142,7 +142,7 @@ func TestHelmRepoAdd(t *testing.T) {
 }
 
 func TestHelmRepoUpdate(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{
@@ -160,7 +160,7 @@ func TestHelmRepoUpdate(t *testing.T) {
 }
 
 func TestHelmRepoList(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := config.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
@@ -200,7 +200,7 @@ func TestHelmRepoList(t *testing.T) {
 }
 
 func TestHelmInstallRequest(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{
@@ -229,7 +229,7 @@ func TestHelmInstallRequest(t *testing.T) {
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := config.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
@@ -265,7 +265,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 }
 
 func TestHelmListRequest(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{
@@ -306,7 +306,7 @@ func TestHelmListRequest(t *testing.T) {
 }
 
 func TestHelmReleases(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{

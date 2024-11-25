@@ -16,7 +16,6 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/version"
 	"net"
@@ -41,7 +40,7 @@ var config cfg.ConfigModule
 var utilsLogger *slog.Logger
 var validate *validator.Validate
 
-func Setup(logManagerModule interfaces.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule) {
 	utilsLogger = logManagerModule.CreateLogger("utils")
 	config = configModule
 

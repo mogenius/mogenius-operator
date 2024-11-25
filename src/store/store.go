@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/interfaces"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shutdown"
 	"reflect"
 	"sync"
@@ -16,7 +16,7 @@ import (
 
 var storeLogger *slog.Logger
 
-func Setup(logManagerModule interfaces.LogManagerModule) {
+func Setup(logManagerModule logging.LogManagerModule) {
 	storeLogger = logManagerModule.CreateLogger("store")
 }
 

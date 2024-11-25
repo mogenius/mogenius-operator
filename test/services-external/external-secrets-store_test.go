@@ -3,8 +3,8 @@ package servicesExternal_test
 import (
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/logging"
 	servicesExternal "mogenius-k8s-manager/src/services-external"
 	"mogenius-k8s-manager/src/watcher"
 	"path/filepath"
@@ -32,7 +32,7 @@ func externalSecretStorePropsExample() servicesExternal.ExternalSecretStoreProps
 }
 
 func TestSecretStoreCreate(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
 	servicesExternal.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{

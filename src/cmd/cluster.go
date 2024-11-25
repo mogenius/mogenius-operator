@@ -11,8 +11,8 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/httpService"
-	"mogenius-k8s-manager/src/interfaces"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/services"
 	servicesExternal "mogenius-k8s-manager/src/services-external"
 	"mogenius-k8s-manager/src/shutdown"
@@ -26,7 +26,7 @@ import (
 	"strconv"
 )
 
-func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
 	go func() {
 		versionModule := version.NewVersion()
 		watcherModule := watcher.NewWatcher()

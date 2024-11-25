@@ -3,14 +3,14 @@ package utils_test
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
 	"testing"
 )
 
 func TestUtils(t *testing.T) {
 	t.Parallel()
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	configModule := config.NewConfig()
 	utils.Setup(logManager, configModule)
 

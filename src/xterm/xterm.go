@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
@@ -30,11 +29,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var logManager interfaces.LogManagerModule
+var logManager logging.LogManagerModule
 var xtermLogger *slog.Logger
 var config cfg.ConfigModule
 
-func Setup(logManagerModule interfaces.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule) {
 	logManager = logManagerModule
 	xtermLogger = logManagerModule.CreateLogger("xterm")
 	config = configModule
