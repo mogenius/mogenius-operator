@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/config"
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/structs"
@@ -15,10 +16,10 @@ import (
 
 type HttpService struct {
 	logger *slog.Logger
-	config interfaces.ConfigModule
+	config config.ConfigModule
 }
 
-func NewHttpApi(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) *HttpService {
+func NewHttpApi(logManagerModule interfaces.LogManagerModule, configModule config.ConfigModule) *HttpService {
 	assert.Assert(logManagerModule != nil)
 	assert.Assert(configModule != nil)
 	return &HttpService{

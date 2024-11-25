@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -84,12 +84,12 @@ func createNginxDeployment() *v1.Deployment {
 
 func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
-	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config := cfg.NewConfig()
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
@@ -106,8 +106,8 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 
 func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
-	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config := cfg.NewConfig()
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
@@ -121,12 +121,12 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 
 func TestReadNetworkPolicyPorts(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
-	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config := cfg.NewConfig()
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
@@ -201,8 +201,8 @@ func TestRemoveAllNetworkPolicies(t *testing.T) {
 
 func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
-	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config := cfg.NewConfig()
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
@@ -258,8 +258,8 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 
 func TestDeleteNetworkPolicy(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
-	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config := cfg.NewConfig()
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})

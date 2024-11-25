@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -60,13 +60,13 @@ type BoltDb interface {
 }
 
 type boldDbModule struct {
-	config interfaces.ConfigModule
+	config cfg.ConfigModule
 	logger *slog.Logger
 	db     *bbolt.DB
 }
 
 func NewBoltDbModule(
-	config interfaces.ConfigModule,
+	config cfg.ConfigModule,
 	logger *slog.Logger,
 ) (BoltDb, error) {
 	dbModule := boldDbModule{

@@ -1,8 +1,7 @@
 package servicesExternal_test
 
 import (
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
 	servicesExternal "mogenius-k8s-manager/src/services-external"
 	"mogenius-k8s-manager/src/utils"
@@ -42,11 +41,11 @@ func externalSecretStorePropsExample() servicesExternal.ExternalSecretStoreProps
 
 func TestSecretStoreRender(t *testing.T) {
 	t.Parallel()
-	config := config.NewConfig()
+	config := cfg.NewConfig()
 	slogManager := logging.NewSlogManager("")
 
 	servicesExternal.Setup(slogManager, config)
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})

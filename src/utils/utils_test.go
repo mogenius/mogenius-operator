@@ -16,7 +16,7 @@ func TestUtils(t *testing.T) {
 
 	testSecret := "myLittleTestSecret ;-)"
 	testEncryptionKey := "testEncryptionKey"
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_API_KEY",
 		DefaultValue: &testEncryptionKey,
 	})

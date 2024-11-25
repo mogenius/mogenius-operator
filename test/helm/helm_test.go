@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -112,9 +113,9 @@ func testSetup() error {
 
 func TestHelmRepoAdd(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
-	config := config.NewConfig()
+	config := cfg.NewConfig()
 	helm.Setup(logManager, config)
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})
@@ -144,7 +145,7 @@ func TestHelmRepoUpdate(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})
@@ -161,11 +162,11 @@ func TestHelmRepoUpdate(t *testing.T) {
 func TestHelmRepoList(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
@@ -202,7 +203,7 @@ func TestHelmInstallRequest(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})
@@ -230,7 +231,7 @@ func TestHelmInstallRequest(t *testing.T) {
 func TestHelmUpgradeRequest(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})
@@ -267,7 +268,7 @@ func TestHelmListRequest(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})
@@ -308,7 +309,7 @@ func TestHelmReleases(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})

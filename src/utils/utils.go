@@ -15,6 +15,7 @@ import (
 	"log"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/version"
@@ -36,11 +37,11 @@ import (
 
 var CURRENT_COUNTRY *CountryDetails
 
-var config interfaces.ConfigModule
+var config cfg.ConfigModule
 var utilsLogger *slog.Logger
 var validate *validator.Validate
 
-func Setup(logManagerModule interfaces.LogManagerModule, configModule interfaces.ConfigModule) {
+func Setup(logManagerModule interfaces.LogManagerModule, configModule cfg.ConfigModule) {
 	utilsLogger = logManagerModule.CreateLogger("utils")
 	config = configModule
 

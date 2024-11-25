@@ -49,12 +49,12 @@ package iacmanager
 // var gitSyncLock sync.Mutex
 
 // var iacLogger *slog.Logger
-// var config interfaces.ConfigModule
+// var config config.ConfigModule
 // var watcher interfaces.WatcherModule
 
 // func Setup(
 // 	logManagerModule interfaces.LogManagerModule,
-// 	configModule interfaces.ConfigModule,
+// 	configModule config.ConfigModule,
 // 	watcherModule interfaces.WatcherModule,
 // ) {
 // 	iacLogger = logManagerModule.CreateLogger("iac")
