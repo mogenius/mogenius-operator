@@ -7,17 +7,17 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/crds"
-	dbstats "mogenius-k8s-manager/src/db-stats"
+	"mogenius-k8s-manager/src/dbstats"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/httpService"
+	"mogenius-k8s-manager/src/httpservice"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/services"
-	servicesExternal "mogenius-k8s-manager/src/services-external"
+	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
-	socketclient "mogenius-k8s-manager/src/socket-client"
+	"mogenius-k8s-manager/src/socketclient"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -42,13 +42,13 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		dbstats.Setup(logManagerModule, configModule)
 		dtos.Setup(logManagerModule)
 		services.Setup(logManagerModule, configModule)
-		servicesExternal.Setup(logManagerModule, configModule)
+		servicesexternal.Setup(logManagerModule, configModule)
 		socketclient.Setup(logManagerModule, configModule)
 		store.Setup(logManagerModule)
 		structs.Setup(logManagerModule, configModule)
 		utils.Setup(logManagerModule, configModule)
 		xterm.Setup(logManagerModule, configModule)
-		httpApi := httpService.NewHttpApi(logManagerModule, configModule)
+		httpApi := httpservice.NewHttpApi(logManagerModule, configModule)
 
 		versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())

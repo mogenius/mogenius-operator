@@ -5,7 +5,7 @@ import (
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
-	servicesExternal "mogenius-k8s-manager/src/services-external"
+	servicesExternal "mogenius-k8s-manager/src/servicesexternal"
 	"path/filepath"
 
 	"mogenius-k8s-manager/src/utils"
