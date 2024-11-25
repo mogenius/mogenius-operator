@@ -60,6 +60,7 @@ type ClusterResourceInfoDto struct {
 	NodeStats               []dtos.NodeStat       `json:"nodeStats"`
 	Country                 *utils.CountryDetails `json:"country"`
 	Provider                string                `json:"provider"`
+	CniConfig               []structs.CniData     `json:"cniConfig"`
 }
 
 func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
@@ -72,11 +73,13 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		nodeStats := kubernetes.GetNodeStats()
 		loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
 		country, _ := utils.GuessClusterCountry()
+		cniConfig, _ := dbstats.GetCniData()
 		result := ClusterResourceInfoDto{
 			NodeStats:               nodeStats,
 			LoadBalancerExternalIps: loadBalancerExternalIps,
 			Country:                 country,
 			Provider:                string(utils.ClusterProviderCached),
+			CniConfig:               cniConfig,
 		}
 		return result
 	case structs.PAT_UPGRADEK8SMANAGER:
