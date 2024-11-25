@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/src/controllers"
-	"mogenius-k8s-manager/src/dbstats"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"

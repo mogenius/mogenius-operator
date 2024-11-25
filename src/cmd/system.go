@@ -19,10 +19,12 @@ func RunSystem(logManagerModule logging.LogManagerModule, configModule *config.C
 	configModule.Validate()
 
 	watcherModule := kubernetes.NewWatcher()
-
-	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule)
+	dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
 	assert.Assert(err == nil, err)
-	services.Setup(logManagerModule, configModule)
+
+	err = mokubernetes.Setup(logManagerModule, configModule, watcherModule)
+	assert.Assert(err == nil, err)
+	services.Setup(logManagerModule, configModule, dbstatsModule)
 	utils.Setup(logManagerModule, configModule)
 
 	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
