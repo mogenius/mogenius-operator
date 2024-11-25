@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/interfaces"
 	"os"
 	"slices"
 	"sort"
@@ -24,7 +23,7 @@ type Config struct {
 
 type configValue struct {
 	value       *string
-	declaration interfaces.ConfigDeclaration
+	declaration ConfigDeclaration
 	getCounter  atomic.Uint64
 	setCounter  atomic.Uint64
 }
@@ -82,7 +81,7 @@ func (c *Config) Validate() {
 	}
 }
 
-func (c *Config) Declare(opts interfaces.ConfigDeclaration) {
+func (c *Config) Declare(opts ConfigDeclaration) {
 	func() {
 		c.dataLock.Lock()
 		defer c.dataLock.Unlock()
@@ -350,11 +349,11 @@ func (c *Config) AsEnvs() string {
 	return data
 }
 
-func (c *Config) GetAll() []interfaces.ConfigVariable {
-	configVariables := []interfaces.ConfigVariable{}
+func (c *Config) GetAll() []ConfigVariable {
+	configVariables := []ConfigVariable{}
 	for key, cv := range c.data {
 		if cv.value != nil {
-			configVariables = append(configVariables, interfaces.ConfigVariable{
+			configVariables = append(configVariables, ConfigVariable{
 				Key:      key,
 				Value:    *cv.value,
 				IsSecret: cv.declaration.IsSecret,

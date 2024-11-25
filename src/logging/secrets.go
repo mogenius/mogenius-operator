@@ -1,7 +1,7 @@
 package logging
 
 import (
-	"mogenius-k8s-manager/src/interfaces"
+	"mogenius-k8s-manager/src/config"
 	"slices"
 	"sync"
 )
@@ -28,7 +28,7 @@ func AddSecret(secret string) {
 	}
 }
 
-func UpdateConfigSecrets(configVariables []interfaces.ConfigVariable) {
+func UpdateConfigSecrets(configVariables []config.ConfigVariable) {
 	newConfigSecrets := []string{}
 	for _, cv := range configVariables {
 		if cv.IsSecret && cv.Value != "" && !slices.Contains(newConfigSecrets, cv.Value) {

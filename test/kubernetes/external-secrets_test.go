@@ -3,7 +3,7 @@ package kubernetes_test
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
@@ -31,12 +31,12 @@ func externalSecretListExample() kubernetes.ExternalSecretListProps {
 
 func TestSecretListRender(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
-	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config := cfg.NewConfig()
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
@@ -80,12 +80,12 @@ type YamlDataList struct {
 
 func TestCreateExternalSecretList(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
-	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config := cfg.NewConfig()
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
-	config.Declare(interfaces.ConfigDeclaration{
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})

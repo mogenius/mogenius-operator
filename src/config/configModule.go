@@ -1,4 +1,4 @@
-package interfaces
+package config
 
 type ConfigModule interface {
 	// `Declare()` a config value without an initial value.

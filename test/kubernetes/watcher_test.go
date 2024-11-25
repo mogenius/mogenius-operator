@@ -2,7 +2,7 @@ package kubernetes_test
 
 import (
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
@@ -15,8 +15,8 @@ import (
 
 func TestWatcher(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
-	config := config.NewConfig()
-	config.Declare(interfaces.ConfigDeclaration{
+	config := cfg.NewConfig()
+	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_DEBUG",
 		DefaultValue: utils.Pointer("true"),
 	})

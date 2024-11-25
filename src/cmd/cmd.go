@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
@@ -158,23 +157,23 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		panic(fmt.Errorf("failed to get current workdir: %s", err.Error()))
 	}
 
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_API_KEY",
 		Description: utils.Pointer("API key to access the server"),
 		IsSecret:    true,
 		Envs:        []string{"api_key"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_CLUSTER_NAME",
 		Description: utils.Pointer("the name of the kubernetes cluster"),
 		Envs:        []string{"cluster_name"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_CLUSTER_MFA_ID",
 		Description: utils.Pointer("NanoId of the Kubernetes Cluster for MFA purpose"),
 		IsSecret:    true,
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_STAGE",
 		DefaultValue: utils.Pointer("prod"),
 		Description:  utils.Pointer("the stage automatically overrides API server configs"),
@@ -193,13 +192,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 		Description:  utils.Pointer("the Namespace of mogenius platform"),
 		Envs:         []string{"OWN_NAMESPACE"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_API_SERVER",
 		Description: utils.Pointer("URL of API Server"),
 		Validate: func(value string) error {
@@ -210,7 +209,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_EVENT_SERVER",
 		Description: utils.Pointer("URL of Event Server"),
 		Validate: func(value string) error {
@@ -221,31 +220,31 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "helm-data")),
 		Description:  utils.Pointer("path to the helm data"),
 		Envs:         []string{"helm_data_path"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_GIT_VAULT_DATA_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "git-vault-data")),
 		Description:  utils.Pointer("path to the git vault data"),
 		Envs:         []string{"git_vault_data_path"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "mogenius.db")),
 		Description:  utils.Pointer("path to the bbolt database"),
 		Envs:         []string{"bbolt_db_path"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_STATS_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "mogenius-stats.db")),
 		Description:  utils.Pointer("path to the bbolt database"),
 		Envs:         []string{"bbolt_db_path"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_STATS_MAX_DATA_POINTS",
 		DefaultValue: utils.Pointer("6000"),
 		Description:  utils.Pointer(`after n data points in bucket will be overwritten following the "Last In - First Out" principle`),
@@ -258,25 +257,25 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",
 		DefaultValue: utils.Pointer("mogenius git-user"),
 		Description:  utils.Pointer("user name which is used when interacting with git"),
 		Envs:         []string{"git_user_name"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_GIT_USER_EMAIL",
 		DefaultValue: utils.Pointer("git@mogenius.com"),
 		Description:  utils.Pointer("email address which is used when interacting with git"),
 		Envs:         []string{"git_user_email"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOCAL_CONTAINER_REGISTRY_HOST",
 		DefaultValue: utils.Pointer("mocr.local.mogenius.io"),
 		Description:  utils.Pointer("local container registry inside the cluster"),
 		Envs:         []string{"local_registry_host"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_BUILDER_BUILD_TIMEOUT",
 		DefaultValue: utils.Pointer("3600"),
 		Description:  utils.Pointer("seconds until the build will be canceled"),
@@ -289,7 +288,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_BUILDER_MAX_CONCURRENT_BUILDS",
 		DefaultValue: utils.Pointer("1"),
 		Description:  utils.Pointer("number of concurrent builds"),
@@ -302,13 +301,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_DEFAULT_MOUNT_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "mo-data")),
 		Description:  utils.Pointer("all containers have access to this mount point"),
 		Envs:         []string{"default_mount_path"},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_UPDATE_INTERVAL",
 		DefaultValue: utils.Pointer("86400"),
 		Description:  utils.Pointer("time interval between update checks"),
@@ -321,7 +320,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_AUTO_MOUNT_NFS",
 		DefaultValue: utils.Pointer("true"),
 		Description:  utils.Pointer("if set to true, nfs pvc will automatically be mounted"),
@@ -334,7 +333,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_IGNORE_NAMESPACES",
 		DefaultValue: utils.Pointer(`["kube-system"]`),
 		Description:  utils.Pointer("list of all ignored namespaces"),
@@ -348,7 +347,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
 		Description:  utils.Pointer(`a log level: "debug", "info", "warn" or "error"`),
@@ -360,12 +359,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_FILTER",
 		DefaultValue: utils.Pointer(""),
 		Description:  utils.Pointer("comma separated list of components for which logs should be enabled - if none are defined all logs are collected"),
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_STDERR",
 		DefaultValue: utils.Pointer("true"),
 		Description:  utils.Pointer("enable logging to stderr"),
@@ -377,13 +376,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_DIR",
 		DefaultValue: utils.Pointer("logs"),
 		Description:  utils.Pointer(`path in which logs are stored in the filesystem`),
 		ReadOnly:     true,
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ALLOW_COUNTRY_CHECK",
 		DefaultValue: utils.Pointer("true"),
 		Description:  utils.Pointer(`allow the operator to determine its location country base on the IP address`),
@@ -395,7 +394,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(interfaces.ConfigDeclaration{
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_DEBUG",
 		DefaultValue: utils.Pointer("false"),
 		Description:  utils.Pointer("enable debug mode"),

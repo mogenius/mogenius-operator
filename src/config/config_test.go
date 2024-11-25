@@ -2,7 +2,6 @@ package config_test
 
 import (
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/utils"
 	"slices"
 	"testing"
@@ -13,7 +12,7 @@ import (
 // compile time check
 func TestSlogManagerAdheresToLogManagerInterface(t *testing.T) {
 	t.Parallel()
-	testfunc := func(w interfaces.ConfigModule) {}
+	testfunc := func(w config.ConfigModule) {}
 	testfunc(config.NewConfig()) // this checks if the typesystem allows to call it
 }
 
@@ -62,7 +61,7 @@ func TestGetUninitializedPanics(t *testing.T) {
 
 	c := config.NewConfig()
 
-	c.Declare(interfaces.ConfigDeclaration{
+	c.Declare(config.ConfigDeclaration{
 		Key: "foo",
 	})
 	assert.Panics(func() { c.Get("foo") }, "cant get value of undeclared variable")
@@ -83,13 +82,13 @@ func TestCallbackWorks(t *testing.T) {
 
 	assert.Equal(0, callbackCallCounter)
 
-	c.Declare(interfaces.ConfigDeclaration{
+	c.Declare(config.ConfigDeclaration{
 		Key:          "foo",
 		DefaultValue: utils.Pointer("bar"),
 	})
 	assert.Equal(1, callbackCallCounter)
 
-	c.Declare(interfaces.ConfigDeclaration{
+	c.Declare(config.ConfigDeclaration{
 		Key:          "bacon",
 		DefaultValue: utils.Pointer("ipsum"),
 	})
@@ -102,14 +101,14 @@ func TestSetAndGetMultiple(t *testing.T) {
 
 	c := config.NewConfig()
 
-	c.Declare(interfaces.ConfigDeclaration{
+	c.Declare(config.ConfigDeclaration{
 		Key:          "foo",
 		DefaultValue: utils.Pointer("bar"),
 	})
 	assert.Equal("bar", c.Get("foo"), "the first call to get('someKey') should work")
 	assert.Equal("bar", c.Get("foo"), "a second call to get('someKey') should work")
 
-	c.Declare(interfaces.ConfigDeclaration{
+	c.Declare(config.ConfigDeclaration{
 		Key:          "bacon",
 		DefaultValue: utils.Pointer("ipsum"),
 	})
@@ -135,7 +134,7 @@ func TestUsageSummaryUninitialized(t *testing.T) {
 
 	c := config.NewConfig()
 
-	c.Declare(interfaces.ConfigDeclaration{
+	c.Declare(config.ConfigDeclaration{
 		Key: "foo",
 	})
 
@@ -154,14 +153,14 @@ func TestUsageSummaryWorks(t *testing.T) {
 	usage := c.GetUsage()
 	assert.Equal(0, len(usage))
 
-	c.Declare(interfaces.ConfigDeclaration{
+	c.Declare(config.ConfigDeclaration{
 		Key:          "foo",
 		DefaultValue: utils.Pointer("bar"),
 	})
 	err := c.TrySet("foo", "baz")
 	assert.NoError(err)
 
-	c.Declare(interfaces.ConfigDeclaration{
+	c.Declare(config.ConfigDeclaration{
 		Key:          "bacon",
 		DefaultValue: utils.Pointer("ipsum"),
 	})

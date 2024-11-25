@@ -3,18 +3,19 @@ package kubernetes
 import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/utils"
 )
 
-var config interfaces.ConfigModule
+var config cfg.ConfigModule
 var k8sLogger *slog.Logger
 var watcher interfaces.WatcherModule
 var db BoltDb
 
 func Setup(
 	logManagerModule interfaces.LogManagerModule,
-	configModule interfaces.ConfigModule,
+	configModule cfg.ConfigModule,
 	watcherModule interfaces.WatcherModule,
 ) error {
 	k8sLogger = logManagerModule.CreateLogger("kubernetes")
