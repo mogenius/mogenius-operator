@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/db"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/utils"
 	"strings"
@@ -96,7 +95,7 @@ func AllEventsForNamespace2(namespaceName string) []v1Core.Event {
 	moIgnoreNamespaces := config.Get("MO_IGNORE_NAMESPACES")
 	var ignoreNamespaces []string
 	err = json.Unmarshal([]byte(moIgnoreNamespaces), &ignoreNamespaces)
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	for _, event := range eventList.Items {
 		if !utils.Contains(ignoreNamespaces, event.ObjectMeta.Namespace) {
 			event.Kind = "Event"

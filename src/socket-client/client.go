@@ -119,7 +119,7 @@ func parseMessage(done chan struct{}, conn *websocket.Conn) {
 
 				if isSuppressed := utils.Contains(structs.SUPPRESSED_OUTPUT_PATTERN, datagram.Pattern); !isSuppressed {
 					moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
-					assert.Assert(err == nil)
+					assert.Assert(err == nil, err)
 					if moDebug {
 						socketClientLogger.Info("received datagram", "datagram", datagram)
 					}
@@ -152,7 +152,7 @@ func parseMessage(done chan struct{}, conn *websocket.Conn) {
 
 func versionTicker() {
 	interval, err := strconv.Atoi(config.Get("MO_UPDATE_INTERVAL"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	updateTicker := time.NewTicker(time.Second * time.Duration(interval))
 	done := make(chan bool)
 
@@ -169,10 +169,10 @@ func versionTicker() {
 }
 
 func updateCheck() {
-	socketClientLogger.Info("Checking for updates ...")
-
-	if !utils.IsProduction() {
-		socketClientLogger.Info(" (skipped) [not production].")
+	if utils.IsProduction() {
+		socketClientLogger.Info("Checking for updates ...")
+	} else {
+		socketClientLogger.Info("Skipping updates ... [not production]")
 		return
 	}
 

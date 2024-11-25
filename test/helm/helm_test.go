@@ -2,6 +2,7 @@ package helm_test
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/interfaces"
@@ -10,6 +11,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/watcher"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -26,7 +28,7 @@ const (
 	helmConfPath  string = "./testData/registryConfigPath"
 )
 
-func cleanupRepo() {
+func cleanupRepo(t *testing.T) {
 	// PAT_NAMESPACE_HELM_REPO_REMOVE - remove repo is purposely placed at the end
 	// no futher testing needed no error is sufficient
 	repoRemoveData := helm.HelmRepoRemoveRequest{
@@ -34,11 +36,11 @@ func cleanupRepo() {
 	}
 	_, err := helm.HelmRepoRemove(repoRemoveData)
 	if err != nil {
-		fmt.Printf("failed to remove helm repo: %s", err.Error())
+		t.Logf("failed to remove helm repo: %s", err.Error())
 	}
 }
 
-func cleanupInstall() {
+func cleanupInstall(t *testing.T) {
 	// PAT_NAMESPACE_HELM_UNINSTALL - remove repo is purposely placed at the end
 	// no futher testing needed no error is sufficient
 	releaseUninstallData := helm.HelmReleaseUninstallRequest{
@@ -48,7 +50,7 @@ func cleanupInstall() {
 	}
 	_, err := helm.HelmReleaseUninstall(releaseUninstallData)
 	if err != nil {
-		fmt.Printf("failed to uninstall helmrelease: %s", err.Error())
+		t.Logf("failed to uninstall helmrelease: %s", err.Error())
 	}
 }
 
@@ -119,27 +121,23 @@ func TestHelmRepoAdd(t *testing.T) {
 
 	// clean config folder before test
 	err := deleteFolder(helmConfPath)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 
-	cleanupRepo() // cleanup if it existed before
+	cleanupRepo(t) // cleanup if it existed before
 
 	// prerequisite configs
 	err = testSetup()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 
 	// test with
 	// helm --repository-config /tmp/registryConfigPath/helm/repositories.yaml repo list
 	// no futher testing needed no error is sufficient
 	// PAT_NAMESPACE_HELM_REPO_ADD
 	err = createRepoForTest(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupRepo)
+	t.Cleanup(func() {
+		cleanupRepo(t)
+	})
+	assert.Assert(err == nil, err)
 }
 
 func TestHelmRepoUpdate(t *testing.T) {
@@ -152,45 +150,43 @@ func TestHelmRepoUpdate(t *testing.T) {
 	})
 
 	err := testSetup()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 
 	// PAT_NAMESPACE_HELM_REPO_UPDATE
 	// no futher testing needed no error is sufficient
 	_, err = helm.HelmRepoUpdate()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 }
 
 func TestHelmRepoList(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	watcherModule := watcher.NewWatcher()
-	kubernetes.Setup(logManager, config, watcherModule)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})
+	config.Declare(interfaces.ConfigDeclaration{
+		Key:          "MO_BBOLT_DB_PATH",
+		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
+	})
 
-	err := testSetup()
-	if err != nil {
-		t.Error(err)
-	}
+	watcherModule := watcher.NewWatcher()
+	err := kubernetes.Setup(logManager, config, watcherModule)
+	assert.Assert(err == nil, err)
+
+	err = testSetup()
+	assert.Assert(err == nil, err)
 
 	err = createRepoForTest(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupRepo)
+	t.Cleanup(func() {
+		cleanupRepo(t)
+	})
+	assert.Assert(err == nil, err)
 
 	// PAT_NAMESPACE_HELM_REPO_LIST
 	// check if repo is added
 	listRepoData, err := helm.HelmRepoList()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 	listSuccess := false
 	for _, v := range listRepoData {
 		t.Logf("Release found: %s", v.Name)
@@ -199,9 +195,7 @@ func TestHelmRepoList(t *testing.T) {
 			break
 		}
 	}
-	if !listSuccess {
-		t.Errorf("Repo '%s' not found but it should be", testRepo)
-	}
+	assert.Assert(listSuccess, fmt.Sprintf("Repo '%s' not found but it should be", testRepo))
 }
 
 func TestHelmInstallRequest(t *testing.T) {
@@ -214,51 +208,47 @@ func TestHelmInstallRequest(t *testing.T) {
 	})
 
 	err := testSetup()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 
 	err = createRepoForTest(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupRepo)
+	t.Cleanup(func() {
+		cleanupRepo(t)
+	})
+	assert.Assert(err == nil, err)
 
-	cleanupInstall() // cleanup if it existed before
+	cleanupInstall(t) // cleanup if it existed before
 
 	// PAT_NAMESPACE_HELM_INSTALL
 	// no futher testing needed no error is sufficient
 	err = installForTests(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupInstall)
+	t.Cleanup(func() {
+		cleanupInstall(t)
+	})
+	assert.Assert(err == nil, err)
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
 	logManager := interfaces.NewMockSlogManager(t)
 	config := config.NewConfig()
-	helm.Setup(logManager, config)
 	config.Declare(interfaces.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})
+	helm.Setup(logManager, config)
 
 	err := testSetup()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 	err = createRepoForTest(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupRepo)
+	t.Cleanup(func() {
+		cleanupRepo(t)
+	})
+	assert.Assert(err == nil, err)
 
 	err = installForTests(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupInstall)
+	t.Cleanup(func() {
+		cleanupInstall(t)
+	})
+	assert.Assert(err == nil, err)
 
 	// PAT_NAMESPACE_HELM_UPGRADE
 	// no futher testing needed no error is sufficient
@@ -270,9 +260,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 		DryRun:    testDryRun,
 	}
 	_, err = helm.HelmReleaseUpgrade(releaseUpgradeData)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 }
 
 func TestHelmListRequest(t *testing.T) {
@@ -285,20 +273,18 @@ func TestHelmListRequest(t *testing.T) {
 	})
 
 	err := testSetup()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 	err = createRepoForTest(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupRepo)
+	t.Cleanup(func() {
+		cleanupRepo(t)
+	})
+	assert.Assert(err == nil, err)
 
 	err = installForTests(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupInstall)
+	t.Cleanup(func() {
+		cleanupInstall(t)
+	})
+	assert.Assert(err == nil, err)
 
 	// PAT_NAMESPACE_HELM_LIST
 	// check if release is added
@@ -306,9 +292,7 @@ func TestHelmListRequest(t *testing.T) {
 		Namespace: testNamespace,
 	}
 	releaseList, err := helm.HelmReleaseList(releaseListData)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 	listReleasesSuccess := false
 	for _, v := range releaseList {
 		t.Logf("Release found: %s", v.Name)
@@ -317,9 +301,7 @@ func TestHelmListRequest(t *testing.T) {
 			break
 		}
 	}
-	if !listReleasesSuccess {
-		t.Errorf("Release '%s' not found but it should be", testRelease)
-	}
+	assert.Assert(listReleasesSuccess, fmt.Sprintf("Release '%s' not found but it should be", testRelease))
 }
 
 func TestHelmReleases(t *testing.T) {
@@ -332,21 +314,19 @@ func TestHelmReleases(t *testing.T) {
 	})
 
 	err := testSetup()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 
 	err = createRepoForTest(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupRepo)
+	t.Cleanup(func() {
+		cleanupRepo(t)
+	})
+	assert.Assert(err == nil, err)
 
 	err = installForTests(t)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Cleanup(cleanupInstall)
+	t.Cleanup(func() {
+		cleanupInstall(t)
+	})
+	assert.Assert(err == nil, err)
 
 	// PAT_NAMESPACE_HELM_STATUS
 	// no futher testing needed no error is sufficient
@@ -355,9 +335,7 @@ func TestHelmReleases(t *testing.T) {
 		Release:   testRelease,
 	}
 	_, err = helm.HelmReleaseStatus(releaseStatusData)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 
 	// PAT_NAMESPACE_HELM_SHOW
 	// no futher testing needed no error is sufficient
@@ -366,9 +344,7 @@ func TestHelmReleases(t *testing.T) {
 		ShowFormat: action.ShowAll,
 	}
 	_, err = helm.HelmChartShow(chartShowData)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 
 	// PAT_NAMESPACE_HELM_GET
 	// no futher testing needed no error is sufficient
@@ -378,9 +354,7 @@ func TestHelmReleases(t *testing.T) {
 		GetFormat: structs.HelmGetAll,
 	}
 	_, err = helm.HelmReleaseGet(releaseGet)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 
 	// PAT_NAMESPACE_HELM_HISTORY
 	// history should have at least 1 entry
@@ -389,12 +363,8 @@ func TestHelmReleases(t *testing.T) {
 		Release:   testRelease,
 	}
 	historyList, err := helm.HelmReleaseHistory(releaseHistoryData)
-	if err != nil {
-		t.Error(err)
-	}
-	if len(historyList) < 1 {
-		t.Errorf("Release '%s' history not found but it should be", testRelease)
-	}
+	assert.Assert(err == nil, err)
+	assert.Assert(len(historyList) > 0, fmt.Sprintf("Release '%s' history not found but it should be", testRelease))
 
 	// PAT_NAMESPACE_HELM_ROLLBACK
 	// no futher testing needed no error is sufficient
@@ -404,7 +374,5 @@ func TestHelmReleases(t *testing.T) {
 		Revision:  1,
 	}
 	_, err = helm.HelmReleaseRollback(releaseRollbackData)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Assert(err == nil, err)
 }

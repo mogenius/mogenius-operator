@@ -1,7 +1,7 @@
 package crds_test
 
 import (
-	"fmt"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/utils"
 	"testing"
@@ -14,43 +14,29 @@ func TestEnvironment(t *testing.T) {
 
 	// CREATE
 	err := crds.CreateEnvironment(namespace, newEnvironmentName, crds.CrdEnvironment{})
-	if err != nil {
-		t.Fatalf("Error creating Environment: %s", err.Error())
-	} else {
-		fmt.Println("Environment created ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("Environment created ✅")
 
 	// GET
 	environment, _, err := crds.GetEnvironment(namespace, newEnvironmentName)
-	if err != nil {
-		t.Fatalf("Error getting Environment: %s", err.Error())
-	} else {
-		fmt.Println("Environment retrieved ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("Environment retrieved ✅")
+
 	environment.Id = "Updated " + name
 	environment.DisplayName = "Updated Test environment"
 	environment.CreatedBy = "Updated " + name
 	// UPDATE
 	err = crds.UpdateEnvironment(namespace, newEnvironmentName, environment)
-	if err != nil {
-		t.Fatalf("Error updating environment: %s", err.Error())
-	} else {
-		fmt.Println("environment updated ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("environment updated ✅")
 
 	// DELETE
 	err = crds.DeleteEnvironment(namespace, newEnvironmentName)
-	if err != nil {
-		t.Fatalf("Error deleting environment: %s", err.Error())
-	} else {
-		fmt.Println("environment deleted ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("environment deleted ✅")
 
 	// LIST
 	_, _, err = crds.ListEnvironments(namespace)
-	if err != nil {
-		t.Fatalf("Error listing environments: %s", err.Error())
-	} else {
-		fmt.Println("environments listed ✅")
-	}
+	assert.Assert(err == nil, err)
+	t.Log("environments listed ✅")
 }

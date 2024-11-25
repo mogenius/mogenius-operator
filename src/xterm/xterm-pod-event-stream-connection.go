@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/db"
 	"mogenius-k8s-manager/src/kubernetes"
 	"net/url"
 	"strconv"
@@ -61,7 +60,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	}
 
 	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
@@ -102,7 +101,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		data := db.GetEventByKey(key)
+		data := kubernetes.GetDb().GetEventByKey(key)
 		if ch != nil {
 			ch <- string(data)
 		}

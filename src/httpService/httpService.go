@@ -43,7 +43,7 @@ func (self *HttpService) Run(addr string) {
 	mux.Handle("POST /nodestats", self.withRequestLogging(http.HandlerFunc(self.postNodeStats)))
 
 	moDebug, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	if moDebug {
 		self.logger.Debug("adding debug routes to http.ServeMux", "addr", addr)
 		mux.Handle("GET /debug/sum-traffic", self.withRequestLogging(http.HandlerFunc(self.debugGetTrafficSum)))
@@ -77,7 +77,7 @@ func (h *HttpService) getHealthz(w http.ResponseWriter, _ *http.Request) {
 
 func (h *HttpService) postTraffic(w http.ResponseWriter, r *http.Request) {
 	debugMode, err := strconv.ParseBool(h.config.Get("MO_DEBUG"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.logger.Error("failed to read request body", "error", err)
@@ -151,7 +151,7 @@ func (h *HttpService) postCni(w http.ResponseWriter, r *http.Request) {
 
 func (h *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {
 	debugMode, err := strconv.ParseBool(h.config.Get("MO_DEBUG"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.logger.Error("failed to read request body", "error", err)
@@ -188,7 +188,7 @@ func (h *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {
 
 func (self *HttpService) postNodeStats(w http.ResponseWriter, r *http.Request) {
 	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		self.logger.Error("failed to read request body", "error", err)

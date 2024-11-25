@@ -159,7 +159,7 @@ func TestUsageSummaryWorks(t *testing.T) {
 		DefaultValue: utils.Pointer("bar"),
 	})
 	err := c.TrySet("foo", "baz")
-	assert.Nil(err)
+	assert.NoError(err)
 
 	c.Declare(interfaces.ConfigDeclaration{
 		Key:          "bacon",

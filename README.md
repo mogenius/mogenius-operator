@@ -2,36 +2,49 @@
   <img src="https://imagedelivery.net/T7YEW5IAgZJ0dY4-LDTpyQ/3ae4fcf0-289c-48d2-3323-d2c5bc932300/detail" alt="drawing" width="200"/>
 </p>
 
-# run locally
-setup your .env file with the following content:
-```.env
+## run locally
+
+First you need to have the [mogenius helm chart installed and running](https://docs.mogenius.com/cluster-management/installing-mogenius).
+
+Then create a file called `.env` with the mandatory settings:
+
+```sh
+## mogenius cluster configuration
 MO_API_KEY=
 MO_CLUSTER_NAME=
 MO_CLUSTER_MFA_ID=
-MO_STAGE=
+
+## Select the mogenius environment to run against:
+##
+## - "prod" to run against the prod APIs
+## - "pre-prod": to run against the pre-prod APIs
+## - "dev": to run against the dev APIs
+## - "local": to run agains APIs on localhost
+## - "": to define APIs manually using `MO_API_SERVER` and `MO_EVENT_SERVER`
+MO_STAGE=dev
+
+## A full list of available configs can be generated using:
+##
+## ```sh
+## go run -trimpath src/main.go config
+## ```
 ```
-Then run:
+
+Get the `api-key`, `mfa-id` and `cluster-name` from the operator secret `mogenius/mogenius` and adjust the `.env` accordingly.
+
+Change the replicas to `0`:
 
 ```sh
-set -o allexport; source .env; set +o allexport
-go run main.go cluster
+kubectl scale -n mogenius deployment mogenius-k8s-manager --replicas=0
 ```
 
-# run local instance with go
-
-Adjust the config `~/.mogenius-k8s-manager/config.yaml` (might need to be copied there from [here](utils/config/config-local.yaml))
-Assuming you already have a [prod operator running](https://docs.mogenius.com/cluster-management/installing-mogenius#mogenius-cli), you can adjust the deployment of the operator with e.g.:
-`kubectl edit deployments -n mogenius mogenius-k8s-manager`
-
-Get the api-key, mfa-id and cluster-name from the operator secret `mogenius/mogenius` and adjust the config.yaml accordingly.
-
-change the replicas to 0, then you can run the local instance with:
+Now mogenius can be run locally:
 
 ```sh
-go run -trimpath main.go cluster
+go run -trimpath src/main.go cluster
 ```
 
-# local docker image in docker-desktop kubernetes
+## local docker image in docker-desktop kubernetes
 
 RUN:
 
@@ -39,21 +52,21 @@ RUN:
 docker build -t localk8smanager --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg BUILD_TIMESTAMP="$(date)" --build-arg COMMIT_HASH="XXX" --build-arg GIT_BRANCH=local-development --build-arg VERSION="6.6.6" -f Dockerfile .
 ```
 
-Assuming you already have a [prod operator running](https://docs.mogenius.com/cluster-management/installing-mogenius#mogenius-cli), you can adjust the deployment of the operator with e.g.:
-`kubectl edit deployments -n mogenius mogenius-k8s-manager`
+Assuming you already have a [prod operator running](https://docs.mogenius.com/cluster-management/installing-mogenius#mogenius-cli), you can adjust the deployment of the operator with e.g. `kubectl edit deployments -n mogenius mogenius-k8s-manager`
 
-```
-FROM:
+```yaml
+## FROM:
 image: ghcr.io/mogenius/mogenius-k8s-manager:latest
 imagePullPolicy: Always
 
-TO:
+## TO:
 image: localk8smanager:latest
 imagePullPolicy: Never
 ```
+
 After that simply restart the deployment and you are good to go.
 
-# bolt-db debugging
+## bolt-db debugging
 
 ```sh
 apk add go
@@ -63,14 +76,14 @@ cp /data/db/mogenius-3.db mogenius1.db
 /root/go/bin/boltbrowser mogenius-stats3.db
 ```
 
-# Upgrade Modules
+## Upgrade Modules
 
 ```sh
 go get -u ./...
 go mod tidy
 ```
 
-# Testing
+## Testing
 
 ```sh
 go test -v ./...
@@ -79,7 +92,13 @@ go test -v ./...
 go clean -testcache
 ```
 
-# Helm Install
+## Lint
+
+```sh
+golangci-lint run --fast=false --sort-results --max-same-issues=0 --timeout=1h
+```
+
+## Helm Install
 
 ```sh
 helm repo add mo-public helm.mogenius.com/public
@@ -91,20 +110,20 @@ helm install mogenius-platform mo-public/mogenius-platform \
   --set global.namespace="mogenius"
 ```
 
-# Helm Upgrade
+## Helm Upgrade
 
 ```sh
 helm repo update
 helm upgrade mogenius-platform mo-public/mogenius-platform
 ```
 
-# Helm Uninstall
+## Helm Uninstall
 
 ```sh
 helm uninstall mogenius-platform
 ```
 
-# Clean Helm Cache
+## Clean Helm Cache
 
 ```sh
 rm -rf ~/.helm/cache/archive/*
@@ -112,57 +131,10 @@ rm -rf ~/.helm/repository/cache/*
 helm repo update
 ```
 
-# ENV VARS
-
-| NAME                       | DEFAULT                                     | DESCRIPTION |
-| :---                       | :----                                       | ---: |
-| api_key                    | [your_key]                                  | Api Key to access the server     |
-| cluster_name               | [your_name]                                 | The Name of the Kubernetes Cluster.     | 
-| own_namespace              | mogenius                                    | The Namespace of mogenius platform.     | 
-| cluster_mfa_id             | [auto_generated]                            | UUID of the Kubernetes Cluster for MFA purpose.       | 
-| run_in_cluster             | true                                        | If set to true, the application will run in the cluster (using the service account token). Otherwise it will try to load your local default context.     |
-| bbolt_db_path              | bbolt_db_path                               | Path to the bbolt database. This db stores build-related information. |
-| api_ws_server              | 127.0.0.1:8080                              | This depends on your stage. local/dev/prod. Prod: "k8s-ws.mogenius.com"     | 
-| api_ws_path                | /ws                                         | The path of the api server.    | 
-| event_server               | 127.0.0.1:8080                              | This depends on your stage. local/dev/prod. Prod: "k8s-dispatcher.mogenius.com"     | 
-| event_path                 | /ws                                         | The path of the api server.     | 
-| stage                      | prod                                        | Stage environment    | 
-| log_kubernetes_events      | false                                       | If set to true, all kubernetes events will be logged to std-out.    | 
-| default_mount_path         | /mo-data                                    | The mogenius mounts will be attached to this folder inside the k8s-manager.   | 
-| ignore_namespaces          | ["kube-system"]                             | These namespaces will be ignored.   | 
-| auto_mount_nfs             | true                                        | If set to true, nfs pvc will automatically be mounted.      | 
-| ignore_resources_backup    | ["events.k8s.io/v1", "events.k8s.io/v1beta1", "metrics.k8s.io/v1beta1", "discovery.k8s.io/v1"]    |   List of all ignored resources while backup.     | 
-| check_for_updates          | 3600                                        | Time interval between update checks in seconds.      | 
-| helm_index                 | https://helm.mogenius.com/public/index.yaml | URL of the helm index file.      | 
-| nfs_pod_prefix             | nfs-server-pod                              | A prefix for the nfs-server pod. This will always be applied in order to detect the pod. | 
-| max_build_time             | 3600                                        | Timeout after when builds will be canceled in seconds.  (1h default) | 
-| max_scan_time              | 200                                         | Timeout after when vulnerability scans will be canceled in seconds. | 
-| git_user_email             | git@mogenius.com                            | Email address which is used when interacting with git. | 
-| git_user_name              | mogenius git-user                           | User name which is used when interacting with git. | 
-| git_default_branch         | main                                        | Default branch name which is used when creating a repository. | 
-| git_add_ignored_file       | false                                       | Gits behaviour when adding ignored files. | 
-
-# LINKS
+## LINKS
 
 - [Just](https://github.com/casey/just) - A Task Runner. Checkout the `Justfile` for details or use `just -l` for an quick overview.
 - [AIR](https://github.com/cosmtrek/air) - Live reload for Go apps
-
-# Lint
-
-```sh
-golangci-lint run --fast=false --sort-results --max-same-issues=0 --timeout=1h
-```
-
-# Slim setup (IMPORTANT: DOES NOT MAKE THE IMAGE SMALLER IN OUR PARTICULAR CASE)
-
-```sh
-slim build --http-probe=false --exec "curl mogenius.com; git; docker info; helm" \
-    --include-path-file /usr/local/bin/dockerd \
-    --include-path-file /usr/local/bin/docker \
-    --include-path-file /usr/local/bin/helm \
-    --include-path-file /usr/bin/curl \
-ghcr.io/mogenius/mogenius-k8s-manager-dev:v1.18.19-develop.92
-```
 
 ---------------------
 

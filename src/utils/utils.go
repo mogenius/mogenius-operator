@@ -740,7 +740,7 @@ func GuessClusterCountry() (*CountryDetails, error) {
 	}
 
 	allowCountryCheck, err := strconv.ParseBool(config.Get("MO_ALLOW_COUNTRY_CHECK"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	if allowCountryCheck {
 		resp, err := http.Get("https://platform-api.mogenius.com/country/location")
 		if err != nil {

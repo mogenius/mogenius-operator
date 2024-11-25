@@ -7,14 +7,12 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/crds"
-	"mogenius-k8s-manager/src/db"
 	dbstats "mogenius-k8s-manager/src/db-stats"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/httpService"
 	"mogenius-k8s-manager/src/interfaces"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/migrations"
 	"mogenius-k8s-manager/src/services"
 	servicesExternal "mogenius-k8s-manager/src/services-external"
 	"mogenius-k8s-manager/src/shutdown"
@@ -35,14 +33,14 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 
 		configModule.Validate()
 
+		var err error
 		helm.Setup(logManagerModule, configModule)
-		mokubernetes.Setup(logManagerModule, configModule, watcherModule)
+		err = mokubernetes.Setup(logManagerModule, configModule, watcherModule)
+		assert.Assert(err == nil, err)
 		controllers.Setup(logManagerModule)
 		crds.Setup(logManagerModule)
-		db.Setup(logManagerModule, configModule)
 		dbstats.Setup(logManagerModule, configModule)
 		dtos.Setup(logManagerModule)
-		migrations.Setup(logManagerModule)
 		services.Setup(logManagerModule, configModule)
 		servicesExternal.Setup(logManagerModule, configModule)
 		socketclient.Setup(logManagerModule, configModule)
@@ -76,9 +74,7 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 
 		utils.SetupClusterSecret(clusterSecret)
 
-		db.Start()
 		store.Start()
-		defer store.Defer()
 		dbstats.Start()
 		go httpApi.Run(":1337")
 		err = mokubernetes.Start()
@@ -88,11 +84,9 @@ func RunCluster(logManagerModule interfaces.LogManagerModule, configModule *conf
 			select {}
 		}
 
-		migrations.ExecuteMigrations()
-
 		// INIT MOUNTS
 		autoMountNfs, err := strconv.ParseBool(configModule.Get("MO_AUTO_MOUNT_NFS"))
-		assert.Assert(err == nil)
+		assert.Assert(err == nil, err)
 		if autoMountNfs {
 			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
 			if err != nil && configModule.Get("MO_STAGE") != utils.STAGE_LOCAL {

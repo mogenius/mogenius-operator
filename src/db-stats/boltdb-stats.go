@@ -143,7 +143,7 @@ func AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 
 		// DELETE FIRST IF TO MANY DATA POINTS
 		maxDataPoints, err := strconv.Atoi(config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"))
-		assert.Assert(err == nil)
+		assert.Assert(err == nil, err)
 		if controllerBucket.Stats().KeyN > maxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()
@@ -255,7 +255,7 @@ func AddNodeStatsToDb(stats structs.NodeStats) {
 		}
 
 		maxDataPoints, err := strconv.Atoi(config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"))
-		assert.Assert(err == nil)
+		assert.Assert(err == nil, err)
 		// DELETE FIRST IF TO MANY DATA POINTS
 		if nodeBucket.Stats().KeyN > maxDataPoints {
 			c := nodeBucket.Cursor()
@@ -305,7 +305,7 @@ func AddPodStatsToDb(stats structs.PodStats) {
 
 		// DELETE FIRST IF TO MANY DATA POINTS
 		maxDataPoints, err := strconv.Atoi(config.Get("MO_BBOLT_DB_STATS_MAX_DATA_POINTS"))
-		assert.Assert(err == nil)
+		assert.Assert(err == nil, err)
 		if controllerBucket.Stats().KeyN > maxDataPoints {
 			c := controllerBucket.Cursor()
 			k, _ := c.First()

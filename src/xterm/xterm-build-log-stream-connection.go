@@ -3,7 +3,7 @@ package xterm
 import (
 	"context"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/db"
+	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"net/url"
 	"strconv"
@@ -44,7 +44,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	}
 
 	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
-	assert.Assert(err == nil)
+	assert.Assert(err == nil, err)
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
@@ -86,7 +86,7 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		data := db.GetItemByKey(key)
+		data := kubernetes.GetDb().GetItemByKey(key)
 		build := structs.CreateBuildJobEntryFromData(data)
 		if ch != nil {
 			ch <- build.Result
