@@ -1,5 +1,3 @@
-set dotenv-load := true
-
 export CGO_ENABLED := "0"
 
 [private]
