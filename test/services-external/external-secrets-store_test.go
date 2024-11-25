@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	servicesExternal "mogenius-k8s-manager/src/services-external"
-	"mogenius-k8s-manager/src/watcher"
 	"path/filepath"
 
 	"mogenius-k8s-manager/src/utils"
@@ -43,7 +42,7 @@ func TestSecretStoreCreate(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	watcherModule := watcher.NewWatcher()
+	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
 	assert.Assert(err == nil, err)
 

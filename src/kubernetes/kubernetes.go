@@ -4,20 +4,19 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
 )
 
 var config cfg.ConfigModule
 var k8sLogger *slog.Logger
-var watcher interfaces.WatcherModule
+var watcher WatcherModule
 var db BoltDb
 
 func Setup(
 	logManagerModule logging.LogManagerModule,
 	configModule cfg.ConfigModule,
-	watcherModule interfaces.WatcherModule,
+	watcherModule WatcherModule,
 ) error {
 	k8sLogger = logManagerModule.CreateLogger("kubernetes")
 	config = configModule

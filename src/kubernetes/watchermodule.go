@@ -1,4 +1,4 @@
-package interfaces
+package kubernetes
 
 import (
 	"log/slog"
