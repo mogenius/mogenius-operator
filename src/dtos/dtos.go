@@ -2,13 +2,13 @@ package dtos
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/interfaces"
+	"mogenius-k8s-manager/src/logging"
 )
 
-var logManager interfaces.LogManagerModule
+var logManager logging.LogManagerModule
 var dtosLogger *slog.Logger
 
-func Setup(logManagerModule interfaces.LogManagerModule) {
+func Setup(logManagerModule logging.LogManagerModule) {
 	logManager = logManagerModule
 	dtosLogger = logManagerModule.CreateLogger("dtos")
 }

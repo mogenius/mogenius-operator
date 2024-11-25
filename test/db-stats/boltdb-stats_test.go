@@ -6,8 +6,8 @@ import (
 	"mogenius-k8s-manager/src/config"
 	cfg "mogenius-k8s-manager/src/config"
 	dbstats "mogenius-k8s-manager/src/db-stats"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"path/filepath"
@@ -24,7 +24,7 @@ import (
 func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 	stat := generateRandomInterfaceStats()
 
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
 	dbstats.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{
@@ -63,7 +63,7 @@ func TestAddInterfaceStatsToDbCreateDBs(t *testing.T) {
 }
 
 func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := config.NewConfig()
 	dbstats.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{

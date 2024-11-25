@@ -3,8 +3,8 @@ package kubernetes_test
 import (
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/watcher"
 	"mogenius-k8s-manager/test"
@@ -15,7 +15,7 @@ import (
 
 // test the functionality of the custom resource with a basic pod
 func TestCustomResource(t *testing.T) {
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
 	watcherModule := watcher.NewWatcher()
 	config.Declare(cfg.ConfigDeclaration{
@@ -60,7 +60,7 @@ func TestCustomResource(t *testing.T) {
 // properly "custom" resource, the secret store
 func TestSecretStoreResource(t *testing.T) {
 	t.Skip("test currently relies on sleep introducing flakyness")
-	logManager := interfaces.NewMockSlogManager(t)
+	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",

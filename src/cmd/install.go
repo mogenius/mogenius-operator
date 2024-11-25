@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"os"
 )
 
-func RunInstall(logManagerModule interfaces.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+func RunInstall(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
 	versionModule := version.NewVersion()
 	versionModule.PrintVersionInfo()
 

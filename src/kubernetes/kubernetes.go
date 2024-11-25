@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/interfaces"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
 )
 
@@ -14,7 +15,7 @@ var watcher interfaces.WatcherModule
 var db BoltDb
 
 func Setup(
-	logManagerModule interfaces.LogManagerModule,
+	logManagerModule logging.LogManagerModule,
 	configModule cfg.ConfigModule,
 	watcherModule interfaces.WatcherModule,
 ) error {

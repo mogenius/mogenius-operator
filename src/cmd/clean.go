@@ -5,15 +5,15 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/watcher"
 )
 
-func RunClean(logManagerModule interfaces.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+func RunClean(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
 	versionModule := version.NewVersion()
 	versionModule.PrintVersionInfo()
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/interfaces"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"os"
@@ -52,7 +52,7 @@ var config cfg.ConfigModule
 
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
 
-func Setup(logManager interfaces.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManager logging.LogManagerModule, configModule cfg.ConfigModule) {
 	helmLogger = logManager.CreateLogger("helm")
 	config = configModule
 }
