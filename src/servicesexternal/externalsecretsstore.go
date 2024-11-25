@@ -1,4 +1,4 @@
-package servicesExternal
+package servicesexternal
 
 import (
 	"encoding/json"

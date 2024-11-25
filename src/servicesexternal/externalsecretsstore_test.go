@@ -1,9 +1,9 @@
-package servicesExternal_test
+package servicesexternal_test
 
 import (
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
-	servicesExternal "mogenius-k8s-manager/src/services-external"
+	servicesExternal "mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/utils"
 	"testing"
 

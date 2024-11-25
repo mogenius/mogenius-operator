@@ -1,4 +1,4 @@
-package httpService
+package httpservice
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	dbstats "mogenius-k8s-manager/src/db-stats"
+	"mogenius-k8s-manager/src/dbstats"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/version"

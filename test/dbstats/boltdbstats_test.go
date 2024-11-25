@@ -5,7 +5,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	cfg "mogenius-k8s-manager/src/config"
-	dbstats "mogenius-k8s-manager/src/db-stats"
+	"mogenius-k8s-manager/src/dbstats"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
@@ -17,7 +17,7 @@ import (
 
 	"math/rand/v2"
 
-	bolt "go.etcd.io/bbolt"
+	"go.etcd.io/bbolt"
 )
 
 // test the functionality of the custom resource with a basic pod
@@ -110,7 +110,7 @@ func TestAddInterfaceStatsToDbLimitDataPoints(t *testing.T) {
 	assert.Assert(bucket.Stats().KeyN == maxDataPoints+1, fmt.Sprintf("Expected %d data points but got %d", maxDataPoints, bucket.Stats().KeyN))
 }
 
-func getNestedBucket(tx *bolt.Tx, bucketChain []string) *bolt.Bucket {
+func getNestedBucket(tx *bbolt.Tx, bucketChain []string) *bbolt.Bucket {
 	mainBucket := tx.Bucket([]byte(dbstats.TRAFFIC_BUCKET_NAME))
 	if mainBucket == nil {
 		return nil
@@ -125,7 +125,7 @@ func getNestedBucket(tx *bolt.Tx, bucketChain []string) *bolt.Bucket {
 	return result
 }
 
-func bucketExists(tx *bolt.Tx, bucketName string) bool {
+func bucketExists(tx *bbolt.Tx, bucketName string) bool {
 	bucket := getNestedBucket(tx, []string{bucketName})
 	return bucket != nil
 }

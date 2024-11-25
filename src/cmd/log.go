@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	k8sexec "mogenius-k8s-manager/src/k8sExec"
+	"mogenius-k8s-manager/src/k8sexec"
 	"mogenius-k8s-manager/src/kubernetes"
 	"strconv"
 	"strings"

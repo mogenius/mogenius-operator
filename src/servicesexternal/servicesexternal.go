@@ -1,4 +1,4 @@
-package servicesExternal
+package servicesexternal
 
 import (
 	"log/slog"

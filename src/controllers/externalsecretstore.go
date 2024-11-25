@@ -2,7 +2,7 @@ package controllers
 
 import (
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
-	servicesExternal "mogenius-k8s-manager/src/services-external"
+	servicesExternal "mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/utils"
 )
 
