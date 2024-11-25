@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/crds"
-	"mogenius-k8s-manager/src/dbstats"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/httpservice"
@@ -28,27 +27,29 @@ import (
 
 func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
 	go func() {
-		versionModule := version.NewVersion()
-		watcherModule := kubernetes.NewWatcher()
-
 		configModule.Validate()
 
 		var err error
+
+		versionModule := version.NewVersion()
+		watcherModule := kubernetes.NewWatcher()
+		dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
+		assert.Assert(err == nil, err)
+
 		helm.Setup(logManagerModule, configModule)
 		err = mokubernetes.Setup(logManagerModule, configModule, watcherModule)
 		assert.Assert(err == nil, err)
 		controllers.Setup(logManagerModule)
 		crds.Setup(logManagerModule)
-		dbstats.Setup(logManagerModule, configModule)
 		dtos.Setup(logManagerModule)
-		services.Setup(logManagerModule, configModule)
+		services.Setup(logManagerModule, configModule, dbstatsModule)
 		servicesexternal.Setup(logManagerModule, configModule)
 		socketclient.Setup(logManagerModule, configModule)
 		store.Setup(logManagerModule)
 		structs.Setup(logManagerModule, configModule)
 		utils.Setup(logManagerModule, configModule)
 		xterm.Setup(logManagerModule, configModule)
-		httpApi := httpservice.NewHttpApi(logManagerModule, configModule)
+		httpApi := httpservice.NewHttpApi(logManagerModule, configModule, dbstatsModule)
 
 		versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
@@ -75,7 +76,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		utils.SetupClusterSecret(clusterSecret)
 
 		store.Start()
-		dbstats.Start()
 		go httpApi.Run(":1337")
 		err = mokubernetes.Start()
 		if err != nil {

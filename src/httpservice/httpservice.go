@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/dbstats"
+	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/version"
@@ -15,16 +15,23 @@ import (
 )
 
 type HttpService struct {
-	logger *slog.Logger
-	config config.ConfigModule
+	logger  *slog.Logger
+	config  config.ConfigModule
+	dbstats kubernetes.BoltDbStats
 }
 
-func NewHttpApi(logManagerModule logging.LogManagerModule, configModule config.ConfigModule) *HttpService {
+func NewHttpApi(
+	logManagerModule logging.LogManagerModule,
+	configModule config.ConfigModule,
+	dbstats kubernetes.BoltDbStats,
+) *HttpService {
 	assert.Assert(logManagerModule != nil)
 	assert.Assert(configModule != nil)
+	assert.Assert(dbstats != nil)
 	return &HttpService{
-		logger: logManagerModule.CreateLogger("http"),
-		config: configModule,
+		logger:  logManagerModule.CreateLogger("http"),
+		config:  configModule,
+		dbstats: dbstats,
 	}
 }
 
@@ -110,7 +117,7 @@ func (h *HttpService) postTraffic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbstats.AddInterfaceStatsToDb(*stat)
+	h.dbstats.AddInterfaceStatsToDb(*stat)
 }
 
 func (h *HttpService) postCni(w http.ResponseWriter, r *http.Request) {
@@ -147,15 +154,15 @@ func (h *HttpService) postCni(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbstats.ReplaceCniData(*cniData)
+	h.dbstats.ReplaceCniData(*cniData)
 }
 
-func (h *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {
-	debugMode, err := strconv.ParseBool(h.config.Get("MO_DEBUG"))
+func (self *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {
+	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil, err)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.logger.Error("failed to read request body", "error", err)
+		self.logger.Error("failed to read request body", "error", err)
 		return
 	}
 
@@ -163,28 +170,28 @@ func (h *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {
 		var parsedJson interface{}
 		err = json.Unmarshal(body, &parsedJson)
 		if err != nil {
-			h.logger.Error("failed to indent json", "error", err)
+			self.logger.Error("failed to indent json", "error", err)
 			return
 		}
-		h.logger.Debug("POST /podstats", "body", parsedJson)
+		self.logger.Debug("POST /podstats", "body", parsedJson)
 	}
 
 	stat := &structs.PodStats{}
 	err = structs.UnmarshalPodStats(stat, body)
 	if err != nil {
-		h.logger.Error("failed to unmarshal interface stats", "error", err)
+		self.logger.Error("failed to unmarshal interface stats", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
 		})
 		if err != nil {
-			h.logger.Error("failed to json encode response", "error", err)
+			self.logger.Error("failed to json encode response", "error", err)
 		}
 		return
 	}
 
-	dbstats.AddPodStatsToDb(*stat)
+	self.dbstats.AddPodStatsToDb(*stat)
 }
 
 func (self *HttpService) postNodeStats(w http.ResponseWriter, r *http.Request) {
@@ -221,13 +228,13 @@ func (self *HttpService) postNodeStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbstats.AddNodeStatsToDb(*stat)
+	self.dbstats.AddNodeStatsToDb(*stat)
 }
 
 func (self *HttpService) debugGetTrafficSum(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get("ns")
 
-	stats := dbstats.GetTrafficStatsEntriesSumForNamespace(ns)
+	stats := self.dbstats.GetTrafficStatsEntriesSumForNamespace(ns)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(stats)
@@ -238,7 +245,7 @@ func (self *HttpService) debugGetTrafficSum(w http.ResponseWriter, r *http.Reque
 
 func (self *HttpService) debugGetLastNs(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get("ns")
-	stats := dbstats.GetLastPodStatsEntriesForNamespace(ns)
+	stats := self.dbstats.GetLastPodStatsEntriesForNamespace(ns)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(stats)
@@ -249,7 +256,7 @@ func (self *HttpService) debugGetLastNs(w http.ResponseWriter, r *http.Request) 
 
 func (self *HttpService) debugGetTraffic(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get("ns")
-	stats := dbstats.GetTrafficStatsEntriesForNamespace(ns)
+	stats := self.dbstats.GetTrafficStatsEntriesForNamespace(ns)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(stats)
@@ -260,7 +267,7 @@ func (self *HttpService) debugGetTraffic(w http.ResponseWriter, r *http.Request)
 
 func (self *HttpService) debugGetNs(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get("ns")
-	stats := dbstats.GetPodStatsEntriesForNamespace(ns)
+	stats := self.dbstats.GetPodStatsEntriesForNamespace(ns)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(stats)
