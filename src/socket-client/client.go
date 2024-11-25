@@ -169,10 +169,10 @@ func versionTicker() {
 }
 
 func updateCheck() {
-	socketClientLogger.Info("Checking for updates ...")
-
-	if !utils.IsProduction() {
-		socketClientLogger.Info(" (skipped) [not production].")
+	if utils.IsProduction() {
+		socketClientLogger.Info("Checking for updates ...")
+	} else {
+		socketClientLogger.Info("Skipping updates ... [not production]")
 		return
 	}
 
