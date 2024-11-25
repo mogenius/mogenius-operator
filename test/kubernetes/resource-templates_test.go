@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/watcher"
 	"path/filepath"
 	"testing"
 )
@@ -23,7 +22,7 @@ func TestResourceTemplates(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	watcherModule := watcher.NewWatcher()
+	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
 	assert.Assert(err == nil, err)
 
