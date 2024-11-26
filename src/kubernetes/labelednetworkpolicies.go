@@ -3,13 +3,14 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"reflect"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	v2 "k8s.io/api/apps/v1"
 
@@ -533,11 +534,47 @@ func EnsureLabeledNetworkPolicies(namespaceName string, labelPolicy []dtos.K8sLa
 func CreateDenyAllIngressNetworkPolicy(namespaceName string) error {
 	// check if the deny-all-ingress policy already exists
 
-	netpol := v1.NetworkPolicy{}
-	netpol.ObjectMeta.Name = DenyAllIngressNetPolName
-	netpol.ObjectMeta.Namespace = namespaceName
-	netpol.Spec.PodSelector = metav1.LabelSelector{} // An empty podSelector matches all pods in this namespace.
-	netpol.Spec.Ingress = []v1.NetworkPolicyIngressRule{}
+	netpol := v1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      DenyAllIngressNetPolName,
+			Namespace: namespaceName,
+		},
+		Spec: v1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{}, // Matches all pods in this namespace.
+			Ingress: []v1.NetworkPolicyIngressRule{
+				{
+					From: []v1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": config.Get("MO_OWN_NAMESPACE"),
+								},
+							},
+						},
+						{
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"acme.cert-manager.io/http01-solver": "true",
+								},
+							},
+						},
+					},
+					Ports: []v1.NetworkPolicyPort{
+						{
+							Protocol: func() *v1Core.Protocol {
+								tcp := v1Core.ProtocolTCP
+								return &tcp
+							}(),
+							Port: func() *intstr.IntOrString {
+								port := intstr.FromInt(8089)
+								return &port
+							}(),
+						},
+					},
+				},
+			},
+		},
+	}
 
 	// general label for all mogenius netpols
 	netpol.ObjectMeta.Labels = make(map[string]string)
