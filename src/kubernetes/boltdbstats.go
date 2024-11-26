@@ -661,7 +661,8 @@ func (self *boldDbStatsModule) AddPodStatsToDb(stats structs.PodStats) {
 		// CREATE A BUCKET FOR EACH CONTROLLER
 		controller := ControllerForPod(stats.Namespace, stats.PodName)
 		if controller == nil && stats.Namespace != "kube-system" {
-			return fmt.Errorf("Controller not found for '%s/%s'", stats.Namespace, stats.PodName)
+			k8sLogger.Debug("Controller not found for pod", "namespace", stats.Namespace, "podName", stats.PodName)
+			return nil
 		}
 		ctrlName := stats.Namespace
 		if stats.Namespace != "kube-system" {

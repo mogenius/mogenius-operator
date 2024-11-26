@@ -60,25 +60,6 @@ func DeleteNetworkPolicy(namespaceName, name string) error {
 	return nil
 }
 
-func DeleteNetworkPolicyService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Delete NetworkPolicy Service.", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(job, "Delete NetworkPolicy")
-
-		client := GetNetworkingClient()
-		netPolClient := client.NetworkPolicies(namespace.Name)
-
-		err := netPolClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteNetworkPolicyService ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(job, "Delete NetworkPolicy")
-		}
-	}(wg)
-}
-
 func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 	annotations := createAnnotations("mogenius.io/created", time.Now().String())
 	// create a new event
