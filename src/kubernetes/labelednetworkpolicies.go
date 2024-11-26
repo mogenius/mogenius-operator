@@ -809,7 +809,7 @@ func EnforceNetworkPolicyManagerForNamespace(namespaceName string) error {
 		return fmt.Errorf("failed to remove all conflicting network policies: %v", err)
 	}
 	// remove deny-all network policy
-	err = DeleteNetworkPolicyByName(namespaceName, "deny-all")
+	_ = DeleteNetworkPolicyByName(namespaceName, "deny-all")
 
 	// add deny-all-ingress network policy
 	err = CreateDenyAllIngressNetworkPolicy(namespaceName)
