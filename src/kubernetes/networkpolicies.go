@@ -56,7 +56,7 @@ func DeleteNetworkPolicy(namespaceName, name string) error {
 
 	k8sLogger.Info("Deleted NetworkPolicy", "networkpolicy", name)
 
-	cleanupUnusedDenyAll(namespaceName)
+	cleanupUnusedDenyAllIngress(namespaceName)
 	return nil
 }
 
