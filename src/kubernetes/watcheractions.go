@@ -36,6 +36,7 @@ func WatchStoreResources(watcher WatcherModule) error {
 		"StatefulSet",
 		"Namespace",
 		"NetworkPolicy",
+		"PersistentVolume",
 	}
 	for _, v := range resources {
 		if !slices.Contains(relevantResourceKinds, v.Kind) {
