@@ -39,7 +39,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		helm.Setup(logManagerModule, configModule)
 		err = mokubernetes.Setup(logManagerModule, configModule, watcherModule)
 		assert.Assert(err == nil, err)
-		controllers.Setup(logManagerModule)
+		controllers.Setup(logManagerModule, configModule)
 		crds.Setup(logManagerModule)
 		dtos.Setup(logManagerModule)
 		services.Setup(logManagerModule, configModule, dbstatsModule)

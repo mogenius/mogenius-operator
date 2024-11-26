@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"fmt"
+	"log/slog"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/store"
@@ -14,9 +16,14 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+var config cfg.ConfigModule
+var k8sLogger *slog.Logger
+
 const logType = "NETWORK POLICY"
 
-var ignoreNamespaces = []string{"kube-public", "kube-system", "kube-node-lease", "mogenius"}
+func ignoreNamespaces() []string {
+	return []string{"kube-public", "kube-system", "kube-node-lease", config.Get("MO_OWN_NAMESPACE")}
+}
 
 type DetachLabeledNetworkPolicyRequest struct {
 	ControllerName         string                            `json:"controllerName" validate:"required"`
@@ -26,7 +33,7 @@ type DetachLabeledNetworkPolicyRequest struct {
 }
 
 func ignoreNamespace(namespaceName string) error {
-	for _, ns := range ignoreNamespaces {
+	for _, ns := range ignoreNamespaces() {
 		if namespaceName == ns {
 			return fmt.Errorf("cannot attach network policy to %s namespace", namespaceName)
 		}
