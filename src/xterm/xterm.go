@@ -1,0 +1,531 @@
+package xterm
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
+	cfg "mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
+	"net/url"
+	"os"
+	"os/exec"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/creack/pty"
+
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/gorilla/websocket"
+)
+
+var logManager logging.LogManagerModule
+var xtermLogger *slog.Logger
+var config cfg.ConfigModule
+
+func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule) {
+	logManager = logManagerModule
+	xtermLogger = logManagerModule.CreateLogger("xterm")
+	config = configModule
+}
+
+const (
+	MAX_TAIL_LINES = "100000"
+)
+
+type WsConnectionRequest struct {
+	ChannelId       string `json:"channelId" validate:"required"`
+	WebsocketScheme string `json:"websocketScheme" validate:"required"`
+	WebsocketHost   string `json:"websocketHost" validate:"required"`
+}
+
+type PodCmdConnectionRequest struct {
+	Namespace    string              `json:"namespace" validate:"required"`
+	Controller   string              `json:"controller" validate:"required"`
+	Pod          string              `json:"pod" validate:"required"`
+	Container    string              `json:"container" validate:"required"`
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+	LogTail      string              `json:"logTail"`
+}
+
+type BuildLogConnectionRequest struct {
+	Namespace    string                  `json:"namespace" validate:"required"`
+	Controller   string                  `json:"controller" validate:"required"`
+	Container    string                  `json:"container" validate:"required"`
+	BuildTask    structs.BuildPrefixEnum `json:"buildTask" validate:"required"` // clone, build, test, deploy, .....
+	BuildId      uint64                  `json:"buildId" validate:"required"`
+	WsConnection WsConnectionRequest     `json:"wsConnectionRequest" validate:"required"`
+}
+
+type OperatorLogConnectionRequest struct {
+	Namespace    string              `json:"namespace" validate:"required"`
+	Controller   string              `json:"controller" validate:"required"`
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+	LogTail      string              `json:"logTail"`
+}
+
+type ComponentLogConnectionRequest struct {
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+	Component    string              `json:"component" validate:"required"`
+	Namespace    *string             `json:"namespace,omitempty"`
+	Controller   *string             `json:"controller,omitempty"`
+	Release      *string             `json:"release,omitempty"`
+}
+
+type PodEventConnectionRequest struct {
+	Namespace    string              `json:"namespace" validate:"required"`
+	Controller   string              `json:"controller" validate:"required"`
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+}
+
+type ScanImageLogConnectionRequest struct {
+	Namespace     string `json:"namespace" validate:"required"`
+	Controller    string `json:"controller" validate:"required"`
+	Container     string `json:"container" validate:"required"`
+	CmdType       string `json:"cmdType" validate:"required"`
+	ScanImageType string `json:"scanImageType" validate:"required"`
+
+	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
+	ContainerRegistryUser string `json:"containerRegistryUser"`
+	ContainerRegistryPat  string `json:"containerRegistryPat"`
+
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+}
+
+type LogEntry struct {
+	ControllerName string `json:"controllerName"`
+	Level          string `json:"level"`
+	Namespace      string `json:"namespace"`
+	ReleaseName    string `json:"releaseName"`
+	Component      string `json:"component"`
+	Message        string `json:"msg"`
+	Time           string `json:"time"`
+}
+
+func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
+	logging.AddSecret(p.ContainerRegistryUser)
+	logging.AddSecret(p.ContainerRegistryPat)
+}
+
+type ClusterToolConnectionRequest struct {
+	CmdType string `json:"cmdType" validate:"required"`
+	Tool    string `json:"tool" validate:"required"`
+
+	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+}
+
+type CmdWindowSize struct {
+	Rows uint16 `json:"rows"`
+	Cols uint16 `json:"cols"`
+}
+
+type XtermReadMessages struct {
+	MessageType int
+	Data        []byte
+	Err         error
+}
+
+var LogChannels = make(map[string]chan string)
+
+func isPodAvailable(pod *v1.Pod) bool {
+	if pod.Status.Phase == v1.PodRunning {
+		return true
+	} else if pod.Status.Phase == v1.PodSucceeded {
+		return true
+	} else if pod.Status.Phase == v1.PodFailed {
+		return true
+	}
+	for _, cond := range pod.Status.Conditions {
+		if cond.Type == v1.PodReady && cond.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernetes.KubeProvider, namespace string, podName string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
+	defer func() {
+		wg.Done()
+	}()
+	firstCount := false
+	for {
+		select {
+		case <-ctx.Done():
+			xtermLogger.Error("Context done.")
+			return
+		default:
+			pod, err := provider.ClientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+			if err != nil {
+				xtermLogger.Error("Unable to get pod", "error", err)
+				if conn != nil {
+					// clear screen
+					clearScreen(conn, connWriteLock)
+					closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "POD_DOES_NOT_EXIST")
+					connWriteLock.Lock()
+					err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+					connWriteLock.Unlock()
+					if err != nil {
+						xtermLogger.Debug("write close:", "error", err)
+					}
+				}
+				return
+			}
+
+			if isPodAvailable(pod) {
+				xtermLogger.Debug("Pod is ready", "podName", pod.Name)
+				// clear screen
+				clearScreen(conn, connWriteLock)
+				return
+			} else {
+				// XtermLogger.Info("Pod is not ready, waiting.")
+				msg := "."
+				if !firstCount {
+					firstCount = true
+					msg = "Pod is not ready, waiting."
+				}
+				connWriteLock.Lock()
+				err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
+				connWriteLock.Unlock()
+				if err != nil {
+					xtermLogger.Error("WriteMessage", "error", err)
+					ctx.Done()
+					return
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
+}
+
+func clearScreen(conn *websocket.Conn, connWriteLock *sync.Mutex) {
+	// clear screen
+	connWriteLock.Lock()
+	err := conn.WriteMessage(websocket.BinaryMessage, []byte("\u001b[2J\u001b[H"))
+	connWriteLock.Unlock()
+	if err != nil {
+		xtermLogger.Error("WriteMessage", "error", err)
+	}
+}
+
+func generateWsConnection(
+	cmdType string,
+	namespace string,
+	controller string,
+	podName string,
+	container string,
+	u url.URL,
+	wsConnectionRequest WsConnectionRequest,
+	ctx context.Context,
+	cancel context.CancelFunc,
+) (readMessages *chan XtermReadMessages, conn *websocket.Conn, connWriteLock *sync.Mutex, err error) {
+	maxRetries := 6
+	currentRetries := 0
+	xtermMessages := make(chan XtermReadMessages)
+
+	for {
+		// add header
+		headers := utils.HttpHeader("")
+		headers.Add("x-channel-id", wsConnectionRequest.ChannelId)
+		headers.Add("x-cmd", cmdType)
+		headers.Add("x-namespace", namespace)
+		headers.Add("x-controller", controller)
+		headers.Add("x-pod-name", podName)
+		headers.Add("x-container", container)
+		headers.Add("x-type", "k8s")
+
+		dialer := &websocket.Dialer{}
+		conn, _, err := dialer.Dial(u.String(), headers)
+		connWriteLock := &sync.Mutex{}
+		connReadLock := &sync.Mutex{}
+		if err != nil {
+			xtermLogger.Error("failed to connect, retrying in 5 seconds", "error", err.Error())
+			if currentRetries >= maxRetries {
+				xtermLogger.Error("Max retries reached, exiting.")
+				return nil, nil, nil, err
+			}
+			time.Sleep(5 * time.Second)
+			currentRetries++
+			continue
+		}
+
+		// XtermLogger.Infof("Connected to %s", u.String())
+
+		// API send ack when it is ready to receive messages.
+		err = conn.SetReadDeadline(time.Now().Add(30 * time.Minute))
+		if err != nil {
+			xtermLogger.Error("failed to set read deadline", "error", err)
+		}
+		connReadLock.Lock()
+		_, _, err = conn.ReadMessage()
+		connReadLock.Unlock()
+		if err != nil {
+			xtermLogger.Error("failed to receive ack-ready, retrying in 5 seconds", "error", err)
+			time.Sleep(5 * time.Second)
+			if currentRetries >= maxRetries {
+				xtermLogger.Error("Max retries reached, exiting.")
+				return &xtermMessages, conn, connWriteLock, err
+			}
+			currentRetries++
+			continue
+		}
+
+		// XtermLogger.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
+
+		// oncloseWs will close the connection and the context
+		go oncloseWs(conn, connReadLock, ctx, cancel, xtermMessages)
+		return &xtermMessages, conn, connWriteLock, nil
+	}
+}
+
+func oncloseWs(conn *websocket.Conn, connReadLock *sync.Mutex, ctx context.Context, cancel context.CancelFunc, readMessages chan XtermReadMessages) {
+	defer func() {
+		cancel()
+		if conn != nil {
+			conn.Close()
+		}
+		if readMessages != nil {
+			close(readMessages)
+		}
+		// XtermLogger.Info("[oncloseWs] Context done. Closing connection.")
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			connReadLock.Lock()
+			messageType, p, err := conn.ReadMessage()
+			connReadLock.Unlock()
+			if readMessages != nil {
+				readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: err}
+			}
+			if err != nil {
+				if closeErr, ok := err.(*websocket.CloseError); ok {
+					xtermLogger.Debug("[oncloseWs] WebSocket closed", "statusCode", closeErr.Code, "closeErr", closeErr.Text)
+				} else {
+					xtermLogger.Debug("[oncloseWs] Failed to read message. Connection closed.", "error", err)
+				}
+				return
+			}
+		}
+	}
+}
+
+func wsPing(conn *websocket.Conn) error {
+	err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(time.Second))
+	if err != nil {
+		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
+			xtermLogger.Info("The connection was closed")
+			return err
+		}
+		xtermLogger.Info("failed to send ping", "error", err)
+		return err
+	}
+	return nil
+}
+
+func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, connWriteLock *sync.Mutex, tty *os.File) {
+	err := cmd.Wait()
+	if err != nil {
+		// XtermLogger.Errorf("cmd wait: %s", err.Error())
+		if exiterr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				if status.ExitStatus() == 137 {
+					if conn != nil {
+						connWriteLock.Lock()
+						err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
+						connWriteLock.Unlock()
+						if err != nil {
+							xtermLogger.Error("WriteMessage", "error", err)
+						}
+					}
+				}
+			}
+		}
+	} else {
+		closeConnection(conn, connWriteLock, cmd, tty)
+	}
+}
+
+func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, connWriteLock *sync.Mutex, tty *os.File, injectPreContent io.Reader) {
+	if injectPreContent != nil {
+		injectContent(injectPreContent, conn, connWriteLock)
+	}
+
+	defer func() {
+		cancel()
+		// XtermLogger.Info("[cmdOutputToWebsocket] Closing connection.")
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			buf := make([]byte, 1024)
+			read, err := tty.Read(buf)
+			if err != nil {
+				// XtermLogger.Errorf("Unable to read from pty/cmd: %s", err.Error())
+				return
+			}
+			if conn != nil {
+				connWriteLock.Lock()
+				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
+				connWriteLock.Unlock()
+				if err != nil {
+					xtermLogger.Error("WriteMessage", "error", err)
+				}
+				continue
+			}
+			return
+		}
+	}
+}
+
+func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, connWriteLock *sync.Mutex, tty *os.File, injectPreContent io.Reader, component string, namespace *string, controllerName *string, release *string) {
+	_ = component
+	if injectPreContent != nil {
+		injectContent(injectPreContent, conn, connWriteLock)
+	}
+
+	defer func() {
+		cancel()
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			scanner := bufio.NewScanner(tty)
+			for scanner.Scan() {
+				line := scanner.Text()
+
+				var entry LogEntry
+				err := json.Unmarshal([]byte(line), &entry)
+				if err != nil {
+					continue
+				}
+
+				if namespace != nil {
+					// log.Infof("namespace: %s", *namespace)
+					if entry.Namespace != *namespace {
+						continue
+					}
+				}
+
+				if controllerName != nil {
+					// log.Infof("controllerName: %s", *controllerName)
+					if entry.ControllerName != *controllerName {
+						continue
+					}
+				}
+
+				if release != nil {
+					// log.Infof("release: %s", *release)
+					if entry.ReleaseName != *release {
+						continue
+					}
+				}
+
+				if conn != nil {
+					if !(strings.HasSuffix(entry.Message, "\n") || strings.HasSuffix(entry.Message, "\n\r")) {
+						entry.Message = entry.Message + "\n"
+					}
+					messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+					connWriteLock.Lock()
+					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
+					connWriteLock.Unlock()
+					if err != nil {
+						fmt.Println("WriteMessage", err.Error())
+					}
+					continue
+				}
+			}
+		}
+	}
+}
+
+func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Context, tty *os.File, cmdType *string) {
+	for msg := range readMessages {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if msg.Err != nil {
+				// log.Errorf("Unable to read from websocket: %s", msg.Err.Error())
+				return
+			}
+			msgStr := string(msg.Data)
+
+			if msgStr == "PEER_IS_READY" {
+				continue
+			}
+
+			if tty != nil {
+				if strings.HasPrefix(msgStr, "\x04") {
+					str := strings.TrimPrefix(msgStr, "\x04")
+
+					colsExists := strings.Contains(str, "\"cols\":")
+					rowsExists := strings.Contains(str, "\"rows\":")
+
+					if colsExists && rowsExists {
+						var resizeMessage CmdWindowSize
+						err := json.Unmarshal([]byte(str), &resizeMessage)
+						if err == nil {
+							if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
+								xtermLogger.Error("Unable to resize", "error", err)
+								continue
+							}
+							continue
+						}
+					}
+				}
+
+				if cmdType != nil {
+					if *cmdType == "exec-sh" {
+						_, err := tty.Write(msg.Data)
+						if err != nil {
+							xtermLogger.Error("failed to write in tty context", "error", err)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func closeConnection(conn *websocket.Conn, connWriteLock *sync.Mutex, cmd *exec.Cmd, tty *os.File) {
+	if conn != nil {
+		closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
+		connWriteLock.Lock()
+		err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+		connWriteLock.Unlock()
+		if err != nil {
+			xtermLogger.Debug("write close:", "error", err)
+		}
+	}
+	err := cmd.Process.Kill()
+	if err != nil && !strings.Contains(err.Error(), "process already finished") {
+		xtermLogger.Error("failed to kill process", "error", err)
+	}
+	_, err = cmd.Process.Wait()
+	if err != nil && !strings.Contains(err.Error(), "no child processes") {
+		xtermLogger.Error("failed to wait for process", "error", err)
+	}
+	err = tty.Close()
+	if err != nil && !strings.Contains(err.Error(), "file already closed") {
+		xtermLogger.Error("failed to close tty", "error", err)
+	}
+}
