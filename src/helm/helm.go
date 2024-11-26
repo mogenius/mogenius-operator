@@ -47,6 +47,8 @@ var (
 	repositoryCache  string
 )
 
+var RepoAlreadyExistsError = fmt.Errorf("repository name already exists")
+
 var helmLogger *slog.Logger
 var config cfg.ConfigModule
 
@@ -356,19 +358,29 @@ func InitHelmConfig() error {
 		}
 	}
 
+	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CACHE_HOME))
+	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CONFIG_HOME))
+	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME))
+	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_PLUGINS))
+	os.Setenv("HELM_REGISTRY_CONFIG", registryConfig)
+	os.Setenv("HELM_REPOSITORY_CACHE", repositoryCache)
+	os.Setenv("HELM_REPOSITORY_CONFIG", repositoryConfig)
+	os.Setenv("HELM_LOG_LEVEL", "trace")
+
 	if _, err := os.Stat(repositoryConfig); os.IsNotExist(err) {
 		destFile, err := os.Create(repositoryConfig)
 		if err != nil {
 			helmLogger.Error("failed to create repository config", "path", repositoryConfig, "error", err)
 		}
 		defer destFile.Close()
-
-		// add default repository
-		data := HelmRepoAddRequest{
-			Name: "mogenius",
-			Url:  "https://helm.mogenius.com/public",
-		}
-		if _, err := HelmRepoAdd(data); err != nil {
+	}
+	// add default repository
+	data := HelmRepoAddRequest{
+		Name: "mogenius",
+		Url:  "https://helm.mogenius.com/public",
+	}
+	if _, err := HelmRepoAdd(data); err != nil {
+		if err != RepoAlreadyExistsError {
 			helmLogger.Error("failed to add default helm repository", "repoName", data.Name, "repoUrl", data.Url, "error", err)
 		}
 	}
@@ -424,7 +436,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 
 	// Check if the repository already exists
 	if repoFile.Has(data.Name) {
-		return "", fmt.Errorf("repository name (%s) already exists", data.Name)
+		return "", RepoAlreadyExistsError
 	}
 
 	// Add the new repository entry
