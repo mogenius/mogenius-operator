@@ -16,6 +16,8 @@ import (
 
 const logType = "NETWORK POLICY"
 
+var ignoreNamespaces = []string{"kube-public", "kube-system", "kube-node-lease", "mogenius"}
+
 type DetachLabeledNetworkPolicyRequest struct {
 	ControllerName         string                            `json:"controllerName" validate:"required"`
 	ControllerType         dtos.K8sServiceControllerEnum     `json:"controllerType" validate:"required"`
@@ -23,11 +25,24 @@ type DetachLabeledNetworkPolicyRequest struct {
 	LabeledNetworkPolicies []dtos.K8sLabeledNetworkPolicyDto `json:"labeledNetworkPolicies" validate:"required"`
 }
 
-//type LabeledNetworkPoliciesListResponse []dtos.K8sLabeledNetworkPolicyDto
+func ignoreNamespace(namespaceName string) error {
+	for _, ns := range ignoreNamespaces {
+		if namespaceName == ns {
+			return fmt.Errorf("cannot attach network policy to %s namespace", namespaceName)
+		}
+	}
+	return nil
+}
 
 func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) (string, error) {
 	if len(data.LabeledNetworkPolicies) == 0 {
 		return "", nil
+	}
+
+	// ignore namespace
+	err := ignoreNamespace(data.NamespaceName)
+	if err != nil {
+		return "", err
 	}
 
 	// log
@@ -39,7 +54,7 @@ func DetachLabeledNetworkPolicy(data DetachLabeledNetworkPolicyRequest) (string,
 	labeledNetworkPolicyNames := strings.Join(labeledNetworkPolicyNameStrings, ", ")
 	logWithFields.Info("detach network policy", "logType", logType, "policies", labeledNetworkPolicyNames, "controller", data.ControllerName)
 
-	err := kubernetes.DetachLabeledNetworkPolicies(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicies)
+	err = kubernetes.DetachLabeledNetworkPolicies(data.ControllerName, data.ControllerType, data.NamespaceName, data.LabeledNetworkPolicies)
 	if err != nil {
 		logWithFields.Error("failed to detach network policy", "logType", logType, "error", err)
 		return "", fmt.Errorf("failed to detach network policy, err: %s", err.Error())
@@ -61,8 +76,10 @@ func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string,
 		return "", nil
 	}
 
-	if data.NamespaceName == "kube-system" {
-		return "", fmt.Errorf("cannot attach network policy to kube-system namespace")
+	// ignore namespace
+	err := ignoreNamespace(data.NamespaceName)
+	if err != nil {
+		return "", err
 	}
 
 	// log
@@ -75,7 +92,7 @@ func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string,
 	logWithFields.Info("attach network policy", "logType", logType, "policies", labeledNetworkPolicyNames, "controller", data.ControllerName)
 
 	// create kind: NetworkPolicy
-	err := kubernetes.EnsureLabeledNetworkPolicies(data.NamespaceName, data.LabeledNetworkPolicies)
+	err = kubernetes.EnsureLabeledNetworkPolicies(data.NamespaceName, data.LabeledNetworkPolicies)
 	if err != nil {
 		logWithFields.Error("failed to create network policy", "logType", logType, "error", err)
 		return "", fmt.Errorf("failed to create network policy, err: %s", err.Error())
@@ -120,7 +137,13 @@ type RemoveConflictingNetworkPoliciesRequest struct {
 }
 
 func RemoveConflictingNetworkPolicies(data RemoveConflictingNetworkPoliciesRequest) (string, error) {
-	err := kubernetes.RemoveAllConflictingNetworkPolicies(data.NamespaceName)
+	// ignore namespace
+	err := ignoreNamespace(data.NamespaceName)
+	if err != nil {
+		return "", err
+	}
+
+	err = kubernetes.RemoveAllConflictingNetworkPolicies(data.NamespaceName)
 	if err != nil {
 		return "", fmt.Errorf("failed to delete all network policies, err: %s", err.Error())
 	}
@@ -279,27 +302,19 @@ type DisableNetworkPolicyManagerRequest struct {
 }
 
 func EnforceNetworkPolicyManager(namespaceName string) error {
-	if namespaceName == "" {
-		return fmt.Errorf("namespace name is required")
-	}
-	if namespaceName == "kube-system" {
-		return fmt.Errorf("cannot enforce network policy in kube-system namespace")
-	}
-	if namespaceName == "mogenius" {
-		return fmt.Errorf("cannot enforce network policy in mogenius namespace")
+	// ignore namespace
+	err := ignoreNamespace(namespaceName)
+	if err != nil {
+		return err
 	}
 	return kubernetes.EnforceNetworkPolicyManagerForNamespace(namespaceName)
 }
 
 func DisableNetworkPolicyManager(namespaceName string) error {
-	if namespaceName == "" {
-		return fmt.Errorf("namespace name is required")
-	}
-	if namespaceName == "kube-system" {
-		return fmt.Errorf("cannot enforce network policy in kube-system namespace")
-	}
-	if namespaceName == "mogenius" {
-		return fmt.Errorf("cannot enforce network policy in mogenius namespace")
+	// ignore namespace
+	err := ignoreNamespace(namespaceName)
+	if err != nil {
+		return err
 	}
 	return kubernetes.DisableNetworkPolicyManagerForNamespace(namespaceName)
 }
@@ -522,7 +537,13 @@ type RemoveUnmanagedNetworkPoliciesRequest struct {
 }
 
 func RemoveUnmanagedNetworkPolicies(data RemoveUnmanagedNetworkPoliciesRequest) error {
-	err := kubernetes.RemoveUnmanagedNetworkPolicies(data.Namespace, data.Policies)
+	// ignore namespace
+	err := ignoreNamespace(data.Namespace)
+	if err != nil {
+		return err
+	}
+
+	err = kubernetes.RemoveUnmanagedNetworkPolicies(data.Namespace, data.Policies)
 	if err != nil {
 		return fmt.Errorf("failed to remove unmanaged network policies, err: %s", err.Error())
 	}
