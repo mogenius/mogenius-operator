@@ -3,12 +3,14 @@ package helm
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -357,6 +359,8 @@ func InitHelmConfig() error {
 			helmLogger.Info("Helm plugins directory created successfully", "path", pluginsFolder)
 		}
 	}
+
+	assert.Assert(runtime.Compiler != "gccgo", "using os.Setenv in multithreaded context with glibc is not allowed")
 
 	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CACHE_HOME))
 	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CONFIG_HOME))
