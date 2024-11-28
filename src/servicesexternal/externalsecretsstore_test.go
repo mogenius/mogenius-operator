@@ -1,6 +1,7 @@
 package servicesexternal_test
 
 import (
+	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
 	servicesExternal "mogenius-k8s-manager/src/servicesexternal"
@@ -59,9 +60,7 @@ func TestSecretStoreRender(t *testing.T) {
 	secretStore.Role = "mo-external-secrets-002"
 	yamlDataUpdated := servicesExternal.RenderClusterSecretStore(yamlTemplate, secretStore)
 
-	if yamlTemplate == yamlDataUpdated {
-		t.Fatalf("Error updating yaml data: %s", yamlTemplate)
-	}
+	assert.AssertT(t, yamlTemplate != yamlDataUpdated, "yaml data should be different")
 
 	expectedPath := "secrets/data/mo-ex-secr-test-003"
 	secretStore.SecretPath = expectedPath
@@ -70,12 +69,8 @@ func TestSecretStoreRender(t *testing.T) {
 	// check if the values are replaced
 	var data SecretStoreSchema
 	err := yaml.Unmarshal([]byte(yamlDataUpdated), &data)
-	if err != nil {
-		t.Fatalf("Error parsing YAML: %v", err)
-	}
+	assert.AssertT(t, err == nil, "unmarshal should work", err)
 
 	parsedPath := data.Metadata.Annotations["mogenius-external-secrets/shared-path"]
-	if parsedPath != expectedPath {
-		t.Fatalf("Error updating SecretPath: expected: %s, got: %s", expectedPath, parsedPath)
-	}
+	assert.AssertT(t, parsedPath == expectedPath, "parsedPath should match the expectedPath", "expected: "+expectedPath, "got: "+parsedPath)
 }

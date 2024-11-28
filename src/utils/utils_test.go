@@ -1,7 +1,7 @@
 package utils_test
 
 import (
-	"fmt"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
@@ -28,42 +28,23 @@ func TestUtils(t *testing.T) {
 
 	// ENCRYPT
 	encryptedStr, err := utils.EncryptString(testEncryptionKey, testSecret)
-	if err != nil {
-		t.Errorf("Error encrypting string")
-	} else {
-		if encryptedStr == "" {
-			t.Errorf("Error encrypting string")
-		} else {
-			fmt.Println("Encrypted string: ", encryptedStr)
-		}
-	}
+	assert.AssertT(t, err == nil, "error should be nil", err)
+	assert.AssertT(t, encryptedStr != "", "encryptedStr should not be empty")
+	t.Log("Encrypted string: ", encryptedStr)
 
 	// DECRYPT
 	decryptedStr, err := utils.DecryptString(testEncryptionKey, encryptedStr)
-	if err != nil {
-		t.Errorf("Error decrypting string")
-	} else {
-		if decryptedStr != testSecret || decryptedStr == "" {
-			t.Errorf("Error decrypting string")
-		} else {
-			fmt.Println("Decrypted string: ", decryptedStr)
-		}
-	}
+	assert.AssertT(t, err == nil, "error should be nil", err)
+	assert.AssertT(t, decryptedStr == testSecret, "decryptedStr should be equal to testSecret", decryptedStr, testSecret)
+	t.Log("Decrypted string: ", decryptedStr)
 
 	// IS ENCRYPTED Valid
 	isEncrypted := utils.IsEncrypted(encryptedTestStringOk)
-	if !isEncrypted {
-		t.Errorf("Error checking if string is encrypted, which is correct")
-	} else {
-		fmt.Printf("String %s is encrypted\n", encryptedTestStringOk)
-	}
+	assert.AssertT(t, isEncrypted, "test for encryption in encryptedTestStringOk should be ok")
+	t.Logf("String %s is encrypted\n", encryptedTestStringOk)
 
 	// IS ENCRYPTED Invalid
 	isEncrypted = utils.IsEncrypted(encryptedTestStringMessedUp)
-	if isEncrypted {
-		t.Errorf("Error checking if string is encrypted")
-	} else {
-		fmt.Printf("String %s is not encrypted, which is correct\n", encryptedTestStringMessedUp)
-	}
-
+	assert.AssertT(t, !isEncrypted, "test for encryption in encryptedTestStringMessedUp should fail")
+	t.Logf("String %s is not encrypted, which is correct\n", encryptedTestStringMessedUp)
 }

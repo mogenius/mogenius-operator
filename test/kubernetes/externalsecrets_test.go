@@ -41,28 +41,28 @@ func TestSecretListRender(t *testing.T) {
 	})
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	yamlTemplate := utils.InitExternalSecretListYaml()
 	secretListProps := externalSecretListExample()
 
 	// rendering overall works
 	yamlDataRendered := kubernetes.RenderExternalSecretList(yamlTemplate, secretListProps)
-	assert.Assert(yamlTemplate != yamlDataRendered, fmt.Sprintf("Error updating yaml data: %s", yamlTemplate))
+	assert.AssertT(t, yamlTemplate != yamlDataRendered, fmt.Sprintf("Error updating yaml data: %s", yamlTemplate))
 
 	// change values and compare
 	expectedName := NamePrefix + "-" + utils.SecretListSuffix // lowercase only
 	secretListProps.NamePrefix = NamePrefix
 	secretListProps.SecretName = "projectMayhem"
 	yamlDataRenderedChanged := kubernetes.RenderExternalSecretList(yamlTemplate, secretListProps)
-	assert.Assert(yamlDataRenderedChanged != yamlDataRendered, fmt.Sprintf("Error updating yaml data: %s", yamlTemplate))
+	assert.AssertT(t, yamlDataRenderedChanged != yamlDataRendered, fmt.Sprintf("Error updating yaml data: %s", yamlTemplate))
 
 	// check if the values are replaced as expected
 	var data YamlDataList
 	err = yaml.Unmarshal([]byte(yamlDataRenderedChanged), &data)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
-	assert.Assert(data.Spec.Target.Name == expectedName, fmt.Sprintf(
+	assert.AssertT(t, data.Spec.Target.Name == expectedName, fmt.Sprintf(
 		"Error updating Name: expected: %s, got: %s",
 		expectedName,
 		data.Spec.Target.Name,
@@ -90,10 +90,10 @@ func TestCreateExternalSecretList(t *testing.T) {
 	})
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	testReq := externalSecretListExample()
 
 	err = kubernetes.CreateExternalSecretList(testReq)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }

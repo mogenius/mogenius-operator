@@ -14,12 +14,12 @@ func TestEnvironment(t *testing.T) {
 
 	// CREATE
 	err := crds.CreateEnvironment(namespace, newEnvironmentName, crds.CrdEnvironment{})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Environment created ✅")
 
 	// GET
 	environment, _, err := crds.GetEnvironment(namespace, newEnvironmentName)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Environment retrieved ✅")
 
 	environment.Id = "Updated " + name
@@ -27,16 +27,16 @@ func TestEnvironment(t *testing.T) {
 	environment.CreatedBy = "Updated " + name
 	// UPDATE
 	err = crds.UpdateEnvironment(namespace, newEnvironmentName, environment)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("environment updated ✅")
 
 	// DELETE
 	err = crds.DeleteEnvironment(namespace, newEnvironmentName)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("environment deleted ✅")
 
 	// LIST
 	_, _, err = crds.ListEnvironments(namespace)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("environments listed ✅")
 }

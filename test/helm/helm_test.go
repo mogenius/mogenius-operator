@@ -121,13 +121,13 @@ func TestHelmRepoAdd(t *testing.T) {
 
 	// clean config folder before test
 	err := deleteFolder(helmConfPath)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	cleanupRepo(t) // cleanup if it existed before
 
 	// prerequisite configs
 	err = testSetup()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// test with
 	// helm --repository-config /tmp/registryConfigPath/helm/repositories.yaml repo list
@@ -137,7 +137,7 @@ func TestHelmRepoAdd(t *testing.T) {
 	t.Cleanup(func() {
 		cleanupRepo(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 func TestHelmRepoUpdate(t *testing.T) {
@@ -150,12 +150,12 @@ func TestHelmRepoUpdate(t *testing.T) {
 	})
 
 	err := testSetup()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// PAT_NAMESPACE_HELM_REPO_UPDATE
 	// no futher testing needed no error is sufficient
 	_, err = helm.HelmRepoUpdate()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 func TestHelmRepoList(t *testing.T) {
@@ -172,21 +172,21 @@ func TestHelmRepoList(t *testing.T) {
 
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = testSetup()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = createRepoForTest(t)
 	t.Cleanup(func() {
 		cleanupRepo(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// PAT_NAMESPACE_HELM_REPO_LIST
 	// check if repo is added
 	listRepoData, err := helm.HelmRepoList()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	listSuccess := false
 	for _, v := range listRepoData {
 		t.Logf("Release found: %s", v.Name)
@@ -195,7 +195,7 @@ func TestHelmRepoList(t *testing.T) {
 			break
 		}
 	}
-	assert.Assert(listSuccess, fmt.Sprintf("Repo '%s' not found but it should be", testRepo))
+	assert.AssertT(t, listSuccess, fmt.Sprintf("Repo '%s' not found but it should be", testRepo))
 }
 
 func TestHelmInstallRequest(t *testing.T) {
@@ -208,13 +208,13 @@ func TestHelmInstallRequest(t *testing.T) {
 	})
 
 	err := testSetup()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = createRepoForTest(t)
 	t.Cleanup(func() {
 		cleanupRepo(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	cleanupInstall(t) // cleanup if it existed before
 
@@ -224,7 +224,7 @@ func TestHelmInstallRequest(t *testing.T) {
 	t.Cleanup(func() {
 		cleanupInstall(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
@@ -237,18 +237,18 @@ func TestHelmUpgradeRequest(t *testing.T) {
 	helm.Setup(logManager, config)
 
 	err := testSetup()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	err = createRepoForTest(t)
 	t.Cleanup(func() {
 		cleanupRepo(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = installForTests(t)
 	t.Cleanup(func() {
 		cleanupInstall(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// PAT_NAMESPACE_HELM_UPGRADE
 	// no futher testing needed no error is sufficient
@@ -260,7 +260,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 		DryRun:    testDryRun,
 	}
 	_, err = helm.HelmReleaseUpgrade(releaseUpgradeData)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 func TestHelmListRequest(t *testing.T) {
@@ -273,18 +273,18 @@ func TestHelmListRequest(t *testing.T) {
 	})
 
 	err := testSetup()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	err = createRepoForTest(t)
 	t.Cleanup(func() {
 		cleanupRepo(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = installForTests(t)
 	t.Cleanup(func() {
 		cleanupInstall(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// PAT_NAMESPACE_HELM_LIST
 	// check if release is added
@@ -292,7 +292,7 @@ func TestHelmListRequest(t *testing.T) {
 		Namespace: testNamespace,
 	}
 	releaseList, err := helm.HelmReleaseList(releaseListData)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	listReleasesSuccess := false
 	for _, v := range releaseList {
 		t.Logf("Release found: %s", v.Name)
@@ -301,7 +301,7 @@ func TestHelmListRequest(t *testing.T) {
 			break
 		}
 	}
-	assert.Assert(listReleasesSuccess, fmt.Sprintf("Release '%s' not found but it should be", testRelease))
+	assert.AssertT(t, listReleasesSuccess, fmt.Sprintf("Release '%s' not found but it should be", testRelease))
 }
 
 func TestHelmReleases(t *testing.T) {
@@ -314,19 +314,19 @@ func TestHelmReleases(t *testing.T) {
 	})
 
 	err := testSetup()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = createRepoForTest(t)
 	t.Cleanup(func() {
 		cleanupRepo(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = installForTests(t)
 	t.Cleanup(func() {
 		cleanupInstall(t)
 	})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// PAT_NAMESPACE_HELM_STATUS
 	// no futher testing needed no error is sufficient
@@ -335,7 +335,7 @@ func TestHelmReleases(t *testing.T) {
 		Release:   testRelease,
 	}
 	_, err = helm.HelmReleaseStatus(releaseStatusData)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// PAT_NAMESPACE_HELM_SHOW
 	// no futher testing needed no error is sufficient
@@ -344,7 +344,7 @@ func TestHelmReleases(t *testing.T) {
 		ShowFormat: action.ShowAll,
 	}
 	_, err = helm.HelmChartShow(chartShowData)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// PAT_NAMESPACE_HELM_GET
 	// no futher testing needed no error is sufficient
@@ -354,7 +354,7 @@ func TestHelmReleases(t *testing.T) {
 		GetFormat: structs.HelmGetAll,
 	}
 	_, err = helm.HelmReleaseGet(releaseGet)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// PAT_NAMESPACE_HELM_HISTORY
 	// history should have at least 1 entry
@@ -363,8 +363,8 @@ func TestHelmReleases(t *testing.T) {
 		Release:   testRelease,
 	}
 	historyList, err := helm.HelmReleaseHistory(releaseHistoryData)
-	assert.Assert(err == nil, err)
-	assert.Assert(len(historyList) > 0, fmt.Sprintf("Release '%s' history not found but it should be", testRelease))
+	assert.AssertT(t, err == nil, err)
+	assert.AssertT(t, len(historyList) > 0, fmt.Sprintf("Release '%s' history not found but it should be", testRelease))
 
 	// PAT_NAMESPACE_HELM_ROLLBACK
 	// no futher testing needed no error is sufficient
@@ -374,5 +374,5 @@ func TestHelmReleases(t *testing.T) {
 		Revision:  1,
 	}
 	_, err = helm.HelmReleaseRollback(releaseRollbackData)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
