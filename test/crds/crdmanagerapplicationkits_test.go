@@ -14,12 +14,12 @@ func TestApplicationKit(t *testing.T) {
 
 	// CREATE
 	err := crds.CreateApplicationKit(namespace, newAppkitName, crds.CrdApplicationKit{Id: name, DisplayName: "Test Project", CreatedBy: name, Controller: "tesst", AppId: "gtesdf"})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Applicationkit created ✅")
 
 	// GET
 	appkit, _, err := crds.GetApplicationKit(namespace, newAppkitName)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Applicationkit retrieved ✅")
 	appkit.Id = "Updated " + name
 	appkit.DisplayName = "Updated Test Project"
@@ -29,16 +29,16 @@ func TestApplicationKit(t *testing.T) {
 
 	// UPDATE
 	err = crds.UpdateApplicationKit(namespace, newAppkitName, &appkit)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Applicationkit updated ✅")
 
 	// DELETE
 	err = crds.DeleteApplicationKit(namespace, newAppkitName)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("ApplicationKit deleted ✅")
 
 	// LIST
 	_, _, err = crds.ListProjects()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Applicationkits listed ✅")
 }

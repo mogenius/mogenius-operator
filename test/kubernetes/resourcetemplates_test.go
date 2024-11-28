@@ -24,21 +24,21 @@ func TestResourceTemplates(t *testing.T) {
 	})
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// CREATE
 	err = kubernetes.CreateOrUpdateResourceTemplateConfigmap()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// unknown resource
 	yaml := kubernetes.GetResourceTemplateYaml("", "v1", "mypod", "Pod", "default", "mypod")
-	assert.Assert(yaml != "", "Error getting resource template")
+	assert.AssertT(t, yaml != "", "Error getting resource template")
 
 	// known resource Deployment
 	knownResourceYaml := kubernetes.GetResourceTemplateYaml("v1", "Deployment", "testtemplate", "Pod", "default", "mypod")
-	assert.Assert(knownResourceYaml != "", "Error getting resource template")
+	assert.AssertT(t, knownResourceYaml != "", "Error getting resource template")
 
 	// known resource Certificate
 	knownResourceYamlCert := kubernetes.GetResourceTemplateYaml("cert-manager.io/v1", "v1", "certificates", "Certificate", "default", "mypod")
-	assert.Assert(knownResourceYamlCert != "", "Error getting resource template")
+	assert.AssertT(t, knownResourceYamlCert != "", "Error getting resource template")
 }

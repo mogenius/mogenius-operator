@@ -94,13 +94,13 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	})
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.EnsureLabeledNetworkPolicy("default", labelPolicy1)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.EnsureLabeledNetworkPolicy("default", labelPolicy2)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 func TestInitNetworkPolicyConfigMap(t *testing.T) {
@@ -112,10 +112,10 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	})
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.InitNetworkPolicyConfigMap()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 func TestReadNetworkPolicyPorts(t *testing.T) {
@@ -131,11 +131,11 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 	})
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	ports, err := kubernetes.ReadNetworkPolicyPorts()
-	assert.Assert(err == nil, err)
-	assert.Assert(len(ports) > 0, "Error reading network policy ports")
+	assert.AssertT(t, err == nil, err)
+	assert.AssertT(t, len(ports) > 0, "Error reading network policy ports")
 
 	// check if ports contains a imap named port fo egress
 	var found bool
@@ -146,7 +146,7 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 		}
 	}
 	t.Log(ports)
-	assert.Assert(found, "NetworkPolicy port for imap not found")
+	assert.AssertT(t, found, "NetworkPolicy port for imap not found")
 }
 
 func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
@@ -174,7 +174,7 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 
 	// attach network policy
 	err = kubernetes.AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy1})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// sleep to allow the deployment to be updated
 	// real world scenario wouldn't have this problem, as we assume existing controllers
@@ -182,20 +182,20 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 
 	// detach network policy
 	err = kubernetes.DetachLabeledNetworkPolicy(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, labelPolicy1)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 func TestListAllConflictingNetworkPolicies(t *testing.T) {
 	store.Start()
 	list, err := kubernetes.ListAllConflictingNetworkPolicies("mogenius")
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log(list)
 }
 
 func TestRemoveAllNetworkPolicies(t *testing.T) {
 	t.Skip("skipping this test for manual testing")
 	err := kubernetes.RemoveAllConflictingNetworkPolicies("mogenius")
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
@@ -207,10 +207,10 @@ func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 	})
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.CleanupLabeledNetworkPolicies("mogenius")
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 func TestListControllerLabeledNetworkPolicy(t *testing.T) {
@@ -226,7 +226,7 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 
 	client := kubernetes.GetAppClient()
 	_, err := client.Deployments(namespaceName).Create(context.Background(), exampleDeploy, metav1.CreateOptions{})
-	assert.Assert(err == nil || apierrors.IsAlreadyExists(err))
+	assert.AssertT(t, err == nil || apierrors.IsAlreadyExists(err))
 
 	// sleep to allow the deployment to be created
 	// real world scenario wouldn't have this problem, as we assume existing controllers
@@ -240,7 +240,7 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 
 	// attach network policy
 	err = kubernetes.AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy1})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	// sleep to allow the deployment to be updated
 	// real world scenario wouldn't have this problem, as we assume existing controllers
@@ -248,10 +248,10 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 
 	// attach network policy
 	err = kubernetes.AttachLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName, []dtos.K8sLabeledNetworkPolicyDto{labelPolicy2})
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	list, err := kubernetes.ListControllerLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log(list)
 }
 
@@ -264,10 +264,10 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 	})
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy1))
-	assert.Assert(err != nil, err, fmt.Sprintf("error deleting network policy %s", PolicyName1))
+	assert.AssertT(t, err != nil, err, fmt.Sprintf("error deleting network policy %s", PolicyName1))
 	err = kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy2))
-	assert.Assert(err != nil, err, fmt.Sprintf("error deleting network policy %s", PolicyName2))
+	assert.AssertT(t, err != nil, err, fmt.Sprintf("error deleting network policy %s", PolicyName2))
 }

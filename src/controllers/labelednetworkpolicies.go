@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"log/slog"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -17,7 +16,6 @@ import (
 )
 
 var config cfg.ConfigModule
-var k8sLogger *slog.Logger
 
 const logType = "NETWORK POLICY"
 
