@@ -8,7 +8,7 @@
       "mode": "debug",
       "envFile": "${workspaceFolder}/.env",
       "env": {
-        "MO_DEBUG": "true",
+        "MO_DEBUG": "true"
       },
       "program": "${workspaceFolder}/src/main.go",
       "args": ["logs", "--namespace=default", "--pod=blaa", "--container=my-container"],
@@ -22,7 +22,7 @@
       "mode": "debug",
       "envFile": "${workspaceFolder}/.env",
       "env": {
-        "MO_DEBUG": "true",
+        "MO_DEBUG": "true"
       },
       "program": "${workspaceFolder}/src/main.go",
       "args": ["cluster"],
