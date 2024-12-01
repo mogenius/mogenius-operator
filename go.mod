@@ -4,7 +4,7 @@ go 1.23.3
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
-	github.com/alecthomas/kong v1.4.0
+	github.com/alecthomas/kong v1.5.0
 	github.com/cert-manager/cert-manager v1.16.2
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.5.0
