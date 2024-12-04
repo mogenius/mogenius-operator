@@ -906,7 +906,12 @@ func getCurrentTrafficCollectorVersion() (string, error) {
 	if err != nil {
 		return "NO_VERSION_FOUND", err
 	}
-	trafficCollector := data.Entries[utils.HelmReleaseNameTrafficCollector]
+
+	chartName := utils.HelmReleaseNameTrafficCollector
+	if config.Get("MO_STAGE") == utils.STAGE_DEV {
+		chartName = "dev-" + utils.HelmReleaseNameTrafficCollector
+	}
+	trafficCollector := data.Entries[chartName]
 	trafficResult := "NO_VERSION_FOUND"
 	if len(trafficCollector) > 0 {
 		trafficResult = trafficCollector[0].Version
@@ -919,7 +924,12 @@ func getCurrentPodStatsCollectorVersion() (string, error) {
 	if err != nil {
 		return "NO_VERSION_FOUND", err
 	}
-	podstatsCollector := data.Entries[utils.HelmReleaseNamePodStatsCollector]
+
+	chartName := utils.HelmReleaseNamePodStatsCollector
+	if config.Get("MO_STAGE") == utils.STAGE_DEV {
+		chartName = "dev-" + utils.HelmReleaseNamePodStatsCollector
+	}
+	podstatsCollector := data.Entries[chartName]
 	podstatsResult := "NO_VERSION_FOUND"
 	if len(podstatsCollector) > 0 {
 		podstatsResult = podstatsCollector[0].Version
