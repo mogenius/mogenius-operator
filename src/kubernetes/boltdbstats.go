@@ -362,16 +362,19 @@ func (self *boldDbStatsModule) cleanSocketConnections(cons map[string]uint64) st
 
 func (self *boldDbStatsModule) ReplaceCniData(data []structs.CniData) {
 	err := self.db.Update(func(tx *bbolt.Tx) error {
-		mainBucket := tx.Bucket([]byte(BOLT_DB_STATS_CNI_BUCKET_NAME))
+		cniDataBucket := tx.Bucket([]byte(BOLT_DB_STATS_CNI_BUCKET_NAME))
 
-		// CREATE A BUCKET
-		cniDataBucket, err := mainBucket.CreateBucketIfNotExists([]byte(BOLT_DB_STATS_CNI_BUCKET_NAME))
-		if err != nil {
-			return err
+		// CHECKS
+		if data == nil || len(data) == 0 {
+			return nil
+		}
+		nodeName := data[0].Node
+		if nodeName == "" {
+			return fmt.Errorf("Node name is empty")
 		}
 
 		// update Entry
-		return cniDataBucket.Put([]byte(BOLT_DB_STATS_CNI_BUCKET_NAME), []byte(utils.PrettyPrintString(data)))
+		return cniDataBucket.Put([]byte(nodeName), []byte(utils.PrettyPrintString(data)))
 	})
 	if err != nil {
 		self.logger.Error("Error adding CNI data", "error", err)
@@ -382,17 +385,19 @@ func (self *boldDbStatsModule) GetCniData() ([]structs.CniData, error) {
 	result := []structs.CniData{}
 	err := self.db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(BOLT_DB_STATS_CNI_BUCKET_NAME))
-		data := bucket.Get([]byte(BOLT_DB_STATS_CNI_BUCKET_NAME))
-		if data != nil {
-			err := structs.UnmarshalCniData(&result, data)
+		bucket.ForEach(func(k, v []byte) error {
+			entry := []structs.CniData{}
+			err := structs.UnmarshalCniData(&entry, v)
 			if err != nil {
 				return err
 			}
-		}
+			result = append(result, entry...)
+			return nil
+		})
 		return nil
 	})
 	if err != nil {
-		self.logger.Error("GetSocketConnectionsForPod", "error", err)
+		self.logger.Error("GetCniData", "error", err)
 	}
 	return result, err
 }
