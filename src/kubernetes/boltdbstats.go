@@ -365,7 +365,7 @@ func (self *boldDbStatsModule) ReplaceCniData(data []structs.CniData) {
 		cniDataBucket := tx.Bucket([]byte(BOLT_DB_STATS_CNI_BUCKET_NAME))
 
 		// CHECKS
-		if data == nil || len(data) == 0 {
+		if len(data) == 0 {
 			return nil
 		}
 		nodeName := data[0].Node
@@ -385,7 +385,7 @@ func (self *boldDbStatsModule) GetCniData() ([]structs.CniData, error) {
 	result := []structs.CniData{}
 	err := self.db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(BOLT_DB_STATS_CNI_BUCKET_NAME))
-		bucket.ForEach(func(k, v []byte) error {
+		return bucket.ForEach(func(k, v []byte) error {
 			entry := []structs.CniData{}
 			err := structs.UnmarshalCniData(&entry, v)
 			if err != nil {
@@ -394,7 +394,6 @@ func (self *boldDbStatsModule) GetCniData() ([]structs.CniData, error) {
 			result = append(result, entry...)
 			return nil
 		})
-		return nil
 	})
 	if err != nil {
 		self.logger.Error("GetCniData", "error", err)
