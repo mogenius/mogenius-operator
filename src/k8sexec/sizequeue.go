@@ -10,16 +10,25 @@ import (
 )
 
 type sizeQueue struct {
-	resize chan os.Signal
+	resize               chan os.Signal
+	initialSizeRequested bool
 }
 
 func NewSizeQueue() *sizeQueue {
 	resize := make(chan os.Signal, 1)
 	signal.Notify(resize, syscall.SIGWINCH)
-	return &sizeQueue{resize: resize}
+	return &sizeQueue{resize: resize, initialSizeRequested: false}
 }
 
 func (s *sizeQueue) Next() *remotecommand.TerminalSize {
+	if !s.initialSizeRequested {
+		s.initialSizeRequested = true
+		size, err := getTerminalSize()
+		if err != nil {
+			return nil
+		}
+		return size
+	}
 	<-s.resize
 	size, err := getTerminalSize()
 	if err != nil {
