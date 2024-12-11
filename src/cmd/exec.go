@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/k8sexec"
-	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/shell"
 	"slices"
 	"strconv"
@@ -49,15 +49,11 @@ func RunExec(args *execArgs, logger *slog.Logger) error {
 
 	fmt.Println(getConnectedBanner(namespace, pod, container, args.Command))
 
-	provider, err := kubernetes.NewKubeProvider()
-	if err != nil {
-		return err
-	}
-
+	clientProvider := k8sclient.NewK8sClientProvider(logger)
 	executor, err := k8sexec.NewExecutor(
 		logger,
-		provider.ClientSet.CoreV1().RESTClient(),
-		provider.ClientConfig,
+		clientProvider.K8sClientSet().CoreV1().RESTClient(),
+		*clientProvider.ClientConfig(),
 		namespace,
 		pod,
 		container,

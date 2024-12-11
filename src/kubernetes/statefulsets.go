@@ -8,11 +8,8 @@ import (
 )
 
 func GetStatefulSet(namespaceName string, name string) (*v1.StatefulSet, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	statefulSet, err := provider.ClientSet.AppsV1().StatefulSets(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	statefulSet, err := clientset.AppsV1().StatefulSets(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
 	statefulSet.Kind = "StatefulSet"
 	statefulSet.APIVersion = "apps/v1"
 

@@ -18,11 +18,8 @@ import (
 func AllServices(namespaceName string) []v1.Service {
 	result := []v1.Service{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	serviceList, err := provider.ClientSet.CoreV1().Services(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	clientset := clientProvider.K8sClientSet()
+	serviceList, err := clientset.CoreV1().Services(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllServices", "error", err.Error())
 		return result
@@ -43,18 +40,14 @@ func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Deleting Service")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		serviceClient := provider.ClientSet.CoreV1().Services(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		serviceClient := clientset.CoreV1().Services(namespace.Name)
 
 		// bind/unbind ports globally
 		// TODO: rework TCP/UDP stuff
 		// UpdateTcpUdpPorts(namespace, service, false)
 
-		err = serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+		err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
 			cmd.Fail(job, fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
 		} else {
@@ -75,7 +68,8 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			existingService = nil
 		}
 
-		serviceClient := GetCoreClient().Services(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		serviceClient := clientset.CoreV1().Services(namespace.Name)
 		updateService := generateService(existingService, namespace, service)
 
 		updateOptions := metav1.UpdateOptions{
@@ -109,11 +103,8 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 }
 
 func GetService(namespace string, serviceName string) (*v1.Service, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	serviceClient := provider.ClientSet.CoreV1().Services(namespace)
+	clientset := clientProvider.K8sClientSet()
+	serviceClient := clientset.CoreV1().Services(namespace)
 	service, err := serviceClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 	service.Kind = "Service"
 	service.APIVersion = "v1"
@@ -206,12 +197,9 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 }
 
 func UpdateK8sService(data v1.Service) error {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return err
-	}
-	client := provider.ClientSet.CoreV1().Services(data.ObjectMeta.Namespace)
-	_, err = client.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().Services(data.ObjectMeta.Namespace)
+	_, err := client.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -254,13 +242,9 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 }
 
 func ServiceWithLabels(labelSelector string) *v1.Service {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		k8sLogger.Error("ServiceWith: failed to create kube provider", "error", err)
-		return nil
-	}
+	clientset := clientProvider.K8sClientSet()
 	namespace := ""
-	serviceClient := provider.ClientSet.CoreV1().Services(namespace)
+	serviceClient := clientset.CoreV1().Services(namespace)
 	service, err := serviceClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		k8sLogger.Error("ServiceFor: failed to list services", "namespace", namespace, "labelSelector", labelSelector, "error", err)
@@ -279,11 +263,8 @@ func ServiceWithLabels(labelSelector string) *v1.Service {
 }
 
 func ServiceFor(namespace string, serviceName string) *v1.Service {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil
-	}
-	serviceClient := provider.ClientSet.CoreV1().Services(namespace)
+	clientset := clientProvider.K8sClientSet()
+	serviceClient := clientset.CoreV1().Services(namespace)
 	service, err := serviceClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
 	service.Kind = "Service"
 	service.APIVersion = "v1"

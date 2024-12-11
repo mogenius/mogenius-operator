@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
@@ -18,13 +19,14 @@ func RunSystem(logManagerModule logging.LogManagerModule, configModule *config.C
 
 	configModule.Validate()
 
-	watcherModule := kubernetes.NewWatcher()
+	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(clientProvider)
 	dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
 	assert.Assert(err == nil, err)
 
-	err = mokubernetes.Setup(logManagerModule, configModule, watcherModule)
+	err = mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
 	assert.Assert(err == nil, err)
-	services.Setup(logManagerModule, configModule, dbstatsModule)
+	services.Setup(logManagerModule, configModule, clientProvider, dbstatsModule)
 	utils.Setup(logManagerModule, configModule)
 
 	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())

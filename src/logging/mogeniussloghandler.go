@@ -23,22 +23,20 @@ type MogeniusSlogHandler struct {
 	logFilter         *string
 	loggerHandlerLock *sync.RWMutex
 	enableStderr      *atomic.Bool
-	stderr            *os.File
 	inner             *slog.JSONHandler
 	attrs             []slog.Attr
 	group             string
 }
 
-func NewMogeniusSlogHandler(logLevel *slog.Level, logFilter *string, loggerHandlerLock *sync.RWMutex, enableStderr *atomic.Bool, writers ...io.Writer) slog.Handler {
+func NewMogeniusSlogHandler(logLevel *slog.Level, logFilter *string, loggerHandlerLock *sync.RWMutex, enableStderr *atomic.Bool, jsonHandlerWriters ...io.Writer) slog.Handler {
 	return &MogeniusSlogHandler{
 		logLevel:          logLevel,
 		logFilter:         logFilter,
 		loggerHandlerLock: loggerHandlerLock,
 		enableStderr:      enableStderr,
-		stderr:            os.Stderr,
 		attrs:             []slog.Attr{},
 		group:             "",
-		inner: slog.NewJSONHandler(io.MultiWriter(writers...), &slog.HandlerOptions{
+		inner: slog.NewJSONHandler(io.MultiWriter(jsonHandlerWriters...), &slog.HandlerOptions{
 			AddSource: true,
 			Level:     slog.LevelDebug,
 			ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
@@ -53,24 +51,24 @@ func NewMogeniusSlogHandler(logLevel *slog.Level, logFilter *string, loggerHandl
 	}
 }
 
-func (h *MogeniusSlogHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.inner.Enabled(ctx, level)
+func (self *MogeniusSlogHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return self.inner.Enabled(ctx, level)
 }
 
-func (h *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) error {
-	err := h.inner.Handle(ctx, record)
+func (self *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) error {
+	err := self.inner.Handle(ctx, record)
 	if err != nil {
 		return err
 	}
 
-	if !h.enableStderr.Load() {
+	if !self.enableStderr.Load() {
 		return nil
 	}
 
-	h.loggerHandlerLock.RLock()
-	slogLevel := *h.logLevel
-	logFilter := *h.logFilter
-	h.loggerHandlerLock.RUnlock()
+	self.loggerHandlerLock.RLock()
+	slogLevel := *self.logLevel
+	logFilter := *self.logFilter
+	self.loggerHandlerLock.RUnlock()
 	logFilterComponents := strings.Split(logFilter, ",")
 
 	var recordLevel slog.Level
@@ -93,7 +91,7 @@ func (h *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) er
 		return nil
 	}
 
-	component, err := h.getComponent()
+	component, err := self.getComponent()
 	if err != nil {
 		panic("The LogManager enforces an component attribute to exist: " + err.Error())
 	}
@@ -112,7 +110,7 @@ func (h *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) er
 
 	payload := getPayload(record)
 
-	err = printLogLine(h.stderr, isatty.IsTerminal(h.stderr.Fd()), level, component, source, message, payload)
+	err = printLogLine(os.Stderr, isatty.IsTerminal(os.Stderr.Fd()), level, component, source, message, payload)
 	if err != nil {
 		return err
 	}
@@ -179,20 +177,40 @@ func printLogLine(
 	return nil
 }
 
-func (h *MogeniusSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	h.inner = h.inner.WithAttrs(attrs).(*slog.JSONHandler)
-	h.attrs = append(h.attrs, attrs...)
-	return h
+func (self *MogeniusSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	newSlogHandler := MogeniusSlogHandler{}
+
+	newSlogHandler.logLevel = self.logLevel
+	newSlogHandler.logFilter = self.logFilter
+	newSlogHandler.loggerHandlerLock = self.loggerHandlerLock
+	newSlogHandler.enableStderr = self.enableStderr
+	newSlogHandler.attrs = append(self.attrs, attrs...)
+	newSlogHandler.group = self.group
+	newSlogHandler.inner = self.inner.WithAttrs(attrs).(*slog.JSONHandler)
+
+	return &newSlogHandler
 }
 
-func (h *MogeniusSlogHandler) WithGroup(name string) slog.Handler {
-	h.inner = h.inner.WithGroup(name).(*slog.JSONHandler)
-	h.group = name
-	return h
+func (self *MogeniusSlogHandler) WithGroup(name string) slog.Handler {
+	if name == "" {
+		return self
+	}
+
+	newSlogHandler := MogeniusSlogHandler{}
+
+	newSlogHandler.logLevel = self.logLevel
+	newSlogHandler.logFilter = self.logFilter
+	newSlogHandler.loggerHandlerLock = self.loggerHandlerLock
+	newSlogHandler.enableStderr = self.enableStderr
+	newSlogHandler.attrs = self.attrs
+	newSlogHandler.group = name
+	newSlogHandler.inner = self.inner.WithGroup(name).(*slog.JSONHandler)
+
+	return &newSlogHandler
 }
 
-func (h *MogeniusSlogHandler) getComponent() (string, error) {
-	for _, attr := range h.attrs {
+func (self *MogeniusSlogHandler) getComponent() (string, error) {
+	for _, attr := range self.attrs {
 		if attr.Key == "component" {
 			return attr.Value.String(), nil
 		}

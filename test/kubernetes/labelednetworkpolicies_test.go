@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
+	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/store"
@@ -92,8 +93,9 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	watcherModule := kubernetes.NewWatcher()
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(clientProvider)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.EnsureLabeledNetworkPolicy("default", labelPolicy1)
@@ -110,8 +112,9 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	watcherModule := kubernetes.NewWatcher()
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(clientProvider)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.InitNetworkPolicyConfigMap()
@@ -129,8 +132,9 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	watcherModule := kubernetes.NewWatcher()
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(clientProvider)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
 	ports, err := kubernetes.ReadNetworkPolicyPorts()
@@ -156,7 +160,10 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()
 
-	client := kubernetes.GetAppClient()
+	logManager := logging.NewMockSlogManager(t)
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.AppsV1()
 	_, err := client.Deployments(namespaceName).Create(context.TODO(), exampleDeploy, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		t.Errorf("Error creating deployment: %s", err.Error())
@@ -205,8 +212,9 @@ func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	watcherModule := kubernetes.NewWatcher()
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(clientProvider)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.CleanupLabeledNetworkPolicies("mogenius")
@@ -224,7 +232,9 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()
 
-	client := kubernetes.GetAppClient()
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.AppsV1()
 	_, err := client.Deployments(namespaceName).Create(context.Background(), exampleDeploy, metav1.CreateOptions{})
 	assert.AssertT(t, err == nil || apierrors.IsAlreadyExists(err))
 
@@ -262,8 +272,9 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	watcherModule := kubernetes.NewWatcher()
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(clientProvider)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy1))

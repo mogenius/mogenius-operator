@@ -119,16 +119,10 @@ func XTermCommandStreamConnection(
 	}
 
 	// kube provider
-	provider, err := kubernetes.NewKubeProvider()
-	if err != nil {
-		xtermLogger.Warn("Unable to create kube provider", "error", err)
-		return
-	}
-
 	var wg sync.WaitGroup
 	wg.Add(1)
 	// check if pod is ready
-	go checkPodIsReady(ctx, &wg, provider, namespace, podName, conn, connWriteLock)
+	go checkPodIsReady(ctx, &wg, namespace, podName, conn, connWriteLock)
 	wg.Wait()
 
 	// send ping

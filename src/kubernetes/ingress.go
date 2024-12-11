@@ -21,11 +21,8 @@ const (
 func AllIngresses(namespaceName string) []v1.Ingress {
 	result := []v1.Ingress{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	ingressList, err := provider.ClientSet.NetworkingV1().Ingresses(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	clientset := clientProvider.K8sClientSet()
+	ingressList, err := clientset.NetworkingV1().Ingresses(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllIngresses", "error", err.Error())
 		return result
@@ -56,12 +53,8 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			return
 		}
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		ingressClient := provider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		ingressClient := clientset.NetworkingV1().Ingresses(namespace.Name)
 
 		for _, container := range service.Containers {
 			containerIngressName := INGRESS_PREFIX + "-" + service.ControllerName + "-" + container.Name
@@ -220,12 +213,8 @@ func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Deleting ingress")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		ingressClient := provider.ClientSet.NetworkingV1().Ingresses(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		ingressClient := clientset.NetworkingV1().Ingresses(namespace.Name)
 
 		for _, container := range service.Containers {
 			ingressName := INGRESS_PREFIX + "-" + service.ControllerName + "-" + container.Name
@@ -339,13 +328,9 @@ func CreateMogeniusContainerRegistryIngress() {
 	ing := utils.InitMogeniusContainerRegistryIngress()
 	ing.Namespace = config.Get("MO_OWN_NAMESPACE")
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		k8sLogger.Error("CreateMogeniusContainerRegistryIngress", "error", err)
-	}
-
-	client := provider.ClientSet.NetworkingV1().Ingresses(ing.Namespace)
-	_, err = client.Get(context.TODO(), ing.Name, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.NetworkingV1().Ingresses(ing.Namespace)
+	_, err := client.Get(context.TODO(), ing.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		_, err = client.Create(context.TODO(), &ing, metav1.CreateOptions{})
 		if err == nil {
@@ -366,14 +351,10 @@ func CreateMogeniusContainerRegistryTlsSecret(crt string, key string) error {
 	secret := utils.InitMogeniusContainerRegistrySecret(crt, key)
 	secret.Namespace = config.Get("MO_OWN_NAMESPACE")
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		k8sLogger.Error("CreateMogeniusContainerRegistryTlsSecret", "error", err)
-	}
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().Secrets(secret.Namespace)
 
-	client := provider.ClientSet.CoreV1().Secrets(secret.Namespace)
-
-	_, err = client.Get(context.TODO(), secret.Name, metav1.GetOptions{})
+	_, err := client.Get(context.TODO(), secret.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		_, err = client.Create(context.TODO(), &secret, metav1.CreateOptions{})
 		if err == nil {

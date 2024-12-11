@@ -121,11 +121,8 @@ func SumCpuResources(pods []v1.Pod) (request float64, limit float64) {
 }
 
 func GetK8sNode(name string) (*v1.Node, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	node, err := provider.ClientSet.CoreV1().Nodes().Get(context.TODO(), name, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	node, err := clientset.CoreV1().Nodes().Get(context.TODO(), name, metav1.GetOptions{})
 	node.Kind = "Node"
 	node.APIVersion = "v1"
 	return node, err

@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/k8sexec"
-	"mogenius-k8s-manager/src/kubernetes"
 	"strconv"
 	"strings"
 )
@@ -38,14 +38,11 @@ func RunLogs(args *logArgs, logger *slog.Logger) error {
 		tailLinesUint = 1000
 	}
 
-	provider, err := kubernetes.NewKubeProvider()
-	if err != nil {
-		return err
-	}
+	clientProvider := k8sclient.NewK8sClientProvider(logger)
 
 	executor, err := k8sexec.NewLogs(
 		logger,
-		provider.ClientSet.CoreV1().Pods(namespace),
+		clientProvider.K8sClientSet().CoreV1().Pods(namespace),
 		namespace,
 		pod,
 		container,

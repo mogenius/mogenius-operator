@@ -22,7 +22,8 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 		defer wg.Done()
 		cmd.Start(job, "Creating NetworkPolicy")
 
-		netPolClient := GetNetworkingClient().NetworkPolicies(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		netPolClient := clientset.NetworkingV1().NetworkPolicies(namespace.Name)
 
 		netpol := utils.InitNetPolNamespace()
 
@@ -45,8 +46,8 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 }
 
 func DeleteNetworkPolicy(namespaceName, name string) error {
-	client := GetNetworkingClient()
-	netPolClient := client.NetworkPolicies(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
 
 	err := netPolClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {

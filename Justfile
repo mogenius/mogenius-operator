@@ -5,11 +5,11 @@ default:
     just --list --unsorted
 
 # Run the application with flags similar to the production build
-run: build-native
+run: build
     dist/native/mogenius-k8s-manager cluster
 
 # Build a native binary with flags similar to the production build
-build-native:
+build: generate
     go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
         -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
         -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
@@ -103,17 +103,23 @@ build-docker-linux-armv7:
         -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest-amd64 \
         .
 
+_install_controller_gen:
+    go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+
+generate: _install_controller_gen
+    go generate ./...
+
 # Run tests and linters for quick iteration locally.
-check: golangci-lint test-unit
+check: generate golangci-lint test-unit
 
 # Execute unit tests
-test-unit:
+test-unit: generate
     go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
 
 # Execute integration tests
-test-integration:
+test-integration: generate
     go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./test/...
 
 # Execute golangci-lint
-golangci-lint:
+golangci-lint: generate
     go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run '--fast=false' --sort-results '--max-same-issues=0' '--timeout=1h'

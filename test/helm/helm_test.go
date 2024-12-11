@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/config"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/helm"
+	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
@@ -169,9 +170,10 @@ func TestHelmRepoList(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 
-	watcherModule := kubernetes.NewWatcher()
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	watcherModule := kubernetes.NewWatcher(clientProvider)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
 	err = testSetup()

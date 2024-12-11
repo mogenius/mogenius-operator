@@ -82,11 +82,8 @@ func AllEventsForNamespace(namespaceName string) []v1Core.Event {
 func AllEventsForNamespace2(namespaceName string) []v1Core.Event {
 	result := []v1Core.Event{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	eventList, err := provider.ClientSet.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	clientset := clientProvider.K8sClientSet()
+	eventList, err := clientset.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllEvents", "error", err)
 		return result

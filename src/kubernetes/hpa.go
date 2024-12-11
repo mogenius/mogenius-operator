@@ -45,11 +45,8 @@ func DeleteHpa(job *structs.Job, namespaceName, controllerName string, wg *sync.
 }
 
 func GetHpa(namespaceName string, name string) (*v2.HorizontalPodAutoscaler, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	hpa, err := provider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	hpa, err := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
 	hpa.Kind = "HorizontalPodAutoscaler"
 	hpa.APIVersion = "autoscaling/v2"
 
@@ -57,11 +54,8 @@ func GetHpa(namespaceName string, name string) (*v2.HorizontalPodAutoscaler, err
 }
 
 func DeleteK8sHpaBy(namespace string, name string) error {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return err
-	}
-	client := provider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespace)
 	return client.Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
@@ -113,13 +107,9 @@ func CreateOrUpdateHpa(job *structs.Job, namespaceName, controllerName string, h
 		defer wg.Done()
 		cmd.Start(job, "CreateOrUpdate hpa")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
-			return
-		}
+		clientset := clientProvider.K8sClientSet()
 
-		hpaClient := provider.ClientSet.AutoscalingV2().HorizontalPodAutoscalers(namespaceName)
+		hpaClient := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespaceName)
 		newHpa, err := CreateHpa(namespaceName, controllerName, hpaSettings)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))

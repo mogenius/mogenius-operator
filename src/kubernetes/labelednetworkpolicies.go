@@ -49,7 +49,7 @@ func AttachLabeledNetworkPolicy(controllerName string,
 	namespaceName string,
 	labelPolicy dtos.K8sLabeledNetworkPolicyDto,
 ) error {
-	client := GetAppClient()
+	client := clientProvider.K8sClientSet().AppsV1()
 	label := GetNetworkPolicyName(labelPolicy)
 
 	switch controllerType {
@@ -118,7 +118,7 @@ func AttachLabeledNetworkPolicies(controllerName string,
 	namespaceName string,
 	labelPolicy []dtos.K8sLabeledNetworkPolicyDto,
 ) error {
-	client := GetAppClient()
+	client := clientProvider.K8sClientSet().AppsV1()
 	var deployment *v2.Deployment
 	var daemonSet *v2.DaemonSet
 	var statefulSet *v2.StatefulSet
@@ -207,7 +207,7 @@ func DetachLabeledNetworkPolicy(controllerName string,
 	namespaceName string,
 	labelPolicy dtos.K8sLabeledNetworkPolicyDto,
 ) error {
-	client := GetAppClient()
+	client := clientProvider.K8sClientSet().AppsV1()
 	label := GetNetworkPolicyName(labelPolicy)
 
 	switch controllerType {
@@ -255,7 +255,7 @@ func DetachLabeledNetworkPolicies(controllerName string,
 	namespaceName string,
 	labelPolicy []dtos.K8sLabeledNetworkPolicyDto,
 ) error {
-	client := GetAppClient()
+	client := clientProvider.K8sClientSet().AppsV1()
 	var deployment *v2.Deployment
 	var daemonSet *v2.DaemonSet
 	var statefulSet *v2.StatefulSet
@@ -330,16 +330,16 @@ func DetachLabeledNetworkPolicies(controllerName string,
 }
 
 func CleanupLabeledNetworkPolicies(namespaceName string) error {
-	client := GetAppClient()
-	deployments, err := client.Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	clientset := clientProvider.K8sClientSet()
+	deployments, err := clientset.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("CleanupLabeledNetworkPolicies getDeployments ERROR: %s", err)
 	}
-	daemonSet, err := client.DaemonSets(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	daemonSet, err := clientset.AppsV1().DaemonSets(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("CleanupLabeledNetworkPolicies getDaemonSets ERROR: %s", err)
 	}
-	statefulSet, err := client.StatefulSets(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	statefulSet, err := clientset.AppsV1().StatefulSets(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("CleanupLabeledNetworkPolicies getStatefulSets ERROR: %s", err)
 	}
@@ -360,8 +360,7 @@ func CleanupLabeledNetworkPolicies(namespaceName string) error {
 	}
 
 	// list all network policies created by mogenius
-	netClient := GetNetworkingClient()
-	netPolList, err := netClient.NetworkPolicies(namespaceName).List(context.TODO(), metav1.ListOptions{LabelSelector: NetpolLabel + "=true"})
+	netPolList, err := clientset.NetworkingV1().NetworkPolicies(namespaceName).List(context.TODO(), metav1.ListOptions{LabelSelector: NetpolLabel + "=true"})
 	if err != nil {
 		return fmt.Errorf("CleanupLabeledNetworkPolicies getNetworkPolicies ERROR: %s", err)
 	}
@@ -373,7 +372,7 @@ func CleanupLabeledNetworkPolicies(namespaceName string) error {
 			continue
 		}
 		if _, ok := inUseLabels[netPol.Name]; !ok {
-			err = netClient.NetworkPolicies(namespaceName).Delete(context.TODO(), netPol.Name, metav1.DeleteOptions{})
+			err = clientset.NetworkingV1().NetworkPolicies(namespaceName).Delete(context.TODO(), netPol.Name, metav1.DeleteOptions{})
 			if err != nil {
 				k8sLogger.Error("CleanupLabeledNetworkPolicies deleteNetworkPolicy ERROR", "error", err)
 			} else {
@@ -447,7 +446,8 @@ func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabele
 		netpol.Spec.Egress = append(netpol.Spec.Egress, rule)
 	}
 
-	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
 	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 	if err != nil && !strings.Contains(err.Error(), "already exists") {
 		k8sLogger.Error("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
@@ -516,7 +516,8 @@ func EnsureLabeledNetworkPolicies(namespaceName string, labelPolicy []dtos.K8sLa
 			netpol.Spec.Egress = append(netpol.Spec.Egress, rule)
 		}
 
-		netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
+		clientset := clientProvider.K8sClientSet()
+		netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
 		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil && !strings.Contains(err.Error(), "already exists") {
 			k8sLogger.Error("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
@@ -580,7 +581,8 @@ func CreateDenyAllIngressNetworkPolicy(namespaceName string) error {
 	netpol.ObjectMeta.Labels = make(map[string]string)
 	netpol.ObjectMeta.Labels[NetpolLabel] = "true"
 
-	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
 	_, err := netPolClient.Get(context.TODO(), DenyAllIngressNetPolName, metav1.GetOptions{})
 	if err != nil {
 		// create the deny-all-ingress policy
@@ -625,7 +627,8 @@ func CreateAllowNamespaceCommunicationNetworkPolicy(namespaceName string) error 
 	netpol.ObjectMeta.Labels = make(map[string]string)
 	netpol.ObjectMeta.Labels[NetpolLabel] = "true"
 
-	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
 	_, err := netPolClient.Get(context.TODO(), AllowNamespaceCommunicationNetPolName, metav1.GetOptions{})
 	if err != nil {
 		// create the deny-all-ingress policy
@@ -664,8 +667,8 @@ func cleanupUnusedDenyAllIngress(namespaceName string) {
 	}
 
 	if len(netpols) == 0 {
-		client := GetNetworkingClient()
-		netPolClient := client.NetworkPolicies(namespaceName)
+		clientset := clientProvider.K8sClientSet()
+		netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
 
 		err = netPolClient.Delete(context.TODO(), DenyAllIngressNetPolName, metav1.DeleteOptions{})
 		if err != nil {
@@ -728,7 +731,8 @@ func UpdateNetworkPolicyTemplate(policies []NetworkPolicy) error {
 	cfgMap.Data[PolicyConfigMapKey] = string(yamlStr)
 
 	// check if the configmap already exists
-	client := GetCoreClient().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 	_, err = client.Update(context.TODO(), cfgMap, metav1.UpdateOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -783,8 +787,8 @@ func RemoveAllConflictingNetworkPolicies(namespaceName string) error {
 		return fmt.Errorf("failed to list all network policies: %v", err)
 	}
 
-	client := GetNetworkingClient()
-	netPolClient := client.NetworkPolicies(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
 
 	errors := []error{}
 	if netpols != nil {
@@ -839,7 +843,7 @@ func EnforceNetworkPolicyManagerForNamespace(namespaceName string) error {
 }
 
 func DeleteNetworkPolicyByName(namespaceName string, policyName string) error {
-	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
+	netPolClient := clientProvider.K8sClientSet().NetworkingV1().NetworkPolicies(namespaceName)
 	err := netPolClient.Delete(context.TODO(), policyName, metav1.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to delete network policy %s: %v", policyName, err)
@@ -848,7 +852,6 @@ func DeleteNetworkPolicyByName(namespaceName string, policyName string) error {
 	// find in deployment, daemonset, statefulset and remove label
 	errors := []error{}
 	controllers := []unstructured.Unstructured{}
-	provider, err := NewKubeProviderDynamic()
 
 	GetUnstructuredResourceList := func(group, version, name string, namespace *string) []unstructured.Unstructured {
 		result, _ := GetUnstructuredResourceList(group, version, name, namespace)
@@ -860,6 +863,8 @@ func DeleteNetworkPolicyByName(namespaceName string, policyName string) error {
 	controllers = append(controllers, GetUnstructuredResourceList("apps/v1", "", "deployments", &namespaceName)...)
 	controllers = append(controllers, GetUnstructuredResourceList("apps/v1", "", "daemonsets", &namespaceName)...)
 	controllers = append(controllers, GetUnstructuredResourceList("apps/v1", "", "statefulsets", &namespaceName)...)
+
+	dynamicClient := clientProvider.DynamicClient()
 
 	for i := range controllers {
 		ctrl := controllers[i]
@@ -878,7 +883,7 @@ func DeleteNetworkPolicyByName(namespaceName string, policyName string) error {
 			errors = append(errors, err)
 			continue
 		}
-		latestObject, err := provider.DynamicClient.Resource(gvr).Namespace(namespaceName).Get(
+		latestObject, err := dynamicClient.Resource(gvr).Namespace(namespaceName).Get(
 			context.TODO(),
 			name,
 			metav1.GetOptions{},
@@ -921,7 +926,7 @@ func DeleteNetworkPolicyByName(namespaceName string, policyName string) error {
 		}
 
 		// update the object
-		_, err = provider.DynamicClient.Resource(gvr).Namespace(namespaceName).Update(
+		_, err = dynamicClient.Resource(gvr).Namespace(namespaceName).Update(
 			context.TODO(),
 			latestObject,
 			MoUpdateOptions(),
@@ -1127,7 +1132,8 @@ func ensureDenyAllIngressRule(namespaceName string) error {
 	if namespaceName == config.Get("MO_OWN_NAMESPACE") {
 		return fmt.Errorf("cannot create network-policies in %s namespace", config.Get("MO_OWN_NAMESPACE"))
 	}
-	netPolClient := GetNetworkingClient().NetworkPolicies(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
 
 	_, err := netPolClient.Get(context.TODO(), DenyAllIngressNetPolName, metav1.GetOptions{})
 	if err != nil {
@@ -1152,8 +1158,8 @@ func RemoveUnmanagedNetworkPolicies(namespaceName string, policies []string) err
 		return fmt.Errorf("failed to list all network policies: %v", err)
 	}
 
-	client := GetNetworkingClient()
-	netPolClient := client.NetworkPolicies(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
 
 	errors := []error{}
 	for _, netpol := range netpols.Items {

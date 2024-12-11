@@ -3,6 +3,7 @@ package kubernetes_test
 import (
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
@@ -16,12 +17,13 @@ import (
 func TestCustomResource(t *testing.T) {
 	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
-	watcherModule := kubernetes.NewWatcher()
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(clientProvider)
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 	yamlData := test.YamlSanitize(`
 	apiVersion: v1
@@ -65,8 +67,9 @@ func TestSecretStoreResource(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	watcherModule := kubernetes.NewWatcher()
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(clientProvider)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
 	yamlData := test.YamlSanitize(`

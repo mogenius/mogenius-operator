@@ -21,11 +21,8 @@ const ContainerImagePullSecretName = "container-img-pull-sec"
 func AllSecrets(namespaceName string) []v1.Secret {
 	result := []v1.Secret{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	secretList, err := provider.ClientSet.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	clientset := clientProvider.K8sClientSet()
+	secretList, err := clientset.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllSecrets", "error", err.Error())
 		return result
@@ -41,7 +38,6 @@ func AllSecrets(namespaceName string) []v1.Secret {
 }
 
 func CreateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
-	client := GetCoreClient()
 	if secret == nil {
 		var err error
 		secret, err = exampleSecret(namespace)
@@ -50,7 +46,8 @@ func CreateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
 		}
 	}
 
-	return client.Secrets(namespace).Create(context.TODO(), secret, MoCreateOptions())
+	clientset := clientProvider.K8sClientSet()
+	return clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, MoCreateOptions())
 }
 
 func exampleSecret(namespace string) (*v1.Secret, error) {
@@ -80,8 +77,8 @@ func exampleSecret(namespace string) (*v1.Secret, error) {
 }
 
 func GetDecodedSecret(secretName string, namespace string) (map[string]string, error) {
-	client := GetCoreClient()
-	secret, err := client.Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get secret %s in namespace %s: %w", secretName, namespace, err)
 	}
@@ -95,11 +92,8 @@ func GetDecodedSecret(secretName string, namespace string) (map[string]string, e
 }
 
 func DeleteK8sSecretBy(namespace string, name string) error {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return err
-	}
-	secretClient := provider.ClientSet.CoreV1().Secrets(namespace)
+	clientset := clientProvider.K8sClientSet()
+	secretClient := clientset.CoreV1().Secrets(namespace)
 	return secretClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
@@ -134,7 +128,8 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 		defer wg.Done()
 		cmd.Start(job, "Creating Cluster ImagePullSecret")
 
-		secretClient := GetCoreClient().Secrets(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		secretClient := clientset.CoreV1().Secrets(namespace.Name)
 
 		secret := utils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
@@ -173,7 +168,8 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 
 func ExistsClusterImagePullSecret(namespace string) bool {
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace))
-	secret, err := GetCoreClient().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return false
 	}
@@ -220,7 +216,8 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 			}
 		}
 
-		secretClient := GetCoreClient().Secrets(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		secretClient := clientset.CoreV1().Secrets(namespace.Name)
 
 		secret := utils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
@@ -269,7 +266,8 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 		defer wg.Done()
 		cmd.Start(job, "Deleting Container secret")
 
-		secretClient := GetCoreClient().Secrets(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		secretClient := clientset.CoreV1().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
@@ -306,7 +304,8 @@ func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespac
 		defer wg.Done()
 		cmd.Start(job, "Updating secret")
 
-		secretClient := GetCoreClient().Secrets(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		secretClient := clientset.CoreV1().Secrets(namespace.Name)
 		secret := utils.InitSecret()
 		secret.ObjectMeta.Name = service.ControllerName
 		secret.ObjectMeta.Namespace = namespace.Name
@@ -377,7 +376,8 @@ func DeleteControllerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, se
 		defer wg.Done()
 		cmd.Start(job, "Deleting Controller secret")
 
-		secretClient := GetCoreClient().Secrets(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		secretClient := clientset.CoreV1().Secrets(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),

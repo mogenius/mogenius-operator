@@ -3,16 +3,22 @@ package crds_test
 import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/crds"
+	"mogenius-k8s-manager/src/k8sclient"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
 	"testing"
 )
 
 func TestProject(t *testing.T) {
+	logManager := logging.NewMockSlogManager(t)
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	dynamicClient := clientProvider.DynamicClient()
+
 	name := "test"
 	newProjectName := name + utils.NanoIdSmallLowerCase()
 
 	// CREATE
-	err := crds.CreateProject(newProjectName, crds.CrdProject{Id: name, DisplayName: "Test Project", ProjectName: name, CreatedBy: name, ProductId: name, ClusterId: name,
+	err := crds.CreateProject(dynamicClient, newProjectName, crds.CrdProject{Id: name, DisplayName: "Test Project", ProjectName: name, CreatedBy: name, ProductId: name, ClusterId: name,
 		EnvironmentRefs: []string{name},
 		Limits:          crds.ProjectLimits{LimitMemoryMB: 1024, LimitCpuCores: 1.0, EphemeralStorageMB: 1024, MaxVolumeSizeGb: 10}},
 	)
@@ -20,7 +26,7 @@ func TestProject(t *testing.T) {
 	t.Log("Project created ✅")
 
 	// GET
-	project, _, err := crds.GetProject(newProjectName)
+	project, _, err := crds.GetProject(dynamicClient, newProjectName)
 	assert.AssertT(t, err == nil, err)
 	t.Log("Project retrieved ✅")
 
@@ -32,17 +38,17 @@ func TestProject(t *testing.T) {
 	project.EnvironmentRefs = []string{"Updated " + name}
 
 	// UPDATE
-	err = crds.UpdateProject(newProjectName, project.Id, project.ProjectName, project.DisplayName, project.ProductId, project.Limits)
+	err = crds.UpdateProject(dynamicClient, newProjectName, project.Id, project.ProjectName, project.DisplayName, project.ProductId, project.Limits)
 	assert.AssertT(t, err == nil, err)
 	t.Log("Project updated ✅")
 
 	// DELETE
-	err = crds.DeleteProject(newProjectName)
+	err = crds.DeleteProject(dynamicClient, newProjectName)
 	assert.AssertT(t, err == nil, err)
 	t.Log("Project deleted ✅")
 
 	// LIST
-	_, _, err = crds.ListProjects()
+	_, _, err = crds.ListProjects(dynamicClient)
 	assert.AssertT(t, err == nil, err)
 	t.Log("Projects listed ✅")
 }

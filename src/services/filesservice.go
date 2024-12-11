@@ -9,7 +9,6 @@ import (
 	"math"
 	"mime/multipart"
 	"mogenius-k8s-manager/src/dtos"
-	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
 	"net/http"
@@ -577,7 +576,7 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 		data.Path = ""
 	}
 
-	mountPath := utils.MountPath(data.VolumeNamespace, data.VolumeName, "/", mokubernetes.RunsInCluster())
+	mountPath := utils.MountPath(data.VolumeNamespace, data.VolumeName, "/", clientProvider.RunsInCluster())
 	pathToFile := ""
 
 	_, mountPathExists := os.Stat(mountPath)
