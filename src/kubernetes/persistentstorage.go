@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"strings"
@@ -28,12 +27,7 @@ const (
 )
 
 func handlePVDeletion(pv *v1.PersistentVolume) {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating provider for watcher. Cannot continue because it is vital.", "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
+	clientset := clientProvider.K8sClientSet()
 
 	if !ContainsLabelKey(pv.Labels, LabelKeyVolumeName) {
 		return
@@ -52,7 +46,7 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 
 	// Set up a dynamic event broadcaster for the specific namespace
 	broadcaster := record.NewBroadcaster()
-	eventInterface := provider.ClientSet.CoreV1().Events(namespaceName)
+	eventInterface := clientset.CoreV1().Events(namespaceName)
 	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
 	namespaceRecorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "mogenius.io/WatchPersistentVolumes"})
 
@@ -71,11 +65,8 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
 	result := []structs.Volume{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result, err
-	}
-	pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims("")
+	clientset := clientProvider.K8sClientSet()
+	pvcClient := clientset.CoreV1().PersistentVolumeClaims("")
 	pvcList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return result, err
@@ -127,13 +118,9 @@ func CreateMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 			LabelKeyVolumeName:       volumeName,
 		})
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
-		_, err = pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
+		clientset := clientProvider.K8sClientSet()
+		pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+		_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 		} else {
@@ -149,13 +136,9 @@ func DeleteMogeniusNfsPersistentVolumeClaim(job *structs.Job, namespaceName stri
 		defer wg.Done()
 		cmd.Start(job, "Deleting PersistentVolumeClaim")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
-		err = pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+		clientset := clientProvider.K8sClientSet()
+		pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 		} else {
@@ -191,13 +174,9 @@ func CreateMogeniusNfsPersistentVolumeForService(job *structs.Job, namespaceName
 			LabelKeyVolumeName:       volumeName,
 		})
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		client := provider.ClientSet.CoreV1().PersistentVolumes()
-		_, err = client.Create(context.TODO(), &pv, metav1.CreateOptions{})
+		clientset := clientProvider.K8sClientSet()
+		client := clientset.CoreV1().PersistentVolumes()
+		_, err := client.Create(context.TODO(), &pv, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
 		} else {
@@ -214,12 +193,8 @@ func DeleteMogeniusNfsPersistentVolumeForService(job *structs.Job, volumeName st
 		k8sVolumeName := fmt.Sprintf("%s-%s", namespaceName, volumeName)
 		cmd.Start(job, "Deleting DeleteMogeniusNfsPersistentVolumeForService")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		pvcClient := provider.ClientSet.CoreV1().PersistentVolumes()
+		clientset := clientProvider.K8sClientSet()
+		pvcClient := clientset.CoreV1().PersistentVolumes()
 
 		// LIST ALL PV
 		pvList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
@@ -268,13 +243,9 @@ func CreateMogeniusNfsPersistentVolumeClaimForService(job *structs.Job, namespac
 		pvc.Spec.VolumeName = fmt.Sprintf("%s-%s", namespaceName, volumeName)
 		pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
-		_, err = pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
+		clientset := clientProvider.K8sClientSet()
+		pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+		_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 		} else {
@@ -290,13 +261,9 @@ func DeleteMogeniusNfsPersistentVolumeClaimForService(job *structs.Job, namespac
 		defer wg.Done()
 		cmd.Start(job, "Deleting PersistentVolumeClaim")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		pvcClient := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName)
-		err = pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
+		clientset := clientProvider.K8sClientSet()
+		pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+		err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaimForService ERROR: %s", err.Error()))
 		} else {
@@ -314,13 +281,9 @@ func CreateMogeniusNfsServiceSync(job *structs.Job, namespaceName string, volume
 	service.Namespace = namespaceName
 	service.Spec.Selector["app"] = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-		return
-	}
-	serviceClient := provider.ClientSet.CoreV1().Services(namespaceName)
-	_, err = serviceClient.Create(context.TODO(), &service, metav1.CreateOptions{})
+	clientset := clientProvider.K8sClientSet()
+	serviceClient := clientset.CoreV1().Services(namespaceName)
+	_, err := serviceClient.Create(context.TODO(), &service, metav1.CreateOptions{})
 	if err != nil {
 		cmd.Fail(job, fmt.Sprintf("CreateMogeniusNfsService ERROR: %s", err.Error()))
 	} else {
@@ -335,13 +298,9 @@ func DeleteMogeniusNfsService(job *structs.Job, namespaceName string, volumeName
 		defer wg.Done()
 		cmd.Start(job, "Deleting PersistentVolume Service")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		pvcClient := provider.ClientSet.CoreV1().Services(namespaceName)
-		err = pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+		clientset := clientProvider.K8sClientSet()
+		pvcClient := clientset.CoreV1().Services(namespaceName)
+		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteMogeniusNfsService ERROR: %s", err.Error()))
 		} else {
@@ -366,13 +325,9 @@ func CreateMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		deployment.Spec.Selector.MatchLabels["app"] = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 		deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
-		_, err = deploymentClient.Create(context.TODO(), &deployment, metav1.CreateOptions{})
+		clientset := clientProvider.K8sClientSet()
+		deploymentClient := clientset.AppsV1().Deployments(namespaceName)
+		_, err := deploymentClient.Create(context.TODO(), &deployment, metav1.CreateOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("CreateMogeniusNfsDeployment ERROR: %s", err.Error()))
 		} else {
@@ -388,13 +343,9 @@ func DeleteMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 		defer wg.Done()
 		cmd.Start(job, "Deleting PersistentVolume Deployment")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
-		err = deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+		clientset := clientProvider.K8sClientSet()
+		deploymentClient := clientset.AppsV1().Deployments(namespaceName)
+		err := deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteMogeniusNfsDeployment ERROR: %s", err.Error()))
 		} else {
@@ -404,11 +355,8 @@ func DeleteMogeniusNfsDeployment(job *structs.Job, namespaceName string, volumeN
 }
 
 func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	client := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().PersistentVolumeClaims(namespace)
 
 	persistentVolumeClaims, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
@@ -428,11 +376,8 @@ func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector
 }
 
 func GetPersistentVolumeClaim(namespace string, name string) (*v1.PersistentVolumeClaim, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	client := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().PersistentVolumeClaims(namespace)
 
 	deployment, err := client.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
@@ -444,11 +389,8 @@ func GetPersistentVolumeClaim(namespace string, name string) (*v1.PersistentVolu
 func AllPersistentVolumeClaims(namespaceName string) []v1.PersistentVolumeClaim {
 	result := []v1.PersistentVolumeClaim{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	pvList, err := provider.ClientSet.CoreV1().PersistentVolumeClaims(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	clientset := clientProvider.K8sClientSet()
+	pvList, err := clientset.CoreV1().PersistentVolumeClaims(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllPersistentVolumeClaims", "error", err.Error())
 		return result
@@ -464,11 +406,8 @@ func AllPersistentVolumeClaims(namespaceName string) []v1.PersistentVolumeClaim 
 }
 
 func UpdateK8sPersistentVolumeClaim(data v1.PersistentVolumeClaim) K8sWorkloadResult {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	client := provider.ClientSet.CoreV1().PersistentVolumeClaims(data.Namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().PersistentVolumeClaims(data.Namespace)
 	res, err := client.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return WorkloadResult(nil, err)
@@ -479,11 +418,8 @@ func UpdateK8sPersistentVolumeClaim(data v1.PersistentVolumeClaim) K8sWorkloadRe
 func AllPersistentVolumesRaw() []v1.PersistentVolume {
 	result := []v1.PersistentVolume{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	pvList, err := provider.ClientSet.CoreV1().PersistentVolumes().List(context.TODO(), metav1.ListOptions{})
+	clientset := clientProvider.K8sClientSet()
+	pvList, err := clientset.CoreV1().PersistentVolumes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllPersistentVolumesRaw", "error", err.Error())
 		return result
@@ -498,11 +434,8 @@ func AllPersistentVolumesRaw() []v1.PersistentVolume {
 }
 
 func UpdateK8sPersistentVolume(data v1.PersistentVolume) (*v1.PersistentVolume, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	client := provider.ClientSet.CoreV1().PersistentVolumes()
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().PersistentVolumes()
 	res, err := client.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err

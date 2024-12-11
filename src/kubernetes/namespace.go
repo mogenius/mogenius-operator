@@ -15,11 +15,8 @@ func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dto
 	cmd := structs.CreateCommand("create", "Create Kubernetes namespace", job)
 	cmd.Start(job, "Creating namespace")
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-	}
-	namespaceClient := provider.ClientSet.CoreV1().Namespaces()
+	clientset := clientProvider.K8sClientSet()
+	namespaceClient := clientset.CoreV1().Namespaces()
 	newNamespace := applyconfcore.Namespace(namespace.Name)
 
 	applyOptions := metav1.ApplyOptions{
@@ -29,7 +26,7 @@ func CreateNamespace(job *structs.Job, project dtos.K8sProjectDto, namespace dto
 
 	newNamespace.WithLabels(MoUpdateLabels(&map[string]string{"name": namespace.Name}, &project.Id, &namespace, nil))
 
-	_, err = namespaceClient.Apply(context.TODO(), newNamespace, applyOptions)
+	_, err := namespaceClient.Apply(context.TODO(), newNamespace, applyOptions)
 	if err != nil {
 		cmd.Fail(job, fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()))
 	} else {
@@ -44,14 +41,10 @@ func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.
 		defer wg.Done()
 		cmd.Start(job, "Deleting namespace")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		namespaceClient := provider.ClientSet.CoreV1().Namespaces()
+		clientset := clientProvider.K8sClientSet()
+		namespaceClient := clientset.CoreV1().Namespaces()
 
-		err = namespaceClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
+		err := namespaceClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()))
 		} else {
@@ -61,11 +54,8 @@ func DeleteNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.
 }
 
 func NamespaceExists(namespaceName string) (bool, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return false, err
-	}
-	namespaceClient := provider.ClientSet.CoreV1().Namespaces()
+	clientset := clientProvider.K8sClientSet()
+	namespaceClient := clientset.CoreV1().Namespaces()
 	ns, err := namespaceClient.Get(context.TODO(), namespaceName, metav1.GetOptions{})
 	return (ns != nil && err == nil), err
 }
@@ -73,11 +63,8 @@ func NamespaceExists(namespaceName string) (bool, error) {
 func ListAllNamespaceNames() []string {
 	result := []string{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	namespaceClient := provider.ClientSet.CoreV1().Namespaces()
+	clientset := clientProvider.K8sClientSet()
+	namespaceClient := clientset.CoreV1().Namespaces()
 
 	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {

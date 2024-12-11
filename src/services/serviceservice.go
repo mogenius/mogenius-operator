@@ -88,7 +88,7 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 
 	mokubernetes.DeleteIngress(job, r.Namespace, r.Service, &wg)
 
-	crds.DeleteApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, &wg)
+	crds.DeleteApplicationKitCmd(clientProvider.DynamicClient(), job, r.Namespace.Name, r.Service.ControllerName, &wg)
 
 	go func() {
 		wg.Wait()

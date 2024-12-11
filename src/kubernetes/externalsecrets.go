@@ -97,7 +97,7 @@ func CreateExternalSecret(data CreateExternalSecretProps) (string, error) {
 func GetSecretValueByPrefixControllerNameAndKey(namespaceName string, controllerName string, prefix string, key string) (string, error) {
 	secretName := utils.GetSecretName(prefix, controllerName, key)
 
-	secretClient := GetCoreClient().Secrets(namespaceName)
+	secretClient := clientProvider.K8sClientSet().CoreV1().Secrets(namespaceName)
 
 	data, err := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {

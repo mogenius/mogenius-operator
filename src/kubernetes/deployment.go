@@ -22,11 +22,8 @@ import (
 func AllDeployments(namespaceName string) []v1.Deployment {
 	result := []v1.Deployment{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	clientset := clientProvider.K8sClientSet()
+	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllDeployments", "error", err.Error())
 		return result
@@ -47,18 +44,14 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(job, "Deleting Deployment")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
-		err = deploymentClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
+		err := deploymentClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()))
 		} else {
@@ -68,11 +61,8 @@ func DeleteDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 }
 
 func GetDeployment(namespaceName string, controllerName string) (*v1.Deployment, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	client := provider.ClientSet.AppsV1().Deployments(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.AppsV1().Deployments(namespaceName)
 	return client.Get(context.TODO(), controllerName, metav1.GetOptions{})
 }
 
@@ -83,7 +73,7 @@ func UpdateDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service 
 		defer wg.Done()
 		cmd.Start(job, "Updating Deployment")
 
-		deploymentClient := GetAppClient().Deployments(namespace.Name)
+		deploymentClient := clientProvider.K8sClientSet().AppsV1().Deployments(namespace.Name)
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
@@ -120,12 +110,8 @@ func StartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service d
 		defer wg.Done()
 		cmd.Start(job, "Starting Deployment")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
@@ -155,12 +141,8 @@ func StopDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		defer wg.Done()
 		cmd.Start(job, "Stopping Deployment")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
@@ -191,12 +173,8 @@ func RestartDeployment(job *structs.Job, namespace dtos.K8sNamespaceDto, service
 		defer wg.Done()
 		cmd.Start(job, "Restarting Deployment")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		deploymentClient := provider.ClientSet.AppsV1().Deployments(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
 
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
 		if err != nil {
@@ -456,11 +434,8 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 }
 
 func UpdateDeploymentImage(namespaceName string, controllerName string, containerName string, imageName string) error {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return err
-	}
-	deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	deploymentClient := clientset.AppsV1().Deployments(namespaceName)
 	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -479,11 +454,8 @@ func UpdateDeploymentImage(namespaceName string, controllerName string, containe
 }
 
 func GetDeploymentImage(namespaceName string, controllerName string, containerName string) (string, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return "", err
-	}
-	deploymentClient := provider.ClientSet.AppsV1().Deployments(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	deploymentClient := clientset.AppsV1().Deployments(namespaceName)
 	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
@@ -497,11 +469,8 @@ func GetDeploymentImage(namespaceName string, controllerName string, containerNa
 }
 
 func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	client := provider.ClientSet.AppsV1().Deployments(namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.AppsV1().Deployments(namespace)
 
 	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
@@ -522,11 +491,8 @@ func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, pr
 
 func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
 	result := []v1.Deployment{}
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result, err
-	}
-	client := provider.ClientSet.AppsV1().Deployments(namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.AppsV1().Deployments(namespace)
 
 	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
@@ -545,11 +511,8 @@ func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
 }
 
 func GetK8sDeployment(namespaceName string, name string) (*v1.Deployment, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	deployment, err := provider.ClientSet.AppsV1().Deployments(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	deployment, err := clientset.AppsV1().Deployments(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
 	deployment.Kind = "Deployment"
 	deployment.APIVersion = "apps/v1"
 
@@ -573,11 +536,8 @@ func IsDeploymentInstalled(namespaceName string, name string) (string, error) {
 
 func AllDeploymentsIncludeIgnored(namespaceName string) []v1.Deployment {
 	result := []v1.Deployment{}
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	deploymentList, err := provider.ClientSet.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	clientset := clientProvider.K8sClientSet()
+	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllDeployment", "error", err.Error())
 		return result

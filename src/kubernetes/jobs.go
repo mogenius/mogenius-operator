@@ -10,11 +10,8 @@ import (
 func AllJobs(namespaceName string) []v1job.Job {
 	result := []v1job.Job{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	jobList, err := provider.ClientSet.BatchV1().Jobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	clientset := clientProvider.K8sClientSet()
+	jobList, err := clientset.BatchV1().Jobs(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllJobs", "error", err.Error())
 		return result
@@ -29,11 +26,8 @@ func AllJobs(namespaceName string) []v1job.Job {
 }
 
 func GetJob(namespaceName string, name string) (*v1job.Job, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	job, err := provider.ClientSet.BatchV1().Jobs(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	job, err := clientset.BatchV1().Jobs(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
 	job.Kind = "Job"
 	job.APIVersion = "batch/v1"
 

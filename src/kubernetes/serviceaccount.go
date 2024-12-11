@@ -15,9 +15,8 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 			Annotations: annotations,
 		},
 	}
-	client := GetCoreClient().ServiceAccounts(namespace)
-
-	_, err := client.Create(context.TODO(), serviceAccount, MoCreateOptions())
+	clientset := clientProvider.K8sClientSet()
+	_, err := clientset.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), serviceAccount, MoCreateOptions())
 	if err == nil {
 		k8sLogger.Info("ServiceAccount created successfully ✅")
 	} else {
@@ -43,9 +42,8 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 }
 
 func UpdateServiceAccount(serviceAccount *core.ServiceAccount) error {
-	client := GetCoreClient().ServiceAccounts(serviceAccount.GetNamespace())
-
-	_, err := client.Update(context.TODO(), serviceAccount, metav1.UpdateOptions{})
+	clientset := clientProvider.K8sClientSet()
+	_, err := clientset.CoreV1().ServiceAccounts(serviceAccount.GetNamespace()).Update(context.TODO(), serviceAccount, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -54,13 +52,13 @@ func UpdateServiceAccount(serviceAccount *core.ServiceAccount) error {
 }
 
 func GetServiceAccount(serviceAccountName string, namespace string) (*core.ServiceAccount, error) {
-	client := GetCoreClient().ServiceAccounts(namespace)
-	return client.Get(context.TODO(), serviceAccountName, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	return clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), serviceAccountName, metav1.GetOptions{})
 }
 
 func DeleteServiceAccount(serviceAccountName string, namespace string) error {
-	client := GetCoreClient().ServiceAccounts(namespace)
-	err := client.Delete(context.TODO(), serviceAccountName, metav1.DeleteOptions{})
+	clientset := clientProvider.K8sClientSet()
+	err := clientset.CoreV1().ServiceAccounts(namespace).Delete(context.TODO(), serviceAccountName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}

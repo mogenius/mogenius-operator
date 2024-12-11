@@ -25,10 +25,7 @@ func NewKubeProviderMetrics() (*KubeProviderMetrics, error) {
 }
 
 func newKubeProviderMetricsLocal() (*KubeProviderMetrics, error) {
-	config, err := ContextConfigLoader()
-	if err != nil {
-		return nil, err
-	}
+	config := clientProvider.ClientConfig()
 
 	clientSet, errClientSet := metricsv.NewForConfig(config)
 	if errClientSet != nil {

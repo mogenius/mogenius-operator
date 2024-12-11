@@ -3,6 +3,7 @@ package kubernetes_test
 import (
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
@@ -22,8 +23,9 @@ func TestResourceTemplates(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
-	watcherModule := kubernetes.NewWatcher()
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(clientProvider)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
 	// CREATE

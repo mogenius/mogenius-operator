@@ -34,11 +34,8 @@ func GetLog(namespace string, podId string, timestamp *time.Time) ServiceGetLogR
 		Log:             "",
 	}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	podClient := provider.ClientSet.CoreV1().Pods(namespace)
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(namespace)
 
 	var kubernetesTime metav1.Time
 	if timestamp != nil {
@@ -85,11 +82,8 @@ func GetLogError(namespace string, podId string) ServiceGetLogErrorResult {
 		Log:       "",
 	}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	podClient := provider.ClientSet.CoreV1().Pods(namespace)
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(namespace)
 
 	pod, err := podClient.Get(context.TODO(), podId, metav1.GetOptions{})
 	if err != nil {
@@ -127,11 +121,8 @@ func GetLogError(namespace string, podId string) ServiceGetLogErrorResult {
 }
 
 func StreamLog(namespace string, podId string, sinceSeconds int64) (*rest.Request, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	podClient := provider.ClientSet.CoreV1().Pods(namespace)
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(namespace)
 
 	opts := v1.PodLogOptions{
 		Follow:     true,
@@ -148,11 +139,8 @@ func StreamLog(namespace string, podId string, sinceSeconds int64) (*rest.Reques
 }
 
 func StreamPreviousLog(namespace string, podId string) (*rest.Request, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	podClient := provider.ClientSet.CoreV1().Pods(namespace)
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(namespace)
 
 	opts := v1.PodLogOptions{
 		Previous:   true,

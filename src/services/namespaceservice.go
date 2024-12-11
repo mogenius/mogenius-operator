@@ -35,7 +35,7 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
 	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, wg)
 	// }
-	crds.CreateEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, crds.CrdEnvironment{
+	crds.CreateEnvironmentCmd(clientProvider.DynamicClient(), job, r.Project.Name, r.Namespace.Name, crds.CrdEnvironment{
 		Id:          r.Namespace.Id,
 		DisplayName: r.Namespace.DisplayName,
 		CreatedBy:   "MISSING_FIELD",
@@ -49,7 +49,7 @@ func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
 	job.Start()
 	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
 
-	crds.DeleteEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, &wg)
+	crds.DeleteEnvironmentCmd(clientProvider.DynamicClient(), job, r.Project.Name, r.Namespace.Name, &wg)
 
 	go func() {
 		wg.Wait()

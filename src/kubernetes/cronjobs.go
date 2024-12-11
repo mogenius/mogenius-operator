@@ -69,14 +69,10 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		defer wg.Done()
 		cmd.Start(job, "Trigger Job from CronJob")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
+		clientset := clientProvider.K8sClientSet()
 
 		// get cronjob
-		cronjobs := provider.ClientSet.BatchV1().CronJobs(namespace)
+		cronjobs := clientset.BatchV1().CronJobs(namespace)
 		cronjob, err := cronjobs.Get(context.TODO(), controller, metav1.GetOptions{})
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("Failed get CronJob for trigger ERROR: %s", err.Error()))
@@ -84,7 +80,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		}
 
 		// convert cronjob to job
-		jobs := provider.ClientSet.BatchV1().Jobs(namespace)
+		jobs := clientset.BatchV1().Jobs(namespace)
 		jobSpec := &v1job.Job{
 			ObjectMeta: cronjob.Spec.JobTemplate.ObjectMeta,
 			Spec:       cronjob.Spec.JobTemplate.Spec,
@@ -166,18 +162,14 @@ func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Deleting CronJob")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
 
 		deleteOptions := metav1.DeleteOptions{
 			GracePeriodSeconds: utils.Pointer[int64](5),
 		}
 
-		err = cronJobClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
+		err := cronJobClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
 		if err != nil {
 			cmd.Fail(job, fmt.Sprintf("DeleteCronJob ERROR: %s", err.Error()))
 		} else {
@@ -194,12 +186,8 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		defer wg.Done()
 		cmd.Start(job, "Updating CronJob")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
@@ -233,13 +221,9 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 		defer wg.Done()
 		cmd.Start(job, "Starting CronJob")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
+		clientset := clientProvider.K8sClientSet()
+		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
 
-		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
@@ -263,12 +247,8 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 		defer wg.Done()
 		cmd.Start(job, "Stopping CronJob")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
@@ -292,12 +272,9 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 		defer wg.Done()
 		cmd.Start(job, "Restarting CronJob ")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		cronJobClient := provider.ClientSet.BatchV1().CronJobs(namespace.Name)
+		clientset := clientProvider.K8sClientSet()
+		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
+
 		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, cronJobClient, createCronJobHandler)
 		if err != nil {
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
@@ -388,11 +365,8 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 }
 
 func UpdateCronjobImage(namespaceName string, controllerName string, containerName string, imageName string) error {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return err
-	}
-	client := provider.ClientSet.BatchV1().CronJobs(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.BatchV1().CronJobs(namespaceName)
 	crontjobToUpdate, err := client.Get(context.TODO(), controllerName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -411,11 +385,8 @@ func UpdateCronjobImage(namespaceName string, controllerName string, containerNa
 }
 
 func GetCronJob(namespaceName string, controllerName string) (*v1job.CronJob, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	client := provider.ClientSet.BatchV1().CronJobs(namespaceName)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.BatchV1().CronJobs(namespaceName)
 	return client.Get(context.TODO(), controllerName, metav1.GetOptions{})
 }
 
@@ -470,14 +441,10 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 
 	var jobInfos []JobInfo
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		k8sLogger.Warn("Error creating provider for ListJobs", "error", err)
-		return list
-	}
+	clientset := clientProvider.K8sClientSet()
 
 	// Get the CronJob
-	cronJob, err := provider.ClientSet.BatchV1().CronJobs(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
+	cronJob, err := clientset.BatchV1().CronJobs(namespaceName).Get(context.TODO(), controllerName, metav1.GetOptions{})
 
 	if err != nil {
 		k8sLogger.Warn("Error getting cronjob", "controller", controllerName, "error", err)
@@ -491,7 +458,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 	}
 
 	// Get the list of Jobs for each CronJob using multiple label selectors
-	jobs, err := provider.ClientSet.BatchV1().Jobs(namespaceName).List(context.TODO(), metav1.ListOptions{
+	jobs, err := clientset.BatchV1().Jobs(namespaceName).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: strings.Join(jobLabelSelectors, ","),
 	})
 	if err != nil {
@@ -505,7 +472,7 @@ func ListCronjobJobs2(controllerName string, namespaceName string, projectId str
 	}
 
 	// Get the Pods associated with the Job
-	pods, err := provider.ClientSet.CoreV1().Pods(namespaceName).List(context.TODO(), metav1.ListOptions{
+	pods, err := clientset.CoreV1().Pods(namespaceName).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("job-name in (%s)", strings.Join(podLabelSelectors, ",")),
 	})
 	if err != nil {

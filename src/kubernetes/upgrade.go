@@ -16,11 +16,8 @@ func ClusterForceReconnect() bool {
 	// - podstats
 	// - k8s-manager
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return false
-	}
-	podClient := provider.ClientSet.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
 	podsToKill := []string{}
 	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", utils.HelmReleaseNameTrafficCollector)...)
@@ -44,18 +41,15 @@ func ClusterForceDisconnect() bool {
 	// - podstats
 	// - k8s-manager
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return false
-	}
-	podClient := provider.ClientSet.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
 	// stop k8s-manager
-	deploymentClient := provider.ClientSet.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
+	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
 	deployment, _ := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
 	deployment.Spec.Paused = true
 	deployment.Spec.Replicas = utils.Pointer[int32](0)
-	_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	_, err := deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 	if err != nil {
 		k8sLogger.Error("Error updating deployment", "deployment", deployment, "error", err)
 	}
@@ -82,13 +76,9 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 		defer wg.Done()
 		cmd.Start(job, "Upgrade mogenius platform ...")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		jobClient := provider.ClientSet.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
-		configmapClient := provider.ClientSet.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
+		clientset := clientProvider.K8sClientSet()
+		jobClient := clientset.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
+		configmapClient := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
 		configmap := utils.InitUpgradeConfigMap()
 		configmap.Namespace = config.Get("MO_OWN_NAMESPACE")
@@ -99,7 +89,7 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 		k8sjob.Name = fmt.Sprintf("%s-%s", k8sjob.Name, utils.NanoIdSmallLowerCase())
 
 		// CONFIGMAP
-		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
+		_, err := configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
 		if err != nil {
 			// CREATE
 			_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())

@@ -76,13 +76,10 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 	sortWithPreference(unstructList)
 
 	// SEND DATA TO K8S
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		return result, err
-	}
+	clientset := clientProvider.K8sClientSet()
 	//create namespace not existing
 	if len(unstructList) > 0 {
-		namespaceClient := provider.ClientSet.CoreV1().Namespaces()
+		namespaceClient := clientset.CoreV1().Namespaces()
 		ns, err := namespaceClient.Get(context.TODO(), namespaceName, v1.GetOptions{})
 		if err != nil || ns == nil {
 			newNs := applyconfcore.Namespace(namespaceName)
@@ -93,8 +90,8 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 			}
 		}
 
-		client := dynamic.New(provider.ClientSet.RESTClient())
-		groupResources, err := restmapper.GetAPIGroupResources(provider.ClientSet.Discovery())
+		client := dynamic.New(clientset.RESTClient())
+		groupResources, err := restmapper.GetAPIGroupResources(clientset.Discovery())
 		if err != nil {
 			return result, err
 		}
@@ -184,13 +181,9 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	allResources := structs.NewUniqueStringArray()
 	usedResources := structs.NewUniqueStringArray()
 
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		return result, err
-	}
-
 	// Get a list of all resource types in the cluster
-	resourceList, err := provider.ClientSet.Discovery().ServerPreferredResources()
+	clientset := clientProvider.K8sClientSet()
+	resourceList, err := clientset.Discovery().ServerPreferredResources()
 	if err != nil {
 		return result, err
 	}
@@ -219,7 +212,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 				Resource: aApiResource.Name,
 			}
 			// Get the REST client for this resource type
-			restClient := dynamic.New(provider.ClientSet.RESTClient()).Resource(resourceId).Namespace(namespace)
+			restClient := dynamic.New(clientset.RESTClient()).Resource(resourceId).Namespace(namespace)
 
 			// Get a list of all resources of this type in the namespace
 			list, err := restClient.List(context.Background(), v1.ListOptions{})

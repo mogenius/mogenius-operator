@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 )
 
 var logger *log.Logger = log.Default()
@@ -77,7 +76,6 @@ func (s *Shutdown) Listen() {
 		}()
 	}
 	wg.Wait()
-	time.Sleep(100 * time.Millisecond)
 	logger.Println("finished shutdown routines")
 	switch receivedSignal {
 	case syscall.SIGINT:

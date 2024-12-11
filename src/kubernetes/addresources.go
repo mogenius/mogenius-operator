@@ -21,26 +21,18 @@ import (
 	applyconfapp "k8s.io/client-go/applyconfigurations/apps/v1"
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
 	applyconfmeta "k8s.io/client-go/applyconfigurations/meta/v1"
-	"k8s.io/client-go/dynamic"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 func Deploy() {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-
-	applyNamespace(provider)
-	err = addRbac(provider)
+	applyNamespace()
+	err := addRbac()
 	if err != nil {
 		k8sLogger.Error("Error Creating RBAC. Aborting.", "error", err)
 		shutdown.SendShutdownSignal(true)
 		select {}
 	}
-	addDeployment(provider)
+	addDeployment()
 	_, err = CreateOrUpdateClusterSecret(nil)
 	if err != nil {
 		k8sLogger.Error("Error Creating cluster secret. Aborting.", "error", err)
@@ -49,7 +41,8 @@ func Deploy() {
 	}
 }
 
-func addRbac(provider *KubeProvider) error {
+func addRbac() error {
+	clientset := clientProvider.K8sClientSet()
 	clusterRole := &rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: CLUSTERROLENAME,
@@ -87,11 +80,11 @@ func addRbac(provider *KubeProvider) error {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
-	_, err = provider.ClientSet.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, MoCreateOptions())
+	_, err = clientset.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, MoCreateOptions())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
-	_, err = provider.ClientSet.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, MoCreateOptions())
+	_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, MoCreateOptions())
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
@@ -99,8 +92,9 @@ func addRbac(provider *KubeProvider) error {
 	return nil
 }
 
-func applyNamespace(provider *KubeProvider) {
-	serviceClient := provider.ClientSet.CoreV1().Namespaces()
+func applyNamespace() {
+	clientset := clientProvider.K8sClientSet()
+	serviceClient := clientset.CoreV1().Namespaces()
 
 	namespace := applyconfcore.Namespace(config.Get("MO_OWN_NAMESPACE"))
 
@@ -118,31 +112,20 @@ func applyNamespace(provider *KubeProvider) {
 }
 
 func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-
-	secretClient := provider.ClientSet.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
+	clientset := clientProvider.K8sClientSet()
+	secretClient := clientset.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
 
 	existingSecret, getErr := secretClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
 	return writeMogeniusSecret(secretClient, existingSecret, getErr, syncRepoReq)
 }
 
 func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-
-	configmapClient := provider.ClientSet.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
+	clientset := clientProvider.K8sClientSet()
+	configmapClient := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
 	configMap, getErr := configmapClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
 
+	var err error
 	if getErr != nil {
 		if apierrors.IsNotFound(getErr) {
 			// create empty config map
@@ -196,14 +179,8 @@ func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
 }
 
 func GetSyncRepoData() (*dtos.SyncRepoData, error) {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-
-	secretClient := provider.ClientSet.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
+	clientset := clientProvider.K8sClientSet()
+	secretClient := clientset.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
 
 	existingSecret, getErr := secretClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
 	if getErr != nil {
@@ -329,8 +306,9 @@ func InitOrUpdateCrds() {
 	}
 }
 
-func addDeployment(provider *KubeProvider) {
-	deploymentClient := provider.ClientSet.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
+func addDeployment() {
+	clientset := clientProvider.K8sClientSet()
+	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
 
 	deploymentContainer := applyconfcore.Container()
 	deploymentContainer.WithImagePullPolicy(core.PullAlways)
@@ -394,15 +372,7 @@ func addDeployment(provider *KubeProvider) {
 }
 
 func CreateYamlString(yamlContent string) error {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return err
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(&provider.ClientConfig)
-	if err != nil {
-		return err
-	}
+	dynamicClient := clientProvider.DynamicClient()
 
 	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
@@ -434,16 +404,7 @@ func CreateYamlString(yamlContent string) error {
 
 // todo remove this function and move to new ApplyResource function
 func CreateOrUpdateYamlString(yamlContent string) error {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return err
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(&provider.ClientConfig)
-	if err != nil {
-		return err
-	}
-
+	dynamicClient := clientProvider.DynamicClient()
 	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
 	_, groupVersionKind, err := decUnstructured.Decode([]byte(yamlContent), nil, nil)
