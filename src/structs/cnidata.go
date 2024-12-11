@@ -4,6 +4,7 @@ import jsoniter "github.com/json-iterator/go"
 
 type CniData struct {
 	Name       string   `json:"name"`
+	Node       string   `json:"node"`
 	CNIVersion string   `json:"cniVersion"`
 	Plugins    []Plugin `json:"plugins"`
 }

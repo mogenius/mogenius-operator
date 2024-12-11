@@ -16,12 +16,12 @@ func TestProject(t *testing.T) {
 		EnvironmentRefs: []string{name},
 		Limits:          crds.ProjectLimits{LimitMemoryMB: 1024, LimitCpuCores: 1.0, EphemeralStorageMB: 1024, MaxVolumeSizeGb: 10}},
 	)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Project created ✅")
 
 	// GET
 	project, _, err := crds.GetProject(newProjectName)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Project retrieved ✅")
 
 	project.Id = "Updated " + name
@@ -33,16 +33,16 @@ func TestProject(t *testing.T) {
 
 	// UPDATE
 	err = crds.UpdateProject(newProjectName, project.Id, project.ProjectName, project.DisplayName, project.ProductId, project.Limits)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Project updated ✅")
 
 	// DELETE
 	err = crds.DeleteProject(newProjectName)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Project deleted ✅")
 
 	// LIST
 	_, _, err = crds.ListProjects()
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 	t.Log("Projects listed ✅")
 }

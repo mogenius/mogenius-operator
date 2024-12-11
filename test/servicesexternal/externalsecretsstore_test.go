@@ -44,7 +44,7 @@ func TestSecretStoreCreate(t *testing.T) {
 	})
 	watcherModule := kubernetes.NewWatcher()
 	err := kubernetes.Setup(logManager, config, watcherModule)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
 	props := externalSecretStorePropsExample()
 
@@ -56,16 +56,16 @@ func TestSecretStoreCreate(t *testing.T) {
 	props.Role = Role
 
 	err = servicesExternal.CreateExternalSecretsStore(props)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }
 
 // don't move this test as it is dependent on the previous test to create the secret store!
 func TestSecretStoreList(t *testing.T) {
 	t.Skip("test relies on another test which is illegal")
 	stores, err := kubernetes.ListExternalSecretsStores(ProjectId)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 
-	assert.Assert(len(stores) > 0, "Error listing secret stores: No secret stores found")
+	assert.AssertT(t, len(stores) > 0, "Error listing secret stores: No secret stores found")
 	found := false
 	for _, store := range stores {
 		if store.Prefix == NamePrefix && store.ProjectId == ProjectId {
@@ -73,19 +73,19 @@ func TestSecretStoreList(t *testing.T) {
 			break
 		}
 	}
-	assert.Assert(found, "Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix))
+	assert.AssertT(t, found, "Error: Expected to find secret store %s but none was found", utils.GetSecretStoreName(NamePrefix))
 }
 
 func TestListAvailSecrets(t *testing.T) {
 	t.Skip("Skipping TestListAvailSecrets temporarily, these only make sense with vault properly set up")
 	availSecrets := servicesExternal.ListAvailableExternalSecrets(NamePrefix)
 
-	assert.Assert(len(availSecrets) > 0, "Error listing available secrets: No secrets found")
+	assert.AssertT(t, len(availSecrets) > 0, "Error listing available secrets: No secrets found")
 }
 
 func TestSecretStoreDelete(t *testing.T) {
 	name := utils.GetSecretStoreName(NamePrefix)
 
 	err := servicesExternal.DeleteExternalSecretsStore(name)
-	assert.Assert(err == nil, err)
+	assert.AssertT(t, err == nil, err)
 }

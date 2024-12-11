@@ -134,7 +134,6 @@ helm repo update
 ## LINKS
 
 - [Just](https://github.com/casey/just) - A Task Runner. Checkout the `Justfile` for details or use `just -l` for an quick overview.
-- [AIR](https://github.com/cosmtrek/air) - Live reload for Go apps
 
 ---------------------
 

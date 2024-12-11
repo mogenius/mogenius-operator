@@ -31,9 +31,6 @@ RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
   -o "bin/mogenius-k8s-manager" \
   ./src/main.go
 
-RUN apk add --no-cache upx
-RUN upx -9 --lzma /app/bin/mogenius-k8s-manager
-
 #
 # FINAL IMAGE
 #
