@@ -12,7 +12,7 @@ require (
 	github.com/go-playground/validator/v10 v10.23.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/jaevor/go-nanoid v1.4.0
-	github.com/jedib0t/go-pretty/v6 v6.6.4
+	github.com/jedib0t/go-pretty/v6 v6.6.5
 	github.com/joho/godotenv v1.5.1
 	github.com/json-iterator/go v1.1.12
 	github.com/lithammer/dedent v1.1.0
@@ -169,9 +169,9 @@ require (
 	golang.org/x/crypto v0.29.0 // indirect
 	golang.org/x/net v0.31.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
-	golang.org/x/sync v0.9.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.20.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/grpc v1.68.0 // indirect
