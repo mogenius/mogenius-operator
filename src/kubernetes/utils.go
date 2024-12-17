@@ -589,6 +589,8 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 			return utils.GKE_ON_PREM, nil
 		} else if LabelsContain(labelsAndAnnotations, "rke.cattle.io") {
 			return utils.RKE, nil
+		} else if ImagesContain(node.Status.Images, "pluscloudopen") {
+			return utils.PLUSSERVER, nil
 		} else {
 			fmt.Println("This cluster's provider is unknown or it might be self-managed.")
 			return utils.UNKNOWN, nil

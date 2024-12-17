@@ -598,7 +598,7 @@ func UpdateSystemCheckStatusForClusterVendor(entries []SystemCheckEntry) []Syste
 	}
 
 	switch provider {
-	case utils.EKS, utils.AKS, utils.GKE, utils.DOKS, utils.OTC:
+	case utils.EKS, utils.AKS, utils.GKE, utils.DOKS, utils.OTC, utils.PLUSSERVER:
 		entries = deleteSystemCheckEntryByName(entries, NameMetricsServer)
 		entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
 		entries = deleteSystemCheckEntryByName(entries, NameLocalDevSetup)

@@ -51,6 +51,7 @@ const (
 	LOFT                         KubernetesProvider = "LOFT"                         // Loft Kubernetes
 	SPECTROCLOUD                 KubernetesProvider = "SPECTROCLOUD"                 // Spectro Cloud Kubernetes
 	DIAMANTI                     KubernetesProvider = "DIAMANTI"                     // Diamanti Kubernetes
+	PLUSSERVER                   KubernetesProvider = "plusserver"                   // plusserver Kubernetes Engine (PSKE)
 )
 
 var ALL_PROVIDER []string = []string{
@@ -101,4 +102,5 @@ var ALL_PROVIDER []string = []string{
 	string(LOFT),
 	string(SPECTROCLOUD),
 	string(DIAMANTI),
+	string(PLUSSERVER),
 }
