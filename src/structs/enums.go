@@ -175,14 +175,15 @@ const (
 	PAT_SERVICE_SCAN_IMAGE_LOG_STREAM_CONNECTION_REQUEST string = "service/scan-image-log-stream-connection-request"
 	PAT_SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST   string = "service/cluster-tool-stream-connection-request"
 
-	PAT_LIST_ALL_WORKLOADS   string = "list/all-workloads"
-	PAT_GET_WORKLOAD_LIST    string = "get/workload-list"
-	PAT_CREATE_NEW_WORKLOAD  string = "create/new-workload"
-	PAT_DESCRIBE_WORKLOAD    string = "describe/workload"
-	PAT_GET_WORKLOAD         string = "get/workload"
-	PAT_GET_WORKLOAD_EXAMPLE string = "get/workload-example"
-	PAT_UPDATE_WORKLOAD      string = "update/workload"
-	PAT_DELETE_WORKLOAD      string = "delete/workload"
+	PAT_LIST_ALL_WORKLOADS          string = "list/all-workloads"
+	PAT_GET_WORKLOAD_LIST           string = "get/workload-list"
+	PAT_GET_NAMESPACE_WORKLOAD_LIST string = "get/namespace-workload-list"
+	PAT_CREATE_NEW_WORKLOAD         string = "create/new-workload"
+	PAT_DESCRIBE_WORKLOAD           string = "describe/workload"
+	PAT_GET_WORKLOAD                string = "get/workload"
+	PAT_GET_WORKLOAD_EXAMPLE        string = "get/workload-example"
+	PAT_UPDATE_WORKLOAD             string = "update/workload"
+	PAT_DELETE_WORKLOAD             string = "delete/workload"
 
 	PAT_STORAGE_CREATE_VOLUME   string = "storage/create-volume"
 	PAT_STORAGE_DELETE_VOLUME   string = "storage/delete-volume"
@@ -404,6 +405,7 @@ var COMMAND_REQUESTS = []string{
 
 	PAT_LIST_ALL_WORKLOADS,
 	PAT_GET_WORKLOAD_LIST,
+	PAT_GET_NAMESPACE_WORKLOAD_LIST,
 	PAT_CREATE_NEW_WORKLOAD,
 	PAT_UPDATE_WORKLOAD,
 	PAT_GET_WORKLOAD,

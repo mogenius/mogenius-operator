@@ -918,6 +918,11 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		list, err := kubernetes.GetUnstructuredResourceList(data.Group, data.Version, data.Name, data.Namespace)
 		return NewMessageResponse(list, err)
+	case structs.PAT_GET_NAMESPACE_WORKLOAD_LIST:
+		data := kubernetes.GetUnstructuredNamespaceResourceListRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		list, err := kubernetes.GetUnstructuredNamespaceResourceList(data.Namespace)
+		return NewMessageResponse(list, err)
 	case structs.PAT_DESCRIBE_WORKLOAD:
 		data := utils.SyncResourceItem{}
 		structs.MarshalUnmarshal(&datagram, &data)

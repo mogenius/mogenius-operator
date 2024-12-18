@@ -20,6 +20,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+type GetUnstructuredNamespaceResourceListRequest struct {
+	Namespace string `json:"namespace" validate:"required"`
+}
+
 func WatchStoreResources(watcher WatcherModule) error {
 	resources, err := GetAvailableResources()
 	if err != nil {
@@ -177,6 +181,35 @@ func GetUnstructuredResourceList(group string, version string, name string, name
 		result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).List(context.TODO(), metav1.ListOptions{})
 		return removeManagedFieldsFromList(result), err
 	}
+}
+
+func GetUnstructuredNamespaceResourceList(namespace string) (*unstructured.UnstructuredList, error) {
+	provider, err := NewKubeProviderDynamic()
+	if provider == nil || err != nil {
+		k8sLogger.Error("Error creating provider for GetUnstructuredNamespaceResourceList. Cannot continue.", "error", err)
+		return nil, err
+	}
+
+	resources, err := GetAvailableResources()
+	if err != nil {
+		return nil, err
+	}
+
+	results := []unstructured.Unstructured{}
+
+	for _, v := range resources {
+		if v.Namespace != nil {
+			result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+			if err != nil {
+				if !os.IsNotExist(err) {
+					k8sLogger.Error("Error querying resource", "error", err)
+				}
+				continue
+			}
+			results = append(results, result.Items...)
+		}
+	}
+	return &unstructured.UnstructuredList{Items: results}, nil
 }
 
 func GetUnstructuredResource(group string, version string, name string, namespace, resourceName string) (*unstructured.Unstructured, error) {

@@ -421,8 +421,8 @@ func ApplyStageOverrides(configModule *config.Config) {
 		configModule.Set("MO_API_SERVER", "wss://k8s-ws.dev.mogenius.com/ws")
 		configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.dev.mogenius.com/ws")
 	case "local":
-		configModule.Set("MO_API_SERVER", "ws://127.0.0.1:8080/ws")
-		configModule.Set("MO_EVENT_SERVER", "ws://127.0.0.1:8080/ws")
+		configModule.Set("MO_API_SERVER", "ws://127.0.0.1:7011/ws")
+		configModule.Set("MO_EVENT_SERVER", "ws://127.0.0.1:7011/ws")
 	case "":
 		// does not override
 	}
