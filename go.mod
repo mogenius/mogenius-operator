@@ -8,7 +8,7 @@ require (
 	github.com/cert-manager/cert-manager v1.16.2
 	github.com/creack/pty v1.1.24
 	github.com/dgraph-io/badger/v4 v4.5.0
-	github.com/go-git/go-git/v5 v5.12.0
+	github.com/go-git/go-git/v5 v5.13.0
 	github.com/go-playground/validator/v10 v10.23.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/jaevor/go-nanoid v1.4.0
@@ -47,7 +47,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/ProtonMail/go-crypto v1.1.2 // indirect
+	github.com/ProtonMail/go-crypto v1.1.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
