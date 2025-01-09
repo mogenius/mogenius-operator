@@ -144,7 +144,6 @@ func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 		}
 		processEvent(&event)
 	}
-	return
 }
 
 func DeleteFromStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
