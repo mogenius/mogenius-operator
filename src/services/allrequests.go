@@ -1223,8 +1223,8 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return kubernetes.ListCronjobJobs(data.ControllerName, data.NamespaceName, data.ProjectId)
 	}
-	datagram.Err = "Pattern not found"
-	return datagram
+
+	return NewMessageResponse(nil, fmt.Errorf("Pattern not found"))
 }
 
 func logStream(data ServiceLogStreamRequest, datagram structs.Datagram) ServiceLogStreamResult {
