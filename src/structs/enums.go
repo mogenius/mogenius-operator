@@ -186,6 +186,11 @@ const (
 	PAT_UPDATE_WORKLOAD             string = "update/workload"
 	PAT_DELETE_WORKLOAD             string = "delete/workload"
 
+	PAT_CREATE_WORKSPACE = "create/workspace"
+	PAT_GET_WORKSPACE    = "get/workspace"
+	PAT_UPDATE_WORKSPACE = "update/workspace"
+	PAT_DELETE_WORKSPACE = "delete/workspace"
+
 	PAT_STORAGE_CREATE_VOLUME   string = "storage/create-volume"
 	PAT_STORAGE_DELETE_VOLUME   string = "storage/delete-volume"
 	PAT_STORAGE_BACKUP_VOLUME   string = "storage/backup-volume"
@@ -414,6 +419,11 @@ var COMMAND_REQUESTS = []string{
 	PAT_GET_WORKLOAD_EXAMPLE,
 	PAT_DELETE_WORKLOAD,
 	PAT_DESCRIBE_WORKLOAD,
+
+	PAT_CREATE_WORKSPACE,
+	PAT_GET_WORKSPACE,
+	PAT_UPDATE_WORKSPACE,
+	PAT_DELETE_WORKSPACE,
 
 	PAT_STORAGE_CREATE_VOLUME,
 	PAT_STORAGE_DELETE_VOLUME,

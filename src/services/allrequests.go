@@ -957,7 +957,14 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		structs.MarshalUnmarshal(&datagram, &data)
 		err := kubernetes.DeleteUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
 		return NewMessageResponse(nil, err)
-
+	case structs.PAT_CREATE_WORKSPACE:
+		return NewMessageResponse(nil, fmt.Errorf("TODO: not implemented"))
+	case structs.PAT_GET_WORKSPACE:
+		return NewMessageResponse(nil, fmt.Errorf("TODO: not implemented"))
+	case structs.PAT_UPDATE_WORKSPACE:
+		return NewMessageResponse(nil, fmt.Errorf("TODO: not implemented"))
+	case structs.PAT_DELETE_WORKSPACE:
+		return NewMessageResponse(nil, fmt.Errorf("TODO: not implemented"))
 	case structs.PAT_BUILDER_STATUS:
 		return kubernetes.GetDb().GetBuilderStatus()
 	case structs.PAT_BUILD_INFOS:
