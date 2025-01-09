@@ -78,7 +78,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		utils.SetupClusterSecret(clusterSecret)
 
 		store.Start()
-		go httpApi.Run(":1337")
+		go httpApi.Run(configModule.Get("MO_HTTP_ADDR"))
 		err = mokubernetes.Start()
 		if err != nil {
 			cmdLogger.Error("Error starting kubernetes service", "error", err)
