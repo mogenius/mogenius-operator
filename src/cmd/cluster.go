@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/crds"
+	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/httpservice"
@@ -23,6 +24,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/xterm"
+	"os"
 	"strconv"
 )
 
@@ -55,6 +57,41 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
+
+		moclientset := clientProvider.MogeniusClientSet()
+		// grants, err := moclientset.MogeniusV1alpha1.ListGrants("default")
+		// cmdLogger.Info("received resources", "grants", grants, "error", err)
+		// groups, err := moclientset.MogeniusV1alpha1.ListGroups("default")
+		// cmdLogger.Info("received resources", "groups", groups, "error", err)
+		// permissions, err := moclientset.MogeniusV1alpha1.ListPermissions("default")
+		// cmdLogger.Info("received resources", "permissions", permissions, "error", err)
+		// users, err := moclientset.MogeniusV1alpha1.ListUsers("default")
+		// cmdLogger.Info("received resources", "users", users, "error", err)
+		// workspaces, err := moclientset.MogeniusV1alpha1.ListWorkspaces("default")
+		// cmdLogger.Info("received resources", "workspaces", workspaces, "error", err)
+		// grant, err := moclientset.MogeniusV1alpha1.CreateGrant("default", "", v1alpha1.GrantSpec{
+		// 	GroupName:      "foo",
+		// 	PermissionName: "bar",
+		// 	WorkspaceName:  "baz",
+		// })
+		// if err != nil {
+		// 	cmdLogger.Error("failed to create grant", "error", err)
+		// 	os.Exit(1)
+		// }
+		// cmdLogger.Info("created grant", "grant", grant)
+		// grant, err := moclientset.MogeniusV1alpha1.GetGrant("default", "examplegrant")
+		// cmdLogger.Info("queried grant", "grant", grant, "error", err)
+		grant, err := moclientset.MogeniusV1alpha1.UpdateGrant("default", "examplegrant", v1alpha1.GrantSpec{
+			GroupName:      "foo",
+			PermissionName: "foo",
+			WorkspaceName:  "foo",
+		})
+		if err != nil {
+			cmdLogger.Error("failed to update grant", "error", err)
+			os.Exit(1)
+		}
+		cmdLogger.Info("updated grant", "grant", grant)
+		os.Exit(0)
 
 		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
 		if err != nil {
