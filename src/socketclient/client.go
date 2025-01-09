@@ -10,6 +10,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -68,84 +69,84 @@ func parseMessage(done chan struct{}, conn *websocket.Conn) {
 		if err != nil {
 			socketClientLogger.Error("failed to read message from websocket connection", "jobConnectionUrl", structs.JobConnectionUrl, "error", err)
 			return
+		}
+		rawDataStr := string(message)
+		if rawDataStr == "" {
+			continue
+		}
+		if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
+			preparedFileName = utils.Pointer(fmt.Sprintf("%s.zip", utils.NanoId()))
+			openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				socketClientLogger.Error("Cannot open uploadfile", "filename", *preparedFileName, "error", err)
+			}
+			continue
+		}
+		if strings.HasPrefix(rawDataStr, "######END_UPLOAD######;") {
+			openFile.Close()
+			if preparedFileName != nil && preparedFileRequest != nil {
+				services.Uploaded(*preparedFileName, *preparedFileRequest)
+			}
+			os.Remove(*preparedFileName)
+
+			var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
+			ack.Send()
+
+			preparedFileName = nil
+			preparedFileRequest = nil
+			continue
+		}
+
+		if preparedFileName != nil {
+			_, err := openFile.Write([]byte(rawDataStr))
+			if err != nil {
+				socketClientLogger.Error("Error writing to file", "error", err)
+			}
+			continue
+		}
+
+		datagram := structs.CreateEmptyDatagram()
+
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
+		err = json.Unmarshal([]byte(rawDataStr), &datagram)
+		if err != nil {
+			socketClientLogger.Error("failed to unmarshal", "error", err)
+		}
+		validationErr := utils.ValidateJSON(datagram)
+		if validationErr != nil {
+			socketClientLogger.Error("Received malformed Datagram", "pattern", datagram.Pattern)
+			continue
+		}
+
+		datagram.DisplayReceiveSummary()
+
+		if isSuppressed := utils.Contains(structs.SUPPRESSED_OUTPUT_PATTERN, datagram.Pattern); !isSuppressed {
+			moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
+			assert.Assert(err == nil, err)
+			if moDebug {
+				socketClientLogger.Info("received datagram", "datagram", datagram)
+			}
+		}
+
+		if slices.Contains(structs.COMMAND_REQUESTS, datagram.Pattern) {
+			// ####### COMMAND
+			semaphoreChan <- struct{}{}
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				responsePayload := services.ExecuteCommandRequest(datagram)
+				result := structs.CreateDatagramRequest(datagram, responsePayload)
+				result.Send()
+				<-semaphoreChan
+			}()
+		} else if slices.Contains(structs.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
+			preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
+
+			var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
+			ack.Send()
 		} else {
-			rawDataStr := string(message)
-			if rawDataStr == "" {
-				continue
-			}
-			if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
-				preparedFileName = utils.Pointer(fmt.Sprintf("%s.zip", utils.NanoId()))
-				rawDataStr = strings.Replace(rawDataStr, "######START_UPLOAD######;", "", 1)
-				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				if err != nil {
-					socketClientLogger.Error("Cannot open uploadfile", "filename", *preparedFileName, "error", err)
-				}
-			}
-			if strings.HasPrefix(rawDataStr, "######END_UPLOAD######;") {
-				openFile.Close()
-				if preparedFileName != nil && preparedFileRequest != nil {
-					services.Uploaded(*preparedFileName, *preparedFileRequest)
-				}
-				os.Remove(*preparedFileName)
-
-				var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
-				ack.Send()
-
-				preparedFileName = nil
-				preparedFileRequest = nil
-
-				continue
-			}
-			if preparedFileName != nil {
-				_, err := openFile.Write([]byte(rawDataStr))
-				if err != nil {
-					socketClientLogger.Error("Error writing to file", "error", err)
-				}
-			} else {
-				datagram := structs.CreateEmptyDatagram()
-
-				var json = jsoniter.ConfigCompatibleWithStandardLibrary
-				err := json.Unmarshal([]byte(rawDataStr), &datagram)
-				if err != nil {
-					socketClientLogger.Error("failed to unmarshal", "error", err)
-				}
-				validationErr := utils.ValidateJSON(datagram)
-				if validationErr != nil {
-					socketClientLogger.Error("Received malformed Datagram", "pattern", datagram.Pattern)
-					continue
-				}
-
-				datagram.DisplayReceiveSummary()
-
-				if isSuppressed := utils.Contains(structs.SUPPRESSED_OUTPUT_PATTERN, datagram.Pattern); !isSuppressed {
-					moDebug, err := strconv.ParseBool(config.Get("MO_DEBUG"))
-					assert.Assert(err == nil, err)
-					if moDebug {
-						socketClientLogger.Info("received datagram", "datagram", datagram)
-					}
-				}
-
-				if utils.Contains(structs.COMMAND_REQUESTS, datagram.Pattern) {
-					// ####### COMMAND
-					semaphoreChan <- struct{}{}
-
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						responsePayload := services.ExecuteCommandRequest(datagram)
-						result := structs.CreateDatagramRequest(datagram, responsePayload)
-						result.Send()
-						<-semaphoreChan
-					}()
-				} else if utils.Contains(structs.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
-					preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
-
-					var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
-					ack.Send()
-				} else {
-					socketClientLogger.Error("Pattern not found", "pattern", datagram.Pattern)
-				}
-			}
+			socketClientLogger.Error("Pattern not found", "pattern", datagram.Pattern)
 		}
 	}
 }
@@ -169,12 +170,12 @@ func versionTicker() {
 }
 
 func updateCheck() {
-	if utils.IsProduction() {
-		socketClientLogger.Info("Checking for updates ...")
-	} else {
+	if !utils.IsProduction() {
 		socketClientLogger.Info("Skipping updates ... [not production]")
 		return
 	}
+
+	socketClientLogger.Info("Checking for updates ...")
 
 	helmData, err := utils.GetVersionData(utils.HELM_INDEX)
 	if err != nil {
