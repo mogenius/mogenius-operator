@@ -1029,7 +1029,17 @@ func ListControllerLabeledNetworkPolicies(
 	var labels map[string]string
 	switch controllerType {
 	case dtos.DEPLOYMENT:
-		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.Deployment{}), "Deployment", namespaceName, controllerName)
+		// TODO replace with GetAvailableResources in the future
+		namespace := ""
+		resource := utils.SyncResourceEntry{
+			Kind:      "Deployment",
+			Name:      "deployments",
+			Namespace: &namespace,
+			Group:     "apps/v1",
+			Version:   "",
+		}
+
+		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.Deployment{}), resource.Group, resource.Kind, namespaceName, controllerName)
 		if ref == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
 		}
@@ -1039,7 +1049,17 @@ func ListControllerLabeledNetworkPolicies(
 		}
 		labels = extractLabels(deployment.ObjectMeta.Labels, deployment.Spec.Template.ObjectMeta.Labels)
 	case dtos.DAEMON_SET:
-		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.DaemonSet{}), "DaemonSet", namespaceName, controllerName)
+		// TODO replace with GetAvailableResources in the future
+		namespace := ""
+		resource := utils.SyncResourceEntry{
+			Kind:      "DaemonSet",
+			Name:      "daemonsets",
+			Namespace: &namespace,
+			Group:     "apps/v1",
+			Version:   "",
+		}
+
+		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.DaemonSet{}), resource.Group, resource.Kind, namespaceName, controllerName)
 		if ref == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
 		}
@@ -1049,7 +1069,17 @@ func ListControllerLabeledNetworkPolicies(
 		}
 		labels = extractLabels(daemonset.ObjectMeta.Labels, daemonset.Spec.Template.ObjectMeta.Labels)
 	case dtos.STATEFUL_SET:
-		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.StatefulSet{}), "StatefulSet", namespaceName, controllerName)
+		// TODO replace with GetAvailableResources in the future
+		namespace := ""
+		resource := utils.SyncResourceEntry{
+			Kind:      "StatefulSet",
+			Name:      "statefulsets",
+			Namespace: &namespace,
+			Group:     "apps/v1",
+			Version:   "",
+		}
+
+		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.StatefulSet{}), resource.Group, resource.Kind, namespaceName, controllerName)
 		if ref == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
 		}
