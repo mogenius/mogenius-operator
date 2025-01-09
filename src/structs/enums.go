@@ -178,6 +178,7 @@ const (
 	PAT_LIST_ALL_WORKLOADS          string = "list/all-workloads"
 	PAT_GET_WORKLOAD_LIST           string = "get/workload-list"
 	PAT_GET_NAMESPACE_WORKLOAD_LIST string = "get/namespace-workload-list"
+	PAT_GET_LABELED_WORKLOAD_LIST   string = "get/labeled-workload-list"
 	PAT_CREATE_NEW_WORKLOAD         string = "create/new-workload"
 	PAT_DESCRIBE_WORKLOAD           string = "describe/workload"
 	PAT_GET_WORKLOAD                string = "get/workload"
@@ -406,6 +407,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_LIST_ALL_WORKLOADS,
 	PAT_GET_WORKLOAD_LIST,
 	PAT_GET_NAMESPACE_WORKLOAD_LIST,
+	PAT_GET_LABELED_WORKLOAD_LIST,
 	PAT_CREATE_NEW_WORKLOAD,
 	PAT_UPDATE_WORKLOAD,
 	PAT_GET_WORKLOAD,

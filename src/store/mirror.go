@@ -2,7 +2,9 @@ package store
 
 import (
 	"errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/utils"
 	"reflect"
 
 	appsV1 "k8s.io/api/apps/v1"
@@ -222,7 +224,15 @@ func ListAllNamespaces() ([]coreV1.Namespace, error) {
 }
 
 func GetNamespace(name string) *coreV1.Namespace {
-	ref := GlobalStore.GetByKeyParts(reflect.TypeOf(coreV1.Namespace{}), "Namespace", name)
+	// TODO replace with GetAvailableResources in the future
+	resource := utils.SyncResourceEntry{
+		Kind:    "Namespace",
+		Name:    "namespaces",
+		Group:   "v1",
+		Version: "",
+	}
+
+	ref := GlobalStore.GetByKeyParts(reflect.TypeOf(coreV1.Namespace{}), resource.Group, resource.Kind, name)
 	if ref == nil {
 		return nil
 	}
@@ -233,4 +243,34 @@ func GetNamespace(name string) *coreV1.Namespace {
 	}
 
 	return namespace
+}
+
+func GetResourceByKindAndNamespace(groupVersion string, kind string, namespace string) []unstructured.Unstructured {
+	var results []unstructured.Unstructured
+
+	storeResults, err := GlobalStore.SearchByPrefix(reflect.TypeOf(unstructured.Unstructured{}), groupVersion, kind, namespace)
+	if errors.Is(err, ErrNotFound) {
+		return results
+	}
+	if err != nil {
+		return results
+	}
+
+	for _, ref := range storeResults {
+		if ref == nil {
+			continue
+		}
+
+		obj := ref.(*unstructured.Unstructured)
+		if obj == nil {
+			continue
+		}
+
+		if (namespace != "" && obj.GetNamespace() != namespace) || (kind != "" && obj.GetKind() != kind) {
+			continue
+		}
+
+		results = append(results, *obj)
+	}
+	return results
 }
