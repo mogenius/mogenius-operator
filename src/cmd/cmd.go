@@ -193,6 +193,11 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:         "MO_HTTP_ADDR",
+		DefaultValue: utils.Pointer(":1337"),
+		Description: utils.Pointer("address of the controllers http api server"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 		Description:  utils.Pointer("the Namespace of mogenius platform"),
