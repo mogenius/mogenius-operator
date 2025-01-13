@@ -1,7 +1,9 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
 	"time"
@@ -14,6 +16,63 @@ type Datagram struct {
 	Username  string      `json:"username,omitempty"`
 	Err       string      `json:"err,omitempty"`
 	CreatedAt time.Time   `json:"-"`
+	User      User        `json:"user" validate:"required"`
+}
+
+type User struct {
+	FirstName string `json:"firstName" validate:"required"`
+	LastName  string `json:"lastName" validate:"required"`
+	Email     string `json:"email" validate:"required"`
+	Source    string `json:"source" validate:"required"`
+}
+
+type UserSource string
+
+const (
+	SourceUser              UserSource = "user"
+	SourceDemoController    UserSource = "demo-controller"
+	SourceTaskService       UserSource = "task-service"
+	SourceQueueService      UserSource = "queue-service"
+	SourceK8sManagerService UserSource = "k8s-manager-service"
+	SourceGitService        UserSource = "git-service"
+)
+
+var UserSourceToString = map[UserSource]string{
+	SourceUser:              "user",
+	SourceDemoController:    "demo-controller",
+	SourceTaskService:       "task-service",
+	SourceQueueService:      "queue-service",
+	SourceK8sManagerService: "k8s-manager-service",
+	SourceGitService:        "git-service",
+}
+
+var UserSourceFromString = map[string]UserSource{
+	"user":                SourceUser,
+	"demo-controller":     SourceDemoController,
+	"task-service":        SourceTaskService,
+	"queue-service":       SourceQueueService,
+	"k8s-manager-service": SourceK8sManagerService,
+	"git-service":         SourceGitService,
+}
+
+func (self UserSource) MarshalJSON() ([]byte, error) {
+	val, ok := UserSourceToString[self]
+	assert.Assert(ok, "unhandled enum variant", self)
+	return []byte(`"` + val + `"`), nil
+}
+
+func (self *UserSource) UnmarshalJSON(data []byte) error {
+	var dataString *string
+	err := json.Unmarshal(data, &dataString)
+	if err != nil {
+		return err
+	}
+	userSource, ok := UserSourceFromString[*dataString]
+	if !ok {
+		return fmt.Errorf("unknown user source: %s", *dataString)
+	}
+	*self = userSource
+	return nil
 }
 
 func CreateDatagramRequest(request Datagram, data interface{}) Datagram {

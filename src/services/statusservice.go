@@ -866,12 +866,12 @@ func controller(namespace string, controllerName string, resourceController Reso
 	}
 
 	// if err != nil {
-	// 	ServiceLogger.Warningf("\nWarning fetching resources %s, ns: %s, name: %s, err: %s\n", resourceController.String(), namespace, controllerName, err)
+	// 	ServiceLogger.Warningf("Warning fetching resources %s, ns: %s, name: %s, err: %s", resourceController.String(), namespace, controllerName, err)
 	// 	return nil, err
 	// }
 
 	if resourceInterface == nil {
-		return nil, fmt.Errorf("\nWarning fetching controller: %s\n", controllerName)
+		return nil, fmt.Errorf("Warning fetching controller: %s", controllerName)
 	}
 
 	return resourceInterface, nil

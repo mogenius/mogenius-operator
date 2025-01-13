@@ -37,22 +37,14 @@ spec:
             type: object
           spec:
             properties:
-              displayName:
-                type: string
               name:
                 type: string
               resources:
                 items:
                   properties:
-                    group:
+                    id:
                       type: string
-                    kind:
-                      type: string
-                    name:
-                      type: string
-                    namespace:
-                      type: string
-                    version:
+                    type:
                       type: string
                   type: object
                 type: array

@@ -186,6 +186,7 @@ const (
 	PAT_UPDATE_WORKLOAD             string = "update/workload"
 	PAT_DELETE_WORKLOAD             string = "delete/workload"
 
+	PAT_GET_WORKSPACES   = "get/workspaces"
 	PAT_CREATE_WORKSPACE = "create/workspace"
 	PAT_GET_WORKSPACE    = "get/workspace"
 	PAT_UPDATE_WORKSPACE = "update/workspace"
@@ -420,6 +421,7 @@ var COMMAND_REQUESTS = []string{
 	PAT_DELETE_WORKLOAD,
 	PAT_DESCRIBE_WORKLOAD,
 
+	PAT_GET_WORKSPACES,
 	PAT_CREATE_WORKSPACE,
 	PAT_GET_WORKSPACE,
 	PAT_UPDATE_WORKSPACE,

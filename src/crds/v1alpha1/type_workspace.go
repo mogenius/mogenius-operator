@@ -25,17 +25,13 @@ type Workspace struct {
 }
 
 type WorkspaceSpec struct {
-	Name        string                        `json:"name,omitempty"`
-	DisplayName string                        `json:"displayName,omitempty"`
-	Resources   []WorkspaceResourceIdentifier `json:"resources,omitempty"`
+	Name      string                        `json:"name,omitempty"`
+	Resources []WorkspaceResourceIdentifier `json:"resources,omitempty"`
 }
 
 type WorkspaceResourceIdentifier struct {
-	Name      string `json:"name,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-	Kind      string `json:"kind,omitempty"`
-	Group     string `json:"group,omitempty"`
-	Version   string `json:"version,omitempty"`
+	Id   string `json:"id,omitempty"`
+	Type string `json:"type,omitempty"`
 }
 
 type WorkspaceStatus struct{}
