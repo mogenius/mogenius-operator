@@ -14,7 +14,7 @@ func GetNodeStats() []dtos.NodeStat {
 	nodes := ListNodes()
 	nodeMetrics := ListNodeMetricss()
 
-	for index, node := range nodes {
+	for _, node := range nodes {
 
 		allPods := AllPodsOnNode(node.Name)
 		requestCpuCores, limitCpuCores := SumCpuResources(allPods)
