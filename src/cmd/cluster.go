@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
+	"mogenius-k8s-manager/src/core"
 	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
@@ -34,7 +35,10 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
 		versionModule := version.NewVersion()
-		watcherModule := kubernetes.NewWatcher(clientProvider)
+		watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
+		shutdown.Add(watcherModule.UnwatchAll)
+		workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
+		apiModule := core.NewApi(logManagerModule.CreateLogger("api"), workspaceManager)
 		dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
 		assert.Assert(err == nil, err)
 
@@ -44,14 +48,14 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		controllers.Setup(logManagerModule, configModule)
 		crds.Setup(logManagerModule)
 		dtos.Setup(logManagerModule)
-		services.Setup(logManagerModule, configModule, clientProvider, dbstatsModule)
+		services.Setup(logManagerModule, configModule, clientProvider, dbstatsModule, apiModule)
 		servicesexternal.Setup(logManagerModule, configModule)
 		socketclient.Setup(logManagerModule, configModule)
 		store.Setup(logManagerModule)
 		structs.Setup(logManagerModule, configModule)
 		utils.Setup(logManagerModule, configModule)
 		xterm.Setup(logManagerModule, configModule, clientProvider)
-		httpApi := httpservice.NewHttpApi(logManagerModule, configModule, dbstatsModule)
+		httpApi := httpservice.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
 
 		versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())

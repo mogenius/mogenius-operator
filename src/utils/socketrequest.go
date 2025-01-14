@@ -1,11 +1,12 @@
 package utils
 
+import "mogenius-k8s-manager/src/crds/v1alpha1"
+
 type WebsocketRequestCreateWorkspace struct {
-	Name        string `json:"name" validate:"required"`
-	DisplayName string `json:"displayName" validate:"required"`
-	Resources   []struct {
-		Id   string `json:"id" validate:"required"`
-		Type string `json:"type" validate:"required"`
+	Name      string `json:"name" validate:"required"`
+	Resources []struct {
+		Id   string                 `json:"id" validate:"required"`
+		Type v1alpha1.WorkspaceType `json:"type" validate:"required"`
 	} `json:"resources" validate:"required"`
 }
 
@@ -17,8 +18,8 @@ type WebsocketRequestUpdateWorkspace struct {
 	Name        string `json:"name" validate:"required"`
 	DisplayName string `json:"displayName" validate:"required"`
 	Resources   []struct {
-		Id   string `json:"id" validate:"required"`
-		Type string `json:"type" validate:"required"`
+		Id   string                 `json:"id" validate:"required"`
+		Type v1alpha1.WorkspaceType `json:"type" validate:"required"`
 	} `json:"resources" validate:"required"`
 }
 

@@ -1,6 +1,10 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+	"fmt"
+	"mogenius-k8s-manager/src/assert"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,8 +34,45 @@ type WorkspaceSpec struct {
 }
 
 type WorkspaceResourceIdentifier struct {
-	Id   string `json:"id,omitempty"`
-	Type string `json:"type,omitempty"`
+	Id   string        `json:"id,omitempty"`
+	Type WorkspaceType `json:"type,omitempty"`
 }
 
 type WorkspaceStatus struct{}
+
+type WorkspaceType string
+
+const (
+	WorkspaceTypeNamespace WorkspaceType = "NAMESPACE"
+	WorkspaceTypeHelm      WorkspaceType = "HELM"
+)
+
+var WorkspaceTypeToString = map[WorkspaceType]string{
+	WorkspaceTypeNamespace: "NAMESPACE",
+	WorkspaceTypeHelm:      "HELM",
+}
+
+var WorkspaceTypeFromString = map[string]WorkspaceType{
+	"NAMESPACE": WorkspaceTypeNamespace,
+	"HELM":      WorkspaceTypeHelm,
+}
+
+func (self WorkspaceType) MarshalJSON() ([]byte, error) {
+	val, ok := WorkspaceTypeToString[self]
+	assert.Assert(ok, "unhandled enum variant", self)
+	return []byte(`"` + val + `"`), nil
+}
+
+func (self *WorkspaceType) UnmarshalJSON(data []byte) error {
+	var dataString *string
+	err := json.Unmarshal(data, &dataString)
+	if err != nil {
+		return err
+	}
+	userSource, ok := WorkspaceTypeFromString[*dataString]
+	if !ok {
+		return fmt.Errorf("unknown workspace source: %s", *dataString)
+	}
+	*self = userSource
+	return nil
+}

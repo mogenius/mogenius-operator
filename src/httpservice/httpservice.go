@@ -6,9 +6,11 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/core"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"net/http"
 	"strconv"
@@ -18,12 +20,14 @@ type HttpService struct {
 	logger  *slog.Logger
 	config  config.ConfigModule
 	dbstats kubernetes.BoltDbStats
+	api     core.Api
 }
 
 func NewHttpApi(
 	logManagerModule logging.LogManagerModule,
 	configModule config.ConfigModule,
 	dbstats kubernetes.BoltDbStats,
+	apiModule core.Api,
 ) *HttpService {
 	assert.Assert(logManagerModule != nil)
 	assert.Assert(configModule != nil)
@@ -32,6 +36,7 @@ func NewHttpApi(
 		logger:  logManagerModule.CreateLogger("http"),
 		config:  configModule,
 		dbstats: dbstats,
+		api:     apiModule,
 	}
 }
 
@@ -58,6 +63,10 @@ func (self *HttpService) Run(addr string) {
 		mux.Handle("GET /debug/traffic", self.withRequestLogging(http.HandlerFunc(self.debugGetTraffic)))
 		mux.Handle("GET /debug/last-ns", self.withRequestLogging(http.HandlerFunc(self.debugGetLastNs)))
 		mux.Handle("GET /debug/ns", self.withRequestLogging(http.HandlerFunc(self.debugGetNs)))
+	}
+
+	if utils.IsDevBuild() {
+		self.addApiRoutes(mux)
 	}
 
 	self.logger.Info("starting API server", "addr", addr)

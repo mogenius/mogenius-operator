@@ -959,97 +959,47 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		err := kubernetes.DeleteUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
 		return NewMessageResponse(nil, err)
 	case structs.PAT_GET_WORKSPACES:
-		// TODO: use an actual workspace manager instead of `action`
-		// =====
-		action := func() ([]v1alpha1.Workspace, error) {
-			clientset := clientProvider.MogeniusClientSet()
-			return clientset.MogeniusV1alpha1.ListWorkspaces(config.Get("MO_OWN_NAMESPACE"))
-		}
-		// =====
-		result, err := action()
+		result, err := api.GetAllWorkspaces()
 		return NewMessageResponse(result, err)
 	case structs.PAT_CREATE_WORKSPACE:
 		data := utils.WebsocketRequestCreateWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		// TODO: use an actual workspace manager instead of `action`
-		// =====
-		action := func(data *utils.WebsocketRequestCreateWorkspace) (string, error) {
-			clientset := clientProvider.MogeniusClientSet()
-			resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
-			for _, s := range data.Resources {
-				resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
-					Id:   s.Id,
-					Type: s.Type,
-				})
-			}
-			_, err := clientset.MogeniusV1alpha1.CreateWorkspace(config.Get("MO_OWN_NAMESPACE"), data.Name, v1alpha1.WorkspaceSpec{
-				Name:      data.DisplayName,
-				Resources: resourceIds,
+		resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
+		for _, s := range data.Resources {
+			resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
+				Id:   s.Id,
+				Type: s.Type,
 			})
-			if err != nil {
-				return "", err
-			}
-
-			return "Resource created successfully", nil
 		}
-		// =====
-		result, err := action(&data)
+		result, err := api.CreateWorkspace(data.Name, v1alpha1.WorkspaceSpec{
+			Name:      data.Name,
+			Resources: resourceIds,
+		})
 		return NewMessageResponse(result, err)
 	case structs.PAT_GET_WORKSPACE:
 		data := utils.WebsocketRequestGetWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		// TODO: use an actual workspace manager instead of `action`
-		// =====
-		action := func(data *utils.WebsocketRequestGetWorkspace) (*v1alpha1.Workspace, error) {
-			clientset := clientProvider.MogeniusClientSet()
-			return clientset.MogeniusV1alpha1.GetWorkspace(config.Get("MO_OWN_NAMESPACE"), data.Name)
-		}
-		// =====
-		result, err := action(&data)
+		result, err := api.GetWorkspace(data.Name)
 		return NewMessageResponse(result, err)
 	case structs.PAT_UPDATE_WORKSPACE:
 		data := utils.WebsocketRequestUpdateWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		// TODO: use an actual workspace manager instead of `action`
-		// =====
-		action := func(data *utils.WebsocketRequestUpdateWorkspace) (string, error) {
-			clientset := clientProvider.MogeniusClientSet()
-			resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
-			for _, s := range data.Resources {
-				resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
-					Id:   s.Id,
-					Type: s.Type,
-				})
-			}
-			_, err := clientset.MogeniusV1alpha1.UpdateWorkspace(config.Get("MO_OWN_NAMESPACE"), data.Name, v1alpha1.WorkspaceSpec{
-				Name:      data.DisplayName,
-				Resources: resourceIds,
+		resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
+		for _, s := range data.Resources {
+			resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
+				Id:   s.Id,
+				Type: s.Type,
 			})
-			if err != nil {
-				return "", err
-			}
-
-			return "Resource updated successfully", nil
 		}
-		// =====
-		result, err := action(&data)
+		result, err := api.UpdateWorkspace(data.Name, v1alpha1.WorkspaceSpec{
+			Name:      data.DisplayName,
+			Resources: resourceIds,
+		})
 		return NewMessageResponse(result, err)
 	case structs.PAT_DELETE_WORKSPACE:
 		data := utils.WebsocketRequestDeleteWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		// TODO: use an actual workspace manager instead of `action`
-		// =====
-		action := func(data *utils.WebsocketRequestDeleteWorkspace) (string, error) {
-			clientset := clientProvider.MogeniusClientSet()
-			err := clientset.MogeniusV1alpha1.DeleteWorkspace(config.Get("MO_OWN_NAMESPACE"), data.Name)
-			if err != nil {
-				return "", err
-			}
-
-			return "Resource deleted successfully", nil
-		}
-		// =====
-		result, err := action(&data)
+		result, err := api.DeleteWorkspace(data.Name)
 		return NewMessageResponse(result, err)
 	case structs.PAT_BUILDER_STATUS:
 		return kubernetes.GetDb().GetBuilderStatus()

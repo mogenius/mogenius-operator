@@ -21,13 +21,15 @@ type Watcher struct {
 	handlerMapLock sync.Mutex
 	activeHandlers map[WatcherResourceIdentifier]resourceContext
 	clientProvider k8sclient.K8sClientProvider
+	logger         *slog.Logger
 }
 
-func NewWatcher(clientProvider k8sclient.K8sClientProvider) *Watcher {
+func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) *Watcher {
 	return &Watcher{
 		handlerMapLock: sync.Mutex{},
 		activeHandlers: make(map[WatcherResourceIdentifier]resourceContext, 0),
 		clientProvider: clientProvider,
+		logger:         logger,
 	}
 }
 
@@ -173,7 +175,7 @@ func (m *Watcher) ListWatchedResources() []WatcherResourceIdentifier {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
-	resources := make([]WatcherResourceIdentifier, len(m.activeHandlers))
+	resources := []WatcherResourceIdentifier{}
 	for r := range m.activeHandlers {
 		resources = append(resources, r)
 	}
@@ -191,4 +193,13 @@ func (m *Watcher) State(resource WatcherResourceIdentifier) (WatcherResourceStat
 	}
 
 	return resourceContext.state, nil
+}
+
+func (self *Watcher) UnwatchAll() {
+	for _, resource := range self.ListWatchedResources() {
+		err := self.Unwatch(resource)
+		if err != nil {
+			self.logger.Error("failed to unwatch resource", "resource", resource, "error", err)
+		}
+	}
 }

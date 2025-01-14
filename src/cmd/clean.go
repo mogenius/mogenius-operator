@@ -21,7 +21,7 @@ func RunClean(logManagerModule logging.LogManagerModule, configModule *config.Co
 	configModule.Validate()
 
 	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(clientProvider)
+	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
 	assert.Assert(err == nil, err)
 

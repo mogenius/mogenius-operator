@@ -13,5 +13,5 @@ func TestWatcherAdheresToInterface(t *testing.T) {
 	logManager := logging.NewMockSlogManager(t)
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	testfunc := func(w kubernetes.WatcherModule) {}
-	testfunc(kubernetes.NewWatcher(clientProvider)) // this checks if the typesystem allows to call it
+	testfunc(kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)) // this checks if the typesystem allows to call it
 }
