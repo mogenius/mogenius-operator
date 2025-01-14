@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"mogenius-k8s-manager/src/dtos"
 
 	v1 "k8s.io/api/core/v1"
@@ -60,7 +59,7 @@ func GetNodeStats() []dtos.NodeStat {
 		ephemeral, _ := node.Status.Capacity.StorageEphemeral().AsInt64()
 
 		nodeStat := dtos.NodeStat{
-			Name:                   fmt.Sprintf("Node-%d", index+1),
+			Name:                   node.Name,
 			MaschineId:             node.Status.NodeInfo.MachineID,
 			CpuInCores:             cpu,
 			CpuInCoresUtilized:     utilizedCores,
