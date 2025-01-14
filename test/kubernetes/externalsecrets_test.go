@@ -41,7 +41,7 @@ func TestSecretListRender(t *testing.T) {
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(clientProvider)
+	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
@@ -91,7 +91,7 @@ func TestCreateExternalSecretList(t *testing.T) {
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(clientProvider)
+	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 

@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	mov1alpha1 "mogenius-k8s-manager/src/crds/v1alpha1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	mov1alpha1 "mogenius-k8s-manager/src/crds/v1alpha1"
 )
 
 type MogeniusV1alpha1 struct {
@@ -73,10 +74,8 @@ func (self *MogeniusV1alpha1) CreateGrant(namespace string, name string, spec mo
 			APIVersion: "mogenius.com/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:         name,
-			Namespace:    namespace,
-			GenerateName: "grant-",
-			Labels:       map[string]string{},
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: spec,
 	}
@@ -171,10 +170,8 @@ func (self *MogeniusV1alpha1) CreateGroup(namespace string, name string, spec mo
 			APIVersion: "mogenius.com/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:         name,
-			Namespace:    namespace,
-			GenerateName: "group-",
-			Labels:       map[string]string{},
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: spec,
 	}
@@ -269,10 +266,8 @@ func (self *MogeniusV1alpha1) CreatePermission(namespace string, name string, sp
 			APIVersion: "mogenius.com/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:         name,
-			Namespace:    namespace,
-			GenerateName: "permission-",
-			Labels:       map[string]string{},
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: spec,
 	}
@@ -367,10 +362,8 @@ func (self *MogeniusV1alpha1) CreateUser(namespace string, name string, spec mov
 			APIVersion: "mogenius.com/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:         name,
-			Namespace:    namespace,
-			GenerateName: "user-",
-			Labels:       map[string]string{},
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: spec,
 	}
@@ -464,10 +457,8 @@ func (self *MogeniusV1alpha1) CreateWorkspace(namespace string, name string, spe
 			APIVersion: "mogenius.com/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:         name,
-			Namespace:    namespace,
-			GenerateName: "workspace-",
-			Labels:       map[string]string{},
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: spec,
 	}

@@ -172,7 +172,7 @@ func TestHelmRepoList(t *testing.T) {
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 
-	watcherModule := kubernetes.NewWatcher(clientProvider)
+	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 

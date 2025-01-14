@@ -18,7 +18,7 @@ func TestCustomResource(t *testing.T) {
 	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(clientProvider)
+	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
@@ -68,7 +68,7 @@ func TestSecretStoreResource(t *testing.T) {
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(clientProvider)
+	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 

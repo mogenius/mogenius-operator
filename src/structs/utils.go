@@ -169,11 +169,16 @@ func SendDataWs(sendToServer string, reader io.ReadCloser) {
 
 func Ping(conn *websocket.Conn, connWriteLock *sync.Mutex) error {
 	cancel := make(chan struct{})
+	cancelFinished := make(chan struct{})
 	pingTicker := time.NewTicker(time.Second * PingSeconds)
 
 	shutdown.Add(func() {
 		defer close(cancel)
 		cancel <- struct{}{}
+		select {
+		case <-cancelFinished: // block for clean shutdown
+		case <-time.After(5 * time.Second): // cancel blocking in case something went wrong
+		}
 	})
 
 	for {
@@ -202,6 +207,7 @@ func Ping(conn *websocket.Conn, connWriteLock *sync.Mutex) error {
 				return err
 			}
 			structsLogger.Debug("websocket connection was shut down")
+			cancelFinished <- struct{}{}
 			return nil
 		}
 	}
