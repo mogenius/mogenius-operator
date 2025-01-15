@@ -43,7 +43,7 @@ import (
 //	| - Low-Level Ops   |   | - Low-Level Ops   |   | - Low-Level Ops   |
 //	+-------------------+   +-------------------+   +-------------------+
 type Api interface {
-	GetAllWorkspaces() (*GetAllWorkspacesResult, error)
+	GetAllWorkspaces() (*[]GetAllWorkspacesResultWorkspace, error)
 	GetWorkspace(name string) (*GetWorkspaceResult, error)
 	CreateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error)
 	UpdateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error)
@@ -64,9 +64,9 @@ func NewApi(logger *slog.Logger, workspaceManager WorkspaceManager) Api {
 	return apiModule
 }
 
-type GetAllWorkspacesResult struct {
-	Workspaces []GetAllWorkspacesResultWorkspace `json:",inline" validate:"required"`
-}
+//type GetAllWorkspacesResult struct {
+//	Workspaces []GetAllWorkspacesResultWorkspace `json:"workspaces,inline" validate:"required"`
+//}
 
 type GetAllWorkspacesResultWorkspace struct {
 	Name              string                           `json:"name" validate:"required"`
@@ -79,13 +79,13 @@ type GetAllWorkspacesResultResource struct {
 	Type string `json:"type" validate:"required"`
 }
 
-func (self *api) GetAllWorkspaces() (*GetAllWorkspacesResult, error) {
+func (self *api) GetAllWorkspaces() (*[]GetAllWorkspacesResultWorkspace, error) {
 	workspaces, err := self.workspaceManager.GetAllWorkspaces()
 	if err != nil {
 		return nil, err
 	}
 
-	result := &GetAllWorkspacesResult{}
+	var result []GetAllWorkspacesResultWorkspace
 	for _, workspace := range workspaces {
 		workspaceResult := GetAllWorkspacesResultWorkspace{
 			Name:              workspace.GetName(),
@@ -98,10 +98,10 @@ func (self *api) GetAllWorkspaces() (*GetAllWorkspacesResult, error) {
 				Type: string(resource.Type),
 			})
 		}
-		result.Workspaces = append(result.Workspaces, workspaceResult)
+		result = append(result, workspaceResult)
 	}
 
-	return result, nil
+	return &result, nil
 }
 
 type GetWorkspaceResult struct {
