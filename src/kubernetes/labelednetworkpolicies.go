@@ -839,6 +839,12 @@ func EnforceNetworkPolicyManagerForNamespace(namespaceName string) error {
 			}
 		}
 	}
+
+	// delete all pods in namespace to enforce new network policies
+	err = DeleteAllPodsInNamespace(namespaceName)
+	if err != nil {
+		return fmt.Errorf("failed to delete all pods in namespace: %v", err)
+	}
 	return nil
 }
 

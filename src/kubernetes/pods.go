@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"text/template"
@@ -239,4 +240,24 @@ func PodIdsFor(namespace string, serviceId *string) []string {
 	sort.Strings(result)
 
 	return result
+}
+
+func DeleteAllPodsInNamespace(namespace string) error {
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(namespace)
+
+	pods, err := podClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		k8sLogger.Error("DeleteAllPodsInNamespace", "error", err.Error())
+		return fmt.Errorf("failed to list pods in namespace %s: %s", namespace, err.Error())
+	}
+
+	for _, pod := range pods.Items {
+		err := podClient.Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+		if err != nil {
+			k8sLogger.Error("DeleteAllPodsInNamespace", "error", err.Error())
+			return fmt.Errorf("failed to delete pod %s in namespace %s: %s", pod.Name, namespace, err.Error())
+		}
+	}
+	return nil
 }
