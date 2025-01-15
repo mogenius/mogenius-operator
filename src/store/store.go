@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/utils"
 	"reflect"
 	"sync"
 	"time"
@@ -227,6 +228,49 @@ func (s *Store) SearchByPrefix(resultType reflect.Type, parts ...string) ([]inte
 				return err
 			}
 
+			items = append(items, result)
+		}
+
+		return nil
+	})
+
+	if len(items) == 0 {
+		return nil, ErrNotFound
+
+	}
+
+	return items, err
+}
+
+func (s *Store) SearchByKeyParts(resultType reflect.Type, parts ...string) ([]interface{}, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.db == nil {
+		return nil, fmt.Errorf("database is not initialized")
+	}
+
+	pattern := CreateKey(parts...)
+	items := make([]interface{}, 0)
+
+	// var result interface{}
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+			key := item.Key()
+			if !utils.ContainsPattern(key, pattern) {
+				continue
+			}
+			result := reflect.New(resultType).Interface()
+			err := item.Value(func(v []byte) error {
+				return s.deserialize(v, result)
+			})
+			if err != nil {
+				return err
+			}
 			items = append(items, result)
 		}
 

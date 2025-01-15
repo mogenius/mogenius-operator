@@ -784,6 +784,9 @@ func ContainsEqual(s []string, str string) bool {
 	}
 	return false
 }
+func ContainsPattern(key []byte, pattern string) bool {
+	return strings.Contains(string(key), pattern)
+}
 
 func IsProduction() bool {
 	stage := config.Get("MO_STAGE")

@@ -1030,11 +1030,11 @@ func ListControllerLabeledNetworkPolicies(
 	switch controllerType {
 	case dtos.DEPLOYMENT:
 		// TODO replace with GetAvailableResources in the future
-		namespace := ""
+		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
 			Kind:      "Deployment",
 			Name:      "deployments",
-			Namespace: &namespace,
+			Namespace: &resourceNamespace,
 			Group:     "apps/v1",
 			Version:   "",
 		}
@@ -1050,11 +1050,11 @@ func ListControllerLabeledNetworkPolicies(
 		labels = extractLabels(deployment.ObjectMeta.Labels, deployment.Spec.Template.ObjectMeta.Labels)
 	case dtos.DAEMON_SET:
 		// TODO replace with GetAvailableResources in the future
-		namespace := ""
+		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
 			Kind:      "DaemonSet",
 			Name:      "daemonsets",
-			Namespace: &namespace,
+			Namespace: &resourceNamespace,
 			Group:     "apps/v1",
 			Version:   "",
 		}
@@ -1070,11 +1070,11 @@ func ListControllerLabeledNetworkPolicies(
 		labels = extractLabels(daemonset.ObjectMeta.Labels, daemonset.Spec.Template.ObjectMeta.Labels)
 	case dtos.STATEFUL_SET:
 		// TODO replace with GetAvailableResources in the future
-		namespace := ""
+		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
 			Kind:      "StatefulSet",
 			Name:      "statefulsets",
-			Namespace: &namespace,
+			Namespace: &resourceNamespace,
 			Group:     "apps/v1",
 			Version:   "",
 		}

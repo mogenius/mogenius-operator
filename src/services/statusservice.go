@@ -811,11 +811,11 @@ func controller(namespace string, controllerName string, resourceController Reso
 	switch resourceController {
 	case Deployment:
 		// TODO replace with GetAvailableResources in the future
-		namespace := ""
+		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
 			Kind:      "Deployment",
 			Name:      "deployments",
-			Namespace: &namespace,
+			Namespace: &resourceNamespace,
 			Group:     "apps/v1",
 			Version:   "",
 		}
@@ -823,11 +823,11 @@ func controller(namespace string, controllerName string, resourceController Reso
 		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
 	case ReplicaSet:
 		// TODO replace with GetAvailableResources in the future
-		namespace := ""
+		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
 			Kind:      "ReplicaSet",
 			Name:      "replicasets",
-			Namespace: &namespace,
+			Namespace: &resourceNamespace,
 			Group:     "apps/v1",
 			Version:   "",
 		}
@@ -841,11 +841,11 @@ func controller(namespace string, controllerName string, resourceController Reso
 	// 	resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case Job:
 		// TODO replace with GetAvailableResources in the future
-		namespace := ""
+		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
 			Kind:      "Job",
 			Name:      "jobs",
-			Namespace: &namespace,
+			Namespace: &resourceNamespace,
 			Group:     "batch/v1",
 			Version:   "",
 		}
@@ -853,11 +853,11 @@ func controller(namespace string, controllerName string, resourceController Reso
 		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
 	case CronJob:
 		// TODO replace with GetAvailableResources in the future
-		namespace := ""
+		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
 			Kind:      "CronJob",
 			Name:      "cronjobs",
-			Namespace: &namespace,
+			Namespace: &resourceNamespace,
 			Group:     "batch/v1",
 			Version:   "",
 		}
