@@ -43,7 +43,7 @@ import (
 //	| - Low-Level Ops   |   | - Low-Level Ops   |   | - Low-Level Ops   |
 //	+-------------------+   +-------------------+   +-------------------+
 type Api interface {
-	GetAllWorkspaces() (*[]GetAllWorkspacesResultWorkspace, error)
+	GetAllWorkspaces() ([]GetAllWorkspacesResult, error)
 	GetWorkspace(name string) (*GetWorkspaceResult, error)
 	CreateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error)
 	UpdateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error)
@@ -64,11 +64,7 @@ func NewApi(logger *slog.Logger, workspaceManager WorkspaceManager) Api {
 	return apiModule
 }
 
-//type GetAllWorkspacesResult struct {
-//	Workspaces []GetAllWorkspacesResultWorkspace `json:"workspaces,inline" validate:"required"`
-//}
-
-type GetAllWorkspacesResultWorkspace struct {
+type GetAllWorkspacesResult struct {
 	Name              string                           `json:"name" validate:"required"`
 	CreationTimestamp v1.Time                          `json:"creationTimestamp,omitempty"`
 	Resources         []GetAllWorkspacesResultResource `json:"resources" validate:"required"`
@@ -79,15 +75,16 @@ type GetAllWorkspacesResultResource struct {
 	Type string `json:"type" validate:"required"`
 }
 
-func (self *api) GetAllWorkspaces() (*[]GetAllWorkspacesResultWorkspace, error) {
+func (self *api) GetAllWorkspaces() ([]GetAllWorkspacesResult, error) {
+	var result []GetAllWorkspacesResult = []GetAllWorkspacesResult{}
+
 	workspaces, err := self.workspaceManager.GetAllWorkspaces()
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
-	var result []GetAllWorkspacesResultWorkspace
 	for _, workspace := range workspaces {
-		workspaceResult := GetAllWorkspacesResultWorkspace{
+		workspaceResult := GetAllWorkspacesResult{
 			Name:              workspace.GetName(),
 			CreationTimestamp: workspace.ObjectMeta.CreationTimestamp,
 			Resources:         []GetAllWorkspacesResultResource{},
@@ -101,7 +98,7 @@ func (self *api) GetAllWorkspaces() (*[]GetAllWorkspacesResultWorkspace, error) 
 		result = append(result, workspaceResult)
 	}
 
-	return &result, nil
+	return result, nil
 }
 
 type GetWorkspaceResult struct {
