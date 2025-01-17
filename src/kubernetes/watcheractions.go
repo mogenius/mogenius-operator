@@ -227,7 +227,7 @@ func GetUnstructuredResourceList(group string, version string, name string, name
 	}
 }
 
-func GetUnstructuredNamespaceResourceList(namespace string, ignoreResources []*utils.SyncResourceEntry) (*unstructured.UnstructuredList, error) {
+func GetUnstructuredNamespaceResourceList(namespace string, ignoreResources []*utils.SyncResourceEntry) (*[]unstructured.Unstructured, error) {
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return nil, err
@@ -253,7 +253,7 @@ func GetUnstructuredNamespaceResourceList(namespace string, ignoreResources []*u
 			}
 		}
 	}
-	return &unstructured.UnstructuredList{Items: results}, nil
+	return &results, nil
 }
 
 func GetUnstructuredLabeledResourceList(label string, ignoreResources []*utils.SyncResourceEntry) (*unstructured.UnstructuredList, error) {
