@@ -43,18 +43,18 @@ type WorkspaceStatus struct{}
 type WorkspaceType string
 
 const (
-	WorkspaceTypeNamespace WorkspaceType = "NAMESPACE"
-	WorkspaceTypeHelm      WorkspaceType = "HELM"
+	WorkspaceTypeNamespace WorkspaceType = "namespace"
+	WorkspaceTypeHelm      WorkspaceType = "helm"
 )
 
 var WorkspaceTypeToString = map[WorkspaceType]string{
-	WorkspaceTypeNamespace: "NAMESPACE",
-	WorkspaceTypeHelm:      "HELM",
+	WorkspaceTypeNamespace: "namespace",
+	WorkspaceTypeHelm:      "helm",
 }
 
 var WorkspaceTypeFromString = map[string]WorkspaceType{
-	"NAMESPACE": WorkspaceTypeNamespace,
-	"HELM":      WorkspaceTypeHelm,
+	"namespace": WorkspaceTypeNamespace,
+	"helm":      WorkspaceTypeHelm,
 }
 
 func (self WorkspaceType) MarshalJSON() ([]byte, error) {
