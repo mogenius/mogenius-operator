@@ -41,7 +41,7 @@ kubectl scale -n mogenius deployment mogenius-k8s-manager --replicas=0
 Now mogenius can be run locally:
 
 ```sh
-go run -trimpath src/main.go cluster
+just run
 ```
 
 ## local docker image in docker-desktop kubernetes
@@ -83,19 +83,20 @@ go get -u ./...
 go mod tidy
 ```
 
-## Testing
+## Testing/Linting Locally
 
 ```sh
-go test -v ./...
+# Run linter and unit tests locally
+just check
 
-# clean cache
-go clean -testcache
-```
+# Run linter
+just golangci-lint
 
-## Lint
+# Run quick unit tests
+just test-unit
 
-```sh
-golangci-lint run --fast=false --sort-results --max-same-issues=0 --timeout=1h
+# Run slow integration tests
+just test-integration
 ```
 
 ## Helm Install
@@ -133,7 +134,7 @@ helm repo update
 
 ## LINKS
 
-- [Just](https://github.com/casey/just) - A Task Runner. Checkout the `Justfile` for details or use `just -l` for an quick overview.
+- [Just](https://github.com/casey/just) - A Task Runner. Checkout the `Justfile` for details or use `just --list --unsorted` for an quick overview.
 
 ---------------------
 

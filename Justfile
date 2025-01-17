@@ -107,9 +107,11 @@ build-docker-linux-armv7:
         -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest-amd64 \
         .
 
+# Install tools used by go generate
 _install_controller_gen:
     go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 
+# Execute go generate
 generate: _install_controller_gen
     go generate ./...
 
