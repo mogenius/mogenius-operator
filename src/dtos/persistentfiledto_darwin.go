@@ -58,8 +58,7 @@ func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 	var size int64 = 0
 	var createTime = time.Now().Format(time.RFC3339)
 	var modTime = time.Now().Format(time.RFC3339)
-	var filemode fs.FileMode = 0
-	filemode = info.Mode().Perm()
+	var filemode fs.FileMode = info.Mode().Perm()
 	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 		uid = int(stat.Uid)
 		gid = int(stat.Gid)

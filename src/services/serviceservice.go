@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/gitmanager"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -87,8 +86,6 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	mokubernetes.DeleteUnusedSecretsForNamespace(job, r.Namespace, r.Service, &wg)
 
 	mokubernetes.DeleteIngress(job, r.Namespace, r.Service, &wg)
-
-	crds.DeleteApplicationKitCmd(clientProvider.DynamicClient(), job, r.Namespace.Name, r.Service.ControllerName, &wg)
 
 	go func() {
 		wg.Wait()

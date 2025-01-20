@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/core"
-	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/httpservice"
@@ -46,7 +45,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		err = mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
 		assert.Assert(err == nil, err)
 		controllers.Setup(logManagerModule, configModule)
-		crds.Setup(logManagerModule)
 		dtos.Setup(logManagerModule)
 		services.Setup(logManagerModule, configModule, clientProvider, dbstatsModule, apiModule)
 		servicesexternal.Setup(logManagerModule, configModule)
