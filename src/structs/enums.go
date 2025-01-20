@@ -118,12 +118,6 @@ const (
 
 	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION string = "metrics/deployment/average-utilization"
 
-	PAT_PROJECT_CREATE string = "project/create"
-	PAT_PROJECT_UPDATE string = "project/update"
-	PAT_PROJECT_DELETE string = "project/delete"
-	PAT_PROJECT_LIST   string = "project/list"
-	PAT_PROJECT_COUNT  string = "project/count"
-
 	PAT_NAMESPACE_CREATE                string = "namespace/create"
 	PAT_NAMESPACE_DELETE                string = "namespace/delete"
 	PAT_NAMESPACE_SHUTDOWN              string = "namespace/shutdown"
@@ -349,12 +343,6 @@ var COMMAND_REQUESTS = []string{
 	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST,  // legacy-support TODO: REMOVE
 
 	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION,
-
-	PAT_PROJECT_CREATE,
-	PAT_PROJECT_UPDATE,
-	PAT_PROJECT_DELETE,
-	PAT_PROJECT_LIST,
-	PAT_PROJECT_COUNT,
 
 	PAT_NAMESPACE_CREATE,
 	PAT_NAMESPACE_DELETE,

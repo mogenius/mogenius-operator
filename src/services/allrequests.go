@@ -514,31 +514,6 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		}
 		return kubernetes.CreateMogeniusContainerRegistryTlsSecret(data.LocalTlsCrt, data.LocalTlsKey)
 
-	case structs.PAT_PROJECT_CREATE:
-		data := ProjectCreateRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return CreateProject(data)
-	case structs.PAT_PROJECT_UPDATE:
-		data := ProjectUpdateRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return UpdateProject(data)
-	case structs.PAT_PROJECT_DELETE:
-		data := ProjectDeleteRequest{}
-		structs.MarshalUnmarshal(&datagram, &data)
-		if err := utils.ValidateJSON(data); err != nil {
-			return err
-		}
-		return DeleteProject(data)
-	case structs.PAT_PROJECT_LIST:
-		return ListProject()
-	case structs.PAT_PROJECT_COUNT:
-		return CountProject()
 	case structs.PAT_NAMESPACE_CREATE:
 		data := NamespaceCreateRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)

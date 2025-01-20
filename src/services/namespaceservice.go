@@ -1,7 +1,6 @@
 package services
 
 import (
-	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
@@ -35,11 +34,6 @@ func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.Wa
 	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
 	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, wg)
 	// }
-	crds.CreateEnvironmentCmd(clientProvider.DynamicClient(), job, r.Project.Name, r.Namespace.Name, crds.CrdEnvironment{
-		Id:          r.Namespace.Id,
-		DisplayName: r.Namespace.DisplayName,
-		CreatedBy:   "MISSING_FIELD",
-		Name:        r.Namespace.Name}, wg)
 }
 
 func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
@@ -48,8 +42,6 @@ func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
 	job := structs.CreateJob("Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
 	job.Start()
 	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
-
-	crds.DeleteEnvironmentCmd(clientProvider.DynamicClient(), job, r.Project.Name, r.Namespace.Name, &wg)
 
 	go func() {
 		wg.Wait()
@@ -122,50 +114,6 @@ func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.Nam
 	result.Secrets = kubernetes.AllSecrets(r.NamespaceName)
 	result.Configmaps = kubernetes.AllConfigmaps(r.NamespaceName)
 	return result
-}
-
-type ProjectCreateRequest struct {
-	Project crds.CrdProject `json:"project" validate:"required"`
-}
-
-func ProjectCreateRequestExample() ProjectCreateRequest {
-	return ProjectCreateRequest{
-		Project: crds.CrdProjectExampleData(),
-	}
-}
-
-type ProjectUpdateRequest struct {
-	Id          string             `json:"id" validate:"required"`
-	ProjectName string             `json:"projectName"`
-	DisplayName string             `json:"displayName"`
-	ProductId   string             `json:"productId"`
-	Limits      crds.ProjectLimits `json:"limits"`
-}
-
-func ProjectUpdateRequestExample() ProjectUpdateRequest {
-	return ProjectUpdateRequest{
-		Id:          "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		ProjectName: "mogenius",
-		DisplayName: "displayName",
-		Limits: crds.ProjectLimits{
-			LimitMemoryMB:      1024,
-			LimitCpuCores:      1.0,
-			EphemeralStorageMB: 1024,
-			MaxVolumeSizeGb:    10,
-		},
-	}
-}
-
-type ProjectDeleteRequest struct {
-	ProjectName string `json:"projectName" validate:"required"`
-	ProjectId   string `json:"projectId" validate:"required"`
-}
-
-func ProjectDeleteRequestExample() ProjectDeleteRequest {
-	return ProjectDeleteRequest{
-		ProjectName: "mogenius",
-		ProjectId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-	}
 }
 
 type NamespaceCreateRequest struct {
