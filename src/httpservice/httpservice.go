@@ -377,6 +377,7 @@ func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
 		select {
 		case self.responseStream <- message:
 			// Message sent successfully
+		default:
 		}
 
 		self.broadcast(message)
