@@ -14,13 +14,19 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"net/http"
 	"strconv"
+	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 type HttpService struct {
-	logger  *slog.Logger
-	config  config.ConfigModule
-	dbstats kubernetes.BoltDbStats
-	api     core.Api
+	logger         *slog.Logger
+	config         config.ConfigModule
+	dbstats        kubernetes.BoltDbStats
+	api            core.Api
+	clients        map[*websocket.Conn]bool
+	mutex          sync.Mutex
+	responseStream chan []byte
 }
 
 func NewHttpApi(
@@ -32,11 +38,14 @@ func NewHttpApi(
 	assert.Assert(logManagerModule != nil)
 	assert.Assert(configModule != nil)
 	assert.Assert(dbstats != nil)
+
 	return &HttpService{
-		logger:  logManagerModule.CreateLogger("http"),
-		config:  configModule,
-		dbstats: dbstats,
-		api:     apiModule,
+		logger:         logManagerModule.CreateLogger("http"),
+		config:         configModule,
+		dbstats:        dbstats,
+		api:            apiModule,
+		clients:        make(map[*websocket.Conn]bool),
+		responseStream: make(chan []byte),
 	}
 }
 
@@ -54,6 +63,7 @@ func (self *HttpService) Run(addr string) {
 	mux.Handle("POST /cni", self.withRequestLogging(http.HandlerFunc(self.postCni)))
 	mux.Handle("POST /podstats", self.withRequestLogging(http.HandlerFunc(self.postPodStats)))
 	mux.Handle("POST /nodestats", self.withRequestLogging(http.HandlerFunc(self.postNodeStats)))
+	mux.Handle("GET /ws", self.withRequestLogging(http.HandlerFunc(self.handleWs)))
 
 	moDebug, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil, err)
@@ -297,4 +307,90 @@ func (self *HttpService) withRequestLogging(handler http.Handler) http.Handler {
 		)
 		handler.ServeHTTP(w, r)
 	})
+}
+
+// WEBSOCKET
+// only for internal connections from pod-stat-collector or traffic-collector
+// this enables us to have a bi-directional communication channel
+// Example:
+// User whats to get CPU utilization stream for all Nodes
+// 1. User sends a pattern "cpu-utilization"
+// 2. K8sManager broadcasts the message to all connected clients (DaemonSet in this case, pod on each node)
+// 3. All connected Pods which implement the pattern respond with the datastream
+// 4. K8sManager receives the datastream and relay it to the requesting client via websocket
+
+func (self *HttpService) addClient(client *websocket.Conn) {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
+	self.clients[client] = true
+}
+
+func (self *HttpService) removeClient(client *websocket.Conn) {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
+	delete(self.clients, client)
+}
+
+func (self *HttpService) broadcast(message []byte) {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
+	for client := range self.clients {
+		if err := client.WriteMessage(websocket.TextMessage, message); err != nil {
+
+			client.Close()
+			delete(self.clients, client)
+		}
+	}
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		self.logger.Error("Error", "Upgrading connection to WebSocket", err)
+		return
+	}
+	defer func() {
+		if ws != nil {
+			ws.Close()
+		}
+		self.removeClient(ws)
+	}()
+
+	self.addClient(ws)
+	self.logger.Info("WebSocket connection established")
+
+	for {
+		_, message, err := ws.ReadMessage()
+		if err != nil {
+			self.logger.Error("Error", "Reading message from websocket", err)
+			self.removeClient(ws)
+			break
+		}
+
+		self.logger.Info("Info", "Received message on websocket", string(message))
+		select {
+		case self.responseStream <- message:
+			// Message sent successfully
+		}
+
+		self.broadcast(message)
+	}
+}
+
+func (self *HttpService) requestCpuUtilizationStream() {
+	self.broadcast([]byte("cpu-utilization"))
+}
+
+func (self *HttpService) requestMemUtilizationStream() {
+	self.broadcast([]byte("mem-utilization"))
+}
+
+func (self *HttpService) requestTrafficUtilizationStream() {
+	self.broadcast([]byte("traffic-utilization"))
 }
