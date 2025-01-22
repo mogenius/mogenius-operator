@@ -7,7 +7,7 @@ require (
 	github.com/alecthomas/kong v1.6.1
 	github.com/cert-manager/cert-manager v1.16.3
 	github.com/creack/pty v1.1.24
-	github.com/dgraph-io/badger/v4 v4.5.0
+	github.com/dgraph-io/badger/v4 v4.5.1
 	github.com/go-git/go-git/v5 v5.13.1
 	github.com/go-playground/validator/v10 v10.24.0
 	github.com/gorilla/websocket v1.5.3
