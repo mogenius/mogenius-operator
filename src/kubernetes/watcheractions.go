@@ -227,6 +227,18 @@ func GetUnstructuredResourceList(group string, version string, name string, name
 	}
 }
 
+func GetUnstructuredResourceListFromStore(group string, kind string, version string, name string, namespace *string) (unstructured.UnstructuredList, error) {
+	results := unstructured.UnstructuredList{}
+	if namespace == nil {
+		namespace = utils.Pointer("")
+	}
+	result := store.GetResourceByKindAndNamespace(group, kind, *namespace)
+	if result != nil {
+		results.Items = result
+	}
+	return results, nil
+}
+
 func GetUnstructuredNamespaceResourceList(namespace string, ignoreResources []*utils.SyncResourceEntry) (*[]unstructured.Unstructured, error) {
 	resources, err := GetAvailableResources()
 	if err != nil {

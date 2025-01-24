@@ -892,8 +892,7 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_GET_WORKLOAD_LIST:
 		data := utils.SyncResourceEntry{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		list, err := kubernetes.GetUnstructuredResourceList(data.Group, data.Version, data.Name, data.Namespace)
-		return NewMessageResponse(list, err)
+		return NewMessageResponse(kubernetes.GetUnstructuredResourceListFromStore(data.Group, data.Kind, data.Version, data.Name, data.Namespace))
 	case structs.PAT_GET_NAMESPACE_WORKLOAD_LIST:
 		data := kubernetes.GetUnstructuredNamespaceResourceListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
