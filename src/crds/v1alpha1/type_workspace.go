@@ -34,8 +34,9 @@ type WorkspaceSpec struct {
 }
 
 type WorkspaceResourceIdentifier struct {
-	Id   string        `json:"id,omitempty"`
-	Type WorkspaceType `json:"type,omitempty"`
+	Id        string        `json:"id,omitempty"`
+	Type      WorkspaceType `json:"type,omitempty"`
+	Namespace string        `json:"namespace,omitempty"`
 }
 
 type WorkspaceStatus struct{}
