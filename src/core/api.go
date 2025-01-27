@@ -71,8 +71,9 @@ type GetAllWorkspacesResult struct {
 }
 
 type GetAllWorkspacesResultResource struct {
-	Id   string `json:"id" validate:"required"`
-	Type string `json:"type" validate:"required"`
+	Id        string `json:"id" validate:"required"`
+	Type      string `json:"type" validate:"required"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 func (self *api) GetAllWorkspaces() ([]GetAllWorkspacesResult, error) {
@@ -108,8 +109,9 @@ type GetWorkspaceResult struct {
 }
 
 type GetWorkspaceResultResource struct {
-	Id   string `json:"id" validate:"required"`
-	Type string `json:"type" validate:"required"`
+	Id        string `json:"id" validate:"required"`
+	Type      string `json:"type" validate:"required"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
