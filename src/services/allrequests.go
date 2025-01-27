@@ -940,8 +940,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
 		for _, s := range data.Resources {
 			resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
-				Id:   s.Id,
-				Type: s.Type,
+				Id:        s.Id,
+				Type:      s.Type,
+				Namespace: s.Namespace,
 			})
 		}
 		result, err := api.CreateWorkspace(data.Name, v1alpha1.WorkspaceSpec{
@@ -960,8 +961,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
 		for _, s := range data.Resources {
 			resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
-				Id:   s.Id,
-				Type: s.Type,
+				Id:        s.Id,
+				Type:      s.Type,
+				Namespace: s.Namespace,
 			})
 		}
 		result, err := api.UpdateWorkspace(data.Name, v1alpha1.WorkspaceSpec{
