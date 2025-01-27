@@ -44,6 +44,8 @@ spec:
                   properties:
                     id:
                       type: string
+                    namespace:
+                      type: string
                     type:
                       type: string
                   type: object
