@@ -92,8 +92,9 @@ func (self *api) GetAllWorkspaces() ([]GetAllWorkspacesResult, error) {
 		}
 		for _, resource := range workspace.Spec.Resources {
 			workspaceResult.Resources = append(workspaceResult.Resources, GetAllWorkspacesResultResource{
-				Id:   resource.Id,
-				Type: string(resource.Type),
+				Id:        resource.Id,
+				Type:      string(resource.Type),
+				Namespace: string(resource.Namespace),
 			})
 		}
 		result = append(result, workspaceResult)
@@ -126,8 +127,9 @@ func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
 	}
 	for _, resource := range workspace.Spec.Resources {
 		result.Resources = append(result.Resources, GetWorkspaceResultResource{
-			Id:   resource.Id,
-			Type: string(resource.Type),
+			Id:        resource.Id,
+			Type:      string(resource.Type),
+			Namespace: string(resource.Namespace),
 		})
 	}
 
