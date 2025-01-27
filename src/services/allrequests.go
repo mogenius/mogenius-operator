@@ -937,17 +937,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_CREATE_WORKSPACE:
 		data := utils.WebsocketRequestCreateWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
-		for _, s := range data.Resources {
-			resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
-				Id:        s.Id,
-				Type:      s.Type,
-				Namespace: s.Namespace,
-			})
-		}
 		result, err := api.CreateWorkspace(data.Name, v1alpha1.WorkspaceSpec{
 			Name:      data.Name,
-			Resources: resourceIds,
+			Resources: data.Resources,
 		})
 		return NewMessageResponse(result, err)
 	case structs.PAT_GET_WORKSPACE:
@@ -958,17 +950,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_UPDATE_WORKSPACE:
 		data := utils.WebsocketRequestUpdateWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
-		for _, s := range data.Resources {
-			resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
-				Id:        s.Id,
-				Type:      s.Type,
-				Namespace: s.Namespace,
-			})
-		}
 		result, err := api.UpdateWorkspace(data.Name, v1alpha1.WorkspaceSpec{
 			Name:      data.DisplayName,
-			Resources: resourceIds,
+			Resources: data.Resources,
 		})
 		return NewMessageResponse(result, err)
 	case structs.PAT_DELETE_WORKSPACE:
