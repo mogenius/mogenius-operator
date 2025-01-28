@@ -33,7 +33,9 @@ type WebsocketClient interface {
 	IsTerminated() bool
 
 	SetUrl(url url.URL) error
+	GetUrl() (url.URL, error)
 	SetHeader(header http.Header) error
+	GetHeader() (http.Header, error)
 
 	WriteJSON(data interface{}) error
 	ReadJSON(buf interface{}) error
@@ -62,6 +64,20 @@ func (self *websocketClient) SetUrl(url url.URL) error {
 	}
 }
 
+func (self *websocketClient) GetUrl() (url.URL, error) {
+	select {
+	case <-self.ctx.Done():
+		return url.URL{}, fmt.Errorf("WebsocketClient is terminated")
+	case self.apiGetUrlTx <- struct{}{}:
+		select {
+		case <-self.ctx.Done():
+			return url.URL{}, fmt.Errorf("WebsocketClient is terminated")
+		case url := <-self.apiGetUrlRx:
+			return url, nil
+		}
+	}
+}
+
 func (self *websocketClient) SetHeader(header http.Header) error {
 	select {
 	case <-self.ctx.Done():
@@ -72,6 +88,20 @@ func (self *websocketClient) SetHeader(header http.Header) error {
 			return fmt.Errorf("WebsocketClient is terminated")
 		case err := <-self.apiSetHeaderRx:
 			return err
+		}
+	}
+}
+
+func (self *websocketClient) GetHeader() (http.Header, error) {
+	select {
+	case <-self.ctx.Done():
+		return http.Header{}, fmt.Errorf("WebsocketClient is terminated")
+	case self.apiGetHeaderTx <- struct{}{}:
+		select {
+		case <-self.ctx.Done():
+			return http.Header{}, fmt.Errorf("WebsocketClient is terminated")
+		case header := <-self.apiGetHeaderRx:
+			return header, nil
 		}
 	}
 }
@@ -235,9 +265,17 @@ type websocketClient struct {
 	apiSetUrlTx chan url.URL
 	apiSetUrlRx chan error
 
+	// api: self.GetUrl()
+	apiGetUrlTx chan struct{}
+	apiGetUrlRx chan url.URL
+
 	// api: self.SetHeader()
 	apiSetHeaderTx chan http.Header
 	apiSetHeaderRx chan error
+
+	// api: self.GetHeader()
+	apiGetHeaderTx chan struct{}
+	apiGetHeaderRx chan http.Header
 
 	// api: self.Connect()
 	apiConnectTx chan struct{}
@@ -380,12 +418,16 @@ func (self *websocketClient) startRuntime() {
 				go self.requestReconnect()
 			}
 			self.apiSetUrlRx <- nil
+		case <-self.apiGetUrlTx:
+			self.apiGetUrlRx <- *url
 		case newHeader := <-self.apiSetHeaderTx:
 			header = &newHeader
 			if isRunning {
 				go self.requestReconnect()
 			}
 			self.apiSetHeaderRx <- nil
+		case <-self.apiGetHeaderTx:
+			self.apiGetHeaderRx <- *header
 		case <-self.apiConnectTx:
 			if isRunning {
 				self.apiConnectRx <- fmt.Errorf("already connected")
