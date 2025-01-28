@@ -59,10 +59,16 @@ func (self *HttpService) Run(addr string) {
 	// Deprecated: Typo in `GET /healtz`. Use `GET /healthz` instead.
 	mux.Handle("GET /healtz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
+
+	// Deprecated: will be removed when ws is active
 	mux.Handle("POST /traffic", self.withRequestLogging(http.HandlerFunc(self.postTraffic)))
+	// Deprecated: will be removed when ws is active
 	mux.Handle("POST /cni", self.withRequestLogging(http.HandlerFunc(self.postCni)))
+	// Deprecated: will be removed when ws is active
 	mux.Handle("POST /podstats", self.withRequestLogging(http.HandlerFunc(self.postPodStats)))
+	// Deprecated: will be removed when ws is active
 	mux.Handle("POST /nodestats", self.withRequestLogging(http.HandlerFunc(self.postNodeStats)))
+
 	mux.Handle("GET /ws", self.withRequestLogging(http.HandlerFunc(self.handleWs)))
 
 	moDebug, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
@@ -102,6 +108,7 @@ func (h *HttpService) getHealthz(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+// Deprecated: will be removed when ws is active
 func (h *HttpService) postTraffic(w http.ResponseWriter, r *http.Request) {
 	debugMode, err := strconv.ParseBool(h.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil, err)
@@ -139,6 +146,7 @@ func (h *HttpService) postTraffic(w http.ResponseWriter, r *http.Request) {
 	h.dbstats.AddInterfaceStatsToDb(*stat)
 }
 
+// Deprecated: will be removed when ws is active
 func (h *HttpService) postCni(w http.ResponseWriter, r *http.Request) {
 	debugMode, err := strconv.ParseBool(h.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil)
@@ -176,6 +184,7 @@ func (h *HttpService) postCni(w http.ResponseWriter, r *http.Request) {
 	h.dbstats.ReplaceCniData(*cniData)
 }
 
+// Deprecated: will be removed when ws is active
 func (self *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {
 	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil, err)
@@ -213,6 +222,7 @@ func (self *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {
 	self.dbstats.AddPodStatsToDb(*stat)
 }
 
+// Deprecated: will be removed when ws is active
 func (self *HttpService) postNodeStats(w http.ResponseWriter, r *http.Request) {
 	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil, err)
@@ -319,6 +329,17 @@ func (self *HttpService) withRequestLogging(handler http.Handler) http.Handler {
 // 3. All connected Pods which implement the pattern respond with the datastream
 // 4. K8sManager receives the datastream and relay it to the requesting client via websocket
 
+const (
+	REQUEST_TRAFFIC_UTILIZATION = "traffic-utilization"
+	REQUEST_CPU_UTILIZATION     = "cpu-utilization"
+	REQUEST_MEM_UTILIZATION     = "mem-utilization"
+
+	TRAFFIC_STATUS   = "traffic-status"
+	CNI_STATUS       = "cni-status"
+	PODSTATS_STATUS  = "podstats-status"
+	NODESTATS_STATUS = "nodestats-status"
+)
+
 func (self *HttpService) addClient(client *websocket.Conn) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
@@ -366,32 +387,109 @@ func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
 	self.logger.Info("WebSocket connection established")
 
 	for {
-		_, message, err := ws.ReadMessage()
+		datagram := &structs.Datagram{}
+		err := ws.ReadJSON(datagram)
 		if err != nil {
 			self.logger.Error("Error", "Reading message from websocket", err)
 			self.removeClient(ws)
 			break
 		}
 
-		self.logger.Info("Info", "Received message on websocket", string(message))
-		select {
-		case self.responseStream <- message:
-			// Message sent successfully
-		default:
-		}
+		self.handleDatagram(datagram)
+	}
+}
 
-		self.broadcast(message)
+func (self *HttpService) handleDatagram(datagram *structs.Datagram) {
+	switch datagram.Pattern {
+	// STREAM TO VIEWER
+	case REQUEST_TRAFFIC_UTILIZATION:
+		self.relayStreamToRequester(datagram)
+
+	case REQUEST_CPU_UTILIZATION:
+		self.relayStreamToRequester(datagram)
+
+	case REQUEST_MEM_UTILIZATION:
+		self.relayStreamToRequester(datagram)
+
+	// SAVE TO DB
+	case TRAFFIC_STATUS:
+		stat := &structs.InterfaceStats{}
+		dataBytes, err := json.Marshal(datagram.Payload)
+		if err != nil {
+			self.logger.Error("failed to marshal interface stats", "error", err)
+			return
+		}
+		err = json.Unmarshal(dataBytes, stat)
+		if err != nil {
+			self.logger.Error("failed to unmarshal interface stats", "error", err)
+			return
+		}
+		self.dbstats.AddInterfaceStatsToDb(*stat)
+
+	case CNI_STATUS:
+		cniData := &[]structs.CniData{}
+		dataBytes, err := json.Marshal(datagram.Payload)
+		if err != nil {
+			self.logger.Error("failed to marshal cniData", "error", err)
+			return
+		}
+		err = json.Unmarshal(dataBytes, cniData)
+		if err != nil {
+			self.logger.Error("failed to unmarshal cniData", "error", err)
+			return
+		}
+		self.dbstats.ReplaceCniData(*cniData)
+
+	case PODSTATS_STATUS:
+		stat := &structs.PodStats{}
+		dataBytes, err := json.Marshal(datagram.Payload)
+		if err != nil {
+			self.logger.Error("failed to marshal pod stats", "error", err)
+			return
+		}
+		err = json.Unmarshal(dataBytes, stat)
+		if err != nil {
+			self.logger.Error("failed to unmarshal pod stats", "error", err)
+			return
+		}
+		self.dbstats.AddPodStatsToDb(*stat)
+
+	case NODESTATS_STATUS:
+		stat := &structs.NodeStats{}
+		dataBytes, err := json.Marshal(datagram.Payload)
+		if err != nil {
+			self.logger.Error("failed to marshal node stats", "error", err)
+			return
+		}
+		err = json.Unmarshal(dataBytes, stat)
+		if err != nil {
+			self.logger.Error("failed to unmarshal node stats", "error", err)
+			return
+		}
+		self.dbstats.AddNodeStatsToDb(*stat)
+
+	default:
+		self.logger.Warn("Unknown pattern", "pattern", datagram.Pattern)
+	}
+}
+
+func (self *HttpService) relayStreamToRequester(datagram *structs.Datagram) {
+	select {
+	case self.responseStream <- []byte(utils.PrettyPrintString(datagram.Payload)):
+		// Message sent successfully
+	default:
+		self.logger.Error("Error", "Failed to send message to RelayStreamToRequester", string(utils.PrettyPrintInterface(datagram)))
 	}
 }
 
 func (self *HttpService) requestCpuUtilizationStream() {
-	self.broadcast([]byte("cpu-utilization"))
+	self.broadcast([]byte(REQUEST_CPU_UTILIZATION))
 }
 
 func (self *HttpService) requestMemUtilizationStream() {
-	self.broadcast([]byte("mem-utilization"))
+	self.broadcast([]byte(REQUEST_MEM_UTILIZATION))
 }
 
 func (self *HttpService) requestTrafficUtilizationStream() {
-	self.broadcast([]byte("traffic-utilization"))
+	self.broadcast([]byte(REQUEST_TRAFFIC_UTILIZATION))
 }
