@@ -9,6 +9,7 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
+	"mogenius-k8s-manager/src/websocket"
 	"os"
 	"slices"
 	"strconv"
@@ -18,11 +19,9 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	jsoniter "github.com/json-iterator/go"
-
-	"github.com/gorilla/websocket"
 )
 
-func StartK8sManager() {
+func StartK8sManager(jobClient websocket.WebsocketClient) {
 	updateCheck()
 	versionTicker()
 
@@ -42,17 +41,10 @@ func StartK8sManager() {
 		}
 	}()
 
-	for status := range structs.JobConnectionStatus {
-		if status {
-			// CONNECTED
-			done := make(chan struct{})
-			parseMessage(done, structs.JobQueueConnection)
-			structs.JobQueueConnection.Close()
-		}
-	}
+	startMessageHandler(jobClient)
 }
 
-func parseMessage(done chan struct{}, conn *websocket.Conn) {
+func startMessageHandler(jobClient websocket.WebsocketClient) {
 	var preparedFileName *string
 	var preparedFileRequest *services.FilesUploadRequest
 	var openFile *os.File
@@ -61,14 +53,12 @@ func parseMessage(done chan struct{}, conn *websocket.Conn) {
 	semaphoreChan := make(chan struct{}, maxGoroutines)
 	var wg sync.WaitGroup
 
-	defer func() {
-		close(done)
-	}()
-	for {
-		_, message, err := conn.ReadMessage()
+	for !jobClient.IsTerminated() {
+		_, message, err := jobClient.ReadMessage()
 		if err != nil {
-			socketClientLogger.Error("failed to read message from websocket connection", "jobConnectionUrl", structs.JobConnectionUrl, "error", err)
-			return
+			socketClientLogger.Error("failed to read message from websocket connection", "error", err)
+			time.Sleep(time.Second) // wait before next attempt to read
+			continue
 		}
 		rawDataStr := string(message)
 		if rawDataStr == "" {
@@ -90,7 +80,7 @@ func parseMessage(done chan struct{}, conn *websocket.Conn) {
 			os.Remove(*preparedFileName)
 
 			var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
-			ack.Send()
+			ack.Send(jobClient)
 
 			preparedFileName = nil
 			preparedFileRequest = nil
@@ -137,18 +127,19 @@ func parseMessage(done chan struct{}, conn *websocket.Conn) {
 				defer wg.Done()
 				responsePayload := services.ExecuteCommandRequest(datagram)
 				result := structs.CreateDatagramRequest(datagram, responsePayload)
-				result.Send()
+				result.Send(jobClient)
 				<-semaphoreChan
 			}()
 		} else if slices.Contains(structs.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 			preparedFileRequest = services.ExecuteBinaryRequestUpload(datagram)
 
 			var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
-			ack.Send()
+			ack.Send(jobClient)
 		} else {
 			socketClientLogger.Error("Pattern not found", "pattern", datagram.Pattern)
 		}
 	}
+	socketClientLogger.Debug("api messagehandler finished as the websocket client was terminated")
 }
 
 func versionTicker() {
