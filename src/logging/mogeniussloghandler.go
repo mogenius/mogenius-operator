@@ -96,6 +96,8 @@ func (self *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record)
 		panic("The LogManager enforces an component attribute to exist: " + err.Error())
 	}
 
+	scope := self.tryGetScope()
+
 	// Apply LOG_FILTER
 	if logFilter != "" && !slices.Contains(logFilterComponents, component) {
 		return nil
@@ -110,7 +112,7 @@ func (self *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record)
 
 	payload := getPayload(record)
 
-	err = printLogLine(os.Stderr, isatty.IsTerminal(os.Stderr.Fd()), level, component, source, message, payload)
+	err = printLogLine(os.Stderr, isatty.IsTerminal(os.Stderr.Fd()), level, component, scope, source, message, payload)
 	if err != nil {
 		return err
 	}
@@ -123,6 +125,7 @@ func printLogLine(
 	enableColor bool,
 	level string,
 	component string,
+	scope *string,
 	source string,
 	message string,
 	payload map[string]any,
@@ -142,6 +145,10 @@ func printLogLine(
 			panic(fmt.Errorf("unsupported error level: %s", level))
 		}
 		component = shell.Magenta + component + shell.Reset
+		if scope != nil {
+			mscope := shell.FaintYellow + *scope + shell.Reset
+			component = component + shell.Faint + "{" + shell.Reset + mscope + shell.Faint + "}" + shell.Reset
+		}
 		source = shell.Faint + source + shell.Reset
 		message = shell.Normal + message + shell.Reset
 
@@ -216,6 +223,16 @@ func (self *MogeniusSlogHandler) getComponent() (string, error) {
 		}
 	}
 	return "", fmt.Errorf("failed to find record component")
+}
+
+func (self *MogeniusSlogHandler) tryGetScope() *string {
+	for _, attr := range self.attrs {
+		if attr.Key == "scope" {
+			scope := attr.Value.String()
+			return &scope
+		}
+	}
+	return nil
 }
 
 func getSourceString(record slog.Record) (string, error) {
