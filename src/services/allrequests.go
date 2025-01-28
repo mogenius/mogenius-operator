@@ -896,11 +896,11 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_GET_NAMESPACE_WORKLOAD_LIST:
 		data := kubernetes.GetUnstructuredNamespaceResourceListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return NewMessageResponse(kubernetes.GetUnstructuredNamespaceResourceList(data.Namespace, data.IgnoreResources))
+		return NewMessageResponse(kubernetes.GetUnstructuredNamespaceResourceList(data.Namespace, data.WhiteList, data.BlackList))
 	case structs.PAT_GET_LABELED_WORKLOAD_LIST:
 		data := kubernetes.GetUnstructuredLabeledResourceListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		list, err := kubernetes.GetUnstructuredLabeledResourceList(data.Label, data.IgnoreResources)
+		list, err := kubernetes.GetUnstructuredLabeledResourceList(data.Label, data.WhiteList, data.BlackList)
 		return NewMessageResponse(list, err)
 	case structs.PAT_DESCRIBE_WORKLOAD:
 		data := utils.SyncResourceItem{}

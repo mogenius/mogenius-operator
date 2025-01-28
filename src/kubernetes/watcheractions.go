@@ -21,13 +21,15 @@ import (
 )
 
 type GetUnstructuredNamespaceResourceListRequest struct {
-	Namespace       string                     `json:"namespace" validate:"required"`
-	IgnoreResources []*utils.SyncResourceEntry `json:"ignoreResources"`
+	Namespace string                     `json:"namespace" validate:"required"`
+	WhiteList []*utils.SyncResourceEntry `json:"whiteList"`
+	BlackList []*utils.SyncResourceEntry `json:"blackList"`
 }
 
 type GetUnstructuredLabeledResourceListRequest struct {
-	Label           string                     `json:"label" validate:"required"`
-	IgnoreResources []*utils.SyncResourceEntry `json:"ignoreResources"`
+	Label     string                     `json:"label" validate:"required"`
+	WhiteList []*utils.SyncResourceEntry `json:"whiteList"`
+	BlackList []*utils.SyncResourceEntry `json:"blackList"`
 }
 
 func containsResourceEntry(resources []*utils.SyncResourceEntry, target utils.SyncResourceEntry) bool {
@@ -239,10 +241,18 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 	return results, nil
 }
 
-func GetUnstructuredNamespaceResourceList(namespace string, ignoreResources []*utils.SyncResourceEntry) (*[]unstructured.Unstructured, error) {
+func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.SyncResourceEntry, blackList []*utils.SyncResourceEntry) (*[]unstructured.Unstructured, error) {
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return nil, err
+	}
+
+	if whitelist == nil {
+		whitelist = []*utils.SyncResourceEntry{}
+	}
+
+	if blackList == nil {
+		blackList = []*utils.SyncResourceEntry{}
 	}
 
 	results := []unstructured.Unstructured{}
@@ -256,9 +266,10 @@ func GetUnstructuredNamespaceResourceList(namespace string, ignoreResources []*u
 			//		k8sLogger.Error("Error querying resource", "error", err)
 			//	}
 			//}
-			if ignoreResources != nil && containsResourceEntry(ignoreResources, v) {
+			if (len(whitelist) > 0 && !containsResourceEntry(whitelist, v)) || (blackList != nil && containsResourceEntry(blackList, v)) {
 				continue
 			}
+
 			result := store.GetResourceByKindAndNamespace(v.Group, v.Kind, namespace)
 			if result != nil {
 				results = append(results, result...)
@@ -268,10 +279,18 @@ func GetUnstructuredNamespaceResourceList(namespace string, ignoreResources []*u
 	return &results, nil
 }
 
-func GetUnstructuredLabeledResourceList(label string, ignoreResources []*utils.SyncResourceEntry) (*unstructured.UnstructuredList, error) {
+func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncResourceEntry, blackList []*utils.SyncResourceEntry) (*unstructured.UnstructuredList, error) {
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return nil, err
+	}
+
+	if whitelist == nil {
+		whitelist = []*utils.SyncResourceEntry{}
+	}
+
+	if blackList == nil {
+		blackList = []*utils.SyncResourceEntry{}
 	}
 
 	results := []unstructured.Unstructured{}
@@ -281,7 +300,7 @@ func GetUnstructuredLabeledResourceList(label string, ignoreResources []*utils.S
 	for _, v := range resources {
 		if v.Namespace != nil {
 
-			if ignoreResources != nil && containsResourceEntry(ignoreResources, v) {
+			if (len(whitelist) > 0 && !containsResourceEntry(whitelist, v)) || (blackList != nil && containsResourceEntry(blackList, v)) {
 				continue
 			}
 			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).List(context.TODO(), metav1.ListOptions{LabelSelector: label})
