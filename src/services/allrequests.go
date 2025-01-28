@@ -892,16 +892,15 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	case structs.PAT_GET_WORKLOAD_LIST:
 		data := utils.SyncResourceEntry{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		list, err := kubernetes.GetUnstructuredResourceList(data.Group, data.Version, data.Name, data.Namespace)
-		return NewMessageResponse(list, err)
+		return NewMessageResponse(kubernetes.GetUnstructuredResourceListFromStore(data.Group, data.Kind, data.Version, data.Name, data.Namespace))
 	case structs.PAT_GET_NAMESPACE_WORKLOAD_LIST:
 		data := kubernetes.GetUnstructuredNamespaceResourceListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return NewMessageResponse(kubernetes.GetUnstructuredNamespaceResourceList(data.Namespace, data.IgnoreResources))
+		return NewMessageResponse(kubernetes.GetUnstructuredNamespaceResourceList(data.Namespace, data.WhiteList, data.BlackList))
 	case structs.PAT_GET_LABELED_WORKLOAD_LIST:
 		data := kubernetes.GetUnstructuredLabeledResourceListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		list, err := kubernetes.GetUnstructuredLabeledResourceList(data.Label, data.IgnoreResources)
+		list, err := kubernetes.GetUnstructuredLabeledResourceList(data.Label, data.WhiteList, data.BlackList)
 		return NewMessageResponse(list, err)
 	case structs.PAT_DESCRIBE_WORKLOAD:
 		data := utils.SyncResourceItem{}
@@ -941,8 +940,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
 		for _, s := range data.Resources {
 			resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
-				Id:   s.Id,
-				Type: s.Type,
+				Id:        s.Id,
+				Type:      s.Type,
+				Namespace: s.Namespace,
 			})
 		}
 		result, err := api.CreateWorkspace(data.Name, v1alpha1.WorkspaceSpec{
@@ -961,8 +961,9 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 		resourceIds := []v1alpha1.WorkspaceResourceIdentifier{}
 		for _, s := range data.Resources {
 			resourceIds = append(resourceIds, v1alpha1.WorkspaceResourceIdentifier{
-				Id:   s.Id,
-				Type: s.Type,
+				Id:        s.Id,
+				Type:      s.Type,
+				Namespace: s.Namespace,
 			})
 		}
 		result, err := api.UpdateWorkspace(data.Name, v1alpha1.WorkspaceSpec{

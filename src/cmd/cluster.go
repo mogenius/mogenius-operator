@@ -22,7 +22,9 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
+	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
+	"net/url"
 	"strconv"
 )
 
@@ -119,8 +121,55 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		mokubernetes.InitOrUpdateCrds()
 
+		jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
+		url, err := url.Parse(configModule.Get("MO_API_SERVER"))
+		assert.Assert(err == nil, err)
+		err = jobConnectionClient.SetUrl(*url)
+		assert.Assert(err == nil, err)
+		err = jobConnectionClient.SetHeader(utils.HttpHeader(""))
+		assert.Assert(err == nil, err)
+		err = jobConnectionClient.Connect()
+		if err != nil {
+			cmdLogger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
+			shutdown.SendShutdownSignal(true)
+			select {}
+		}
+		assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
+		configModule.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
+			url, err := url.Parse(value)
+			assert.Assert(err == nil, err)
+			err = jobConnectionClient.SetUrl(*url)
+			if err != nil {
+				cmdLogger.Error("failed to update jobConnectionClient URL", "url", url.String(), "error", err)
+			}
+		})
+		configModule.OnChanged([]string{
+			"MO_API_KEY",
+			"MO_CLUSTER_MFA_ID",
+			"MO_CLUSTER_NAME",
+		}, func(key string, value string, isSecret bool) {
+			header, err := jobConnectionClient.GetHeader()
+			assert.Assert(err == nil, err)
+			if key == "MO_API_KEY" {
+				header["x-authorization"] = []string{value}
+			}
+
+			if key == "MO_CLUSTER_MFA_ID" {
+				header["x-cluster-mfa-id"] = []string{value}
+			}
+
+			if key == "MO_CLUSTER_NAME" {
+				header["x-cluster-name"] = []string{value}
+			}
+			err = jobConnectionClient.SetHeader(header)
+			if err != nil {
+				cmdLogger.Error("failed to update jobConnectionClient header", "header", header, "error", err)
+			}
+		})
+		shutdown.Add(jobConnectionClient.Terminate)
+
 		go structs.ConnectToEventQueue()
-		go structs.ConnectToJobQueue()
+		go structs.ConnectToJobQueue(jobConnectionClient)
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 
@@ -142,7 +191,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			}
 		}()
 
-		socketclient.StartK8sManager()
+		socketclient.StartK8sManager(jobConnectionClient)
 	}()
 
 	shutdown.Listen()

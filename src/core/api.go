@@ -71,8 +71,9 @@ type GetAllWorkspacesResult struct {
 }
 
 type GetAllWorkspacesResultResource struct {
-	Id   string `json:"id" validate:"required"`
-	Type string `json:"type" validate:"required"`
+	Id        string `json:"id" validate:"required"`
+	Type      string `json:"type" validate:"required"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 func (self *api) GetAllWorkspaces() ([]GetAllWorkspacesResult, error) {
@@ -91,8 +92,9 @@ func (self *api) GetAllWorkspaces() ([]GetAllWorkspacesResult, error) {
 		}
 		for _, resource := range workspace.Spec.Resources {
 			workspaceResult.Resources = append(workspaceResult.Resources, GetAllWorkspacesResultResource{
-				Id:   resource.Id,
-				Type: string(resource.Type),
+				Id:        resource.Id,
+				Type:      string(resource.Type),
+				Namespace: string(resource.Namespace),
 			})
 		}
 		result = append(result, workspaceResult)
@@ -108,8 +110,9 @@ type GetWorkspaceResult struct {
 }
 
 type GetWorkspaceResultResource struct {
-	Id   string `json:"id" validate:"required"`
-	Type string `json:"type" validate:"required"`
+	Id        string `json:"id" validate:"required"`
+	Type      string `json:"type" validate:"required"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
@@ -124,8 +127,9 @@ func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
 	}
 	for _, resource := range workspace.Spec.Resources {
 		result.Resources = append(result.Resources, GetWorkspaceResultResource{
-			Id:   resource.Id,
-			Type: string(resource.Type),
+			Id:        resource.Id,
+			Type:      string(resource.Type),
+			Namespace: string(resource.Namespace),
 		})
 	}
 

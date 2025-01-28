@@ -165,7 +165,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_CLUSTER_NAME",
-		Description: utils.Pointer("the name of the kubernetes cluster"),
+		Description: utils.Pointer("Name of the kubernetes cluster"),
 		Envs:        []string{"cluster_name"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
