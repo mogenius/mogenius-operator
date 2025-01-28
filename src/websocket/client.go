@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	gorillaWebsocket "github.com/gorilla/websocket"
@@ -603,13 +606,39 @@ func (self *websocketClient) requestReconnect() {
 }
 
 func (self *websocketClient) healthcheck(err error) {
+	if err == nil {
+		return
+	}
+	if self.IsTerminated() {
+		return
+	}
 	select {
 	case <-self.ctx.Done():
 		return
 	default:
 		if gorillaWebsocket.IsUnexpectedCloseError(err) {
-			self.runtimeLogger.Debug("detected close error - triggering reconnect")
+			self.runtimeLogger.Debug("detected close error - triggering reconnect", "error", err)
 			go self.requestReconnect()
+			return
+		}
+		if opErr, ok := err.(*net.OpError); ok {
+			if syscallErr, ok := opErr.Err.(*os.SyscallError); ok {
+				if syscallErr.Err == syscall.ECONNRESET {
+					self.runtimeLogger.Debug("detected connection reset error - triggering reconnect", "error", err)
+					go self.requestReconnect()
+					return
+				}
+				if syscallErr.Err == syscall.ECONNREFUSED {
+					self.runtimeLogger.Debug("detected connection refused error - triggering reconnect", "error", err)
+					go self.requestReconnect()
+					return
+				}
+				if syscallErr.Err == syscall.ECONNABORTED {
+					self.runtimeLogger.Debug("detected connection aborted error - triggering reconnect", "error", err)
+					go self.requestReconnect()
+					return
+				}
+			}
 		}
 	}
 }
