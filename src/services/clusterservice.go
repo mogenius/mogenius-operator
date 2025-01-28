@@ -489,6 +489,7 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 func InstallTrafficCollector() (string, error) {
 	r := ClusterHelmRequest{
 		HelmRepoUrl:     MogeniusHelmIndex,
+		HelmRepoName:    "mogenius",
 		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
 		HelmChartName:   "mogenius/" + utils.HelmReleaseNameTrafficCollector,
 		HelmValues: fmt.Sprintf(`global:
