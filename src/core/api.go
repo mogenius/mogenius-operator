@@ -43,7 +43,7 @@ import (
 //	| - Low-Level Ops   |   | - Low-Level Ops   |   | - Low-Level Ops   |
 //	+-------------------+   +-------------------+   +-------------------+
 type Api interface {
-	GetAllWorkspaces() ([]GetAllWorkspacesResult, error)
+	GetAllWorkspaces() ([]GetWorkspaceResult, error)
 	GetWorkspace(name string) (*GetWorkspaceResult, error)
 	CreateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error)
 	UpdateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error)
@@ -64,20 +64,14 @@ func NewApi(logger *slog.Logger, workspaceManager WorkspaceManager) Api {
 	return apiModule
 }
 
-type GetAllWorkspacesResult struct {
-	Name              string                           `json:"name" validate:"required"`
-	CreationTimestamp v1.Time                          `json:"creationTimestamp,omitempty"`
-	Resources         []GetAllWorkspacesResultResource `json:"resources" validate:"required"`
+type GetWorkspaceResult struct {
+	Name              string                                 `json:"name" validate:"required"`
+	CreationTimestamp v1.Time                                `json:"creationTimestamp,omitempty"`
+	Resources         []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
 }
 
-type GetAllWorkspacesResultResource struct {
-	Id        string `json:"id" validate:"required"`
-	Type      string `json:"type" validate:"required"`
-	Namespace string `json:"namespace,omitempty"`
-}
-
-func (self *api) GetAllWorkspaces() ([]GetAllWorkspacesResult, error) {
-	var result []GetAllWorkspacesResult = []GetAllWorkspacesResult{}
+func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
+	var result []GetWorkspaceResult = []GetWorkspaceResult{}
 
 	workspaces, err := self.workspaceManager.GetAllWorkspaces()
 	if err != nil {
@@ -85,34 +79,15 @@ func (self *api) GetAllWorkspaces() ([]GetAllWorkspacesResult, error) {
 	}
 
 	for _, workspace := range workspaces {
-		workspaceResult := GetAllWorkspacesResult{
+		workspaceResult := GetWorkspaceResult{
 			Name:              workspace.GetName(),
 			CreationTimestamp: workspace.ObjectMeta.CreationTimestamp,
-			Resources:         []GetAllWorkspacesResultResource{},
-		}
-		for _, resource := range workspace.Spec.Resources {
-			workspaceResult.Resources = append(workspaceResult.Resources, GetAllWorkspacesResultResource{
-				Id:        resource.Id,
-				Type:      string(resource.Type),
-				Namespace: string(resource.Namespace),
-			})
+			Resources:         workspace.Spec.Resources,
 		}
 		result = append(result, workspaceResult)
 	}
 
 	return result, nil
-}
-
-type GetWorkspaceResult struct {
-	Name              string                       `json:"name" validate:"required"`
-	CreationTimestamp v1.Time                      `json:"creationTimestamp,omitempty"`
-	Resources         []GetWorkspaceResultResource `json:"resources" validate:"required"`
-}
-
-type GetWorkspaceResultResource struct {
-	Id        string `json:"id" validate:"required"`
-	Type      string `json:"type" validate:"required"`
-	Namespace string `json:"namespace,omitempty"`
 }
 
 func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
@@ -124,13 +99,7 @@ func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
 	result := &GetWorkspaceResult{
 		Name:              workspace.Name,
 		CreationTimestamp: workspace.ObjectMeta.CreationTimestamp,
-	}
-	for _, resource := range workspace.Spec.Resources {
-		result.Resources = append(result.Resources, GetWorkspaceResultResource{
-			Id:        resource.Id,
-			Type:      string(resource.Type),
-			Namespace: string(resource.Namespace),
-		})
+		Resources:         workspace.Spec.Resources,
 	}
 
 	return result, nil

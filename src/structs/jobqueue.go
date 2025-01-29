@@ -1,21 +1,55 @@
 package structs
 
 import (
-	"time"
-
+	"context"
+	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
+	"sync"
+	"time"
 )
 
 var jobDataQueue []Datagram = []Datagram{}
+var jobSendMutex sync.Mutex
+var jobConnectionGuard = make(chan struct{}, 1)
 
 func ConnectToJobQueue(jobClient websocket.WebsocketClient) {
-	go func() {
-		ticker := time.NewTicker(10 * time.Millisecond)
-		for range ticker.C {
-			processJobNow(jobClient)
+	jobQueueCtx, cancel := context.WithCancel(context.Background())
+	shutdown.Add(cancel)
+	for {
+		jobConnectionGuard <- struct{}{} // would block if guard channel is already filled
+		go func() {
+			ticker := time.NewTicker(1 * time.Second)
+			quit := make(chan struct{})
+			go func() {
+				for {
+					select {
+					case <-jobQueueCtx.Done():
+						return
+					case <-quit:
+						// close go routine
+						return
+					case <-ticker.C:
+						processJobNow(jobClient)
+					}
+				}
+			}()
+			select {
+			case <-jobQueueCtx.Done():
+				return
+			case <-jobConnectionGuard:
+			}
+			ticker.Stop()
+			close(quit)
+		}()
+		select {
+		case <-jobQueueCtx.Done():
+			structsLogger.Debug("shutting down jobqueue")
+			return
+		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
-	}()
+		<-time.After(RETRYTIMEOUT * time.Second)
+	}
 }
 
 func JobServerSendData(jobClient websocket.WebsocketClient, datagram Datagram) {
@@ -24,9 +58,10 @@ func JobServerSendData(jobClient websocket.WebsocketClient, datagram Datagram) {
 }
 
 func processJobNow(jobClient websocket.WebsocketClient) {
+	jobSendMutex.Lock()
+	defer jobSendMutex.Unlock()
 	for i := 0; i < len(jobDataQueue); i++ {
 		element := jobDataQueue[i]
-
 		err := jobClient.WriteJSON(element)
 		if err == nil {
 			element.DisplaySentSummary(i+1, len(jobDataQueue))
