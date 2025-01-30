@@ -64,8 +64,6 @@ func (b *Broadcaster) BroadcastResponse(message interface{}, messageType string)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	fmt.Println("Broadcasting message", messageType)
-
 	for _, listener := range b.Listeners {
 		if listener.MsgType == messageType {
 			listener.MsgFunc(message)

@@ -2,6 +2,7 @@ package xterm
 
 import (
 	"context"
+	"fmt"
 	"mogenius-k8s-manager/src/httpservice"
 	"net/url"
 	"time"
@@ -29,6 +30,7 @@ func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern s
 
 	listener := httpservice.MessageCallback{
 		MsgFunc: func(message interface{}) {
+			fmt.Println("message to api -> ", message)
 			if conn != nil {
 				connWriteLock.Lock()
 				err := conn.WriteJSON(message)
