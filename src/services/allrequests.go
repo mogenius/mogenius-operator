@@ -704,6 +704,13 @@ func ExecuteCommandRequest(datagram structs.Datagram, httpApi *httpservice.HttpS
 			return err
 		}
 		return NewMessageResponse(helm.HelmReleaseGet(data))
+	case structs.PAT_CLUSTER_HELM_RELEASE_GET_WORKLOADS:
+		data := helm.HelmReleaseGetWorkloadsRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		return NewMessageResponse(helm.HelmReleaseGetWorkloads(data))
 
 	case structs.PAT_SERVICE_CREATE:
 		data := ServiceUpdateRequest{}
@@ -897,11 +904,11 @@ func ExecuteCommandRequest(datagram structs.Datagram, httpApi *httpservice.HttpS
 	case structs.PAT_GET_NAMESPACE_WORKLOAD_LIST:
 		data := kubernetes.GetUnstructuredNamespaceResourceListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		return NewMessageResponse(kubernetes.GetUnstructuredNamespaceResourceList(data.Namespace, data.WhiteList, data.BlackList))
+		return NewMessageResponse(kubernetes.GetUnstructuredNamespaceResourceList(data.Namespace, data.Whitelist, data.Blacklist))
 	case structs.PAT_GET_LABELED_WORKLOAD_LIST:
 		data := kubernetes.GetUnstructuredLabeledResourceListRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		list, err := kubernetes.GetUnstructuredLabeledResourceList(data.Label, data.WhiteList, data.BlackList)
+		list, err := kubernetes.GetUnstructuredLabeledResourceList(data.Label, data.Whitelist, data.Blacklist)
 		return NewMessageResponse(list, err)
 	case structs.PAT_DESCRIBE_WORKLOAD:
 		data := utils.SyncResourceItem{}

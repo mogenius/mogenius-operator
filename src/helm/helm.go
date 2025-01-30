@@ -2,14 +2,18 @@ package helm
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"time"
@@ -150,6 +154,13 @@ type HelmReleaseGetRequest struct {
 	Namespace string              `json:"namespace" validate:"required"`
 	Release   string              `json:"release" validate:"required"`
 	GetFormat structs.HelmGetEnum `json:"getFormat" validate:"required"` // "all" "hooks" "manifest" "notes" "values"
+}
+
+type HelmReleaseGetWorkloadsRequest struct {
+	Namespace string `json:"namespace" validate:"required"`
+	Release   string `json:"release" validate:"required"`
+
+	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
 }
 
 type HelmEntryWithoutPassword struct {
@@ -1112,6 +1123,37 @@ func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
 			return "", fmt.Errorf("HelmGet Error: Unknown HelmGetEnum")
 		}
 	}
+}
+
+func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
+	workloads, err := store.GlobalStore.SearchByNamespace(reflect.TypeOf(unstructured.Unstructured{}), data.Namespace, data.Whitelist)
+
+	var results []unstructured.Unstructured
+
+	if err != nil {
+		return results, err
+	}
+
+	for _, ref := range workloads {
+		if ref == nil {
+			continue
+		}
+
+		workload := ref.(*unstructured.Unstructured)
+		if workload == nil {
+			continue
+		}
+
+		labels := workload.GetLabels()
+		annotations := workload.GetAnnotations()
+
+		if (labels != nil && labels["app.kubernetes.io/managed-by"] == "Helm") && (labels["app.kubernetes.io/instance"] == data.Release || (annotations != nil && annotations["meta.helm.sh/release-name"] == data.Release)) {
+			results = append(results, *workload)
+		}
+
+	}
+
+	return results, nil
 }
 
 func printAllGet(rel *release.Release) string {
