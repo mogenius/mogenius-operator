@@ -460,34 +460,38 @@ func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 		self.dbstats.ReplaceCniData(*cniData)
 
 	case PODSTATS_STATUS:
-		stat := &structs.PodStats{}
+		stats := &[]structs.PodStats{}
 		dataBytes, err := json.Marshal(datagram.Payload)
 		if err != nil {
 			self.logger.Error("failed to marshal pod stats", "error", err)
 			return
 		}
-		err = json.Unmarshal(dataBytes, stat)
+		err = json.Unmarshal(dataBytes, stats)
 		if err != nil {
 			self.logger.Error("failed to unmarshal pod stats", "error", err)
 			return
 		}
 		self.logger.Debug("Received podstats", "len", len(dataBytes))
-		self.dbstats.AddPodStatsToDb(*stat)
+		for _, v := range *stats {
+			self.dbstats.AddPodStatsToDb(v)
+		}
 
 	case NODESTATS_STATUS:
-		stat := &structs.NodeStats{}
+		stats := &[]structs.NodeStats{}
 		dataBytes, err := json.Marshal(datagram.Payload)
 		if err != nil {
 			self.logger.Error("failed to marshal node stats", "error", err)
 			return
 		}
-		err = json.Unmarshal(dataBytes, stat)
+		err = json.Unmarshal(dataBytes, stats)
 		if err != nil {
 			self.logger.Error("failed to unmarshal node stats", "error", err)
 			return
 		}
 		self.logger.Debug("Received node stats", "len", len(dataBytes))
-		self.dbstats.AddNodeStatsToDb(*stat)
+		for _, v := range *stats {
+			self.dbstats.AddNodeStatsToDb(v)
+		}
 
 	default:
 		self.logger.Warn("Unknown pattern", "pattern", datagram.Pattern)
