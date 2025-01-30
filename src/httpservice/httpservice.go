@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -32,7 +31,7 @@ type HttpService struct {
 }
 
 type MessageCallback struct {
-	MsgFunc func(message string)
+	MsgFunc func(message interface{})
 	MsgType string
 }
 
@@ -61,9 +60,11 @@ func (b *Broadcaster) RemoveListener(callback MessageCallback) {
 	}
 }
 
-func (b *Broadcaster) BroadcastResponse(message string, messageType string) {
+func (b *Broadcaster) BroadcastResponse(message interface{}, messageType string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	fmt.Println("Broadcasting message", messageType)
 
 	for _, listener := range b.Listeners {
 		if listener.MsgType == messageType {
@@ -135,17 +136,6 @@ func (self *HttpService) Run(addr string) {
 	err = http.ListenAndServe(addr, mux)
 	if err != nil {
 		self.logger.Error("failed to start api server", "error", err)
-	}
-}
-
-func (h *HttpService) SimulateRequests() {
-	for {
-		time.Sleep(5 * time.Second)
-		fmt.Println("Sending request to start traffic")
-		h.RequestStreamTestStart()
-		time.Sleep(5 * time.Second)
-		fmt.Println("Sending request to stop traffic")
-		h.RequestTestStop()
 	}
 }
 
@@ -387,44 +377,15 @@ func (self *HttpService) withRequestLogging(handler http.Handler) http.Handler {
 // 4. K8sManager receives the datastream and relay it to the requesting client via websocket
 
 const (
-	REQUEST_TEST_START                = "test-monitor-start"
-	REQUEST_TEST_STOP                 = "test-monitor-stop"
-	REQUEST_START_TRAFFIC_UTILIZATION = "start-traffic-utilization"
-	REQUEST_START_CPU_UTILIZATION     = "start-cpu-utilization"
-	REQUEST_START_MEM_UTILIZATION     = "start-mem-utilization"
-	REQUEST_STOP_TRAFFIC_UTILIZATION  = "stop-traffic-utilization"
-	REQUEST_STOP_CPU_UTILIZATION      = "stop-cpu-utilization"
-	REQUEST_STOP_MEM_UTILIZATION      = "stop-mem-utilization"
+	TRAFFIC_UTILIZATION = "traffic-utilization"
+	CPU_UTILIZATION     = "cpu-utilization"
+	MEM_UTILIZATION     = "mem-utilization"
 
-	STREAM_TEST      = "test"
 	TRAFFIC_STATUS   = "traffic-status"
 	CNI_STATUS       = "cni-status"
 	PODSTATS_STATUS  = "podstats-status"
 	NODESTATS_STATUS = "nodestats-status"
 )
-
-func (self *HttpService) addClient(client *websocket.Conn) {
-	self.mutex.Lock()
-	defer self.mutex.Unlock()
-	self.clients[client] = true
-}
-
-func (self *HttpService) removeClient(client *websocket.Conn) {
-	self.mutex.Lock()
-	defer self.mutex.Unlock()
-	delete(self.clients, client)
-}
-
-func (self *HttpService) broadcastCommand(message []byte) {
-	self.mutex.Lock()
-	defer self.mutex.Unlock()
-	for client := range self.clients {
-		if err := client.WriteMessage(websocket.TextMessage, message); err != nil {
-			client.Close()
-			delete(self.clients, client)
-		}
-	}
-}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -442,10 +403,8 @@ func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
 		if ws != nil {
 			ws.Close()
 		}
-		self.removeClient(ws)
 	}()
 
-	self.addClient(ws)
 	self.logger.Info("WebSocket connection established")
 
 	for {
@@ -453,7 +412,6 @@ func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
 		err := ws.ReadJSON(datagram)
 		if err != nil {
 			self.logger.Error("Error", "Reading message from websocket", err)
-			self.removeClient(ws)
 			break
 		}
 
@@ -463,19 +421,14 @@ func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
 
 func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 	switch datagram.Pattern {
-	// TESTING
-	case STREAM_TEST:
-		self.logger.Debug("Received test message", "payload", datagram.Payload)
+	case TRAFFIC_UTILIZATION:
+		self.Broadcaster.BroadcastResponse(datagram.Payload, TRAFFIC_UTILIZATION)
 
-	// STREAM TO VIEWER
-	case REQUEST_START_TRAFFIC_UTILIZATION:
-		self.Broadcaster.BroadcastResponse(utils.PrettyPrintString(datagram.Payload), REQUEST_START_TRAFFIC_UTILIZATION)
+	case CPU_UTILIZATION:
+		self.Broadcaster.BroadcastResponse(datagram.Payload, CPU_UTILIZATION)
 
-	case REQUEST_START_CPU_UTILIZATION:
-		self.Broadcaster.BroadcastResponse(utils.PrettyPrintString(datagram.Payload), REQUEST_START_CPU_UTILIZATION)
-
-	case REQUEST_START_MEM_UTILIZATION:
-		self.Broadcaster.BroadcastResponse(utils.PrettyPrintString(datagram.Payload), REQUEST_START_MEM_UTILIZATION)
+	case MEM_UTILIZATION:
+		self.Broadcaster.BroadcastResponse(datagram.Payload, MEM_UTILIZATION)
 
 	// SAVE TO DB
 	case TRAFFIC_STATUS:
@@ -541,35 +494,4 @@ func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 	default:
 		self.logger.Warn("Unknown pattern", "pattern", datagram.Pattern)
 	}
-}
-
-func (self *HttpService) RequestCpuUtilizationStream() {
-	self.broadcastCommand([]byte(REQUEST_START_CPU_UTILIZATION))
-}
-func (self *HttpService) RequestCpuUtilizationStreamStop() {
-	self.broadcastCommand([]byte(REQUEST_STOP_CPU_UTILIZATION))
-}
-
-func (self *HttpService) RequestMemUtilizationStream() {
-	self.broadcastCommand([]byte(REQUEST_START_MEM_UTILIZATION))
-}
-
-func (self *HttpService) RequestMemUtilizationStreamStop() {
-	self.broadcastCommand([]byte(REQUEST_STOP_MEM_UTILIZATION))
-}
-
-func (self *HttpService) RequestTrafficUtilizationStream() {
-	self.broadcastCommand([]byte(REQUEST_START_TRAFFIC_UTILIZATION))
-}
-
-func (self *HttpService) RequestTrafficUtilizationStreamStop() {
-	self.broadcastCommand([]byte(REQUEST_STOP_TRAFFIC_UTILIZATION))
-}
-
-func (self *HttpService) RequestStreamTestStart() {
-	self.broadcastCommand([]byte(REQUEST_TEST_START))
-}
-
-func (self *HttpService) RequestTestStop() {
-	self.broadcastCommand([]byte(REQUEST_TEST_STOP))
 }

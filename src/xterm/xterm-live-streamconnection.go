@@ -3,11 +3,8 @@ package xterm
 import (
 	"context"
 	"mogenius-k8s-manager/src/httpservice"
-	"mogenius-k8s-manager/src/structs"
 	"net/url"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern string, httpApi *httpservice.HttpService) {
@@ -31,10 +28,10 @@ func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern s
 	}
 
 	listener := httpservice.MessageCallback{
-		MsgFunc: func(message string) {
+		MsgFunc: func(message interface{}) {
 			if conn != nil {
 				connWriteLock.Lock()
-				err := conn.WriteMessage(websocket.TextMessage, []byte(message))
+				err := conn.WriteJSON(message)
 				connWriteLock.Unlock()
 				if err != nil {
 					xtermLogger.Error("WriteMessage", "error", err)
@@ -47,16 +44,6 @@ func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern s
 
 	defer func() {
 		httpApi.Broadcaster.RemoveListener(listener)
-		switch dataPattern {
-		case structs.PAT_LIVE_STREAM_NODES_CPU_REQUEST:
-			httpApi.RequestCpuUtilizationStreamStop()
-		case structs.PAT_LIVE_STREAM_NODES_MEMORY_REQUEST:
-			httpApi.RequestMemUtilizationStreamStop()
-		case structs.PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST:
-			httpApi.RequestTrafficUtilizationStreamStop()
-		default:
-			xtermLogger.Error("unknown pattern detected", "error", dataPattern)
-		}
 	}()
 
 	select {
