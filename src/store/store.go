@@ -354,6 +354,49 @@ func (s *Store) SearchByNames(namespace string, name string, result interface{})
 	return result, err
 }
 
+func (s *Store) SearchByNamespace(resultType reflect.Type, namespace string, whitelist []*utils.SyncResourceEntry) ([]interface{}, error) {
+	items := make([]interface{}, 0)
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.db == nil {
+		return items, fmt.Errorf("database is not initialized")
+	}
+
+	var searchKeys []string
+	for _, item := range whitelist {
+		searchKey := CreateKey(item.Group, item.Kind, namespace)
+		searchKeys = append(searchKeys, searchKey)
+	}
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+			key := item.Key()
+
+			if len(searchKeys) > 0 && !utils.ContainsPatterns(string(key), searchKeys) {
+				continue
+			}
+			result := reflect.New(resultType).Interface()
+			err := item.Value(func(v []byte) error {
+				return s.deserialize(v, result)
+			})
+			if err != nil {
+				return err
+			}
+			items = append(items, result)
+		}
+
+		return nil
+	})
+
+	return items, err
+}
+
 func (s *Store) serialize(value interface{}) ([]byte, error) {
 	// use json for serialization to not lose data (pointer)
 	data, err := json.Marshal(value)

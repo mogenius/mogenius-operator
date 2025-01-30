@@ -788,6 +788,15 @@ func ContainsPattern(key []byte, pattern string) bool {
 	return strings.Contains(string(key), pattern)
 }
 
+func ContainsPatterns(s string, pattern []string) bool {
+	for _, p := range pattern {
+		if strings.Contains(s, p) {
+			return true
+		}
+	}
+	return false
+}
+
 func IsProduction() bool {
 	stage := config.Get("MO_STAGE")
 	return Equals([]string{"prod", "production"}, strings.ToLower(stage))
