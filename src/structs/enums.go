@@ -242,6 +242,10 @@ const (
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	PAT_LIST_CRONJOB_JOBS string = "list/cronjob-jobs"
+
+	PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST string = "live-stream/nodes-traffic-request"
+	PAT_LIVE_STREAM_NODES_CPU_REQUEST     string = "live-stream/nodes-cpu-request"
+	PAT_LIVE_STREAM_NODES_MEMORY_REQUEST  string = "live-stream/nodes-memory-request"
 )
 
 var BINARY_REQUEST_UPLOAD = []string{
@@ -468,6 +472,10 @@ var COMMAND_REQUESTS = []string{
 	// Cronjobs
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	PAT_LIST_CRONJOB_JOBS,
+
+	PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST,
+	PAT_LIVE_STREAM_NODES_CPU_REQUEST,
+	PAT_LIVE_STREAM_NODES_MEMORY_REQUEST,
 }
 
 var SUPPRESSED_OUTPUT_PATTERN = []string{

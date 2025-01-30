@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
+	"mogenius-k8s-manager/src/httpservice"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/xterm"
@@ -63,7 +64,7 @@ type ClusterResourceInfoDto struct {
 	CniConfig               []structs.CniData     `json:"cniConfig"`
 }
 
-func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
+func ExecuteCommandRequest(datagram structs.Datagram, httpApi *httpservice.HttpService) interface{} {
 	switch datagram.Pattern {
 	case structs.PAT_K8SNOTIFICATION:
 		return K8sNotification(datagram)
@@ -1217,6 +1218,34 @@ func ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 			return err
 		}
 		return kubernetes.ListCronjobJobs(data.ControllerName, data.NamespaceName, data.ProjectId)
+
+	case structs.PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST:
+		data := xterm.WsConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go xterm.LiveStreamConnection(data, structs.PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST, httpApi)
+		return nil
+
+	case structs.PAT_LIVE_STREAM_NODES_MEMORY_REQUEST:
+		data := xterm.WsConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go xterm.LiveStreamConnection(data, structs.PAT_LIVE_STREAM_NODES_MEMORY_REQUEST, httpApi)
+		return nil
+
+	case structs.PAT_LIVE_STREAM_NODES_CPU_REQUEST:
+		data := xterm.WsConnectionRequest{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		if err := utils.ValidateJSON(data); err != nil {
+			return err
+		}
+		go xterm.LiveStreamConnection(data, structs.PAT_LIVE_STREAM_NODES_CPU_REQUEST, httpApi)
+		return nil
+
 	}
 
 	return NewMessageResponse(nil, fmt.Errorf("Pattern not found"))

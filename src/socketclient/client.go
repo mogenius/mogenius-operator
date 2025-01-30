@@ -3,6 +3,7 @@ package socketclient
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/httpservice"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/shutdown"
@@ -21,7 +22,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-func StartK8sManager(jobClient websocket.WebsocketClient) {
+func StartK8sManager(jobClient websocket.WebsocketClient, httpApi *httpservice.HttpService) {
 	updateCheck()
 	versionTicker()
 
@@ -41,10 +42,10 @@ func StartK8sManager(jobClient websocket.WebsocketClient) {
 		}
 	}()
 
-	startMessageHandler(jobClient)
+	startMessageHandler(jobClient, httpApi)
 }
 
-func startMessageHandler(jobClient websocket.WebsocketClient) {
+func startMessageHandler(jobClient websocket.WebsocketClient, httpApi *httpservice.HttpService) {
 	var preparedFileName *string
 	var preparedFileRequest *services.FilesUploadRequest
 	var openFile *os.File
@@ -125,7 +126,7 @@ func startMessageHandler(jobClient websocket.WebsocketClient) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				responsePayload := services.ExecuteCommandRequest(datagram)
+				responsePayload := services.ExecuteCommandRequest(datagram, httpApi)
 				result := structs.CreateDatagramRequest(datagram, responsePayload)
 				result.Send(jobClient)
 				<-semaphoreChan
