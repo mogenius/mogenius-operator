@@ -420,13 +420,13 @@ func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
 func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 	switch datagram.Pattern {
 	case TRAFFIC_UTILIZATION:
-		self.Broadcaster.BroadcastResponse(datagram.Payload, TRAFFIC_UTILIZATION)
+		self.Broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST)
 
 	case CPU_UTILIZATION:
-		self.Broadcaster.BroadcastResponse(datagram.Payload, CPU_UTILIZATION)
+		self.Broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_CPU_REQUEST)
 
 	case MEM_UTILIZATION:
-		self.Broadcaster.BroadcastResponse(datagram.Payload, MEM_UTILIZATION)
+		self.Broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_MEMORY_REQUEST)
 
 	// SAVE TO DB
 	case TRAFFIC_STATUS:

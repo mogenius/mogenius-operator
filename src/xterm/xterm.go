@@ -49,6 +49,7 @@ type WsConnectionRequest struct {
 	ChannelId       string `json:"channelId" validate:"required"`
 	WebsocketScheme string `json:"websocketScheme" validate:"required"`
 	WebsocketHost   string `json:"websocketHost" validate:"required"`
+	CmdType         string `json:"cmdType"`
 }
 
 type PodCmdConnectionRequest struct {

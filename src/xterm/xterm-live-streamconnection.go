@@ -2,7 +2,6 @@ package xterm
 
 import (
 	"context"
-	"fmt"
 	"mogenius-k8s-manager/src/httpservice"
 	"net/url"
 	"time"
@@ -22,7 +21,7 @@ func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern s
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
 	// websocket connection
-	_, conn, connWriteLock, err := generateWsConnection("live-stream-"+dataPattern, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	_, conn, connWriteLock, err := generateWsConnection(dataPattern, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -30,13 +29,12 @@ func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern s
 
 	listener := httpservice.MessageCallback{
 		MsgFunc: func(message interface{}) {
-			fmt.Println("message to api -> ", message)
 			if conn != nil {
 				connWriteLock.Lock()
 				err := conn.WriteJSON(message)
 				connWriteLock.Unlock()
 				if err != nil {
-					xtermLogger.Error("WriteMessage", "error", err)
+					xtermLogger.Error("WriteMessage Broadcast", "error", err)
 				}
 			}
 		},
@@ -48,11 +46,11 @@ func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern s
 		httpApi.Broadcaster.RemoveListener(listener)
 	}()
 
-	select {
-	case <-ctx.Done():
-		return
-	default:
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			xtermLogger.Error("LiveStreamConnection", "error", "cannot read from connection", "err", err)
+			break
+		}
 	}
-
-	xtermLogger.Error("LiveStreamConnection", "error", "context done")
 }
