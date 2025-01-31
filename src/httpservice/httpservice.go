@@ -26,7 +26,6 @@ type HttpService struct {
 	dbstats     kubernetes.BoltDbStats
 	api         core.Api
 	clients     map[*websocket.Conn]bool
-	mutex       sync.Mutex
 	Broadcaster Broadcaster
 }
 
