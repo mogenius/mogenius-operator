@@ -441,7 +441,6 @@ func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 			self.logger.Error("failed to unmarshal interface stats", "error", err)
 			return
 		}
-		self.logger.Debug("Received traffic stats", "len", len(dataBytes))
 		self.dbstats.AddInterfaceStatsToDb(*stat)
 
 	case CNI_STATUS:
@@ -456,7 +455,6 @@ func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 			self.logger.Error("failed to unmarshal cniData", "error", err)
 			return
 		}
-		self.logger.Debug("Received cni data", "len", len(dataBytes))
 		self.dbstats.ReplaceCniData(*cniData)
 
 	case PODSTATS_STATUS:
@@ -471,7 +469,6 @@ func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 			self.logger.Error("failed to unmarshal pod stats", "error", err)
 			return
 		}
-		self.logger.Debug("Received podstats", "len", len(dataBytes))
 		for _, v := range *stats {
 			self.dbstats.AddPodStatsToDb(v)
 		}
@@ -488,7 +485,6 @@ func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 			self.logger.Error("failed to unmarshal node stats", "error", err)
 			return
 		}
-		self.logger.Debug("Received node stats", "len", len(dataBytes))
 		for _, v := range *stats {
 			self.dbstats.AddNodeStatsToDb(v)
 		}
