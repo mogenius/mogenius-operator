@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
@@ -38,10 +37,10 @@ type MessageCallback struct {
 	MsgFunc func(message interface{})
 }
 
-func NewMessageCallback(pattern string, callback func(message interface{})) MessageCallback {
+func NewMessageCallback(datagram structs.Datagram, callback func(message interface{})) MessageCallback {
 	self := MessageCallback{}
-	self.Id = fmt.Sprintf("%p", callback)
-	self.MsgType = pattern
+	self.Id = datagram.Id
+	self.MsgType = datagram.Pattern
 	self.MsgFunc = callback
 
 	return self

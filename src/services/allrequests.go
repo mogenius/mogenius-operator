@@ -1232,7 +1232,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, httpApi core.HttpService) 
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		go xterm.LiveStreamConnection(data, structs.PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST, httpApi)
+		go xterm.LiveStreamConnection(data, datagram, httpApi)
 		return nil
 
 	case structs.PAT_LIVE_STREAM_NODES_MEMORY_REQUEST:
@@ -1241,7 +1241,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, httpApi core.HttpService) 
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		go xterm.LiveStreamConnection(data, structs.PAT_LIVE_STREAM_NODES_MEMORY_REQUEST, httpApi)
+		go xterm.LiveStreamConnection(data, datagram, httpApi)
 		return nil
 
 	case structs.PAT_LIVE_STREAM_NODES_CPU_REQUEST:
@@ -1250,7 +1250,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, httpApi core.HttpService) 
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
 		}
-		go xterm.LiveStreamConnection(data, structs.PAT_LIVE_STREAM_NODES_CPU_REQUEST, httpApi)
+		go xterm.LiveStreamConnection(data, datagram, httpApi)
 		return nil
 
 	}

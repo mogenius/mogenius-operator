@@ -3,11 +3,12 @@ package xterm
 import (
 	"context"
 	"mogenius-k8s-manager/src/core"
+	"mogenius-k8s-manager/src/structs"
 	"net/url"
 	"time"
 )
 
-func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern string, httpApi core.HttpService) {
+func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, datagram structs.Datagram, httpApi core.HttpService) {
 	logger := xtermLogger.With("scope", "LiveStreamConnection")
 
 	if wsConnectionRequest.WebsocketScheme == "" {
@@ -24,13 +25,13 @@ func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern s
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
 	// websocket connection
-	_, conn, connWriteLock, _, err := generateWsConnection(dataPattern, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	_, conn, connWriteLock, _, err := generateWsConnection(datagram.Pattern, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		logger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 
-	listener := core.NewMessageCallback(dataPattern, func(message interface{}) {
+	listener := core.NewMessageCallback(datagram, func(message interface{}) {
 		if conn != nil {
 			connWriteLock.Lock()
 			err := conn.WriteJSON(message)
