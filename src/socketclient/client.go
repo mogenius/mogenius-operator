@@ -3,7 +3,7 @@ package socketclient
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/httpservice"
+	"mogenius-k8s-manager/src/core"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/shutdown"
@@ -22,7 +22,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-func StartK8sManager(jobClient websocket.WebsocketClient, httpApi *httpservice.HttpService) {
+func StartK8sManager(jobClient websocket.WebsocketClient, httpApi core.HttpService) {
 	updateCheck()
 	versionTicker()
 
@@ -45,7 +45,7 @@ func StartK8sManager(jobClient websocket.WebsocketClient, httpApi *httpservice.H
 	startMessageHandler(jobClient, httpApi)
 }
 
-func startMessageHandler(jobClient websocket.WebsocketClient, httpApi *httpservice.HttpService) {
+func startMessageHandler(jobClient websocket.WebsocketClient, httpApi core.HttpService) {
 	var preparedFileName *string
 	var preparedFileRequest *services.FilesUploadRequest
 	var openFile *os.File

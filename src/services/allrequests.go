@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/src/controllers"
+	"mogenius-k8s-manager/src/core"
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/httpservice"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/xterm"
@@ -64,7 +64,7 @@ type ClusterResourceInfoDto struct {
 	CniConfig               []structs.CniData     `json:"cniConfig"`
 }
 
-func ExecuteCommandRequest(datagram structs.Datagram, httpApi *httpservice.HttpService) interface{} {
+func ExecuteCommandRequest(datagram structs.Datagram, httpApi core.HttpService) interface{} {
 	switch datagram.Pattern {
 	case structs.PAT_K8SNOTIFICATION:
 		return K8sNotification(datagram)

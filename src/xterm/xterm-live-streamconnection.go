@@ -2,54 +2,54 @@ package xterm
 
 import (
 	"context"
-	"mogenius-k8s-manager/src/httpservice"
+	"mogenius-k8s-manager/src/core"
 	"net/url"
 	"time"
 )
 
-func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern string, httpApi *httpservice.HttpService) {
+func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, dataPattern string, httpApi core.HttpService) {
+	logger := xtermLogger.With("scope", "LiveStreamConnection")
+
 	if wsConnectionRequest.WebsocketScheme == "" {
-		xtermLogger.Error("WebsocketScheme is empty")
+		logger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		xtermLogger.Error("WebsocketHost is empty")
+		logger.Error("WebsocketHost is empty")
 		return
 	}
+
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
 	// websocket connection
-	_, conn, connWriteLock, err := generateWsConnection(dataPattern, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	_, conn, connWriteLock, _, err := generateWsConnection(dataPattern, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		xtermLogger.Error("Unable to connect to websocket", "error", err)
+		logger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 
-	listener := httpservice.MessageCallback{
-		MsgFunc: func(message interface{}) {
-			if conn != nil {
-				connWriteLock.Lock()
-				err := conn.WriteJSON(message)
-				connWriteLock.Unlock()
-				if err != nil {
-					xtermLogger.Error("WriteMessage Broadcast", "error", err)
-				}
+	listener := core.NewMessageCallback(dataPattern, func(message interface{}) {
+		if conn != nil {
+			connWriteLock.Lock()
+			err := conn.WriteJSON(message)
+			connWriteLock.Unlock()
+			if err != nil {
+				logger.Error("WriteMessage Broadcast", "error", err)
 			}
-		},
-		MsgType: dataPattern,
-	}
-	httpApi.Broadcaster.AddListener(listener)
+		}
+	})
 
+	httpApi.Broadcaster().AddListener(listener)
 	defer func() {
-		httpApi.Broadcaster.RemoveListener(listener)
+		httpApi.Broadcaster().RemoveListener(listener)
 	}()
 
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			xtermLogger.Error("LiveStreamConnection", "error", "cannot read from connection", "err", err)
+			logger.Error("failed to read from connection", "error", err)
 			break
 		}
 	}

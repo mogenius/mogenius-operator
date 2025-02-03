@@ -1,4 +1,4 @@
-package httpservice
+package core
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/core"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
@@ -20,18 +19,36 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type HttpService struct {
+type HttpService interface {
+	Run(addr string)
+	Broadcaster() *Broadcaster
+}
+
+type httpService struct {
 	logger      *slog.Logger
 	config      config.ConfigModule
 	dbstats     kubernetes.BoltDbStats
-	api         core.Api
-	clients     map[*websocket.Conn]bool
-	Broadcaster Broadcaster
+	api         Api
+	broadcaster *Broadcaster
 }
 
 type MessageCallback struct {
-	MsgFunc func(message interface{})
+	Id      string
 	MsgType string
+	MsgFunc func(message interface{})
+}
+
+func NewMessageCallback(pattern string, callback func(message interface{})) MessageCallback {
+	self := MessageCallback{}
+	self.Id = fmt.Sprintf("%p", callback)
+	self.MsgType = pattern
+	self.MsgFunc = callback
+
+	return self
+}
+
+func (self *MessageCallback) Equals(other *MessageCallback) bool {
+	return self.Id == other.Id
 }
 
 type Broadcaster struct {
@@ -40,30 +57,30 @@ type Broadcaster struct {
 }
 
 // Add a listener (callback) to the broadcaster
-func (b *Broadcaster) AddListener(callback MessageCallback) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.Listeners = append(b.Listeners, callback)
+func (self *Broadcaster) AddListener(callback MessageCallback) {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+	self.Listeners = append(self.Listeners, callback)
 }
 
 // Remove a listener (callback) from the broadcaster
-func (b *Broadcaster) RemoveListener(callback MessageCallback) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+func (self *Broadcaster) RemoveListener(callback MessageCallback) {
+	self.mu.Lock()
+	defer self.mu.Unlock()
 
-	for i, listener := range b.Listeners {
-		if fmt.Sprintf("%p", listener.MsgFunc) == fmt.Sprintf("%p", callback.MsgFunc) {
-			b.Listeners = append(b.Listeners[:i], b.Listeners[i+1:]...)
-			break
+	for i, listener := range self.Listeners {
+		if listener.Equals(&callback) {
+			self.Listeners = append(self.Listeners[:i], self.Listeners[i+1:]...)
+			continue
 		}
 	}
 }
 
-func (b *Broadcaster) BroadcastResponse(message interface{}, messageType string) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+func (self *Broadcaster) BroadcastResponse(message interface{}, messageType string) {
+	self.mu.Lock()
+	defer self.mu.Unlock()
 
-	for _, listener := range b.Listeners {
+	for _, listener := range self.Listeners {
 		if listener.MsgType == messageType {
 			listener.MsgFunc(message)
 		}
@@ -74,26 +91,25 @@ func NewHttpApi(
 	logManagerModule logging.LogManagerModule,
 	configModule config.ConfigModule,
 	dbstats kubernetes.BoltDbStats,
-	apiModule core.Api,
-) *HttpService {
+	apiModule Api,
+) HttpService {
 	assert.Assert(logManagerModule != nil)
 	assert.Assert(configModule != nil)
 	assert.Assert(dbstats != nil)
 
-	return &HttpService{
+	return &httpService{
 		logger:  logManagerModule.CreateLogger("http"),
 		config:  configModule,
 		dbstats: dbstats,
 		api:     apiModule,
-		clients: make(map[*websocket.Conn]bool),
-		Broadcaster: Broadcaster{
-			Listeners: make([]MessageCallback, 0),
+		broadcaster: &Broadcaster{
+			Listeners: []MessageCallback{},
 			mu:        sync.Mutex{},
 		},
 	}
 }
 
-func (self *HttpService) Run(addr string) {
+func (self *httpService) Run(addr string) {
 	assert.Assert(self.logger != nil)
 	assert.Assert(self.config != nil)
 
@@ -136,29 +152,33 @@ func (self *HttpService) Run(addr string) {
 	}
 }
 
-func (h *HttpService) getHealthz(w http.ResponseWriter, _ *http.Request) {
+func (self *httpService) Broadcaster() *Broadcaster {
+	return self.broadcaster
+}
+
+func (self *httpService) getHealthz(w http.ResponseWriter, _ *http.Request) {
 	healthStatus := map[string]string{
 		"version": version.Ver,
 		"branch":  version.Branch,
 		"hash":    version.GitCommitHash,
 		"buildAt": version.BuildTimestamp,
-		"stage":   h.config.Get("MO_STAGE"),
+		"stage":   self.config.Get("MO_STAGE"),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(healthStatus)
 	if err != nil {
-		h.logger.Error("failed to json encode response", "error", err)
+		self.logger.Error("failed to json encode response", "error", err)
 	}
 }
 
 // Deprecated: will be removed when ws is active
-func (h *HttpService) postTraffic(w http.ResponseWriter, r *http.Request) {
-	debugMode, err := strconv.ParseBool(h.config.Get("MO_DEBUG"))
+func (self *httpService) postTraffic(w http.ResponseWriter, r *http.Request) {
+	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil, err)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.logger.Error("failed to read request body", "error", err)
+		self.logger.Error("failed to read request body", "error", err)
 		return
 	}
 
@@ -166,37 +186,37 @@ func (h *HttpService) postTraffic(w http.ResponseWriter, r *http.Request) {
 		var parsedJson interface{}
 		err = json.Unmarshal(body, &parsedJson)
 		if err != nil {
-			h.logger.Error("failed to indent json", "error", err)
+			self.logger.Error("failed to indent json", "error", err)
 			return
 		}
-		h.logger.Debug("POST /traffic", "body", parsedJson)
+		self.logger.Debug("POST /traffic", "body", parsedJson)
 	}
 
 	stat := &structs.InterfaceStats{}
 	err = structs.UnmarshalInterfaceStats(stat, body)
 	if err != nil {
-		h.logger.Error("failed to unmarshal interface stats", "error", err)
+		self.logger.Error("failed to unmarshal interface stats", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
 		})
 		if err != nil {
-			h.logger.Error("failed to json encode response", "error", err)
+			self.logger.Error("failed to json encode response", "error", err)
 		}
 		return
 	}
 
-	h.dbstats.AddInterfaceStatsToDb(*stat)
+	self.dbstats.AddInterfaceStatsToDb(*stat)
 }
 
 // Deprecated: will be removed when ws is active
-func (h *HttpService) postCni(w http.ResponseWriter, r *http.Request) {
-	debugMode, err := strconv.ParseBool(h.config.Get("MO_DEBUG"))
+func (self *httpService) postCni(w http.ResponseWriter, r *http.Request) {
+	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.logger.Error("failed to read request body", "error", err)
+		self.logger.Error("failed to read request body", "error", err)
 		return
 	}
 
@@ -204,32 +224,32 @@ func (h *HttpService) postCni(w http.ResponseWriter, r *http.Request) {
 		var parsedJson interface{}
 		err = json.Unmarshal(body, &parsedJson)
 		if err != nil {
-			h.logger.Error("failed to indent json", "error", err)
+			self.logger.Error("failed to indent json", "error", err)
 			return
 		}
-		h.logger.Debug("POST /cni", "body", parsedJson)
+		self.logger.Debug("POST /cni", "body", parsedJson)
 	}
 
 	cniData := &[]structs.CniData{}
 	err = structs.UnmarshalCniData(cniData, body)
 	if err != nil {
-		h.logger.Error("failed to unmarshal cniData", "error", err)
+		self.logger.Error("failed to unmarshal cniData", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
 		})
 		if err != nil {
-			h.logger.Error("failed to json encode response", "error", err)
+			self.logger.Error("failed to json encode response", "error", err)
 		}
 		return
 	}
 
-	h.dbstats.ReplaceCniData(*cniData)
+	self.dbstats.ReplaceCniData(*cniData)
 }
 
 // Deprecated: will be removed when ws is active
-func (self *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) postPodStats(w http.ResponseWriter, r *http.Request) {
 	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil, err)
 	body, err := io.ReadAll(r.Body)
@@ -267,7 +287,7 @@ func (self *HttpService) postPodStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // Deprecated: will be removed when ws is active
-func (self *HttpService) postNodeStats(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) postNodeStats(w http.ResponseWriter, r *http.Request) {
 	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
 	assert.Assert(err == nil, err)
 	body, err := io.ReadAll(r.Body)
@@ -304,7 +324,7 @@ func (self *HttpService) postNodeStats(w http.ResponseWriter, r *http.Request) {
 	self.dbstats.AddNodeStatsToDb(*stat)
 }
 
-func (self *HttpService) debugGetTrafficSum(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) debugGetTrafficSum(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get("ns")
 
 	stats := self.dbstats.GetTrafficStatsEntriesSumForNamespace(ns)
@@ -316,7 +336,7 @@ func (self *HttpService) debugGetTrafficSum(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (self *HttpService) debugGetLastNs(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) debugGetLastNs(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get("ns")
 	stats := self.dbstats.GetLastPodStatsEntriesForNamespace(ns)
 	w.Header().Set("Content-Type", "application/json")
@@ -327,7 +347,7 @@ func (self *HttpService) debugGetLastNs(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (self *HttpService) debugGetTraffic(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) debugGetTraffic(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get("ns")
 	stats := self.dbstats.GetTrafficStatsEntriesForNamespace(ns)
 	w.Header().Set("Content-Type", "application/json")
@@ -338,7 +358,7 @@ func (self *HttpService) debugGetTraffic(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (self *HttpService) debugGetNs(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) debugGetNs(w http.ResponseWriter, r *http.Request) {
 	ns := r.URL.Query().Get("ns")
 	stats := self.dbstats.GetPodStatsEntriesForNamespace(ns)
 	w.Header().Set("Content-Type", "application/json")
@@ -349,7 +369,7 @@ func (self *HttpService) debugGetNs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (self *HttpService) withRequestLogging(handler http.Handler) http.Handler {
+func (self *httpService) withRequestLogging(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		self.logger.Debug("api request",
 			"request.Header", r.Header,
@@ -373,27 +393,16 @@ func (self *HttpService) withRequestLogging(handler http.Handler) http.Handler {
 // 3. All connected Pods which implement the pattern respond with the datastream
 // 4. K8sManager receives the datastream and relay it to the requesting client via websocket
 
-const (
-	TRAFFIC_UTILIZATION = "traffic-utilization"
-	CPU_UTILIZATION     = "cpu-utilization"
-	MEM_UTILIZATION     = "mem-utilization"
-
-	TRAFFIC_STATUS   = "traffic-status"
-	CNI_STATUS       = "cni-status"
-	PODSTATS_STATUS  = "podstats-status"
-	NODESTATS_STATUS = "nodestats-status"
-)
-
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
 }
 
-func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) handleWs(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		self.logger.Error("Error", "Upgrading connection to WebSocket", err)
+		self.logger.Error("Upgrading connection to WebSocket", "error", err)
 		return
 	}
 	defer func() {
@@ -408,7 +417,7 @@ func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
 		datagram := &structs.Datagram{}
 		err := ws.ReadJSON(datagram)
 		if err != nil {
-			self.logger.Error("Error", "Reading message from websocket", err)
+			self.logger.Error("Reading message from websocket", "error", err)
 			break
 		}
 
@@ -416,19 +425,19 @@ func (self *HttpService) handleWs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
+func (self *httpService) handleIncomingDatagram(datagram *structs.Datagram) {
 	switch datagram.Pattern {
-	case TRAFFIC_UTILIZATION:
-		self.Broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST)
+	case "traffic-utilization":
+		self.broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST)
 
-	case CPU_UTILIZATION:
-		self.Broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_CPU_REQUEST)
+	case "cpu-utilization":
+		self.broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_CPU_REQUEST)
 
-	case MEM_UTILIZATION:
-		self.Broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_MEMORY_REQUEST)
+	case "mem-utilization":
+		self.broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_MEMORY_REQUEST)
 
 	// SAVE TO DB
-	case TRAFFIC_STATUS:
+	case "traffic-status":
 		stat := &structs.InterfaceStats{}
 		dataBytes, err := json.Marshal(datagram.Payload)
 		if err != nil {
@@ -442,7 +451,7 @@ func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 		}
 		self.dbstats.AddInterfaceStatsToDb(*stat)
 
-	case CNI_STATUS:
+	case "cni-status":
 		cniData := &[]structs.CniData{}
 		dataBytes, err := json.Marshal(datagram.Payload)
 		if err != nil {
@@ -456,7 +465,7 @@ func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 		}
 		self.dbstats.ReplaceCniData(*cniData)
 
-	case PODSTATS_STATUS:
+	case "podstats-status":
 		stats := &[]structs.PodStats{}
 		dataBytes, err := json.Marshal(datagram.Payload)
 		if err != nil {
@@ -472,7 +481,7 @@ func (self *HttpService) handleIncomingDatagram(datagram *structs.Datagram) {
 			self.dbstats.AddPodStatsToDb(v)
 		}
 
-	case NODESTATS_STATUS:
+	case "nodestats-status":
 		stats := &[]structs.NodeStats{}
 		dataBytes, err := json.Marshal(datagram.Payload)
 		if err != nil {

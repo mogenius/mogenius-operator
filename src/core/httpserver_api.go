@@ -1,4 +1,4 @@
-package httpservice
+package core
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func (self *HttpService) addApiRoutes(mux *http.ServeMux) {
+func (self *httpService) addApiRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /workspaces", self.withRequestLogging(http.HandlerFunc(self.apiGetWorkspaces)))
 	mux.Handle("GET /workspace", self.withRequestLogging(http.HandlerFunc(self.apiGetWorkspace)))
 	mux.Handle("POST /workspace", self.withRequestLogging(http.HandlerFunc(self.apiPostWorkspace)))
@@ -14,7 +14,7 @@ func (self *HttpService) addApiRoutes(mux *http.ServeMux) {
 	mux.Handle("DELETE /workspace", self.withRequestLogging(http.HandlerFunc(self.apiDeleteWorkspace)))
 }
 
-func (self *HttpService) apiGetWorkspaces(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) apiGetWorkspaces(w http.ResponseWriter, r *http.Request) {
 	workspaces, err := self.api.GetAllWorkspaces()
 	if err != nil {
 		self.logger.Error("failed to query workloads", "error", err)
@@ -29,7 +29,7 @@ func (self *HttpService) apiGetWorkspaces(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (self *HttpService) apiGetWorkspace(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) apiGetWorkspace(w http.ResponseWriter, r *http.Request) {
 	type Args struct {
 		Workspace string `json:"workspace"`
 	}
@@ -58,7 +58,7 @@ func (self *HttpService) apiGetWorkspace(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (self *HttpService) apiPostWorkspace(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) apiPostWorkspace(w http.ResponseWriter, r *http.Request) {
 	var args v1alpha1.WorkspaceSpec
 	err := json.NewDecoder(r.Body).Decode(&args)
 	if err != nil {
@@ -84,7 +84,7 @@ func (self *HttpService) apiPostWorkspace(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (self *HttpService) apiPutWorkspace(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) apiPutWorkspace(w http.ResponseWriter, r *http.Request) {
 	var args v1alpha1.WorkspaceSpec
 	err := json.NewDecoder(r.Body).Decode(&args)
 	if err != nil {
@@ -110,7 +110,7 @@ func (self *HttpService) apiPutWorkspace(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (self *HttpService) apiDeleteWorkspace(w http.ResponseWriter, r *http.Request) {
+func (self *httpService) apiDeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	type Args struct {
 		Workspace string `json:"workspace"`
 	}
