@@ -49,6 +49,7 @@ type WsConnectionRequest struct {
 	ChannelId       string `json:"channelId" validate:"required"`
 	WebsocketScheme string `json:"websocketScheme" validate:"required"`
 	WebsocketHost   string `json:"websocketHost" validate:"required"`
+	CmdType         string `json:"cmdType"`
 }
 
 type PodCmdConnectionRequest struct {
@@ -230,7 +231,7 @@ func generateWsConnection(
 	wsConnectionRequest WsConnectionRequest,
 	ctx context.Context,
 	cancel context.CancelFunc,
-) (readMessages *chan XtermReadMessages, conn *websocket.Conn, connWriteLock *sync.Mutex, err error) {
+) (readMessages *chan XtermReadMessages, conn *websocket.Conn, connWriteLock *sync.Mutex, connReadLock *sync.Mutex, err error) {
 	maxRetries := 6
 	currentRetries := 0
 	xtermMessages := make(chan XtermReadMessages)
@@ -254,7 +255,7 @@ func generateWsConnection(
 			xtermLogger.Error("failed to connect, retrying in 5 seconds", "error", err.Error())
 			if currentRetries >= maxRetries {
 				xtermLogger.Error("Max retries reached, exiting.")
-				return nil, nil, nil, err
+				return nil, nil, nil, nil, err
 			}
 			time.Sleep(5 * time.Second)
 			currentRetries++
@@ -276,7 +277,7 @@ func generateWsConnection(
 			time.Sleep(5 * time.Second)
 			if currentRetries >= maxRetries {
 				xtermLogger.Error("Max retries reached, exiting.")
-				return &xtermMessages, conn, connWriteLock, err
+				return &xtermMessages, conn, connWriteLock, connReadLock, err
 			}
 			currentRetries++
 			continue
@@ -286,7 +287,7 @@ func generateWsConnection(
 
 		// oncloseWs will close the connection and the context
 		go oncloseWs(conn, connReadLock, ctx, cancel, xtermMessages)
-		return &xtermMessages, conn, connWriteLock, nil
+		return &xtermMessages, conn, connWriteLock, connReadLock, nil
 	}
 }
 

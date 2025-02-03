@@ -65,7 +65,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 	// websocket connection
-	readMessages, conn, connWriteLock, err := generateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, _, err := generateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return

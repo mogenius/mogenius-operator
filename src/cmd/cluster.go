@@ -9,7 +9,6 @@ import (
 	"mogenius-k8s-manager/src/core"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/httpservice"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
@@ -55,7 +54,8 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		structs.Setup(logManagerModule, configModule)
 		utils.Setup(logManagerModule, configModule)
 		xterm.Setup(logManagerModule, configModule, clientProvider)
-		httpApi := httpservice.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
+		httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
+		// go httpApi.SimulateRequests()
 
 		versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
@@ -191,7 +191,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			}
 		}()
 
-		socketclient.StartK8sManager(jobConnectionClient)
+		socketclient.StartK8sManager(jobConnectionClient, httpApi)
 	}()
 
 	shutdown.Listen()
