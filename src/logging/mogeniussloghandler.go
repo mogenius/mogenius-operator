@@ -29,14 +29,15 @@ type MogeniusSlogHandler struct {
 }
 
 func NewMogeniusSlogHandler(logLevel *slog.Level, logFilter *string, loggerHandlerLock *sync.RWMutex, enableStderr *atomic.Bool, jsonHandlerWriters ...io.Writer) slog.Handler {
-	return &MogeniusSlogHandler{
-		logLevel:          logLevel,
-		logFilter:         logFilter,
-		loggerHandlerLock: loggerHandlerLock,
-		enableStderr:      enableStderr,
-		attrs:             []slog.Attr{},
-		group:             "",
-		inner: slog.NewJSONHandler(io.MultiWriter(jsonHandlerWriters...), &slog.HandlerOptions{
+	self := &MogeniusSlogHandler{}
+	self.logLevel = logLevel
+	self.logFilter = logFilter
+	self.loggerHandlerLock = loggerHandlerLock
+	self.enableStderr = enableStderr
+	self.attrs = []slog.Attr{}
+	self.group = ""
+	if jsonHandlerWriters != nil && len(jsonHandlerWriters) > 0 {
+		self.inner = slog.NewJSONHandler(io.MultiWriter(jsonHandlerWriters...), &slog.HandlerOptions{
 			AddSource: true,
 			Level:     slog.LevelDebug,
 			ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
@@ -47,18 +48,25 @@ func NewMogeniusSlogHandler(logLevel *slog.Level, logFilter *string, loggerHandl
 				}
 				return attr
 			},
-		}),
+		})
 	}
+	return self
 }
 
 func (self *MogeniusSlogHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return self.inner.Enabled(ctx, level)
+	minLevel := slog.LevelInfo
+	if self.logLevel != nil {
+		minLevel = self.logLevel.Level()
+	}
+	return level >= minLevel
 }
 
 func (self *MogeniusSlogHandler) Handle(ctx context.Context, record slog.Record) error {
-	err := self.inner.Handle(ctx, record)
-	if err != nil {
-		return err
+	if self.inner != nil {
+		err := self.inner.Handle(ctx, record)
+		if err != nil {
+			return err
+		}
 	}
 
 	if !self.enableStderr.Load() {
@@ -193,7 +201,9 @@ func (self *MogeniusSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	newSlogHandler.enableStderr = self.enableStderr
 	newSlogHandler.attrs = append(self.attrs, attrs...)
 	newSlogHandler.group = self.group
-	newSlogHandler.inner = self.inner.WithAttrs(attrs).(*slog.JSONHandler)
+	if self.inner != nil {
+		newSlogHandler.inner = self.inner.WithAttrs(attrs).(*slog.JSONHandler)
+	}
 
 	return &newSlogHandler
 }
@@ -211,7 +221,9 @@ func (self *MogeniusSlogHandler) WithGroup(name string) slog.Handler {
 	newSlogHandler.enableStderr = self.enableStderr
 	newSlogHandler.attrs = self.attrs
 	newSlogHandler.group = name
-	newSlogHandler.inner = self.inner.WithGroup(name).(*slog.JSONHandler)
+	if self.inner != nil {
+		newSlogHandler.inner = self.inner.WithGroup(name).(*slog.JSONHandler)
+	}
 
 	return &newSlogHandler
 }

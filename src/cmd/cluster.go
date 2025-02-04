@@ -55,7 +55,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		utils.Setup(logManagerModule, configModule)
 		xterm.Setup(logManagerModule, configModule, clientProvider)
 		httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
-		// go httpApi.SimulateRequests()
 
 		versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())

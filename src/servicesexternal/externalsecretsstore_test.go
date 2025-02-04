@@ -43,7 +43,7 @@ func externalSecretStorePropsExample() servicesExternal.ExternalSecretStoreProps
 func TestSecretStoreRender(t *testing.T) {
 	t.Parallel()
 	config := cfg.NewConfig()
-	slogManager := logging.NewSlogManager("")
+	slogManager := logging.NewMockSlogManager(t)
 
 	servicesExternal.Setup(slogManager, config)
 	config.Declare(cfg.ConfigDeclaration{

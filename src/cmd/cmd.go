@@ -44,7 +44,7 @@ func Run() error {
 	if path := os.Getenv("MO_LOG_DIR"); path != "" {
 		logDir = path
 	}
-	slogManager := logging.NewSlogManager(logDir)
+	slogManager := logging.NewSlogManager(&logDir)
 	cmdLogger := slogManager.CreateLogger("cmd")
 	klogLogger := slogManager.CreateLogger("klog")
 	klog.SetSlogLogger(klogLogger)

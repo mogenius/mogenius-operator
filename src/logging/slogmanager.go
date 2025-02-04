@@ -21,33 +21,39 @@ type SlogManager struct {
 	loggerHandlerLock sync.RWMutex
 	logLevel          slog.Level
 	logFilter         string
-	logDir            string
+	logDir            *string
 	enableStderr      atomic.Bool
 	combinedLogWriter io.Writer
 	activeLoggers     map[string]*slog.Logger
 }
 
-func NewSlogManager(logDir string) *SlogManager {
-	absLogDir, err := filepath.Abs(logDir)
-	assert(err == nil, fmt.Errorf("failed to resolve absolute logDir('%s'): %s", logDir, err))
-
-	slogManager := SlogManager{
-		loggerHandlerLock: sync.RWMutex{},
-		logLevel:          slog.LevelDebug,
-		logFilter:         "",
-		logDir:            absLogDir,
-		enableStderr:      atomic.Bool{},
-		combinedLogWriter: &lumberjack.Logger{
-			Filename:   filepath.Join(absLogDir, combinedLogComponentName+".log"), // Path to log file
-			MaxSize:    logfileMaxSize,                                            // Max size in megabytes before rotation
-			MaxBackups: logfileMaxBackups,                                         // Max number of old log files to keep
-			Compress:   logfileCompress,                                           // Compress old log files
-		},
-		activeLoggers: make(map[string]*slog.Logger),
+func NewSlogManager(logDir *string) *SlogManager {
+	var err error
+	if logDir != nil {
+		*logDir, err = filepath.Abs(*logDir)
+		assert(err == nil, fmt.Errorf("failed to resolve absolute logDir('%s'): %s", *logDir, err))
 	}
-	slogManager.enableStderr.Store(true)
 
-	return &slogManager
+	self := SlogManager{}
+	self.loggerHandlerLock = sync.RWMutex{}
+	self.logLevel = slog.LevelDebug
+	self.logFilter = ""
+	self.logDir = logDir
+	self.enableStderr = atomic.Bool{}
+	self.enableStderr.Store(true)
+	if logDir == nil {
+		self.combinedLogWriter = nil
+	} else {
+		self.combinedLogWriter = &lumberjack.Logger{
+			Filename:   filepath.Join(*logDir, combinedLogComponentName+".log"), // Path to log file
+			MaxSize:    logfileMaxSize,                                          // Max size in megabytes before rotation
+			MaxBackups: logfileMaxBackups,                                       // Max number of old log files to keep
+			Compress:   logfileCompress,                                         // Compress old log files
+		}
+	}
+	self.activeLoggers = map[string]*slog.Logger{}
+
+	return &self
 }
 
 type LoggerOptions struct {
@@ -64,7 +70,11 @@ func logFileWriter(logDir string, componentId string) io.Writer {
 }
 
 func (m *SlogManager) getLogDir() string {
-	return m.logDir
+	if m.logDir == nil {
+		return ""
+	}
+
+	return *m.logDir
 }
 
 func (m *SlogManager) ComponentLogPath(componentId string) (string, error) {
@@ -120,16 +130,25 @@ func (m *SlogManager) CreateLogger(componentId string) *slog.Logger {
 	assert(componentId != combinedLogComponentName, fmt.Errorf("the componentId '%s' is not disallowed because it is reserved", combinedLogComponentName))
 	assert(m.activeLoggers[componentId] == nil, fmt.Errorf("logger was requested multiple times: %s", componentId))
 
-	logger := slog.New(
-		NewMogeniusSlogHandler(
+	var handler slog.Handler
+	if m.combinedLogWriter == nil {
+		handler = NewMogeniusSlogHandler(
+			&m.logLevel,
+			&m.logFilter,
+			&m.loggerHandlerLock,
+			&m.enableStderr,
+		)
+	} else {
+		handler = NewMogeniusSlogHandler(
 			&m.logLevel,
 			&m.logFilter,
 			&m.loggerHandlerLock,
 			&m.enableStderr,
 			m.combinedLogWriter,
 			logFileWriter(m.getLogDir(), componentId),
-		),
-	)
+		)
+	}
+	logger := slog.New(handler)
 	logger = logger.With("component", componentId)
 
 	m.activeLoggers[componentId] = logger

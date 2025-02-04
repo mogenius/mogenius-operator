@@ -9,7 +9,8 @@ import (
 func TestSlogManagerAdheresToLogManagerInterface(t *testing.T) {
 	t.Parallel()
 	testfunc := func(w logging.LogManagerModule) {}
-	testfunc(logging.NewSlogManager(t.TempDir())) // this checks if the typesystem allows to call it
+	logDir := t.TempDir()
+	testfunc(logging.NewSlogManager(&logDir)) // this checks if the typesystem allows to call it
 }
 
 // compile time check
