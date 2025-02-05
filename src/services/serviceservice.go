@@ -23,7 +23,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	// check if namespace exists and CREATE IT IF NOT
 	nsExists, nsErr := kubernetes.NamespaceExists(r.Namespace.Name)
 	if nsErr != nil {
-		serviceLogger.Warn("failed to check if namespace exists", "error", nsErr)
+		serviceLogger.Warn("failed to check if namespace exists", "error", nsErr, "controller", r.Service.ControllerName, "namespace", r.Namespace.Name)
 	}
 	if !nsExists {
 		nsReq := NamespaceCreateRequest{
@@ -303,15 +303,15 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 		for _, container := range service.Containers {
 			if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 				if container.GitRepository == nil {
-					serviceLogger.Error("GitRepository cannot be nil", "controller", service.ControllerName)
+					serviceLogger.Error("GitRepository cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
 					continue
 				}
 				if container.GitBranch == nil {
-					serviceLogger.Error("GitBranch cannot be nil", "controller", service.ControllerName)
+					serviceLogger.Error("GitBranch cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
 					continue
 				}
 				if container.SettingsYaml == nil {
-					serviceLogger.Error("SettingsYaml cannot be nil", "controller", service.ControllerName)
+					serviceLogger.Error("SettingsYaml cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
 					continue
 				}
 
@@ -320,17 +320,20 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 
 				err := utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
 				if err != nil {
+					serviceLogger.Error("Error cleaning up before", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
 					cmd.Fail(job, fmt.Sprintf("Error cleaning up before: %s", err.Error()))
 					return
 				}
 				err = gitmanager.CloneFast(*container.GitRepository, gitDir, *container.GitBranch)
 				if err != nil {
+					serviceLogger.Error("Error while cloning", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
 					cmd.Fail(job, fmt.Sprintf("Error cloning: %s", err.Error()))
 					return
 				}
 
 				err = utils.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
 				if err != nil {
+					serviceLogger.Error("Error updating infrastructure YAML", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
 					cmd.Fail(job, fmt.Sprintf("Error updating file: %s", err.Error()))
 					return
 				}
@@ -344,16 +347,19 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 					config.Get("MO_GIT_USER_EMAIL"),
 				)
 				if err != nil {
+					serviceLogger.Error("Error while commiting", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
 					cmd.Fail(job, fmt.Sprintf("Error commiting: %s", err.Error()))
 					return
 				}
 				err = gitmanager.Push(gitDir, "origin")
 				if err != nil {
+					serviceLogger.Error("Error while pushing", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
 					cmd.Fail(job, fmt.Sprintf("Error pushing: %s", err.Error()))
 					return
 				}
 				err = utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
 				if err != nil {
+					serviceLogger.Error("Error cleaning up after done", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
 					cmd.Fail(job, fmt.Sprintf("Error cleaning up after: %s", err.Error()))
 					return
 				}
