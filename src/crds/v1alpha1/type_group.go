@@ -25,8 +25,20 @@ type Group struct {
 }
 
 type GroupSpec struct {
-	Name  string   `json:"name,omitempty"`
+	// name for this group
+	//
+	// the name has to be unique across users and groups
+	Name string `json:"name,omitempty"`
+
+	// a list of usernames within this group
 	Users []string `json:"users,omitempty"`
+}
+
+func NewGroupSpec(name string, users []string) GroupSpec {
+	return GroupSpec{
+		Name:  name,
+		Users: users,
+	}
 }
 
 type GroupStatus struct{}

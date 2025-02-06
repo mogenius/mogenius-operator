@@ -939,6 +939,7 @@ func ExecuteCommandRequest(datagram structs.Datagram, httpApi core.HttpService) 
 		structs.MarshalUnmarshal(&datagram, &data)
 		err := kubernetes.DeleteUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
 		return NewMessageResponse(nil, err)
+
 	case structs.PAT_GET_WORKSPACES:
 		result, err := api.GetAllWorkspaces()
 		return NewMessageResponse(result, err)
@@ -968,6 +969,91 @@ func ExecuteCommandRequest(datagram structs.Datagram, httpApi core.HttpService) 
 		structs.MarshalUnmarshal(&datagram, &data)
 		result, err := api.DeleteWorkspace(data.Name)
 		return NewMessageResponse(result, err)
+
+	case structs.PAT_GET_USERS:
+		result, err := api.GetAllUsers()
+		return NewMessageResponse(result, err)
+	case structs.PAT_CREATE_USER:
+		data := utils.WebsocketRequestCreateUser{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.CreateUser(data.Name, v1alpha1.NewUserSpec(data.Name))
+		return NewMessageResponse(result, err)
+	case structs.PAT_GET_USER:
+		data := utils.WebsocketRequestGetUser{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.GetUser(data.Name)
+		return NewMessageResponse(result, err)
+	case structs.PAT_UPDATE_USER:
+		data := utils.WebsocketRequestUpdateUser{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.UpdateUser(data.Name, v1alpha1.NewUserSpec(data.Name))
+		return NewMessageResponse(result, err)
+	case structs.PAT_DELETE_USER:
+		data := utils.WebsocketRequestDeleteUser{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.DeleteUser(data.Name)
+		return NewMessageResponse(result, err)
+
+	case structs.PAT_GET_GROUPS:
+		result, err := api.GetAllGroups()
+		return NewMessageResponse(result, err)
+	case structs.PAT_CREATE_GROUP:
+		data := utils.WebsocketRequestCreateGroup{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.CreateGroup(data.Name, v1alpha1.NewGroupSpec(data.Name, data.Users))
+		return NewMessageResponse(result, err)
+	case structs.PAT_GET_GROUP:
+		data := utils.WebsocketRequestGetGroup{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.GetGroup(data.Name)
+		return NewMessageResponse(result, err)
+	case structs.PAT_UPDATE_GROUP:
+		data := utils.WebsocketRequestUpdateGroup{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.UpdateGroup(data.Name, v1alpha1.NewGroupSpec(data.Name, data.Users))
+		return NewMessageResponse(result, err)
+	case structs.PAT_DELETE_GROUP:
+		data := utils.WebsocketRequestDeleteGroup{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.DeleteGroup(data.Name)
+		return NewMessageResponse(result, err)
+
+	case structs.PAT_GET_PERMISSIONS:
+		result, err := api.GetAllPermissions()
+		return NewMessageResponse(result, err)
+	case structs.PAT_CREATE_PERMISSION:
+		data := utils.WebsocketRequestCreatePermission{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.CreatePermission(data.Name, v1alpha1.NewPermissionSpec(
+			data.Group,
+			data.Workspace,
+			data.Read,
+			data.Write,
+			data.Delete,
+		))
+		return NewMessageResponse(result, err)
+	case structs.PAT_GET_PERMISSION:
+		data := utils.WebsocketRequestGetPermission{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.GetPermission(data.Name)
+		return NewMessageResponse(result, err)
+	case structs.PAT_UPDATE_PERMISSION:
+		data := utils.WebsocketRequestUpdatePermission{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.UpdatePermission(data.Name, v1alpha1.NewPermissionSpec(
+			data.Group,
+			data.Workspace,
+			data.Read,
+			data.Write,
+			data.Delete,
+		))
+		return NewMessageResponse(result, err)
+	case structs.PAT_DELETE_PERMISSION:
+		data := utils.WebsocketRequestDeletePermission{}
+		structs.MarshalUnmarshal(&datagram, &data)
+		result, err := api.DeletePermission(data.Name)
+		return NewMessageResponse(result, err)
+
 	case structs.PAT_BUILDER_STATUS:
 		return kubernetes.GetDb().GetBuilderStatus()
 	case structs.PAT_BUILD_INFOS:
