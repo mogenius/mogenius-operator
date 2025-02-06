@@ -989,7 +989,7 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi 
 		}
 		return NewMessageResponse(helm.HelmChartSearch(data))
 	case structs.PAT_CLUSTER_HELM_CHART_INSTALL:
-		data := helm.HelmChartInstallRequest{}
+		data := helm.HelmChartInstallUpgradeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
@@ -1010,7 +1010,7 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi 
 		}
 		return NewMessageResponse(helm.HelmChartVersion(data))
 	case structs.PAT_CLUSTER_HELM_RELEASE_UPGRADE:
-		data := helm.HelmReleaseUpgradeRequest{}
+		data := helm.HelmChartInstallUpgradeRequest{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		if err := utils.ValidateJSON(data); err != nil {
 			return err
