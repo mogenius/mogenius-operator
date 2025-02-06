@@ -1,15 +1,31 @@
-package xterm
+package core
 
 import (
 	"context"
-	"mogenius-k8s-manager/src/core"
+	"log/slog"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/xterm"
 	"net/url"
 	"time"
 )
 
-func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, datagram structs.Datagram, httpApi core.HttpService) {
-	logger := xtermLogger.With("scope", "LiveStreamConnection")
+type XtermService interface {
+	LiveStreamConnection(wsConnectionRequest xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService)
+}
+
+type xtermService struct {
+	logger *slog.Logger
+}
+
+func NewXtermService(logger *slog.Logger) XtermService {
+	self := &xtermService{}
+	self.logger = logger
+
+	return self
+}
+
+func (self *xtermService) LiveStreamConnection(wsConnectionRequest xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService) {
+	logger := self.logger.With("scope", "LiveStreamConnection")
 
 	if wsConnectionRequest.WebsocketScheme == "" {
 		logger.Error("WebsocketScheme is empty")
@@ -25,13 +41,13 @@ func LiveStreamConnection(wsConnectionRequest WsConnectionRequest, datagram stru
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
 	// websocket connection
-	_, conn, connWriteLock, _, err := generateWsConnection(datagram.Pattern, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	_, conn, connWriteLock, _, err := xterm.GenerateWsConnection(datagram.Pattern, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		logger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 
-	listener := core.NewMessageCallback(datagram, func(message interface{}) {
+	listener := NewMessageCallback(datagram, func(message interface{}) {
 		if conn != nil {
 			connWriteLock.Lock()
 			err := conn.WriteJSON(message)

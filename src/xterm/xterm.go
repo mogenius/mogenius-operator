@@ -221,7 +221,7 @@ func clearScreen(conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	}
 }
 
-func generateWsConnection(
+func GenerateWsConnection(
 	cmdType string,
 	namespace string,
 	controller string,

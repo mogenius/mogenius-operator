@@ -43,17 +43,6 @@ const (
 	MogeniusHelmIndex                 = "https://helm.mogenius.com/public"
 )
 
-func UpgradeK8sManager(r K8sManagerUpgradeRequest) *structs.Job {
-	var wg sync.WaitGroup
-
-	job := structs.CreateJob("Upgrade mogenius platform", "UPGRADE", "", "")
-	job.Start()
-	mokubernetes.UpgradeMyself(job, r.Command, &wg)
-	wg.Wait()
-	job.Finish()
-	return job
-}
-
 func InstallHelmChart(r ClusterHelmRequest) *structs.Job {
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
@@ -240,10 +229,6 @@ func sumAllBytesOfFolder(root string) uint64 {
 	sumWg.Wait()     // Wait for summing to complete
 
 	return total
-}
-
-type K8sManagerUpgradeRequest struct {
-	Command string `json:"command" validate:"required"` // complete helm command from platform ui
 }
 
 type ClusterHelmRequest struct {

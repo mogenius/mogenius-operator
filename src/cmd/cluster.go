@@ -16,7 +16,6 @@ import (
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/socketclient"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -47,15 +46,19 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		assert.Assert(err == nil, err)
 		controllers.Setup(logManagerModule, configModule)
 		dtos.Setup(logManagerModule)
-		services.Setup(logManagerModule, configModule, clientProvider, dbstatsModule, apiModule)
+		services.Setup(logManagerModule, configModule, clientProvider, dbstatsModule)
 		servicesexternal.Setup(logManagerModule, configModule)
-		socketclient.Setup(logManagerModule, configModule)
 		store.Setup(logManagerModule)
 		structs.Setup(logManagerModule, configModule)
-		utils.Setup(logManagerModule, configModule)
 		xterm.Setup(logManagerModule, configModule, clientProvider)
 		httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
-		// go httpApi.SimulateRequests()
+		utils.Setup(logManagerModule, configModule)
+		jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
+		shutdown.Add(jobConnectionClient.Terminate)
+		socketapi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, dbstatsModule)
+		xtermclient := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
+
+		socketapi.Link(httpApi, xtermclient, apiModule)
 
 		versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
@@ -121,7 +124,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		mokubernetes.InitOrUpdateCrds()
 
-		jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
 		url, err := url.Parse(configModule.Get("MO_API_SERVER"))
 		assert.Assert(err == nil, err)
 		err = jobConnectionClient.SetUrl(*url)
@@ -135,6 +137,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			select {}
 		}
 		assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
+
 		configModule.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
 			url, err := url.Parse(value)
 			assert.Assert(err == nil, err)
@@ -166,7 +169,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 				cmdLogger.Error("failed to update jobConnectionClient header", "header", header, "error", err)
 			}
 		})
-		shutdown.Add(jobConnectionClient.Terminate)
 
 		go structs.ConnectToEventQueue()
 		go structs.ConnectToJobQueue(jobConnectionClient)
@@ -191,7 +193,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			}
 		}()
 
-		socketclient.StartK8sManager(jobConnectionClient, httpApi)
+		socketapi.Run()
 	}()
 
 	shutdown.Listen()

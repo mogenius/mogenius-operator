@@ -1,7 +1,7 @@
 package core
 
 import (
-	"mogenius-k8s-manager/src/config"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/k8sclient"
@@ -35,14 +35,14 @@ type WorkspaceManager interface {
 }
 
 type workspaceManager struct {
-	config            config.ConfigModule
+	config            cfg.ConfigModule
 	clientProvider    k8sclient.K8sClientProvider
 	mogeniusClientSet *crds.MogeniusClientSet
 	namespace         string
 	namespaceLock     sync.RWMutex
 }
 
-func NewWorkspaceManager(configModule config.ConfigModule, clientProvider k8sclient.K8sClientProvider) WorkspaceManager {
+func NewWorkspaceManager(configModule cfg.ConfigModule, clientProvider k8sclient.K8sClientProvider) WorkspaceManager {
 	wm := &workspaceManager{}
 	wm.clientProvider = clientProvider
 	wm.mogeniusClientSet = clientProvider.MogeniusClientSet()

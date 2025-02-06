@@ -31,7 +31,7 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 	// websocket connection
-	readMessages, conn, connWriteLock, _, err := generateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, _, err := GenerateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return

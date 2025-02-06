@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/websocket"
 	"time"
 )
 
@@ -172,10 +171,6 @@ func (d *Datagram) DisplayStreamSummary() {
 		"pattern", d.Pattern,
 		"id", d.Id,
 	)
-}
-
-func (d *Datagram) Send(jobConnection websocket.WebsocketClient) {
-	JobServerSendData(jobConnection, *d)
 }
 
 func (d *Datagram) GetSize() int64 {

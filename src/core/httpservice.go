@@ -5,7 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
@@ -25,7 +25,7 @@ type HttpService interface {
 
 type httpService struct {
 	logger      *slog.Logger
-	config      config.ConfigModule
+	config      cfg.ConfigModule
 	dbstats     kubernetes.BoltDbStats
 	api         Api
 	broadcaster *Broadcaster
@@ -88,7 +88,7 @@ func (self *Broadcaster) BroadcastResponse(message interface{}, messageType stri
 
 func NewHttpApi(
 	logManagerModule logging.LogManagerModule,
-	configModule config.ConfigModule,
+	configModule cfg.ConfigModule,
 	dbstats kubernetes.BoltDbStats,
 	apiModule Api,
 ) HttpService {
