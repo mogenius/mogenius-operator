@@ -36,13 +36,33 @@ spec:
           metadata:
             type: object
           spec:
+            description: Grant permissions to a workspace for a group
             properties:
-              name:
+              delete:
+                description: |-
+                  grant "delete" permission
+
+                  this allows deleting the workspace itself
+                type: boolean
+              group:
+                description: the group for which this permission is created
                 type: string
-              verbs:
-                items:
-                  type: string
-                type: array
+              read:
+                description: |-
+                  grant "read" permission
+
+                  this allows both viewing the workspace itself and reading all resources within this workspace
+                type: boolean
+              workspace:
+                description: the workspace to which this permission is applied
+                type: string
+              write:
+                description: |-
+                  grant "write" permission
+
+                  this allows editing the workspace which means:
+                  - users are allowed to create, change and delete resources within this workspace
+                type: boolean
             type: object
           status:
             type: object

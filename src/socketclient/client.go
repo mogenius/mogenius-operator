@@ -127,7 +127,12 @@ func startMessageHandler(jobClient websocket.WebsocketClient, httpApi core.HttpS
 			go func() {
 				defer wg.Done()
 				responsePayload := services.ExecuteCommandRequest(datagram, httpApi)
-				result := structs.CreateDatagramRequest(datagram, responsePayload)
+				result := structs.Datagram{
+					Id:        datagram.Id,
+					Pattern:   datagram.Pattern,
+					Payload:   responsePayload,
+					CreatedAt: datagram.CreatedAt,
+				}
 				result.Send(jobClient)
 				<-semaphoreChan
 			}()

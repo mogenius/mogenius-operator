@@ -48,6 +48,24 @@ type Api interface {
 	CreateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error)
 	UpdateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error)
 	DeleteWorkspace(name string) (string, error)
+
+	GetAllUsers() ([]v1alpha1.UserSpec, error)
+	GetUser(name string) (*v1alpha1.UserSpec, error)
+	CreateUser(name string, spec v1alpha1.UserSpec) (string, error)
+	UpdateUser(name string, spec v1alpha1.UserSpec) (string, error)
+	DeleteUser(name string) (string, error)
+
+	GetAllGroups() ([]v1alpha1.GroupSpec, error)
+	GetGroup(name string) (*v1alpha1.GroupSpec, error)
+	CreateGroup(name string, spec v1alpha1.GroupSpec) (string, error)
+	UpdateGroup(name string, spec v1alpha1.GroupSpec) (string, error)
+	DeleteGroup(name string) (string, error)
+
+	GetAllPermissions() ([]v1alpha1.PermissionSpec, error)
+	GetPermission(name string) (*v1alpha1.PermissionSpec, error)
+	CreatePermission(name string, spec v1alpha1.PermissionSpec) (string, error)
+	UpdatePermission(name string, spec v1alpha1.PermissionSpec) (string, error)
+	DeletePermission(name string) (string, error)
 }
 
 type api struct {
@@ -70,39 +88,46 @@ type GetWorkspaceResult struct {
 	Resources         []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
 }
 
-func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
-	var result []GetWorkspaceResult = []GetWorkspaceResult{}
+func NewGetWorkspaceResult(name string, creationTimestamp v1.Time, resources []v1alpha1.WorkspaceResourceIdentifier) GetWorkspaceResult {
+	return GetWorkspaceResult{
+		Name:              name,
+		CreationTimestamp: creationTimestamp,
+		Resources:         resources,
+	}
+}
 
-	workspaces, err := self.workspaceManager.GetAllWorkspaces()
+func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
+	result := []GetWorkspaceResult{}
+
+	resources, err := self.workspaceManager.GetAllWorkspaces()
 	if err != nil {
 		return result, err
 	}
 
-	for _, workspace := range workspaces {
-		workspaceResult := GetWorkspaceResult{
-			Name:              workspace.GetName(),
-			CreationTimestamp: workspace.ObjectMeta.CreationTimestamp,
-			Resources:         workspace.Spec.Resources,
-		}
-		result = append(result, workspaceResult)
+	for _, resource := range resources {
+		result = append(result, NewGetWorkspaceResult(
+			resource.GetName(),
+			resource.ObjectMeta.CreationTimestamp,
+			resource.Spec.Resources,
+		))
 	}
 
 	return result, nil
 }
 
 func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
-	workspace, err := self.workspaceManager.GetWorkspace(name)
+	resource, err := self.workspaceManager.GetWorkspace(name)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &GetWorkspaceResult{
-		Name:              workspace.Name,
-		CreationTimestamp: workspace.ObjectMeta.CreationTimestamp,
-		Resources:         workspace.Spec.Resources,
-	}
+	result := NewGetWorkspaceResult(
+		resource.GetName(),
+		resource.ObjectMeta.CreationTimestamp,
+		resource.Spec.Resources,
+	)
 
-	return result, nil
+	return &result, nil
 }
 
 func (self *api) CreateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error) {
@@ -125,6 +150,159 @@ func (self *api) UpdateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (stri
 
 func (self *api) DeleteWorkspace(name string) (string, error) {
 	err := self.workspaceManager.DeleteWorkspace(name)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource deleted successfully", nil
+}
+
+func (self *api) GetAllUsers() ([]v1alpha1.UserSpec, error) {
+	result := []v1alpha1.UserSpec{}
+
+	resources, err := self.workspaceManager.GetAllUsers()
+	if err != nil {
+		return result, err
+	}
+
+	for _, resource := range resources {
+		result = append(result, resource.Spec)
+	}
+
+	return result, nil
+}
+
+func (self *api) GetUser(name string) (*v1alpha1.UserSpec, error) {
+	resource, err := self.workspaceManager.GetUser(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resource.Spec, nil
+}
+
+func (self *api) CreateUser(name string, spec v1alpha1.UserSpec) (string, error) {
+	_, err := self.workspaceManager.CreateUser(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource created successfully", nil
+}
+
+func (self *api) UpdateUser(name string, spec v1alpha1.UserSpec) (string, error) {
+	_, err := self.workspaceManager.UpdateUser(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource updated successfully", nil
+}
+
+func (self *api) DeleteUser(name string) (string, error) {
+	err := self.workspaceManager.DeleteUser(name)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource deleted successfully", nil
+}
+
+func (self *api) GetAllGroups() ([]v1alpha1.GroupSpec, error) {
+	result := []v1alpha1.GroupSpec{}
+
+	resources, err := self.workspaceManager.GetAllGroups()
+	if err != nil {
+		return result, err
+	}
+
+	for _, resource := range resources {
+		result = append(result, resource.Spec)
+	}
+
+	return result, nil
+}
+
+func (self *api) GetGroup(name string) (*v1alpha1.GroupSpec, error) {
+	resource, err := self.workspaceManager.GetGroup(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resource.Spec, nil
+}
+
+func (self *api) CreateGroup(name string, spec v1alpha1.GroupSpec) (string, error) {
+	_, err := self.workspaceManager.CreateGroup(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource created successfully", nil
+}
+
+func (self *api) UpdateGroup(name string, spec v1alpha1.GroupSpec) (string, error) {
+	_, err := self.workspaceManager.UpdateGroup(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource updated successfully", nil
+}
+
+func (self *api) DeleteGroup(name string) (string, error) {
+	err := self.workspaceManager.DeleteGroup(name)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource deleted successfully", nil
+}
+
+func (self *api) GetAllPermissions() ([]v1alpha1.PermissionSpec, error) {
+	result := []v1alpha1.PermissionSpec{}
+
+	resources, err := self.workspaceManager.GetAllPermissions()
+	if err != nil {
+		return result, err
+	}
+
+	for _, resource := range resources {
+		result = append(result, resource.Spec)
+	}
+
+	return result, nil
+}
+
+func (self *api) GetPermission(name string) (*v1alpha1.PermissionSpec, error) {
+	resource, err := self.workspaceManager.GetPermission(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resource.Spec, nil
+}
+
+func (self *api) CreatePermission(name string, spec v1alpha1.PermissionSpec) (string, error) {
+	_, err := self.workspaceManager.CreatePermission(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource created successfully", nil
+}
+
+func (self *api) UpdatePermission(name string, spec v1alpha1.PermissionSpec) (string, error) {
+	_, err := self.workspaceManager.UpdatePermission(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource updated successfully", nil
+}
+
+func (self *api) DeletePermission(name string) (string, error) {
+	err := self.workspaceManager.DeletePermission(name)
 	if err != nil {
 		return "", err
 	}

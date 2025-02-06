@@ -37,12 +37,12 @@ spec:
             type: object
           spec:
             properties:
-              kubernetesId:
+              name:
+                description: |-
+                  mogenius user identifier/name/email
+
+                  the name has to be unique across users and groups
                 type: string
-              mgeniusId:
-                type: string
-            required:
-            - kubernetesId
             type: object
           status:
             type: object

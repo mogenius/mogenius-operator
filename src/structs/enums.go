@@ -187,6 +187,24 @@ const (
 	PAT_UPDATE_WORKSPACE = "update/workspace"
 	PAT_DELETE_WORKSPACE = "delete/workspace"
 
+	PAT_GET_USERS   = "get/users"
+	PAT_CREATE_USER = "create/user"
+	PAT_GET_USER    = "get/user"
+	PAT_UPDATE_USER = "update/user"
+	PAT_DELETE_USER = "delete/user"
+
+	PAT_GET_GROUPS   = "get/groups"
+	PAT_CREATE_GROUP = "create/group"
+	PAT_GET_GROUP    = "get/group"
+	PAT_UPDATE_GROUP = "update/group"
+	PAT_DELETE_GROUP = "delete/group"
+
+	PAT_GET_PERMISSIONS   = "get/permissions"
+	PAT_CREATE_PERMISSION = "create/permission"
+	PAT_GET_PERMISSION    = "get/permission"
+	PAT_UPDATE_PERMISSION = "update/permission"
+	PAT_DELETE_PERMISSION = "delete/permission"
+
 	PAT_STORAGE_CREATE_VOLUME   string = "storage/create-volume"
 	PAT_STORAGE_DELETE_VOLUME   string = "storage/delete-volume"
 	PAT_STORAGE_BACKUP_VOLUME   string = "storage/backup-volume"
@@ -420,6 +438,24 @@ var COMMAND_REQUESTS = []string{
 	PAT_GET_WORKSPACE,
 	PAT_UPDATE_WORKSPACE,
 	PAT_DELETE_WORKSPACE,
+
+	PAT_GET_USERS,
+	PAT_CREATE_USER,
+	PAT_GET_USER,
+	PAT_UPDATE_USER,
+	PAT_DELETE_USER,
+
+	PAT_GET_GROUPS,
+	PAT_CREATE_GROUP,
+	PAT_GET_GROUP,
+	PAT_UPDATE_GROUP,
+	PAT_DELETE_GROUP,
+
+	PAT_GET_PERMISSIONS,
+	PAT_CREATE_PERMISSION,
+	PAT_GET_PERMISSION,
+	PAT_UPDATE_PERMISSION,
+	PAT_DELETE_PERMISSION,
 
 	PAT_STORAGE_CREATE_VOLUME,
 	PAT_STORAGE_DELETE_VOLUME,

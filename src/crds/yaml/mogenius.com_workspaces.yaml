@@ -47,6 +47,7 @@ spec:
                     namespace:
                       type: string
                     type:
+                      description: 'allowed values: "namespace", "helm"'
                       type: string
                   type: object
                 type: array

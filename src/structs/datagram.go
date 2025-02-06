@@ -76,16 +76,6 @@ func (self *UserSource) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
-	datagram := Datagram{
-		Id:        request.Id,
-		Pattern:   request.Pattern,
-		Payload:   data,
-		CreatedAt: request.CreatedAt,
-	}
-	return datagram
-}
-
 func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	// delay for timing issue caused by events being triggered too closely together
 	time.Sleep(100 * time.Millisecond)

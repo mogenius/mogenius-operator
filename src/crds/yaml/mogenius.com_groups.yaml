@@ -38,8 +38,13 @@ spec:
           spec:
             properties:
               name:
+                description: |-
+                  name for this group
+
+                  the name has to be unique across users and groups
                 type: string
               users:
+                description: a list of usernames within this group
                 items:
                   type: string
                 type: array
