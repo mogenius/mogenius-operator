@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	jsoniter "github.com/json-iterator/go"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
