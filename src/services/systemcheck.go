@@ -324,7 +324,7 @@ func SystemCheck() SystemCheckResponse {
 	// check for trafficcollector
 	wg.Add(1)
 	go SysCheckExec("CheckTrafficCollector", &wg, &entries, func() SystemCheckEntry {
-		trafficCollectorNewestVersion, err := getCurrentTrafficCollectorVersion()
+		trafficCollectorNewestVersion, err := GetCurrentTrafficCollectorVersion()
 		if err != nil {
 			serviceLogger.Error("getCurrentTrafficCollectorVersion", "error", err)
 		}
@@ -354,7 +354,7 @@ func SystemCheck() SystemCheckResponse {
 	// check for podstatscollector
 	wg.Add(1)
 	go SysCheckExec("CheckPodStatsCollector", &wg, &entries, func() SystemCheckEntry {
-		podstatsCollectorNewestVersion, err := getCurrentPodStatsCollectorVersion()
+		podstatsCollectorNewestVersion, err := GetCurrentPodStatsCollectorVersion()
 		if err != nil {
 			serviceLogger.Error("getCurrentPodStatsCollectorVersion", "error", err)
 		}

@@ -57,7 +57,7 @@ func UpgradeK8sManager(r K8sManagerUpgradeRequest) *structs.Job {
 func InstallHelmChart(r ClusterHelmRequest) *structs.Job {
 	job := structs.CreateJob("Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
 	job.Start()
-	result, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	result, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 	if err != nil {
 		job.Fail(fmt.Sprintf("Failed to install helm chart %s: %s\n%s", r.HelmReleaseName, result, err.Error()))
 	}
@@ -247,13 +247,14 @@ type K8sManagerUpgradeRequest struct {
 }
 
 type ClusterHelmRequest struct {
-	Namespace       string `json:"namespace" validate:"required"`
-	NamespaceId     string `json:"namespaceId" validate:"required"`
-	HelmRepoName    string `json:"helmRepoName" validate:"required"`
-	HelmRepoUrl     string `json:"helmRepoUrl" validate:"required"`
-	HelmReleaseName string `json:"helmReleaseName" validate:"required"`
-	HelmChartName   string `json:"helmChartName" validate:"required"`
-	HelmValues      string `json:"helmValues" validate:"required"`
+	Namespace        string `json:"namespace" validate:"required"`
+	NamespaceId      string `json:"namespaceId" validate:"required"`
+	HelmRepoName     string `json:"helmRepoName" validate:"required"`
+	HelmRepoUrl      string `json:"helmRepoUrl" validate:"required"`
+	HelmReleaseName  string `json:"helmReleaseName" validate:"required"`
+	HelmChartName    string `json:"helmChartName" validate:"required"`
+	HelmChartVersion string `json:"helmChartVersion"`
+	HelmValues       string `json:"helmValues" validate:"required"`
 }
 
 func ClusterHelmRequestExample() ClusterHelmRequest {
@@ -497,11 +498,20 @@ func InstallTrafficCollector() (string, error) {
   stage: %s
 `, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	if config.Get("MO_STAGE") == utils.STAGE_DEV {
+		r.HelmChartName = "mogenius/dev-" + utils.HelmReleaseNameTrafficCollector
+		r.HelmReleaseName = "dev-" + utils.HelmReleaseNameTrafficCollector
+		version, err := GetCurrentTrafficCollectorVersion()
+		if err != nil {
+			serviceLogger.Error("Error getting current traffic collector version", "error", err)
+		}
+		r.HelmChartVersion = version
+	}
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
 
 func UpgradeTrafficCollector() (string, error) {
-	r := helm.HelmReleaseUpgradeRequest{
+	r := helm.HelmChartInstallUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameTrafficCollector,
 		Chart:     "mogenius/" + utils.HelmReleaseNameTrafficCollector,
@@ -509,6 +519,15 @@ func UpgradeTrafficCollector() (string, error) {
   namespace: %s
   stage: %s
 `, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
+	}
+	if config.Get("MO_STAGE") == utils.STAGE_DEV {
+		r.Chart = "mogenius/dev-" + utils.HelmReleaseNameTrafficCollector
+		r.Release = "dev-" + utils.HelmReleaseNameTrafficCollector
+		version, err := GetCurrentTrafficCollectorVersion()
+		if err != nil {
+			serviceLogger.Error("Error getting current traffic collector version", "error", err)
+		}
+		r.Version = version
 	}
 	return helm.HelmReleaseUpgrade(r)
 }
@@ -524,11 +543,20 @@ func InstallPodStatsCollector() (string, error) {
   stage: %s
 `, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
 	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	if config.Get("MO_STAGE") == utils.STAGE_DEV {
+		r.HelmChartName = "mogenius/dev-" + utils.HelmReleaseNamePodStatsCollector
+		r.HelmReleaseName = "dev-" + utils.HelmReleaseNamePodStatsCollector
+		version, err := GetCurrentPodStatsCollectorVersion()
+		if err != nil {
+			serviceLogger.Error("Error getting current pod stats collector version", "error", err)
+		}
+		r.HelmChartVersion = version
+	}
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
 
 func UpgradePodStatsCollector() (string, error) {
-	r := helm.HelmReleaseUpgradeRequest{
+	r := helm.HelmChartInstallUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNamePodStatsCollector,
 		Chart:     "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
@@ -536,6 +564,15 @@ func UpgradePodStatsCollector() (string, error) {
   namespace: %s
   stage: %s
 `, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
+	}
+	if config.Get("MO_STAGE") == utils.STAGE_DEV {
+		r.Chart = "mogenius/dev-" + utils.HelmReleaseNamePodStatsCollector
+		r.Release = "dev-" + utils.HelmReleaseNamePodStatsCollector
+		version, err := GetCurrentPodStatsCollectorVersion()
+		if err != nil {
+			serviceLogger.Error("Error getting current pod stats collector version", "error", err)
+		}
+		r.Version = version
 	}
 	return helm.HelmReleaseUpgrade(r)
 }
@@ -555,11 +592,11 @@ func InstallMetricsServer() (string, error) {
   - "--metric-resolution=15s"
 `,
 	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
 
 func UpgradeMetricsServer() (string, error) {
-	r := helm.HelmReleaseUpgradeRequest{
+	r := helm.HelmChartInstallUpgradeRequest{
 		Namespace: "default",
 		Release:   utils.HelmReleaseNameMetricsServer,
 		Chart:     utils.HelmReleaseNameMetricsServer + "/" + utils.HelmReleaseNameMetricsServer,
@@ -583,11 +620,11 @@ func InstallIngressControllerTreafik() (string, error) {
 		HelmChartName:   utils.HelmReleaseNameTraefik + "/" + utils.HelmReleaseNameTraefik,
 		HelmValues:      "",
 	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
 
 func UpgradeIngressControllerTreafik() (string, error) {
-	r := helm.HelmReleaseUpgradeRequest{
+	r := helm.HelmChartInstallUpgradeRequest{
 		Namespace: "default",
 		Release:   utils.HelmReleaseNameTraefik,
 		Chart:     utils.HelmReleaseNameTraefik + "/" + utils.HelmReleaseNameTraefik,
@@ -607,11 +644,11 @@ startupapicheck:
 installCRDs: true
 `, config.Get("MO_OWN_NAMESPACE")),
 	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
 
 func UpgradeCertManager() (string, error) {
-	r := helm.HelmReleaseUpgradeRequest{
+	r := helm.HelmChartInstallUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameCertManager,
 		Chart:     "jetstack/" + utils.HelmReleaseNameCertManager,
@@ -628,7 +665,7 @@ func InstallContainerRegistry() (string, error) {
 		HelmChartName:   "phntom/docker-registry",
 		HelmValues:      "",
 	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
 
 func InstallExternalSecrets() (string, error) {
@@ -639,11 +676,11 @@ func InstallExternalSecrets() (string, error) {
 		HelmChartName:   "external-secrets/external-secrets",
 		HelmValues:      "",
 	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
 
 func UpgradeContainerRegistry() (string, error) {
-	r := helm.HelmReleaseUpgradeRequest{
+	r := helm.HelmChartInstallUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameDistributionRegistry,
 		Chart:     "phntom/docker-registry",
@@ -659,7 +696,7 @@ func InstallMetalLb() (string, error) {
 		HelmChartName:   utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
 		HelmValues:      "",
 	}
-	helmResultStr, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	helmResultStr, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 	if err == nil {
 		for {
 			// this is important because the control plane needs some time to make the CRDs available
@@ -680,7 +717,7 @@ func InstallMetalLb() (string, error) {
 }
 
 func UpgradeMetalLb() (string, error) {
-	r := helm.HelmReleaseUpgradeRequest{
+	r := helm.HelmChartInstallUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameMetalLb,
 		Chart:     utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
@@ -702,11 +739,11 @@ extraEnvVars:
   ENABLE_PROCESS_METRICS: "false"
 `, config.Get("MO_OWN_NAMESPACE")),
 	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
 
 func UpgradeKepler() (string, error) {
-	r := helm.HelmReleaseUpgradeRequest{
+	r := helm.HelmChartInstallUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Chart:     utils.HelmReleaseNameKepler + "/" + utils.HelmReleaseNameKepler,
 		Release:   utils.HelmReleaseNameKepler,
@@ -723,9 +760,9 @@ extraEnvVars:
 
 func InstallClusterIssuer(email string, currentRetries int) (string, error) {
 	time.Sleep(3 * time.Second) // wait for cert-manager to be ready
-	maxRetries := 10
+	maxRetries := 20
 	if currentRetries >= maxRetries {
-		return "", fmt.Errorf("No suitable Ingress Controller found. Please install Traefik or Nginx Ingress Controller first.")
+		return "", fmt.Errorf("Exceeded max retries (%d). Please retry the installation in a few moments.", maxRetries)
 	} else {
 		ingType, err := kubernetes.DetermineIngressControllerType()
 		if err != nil {
@@ -742,7 +779,7 @@ func InstallClusterIssuer(email string, currentRetries int) (string, error) {
   ingressclass: "%s"
 `, email, strings.ToLower(ingType.String())),
 			}
-			result, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues)
+			result, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 			if err != nil {
 				currentRetries++
 				_, err := InstallClusterIssuer(email, currentRetries)
@@ -767,6 +804,9 @@ func UninstallTrafficCollector() (string, error) {
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
 	}
+	if config.Get("MO_STAGE") == utils.STAGE_DEV {
+		r.HelmReleaseName = "dev-" + utils.HelmReleaseNameTrafficCollector
+	}
 	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
@@ -774,6 +814,9 @@ func UninstallPodStatsCollector() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
+	}
+	if config.Get("MO_STAGE") == utils.STAGE_DEV {
+		r.HelmReleaseName = "dev-" + utils.HelmReleaseNamePodStatsCollector
 	}
 	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
@@ -902,7 +945,7 @@ spec:
   - fc00:f853:0ccd:e797::/124`
 }
 
-func getCurrentTrafficCollectorVersion() (string, error) {
+func GetCurrentTrafficCollectorVersion() (string, error) {
 	data, err := utils.GetVersionData(utils.HELM_INDEX)
 	if err != nil {
 		return "NO_VERSION_FOUND", err
@@ -920,7 +963,7 @@ func getCurrentTrafficCollectorVersion() (string, error) {
 	return trafficResult, nil
 }
 
-func getCurrentPodStatsCollectorVersion() (string, error) {
+func GetCurrentPodStatsCollectorVersion() (string, error) {
 	data, err := utils.GetVersionData(utils.HELM_INDEX)
 	if err != nil {
 		return "NO_VERSION_FOUND", err
