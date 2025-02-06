@@ -570,17 +570,3 @@ func ServiceTriggerJobRequestExample() ServiceTriggerJobRequest {
 		ControllerName: "my-service",
 	}
 }
-
-type ListCronjobJobsRequest struct {
-	ProjectId      string `json:"projectId" validate:"required"`
-	NamespaceName  string `json:"namespaceName" validate:"required"`
-	ControllerName string `json:"controllerName" validate:"required"`
-}
-
-func ListJobsByCronJobByServiceRequestExample() ListCronjobJobsRequest {
-	return ListCronjobJobsRequest{
-		ProjectId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceName:  "my-namespace",
-		ControllerName: "my-service",
-	}
-}

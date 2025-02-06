@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/websocket"
 	"time"
 )
 
@@ -74,6 +73,16 @@ func (self *UserSource) UnmarshalJSON(data []byte) error {
 	}
 	*self = userSource
 	return nil
+}
+
+func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
+	datagram := Datagram{
+		Id:        request.Id,
+		Pattern:   request.Pattern,
+		Payload:   data,
+		CreatedAt: request.CreatedAt,
+	}
+	return datagram
 }
 
 func CreateDatagramNotificationFromJob(data *Job) Datagram {
@@ -172,10 +181,6 @@ func (d *Datagram) DisplayStreamSummary() {
 		"pattern", d.Pattern,
 		"id", d.Id,
 	)
-}
-
-func (d *Datagram) Send(jobConnection websocket.WebsocketClient) {
-	JobServerSendData(jobConnection, *d)
 }
 
 func (d *Datagram) GetSize() int64 {

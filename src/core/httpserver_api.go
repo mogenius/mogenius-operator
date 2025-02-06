@@ -7,11 +7,21 @@ import (
 )
 
 func (self *httpService) addApiRoutes(mux *http.ServeMux) {
+	mux.Handle("GET /socketapi", self.withRequestLogging(http.HandlerFunc(self.apiSocketapi)))
 	mux.Handle("GET /workspaces", self.withRequestLogging(http.HandlerFunc(self.apiGetWorkspaces)))
 	mux.Handle("GET /workspace", self.withRequestLogging(http.HandlerFunc(self.apiGetWorkspace)))
 	mux.Handle("POST /workspace", self.withRequestLogging(http.HandlerFunc(self.apiPostWorkspace)))
 	mux.Handle("PUT /workspace", self.withRequestLogging(http.HandlerFunc(self.apiPutWorkspace)))
 	mux.Handle("DELETE /workspace", self.withRequestLogging(http.HandlerFunc(self.apiDeleteWorkspace)))
+}
+
+func (self *httpService) apiSocketapi(w http.ResponseWriter, r *http.Request) {
+	foo := r.Header["x-pattern"]
+	if len(foo) < 1 {
+		// missing pattern
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (self *httpService) apiGetWorkspaces(w http.ResponseWriter, r *http.Request) {
