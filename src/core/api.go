@@ -158,18 +158,12 @@ func (self *api) DeleteWorkspace(name string) (string, error) {
 }
 
 func (self *api) GetAllUsers() ([]v1alpha1.User, error) {
-	result := []v1alpha1.User{}
-
 	resources, err := self.workspaceManager.GetAllUsers()
 	if err != nil {
-		return result, err
+		return []v1alpha1.User{}, err
 	}
 
-	for _, resource := range resources {
-		result = append(result, resource)
-	}
-
-	return result, nil
+	return resources, nil
 }
 
 func (self *api) GetUser(name string) (*v1alpha1.User, error) {
@@ -209,18 +203,12 @@ func (self *api) DeleteUser(name string) (string, error) {
 }
 
 func (self *api) GetAllGroups() ([]v1alpha1.Group, error) {
-	result := []v1alpha1.Group{}
-
 	resources, err := self.workspaceManager.GetAllGroups()
 	if err != nil {
-		return result, err
+		return []v1alpha1.Group{}, err
 	}
 
-	for _, resource := range resources {
-		result = append(result, resource)
-	}
-
-	return result, nil
+	return resources, nil
 }
 
 func (self *api) GetGroup(name string) (*v1alpha1.Group, error) {
@@ -260,18 +248,12 @@ func (self *api) DeleteGroup(name string) (string, error) {
 }
 
 func (self *api) GetAllPermissions() ([]v1alpha1.Permission, error) {
-	result := []v1alpha1.Permission{}
-
 	resources, err := self.workspaceManager.GetAllPermissions()
 	if err != nil {
-		return result, err
+		return []v1alpha1.Permission{}, err
 	}
 
-	for _, resource := range resources {
-		result = append(result, resource)
-	}
-
-	return result, nil
+	return resources, nil
 }
 
 func (self *api) GetPermission(name string) (*v1alpha1.Permission, error) {

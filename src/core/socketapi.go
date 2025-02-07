@@ -219,7 +219,7 @@ func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
 	validationErr := utils.ValidateJSON(datagram)
 	if validationErr != nil {
 		self.logger.Error("validaten failed for datagram", "pattern", datagram.Pattern, "validationErr", validationErr)
-		return datagram, fmt.Errorf("validaten failed for datagram")
+		return datagram, fmt.Errorf("validaten failed for datagram: %s", strings.Join(validationErr.Errors, " | "))
 	}
 
 	return datagram, nil
@@ -227,7 +227,6 @@ func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
 
 var jobDataQueue []structs.Datagram = []structs.Datagram{}
 var jobSendMutex sync.Mutex
-var jobConnectionGuard = make(chan struct{}, 1)
 
 func (self *socketApi) JobServerSendData(jobClient websocket.WebsocketClient, datagram structs.Datagram) {
 	jobDataQueue = append(jobDataQueue, datagram)
@@ -258,45 +257,6 @@ func (self *socketApi) removeJobIndex(s []structs.Datagram, index int) []structs
 		return append(s[:index], s[index+1:]...)
 	}
 	return s
-}
-
-func (self *socketApi) connectToJobQueue(jobClient websocket.WebsocketClient) {
-	jobQueueCtx, cancel := context.WithCancel(context.Background())
-	shutdown.Add(cancel)
-	for {
-		jobConnectionGuard <- struct{}{} // would block if guard channel is already filled
-		go func() {
-			ticker := time.NewTicker(1 * time.Second)
-			quit := make(chan struct{})
-			go func() {
-				for {
-					select {
-					case <-jobQueueCtx.Done():
-						return
-					case <-quit:
-						// close go routine
-						return
-					case <-ticker.C:
-						self.processJobNow(jobClient)
-					}
-				}
-			}()
-			select {
-			case <-jobQueueCtx.Done():
-				return
-			case <-jobConnectionGuard:
-			}
-			ticker.Stop()
-			close(quit)
-		}()
-		select {
-		case <-jobQueueCtx.Done():
-			self.logger.Debug("shutting down jobqueue")
-			return
-		case <-time.After(structs.RETRYTIMEOUT * time.Second):
-		}
-		<-time.After(structs.RETRYTIMEOUT * time.Second)
-	}
 }
 
 func (self *socketApi) versionTicker() {

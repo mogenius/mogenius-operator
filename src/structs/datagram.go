@@ -16,14 +16,14 @@ type Datagram struct {
 	Username  string      `json:"username,omitempty"`
 	Err       string      `json:"err,omitempty"`
 	CreatedAt time.Time   `json:"-"`
-	User      User        `json:"user" validate:"required"`
+	User      User        `json:"user,omitempty"`
 }
 
 type User struct {
-	FirstName string `json:"firstName" validate:"required"`
-	LastName  string `json:"lastName" validate:"required"`
-	Email     string `json:"email" validate:"required"`
-	Source    string `json:"source" validate:"required"`
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	Email     string `json:"email,omitempty"`
+	Source    string `json:"source,omitempty"`
 }
 
 type UserSource string

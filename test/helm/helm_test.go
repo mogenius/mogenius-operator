@@ -88,7 +88,7 @@ func installForTests(t *testing.T) error {
 		t.Error(err)
 	}
 
-	helmInstallData := helm.HelmChartInstallRequest{
+	helmInstallData := helm.HelmChartInstallUpgradeRequest{
 		Namespace: testNamespace,
 		Chart:     testChart,
 		Release:   testRelease,
@@ -254,7 +254,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_UPGRADE
 	// no futher testing needed no error is sufficient
-	releaseUpgradeData := helm.HelmReleaseUpgradeRequest{
+	releaseUpgradeData := helm.HelmChartInstallUpgradeRequest{
 		Namespace: testNamespace,
 		Chart:     testChart,
 		Release:   testRelease,

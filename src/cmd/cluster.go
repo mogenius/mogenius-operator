@@ -46,7 +46,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		assert.Assert(err == nil, err)
 		controllers.Setup(logManagerModule, configModule)
 		dtos.Setup(logManagerModule)
-		services.Setup(logManagerModule, configModule, clientProvider, dbstatsModule)
+		services.Setup(logManagerModule, configModule, clientProvider)
 		servicesexternal.Setup(logManagerModule, configModule)
 		store.Setup(logManagerModule)
 		structs.Setup(logManagerModule, configModule)

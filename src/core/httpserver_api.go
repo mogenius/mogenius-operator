@@ -22,6 +22,7 @@ func (self *httpService) httpSocketApi(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
 	datagram, err := self.socketapi.ParseDatagram(body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
