@@ -38,6 +38,8 @@ import (
 type SocketApi interface {
 	Link(httpService HttpService, xtermService XtermService, apiService Api)
 	Run()
+	ExecuteCommandRequest(datagram structs.Datagram, httpApi HttpService) interface{}
+	ParseDatagram(data []byte) (structs.Datagram, error)
 }
 
 type socketApi struct {
@@ -159,16 +161,9 @@ func (self *socketApi) startMessageHandler() {
 			continue
 		}
 
-		datagram := structs.CreateEmptyDatagram()
-
-		var json = jsoniter.ConfigCompatibleWithStandardLibrary
-		err = json.Unmarshal([]byte(rawDataStr), &datagram)
+		datagram, err := self.ParseDatagram([]byte(rawDataStr))
 		if err != nil {
-			self.logger.Error("failed to unmarshal", "error", err)
-		}
-		validationErr := utils.ValidateJSON(datagram)
-		if validationErr != nil {
-			self.logger.Error("Received malformed Datagram", "pattern", datagram.Pattern)
+			self.logger.Error("failed to parse datagram", "error", err)
 			continue
 		}
 
@@ -209,6 +204,25 @@ func (self *socketApi) startMessageHandler() {
 		}
 	}
 	self.logger.Debug("api messagehandler finished as the websocket client was terminated")
+}
+
+func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
+	datagram := structs.CreateEmptyDatagram()
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(data, &datagram)
+	if err != nil {
+		self.logger.Error("failed to unmarshal", "error", err)
+		return datagram, err
+	}
+
+	validationErr := utils.ValidateJSON(datagram)
+	if validationErr != nil {
+		self.logger.Error("validaten failed for datagram", "pattern", datagram.Pattern, "validationErr", validationErr)
+		return datagram, fmt.Errorf("validaten failed for datagram")
+	}
+
+	return datagram, nil
 }
 
 var jobDataQueue []structs.Datagram = []structs.Datagram{}

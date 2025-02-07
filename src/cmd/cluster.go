@@ -59,6 +59,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		xtermclient := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 
 		socketapi.Link(httpApi, xtermclient, apiModule)
+		httpApi.Link(socketapi)
 
 		versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())

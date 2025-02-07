@@ -20,6 +20,7 @@ import (
 
 type HttpService interface {
 	Run(addr string)
+	Link(socketapi SocketApi)
 	Broadcaster() *Broadcaster
 }
 
@@ -29,6 +30,8 @@ type httpService struct {
 	dbstats     kubernetes.BoltDbStats
 	api         Api
 	broadcaster *Broadcaster
+
+	socketapi SocketApi
 }
 
 type MessageCallback struct {
@@ -111,6 +114,7 @@ func NewHttpApi(
 func (self *httpService) Run(addr string) {
 	assert.Assert(self.logger != nil)
 	assert.Assert(self.config != nil)
+	assert.Assert(self.socketapi != nil)
 
 	self.logger.Debug("initializing http.ServeMux", "addr", addr)
 	mux := http.NewServeMux()
@@ -149,6 +153,12 @@ func (self *httpService) Run(addr string) {
 	if err != nil {
 		self.logger.Error("failed to start api server", "error", err)
 	}
+}
+
+func (self *httpService) Link(socketapi SocketApi) {
+	assert.Assert(socketapi != nil)
+
+	self.socketapi = socketapi
 }
 
 func (self *httpService) Broadcaster() *Broadcaster {
