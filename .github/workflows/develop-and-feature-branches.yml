@@ -41,9 +41,6 @@ jobs:
   golangci:
     needs: prepare
     runs-on: [self-hosted-ansible]
-    strategy:
-      matrix:
-        modules: ${{ fromJSON(needs.detect-modules.outputs.modules) }}
     permissions:
       # Required: allow read access to the content for analysis.
       contents: read
@@ -78,8 +75,8 @@ jobs:
           go-version: stable
       - name: go vet
         run: |
-          GOPATH=$(go env GOPATH)
-          GOMODCACHE=$(go env GOMODCACHE)
+          export GOPATH=$(go env GOPATH)
+          export GOMODCACHE=$(go env GOMODCACHE)
           go vet ./...
 
   unit-tests:
@@ -95,8 +92,10 @@ jobs:
           go-version: stable
       - name: Execute Tests
         run: |
-          GOPATH=$(go env GOPATH)
-          GOMODCACHE=$(go env GOMODCACHE)
+          export GOPATH=$(go env GOPATH)
+          export GOMODCACHE=$(go env GOMODCACHE)
+          echo $GOPATH
+          echo $GOMODCACHE
           go mod download
           go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
 
