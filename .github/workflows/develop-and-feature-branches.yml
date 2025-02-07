@@ -63,7 +63,7 @@ jobs:
           version: latest
           only-new-issues: true
           args: --timeout=30m
-          working-directory: ${{ matrix.modules }}
+          working-directory: src
 
   govet:
     needs: prepare
@@ -76,12 +76,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-      - name: Set Go environment variables
-        run: |
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-          echo "GOMODCACHE=$(go env GOMODCACHE)" >> $GITHUB_ENV
       - name: go vet
         run: |
+          GOPATH=$(go env GOPATH)
+          GOMODCACHE=$(go env GOMODCACHE)
           go vet ./...
 
   unit-tests:
@@ -97,6 +95,8 @@ jobs:
           go-version: stable
       - name: Execute Tests
         run: |
+          GOPATH=$(go env GOPATH)
+          GOMODCACHE=$(go env GOMODCACHE)
           go mod download
           go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
 
