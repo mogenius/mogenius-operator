@@ -109,6 +109,7 @@ func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 	//}
 
 	if kind == "Namespace" {
+		obj = removeUnusedFieds(obj)
 		err := store.GlobalStore.Set(obj, groupVersion, kind, name)
 		if err != nil {
 			k8sLogger.Error("Error setting object in store", "error", err)
@@ -117,6 +118,7 @@ func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 	}
 
 	if kind == "NetworkPolicy" {
+		obj = removeUnusedFieds(obj)
 		err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error setting object in store", "error", err)
@@ -134,6 +136,7 @@ func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 	}
 
 	// other resources
+	obj = removeUnusedFieds(obj)
 	err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
@@ -235,10 +238,21 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 	if namespace == nil {
 		namespace = utils.Pointer("")
 	}
+	// try to get the data from the store (very fast)
 	result := store.GetResourceByKindAndNamespace(group, kind, *namespace)
 	if result != nil {
 		results.Items = result
 	}
+
+	// fallback: gather the data when the store is empty (can be slow)
+	if len(result) == 0 {
+		list, err := GetUnstructuredResourceList(group, version, name, namespace)
+		if err != nil {
+			return results, err
+		}
+		results.Items = list.Items
+	}
+
 	return results, nil
 }
 
@@ -563,4 +577,16 @@ func removeManagedFieldsFromList(objList *unstructured.UnstructuredList) *unstru
 	}
 
 	return objList
+}
+
+func removeUnusedFieds(obj *unstructured.Unstructured) *unstructured.Unstructured {
+	if obj == nil {
+		return obj
+	}
+
+	obj = removeManagedFields(obj)
+	unstructuredContent := obj.Object
+	delete(unstructuredContent, "data")
+
+	return obj
 }
