@@ -1,7 +1,10 @@
 package helm
 
 import (
+	"errors"
 	"fmt"
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
@@ -1128,30 +1131,72 @@ func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
 
 func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
 	workloads, err := store.GlobalStore.SearchByNamespace(reflect.TypeOf(unstructured.Unstructured{}), data.Namespace, data.Whitelist)
+	if err != nil {
+		return nil, err
+	}
 
 	var results []unstructured.Unstructured
-
-	if err != nil {
-		return results, err
-	}
+	appendedWorkloadUIds := make(map[types.UID]bool)
+	var replicaSets []interface{}
+	replicaSetsFetched := false
 
 	for _, ref := range workloads {
 		if ref == nil {
 			continue
 		}
 
-		workload := ref.(*unstructured.Unstructured)
-		if workload == nil {
+		workload, ok := ref.(*unstructured.Unstructured)
+		if !ok || workload == nil {
+			continue
+		}
+
+		if appendedWorkloadUIds[workload.GetUID()] {
+			continue
+		}
+
+		if workload.GetKind() == "Pod" {
+			if !replicaSetsFetched {
+				replicaSets, err = store.GlobalStore.SearchByKeyParts(reflect.TypeOf(v1.ReplicaSet{}), "ReplicaSet", data.Namespace)
+				if errors.Is(err, store.ErrNotFound) {
+					helmLogger.Warn("ReplicaSet not found", "error", err)
+					replicaSets = nil
+				}
+				replicaSetsFetched = true
+			}
+
+			for _, ref := range replicaSets {
+				if ref == nil {
+					continue
+				}
+
+				replicaset, ok := ref.(*v1.ReplicaSet)
+				if !ok || replicaset == nil {
+					continue
+				}
+
+				for _, ownerReference := range workload.GetOwnerReferences() {
+					if ownerReference.UID == replicaset.UID {
+						labels := replicaset.GetLabels()
+						annotations := replicaset.GetAnnotations()
+						if labels != nil && labels["app.kubernetes.io/managed-by"] == "Helm" &&
+							(labels["app.kubernetes.io/instance"] == data.Release ||
+								(annotations != nil && annotations["meta.helm.sh/release-name"] == data.Release)) {
+							results = append(results, *workload)
+							appendedWorkloadUIds[workload.GetUID()] = true
+							break
+						}
+					}
+				}
+			}
 			continue
 		}
 
 		labels := workload.GetLabels()
 		annotations := workload.GetAnnotations()
-
-		if (labels != nil && labels["app.kubernetes.io/managed-by"] == "Helm") && (labels["app.kubernetes.io/instance"] == data.Release || (annotations != nil && annotations["meta.helm.sh/release-name"] == data.Release)) {
+		if labels != nil && labels["app.kubernetes.io/managed-by"] == "Helm" && (labels["app.kubernetes.io/instance"] == data.Release || (annotations != nil && annotations["meta.helm.sh/release-name"] == data.Release)) {
 			results = append(results, *workload)
+			appendedWorkloadUIds[workload.GetUID()] = true
 		}
-
 	}
 
 	return results, nil
