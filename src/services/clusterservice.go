@@ -744,10 +744,19 @@ extraEnvVars:
 }
 
 func InstallClusterIssuer(email string, currentRetries int) (string, error) {
+	_, err := kubernetes.DetermineIngressControllerType()
+	if err != nil {
+		return "", fmt.Errorf("Please install a IngressController before installing the ClusterIssuer.")
+	}
+	isCertManagerInstalled, err := kubernetes.IsCertManagerInstalled()
+	if err != nil || !isCertManagerInstalled {
+		return "", fmt.Errorf("Please install the Cert-Manager before installing the ClusterIssuer.")
+	}
+
 	time.Sleep(3 * time.Second) // wait for cert-manager to be ready
 	maxRetries := 20
 	if currentRetries >= maxRetries {
-		return "", fmt.Errorf("Exceeded max retries (%d). Please retry the installation in a few moments.", maxRetries)
+		return "", fmt.Errorf("ClusterIssuer installation exceeded max retries (%d). <br>- Make sure you have Cert-Manager setup and running.<br>- Make sure you have a IngressController setup and running. Please retry the installation in a few moments.", maxRetries)
 	} else {
 		ingType, err := kubernetes.DetermineIngressControllerType()
 		if err != nil {

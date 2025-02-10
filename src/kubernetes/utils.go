@@ -826,3 +826,14 @@ func DetermineIngressControllerType() (IngressType, error) {
 
 	return UNKNOWN, fmt.Errorf("unknown ingress controller: %s", unknownController)
 }
+
+func IsCertManagerInstalled() (bool, error) {
+	deployments, err := GetDeploymentsWithFieldSelector("", "app.kubernetes.io/instance=cert-manager")
+	if err != nil {
+		return false, err
+	}
+	if len(deployments) > 0 {
+		return true, nil
+	}
+	return false, nil
+}
