@@ -582,7 +582,7 @@ func InstallMetricsServer() (string, error) {
 
 func UpgradeMetricsServer() (string, error) {
 	r := helm.HelmChartInstallUpgradeRequest{
-		Namespace: "default",
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameMetricsServer,
 		Chart:     utils.HelmReleaseNameMetricsServer + "/" + utils.HelmReleaseNameMetricsServer,
 		Values: `args:
@@ -610,7 +610,7 @@ func InstallIngressControllerTreafik() (string, error) {
 
 func UpgradeIngressControllerTreafik() (string, error) {
 	r := helm.HelmChartInstallUpgradeRequest{
-		Namespace: "default",
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameTraefik,
 		Chart:     utils.HelmReleaseNameTraefik + "/" + utils.HelmReleaseNameTraefik,
 	}
@@ -817,7 +817,7 @@ func UninstallPodStatsCollector() (string, error) {
 
 func UninstallMetricsServer() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       "default",
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameMetricsServer,
 	}
 	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
@@ -825,7 +825,7 @@ func UninstallMetricsServer() (string, error) {
 
 func UninstallIngressControllerTreafik() (string, error) {
 	r := ClusterHelmRequest{
-		Namespace:       "default",
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameTraefik,
 	}
 	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
