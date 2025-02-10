@@ -40,6 +40,8 @@ type SocketApi interface {
 	Run()
 	ExecuteCommandRequest(datagram structs.Datagram, httpApi HttpService) interface{}
 	ParseDatagram(data []byte) (structs.Datagram, error)
+	// RegisterPatternHandler(pattern string, callback func(pattern string, user structs.User, body interface{}) (interface{}, error))
+	// RegisterPatternHandlerRaw(pattern string, callback func(pattern string, user structs.User, body interface{}) interface{})
 }
 
 type socketApi struct {
@@ -52,6 +54,11 @@ type socketApi struct {
 	httpService  HttpService
 	xtermService XtermService
 	apiService   Api
+}
+
+type PatternHandler struct {
+	NeedsUser bool
+	Callback  func(pattern string, user structs.User, body interface{}) (interface{}, error)
 }
 
 func NewSocketApi(
@@ -1274,10 +1281,10 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi 
 	case structs.PAT_CREATE_WORKSPACE:
 		data := utils.WebsocketRequestCreateWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.CreateWorkspace(data.Name, v1alpha1.WorkspaceSpec{
-			Name:      data.Name,
-			Resources: data.Resources,
-		})
+		result, err := self.apiService.CreateWorkspace(data.Name, v1alpha1.NewWorkspaceSpec(
+			data.Name,
+			data.Resources,
+		))
 		return NewMessageResponse(result, err)
 	case structs.PAT_GET_WORKSPACE:
 		data := utils.WebsocketRequestGetWorkspace{}
@@ -1287,10 +1294,10 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi 
 	case structs.PAT_UPDATE_WORKSPACE:
 		data := utils.WebsocketRequestUpdateWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.UpdateWorkspace(data.Name, v1alpha1.WorkspaceSpec{
-			Name:      data.DisplayName,
-			Resources: data.Resources,
-		})
+		result, err := self.apiService.UpdateWorkspace(data.Name, v1alpha1.NewWorkspaceSpec(
+			data.Name,
+			data.Resources,
+		))
 		return NewMessageResponse(result, err)
 	case structs.PAT_DELETE_WORKSPACE:
 		data := utils.WebsocketRequestDeleteWorkspace{}
@@ -1304,7 +1311,7 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi 
 	case structs.PAT_CREATE_USER:
 		data := utils.WebsocketRequestCreateUser{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.CreateUser(data.Name, v1alpha1.NewUserSpec(data.Name))
+		result, err := self.apiService.CreateUser(data.Name, v1alpha1.NewUserSpec(data.MogeniusId))
 		return NewMessageResponse(result, err)
 	case structs.PAT_GET_USER:
 		data := utils.WebsocketRequestGetUser{}
@@ -1314,7 +1321,7 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi 
 	case structs.PAT_UPDATE_USER:
 		data := utils.WebsocketRequestUpdateUser{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.UpdateUser(data.Name, v1alpha1.NewUserSpec(data.Name))
+		result, err := self.apiService.UpdateUser(data.Name, v1alpha1.NewUserSpec(data.MogeniusId))
 		return NewMessageResponse(result, err)
 	case structs.PAT_DELETE_USER:
 		data := utils.WebsocketRequestDeleteUser{}
@@ -1322,64 +1329,62 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi 
 		result, err := self.apiService.DeleteUser(data.Name)
 		return NewMessageResponse(result, err)
 
-	case structs.PAT_GET_GROUPS:
-		result, err := self.apiService.GetAllGroups()
+	case structs.PAT_GET_TEAMS:
+		result, err := self.apiService.GetAllTeams()
 		return NewMessageResponse(result, err)
-	case structs.PAT_CREATE_GROUP:
-		data := utils.WebsocketRequestCreateGroup{}
+	case structs.PAT_CREATE_TEAM:
+		data := utils.WebsocketRequestCreateTeam{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.CreateGroup(data.Name, v1alpha1.NewGroupSpec(data.Name, data.Users))
+		result, err := self.apiService.CreateTeam(data.Name, v1alpha1.NewTeamSpec(data.DisplayName, data.Users))
 		return NewMessageResponse(result, err)
-	case structs.PAT_GET_GROUP:
-		data := utils.WebsocketRequestGetGroup{}
+	case structs.PAT_GET_TEAM:
+		data := utils.WebsocketRequestGetTeam{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.GetGroup(data.Name)
+		result, err := self.apiService.GetTeam(data.Name)
 		return NewMessageResponse(result, err)
-	case structs.PAT_UPDATE_GROUP:
-		data := utils.WebsocketRequestUpdateGroup{}
+	case structs.PAT_UPDATE_TEAM:
+		data := utils.WebsocketRequestUpdateTeam{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.UpdateGroup(data.Name, v1alpha1.NewGroupSpec(data.Name, data.Users))
+		result, err := self.apiService.UpdateTeam(data.Name, v1alpha1.NewTeamSpec(data.DisplayName, data.Users))
 		return NewMessageResponse(result, err)
-	case structs.PAT_DELETE_GROUP:
-		data := utils.WebsocketRequestDeleteGroup{}
+	case structs.PAT_DELETE_TEAM:
+		data := utils.WebsocketRequestDeleteTeam{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.DeleteGroup(data.Name)
+		result, err := self.apiService.DeleteTeam(data.Name)
 		return NewMessageResponse(result, err)
 
-	case structs.PAT_GET_PERMISSIONS:
-		result, err := self.apiService.GetAllPermissions()
+	case structs.PAT_GET_GRANTS:
+		result, err := self.apiService.GetAllGrants()
 		return NewMessageResponse(result, err)
-	case structs.PAT_CREATE_PERMISSION:
-		data := utils.WebsocketRequestCreatePermission{}
+	case structs.PAT_CREATE_GRANT:
+		data := utils.WebsocketRequestCreateGrant{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.CreatePermission(data.Name, v1alpha1.NewPermissionSpec(
-			data.Group,
-			data.Workspace,
-			data.Read,
-			data.Write,
-			data.Delete,
+		result, err := self.apiService.CreateGrant(data.Name, v1alpha1.NewGrantSpec(
+			data.Grantee,
+			data.TargetType,
+			data.TargetName,
+			data.Role,
 		))
 		return NewMessageResponse(result, err)
-	case structs.PAT_GET_PERMISSION:
-		data := utils.WebsocketRequestGetPermission{}
+	case structs.PAT_GET_GRANT:
+		data := utils.WebsocketRequestGetGrant{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.GetPermission(data.Name)
+		result, err := self.apiService.GetGrant(data.Name)
 		return NewMessageResponse(result, err)
-	case structs.PAT_UPDATE_PERMISSION:
-		data := utils.WebsocketRequestUpdatePermission{}
+	case structs.PAT_UPDATE_GRANT:
+		data := utils.WebsocketRequestUpdateGrant{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.UpdatePermission(data.Name, v1alpha1.NewPermissionSpec(
-			data.Group,
-			data.Workspace,
-			data.Read,
-			data.Write,
-			data.Delete,
+		result, err := self.apiService.UpdateGrant(data.Name, v1alpha1.NewGrantSpec(
+			data.Grantee,
+			data.TargetType,
+			data.TargetName,
+			data.Role,
 		))
 		return NewMessageResponse(result, err)
-	case structs.PAT_DELETE_PERMISSION:
-		data := utils.WebsocketRequestDeletePermission{}
+	case structs.PAT_DELETE_GRANT:
+		data := utils.WebsocketRequestDeleteGrant{}
 		structs.MarshalUnmarshal(&datagram, &data)
-		result, err := self.apiService.DeletePermission(data.Name)
+		result, err := self.apiService.DeleteGrant(data.Name)
 		return NewMessageResponse(result, err)
 
 	case structs.PAT_BUILDER_STATUS:

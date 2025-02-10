@@ -193,17 +193,17 @@ const (
 	PAT_UPDATE_USER = "update/user"
 	PAT_DELETE_USER = "delete/user"
 
-	PAT_GET_GROUPS   = "get/groups"
-	PAT_CREATE_GROUP = "create/group"
-	PAT_GET_GROUP    = "get/group"
-	PAT_UPDATE_GROUP = "update/group"
-	PAT_DELETE_GROUP = "delete/group"
+	PAT_GET_TEAMS   = "get/teams"
+	PAT_CREATE_TEAM = "create/team"
+	PAT_GET_TEAM    = "get/team"
+	PAT_UPDATE_TEAM = "update/team"
+	PAT_DELETE_TEAM = "delete/team"
 
-	PAT_GET_PERMISSIONS   = "get/permissions"
-	PAT_CREATE_PERMISSION = "create/permission"
-	PAT_GET_PERMISSION    = "get/permission"
-	PAT_UPDATE_PERMISSION = "update/permission"
-	PAT_DELETE_PERMISSION = "delete/permission"
+	PAT_GET_GRANTS   = "get/grants"
+	PAT_CREATE_GRANT = "create/grant"
+	PAT_GET_GRANT    = "get/grant"
+	PAT_UPDATE_GRANT = "update/grant"
+	PAT_DELETE_GRANT = "delete/grant"
 
 	PAT_STORAGE_CREATE_VOLUME   string = "storage/create-volume"
 	PAT_STORAGE_DELETE_VOLUME   string = "storage/delete-volume"
@@ -445,17 +445,17 @@ var COMMAND_REQUESTS = []string{
 	PAT_UPDATE_USER,
 	PAT_DELETE_USER,
 
-	PAT_GET_GROUPS,
-	PAT_CREATE_GROUP,
-	PAT_GET_GROUP,
-	PAT_UPDATE_GROUP,
-	PAT_DELETE_GROUP,
+	PAT_GET_TEAMS,
+	PAT_CREATE_TEAM,
+	PAT_GET_TEAM,
+	PAT_UPDATE_TEAM,
+	PAT_DELETE_TEAM,
 
-	PAT_GET_PERMISSIONS,
-	PAT_CREATE_PERMISSION,
-	PAT_GET_PERMISSION,
-	PAT_UPDATE_PERMISSION,
-	PAT_DELETE_PERMISSION,
+	PAT_GET_GRANTS,
+	PAT_CREATE_GRANT,
+	PAT_GET_GRANT,
+	PAT_UPDATE_GRANT,
+	PAT_DELETE_GRANT,
 
 	PAT_STORAGE_CREATE_VOLUME,
 	PAT_STORAGE_DELETE_VOLUME,

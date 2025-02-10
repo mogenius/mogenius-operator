@@ -4,41 +4,41 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ╭────────────╮
-// │ CRD: Group │
-// ╰────────────╯
+// ╭───────────╮
+// │ CRD: Team │
+// ╰───────────╯
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type GroupList struct {
+type TeamList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Group `json:"items"`
+	Items           []Team `json:"items"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type Group struct {
+type Team struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   GroupSpec   `json:"spec,omitempty"`
-	Status GroupStatus `json:"status,omitempty"`
+	Spec   TeamSpec   `json:"spec,omitempty"`
+	Status TeamStatus `json:"status,omitempty"`
 }
 
-type GroupSpec struct {
+type TeamSpec struct {
 	// name for this group
 	//
 	// the name has to be unique across users and groups
-	Name string `json:"name,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
 
 	// a list of usernames within this group
 	Users []string `json:"users,omitempty"`
 }
 
-func NewGroupSpec(name string, users []string) GroupSpec {
-	return GroupSpec{
-		Name:  name,
-		Users: users,
+func NewTeamSpec(displayName string, users []string) TeamSpec {
+	return TeamSpec{
+		DisplayName: displayName,
+		Users:       users,
 	}
 }
 
-type GroupStatus struct{}
+type TeamStatus struct{}

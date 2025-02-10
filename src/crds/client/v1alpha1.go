@@ -37,17 +37,17 @@ func NewMogeniusV1alpha1(config rest.Config) (*MogeniusV1alpha1, error) {
 	return self, nil
 }
 
-// ╭────────────────╮
-// │ Client: Groups │
-// ╰────────────────╯
+// ╭───────────────╮
+// │ Client: Teams │
+// ╰───────────────╯
 
-func (self *MogeniusV1alpha1) ListGroups(namespace string) ([]mov1alpha1.Group, error) {
+func (self *MogeniusV1alpha1) ListTeams(namespace string) ([]mov1alpha1.Team, error) {
 	req := self.restClient.Get().
 		Namespace(namespace).
-		Resource("groups").
+		Resource("teams").
 		VersionedParams(&metav1.ListOptions{}, metav1.ParameterCodec)
 
-	var groupList mov1alpha1.GroupList
+	var groupList mov1alpha1.TeamList
 	err := req.Do(context.Background()).Into(&groupList)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
@@ -56,24 +56,24 @@ func (self *MogeniusV1alpha1) ListGroups(namespace string) ([]mov1alpha1.Group, 
 	return groupList.Items, nil
 }
 
-func (self *MogeniusV1alpha1) GetGroup(namespace string, name string) (*mov1alpha1.Group, error) {
-	result := &mov1alpha1.Group{}
-	err := self.restClient.Get().Namespace(namespace).Resource("groups").Name(name).Do(context.Background()).Into(result)
+func (self *MogeniusV1alpha1) GetTeam(namespace string, name string) (*mov1alpha1.Team, error) {
+	result := &mov1alpha1.Team{}
+	err := self.restClient.Get().Namespace(namespace).Resource("teams").Name(name).Do(context.Background()).Into(result)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
 	}
 	result.TypeMeta = metav1.TypeMeta{
-		Kind:       "Group",
+		Kind:       "Team",
 		APIVersion: "mogenius.com/v1alpha1",
 	}
 
 	return result, nil
 }
 
-func (self *MogeniusV1alpha1) CreateGroup(namespace string, name string, spec mov1alpha1.GroupSpec) (*mov1alpha1.Group, error) {
-	res := &mov1alpha1.Group{
+func (self *MogeniusV1alpha1) CreateTeam(namespace string, name string, spec mov1alpha1.TeamSpec) (*mov1alpha1.Team, error) {
+	res := &mov1alpha1.Team{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Group",
+			Kind:       "Team",
 			APIVersion: "mogenius.com/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -82,8 +82,8 @@ func (self *MogeniusV1alpha1) CreateGroup(namespace string, name string, spec mo
 		},
 		Spec: spec,
 	}
-	result := &mov1alpha1.Group{}
-	err := self.restClient.Post().Namespace(namespace).Resource("groups").Body(res).Do(context.Background()).Into(result)
+	result := &mov1alpha1.Team{}
+	err := self.restClient.Post().Namespace(namespace).Resource("teams").Body(res).Do(context.Background()).Into(result)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
 	}
@@ -91,15 +91,15 @@ func (self *MogeniusV1alpha1) CreateGroup(namespace string, name string, spec mo
 	return result, nil
 }
 
-func (self *MogeniusV1alpha1) ReplaceGroup(namespace string, name string, spec mov1alpha1.GroupSpec) (*mov1alpha1.Group, error) {
-	res, err := self.GetGroup(namespace, name)
+func (self *MogeniusV1alpha1) ReplaceTeam(namespace string, name string, spec mov1alpha1.TeamSpec) (*mov1alpha1.Team, error) {
+	res, err := self.GetTeam(namespace, name)
 	if err != nil {
 		return nil, err
 	}
 	res.Spec = spec
 
-	result := &mov1alpha1.Group{}
-	err = self.restClient.Put().Namespace(namespace).Resource("groups").Name(name).Body(res).Do(context.Background()).Into(result)
+	result := &mov1alpha1.Team{}
+	err = self.restClient.Put().Namespace(namespace).Resource("teams").Name(name).Body(res).Do(context.Background()).Into(result)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
 	}
@@ -107,16 +107,16 @@ func (self *MogeniusV1alpha1) ReplaceGroup(namespace string, name string, spec m
 	return result, nil
 }
 
-func (self *MogeniusV1alpha1) UpdateGroup(namespace string, name string, spec mov1alpha1.GroupSpec) (*mov1alpha1.Group, error) {
-	patchBytes, err := json.Marshal(&mov1alpha1.Group{
+func (self *MogeniusV1alpha1) UpdateTeam(namespace string, name string, spec mov1alpha1.TeamSpec) (*mov1alpha1.Team, error) {
+	patchBytes, err := json.Marshal(&mov1alpha1.Team{
 		Spec: spec,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	result := &mov1alpha1.Group{}
-	err = self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("groups").Name(name).Body(patchBytes).Do(context.Background()).Into(result)
+	result := &mov1alpha1.Team{}
+	err = self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("teams").Name(name).Body(patchBytes).Do(context.Background()).Into(result)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
 	}
@@ -124,8 +124,8 @@ func (self *MogeniusV1alpha1) UpdateGroup(namespace string, name string, spec mo
 	return result, nil
 }
 
-func (self *MogeniusV1alpha1) DeleteGroup(namespace string, name string) error {
-	err := self.restClient.Delete().Namespace(namespace).Resource("groups").Name(name).Do(context.Background()).Error()
+func (self *MogeniusV1alpha1) DeleteTeam(namespace string, name string) error {
+	err := self.restClient.Delete().Namespace(namespace).Resource("teams").Name(name).Do(context.Background()).Error()
 	if err != nil {
 		return fmt.Errorf("RESTClient: %w", err)
 	}
@@ -133,17 +133,17 @@ func (self *MogeniusV1alpha1) DeleteGroup(namespace string, name string) error {
 	return nil
 }
 
-// ╭─────────────────────╮
-// │ Client: Permissions │
-// ╰─────────────────────╯
+// ╭────────────────╮
+// │ Client: Grants │
+// ╰────────────────╯
 
-func (self *MogeniusV1alpha1) ListPermissions(namespace string) ([]mov1alpha1.Permission, error) {
+func (self *MogeniusV1alpha1) ListGrants(namespace string) ([]mov1alpha1.Grant, error) {
 	req := self.restClient.Get().
 		Namespace(namespace).
-		Resource("permissions").
+		Resource("grants").
 		VersionedParams(&metav1.ListOptions{}, metav1.ParameterCodec)
 
-	var permissionList mov1alpha1.PermissionList
+	var permissionList mov1alpha1.GrantList
 	err := req.Do(context.Background()).Into(&permissionList)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
@@ -152,24 +152,24 @@ func (self *MogeniusV1alpha1) ListPermissions(namespace string) ([]mov1alpha1.Pe
 	return permissionList.Items, nil
 }
 
-func (self *MogeniusV1alpha1) GetPermission(namespace string, name string) (*mov1alpha1.Permission, error) {
-	result := &mov1alpha1.Permission{}
-	err := self.restClient.Get().Namespace(namespace).Resource("permissions").Name(name).Do(context.Background()).Into(result)
+func (self *MogeniusV1alpha1) GetGrant(namespace string, name string) (*mov1alpha1.Grant, error) {
+	result := &mov1alpha1.Grant{}
+	err := self.restClient.Get().Namespace(namespace).Resource("grants").Name(name).Do(context.Background()).Into(result)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
 	}
 	result.TypeMeta = metav1.TypeMeta{
-		Kind:       "Permission",
+		Kind:       "Grant",
 		APIVersion: "mogenius.com/v1alpha1",
 	}
 
 	return result, nil
 }
 
-func (self *MogeniusV1alpha1) CreatePermission(namespace string, name string, spec mov1alpha1.PermissionSpec) (*mov1alpha1.Permission, error) {
-	res := &mov1alpha1.Permission{
+func (self *MogeniusV1alpha1) CreateGrant(namespace string, name string, spec mov1alpha1.GrantSpec) (*mov1alpha1.Grant, error) {
+	res := &mov1alpha1.Grant{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Permission",
+			Kind:       "Grant",
 			APIVersion: "mogenius.com/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -178,8 +178,8 @@ func (self *MogeniusV1alpha1) CreatePermission(namespace string, name string, sp
 		},
 		Spec: spec,
 	}
-	result := &mov1alpha1.Permission{}
-	err := self.restClient.Post().Namespace(namespace).Resource("permissions").Body(res).Do(context.Background()).Into(result)
+	result := &mov1alpha1.Grant{}
+	err := self.restClient.Post().Namespace(namespace).Resource("grants").Body(res).Do(context.Background()).Into(result)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
 	}
@@ -187,15 +187,15 @@ func (self *MogeniusV1alpha1) CreatePermission(namespace string, name string, sp
 	return result, nil
 }
 
-func (self *MogeniusV1alpha1) ReplacePermission(namespace string, name string, spec mov1alpha1.PermissionSpec) (*mov1alpha1.Permission, error) {
-	res, err := self.GetPermission(namespace, name)
+func (self *MogeniusV1alpha1) ReplaceGrant(namespace string, name string, spec mov1alpha1.GrantSpec) (*mov1alpha1.Grant, error) {
+	res, err := self.GetGrant(namespace, name)
 	if err != nil {
 		return nil, err
 	}
 	res.Spec = spec
 
-	result := &mov1alpha1.Permission{}
-	err = self.restClient.Put().Namespace(namespace).Resource("permissions").Name(name).Body(res).Do(context.Background()).Into(result)
+	result := &mov1alpha1.Grant{}
+	err = self.restClient.Put().Namespace(namespace).Resource("grants").Name(name).Body(res).Do(context.Background()).Into(result)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
 	}
@@ -203,16 +203,16 @@ func (self *MogeniusV1alpha1) ReplacePermission(namespace string, name string, s
 	return result, nil
 }
 
-func (self *MogeniusV1alpha1) UpdatePermission(namespace string, name string, spec mov1alpha1.PermissionSpec) (*mov1alpha1.Permission, error) {
-	patchBytes, err := json.Marshal(&mov1alpha1.Permission{
+func (self *MogeniusV1alpha1) UpdateGrant(namespace string, name string, spec mov1alpha1.GrantSpec) (*mov1alpha1.Grant, error) {
+	patchBytes, err := json.Marshal(&mov1alpha1.Grant{
 		Spec: spec,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	result := &mov1alpha1.Permission{}
-	err = self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("permissions").Name(name).Body(patchBytes).Do(context.Background()).Into(result)
+	result := &mov1alpha1.Grant{}
+	err = self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("grants").Name(name).Body(patchBytes).Do(context.Background()).Into(result)
 	if err != nil {
 		return nil, fmt.Errorf("RESTClient: %w", err)
 	}
@@ -220,8 +220,8 @@ func (self *MogeniusV1alpha1) UpdatePermission(namespace string, name string, sp
 	return result, nil
 }
 
-func (self *MogeniusV1alpha1) DeletePermission(namespace string, name string) error {
-	err := self.restClient.Delete().Namespace(namespace).Resource("permissions").Name(name).Do(context.Background()).Error()
+func (self *MogeniusV1alpha1) DeleteGrant(namespace string, name string) error {
+	err := self.restClient.Delete().Namespace(namespace).Resource("grants").Name(name).Do(context.Background()).Error()
 	if err != nil {
 		return fmt.Errorf("RESTClient: %w", err)
 	}

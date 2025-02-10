@@ -34,6 +34,13 @@ type WorkspaceSpec struct {
 	Resources []WorkspaceResourceIdentifier `json:"resources,omitempty"`
 }
 
+func NewWorkspaceSpec(displayName string, resources []WorkspaceResourceIdentifier) WorkspaceSpec {
+	return WorkspaceSpec{
+		Name:      displayName, // TODO: rename the field to displayName as the Name should be used for Workspace.meta.name and repetition is unnecessary
+		Resources: resources,
+	}
+}
+
 type WorkspaceResourceIdentifier struct {
 	Id string `json:"id,omitempty"`
 
@@ -41,6 +48,14 @@ type WorkspaceResourceIdentifier struct {
 	Type string `json:"type,omitempty"`
 
 	Namespace string `json:"namespace,omitempty"`
+}
+
+func NewWorkspaceResourceIdentifier(id string, resourceType string, namespace string) WorkspaceResourceIdentifier {
+	return WorkspaceResourceIdentifier{
+		Id:        id,
+		Type:      resourceType,
+		Namespace: namespace,
+	}
 }
 
 type WorkspaceStatus struct{}

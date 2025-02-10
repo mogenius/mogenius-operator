@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"mogenius-k8s-manager/src/assert"
-	crdYaml "mogenius-k8s-manager/src/crds/yaml"
+	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
@@ -306,7 +306,7 @@ func InitOrUpdateCrds() {
 		k8sLogger.Info("Created/updated mogenius ApplicationKit-CRDs. 🚀")
 	}
 
-	crds := crdYaml.GetCRDs()
+	crds := crds.GetCRDs()
 	for _, crd := range crds {
 		err = CreateOrUpdateYamlString(crd.Content)
 		if err != nil && !apierrors.IsAlreadyExists(err) {

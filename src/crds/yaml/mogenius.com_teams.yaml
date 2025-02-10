@@ -3,15 +3,15 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.1
-  name: permissions.mogenius.com
+    controller-gen.kubebuilder.io/version: v0.17.2
+  name: teams.mogenius.com
 spec:
   group: mogenius.com
   names:
-    kind: Permission
-    listKind: PermissionList
-    plural: permissions
-    singular: permission
+    kind: Team
+    listKind: TeamList
+    plural: teams
+    singular: team
   scope: Namespaced
   versions:
   - name: v1alpha1
@@ -36,33 +36,18 @@ spec:
           metadata:
             type: object
           spec:
-            description: Grant permissions to a workspace for a group
             properties:
-              delete:
+              displayName:
                 description: |-
-                  grant "delete" permission
+                  name for this group
 
-                  this allows deleting the workspace itself
-                type: boolean
-              group:
-                description: the group for which this permission is created
+                  the name has to be unique across users and groups
                 type: string
-              read:
-                description: |-
-                  grant "read" permission
-
-                  this allows both viewing the workspace itself and reading all resources within this workspace
-                type: boolean
-              workspace:
-                description: the workspace to which this permission is applied
-                type: string
-              write:
-                description: |-
-                  grant "write" permission
-
-                  this allows editing the workspace which means:
-                  - users are allowed to create, change and delete resources within this workspace
-                type: boolean
+              users:
+                description: a list of usernames within this group
+                items:
+                  type: string
+                type: array
             type: object
           status:
             type: object
