@@ -1129,6 +1129,14 @@ func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
 	}
 }
 
+func IsManagedByHelmRelease(labels map[string]string, annotations map[string]string, releaseName string) bool {
+	labelManagedByHelm := labels != nil && labels["app.kubernetes.io/managed-by"] == "Helm"
+	labelInstanceRelease := labels != nil && labels["app.kubernetes.io/instance"] == releaseName
+	annotationReleaseName := annotations != nil && annotations["meta.helm.sh/release-name"] == releaseName
+
+	return annotationReleaseName || (labelManagedByHelm && (labelInstanceRelease || annotationReleaseName))
+}
+
 func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
 	workloads, err := store.GlobalStore.SearchByNamespace(reflect.TypeOf(unstructured.Unstructured{}), data.Namespace, data.Whitelist)
 	if err != nil {
@@ -1176,24 +1184,19 @@ func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructure
 
 				for _, ownerReference := range workload.GetOwnerReferences() {
 					if ownerReference.UID == replicaset.UID {
-						labels := replicaset.GetLabels()
-						annotations := replicaset.GetAnnotations()
-						if labels != nil && labels["app.kubernetes.io/managed-by"] == "Helm" &&
-							(labels["app.kubernetes.io/instance"] == data.Release ||
-								(annotations != nil && annotations["meta.helm.sh/release-name"] == data.Release)) {
+						if IsManagedByHelmRelease(replicaset.GetLabels(), replicaset.GetAnnotations(), data.Release) {
 							results = append(results, *workload)
 							appendedWorkloadUIds[workload.GetUID()] = true
 							break
 						}
+
 					}
 				}
 			}
 			continue
 		}
 
-		labels := workload.GetLabels()
-		annotations := workload.GetAnnotations()
-		if labels != nil && labels["app.kubernetes.io/managed-by"] == "Helm" && (labels["app.kubernetes.io/instance"] == data.Release || (annotations != nil && annotations["meta.helm.sh/release-name"] == data.Release)) {
+		if IsManagedByHelmRelease(workload.GetLabels(), workload.GetAnnotations(), data.Release) {
 			results = append(results, *workload)
 			appendedWorkloadUIds[workload.GetUID()] = true
 		}
