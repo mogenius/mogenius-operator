@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"hash/fnv"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -17,6 +18,10 @@ func createEmptyValidationErr() *ValidationError {
 	return &ValidationError{
 		Errors: []string{},
 	}
+}
+
+func (self *ValidationError) Error() string {
+	return strings.Join(self.Errors, " | ")
 }
 
 func ValidateJSON(obj interface{}) *ValidationError {
