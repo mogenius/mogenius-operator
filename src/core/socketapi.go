@@ -1282,7 +1282,7 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi 
 		data := utils.WebsocketRequestCreateWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		result, err := self.apiService.CreateWorkspace(data.Name, v1alpha1.NewWorkspaceSpec(
-			data.Name,
+			data.DisplayName,
 			data.Resources,
 		))
 		return NewMessageResponse(result, err)
@@ -1295,7 +1295,7 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi 
 		data := utils.WebsocketRequestUpdateWorkspace{}
 		structs.MarshalUnmarshal(&datagram, &data)
 		result, err := self.apiService.UpdateWorkspace(data.Name, v1alpha1.NewWorkspaceSpec(
-			data.Name,
+			data.DisplayName,
 			data.Resources,
 		))
 		return NewMessageResponse(result, err)
