@@ -723,6 +723,45 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	self.RegisterPatternHandler(
+		structs.PAT_STATS_WORKLOAD_CPU_UTILIZATION,
+		PatternConfig{},
+		func(datagram structs.Datagram) (interface{}, error) {
+			data := utils.WorkspaceStatsRequest{}
+			structs.MarshalUnmarshal(&datagram, &data)
+			if err := utils.ValidateJSON(data); err != nil {
+				return nil, err
+			}
+			return self.dbstats.GetWorkspaceStatsCpuUtilization(data.WorkspaceName)
+		},
+	)
+
+	self.RegisterPatternHandler(
+		structs.PAT_STATS_WORKLOAD_MEMORY_UTILIZATION,
+		PatternConfig{},
+		func(datagram structs.Datagram) (interface{}, error) {
+			data := utils.WorkspaceStatsRequest{}
+			structs.MarshalUnmarshal(&datagram, &data)
+			if err := utils.ValidateJSON(data); err != nil {
+				return nil, err
+			}
+			return self.dbstats.GetWorkspaceStatsMemoryUtilization(data.WorkspaceName)
+		},
+	)
+
+	self.RegisterPatternHandler(
+		structs.PAT_STATS_WORKLOAD_TRAFFIC_UTILIZATION,
+		PatternConfig{},
+		func(datagram structs.Datagram) (interface{}, error) {
+			data := utils.WorkspaceStatsRequest{}
+			structs.MarshalUnmarshal(&datagram, &data)
+			if err := utils.ValidateJSON(data); err != nil {
+				return nil, err
+			}
+			return self.dbstats.GetWorkspaceStatsTrafficUtilization(data.WorkspaceName)
+		},
+	)
+
 	self.RegisterPatternHandlerRaw(
 		structs.PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION,
 		PatternConfig{},
@@ -1992,6 +2031,16 @@ func (self *socketApi) registerPatterns() {
 			data := utils.WebsocketRequestDeleteGrant{}
 			structs.MarshalUnmarshal(&datagram, &data)
 			return self.apiService.DeleteGrant(data.Name)
+		},
+	)
+
+	self.RegisterPatternHandler(
+		structs.PAT_GET_WORKSPACE_WORKLOADS,
+		PatternConfig{},
+		func(datagram structs.Datagram) (interface{}, error) {
+			data := utils.WorkspaceWorkloadRequest{}
+			structs.MarshalUnmarshal(&datagram, &data)
+			return self.apiService.GetWorkspaceResources(data)
 		},
 	)
 

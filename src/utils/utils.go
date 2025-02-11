@@ -874,3 +874,12 @@ func ParseJsonStringArray(input string) []string {
 	}
 	return val
 }
+
+func ContainsResourceEntry(resources []*SyncResourceEntry, target SyncResourceEntry) bool {
+	for _, r := range resources {
+		if r.Kind == target.Kind && r.Group == target.Group {
+			return true
+		}
+	}
+	return false
+}

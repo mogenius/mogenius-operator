@@ -32,15 +32,6 @@ type GetUnstructuredLabeledResourceListRequest struct {
 	Blacklist []*utils.SyncResourceEntry `json:"blacklist"`
 }
 
-func containsResourceEntry(resources []*utils.SyncResourceEntry, target utils.SyncResourceEntry) bool {
-	for _, r := range resources {
-		if r.Kind == target.Kind && r.Group == target.Group {
-			return true
-		}
-	}
-	return false
-}
-
 func WatchStoreResources(watcher WatcherModule) error {
 	resources, err := GetAvailableResources()
 	if err != nil {
@@ -281,7 +272,7 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 			//		k8sLogger.Error("Error querying resource", "error", err)
 			//	}
 			//}
-			if (len(whitelist) > 0 && !containsResourceEntry(whitelist, v)) || (blacklist != nil && containsResourceEntry(blacklist, v)) {
+			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
 				continue
 			}
 
@@ -315,7 +306,7 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncRes
 	for _, v := range resources {
 		if v.Namespace != nil {
 
-			if (len(whitelist) > 0 && !containsResourceEntry(whitelist, v)) || (blacklist != nil && containsResourceEntry(blacklist, v)) {
+			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
 				continue
 			}
 			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).List(context.TODO(), metav1.ListOptions{LabelSelector: label})

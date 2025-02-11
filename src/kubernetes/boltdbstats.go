@@ -39,6 +39,9 @@ type BoltDbStats interface {
 	GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats
 	GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats
 	GetTrafficStatsEntrySumForController(controller K8sController, includeSocketConnections bool) *structs.InterfaceStats
+	GetWorkspaceStatsCpuUtilization(workspaceName string) ([]GenericChartEntry, error)
+	GetWorkspaceStatsMemoryUtilization(workspaceName string) ([]GenericChartEntry, error)
+	GetWorkspaceStatsTrafficUtilization(workspaceName string) ([]GenericChartEntry, error)
 	ReplaceCniData(data []structs.CniData)
 }
 
@@ -526,6 +529,42 @@ func (self *boldDbStatsModule) GetTrafficStatsEntrySumForController(controller K
 	return result
 }
 
+func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(workspaceName string) ([]GenericChartEntry, error) {
+	result := []GenericChartEntry{}
+
+	// TODO: BENE RICHTIGER CODE REIN
+	result = append(result, GenericChartEntry{
+		Time:  "2021-01-01T00:00:00Z",
+		Value: 1.0,
+	})
+
+	return result, nil
+}
+
+func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(workspaceName string) ([]GenericChartEntry, error) {
+	result := []GenericChartEntry{}
+
+	// TODO: BENE RICHTIGER CODE REIN
+	result = append(result, GenericChartEntry{
+		Time:  "2021-01-01T00:00:00Z",
+		Value: 0.0,
+	})
+
+	return result, nil
+}
+
+func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(workspaceName string) ([]GenericChartEntry, error) {
+	result := []GenericChartEntry{}
+
+	// TODO: BENE RICHTIGER CODE REIN
+	result = append(result, GenericChartEntry{
+		Time:  "2021-01-01T00:00:00Z",
+		Value: 0.0,
+	})
+
+	return result, nil
+}
+
 func (self *boldDbStatsModule) GetSocketConnectionsForController(controller K8sController) *structs.SocketConnections {
 	result := &structs.SocketConnections{}
 	err := self.db.View(func(tx *bbolt.Tx) error {
@@ -734,4 +773,9 @@ func (self *boldDbStatsModule) AddNodeStatsToDb(stats structs.NodeStats) {
 	if err != nil {
 		self.logger.Error("Error adding node stats", "name", stats.Name, "error", err)
 	}
+}
+
+type GenericChartEntry struct {
+	Time  string  `json:"time"`
+	Value float64 `json:"value"`
 }

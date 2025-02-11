@@ -83,3 +83,13 @@ type WebsocketRequestUpdateGrant struct {
 type WebsocketRequestDeleteGrant struct {
 	Name string `json:"name" validate:"required"`
 }
+
+type WorkspaceStatsRequest struct {
+	WorkspaceName string `json:"workspaceName"`
+}
+
+type WorkspaceWorkloadRequest struct {
+	WorkspaceName string               `json:"workspaceName"`
+	Whitelist     []*SyncResourceEntry `json:"whitelist"`
+	Blacklist     []*SyncResourceEntry `json:"blacklist"`
+}

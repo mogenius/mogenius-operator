@@ -115,6 +115,9 @@ const (
 	PAT_STATS_PODSTAT_FOR_CONTROLLER_LAST               string = "stats/podstat/last-for-controller"
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_ALL                 string = "stats/podstat/all-for-namespace"
 	PAT_STATS_PODSTAT_FOR_NAMESPACE_LAST                string = "stats/podstat/last-for-namespace"
+	PAT_STATS_WORKLOAD_CPU_UTILIZATION                  string = "stats/workload/cpu-utilization"
+	PAT_STATS_WORKLOAD_MEMORY_UTILIZATION               string = "stats/workload/memory-utilization"
+	PAT_STATS_WORKLOAD_TRAFFIC_UTILIZATION              string = "stats/workload/traffic-utilization"
 
 	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION string = "metrics/deployment/average-utilization"
 
@@ -204,6 +207,8 @@ const (
 	PAT_GET_GRANT    = "get/grant"
 	PAT_UPDATE_GRANT = "update/grant"
 	PAT_DELETE_GRANT = "delete/grant"
+
+	PAT_GET_WORKSPACE_WORKLOADS = "get/workspace-workloads"
 
 	PAT_STORAGE_CREATE_VOLUME   string = "storage/create-volume"
 	PAT_STORAGE_DELETE_VOLUME   string = "storage/delete-volume"
@@ -364,6 +369,9 @@ var COMMAND_REQUESTS = []string{
 	PAT_STATS_TRAFFIC_FOR_POD_LAST,        // legacy-support TODO: REMOVE
 	PAT_STATS_TRAFFIC_FOR_CONTROLLER_LAST, // legacy-support TODO: REMOVE
 	PAT_STATS_TRAFFIC_FOR_NAMESPACE_LAST,  // legacy-support TODO: REMOVE
+	PAT_STATS_WORKLOAD_CPU_UTILIZATION,
+	PAT_STATS_WORKLOAD_MEMORY_UTILIZATION,
+	PAT_STATS_WORKLOAD_TRAFFIC_UTILIZATION,
 
 	PAT_METRICS_DEPLOYMENT_AVG_UTILIZATION,
 
@@ -456,6 +464,8 @@ var COMMAND_REQUESTS = []string{
 	PAT_GET_GRANT,
 	PAT_UPDATE_GRANT,
 	PAT_DELETE_GRANT,
+
+	PAT_GET_WORKSPACE_WORKLOADS,
 
 	PAT_STORAGE_CREATE_VOLUME,
 	PAT_STORAGE_DELETE_VOLUME,

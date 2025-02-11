@@ -3,8 +3,12 @@ package core
 import (
 	"log/slog"
 	"mogenius-k8s-manager/src/crds/v1alpha1"
+	"mogenius-k8s-manager/src/helm"
+	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/utils"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // api layer to be accessed through websockets, http and other exposed apis
@@ -66,6 +70,8 @@ type Api interface {
 	CreateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	DeleteGrant(name string) (string, error)
+
+	GetWorkspaceResources(data utils.WorkspaceWorkloadRequest) ([]unstructured.Unstructured, error)
 }
 
 type api struct {
@@ -290,4 +296,38 @@ func (self *api) DeleteGrant(name string) (string, error) {
 	}
 
 	return "Resource deleted successfully", nil
+}
+
+func (self *api) GetWorkspaceResources(data utils.WorkspaceWorkloadRequest) ([]unstructured.Unstructured, error) {
+	result := []unstructured.Unstructured{}
+
+	// Get workspace
+	workspace, err := self.GetWorkspace(data.WorkspaceName)
+	if err != nil {
+		return result, err
+	}
+
+	for _, v := range workspace.Resources {
+		if v.Type == "namespace" {
+			nsResources, err := kubernetes.GetUnstructuredNamespaceResourceList(v.Namespace, data.Whitelist, data.Blacklist)
+			if err != nil {
+				return result, err
+			}
+			result = append(result, *nsResources...)
+		}
+		if v.Type == "helm" {
+			helmReq := helm.HelmReleaseGetWorkloadsRequest{
+				Namespace: v.Namespace,
+				Release:   v.Id,
+				Whitelist: data.Whitelist,
+			}
+			helmResources, err := helm.HelmReleaseGetWorkloads(helmReq)
+			if err != nil {
+				return result, err
+			}
+			result = append(result, helmResources...)
+		}
+	}
+
+	return result, nil
 }
