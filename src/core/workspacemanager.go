@@ -21,17 +21,17 @@ type WorkspaceManager interface {
 	UpdateUser(name string, spec v1alpha1.UserSpec) (*v1alpha1.User, error)
 	DeleteUser(name string) error
 
-	GetAllGroups() ([]v1alpha1.Group, error)
-	CreateGroup(name string, spec v1alpha1.GroupSpec) (*v1alpha1.Group, error)
-	GetGroup(name string) (*v1alpha1.Group, error)
-	UpdateGroup(name string, spec v1alpha1.GroupSpec) (*v1alpha1.Group, error)
-	DeleteGroup(name string) error
+	GetAllTeams() ([]v1alpha1.Team, error)
+	CreateTeam(name string, spec v1alpha1.TeamSpec) (*v1alpha1.Team, error)
+	GetTeam(name string) (*v1alpha1.Team, error)
+	UpdateTeam(name string, spec v1alpha1.TeamSpec) (*v1alpha1.Team, error)
+	DeleteTeam(name string) error
 
-	GetAllPermissions() ([]v1alpha1.Permission, error)
-	CreatePermission(name string, spec v1alpha1.PermissionSpec) (*v1alpha1.Permission, error)
-	GetPermission(name string) (*v1alpha1.Permission, error)
-	UpdatePermission(name string, spec v1alpha1.PermissionSpec) (*v1alpha1.Permission, error)
-	DeletePermission(name string) error
+	GetAllGrants() ([]v1alpha1.Grant, error)
+	CreateGrant(name string, spec v1alpha1.GrantSpec) (*v1alpha1.Grant, error)
+	GetGrant(name string) (*v1alpha1.Grant, error)
+	UpdateGrant(name string, spec v1alpha1.GrantSpec) (*v1alpha1.Grant, error)
+	DeleteGrant(name string) error
 }
 
 type workspaceManager struct {
@@ -121,62 +121,62 @@ func (self *workspaceManager) DeleteUser(name string) error {
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteUser(self.namespace, name)
 }
 
-func (self *workspaceManager) GetAllGroups() ([]v1alpha1.Group, error) {
+func (self *workspaceManager) GetAllTeams() ([]v1alpha1.Team, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.ListGroups(self.namespace)
+	return self.mogeniusClientSet.MogeniusV1alpha1.ListTeams(self.namespace)
 }
 
-func (self *workspaceManager) GetGroup(name string) (*v1alpha1.Group, error) {
+func (self *workspaceManager) GetTeam(name string) (*v1alpha1.Team, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.GetGroup(self.namespace, name)
+	return self.mogeniusClientSet.MogeniusV1alpha1.GetTeam(self.namespace, name)
 }
 
-func (self *workspaceManager) CreateGroup(name string, spec v1alpha1.GroupSpec) (*v1alpha1.Group, error) {
+func (self *workspaceManager) CreateTeam(name string, spec v1alpha1.TeamSpec) (*v1alpha1.Team, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.CreateGroup(self.namespace, name, spec)
+	return self.mogeniusClientSet.MogeniusV1alpha1.CreateTeam(self.namespace, name, spec)
 }
 
-func (self *workspaceManager) UpdateGroup(name string, spec v1alpha1.GroupSpec) (*v1alpha1.Group, error) {
+func (self *workspaceManager) UpdateTeam(name string, spec v1alpha1.TeamSpec) (*v1alpha1.Team, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.UpdateGroup(self.namespace, name, spec)
+	return self.mogeniusClientSet.MogeniusV1alpha1.UpdateTeam(self.namespace, name, spec)
 }
 
-func (self *workspaceManager) DeleteGroup(name string) error {
+func (self *workspaceManager) DeleteTeam(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteGroup(self.namespace, name)
+	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteTeam(self.namespace, name)
 }
 
-func (self *workspaceManager) GetAllPermissions() ([]v1alpha1.Permission, error) {
+func (self *workspaceManager) GetAllGrants() ([]v1alpha1.Grant, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.ListPermissions(self.namespace)
+	return self.mogeniusClientSet.MogeniusV1alpha1.ListGrants(self.namespace)
 }
 
-func (self *workspaceManager) GetPermission(name string) (*v1alpha1.Permission, error) {
+func (self *workspaceManager) GetGrant(name string) (*v1alpha1.Grant, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.GetPermission(self.namespace, name)
+	return self.mogeniusClientSet.MogeniusV1alpha1.GetGrant(self.namespace, name)
 }
 
-func (self *workspaceManager) CreatePermission(name string, spec v1alpha1.PermissionSpec) (*v1alpha1.Permission, error) {
+func (self *workspaceManager) CreateGrant(name string, spec v1alpha1.GrantSpec) (*v1alpha1.Grant, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.CreatePermission(self.namespace, name, spec)
+	return self.mogeniusClientSet.MogeniusV1alpha1.CreateGrant(self.namespace, name, spec)
 }
 
-func (self *workspaceManager) UpdatePermission(name string, spec v1alpha1.PermissionSpec) (*v1alpha1.Permission, error) {
+func (self *workspaceManager) UpdateGrant(name string, spec v1alpha1.GrantSpec) (*v1alpha1.Grant, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.UpdatePermission(self.namespace, name, spec)
+	return self.mogeniusClientSet.MogeniusV1alpha1.UpdateGrant(self.namespace, name, spec)
 }
 
-func (self *workspaceManager) DeletePermission(name string) error {
+func (self *workspaceManager) DeleteGrant(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.DeletePermission(self.namespace, name)
+	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteGrant(self.namespace, name)
 }

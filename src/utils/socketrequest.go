@@ -3,8 +3,9 @@ package utils
 import "mogenius-k8s-manager/src/crds/v1alpha1"
 
 type WebsocketRequestCreateWorkspace struct {
-	Name      string                                 `json:"name" validate:"required"`
-	Resources []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+	Name        string                                 `json:"name" validate:"required"`
+	DisplayName string                                 `json:"displayName" validate:"required"`
+	Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
 }
 
 type WebsocketRequestGetWorkspace struct {
@@ -22,7 +23,8 @@ type WebsocketRequestDeleteWorkspace struct {
 }
 
 type WebsocketRequestCreateUser struct {
-	Name string `json:"name" validate:"required"`
+	Name       string `json:"name" validate:"required"`
+	MogeniusId string `json:"mogeniusId" validate:"required"`
 }
 
 type WebsocketRequestGetUser struct {
@@ -30,55 +32,54 @@ type WebsocketRequestGetUser struct {
 }
 
 type WebsocketRequestUpdateUser struct {
-	Name        string                                 `json:"name" validate:"required"`
-	DisplayName string                                 `json:"displayName" validate:"required"`
-	Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+	Name       string `json:"name" validate:"required"`
+	MogeniusId string `json:"mogeniusId" validate:"required"`
 }
 
 type WebsocketRequestDeleteUser struct {
 	Name string `json:"name" validate:"required"`
 }
 
-type WebsocketRequestCreateGroup struct {
-	Name  string   `json:"name" validate:"required"`
-	Users []string `json:"users" validate:"required"`
+type WebsocketRequestCreateTeam struct {
+	Name        string   `json:"name" validate:"required"`
+	DisplayName string   `json:"displayName" validate:"required"`
+	Users       []string `json:"users" validate:"required"`
 }
 
-type WebsocketRequestGetGroup struct {
+type WebsocketRequestGetTeam struct {
 	Name string `json:"name" validate:"required"`
 }
 
-type WebsocketRequestUpdateGroup struct {
-	Name  string   `json:"name" validate:"required"`
-	Users []string `json:"users" validate:"required"`
+type WebsocketRequestUpdateTeam struct {
+	Name        string   `json:"name" validate:"required"`
+	DisplayName string   `json:"displayName" validate:"required"`
+	Users       []string `json:"users" validate:"required"`
 }
 
-type WebsocketRequestDeleteGroup struct {
+type WebsocketRequestDeleteTeam struct {
 	Name string `json:"name" validate:"required"`
 }
 
-type WebsocketRequestCreatePermission struct {
-	Name      string `json:"name" validate:"required"`
-	Group     string `json:"group" validate:"required"`
-	Workspace string `json:"workspace" validate:"required"`
-	Read      bool   `json:"read" validate:"required"`
-	Write     bool   `json:"write" validate:"required"`
-	Delete    bool   `json:"delete" validate:"required"`
+type WebsocketRequestCreateGrant struct {
+	Name       string `json:"name" validate:"required"`
+	Grantee    string `json:"grantee" validate:"required"`
+	TargetType string `json:"targetType" validate:"required"`
+	TargetName string `json:"targetName" validate:"required"`
+	Role       string `json:"role" validate:"required"`
 }
 
-type WebsocketRequestGetPermission struct {
+type WebsocketRequestGetGrant struct {
 	Name string `json:"name" validate:"required"`
 }
 
-type WebsocketRequestUpdatePermission struct {
-	Name      string `json:"name" validate:"required"`
-	Group     string `json:"group" validate:"required"`
-	Workspace string `json:"workspace" validate:"required"`
-	Read      bool   `json:"read" validate:"required"`
-	Write     bool   `json:"write" validate:"required"`
-	Delete    bool   `json:"delete" validate:"required"`
+type WebsocketRequestUpdateGrant struct {
+	Name       string `json:"name" validate:"required"`
+	Grantee    string `json:"grantee" validate:"required"`
+	TargetType string `json:"targetType" validate:"required"`
+	TargetName string `json:"targetName" validate:"required"`
+	Role       string `json:"role" validate:"required"`
 }
 
-type WebsocketRequestDeletePermission struct {
+type WebsocketRequestDeleteGrant struct {
 	Name string `json:"name" validate:"required"`
 }

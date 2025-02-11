@@ -55,17 +55,17 @@ type Api interface {
 	UpdateUser(name string, spec v1alpha1.UserSpec) (string, error)
 	DeleteUser(name string) (string, error)
 
-	GetAllGroups() ([]v1alpha1.Group, error)
-	GetGroup(name string) (*v1alpha1.Group, error)
-	CreateGroup(name string, spec v1alpha1.GroupSpec) (string, error)
-	UpdateGroup(name string, spec v1alpha1.GroupSpec) (string, error)
-	DeleteGroup(name string) (string, error)
+	GetAllTeams() ([]v1alpha1.Team, error)
+	GetTeam(name string) (*v1alpha1.Team, error)
+	CreateTeam(name string, spec v1alpha1.TeamSpec) (string, error)
+	UpdateTeam(name string, spec v1alpha1.TeamSpec) (string, error)
+	DeleteTeam(name string) (string, error)
 
-	GetAllPermissions() ([]v1alpha1.Permission, error)
-	GetPermission(name string) (*v1alpha1.Permission, error)
-	CreatePermission(name string, spec v1alpha1.PermissionSpec) (string, error)
-	UpdatePermission(name string, spec v1alpha1.PermissionSpec) (string, error)
-	DeletePermission(name string) (string, error)
+	GetAllGrants() ([]v1alpha1.Grant, error)
+	GetGrant(name string) (*v1alpha1.Grant, error)
+	CreateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
+	UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
+	DeleteGrant(name string) (string, error)
 }
 
 type api struct {
@@ -202,17 +202,17 @@ func (self *api) DeleteUser(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
-func (self *api) GetAllGroups() ([]v1alpha1.Group, error) {
-	resources, err := self.workspaceManager.GetAllGroups()
+func (self *api) GetAllTeams() ([]v1alpha1.Team, error) {
+	resources, err := self.workspaceManager.GetAllTeams()
 	if err != nil {
-		return []v1alpha1.Group{}, err
+		return []v1alpha1.Team{}, err
 	}
 
 	return resources, nil
 }
 
-func (self *api) GetGroup(name string) (*v1alpha1.Group, error) {
-	resource, err := self.workspaceManager.GetGroup(name)
+func (self *api) GetTeam(name string) (*v1alpha1.Team, error) {
+	resource, err := self.workspaceManager.GetTeam(name)
 	if err != nil {
 		return nil, err
 	}
@@ -220,8 +220,8 @@ func (self *api) GetGroup(name string) (*v1alpha1.Group, error) {
 	return resource, nil
 }
 
-func (self *api) CreateGroup(name string, spec v1alpha1.GroupSpec) (string, error) {
-	_, err := self.workspaceManager.CreateGroup(name, spec)
+func (self *api) CreateTeam(name string, spec v1alpha1.TeamSpec) (string, error) {
+	_, err := self.workspaceManager.CreateTeam(name, spec)
 	if err != nil {
 		return "", err
 	}
@@ -229,8 +229,8 @@ func (self *api) CreateGroup(name string, spec v1alpha1.GroupSpec) (string, erro
 	return "Resource created successfully", nil
 }
 
-func (self *api) UpdateGroup(name string, spec v1alpha1.GroupSpec) (string, error) {
-	_, err := self.workspaceManager.UpdateGroup(name, spec)
+func (self *api) UpdateTeam(name string, spec v1alpha1.TeamSpec) (string, error) {
+	_, err := self.workspaceManager.UpdateTeam(name, spec)
 	if err != nil {
 		return "", err
 	}
@@ -238,8 +238,8 @@ func (self *api) UpdateGroup(name string, spec v1alpha1.GroupSpec) (string, erro
 	return "Resource updated successfully", nil
 }
 
-func (self *api) DeleteGroup(name string) (string, error) {
-	err := self.workspaceManager.DeleteGroup(name)
+func (self *api) DeleteTeam(name string) (string, error) {
+	err := self.workspaceManager.DeleteTeam(name)
 	if err != nil {
 		return "", err
 	}
@@ -247,17 +247,17 @@ func (self *api) DeleteGroup(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
-func (self *api) GetAllPermissions() ([]v1alpha1.Permission, error) {
-	resources, err := self.workspaceManager.GetAllPermissions()
+func (self *api) GetAllGrants() ([]v1alpha1.Grant, error) {
+	resources, err := self.workspaceManager.GetAllGrants()
 	if err != nil {
-		return []v1alpha1.Permission{}, err
+		return []v1alpha1.Grant{}, err
 	}
 
 	return resources, nil
 }
 
-func (self *api) GetPermission(name string) (*v1alpha1.Permission, error) {
-	resource, err := self.workspaceManager.GetPermission(name)
+func (self *api) GetGrant(name string) (*v1alpha1.Grant, error) {
+	resource, err := self.workspaceManager.GetGrant(name)
 	if err != nil {
 		return nil, err
 	}
@@ -265,8 +265,8 @@ func (self *api) GetPermission(name string) (*v1alpha1.Permission, error) {
 	return resource, nil
 }
 
-func (self *api) CreatePermission(name string, spec v1alpha1.PermissionSpec) (string, error) {
-	_, err := self.workspaceManager.CreatePermission(name, spec)
+func (self *api) CreateGrant(name string, spec v1alpha1.GrantSpec) (string, error) {
+	_, err := self.workspaceManager.CreateGrant(name, spec)
 	if err != nil {
 		return "", err
 	}
@@ -274,8 +274,8 @@ func (self *api) CreatePermission(name string, spec v1alpha1.PermissionSpec) (st
 	return "Resource created successfully", nil
 }
 
-func (self *api) UpdatePermission(name string, spec v1alpha1.PermissionSpec) (string, error) {
-	_, err := self.workspaceManager.UpdatePermission(name, spec)
+func (self *api) UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error) {
+	_, err := self.workspaceManager.UpdateGrant(name, spec)
 	if err != nil {
 		return "", err
 	}
@@ -283,8 +283,8 @@ func (self *api) UpdatePermission(name string, spec v1alpha1.PermissionSpec) (st
 	return "Resource updated successfully", nil
 }
 
-func (self *api) DeletePermission(name string) (string, error) {
-	err := self.workspaceManager.DeletePermission(name)
+func (self *api) DeleteGrant(name string) (string, error) {
+	err := self.workspaceManager.DeleteGrant(name)
 	if err != nil {
 		return "", err
 	}
