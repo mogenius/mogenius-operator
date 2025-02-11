@@ -2619,16 +2619,37 @@ func (self *socketApi) startMessageHandler() {
 
 			wg.Add(1)
 			go func() {
-				defer wg.Done()
+				defer func() {
+					<-semaphoreChan
+					wg.Done()
+				}()
+
+				if datagram.Zlib {
+					decompressedData, err := utils.TryZlibDecompress(datagram.Payload)
+					if err != nil {
+						self.logger.Error("failed to decompress payload", "error", err)
+						return
+					}
+					datagram.Payload = decompressedData
+				}
+
 				responsePayload := self.ExecuteCommandRequest(datagram, self.httpService)
+
+				compressedData, err := utils.TryZlibCompress(responsePayload)
+				if err != nil {
+					self.logger.Error("failed to compress response payload", "error", err)
+				} else {
+					responsePayload = compressedData
+				}
+
 				result := structs.Datagram{
 					Id:        datagram.Id,
 					Pattern:   datagram.Pattern,
 					Payload:   responsePayload,
 					CreatedAt: datagram.CreatedAt,
+					Zlib:      err == nil,
 				}
 				self.JobServerSendData(self.client, result)
-				<-semaphoreChan
 			}()
 		} else if slices.Contains(structs.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
 			preparedFileRequest = ExecuteBinaryRequestUpload(datagram)
