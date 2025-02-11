@@ -1753,6 +1753,16 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandler(
+		structs.PAT_GET_WORKLOAD_STATUS,
+		PatternConfig{},
+		func(datagram structs.Datagram) (interface{}, error) {
+			data := kubernetes.GetWorkloadStatusRequest{}
+			structs.MarshalUnmarshal(&datagram, &data)
+			return kubernetes.GetWorkloadStatus(data)
+		},
+	)
+
+	self.RegisterPatternHandler(
 		structs.PAT_GET_WORKLOAD_EXAMPLE,
 		PatternConfig{},
 		func(datagram structs.Datagram) (interface{}, error) {

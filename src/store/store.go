@@ -9,6 +9,7 @@ import (
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
 	"reflect"
+	"regexp"
 	"sync"
 	"time"
 
@@ -364,9 +365,19 @@ func (s *Store) SearchByNamespace(resultType reflect.Type, namespace string, whi
 	}
 
 	var searchKeys []string
-	for _, item := range whitelist {
-		searchKey := CreateKey(item.Group, item.Kind, namespace)
-		searchKeys = append(searchKeys, searchKey)
+	pattern := fmt.Sprintf(`\S+__\S+__%s(?:__\S+)?`, regexp.QuoteMeta(namespace))
+	re, reError := regexp.Compile(pattern)
+	if reError != nil {
+		return nil, reError
+	}
+
+	if len(whitelist) == 0 {
+		searchKeys = append(searchKeys, CreateKey(namespace))
+	} else {
+		for _, item := range whitelist {
+			searchKey := CreateKey(item.Group, item.Kind, namespace)
+			searchKeys = append(searchKeys, searchKey)
+		}
 	}
 
 	err := s.db.View(func(txn *badger.Txn) error {
@@ -379,6 +390,8 @@ func (s *Store) SearchByNamespace(resultType reflect.Type, namespace string, whi
 			key := item.Key()
 
 			if len(searchKeys) > 0 && !utils.ContainsPatterns(string(key), searchKeys) {
+				continue
+			} else if len(searchKeys) == 0 && !re.Match(key) {
 				continue
 			}
 			result := reflect.New(resultType).Interface()
