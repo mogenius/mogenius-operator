@@ -361,7 +361,7 @@ func (s *Store) SearchByNamespaceAndName(resultType reflect.Type, namespace stri
 	return items, err
 }
 
-func (s *Store) SearchByGroupKindAndName(resultType reflect.Type, group string, kind string, name string) ([]interface{}, error) {
+func (s *Store) SearchByGroupKindNameNamespace(resultType reflect.Type, group string, kind string, name string, namespace *string) ([]interface{}, error) {
 	items := make([]interface{}, 0)
 
 	s.mu.RLock()
@@ -370,7 +370,7 @@ func (s *Store) SearchByGroupKindAndName(resultType reflect.Type, group string, 
 		return items, fmt.Errorf("database is not initialized")
 	}
 
-	re, reError := CreateKeyPattern(&group, &kind, nil, &name)
+	re, reError := CreateKeyPattern(&group, &kind, namespace, &name)
 	if reError != nil {
 		return nil, reError
 	}

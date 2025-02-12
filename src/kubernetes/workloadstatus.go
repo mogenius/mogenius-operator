@@ -356,7 +356,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		k8sLogger.Debug("Filtering by ResourceEntity, namespaces and resourceNames")
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
-				workloads, err := store.GlobalStore.SearchByPrefix(reflect.TypeOf(unstructured.Unstructured{}), requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, namespace, resourceName)
+				workloads, err := store.GlobalStore.SearchByGroupKindNameNamespace(reflect.TypeOf(unstructured.Unstructured{}), requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, &namespace)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload", "error", err)
 				} else {
@@ -375,7 +375,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	if !isResourceEntityEmpty && requestData.Namespaces == nil && requestData.ResourceNames != nil {
 		k8sLogger.Debug("Filtering by ResourceEntity and resourceNames")
 		for _, resourceName := range *requestData.ResourceNames {
-			workloads, err := store.GlobalStore.SearchByGroupKindAndName(reflect.TypeOf(unstructured.Unstructured{}), requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName)
+			workloads, err := store.GlobalStore.SearchByGroupKindNameNamespace(reflect.TypeOf(unstructured.Unstructured{}), requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, nil)
 			if err != nil {
 				k8sLogger.Warn("Error getting workload", "error", err)
 			} else {
