@@ -9,7 +9,6 @@ import (
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
 	"reflect"
-	"regexp"
 	"sync"
 	"time"
 
@@ -320,39 +319,88 @@ func (s *Store) SearchByUUID(uuid string, result interface{}) (interface{}, erro
 	return result, err
 }
 
-func (s *Store) SearchByNames(namespace string, name string, result interface{}) (interface{}, error) {
+func (s *Store) SearchByNamespaceAndName(resultType reflect.Type, namespace string, name string) ([]interface{}, error) {
+	items := make([]interface{}, 0)
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.db == nil {
-		return nil, fmt.Errorf("database is not initialized")
+		return items, fmt.Errorf("database is not initialized")
 	}
 
-	searchSuffix := fmt.Sprintf("___%s___%s", namespace, name)
+	re, reError := CreateKeyPattern(nil, nil, &namespace, &name)
+	if reError != nil {
+		return nil, reError
+	}
 
-	// var result interface{}
 	err := s.db.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		opts := badger.DefaultIteratorOptions
+		it := txn.NewIterator(opts)
 		defer it.Close()
 
 		for it.Rewind(); it.Valid(); it.Next() {
 			item := it.Item()
-			key := string(item.Key())
+			key := item.Key()
 
-			if len(key) >= len(searchSuffix) && key[len(key)-len(searchSuffix):] == searchSuffix {
-				err := item.Value(func(v []byte) error {
-					return s.deserialize(v, result)
-				})
+			if !re.Match(key) {
+				continue
+			}
+			result := reflect.New(resultType).Interface()
+			err := item.Value(func(v []byte) error {
+				return s.deserialize(v, result)
+			})
+			if err != nil {
 				return err
 			}
+			items = append(items, result)
 		}
+
 		return nil
 	})
 
-	if result == nil {
-		return nil, ErrNotFound
+	return items, err
+}
+
+func (s *Store) SearchByGroupKindAndName(resultType reflect.Type, group string, kind string, name string) ([]interface{}, error) {
+	items := make([]interface{}, 0)
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.db == nil {
+		return items, fmt.Errorf("database is not initialized")
 	}
 
-	return result, err
+	re, reError := CreateKeyPattern(&group, &kind, nil, &name)
+	if reError != nil {
+		return nil, reError
+	}
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+			key := item.Key()
+
+			if !re.Match(key) {
+				continue
+			}
+			result := reflect.New(resultType).Interface()
+			err := item.Value(func(v []byte) error {
+				return s.deserialize(v, result)
+			})
+			if err != nil {
+				return err
+			}
+			items = append(items, result)
+		}
+
+		return nil
+	})
+
+	return items, err
 }
 
 func (s *Store) SearchByNamespace(resultType reflect.Type, namespace string, whitelist []*utils.SyncResourceEntry) ([]interface{}, error) {
@@ -365,8 +413,7 @@ func (s *Store) SearchByNamespace(resultType reflect.Type, namespace string, whi
 	}
 
 	var searchKeys []string
-	pattern := fmt.Sprintf(`\S+__\S+__%s(?:__\S+)?`, regexp.QuoteMeta(namespace))
-	re, reError := regexp.Compile(pattern)
+	re, reError := CreateKeyPattern(nil, nil, &namespace, nil)
 	if reError != nil {
 		return nil, reError
 	}

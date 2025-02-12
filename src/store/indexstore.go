@@ -1,6 +1,8 @@
 package store
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -68,4 +70,35 @@ func (s *ReverseIndexStore) DeletePartKey(part string) {
 
 func CreateKey(parts ...string) string {
 	return strings.Join(parts, "___")
+}
+
+func CreateKeyPattern(groupVersion, kind, namespace, name *string) (*regexp.Regexp, error) {
+	parts := make([]string, 4)
+
+	if groupVersion != nil && *groupVersion != "" {
+		parts[0] = regexp.QuoteMeta(*groupVersion)
+	} else {
+		parts[0] = `\S+`
+	}
+
+	if kind != nil && *kind != "" {
+		parts[1] = regexp.QuoteMeta(*kind)
+	} else {
+		parts[1] = `\S+`
+	}
+
+	if namespace != nil && *namespace != "" {
+		parts[2] = regexp.QuoteMeta(*namespace)
+	} else {
+		parts[2] = `\S+`
+	}
+
+	if name != nil && *name != "" {
+		parts[3] = regexp.QuoteMeta(*name)
+	} else {
+		parts[3] = `\S+`
+	}
+
+	pattern := fmt.Sprintf(`^%s$`, strings.Join(parts, "___"))
+	return regexp.Compile(pattern)
 }
