@@ -23,7 +23,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -38,7 +37,7 @@ import (
 type SocketApi interface {
 	Link(httpService HttpService, xtermService XtermService, apiService Api)
 	Run()
-	ExecuteCommandRequest(datagram structs.Datagram, httpApi HttpService) interface{}
+	ExecuteCommandRequest(datagram structs.Datagram) interface{}
 	ParseDatagram(data []byte) (structs.Datagram, error)
 	RegisterPatternHandler(
 		pattern string,
@@ -2669,14 +2668,21 @@ func (self *socketApi) startMessageHandler() {
 
 		datagram.DisplayReceiveSummary()
 
-		if slices.Contains(structs.COMMAND_REQUESTS, datagram.Pattern) {
-			// ####### COMMAND
+		if datagram.Pattern == "files/upload" {
+			preparedFileRequest = self.executeBinaryRequestUpload(datagram)
+
+			var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
+			self.JobServerSendData(self.client, ack)
+			continue
+		}
+
+		if self.patternHandlerExists(datagram.Pattern) {
 			semaphoreChan <- struct{}{}
 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				responsePayload := self.ExecuteCommandRequest(datagram, self.httpService)
+				responsePayload := self.ExecuteCommandRequest(datagram)
 				result := structs.Datagram{
 					Id:        datagram.Id,
 					Pattern:   datagram.Pattern,
@@ -2686,16 +2692,14 @@ func (self *socketApi) startMessageHandler() {
 				self.JobServerSendData(self.client, result)
 				<-semaphoreChan
 			}()
-		} else if slices.Contains(structs.BINARY_REQUEST_UPLOAD, datagram.Pattern) {
-			preparedFileRequest = ExecuteBinaryRequestUpload(datagram)
-
-			var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
-			self.JobServerSendData(self.client, ack)
-		} else {
-			self.logger.Error("Pattern not found", "pattern", datagram.Pattern)
 		}
 	}
 	self.logger.Debug("api messagehandler finished as the websocket client was terminated")
+}
+
+func (self *socketApi) patternHandlerExists(pattern string) bool {
+	_, ok := self.patternHandler[pattern]
+	return ok
 }
 
 func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
@@ -2881,7 +2885,7 @@ func (self *socketApi) notUpToDateAction(helmData *utils.HelmData) {
 	}
 }
 
-func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram, httpApi HttpService) interface{} {
+func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) interface{} {
 	if patternHandler, ok := self.patternHandler[datagram.Pattern]; ok {
 		return patternHandler.Callback(datagram)
 	}
@@ -3150,7 +3154,7 @@ func scanImageLogStreamConnection(buildLogConnectionRequest xterm.ScanImageLogCo
 	)
 }
 
-func ExecuteBinaryRequestUpload(datagram structs.Datagram) *services.FilesUploadRequest {
+func (self *socketApi) executeBinaryRequestUpload(datagram structs.Datagram) *services.FilesUploadRequest {
 	data := services.FilesUploadRequest{}
 	structs.MarshalUnmarshal(&datagram, &data)
 	return &data
