@@ -454,8 +454,13 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	}
 
 	// Generate workload status items
+	completedWorkloads := map[string]bool{}
 	for _, workload := range workloadList {
+		if completedWorkloads[string(workload.GetUID())] {
+			continue
+		}
 		items := GetWorkloadStatusItems(workload, eventList, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)
+		completedWorkloads[string(workload.GetUID())] = true
 		results = append(results, WorkloadStatusDto{Items: items})
 	}
 
