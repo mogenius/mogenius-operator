@@ -64,7 +64,7 @@ func processJobNow(jobClient websocket.WebsocketClient) {
 		element := jobDataQueue[i]
 		err := jobClient.WriteJSON(element)
 		if err == nil {
-			element.DisplaySentSummary(i+1, len(jobDataQueue))
+			element.DisplaySentSummary(structsLogger, i+1, len(jobDataQueue))
 			structsLogger.Debug("sent summary", "payload", element.Payload)
 			jobDataQueue = removeJobIndex(jobDataQueue, i)
 		} else {

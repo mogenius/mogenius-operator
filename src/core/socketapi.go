@@ -2666,7 +2666,7 @@ func (self *socketApi) startMessageHandler() {
 			continue
 		}
 
-		datagram.DisplayReceiveSummary()
+		datagram.DisplayReceiveSummary(self.logger)
 
 		if datagram.Pattern == "files/upload" {
 			preparedFileRequest = self.executeBinaryRequestUpload(datagram)
@@ -2736,7 +2736,7 @@ func (self *socketApi) processJobNow(jobClient websocket.WebsocketClient) {
 		element := jobDataQueue[i]
 		err := jobClient.WriteJSON(element)
 		if err == nil {
-			element.DisplaySentSummary(i+1, len(jobDataQueue))
+			element.DisplaySentSummary(self.logger, i+1, len(jobDataQueue))
 			self.logger.Debug("sent summary", "payload", element.Payload)
 			jobDataQueue = self.removeJobIndex(jobDataQueue, i)
 		} else {
