@@ -44,10 +44,6 @@ const (
 	PAT_UNINSTALL_METALLB                    string = "uninstall-metallb"
 
 	PAT_FILES_UPLOAD string = "files/upload"
-
-	PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST string = "live-stream/nodes-traffic"
-	PAT_LIVE_STREAM_NODES_CPU_REQUEST     string = "live-stream/nodes-cpu"
-	PAT_LIVE_STREAM_NODES_MEMORY_REQUEST  string = "live-stream/nodes-memory"
 )
 
 var BINARY_REQUEST_UPLOAD = []string{

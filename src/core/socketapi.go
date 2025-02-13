@@ -733,6 +733,65 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	{
+
+		type Request struct {
+			WorkspaceName     string `json:"workspaceName"`
+			TimeOffSetMinutes int    `json:"timeOffSetMinutes"`
+		}
+
+		self.RegisterPatternHandler(
+			"stats/workspace-cpu-utilization",
+			PatternConfig{},
+			func(datagram structs.Datagram) (interface{}, error) {
+				data := Request{}
+				structs.MarshalUnmarshal(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return nil, err
+				}
+				resources, err := self.apiService.GetWorkspaceControllers(data.WorkspaceName, nil, nil)
+				if err != nil {
+					return nil, err
+				}
+				return self.dbstats.GetWorkspaceStatsCpuUtilization(data.TimeOffSetMinutes, resources)
+			},
+		)
+
+		self.RegisterPatternHandler(
+			"stats/workspace-memory-utilization",
+			PatternConfig{},
+			func(datagram structs.Datagram) (interface{}, error) {
+				data := Request{}
+				structs.MarshalUnmarshal(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return nil, err
+				}
+				resources, err := self.apiService.GetWorkspaceControllers(data.WorkspaceName, nil, nil)
+				if err != nil {
+					return nil, err
+				}
+				return self.dbstats.GetWorkspaceStatsMemoryUtilization(data.TimeOffSetMinutes, resources)
+			},
+		)
+
+		self.RegisterPatternHandler(
+			"stats/workspace-traffic-utilization",
+			PatternConfig{},
+			func(datagram structs.Datagram) (interface{}, error) {
+				data := Request{}
+				structs.MarshalUnmarshal(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return nil, err
+				}
+				resources, err := self.apiService.GetWorkspaceControllers(data.WorkspaceName, nil, nil)
+				if err != nil {
+					return nil, err
+				}
+				return self.dbstats.GetWorkspaceStatsTrafficUtilization(data.TimeOffSetMinutes, resources)
+			},
+		)
+	}
+
 	self.RegisterPatternHandlerRaw(
 		"metrics/deployment/average-utilization",
 		PatternConfig{},
@@ -2057,6 +2116,24 @@ func (self *socketApi) registerPatterns() {
 			return self.apiService.DeleteGrant(data.Name)
 		},
 	)
+
+	{
+		type Request struct {
+			WorkspaceName string                     `json:"workspaceName"`
+			Whitelist     []*utils.SyncResourceEntry `json:"whitelist"`
+			Blacklist     []*utils.SyncResourceEntry `json:"blacklist"`
+		}
+
+		self.RegisterPatternHandler(
+			"get/workspace-workloads",
+			PatternConfig{},
+			func(datagram structs.Datagram) (interface{}, error) {
+				data := Request{}
+				structs.MarshalUnmarshal(&datagram, &data)
+				return self.apiService.GetWorkspaceResources(data.WorkspaceName, data.Whitelist, data.Blacklist)
+			},
+		)
+	}
 
 	self.RegisterPatternHandlerRaw(
 		"build/builder-status",

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.etcd.io/bbolt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const (
@@ -39,6 +40,9 @@ type BoltDbStats interface {
 	GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats
 	GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats
 	GetTrafficStatsEntrySumForController(controller K8sController, includeSocketConnections bool) *structs.InterfaceStats
+	GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	ReplaceCniData(data []structs.CniData)
 }
 
@@ -526,6 +530,93 @@ func (self *boldDbStatsModule) GetTrafficStatsEntrySumForController(controller K
 	return result
 }
 
+func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	result := make([]GenericChartEntry, timeOffsetInMinutes)
+
+	for _, controller := range resources {
+		_ = self.db.View(func(tx *bbolt.Tx) error {
+			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_POD_STATS_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
+			if err != nil {
+				return nil
+			}
+
+			cursor := bucket.Cursor()
+			index := 0
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				entry := structs.PodStats{}
+				_ = structs.UnmarshalPodStats(&entry, value)
+				result[index].Time = entry.CreatedAt
+				result[index].Value += float64(entry.Cpu)
+
+				index++
+				if index >= timeOffsetInMinutes {
+					break
+				}
+			}
+			return nil
+		})
+	}
+	return result, nil
+}
+
+func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	result := make([]GenericChartEntry, timeOffsetInMinutes)
+
+	for _, controller := range resources {
+		_ = self.db.View(func(tx *bbolt.Tx) error {
+			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_POD_STATS_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
+			if err != nil {
+				return nil
+			}
+
+			cursor := bucket.Cursor()
+			index := 0
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				entry := structs.PodStats{}
+				_ = structs.UnmarshalPodStats(&entry, value)
+				result[index].Time = entry.CreatedAt
+				result[index].Value += float64(entry.Memory)
+
+				index++
+				if index >= timeOffsetInMinutes {
+					break
+				}
+			}
+			return nil
+		})
+	}
+	return result, nil
+}
+
+func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	result := make([]GenericChartEntry, timeOffsetInMinutes)
+
+	for _, controller := range resources {
+		_ = self.db.View(func(tx *bbolt.Tx) error {
+			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_TRAFFIC_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
+			if err != nil {
+				return nil
+			}
+
+			cursor := bucket.Cursor()
+			index := 0
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				entry := structs.InterfaceStats{}
+				_ = structs.UnmarshalInterfaceStats(&entry, value)
+				result[index].Time = entry.CreatedAt
+				result[index].Value += float64(entry.ReceivedBytes + entry.TransmitBytes)
+
+				index++
+				if index >= timeOffsetInMinutes {
+					break
+				}
+			}
+			return nil
+		})
+	}
+	return result, nil
+}
+
 func (self *boldDbStatsModule) GetSocketConnectionsForController(controller K8sController) *structs.SocketConnections {
 	result := &structs.SocketConnections{}
 	err := self.db.View(func(tx *bbolt.Tx) error {
@@ -734,4 +825,9 @@ func (self *boldDbStatsModule) AddNodeStatsToDb(stats structs.NodeStats) {
 	if err != nil {
 		self.logger.Error("Error adding node stats", "name", stats.Name, "error", err)
 	}
+}
+
+type GenericChartEntry struct {
+	Time  string  `json:"time"`
+	Value float64 `json:"value"`
 }

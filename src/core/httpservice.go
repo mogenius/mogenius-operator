@@ -437,13 +437,13 @@ func (self *httpService) handleWs(w http.ResponseWriter, r *http.Request) {
 func (self *httpService) handleIncomingDatagram(datagram *structs.Datagram) {
 	switch datagram.Pattern {
 	case "traffic-utilization":
-		self.broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_TRAFFIC_REQUEST)
+		self.broadcaster.BroadcastResponse(datagram.Payload, "live-stream/nodes-traffic")
 
 	case "cpu-utilization":
-		self.broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_CPU_REQUEST)
+		self.broadcaster.BroadcastResponse(datagram.Payload, "live-stream/nodes-cpu")
 
 	case "mem-utilization":
-		self.broadcaster.BroadcastResponse(datagram.Payload, structs.PAT_LIVE_STREAM_NODES_MEMORY_REQUEST)
+		self.broadcaster.BroadcastResponse(datagram.Payload, "live-stream/nodes-memory")
 
 	// SAVE TO DB
 	case "traffic-status":
