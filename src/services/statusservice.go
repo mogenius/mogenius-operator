@@ -715,15 +715,15 @@ func NewResourceController(resourceController string) ResourceController {
 
 var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-func StatusServiceDebounced(r ServiceStatusRequest) interface{} {
+func StatusServiceDebounced(r ServiceStatusRequest) ServiceStatusResponse {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
 	result, _ := statusServiceDebounce.CallFn(key, func() (interface{}, error) {
 		return statusService(r), nil
 	})
-	return result
+	return result.(ServiceStatusResponse)
 }
 
-func statusService(r ServiceStatusRequest) interface{} {
+func statusService(r ServiceStatusRequest) ServiceStatusResponse {
 	events, err := store.ListEvents(r.Namespace)
 	if err != nil {
 		serviceLogger.Warn("failed to fetch events", "error", err)

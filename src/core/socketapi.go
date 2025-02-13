@@ -12,6 +12,8 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/schema"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/shutdown"
@@ -31,6 +33,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	jsoniter "github.com/json-iterator/go"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
 )
 
@@ -42,12 +45,12 @@ type SocketApi interface {
 	RegisterPatternHandler(
 		pattern string,
 		config PatternConfig,
-		callback func(datagram structs.Datagram) (interface{}, error),
+		callback func(datagram structs.Datagram) (any, error),
 	)
 	RegisterPatternHandlerRaw(
 		pattern string,
 		config PatternConfig,
-		callback func(datagram structs.Datagram) interface{},
+		callback func(datagram structs.Datagram) any,
 	)
 }
 
@@ -68,13 +71,15 @@ type socketApi struct {
 
 type PatternHandler struct {
 	Config   PatternConfig
-	Callback func(datagram structs.Datagram) interface{}
+	Callback func(datagram structs.Datagram) any
 }
 
 type PatternConfig struct {
-	Deprecated        bool
-	DeprecatedMessage string
-	NeedsUser         bool
+	RequestSchema     *schema.Schema `json:"requestSchema,omitempty"`
+	ResponseSchema    *schema.Schema `json:"responseSchema,omitempty"`
+	Deprecated        bool           `json:"deprecated,omitempty"`
+	DeprecatedMessage string         `json:"deprecatedMessage,omitempty"`
+	NeedsUser         bool           `json:"needsUser,omitempty"`
 }
 
 func NewSocketApi(
@@ -116,7 +121,7 @@ func (self *socketApi) Run() {
 func (self *socketApi) RegisterPatternHandler(
 	pattern string,
 	config PatternConfig,
-	callback func(datagram structs.Datagram) (interface{}, error),
+	callback func(datagram structs.Datagram) (any, error),
 ) {
 	self.patternHandlerLock.Lock()
 	defer self.patternHandlerLock.Unlock()
@@ -126,7 +131,7 @@ func (self *socketApi) RegisterPatternHandler(
 
 	self.patternHandler[pattern] = PatternHandler{
 		Config: config,
-		Callback: func(datagram structs.Datagram) interface{} {
+		Callback: func(datagram structs.Datagram) any {
 			result, err := callback(datagram)
 			return NewMessageResponse(result, err)
 		},
@@ -136,7 +141,7 @@ func (self *socketApi) RegisterPatternHandler(
 func (self *socketApi) RegisterPatternHandlerRaw(
 	pattern string,
 	config PatternConfig,
-	callback func(datagram structs.Datagram) interface{},
+	callback func(datagram structs.Datagram) any,
 ) {
 	self.patternHandlerLock.Lock()
 	defer self.patternHandlerLock.Unlock()
@@ -150,11 +155,49 @@ func (self *socketApi) RegisterPatternHandlerRaw(
 	}
 }
 
+func (self *socketApi) patternConfigs() map[string]PatternConfig {
+	patterns := map[string]PatternConfig{}
+
+	for pattern, handler := range self.patternHandler {
+		patterns[pattern] = handler.Config
+	}
+
+	return patterns
+}
+
 func (self *socketApi) registerPatterns() {
+	{
+		type Response struct {
+			BuildInfo struct {
+				BuildType string          `json:"buildType"`
+				Version   version.Version `json:"version,omitempty"`
+			} `json:"buildInfo,omitempty"`
+			Features struct{}                 `json:"features,omitempty"`
+			Patterns map[string]PatternConfig `json:"patterns,omitempty"`
+		}
+
+		self.RegisterPatternHandler(
+			"describe",
+			PatternConfig{
+				ResponseSchema: schema.Generate(Response{}),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				resp := Response{}
+				resp.BuildInfo.BuildType = "prod"
+				if utils.IsDevBuild() {
+					resp.BuildInfo.BuildType = "dev"
+				}
+				resp.BuildInfo.Version = *version.NewVersion()
+				resp.Patterns = self.patternConfigs()
+				return resp, nil
+			},
+		)
+	}
+
 	self.RegisterPatternHandlerRaw(
 		"K8sNotification",
 		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		func(datagram structs.Datagram) any {
 			self.logger.Info("Received pattern", "pattern", datagram.Pattern)
 			return nil
 		},
@@ -162,48 +205,71 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"ClusterStatus",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate(dtos.ClusterStatusDto{}),
+		},
+		func(datagram structs.Datagram) any {
 			return kubernetes.ClusterStatus()
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"ClusterResourceInfo",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			nodeStats := kubernetes.GetNodeStats()
-			loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
-			country, _ := utils.GuessClusterCountry()
-			cniConfig, _ := self.dbstats.GetCniData()
-			result := ClusterResourceInfoDto{
-				NodeStats:               nodeStats,
-				LoadBalancerExternalIps: loadBalancerExternalIps,
-				Country:                 country,
-				Provider:                string(utils.ClusterProviderCached),
-				CniConfig:               cniConfig,
-			}
-			return result
-		},
-	)
+	{
+		type Response struct {
+			LoadBalancerExternalIps []string              `json:"loadBalancerExternalIps"`
+			NodeStats               []dtos.NodeStat       `json:"nodeStats"`
+			Country                 *utils.CountryDetails `json:"country"`
+			Provider                string                `json:"provider"`
+			CniConfig               []structs.CniData     `json:"cniConfig"`
+		}
 
-	self.RegisterPatternHandlerRaw(
-		"UpgradeK8sManager",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := K8sManagerUpgradeRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return UpgradeK8sManager(data)
-		},
-	)
+		self.RegisterPatternHandlerRaw(
+			"ClusterResourceInfo",
+			PatternConfig{
+				ResponseSchema: schema.Generate(Response{}),
+			},
+			func(datagram structs.Datagram) any {
+				nodeStats := kubernetes.GetNodeStats()
+				loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
+				country, _ := utils.GuessClusterCountry()
+				cniConfig, _ := self.dbstats.GetCniData()
+				return Response{
+					NodeStats:               nodeStats,
+					LoadBalancerExternalIps: loadBalancerExternalIps,
+					Country:                 country,
+					Provider:                string(utils.ClusterProviderCached),
+					CniConfig:               cniConfig,
+				}
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Command string `json:"command" validate:"required"` // complete helm command from platform ui
+		}
+		self.RegisterPatternHandlerRaw(
+			"UpgradeK8sManager",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&structs.Job{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return UpgradeK8sManager(data.Command)
+			},
+		)
+	}
 
 	self.RegisterPatternHandlerRaw(
 		"ClusterForceReconnect",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Boolean(),
+		},
+		func(datagram structs.Datagram) any {
 			time.Sleep(1 * time.Second)
 			return kubernetes.ClusterForceReconnect()
 		},
@@ -211,8 +277,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"ClusterForceDisconnect",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Boolean(),
+		},
+		func(datagram structs.Datagram) any {
 			time.Sleep(1 * time.Second)
 			return kubernetes.ClusterForceDisconnect()
 		},
@@ -220,8 +288,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"SYSTEM_CHECK",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate(services.SystemCheckResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			return services.SystemCheck()
 		},
 	)
@@ -229,7 +299,7 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"cluster/restart",
 		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		func(datagram structs.Datagram) any {
 			self.logger.Info("😵😵😵 Received RESTART COMMAND. Restarting now ...")
 			time.Sleep(1 * time.Second)
 			shutdown.SendShutdownSignal(false)
@@ -239,24 +309,30 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"print-current-config",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			return self.config.AsEnvs()
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/energy-consumption",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]structs.EnergyConsumptionResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			return services.EnergyConsumption()
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/sync-info",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate(dtos.SyncRepoData{}),
+		},
+		func(datagram structs.Datagram) any {
 			result, err := kubernetes.GetSyncRepoData()
 			if err != nil {
 				return err
@@ -267,273 +343,358 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"install-traffic-collector",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.InstallTrafficCollector()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"install-pod-stats-collector",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.InstallPodStatsCollector()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"install-metrics-server",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.InstallMetricsServer()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"install-ingress-controller-traefik",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.InstallIngressControllerTreafik()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"install-cert-manager",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.InstallCertManager()
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"install-cluster-issuer",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.ClusterIssuerInstallRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			data.AddSecretsToRedaction()
-			result, err := services.InstallClusterIssuer(data.Email, 0)
-			return NewMessageResponse(result, err)
-		},
-	)
+	{
+		type Request struct {
+			Email string `json:"email" validate:"required,email"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"install-cluster-issuer",
+			PatternConfig{
+				RequestSchema: schema.Generate(Request{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				logging.AddSecret(data.Email)
+				result, err := services.InstallClusterIssuer(data.Email, 0)
+				return NewMessageResponse(result, err)
+			},
+		)
+	}
 
 	self.RegisterPatternHandler(
 		"install-container-registry",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.InstallContainerRegistry()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"install-external-secrets",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.InstallExternalSecrets()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"install-metallb",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.InstallMetalLb()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"install-kepler",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.InstallKepler()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-traffic-collector",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallTrafficCollector()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-pod-stats-collector",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallPodStatsCollector()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-metrics-server",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallMetricsServer()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-ingress-controller-traefik",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallIngressControllerTreafik()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-cert-manager",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallCertManager()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-cluster-issuer",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallClusterIssuer()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-container-registry",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallContainerRegistry()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-external-secrets",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallExternalSecrets()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-metallb",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallMetalLb()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"uninstall-kepler",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallKepler()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"upgrade-traffic-collector",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeTrafficCollector()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"upgrade-pod-stats-collector",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradePodStatsCollector()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"upgrade-metrics-server",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeMetricsServer()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"upgrade-ingress-controller-traefik",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeIngressControllerTreafik()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"upgrade-cert-manager",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeCertManager()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"upgrade-container-registry",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeContainerRegistry()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"upgrade-metallb",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeMetalLb()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"upgrade-kepler",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeKepler()
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"stats/podstat/all-for-pod",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.StatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-			if ctrl == nil {
-				return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-			}
-			return self.dbstats.GetPodStatsEntriesForController(*ctrl)
-		},
-	)
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+			PodName   string `json:"podname" validate:"required"`
+		}
 
-	self.RegisterPatternHandlerRaw(
-		"stats/podstat/last-for-pod",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.StatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-			if ctrl == nil {
-				return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-			}
-			return self.dbstats.GetLastPodStatsEntryForController(*ctrl)
-		},
-	)
+		self.RegisterPatternHandlerRaw(
+			"stats/podstat/all-for-pod",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&[]structs.PodStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
+				if ctrl == nil {
+					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+				}
+				return self.dbstats.GetPodStatsEntriesForController(*ctrl)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+			PodName   string `json:"podname" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"stats/podstat/last-for-pod",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&structs.PodStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
+				if ctrl == nil {
+					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+				}
+				return self.dbstats.GetLastPodStatsEntryForController(*ctrl)
+			},
+		)
+	}
 
 	self.RegisterPatternHandlerRaw(
 		"stats/podstat/all-for-controller",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			ResponseSchema: schema.Generate(&[]structs.PodStats{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -545,8 +706,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"stats/podstat/last-for-controller",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			ResponseSchema: schema.Generate(&structs.PodStats{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -558,8 +722,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"stats/traffic/all-for-controller",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			ResponseSchema: schema.Generate(&[]structs.InterfaceStats{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -571,8 +738,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"stats/traffic/sum-for-controller",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			ResponseSchema: schema.Generate(&structs.InterfaceStats{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -587,8 +757,10 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{
 			Deprecated:        true,
 			DeprecatedMessage: `Use "stats/traffic/sum-for-controller" instead`,
+			RequestSchema:     schema.Generate(kubernetes.K8sController{}),
+			ResponseSchema:    schema.Generate(&structs.InterfaceStats{}),
 		},
-		func(datagram structs.Datagram) interface{} {
+		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -600,8 +772,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"stats/traffic/for-controller-socket-connections",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			ResponseSchema: schema.Generate(&structs.SocketConnections{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -611,127 +786,200 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"stats/traffic/all-for-pod",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.StatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-			if ctrl == nil {
-				return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-			}
-			return self.dbstats.GetTrafficStatsEntriesForController(*ctrl)
-		},
-	)
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+			PodName   string `json:"podname" validate:"required"`
+		}
 
-	self.RegisterPatternHandlerRaw(
-		"stats/traffic/sum-for-pod",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.StatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-			if ctrl == nil {
-				return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-			}
-			return self.dbstats.GetTrafficStatsEntrySumForController(*ctrl, false)
-		},
-	)
+		self.RegisterPatternHandlerRaw(
+			"stats/traffic/all-for-pod",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&[]structs.InterfaceStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
+				if ctrl == nil {
+					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+				}
+				return self.dbstats.GetTrafficStatsEntriesForController(*ctrl)
+			},
+		)
+	}
 
-	self.RegisterPatternHandlerRaw(
-		"stats/traffic/last-for-pod",
-		PatternConfig{
-			Deprecated:        true,
-			DeprecatedMessage: `Use "stats/traffic/sum-for-pod" instead`,
-		},
-		func(datagram structs.Datagram) interface{} {
-			data := services.StatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-			if ctrl == nil {
-				return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-			}
-			return self.dbstats.GetTrafficStatsEntrySumForController(*ctrl, false)
-		},
-	)
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+			PodName   string `json:"podname" validate:"required"`
+		}
 
-	self.RegisterPatternHandlerRaw(
-		"stats/podstat/all-for-namespace",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.NsStatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return self.dbstats.GetPodStatsEntriesForNamespace(data.Namespace)
-		},
-	)
+		self.RegisterPatternHandlerRaw(
+			"stats/traffic/sum-for-pod",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&structs.InterfaceStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
+				if ctrl == nil {
+					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+				}
+				return self.dbstats.GetTrafficStatsEntrySumForController(*ctrl, false)
+			},
+		)
+	}
 
-	self.RegisterPatternHandlerRaw(
-		"stats/podstat/last-for-namespace",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.NsStatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return self.dbstats.GetLastPodStatsEntriesForNamespace(data.Namespace)
-		},
-	)
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+			PodName   string `json:"podname" validate:"required"`
+		}
 
-	self.RegisterPatternHandlerRaw(
-		"stats/traffic/all-for-namespace",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.NsStatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return self.dbstats.GetTrafficStatsEntriesForNamespace(data.Namespace)
-		},
-	)
+		self.RegisterPatternHandlerRaw(
+			"stats/traffic/last-for-pod",
+			PatternConfig{
+				Deprecated:        true,
+				DeprecatedMessage: `Use "stats/traffic/sum-for-pod" instead`,
+				RequestSchema:     schema.Generate(Request{}),
+				ResponseSchema:    schema.Generate(&structs.InterfaceStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
+				if ctrl == nil {
+					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
+				}
+				return self.dbstats.GetTrafficStatsEntrySumForController(*ctrl, false)
+			},
+		)
+	}
 
-	self.RegisterPatternHandlerRaw(
-		"stats/traffic/sum-for-namespace",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.NsStatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return self.dbstats.GetTrafficStatsEntriesSumForNamespace(data.Namespace)
-		},
-	)
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+		}
 
-	self.RegisterPatternHandlerRaw(
-		"stats/traffic/last-for-namespace",
-		PatternConfig{
-			Deprecated:        true,
-			DeprecatedMessage: `Use "stats/traffic/sum-for-namespace" instead`,
-		},
-		func(datagram structs.Datagram) interface{} {
-			data := services.NsStatsDataRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return self.dbstats.GetTrafficStatsEntriesSumForNamespace(data.Namespace)
-		},
-	)
+		self.RegisterPatternHandlerRaw(
+			"stats/podstat/all-for-namespace",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&[]structs.PodStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return self.dbstats.GetPodStatsEntriesForNamespace(data.Namespace)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"stats/podstat/last-for-namespace",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]structs.PodStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return self.dbstats.GetLastPodStatsEntriesForNamespace(data.Namespace)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"stats/traffic/all-for-namespace",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&[]structs.InterfaceStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return self.dbstats.GetTrafficStatsEntriesForNamespace(data.Namespace)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"stats/traffic/sum-for-namespace",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]structs.InterfaceStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return self.dbstats.GetTrafficStatsEntriesSumForNamespace(data.Namespace)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"stats/traffic/last-for-namespace",
+			PatternConfig{
+				Deprecated:        true,
+				DeprecatedMessage: `Use "stats/traffic/sum-for-namespace" instead`,
+				RequestSchema:     schema.Generate(Request{}),
+				ResponseSchema:    schema.Generate([]structs.InterfaceStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return self.dbstats.GetTrafficStatsEntriesSumForNamespace(data.Namespace)
+			},
+		)
+	}
 
 	{
 
@@ -742,7 +990,10 @@ func (self *socketApi) registerPatterns() {
 
 		self.RegisterPatternHandler(
 			"stats/workspace-cpu-utilization",
-			PatternConfig{},
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]kubernetes.GenericChartEntry{}),
+			},
 			func(datagram structs.Datagram) (interface{}, error) {
 				data := Request{}
 				structs.MarshalUnmarshal(&datagram, &data)
@@ -759,7 +1010,10 @@ func (self *socketApi) registerPatterns() {
 
 		self.RegisterPatternHandler(
 			"stats/workspace-memory-utilization",
-			PatternConfig{},
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]kubernetes.GenericChartEntry{}),
+			},
 			func(datagram structs.Datagram) (interface{}, error) {
 				data := Request{}
 				structs.MarshalUnmarshal(&datagram, &data)
@@ -776,7 +1030,10 @@ func (self *socketApi) registerPatterns() {
 
 		self.RegisterPatternHandler(
 			"stats/workspace-traffic-utilization",
-			PatternConfig{},
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]kubernetes.GenericChartEntry{}),
+			},
 			func(datagram structs.Datagram) (interface{}, error) {
 				data := Request{}
 				structs.MarshalUnmarshal(&datagram, &data)
@@ -792,115 +1049,185 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	self.RegisterPatternHandlerRaw(
-		"metrics/deployment/average-utilization",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := kubernetes.K8sController{}
-			data.Kind = "Deployment"
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return kubernetes.GetAverageUtilizationForDeployment(data)
-		},
-	)
+	{
+		self.RegisterPatternHandlerRaw(
+			"metrics/deployment/average-utilization",
+			PatternConfig{
+				RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+				ResponseSchema: schema.Generate(&kubernetes.Metrics{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := kubernetes.K8sController{}
+				data.Kind = "Deployment"
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return kubernetes.GetAverageUtilizationForDeployment(data)
+			},
+		)
+	}
 
-	self.RegisterPatternHandlerRaw(
-		"files/list",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.FilesListRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.List(data)
-		},
-	)
+	{
+		type Request struct {
+			Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required"`
+		}
 
-	self.RegisterPatternHandlerRaw(
-		"files/create-folder",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.FilesCreateFolderRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.CreateFolder(data)
-		},
-	)
+		self.RegisterPatternHandlerRaw(
+			"files/list",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]dtos.PersistentFileDto{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return services.List(data.Folder)
+			},
+		)
+	}
 
-	self.RegisterPatternHandlerRaw(
-		"files/rename",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.FilesRenameRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.Rename(data)
-		},
-	)
+	{
+		type Request struct {
+			Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required"`
+		}
 
-	self.RegisterPatternHandlerRaw(
-		"files/chown",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.FilesChownRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.Chown(data)
-		},
-	)
+		self.RegisterPatternHandlerRaw(
+			"files/create-folder",
+			PatternConfig{
+				RequestSchema: schema.Generate(Request{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return services.CreateFolder(data.Folder)
+			},
+		)
+	}
 
-	self.RegisterPatternHandlerRaw(
-		"files/chmod",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.FilesChmodRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.Chmod(data)
-		},
-	)
+	{
+		type Request struct {
+			File    dtos.PersistentFileRequestDto `json:"file" validate:"required"`
+			NewName string                        `json:"newName" validate:"required"`
+		}
 
-	self.RegisterPatternHandlerRaw(
-		"files/delete",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.FilesDeleteRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.Delete(data)
-		},
-	)
+		self.RegisterPatternHandlerRaw(
+			"files/rename",
+			PatternConfig{
+				RequestSchema: schema.Generate(Request{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return services.Rename(data.File, data.NewName)
+			},
+		)
+	}
 
-	self.RegisterPatternHandlerRaw(
-		"files/download",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := services.FilesDownloadRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.Download(data)
-		},
-	)
+	{
+		type Request struct {
+			File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
+			Uid  string                        `json:"uid" validate:"required"`
+			Gid  string                        `json:"gid" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"files/chown",
+			PatternConfig{
+				RequestSchema: schema.Generate(Request{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return services.Chown(data.File, data.Uid, data.Gid)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
+			Mode string                        `json:"mode" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"files/chmod",
+			PatternConfig{
+				RequestSchema: schema.Generate(Request{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return services.Chmod(data.File, data.Mode)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"files/delete",
+			PatternConfig{
+				RequestSchema: schema.Generate(Request{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return services.Delete(data.File)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			File   dtos.PersistentFileRequestDto `json:"file" validate:"required"`
+			PostTo string                        `json:"postTo" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"files/download",
+			PatternConfig{
+				RequestSchema: schema.Generate(Request{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return services.Download(data.File, data.PostTo)
+			},
+		)
+	}
 
 	self.RegisterPatternHandlerRaw(
 		"files/info",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(dtos.PersistentFileRequestDto{}),
+			ResponseSchema: schema.Generate(dtos.PersistentFileRequestDto{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := dtos.PersistentFileRequestDto{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -912,8 +1239,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/execute-helm-chart-task",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ClusterHelmRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterHelmRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -925,8 +1255,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/uninstall-helm-chart",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ClusterHelmUninstallRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterHelmUninstallRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -938,16 +1271,20 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/tcp-udp-configuration",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate(dtos.TcpUdpClusterConfigurationDto{}),
+		},
+		func(datagram structs.Datagram) any {
 			return services.TcpUdpClusterConfiguration()
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/backup",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate(kubernetes.NamespaceBackupResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			result, err := kubernetes.BackupNamespace("")
 			if err != nil {
 				return err.Error()
@@ -958,8 +1295,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/read-configmap",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ClusterGetConfigMap{}),
+			ResponseSchema: schema.Generate(kubernetes.K8sWorkloadResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterGetConfigMap{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -971,8 +1311,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/write-configmap",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(services.ClusterWriteConfigMap{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterWriteConfigMap{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -984,8 +1326,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/list-configmaps",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ClusterListWorkloads{}),
+			ResponseSchema: schema.Generate(kubernetes.K8sWorkloadResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterListWorkloads{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -997,8 +1342,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/read-deployment",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ClusterGetDeployment{}),
+			ResponseSchema: schema.Generate(kubernetes.K8sWorkloadResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterGetDeployment{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1008,19 +1356,13 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	// // TODO
-	// // case structs.PAT_CLUSTER_WRITE_DEPLOYMENT:
-	// // 	data := ClusterWriteDeployment{}
-	// // 	_ = self.loadRequest(&datagram, &data)
-	// // 	if err := utils.ValidateJSON(data); err != nil {
-	// // 		return err
-	// // 	}
-	// // 	return kubernetes.WriteConfigMap(data.Namespace, data.Name, data.Data, data.Labels)
-
 	self.RegisterPatternHandlerRaw(
 		"cluster/list-deployments",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ClusterListWorkloads{}),
+			ResponseSchema: schema.Generate(kubernetes.K8sWorkloadResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterListWorkloads{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1032,8 +1374,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/read-persistent-volume-claim",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ClusterGetPersistentVolume{}),
+			ResponseSchema: schema.Generate(&v1.PersistentVolumeClaim{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterGetPersistentVolume{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1043,19 +1388,13 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	// // TODO
-	// // case structs.PAT_CLUSTER_WRITE_PERSISTENT_VOLUME_CLAIM:
-	// // 	data := ClusterWritePersistentVolume{}
-	// // 	_ = self.loadRequest(&datagram, &data)
-	// // 	if err := utils.ValidateJSON(data); err != nil {
-	// // 		return err
-	// // 	}
-	// // 	return kubernetes.WritePersistentVolume(data.Namespace, data.Name, data.Data, data.Labels)
-
 	self.RegisterPatternHandlerRaw(
 		"cluster/list-persistent-volume-claims",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ClusterListWorkloads{}),
+			ResponseSchema: schema.Generate(kubernetes.K8sWorkloadResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterListWorkloads{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1068,8 +1407,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/update-local-tls-secret",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(services.ClusterUpdateLocalTlsSecret{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ClusterUpdateLocalTlsSecret{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1081,8 +1422,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/create",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespaceCreateRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespaceCreateRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1095,8 +1439,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/delete",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespaceDeleteRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespaceDeleteRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1108,8 +1455,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/shutdown",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespaceShutdownRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespaceShutdownRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1122,21 +1472,27 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/pod-ids",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespacePodIdsRequest{}),
+			ResponseSchema: schema.Generate([]string{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespacePodIdsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.PodIds(data)
+			return kubernetes.PodIdsFor(data.Namespace, nil)
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/validate-cluster-pods",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespaceValidateClusterPodsRequest{}),
+			ResponseSchema: schema.Generate(dtos.ValidateClusterPodsDto{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespaceValidateClusterPodsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1148,29 +1504,38 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/validate-ports",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespaceValidatePortsRequest{}),
+			ResponseSchema: schema.NewSchema(schema.SchemaTypeInterface, false),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespaceValidatePortsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.ValidateClusterPorts(data)
+			services.ValidateClusterPorts(data)
+			return nil
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/list-all",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]string{}),
+		},
+		func(datagram structs.Datagram) any {
 			return services.ListAllNamespaces()
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/gather-all-resources",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespaceGatherAllResourcesRequest{}),
+			ResponseSchema: schema.Generate(dtos.NamespaceResourcesDto{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespaceGatherAllResourcesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1182,8 +1547,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/backup",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespaceBackupRequest{}),
+			ResponseSchema: schema.Generate(kubernetes.NamespaceBackupResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespaceBackupRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1199,8 +1567,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/restore",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespaceRestoreRequest{}),
+			ResponseSchema: schema.Generate(kubernetes.NamespaceRestoreResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespaceRestoreRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1216,8 +1587,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"namespace/resource-yaml",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NamespaceResourceYamlRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NamespaceResourceYamlRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1233,8 +1607,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-repo-add",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmRepoAddRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmRepoAddRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1246,8 +1623,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-repo-patch",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmRepoPatchRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmRepoPatchRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1259,24 +1639,31 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"cluster/helm-repo-update",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]helm.HelmEntryStatus{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return helm.HelmRepoUpdate()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"cluster/helm-repo-list",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]*helm.HelmEntryWithoutPassword{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return helm.HelmRepoList()
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-chart-remove",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmRepoRemoveRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmRepoRemoveRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1288,8 +1675,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-chart-search",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmChartSearchRequest{}),
+			ResponseSchema: schema.Generate([]helm.HelmChartInfo{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmChartSearchRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1301,8 +1691,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-chart-install",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmChartInstallUpgradeRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmChartInstallUpgradeRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1314,8 +1707,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-chart-show",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmChartShowRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmChartShowRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1327,8 +1723,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-chart-versions",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmChartVersionRequest{}),
+			ResponseSchema: schema.Generate([]helm.HelmChartInfo{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmChartVersionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1340,8 +1739,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-upgrade",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmChartInstallUpgradeRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmChartInstallUpgradeRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1353,8 +1755,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-uninstall",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmReleaseUninstallRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmReleaseUninstallRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1366,8 +1771,12 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-list",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(helm.HelmReleaseListRequest{}),
+			// ResponseSchema: schema.Generate([]*release.Release{}), // TODO: recursion??
+			ResponseSchema: schema.Any(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmReleaseListRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1379,8 +1788,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-status",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmReleaseStatusRequest{}),
+			ResponseSchema: schema.Generate(&helm.HelmReleaseStatusInfo{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmReleaseStatusRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1392,8 +1804,12 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-history",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(helm.HelmReleaseHistoryRequest{}),
+			// ResponseSchema: schema.Generate([]*release.Release{}), // TODO: recursion??
+			ResponseSchema: schema.Any(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmReleaseHistoryRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1405,8 +1821,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-rollback",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmReleaseRollbackRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmReleaseRollbackRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1418,8 +1837,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-get",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmReleaseGetRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmReleaseGetRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1431,8 +1853,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-get-workloads",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(helm.HelmReleaseGetWorkloadsRequest{}),
+			ResponseSchema: schema.Generate([]unstructured.Unstructured{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := helm.HelmReleaseGetWorkloadsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1444,8 +1869,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/create",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceUpdateRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceUpdateRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1459,8 +1887,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/delete",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceDeleteRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceDeleteRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1474,34 +1905,43 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/pod-ids",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceGetPodIdsRequest{}),
+			ResponseSchema: schema.Generate([]string{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceGetPodIdsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.ServicePodIds(data)
+			return kubernetes.PodIdsFor(data.Namespace, &data.ServiceId)
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"SERVICE_POD_EXISTS",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServicePodExistsRequest{}),
+			ResponseSchema: schema.Generate(kubernetes.ServicePodExistsResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServicePodExistsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.ServicePodExists(data)
+			return kubernetes.PodExists(data.K8sNamespace, data.K8sPod)
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"SERVICE_PODS",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServicePodsRequest{}),
+			ResponseSchema: schema.Generate([]v1.Pod{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServicePodsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1511,57 +1951,61 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	// // case structs.PAT_SERVICE_SET_IMAGE:
-	// // 	data := ServiceSetImageRequest{}
-	// // 	_ = self.loadRequest(&datagram, &data)
-	// // 	if err := utils.ValidateJSON(data); err != nil {
-	// // 		return err
-	// // 	}
-	// // 	return SetImage(data)
-
 	self.RegisterPatternHandlerRaw(
 		"service/log",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceGetLogRequest{}),
+			ResponseSchema: schema.Generate(kubernetes.ServiceGetLogResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceGetLogRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.PodLog(data)
+			return kubernetes.GetLog(data.Namespace, data.PodId, data.Timestamp)
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"service/log-error",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceGetLogRequest{}),
+			ResponseSchema: schema.Generate(kubernetes.ServiceGetLogErrorResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceGetLogRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.PodLogError(data)
+			return kubernetes.GetLogError(data.Namespace, data.PodId)
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"service/resource-status",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceResourceStatusRequest{}),
+			ResponseSchema: schema.Generate(&v1.Pod{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceResourceStatusRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.PodStatus(data)
+			return kubernetes.PodStatus(data.Namespace, data.Name, data.StatusOnly)
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"service/restart",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceRestartRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceRestartRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1574,8 +2018,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/stop",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceStopRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceStopRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1588,8 +2035,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/start",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceStartRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceStartRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1602,8 +2052,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/update-service",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceUpdateRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceUpdateRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1617,8 +2070,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/trigger-job",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceTriggerJobRequest{}),
+			ResponseSchema: schema.Generate(&structs.Job{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceTriggerJobRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1630,8 +2086,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/status",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceStatusRequest{}),
+			ResponseSchema: schema.Generate(services.ServiceStatusResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceStatusRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1643,8 +2102,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/log-stream",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.ServiceLogStreamRequest{}),
+			ResponseSchema: schema.Generate(services.ServiceLogStreamResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.ServiceLogStreamRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1656,8 +2118,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/exec-sh-connection-request",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.PodCmdConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.PodCmdConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1670,8 +2134,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/log-stream-connection-request",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.PodCmdConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.PodCmdConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1684,8 +2150,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/build-log-stream-connection-request",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.BuildLogConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.BuildLogConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1698,8 +2166,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"cluster/component-log-stream-connection-request",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.ComponentLogConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.ComponentLogConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1712,8 +2182,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/pod-event-stream-connection-request",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.PodEventConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.PodEventConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1726,8 +2198,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/scan-image-log-stream-connection-request",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.ScanImageLogConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.ScanImageLogConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1741,8 +2215,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"service/cluster-tool-stream-connection-request",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.ClusterToolConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.ClusterToolConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -1755,16 +2231,21 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"list/all-workloads",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]utils.SyncResourceEntry{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return kubernetes.GetAvailableResources()
 		},
 	)
 
 	self.RegisterPatternHandler(
 		"get/workload-list",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema:  schema.Generate(utils.SyncResourceEntry{}),
+			ResponseSchema: schema.Generate(unstructured.UnstructuredList{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := utils.SyncResourceEntry{}
 			_ = self.loadRequest(&datagram, &data)
 			return kubernetes.GetUnstructuredResourceListFromStore(data.Group, data.Kind, data.Version, data.Name, data.Namespace)
@@ -1773,8 +2254,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"get/namespace-workload-list",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema:  schema.Generate(kubernetes.GetUnstructuredNamespaceResourceListRequest{}),
+			ResponseSchema: schema.Generate(&[]unstructured.Unstructured{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := kubernetes.GetUnstructuredNamespaceResourceListRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			return kubernetes.GetUnstructuredNamespaceResourceList(data.Namespace, data.Whitelist, data.Blacklist)
@@ -1783,8 +2267,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"get/labeled-workload-list",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema:  schema.Generate(kubernetes.GetUnstructuredLabeledResourceListRequest{}),
+			ResponseSchema: schema.Generate(&unstructured.UnstructuredList{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := kubernetes.GetUnstructuredLabeledResourceListRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			return kubernetes.GetUnstructuredLabeledResourceList(data.Label, data.Whitelist, data.Blacklist)
@@ -1793,8 +2280,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"describe/workload",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema:  schema.Generate(utils.SyncResourceItem{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := utils.SyncResourceItem{}
 			_ = self.loadRequest(&datagram, &data)
 			return kubernetes.DescribeUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
@@ -1803,8 +2293,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"create/new-workload",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema:  schema.Generate(utils.SyncResourceData{}),
+			ResponseSchema: schema.Generate(&unstructured.Unstructured{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := utils.SyncResourceData{}
 			_ = self.loadRequest(&datagram, &data)
 			return kubernetes.CreateUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.YamlData)
@@ -1813,8 +2306,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"get/workload",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema:  schema.Generate(utils.SyncResourceItem{}),
+			ResponseSchema: schema.Generate(&unstructured.Unstructured{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := utils.SyncResourceItem{}
 			_ = self.loadRequest(&datagram, &data)
 			return kubernetes.GetUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
@@ -1823,8 +2319,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"get/workload-status",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema:  schema.Generate(kubernetes.GetWorkloadStatusRequest{}),
+			ResponseSchema: schema.Generate([]kubernetes.WorkloadStatusDto{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := kubernetes.GetWorkloadStatusRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			return kubernetes.GetWorkloadStatus(data)
@@ -1833,8 +2332,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"get/workload-example",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema:  schema.Generate(utils.SyncResourceItem{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := utils.SyncResourceItem{}
 			_ = self.loadRequest(&datagram, &data)
 			return kubernetes.GetResourceTemplateYaml(data.Group, data.Version, data.Name, data.Kind, data.Namespace, data.ResourceName), nil
@@ -1843,8 +2345,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"update/workload",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema:  schema.Generate(utils.SyncResourceData{}),
+			ResponseSchema: schema.Generate(&unstructured.Unstructured{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := utils.SyncResourceData{}
 			_ = self.loadRequest(&datagram, &data)
 			return kubernetes.UpdateUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.YamlData)
@@ -1853,8 +2358,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"delete/workload",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema: schema.Generate(utils.SyncResourceItem{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := utils.SyncResourceItem{}
 			_ = self.loadRequest(&datagram, &data)
 			return nil, kubernetes.DeleteUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
@@ -1863,259 +2370,429 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"get/workspaces",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]GetWorkspaceResult{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return self.apiService.GetAllWorkspaces()
 		},
 	)
 
-	self.RegisterPatternHandler(
-		"create/workspace",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestCreateWorkspace{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.CreateWorkspace(data.Name, v1alpha1.NewWorkspaceSpec(
-				data.DisplayName,
-				data.Resources,
-			))
-		},
-	)
+	{
+		type Request struct {
+			Name        string                                 `json:"name" validate:"required"`
+			DisplayName string                                 `json:"displayName" validate:"required"`
+			Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+		}
 
-	self.RegisterPatternHandler(
-		"get/workspace",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestGetWorkspace{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.GetWorkspace(data.Name)
-		},
-	)
+		self.RegisterPatternHandler(
+			"create/workspace",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.CreateWorkspace(data.Name, v1alpha1.NewWorkspaceSpec(
+					data.DisplayName,
+					data.Resources,
+				))
+			},
+		)
+	}
 
-	self.RegisterPatternHandler(
-		"update/workspace",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestUpdateWorkspace{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.UpdateWorkspace(data.Name, v1alpha1.NewWorkspaceSpec(
-				data.DisplayName,
-				data.Resources,
-			))
-		},
-	)
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
 
-	self.RegisterPatternHandler(
-		"delete/workspace",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestDeleteWorkspace{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.DeleteWorkspace(data.Name)
-		},
-	)
+		self.RegisterPatternHandler(
+			"get/workspace",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&GetWorkspaceResult{}),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.GetWorkspace(data.Name)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name        string                                 `json:"name" validate:"required"`
+			DisplayName string                                 `json:"displayName" validate:"required"`
+			Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+		}
+
+		self.RegisterPatternHandler(
+			"update/workspace",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.UpdateWorkspace(data.Name, v1alpha1.NewWorkspaceSpec(
+					data.DisplayName,
+					data.Resources,
+				))
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		self.RegisterPatternHandler(
+			"delete/workspace",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.DeleteWorkspace(data.Name)
+			},
+		)
+	}
 
 	self.RegisterPatternHandler(
 		"get/users",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]v1alpha1.User{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return self.apiService.GetAllUsers()
 		},
 	)
 
-	self.RegisterPatternHandler(
-		"create/user",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestCreateUser{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.CreateUser(data.Name, v1alpha1.NewUserSpec(data.MogeniusId))
-		},
-	)
+	{
+		type Request struct {
+			Name       string `json:"name" validate:"required"`
+			MogeniusId string `json:"mogeniusId" validate:"required"`
+		}
 
-	self.RegisterPatternHandler(
-		"get/user",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestGetUser{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.GetUser(data.Name)
-		},
-	)
+		self.RegisterPatternHandler(
+			"create/user",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.CreateUser(data.Name, v1alpha1.NewUserSpec(data.MogeniusId))
+			},
+		)
+	}
 
-	self.RegisterPatternHandler(
-		"update/user",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestUpdateUser{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.UpdateUser(data.Name, v1alpha1.NewUserSpec(data.MogeniusId))
-		},
-	)
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
 
-	self.RegisterPatternHandler(
-		"delete/user",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestDeleteUser{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.DeleteUser(data.Name)
-		},
-	)
+		self.RegisterPatternHandler(
+			"get/user",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&v1alpha1.User{}),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.GetUser(data.Name)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name       string `json:"name" validate:"required"`
+			MogeniusId string `json:"mogeniusId" validate:"required"`
+		}
+
+		self.RegisterPatternHandler(
+			"update/user",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.UpdateUser(data.Name, v1alpha1.NewUserSpec(data.MogeniusId))
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		self.RegisterPatternHandler(
+			"delete/user",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.DeleteUser(data.Name)
+			},
+		)
+	}
 
 	self.RegisterPatternHandler(
 		"get/teams",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]v1alpha1.Team{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return self.apiService.GetAllTeams()
 		},
 	)
 
-	self.RegisterPatternHandler(
-		"create/team",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestCreateTeam{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.CreateTeam(data.Name, v1alpha1.NewTeamSpec(data.DisplayName, data.Users))
-		},
-	)
+	{
+		type Request struct {
+			Name        string   `json:"name" validate:"required"`
+			DisplayName string   `json:"displayName" validate:"required"`
+			Users       []string `json:"users" validate:"required"`
+		}
 
-	self.RegisterPatternHandler(
-		"get/team",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestGetTeam{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.GetTeam(data.Name)
-		},
-	)
+		self.RegisterPatternHandler(
+			"create/team",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.CreateTeam(data.Name, v1alpha1.NewTeamSpec(data.DisplayName, data.Users))
+			},
+		)
+	}
 
-	self.RegisterPatternHandler(
-		"update/team",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestUpdateTeam{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.UpdateTeam(data.Name, v1alpha1.NewTeamSpec(data.DisplayName, data.Users))
-		},
-	)
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
 
-	self.RegisterPatternHandler(
-		"delete/team",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestDeleteTeam{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.DeleteTeam(data.Name)
-		},
-	)
+		self.RegisterPatternHandler(
+			"get/team",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&v1alpha1.Team{}),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.GetTeam(data.Name)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name        string   `json:"name" validate:"required"`
+			DisplayName string   `json:"displayName" validate:"required"`
+			Users       []string `json:"users" validate:"required"`
+		}
+
+		self.RegisterPatternHandler(
+			"update/team",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.UpdateTeam(data.Name, v1alpha1.NewTeamSpec(data.DisplayName, data.Users))
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		self.RegisterPatternHandler(
+			"delete/team",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.DeleteTeam(data.Name)
+			},
+		)
+	}
 
 	self.RegisterPatternHandler(
 		"get/grants",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]v1alpha1.Grant{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return self.apiService.GetAllGrants()
 		},
 	)
 
-	self.RegisterPatternHandler(
-		"create/grant",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestCreateGrant{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.CreateGrant(data.Name, v1alpha1.NewGrantSpec(
-				data.Grantee,
-				data.TargetType,
-				data.TargetName,
-				data.Role,
-			))
-		},
-	)
+	{
+		type Request struct {
+			Name       string `json:"name" validate:"required"`
+			Grantee    string `json:"grantee" validate:"required"`
+			TargetType string `json:"targetType" validate:"required"`
+			TargetName string `json:"targetName" validate:"required"`
+			Role       string `json:"role" validate:"required"`
+		}
 
-	self.RegisterPatternHandler(
-		"get/grant",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestGetGrant{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.GetGrant(data.Name)
-		},
-	)
+		self.RegisterPatternHandler(
+			"create/grant",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.CreateGrant(data.Name, v1alpha1.NewGrantSpec(
+					data.Grantee,
+					data.TargetType,
+					data.TargetName,
+					data.Role,
+				))
+			},
+		)
+	}
 
-	self.RegisterPatternHandler(
-		"update/grant",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestUpdateGrant{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.UpdateGrant(data.Name, v1alpha1.NewGrantSpec(
-				data.Grantee,
-				data.TargetType,
-				data.TargetName,
-				data.Role,
-			))
-		},
-	)
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
 
-	self.RegisterPatternHandler(
-		"delete/grant",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
-			data := utils.WebsocketRequestDeleteGrant{}
-			err := self.loadRequest(&datagram, &data)
-			if err != nil {
-				return nil, err
-			}
-			return self.apiService.DeleteGrant(data.Name)
-		},
-	)
+		self.RegisterPatternHandler(
+			"get/grant",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&v1alpha1.Grant{}),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.GetGrant(data.Name)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name       string `json:"name" validate:"required"`
+			Grantee    string `json:"grantee" validate:"required"`
+			TargetType string `json:"targetType" validate:"required"`
+			TargetName string `json:"targetName" validate:"required"`
+			Role       string `json:"role" validate:"required"`
+		}
+
+		self.RegisterPatternHandler(
+			"update/grant",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.UpdateGrant(data.Name, v1alpha1.NewGrantSpec(
+					data.Grantee,
+					data.TargetType,
+					data.TargetName,
+					data.Role,
+				))
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		self.RegisterPatternHandler(
+			"delete/grant",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.String(),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.DeleteGrant(data.Name)
+			},
+		)
+	}
 
 	{
 		type Request struct {
@@ -2126,7 +2803,10 @@ func (self *socketApi) registerPatterns() {
 
 		self.RegisterPatternHandler(
 			"get/workspace-workloads",
-			PatternConfig{},
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]unstructured.Unstructured{}),
+			},
 			func(datagram structs.Datagram) (interface{}, error) {
 				data := Request{}
 				structs.MarshalUnmarshal(&datagram, &data)
@@ -2137,29 +2817,43 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"build/builder-status",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate(structs.BuilderStatus{}),
+		},
+		func(datagram structs.Datagram) any {
 			return kubernetes.GetDb().GetBuilderStatus()
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"build/info",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := structs.BuildJobStatusRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return kubernetes.GetDb().GetBuildJobInfosFromDb(data.BuildId)
-		},
-	)
+	{
+		type Request struct {
+			BuildId uint64 `json:"buildId" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"build/info",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(structs.BuildJobInfo{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return kubernetes.GetDb().GetBuildJobInfosFromDb(data.BuildId)
+			},
+		)
+	}
 
 	self.RegisterPatternHandlerRaw(
 		"build/last-infos",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(structs.BuildTaskRequest{}),
+			ResponseSchema: schema.Generate(structs.BuildJobInfo{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := structs.BuildTaskRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2171,16 +2865,21 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"build/list-all",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]structs.BuildJob{}),
+		},
+		func(datagram structs.Datagram) any {
 			return services.ListAll()
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"build/list-by-project",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(structs.ListBuildByProjectIdRequest{}),
+			ResponseSchema: schema.Generate([]structs.BuildJob{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := structs.ListBuildByProjectIdRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2192,8 +2891,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"build/add",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(structs.BuildJob{}),
+			ResponseSchema: schema.Generate(structs.BuildAddResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := structs.BuildJob{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2207,8 +2909,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"build/cancel",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(structs.BuildJob{}),
+			ResponseSchema: schema.Generate(structs.BuildCancelResult{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := structs.BuildJob{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2220,23 +2925,34 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"build/delete",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := structs.BuildJobStatusRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.DeleteBuild(data.BuildId)
-		},
-	)
+	{
+		type Request struct {
+			BuildId uint64 `json:"buildId" validate:"required"`
+		}
+		self.RegisterPatternHandlerRaw(
+			"build/delete",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(structs.BuildDeleteResult{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return services.DeleteBuild(data.BuildId)
+			},
+		)
+	}
 
 	self.RegisterPatternHandlerRaw(
 		"build/last-job-of-services",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(structs.BuildTaskListOfServicesRequest{}),
+			ResponseSchema: schema.Generate([]structs.BuildJobInfo{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := structs.BuildTaskListOfServicesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2248,8 +2964,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"build/job-list-of-service",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(structs.BuildTaskRequest{}),
+			ResponseSchema: schema.Generate([]structs.BuildJobInfo{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := structs.BuildTaskRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2261,8 +2980,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"build/delete-of-service",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(structs.BuildTaskRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := structs.BuildTaskRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2273,18 +2994,13 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	// //case structs.PAT_BUILD_LAST_JOB_INFO_OF_SERVICE:
-	// //	data := structs.BuildServiceRequest{}
-	// //	_ = self.loadRequest(&datagram, &data)
-	// //	if err := utils.ValidateJSON(data); err != nil {
-	// //		return err
-	// //	}
-	// //	return LastBuildForService(data.ServiceId)
-
 	self.RegisterPatternHandlerRaw(
 		"storage/create-volume",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NfsVolumeRequest{}),
+			ResponseSchema: schema.Generate(structs.DefaultResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NfsVolumeRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2296,8 +3012,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"storage/delete-volume",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NfsVolumeRequest{}),
+			ResponseSchema: schema.Generate(structs.DefaultResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NfsVolumeRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2307,27 +3026,13 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	// // case structs.PAT_STORAGE_BACKUP_VOLUME:
-	// // 	data := NfsVolumeBackupRequest{}
-	// // 	_ = self.loadRequest(&datagram, &data)
-	// // 	if err := utils.ValidateJSON(data); err != nil {
-	// // 		return err
-	// // 	}
-	// // 	data.AddSecretsToRedaction()
-	// // 	return BackupMogeniusNfsVolume(data)
-	// // case structs.PAT_STORAGE_RESTORE_VOLUME:
-	// // 	data := NfsVolumeRestoreRequest{}
-	// // 	_ = self.loadRequest(&datagram, &data)
-	// // 	if err := utils.ValidateJSON(data); err != nil {
-	// // 		return err
-	// // 	}
-	// // 	data.AddSecretsToRedaction()
-	// // 	return RestoreMogeniusNfsVolume(data)
-
 	self.RegisterPatternHandlerRaw(
 		"storage/stats",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NfsVolumeStatsRequest{}),
+			ResponseSchema: schema.Generate(services.NfsVolumeStatsResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NfsVolumeStatsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2339,8 +3044,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"storage/namespace/stats",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NfsNamespaceStatsRequest{}),
+			ResponseSchema: schema.Generate([]services.NfsVolumeStatsResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NfsNamespaceStatsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2352,8 +3060,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"storage/status",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(services.NfsStatusRequest{}),
+			ResponseSchema: schema.Generate(services.NfsStatusResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := services.NfsStatusRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2365,20 +3076,25 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"log/list-all",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]structs.Log{}),
+		},
+		func(datagram structs.Datagram) any {
 			return kubernetes.GetDb().ListLogFromDb()
 		},
 	)
 
-	// // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	// // External Secrets
-	// // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// External Secrets
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 	self.RegisterPatternHandlerRaw(
 		"external-secret-store/create",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.CreateSecretsStoreRequest{}),
+			ResponseSchema: schema.Generate(controllers.CreateSecretsStoreResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.CreateSecretsStoreRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2390,8 +3106,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"external-secret-store/list",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.ListSecretStoresRequest{}),
+			ResponseSchema: schema.Generate([]kubernetes.SecretStore{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.ListSecretStoresRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2403,8 +3122,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"external-secret/list-available-secrets",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.ListSecretsRequest{}),
+			ResponseSchema: schema.Generate([]string{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.ListSecretsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2416,8 +3138,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"external-secret-store/delete",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.DeleteSecretsStoreRequest{}),
+			ResponseSchema: schema.Generate(controllers.DeleteSecretsStoreResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.DeleteSecretsStoreRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2427,13 +3152,16 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	// // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	// // Labeled Network Policies
-	// // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// Labeled Network Policies
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	self.RegisterPatternHandlerRaw(
 		"attach/labeled_network_policy",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.AttachLabeledNetworkPolicyRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.AttachLabeledNetworkPolicyRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2445,8 +3173,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"detach/labeled_network_policy",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.DetachLabeledNetworkPolicyRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.DetachLabeledNetworkPolicyRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2458,16 +3189,21 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"list/labeled_network_policy_ports",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]dtos.K8sLabeledNetworkPolicyDto{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return controllers.ListLabeledNetworkPolicyPorts()
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"list/conflicting_network_policies",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.ListConflictingNetworkPoliciesRequest{}),
+			ResponseSchema: schema.Generate([]controllers.K8sConflictingNetworkPolicyDto{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.ListConflictingNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2479,8 +3215,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"remove/conflicting_network_policies",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.RemoveConflictingNetworkPoliciesRequest{}),
+			ResponseSchema: schema.String(),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.RemoveConflictingNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2492,8 +3231,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"list/controller_network_policies",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.ListControllerLabeledNetworkPoliciesRequest{}),
+			ResponseSchema: schema.Generate(controllers.ListControllerLabeledNetworkPoliciesResponse{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.ListControllerLabeledNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2505,8 +3247,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"update/network_policies_template",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			RequestSchema: schema.Generate([]kubernetes.NetworkPolicy{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			data := []kubernetes.NetworkPolicy{}
 			_ = self.loadRequest(&datagram, &data)
 			return nil, controllers.UpdateNetworkPolicyTemplate(data)
@@ -2515,16 +3259,21 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandler(
 		"list/all_network_policies",
-		PatternConfig{},
-		func(datagram structs.Datagram) (interface{}, error) {
+		PatternConfig{
+			ResponseSchema: schema.Generate([]controllers.ListNetworkPolicyNamespace{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
 			return controllers.ListAllNetworkPolicies()
 		},
 	)
 
 	self.RegisterPatternHandlerRaw(
 		"list/namespace_network_policies",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.ListNamespaceLabeledNetworkPoliciesRequest{}),
+			ResponseSchema: schema.Generate([]controllers.ListNetworkPolicyNamespace{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.ListNamespaceLabeledNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2536,8 +3285,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"enforce/network_policy_manager",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(controllers.EnforceNetworkPolicyManagerRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.EnforceNetworkPolicyManagerRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2549,8 +3300,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"disable/network_policy_manager",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(controllers.DisableNetworkPolicyManagerRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.DisableNetworkPolicyManagerRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2562,8 +3315,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"remove/unmanaged_network_policies",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(controllers.RemoveUnmanagedNetworkPoliciesRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.RemoveUnmanagedNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2575,8 +3330,11 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"list/only_namespace_network_policies",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema:  schema.Generate(controllers.ListNamespaceLabeledNetworkPoliciesRequest{}),
+			ResponseSchema: schema.Generate([]controllers.ListManagedAndUnmanagedNetworkPolicyNamespace{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := controllers.ListNamespaceLabeledNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2586,26 +3344,38 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	// // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	// // Cronjobs
-	// // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	self.RegisterPatternHandlerRaw(
-		"list/cronjob-jobs",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
-			data := ListCronjobJobsRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return kubernetes.ListCronjobJobs(data.ControllerName, data.NamespaceName, data.ProjectId)
-		},
-	)
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// Cronjobs
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	{
+		type Request struct {
+			ProjectId      string `json:"projectId" validate:"required"`
+			NamespaceName  string `json:"namespaceName" validate:"required"`
+			ControllerName string `json:"controllerName" validate:"required"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"list/cronjob-jobs",
+			PatternConfig{
+				RequestSchema: schema.Generate(Request{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return kubernetes.ListCronjobJobs(data.ControllerName, data.NamespaceName, data.ProjectId)
+			},
+		)
+	}
 
 	self.RegisterPatternHandlerRaw(
 		"live-stream/nodes-traffic",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.WsConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.WsConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2618,8 +3388,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"live-stream/nodes-memory",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.WsConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.WsConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2632,8 +3404,10 @@ func (self *socketApi) registerPatterns() {
 
 	self.RegisterPatternHandlerRaw(
 		"live-stream/nodes-cpu",
-		PatternConfig{},
-		func(datagram structs.Datagram) interface{} {
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.WsConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
 			data := xterm.WsConnectionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
@@ -2745,6 +3519,7 @@ func (self *socketApi) startMessageHandler() {
 
 		datagram.DisplayReceiveSummary(self.logger)
 
+		// TODO: refactor! @bene
 		if datagram.Pattern == "files/upload" {
 			preparedFileRequest = self.executeBinaryRequestUpload(datagram)
 
@@ -3023,33 +3798,15 @@ func NewMessageResponse(result interface{}, err error) MessageResponse {
 	}
 }
 
-type ClusterResourceInfoDto struct {
-	LoadBalancerExternalIps []string              `json:"loadBalancerExternalIps"`
-	NodeStats               []dtos.NodeStat       `json:"nodeStats"`
-	Country                 *utils.CountryDetails `json:"country"`
-	Provider                string                `json:"provider"`
-	CniConfig               []structs.CniData     `json:"cniConfig"`
-}
-
-type K8sManagerUpgradeRequest struct {
-	Command string `json:"command" validate:"required"` // complete helm command from platform ui
-}
-
-func UpgradeK8sManager(r K8sManagerUpgradeRequest) *structs.Job {
+func UpgradeK8sManager(command string) *structs.Job {
 	var wg sync.WaitGroup
 
 	job := structs.CreateJob("Upgrade mogenius platform", "UPGRADE", "", "")
 	job.Start()
-	kubernetes.UpgradeMyself(job, r.Command, &wg)
+	kubernetes.UpgradeMyself(job, command, &wg)
 	wg.Wait()
 	job.Finish()
 	return job
-}
-
-type ListCronjobJobsRequest struct {
-	ProjectId      string `json:"projectId" validate:"required"`
-	NamespaceName  string `json:"namespaceName" validate:"required"`
-	ControllerName string `json:"controllerName" validate:"required"`
 }
 
 func (self *socketApi) logStream(data services.ServiceLogStreamRequest, datagram structs.Datagram) services.ServiceLogStreamResult {
@@ -3069,7 +3826,7 @@ func (self *socketApi) logStream(data services.ServiceLogStreamRequest, datagram
 
 	var previousResReq *rest.Request
 	if terminatedState != nil {
-		tmpPreviousResReq, err := services.PreviousPodLogStream(data.Namespace, data.PodId)
+		tmpPreviousResReq, err := kubernetes.StreamPreviousLog(data.Namespace, data.PodId)
 		if err != nil {
 			self.logger.Error("failed to get previous pod log stream", "error", err)
 		} else {
@@ -3077,7 +3834,7 @@ func (self *socketApi) logStream(data services.ServiceLogStreamRequest, datagram
 		}
 	}
 
-	restReq, err := services.PodLogStream(data)
+	restReq, err := kubernetes.StreamLog(data.Namespace, data.PodId, int64(data.SinceSeconds))
 	if err != nil {
 		result.Error = err.Error()
 		result.Success = false

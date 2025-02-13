@@ -5,10 +5,20 @@ import (
 	"mogenius-k8s-manager/src/shell"
 )
 
-type Version struct{}
+type Version struct {
+	Version        string `json:"version"`
+	Branch         string `json:"branch"`
+	GitCommitHash  string `json:"gitCommitHash"`
+	BuildTimestamp string `json:"buildTimestamp"`
+}
 
 func NewVersion() *Version {
-	return &Version{}
+	return &Version{
+		Version:        Ver,
+		Branch:         Branch,
+		GitCommitHash:  GitCommitHash,
+		BuildTimestamp: BuildTimestamp,
+	}
 }
 
 func (self *Version) PrintVersionInfo() {

@@ -21,7 +21,7 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 
 	var previousRestReq *rest.Request
 	if terminatedState != nil {
-		tmpPreviousResReq, err := PreviousPodLogStream(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod)
+		tmpPreviousResReq, err := kubernetes.StreamPreviousLog(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod)
 		if err != nil {
 			serviceLogger.Error(err.Error())
 		} else {
