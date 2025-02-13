@@ -3,6 +3,7 @@ package structs
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
@@ -17,6 +18,7 @@ type Datagram struct {
 	Err       string      `json:"err,omitempty"`
 	CreatedAt time.Time   `json:"-"`
 	User      User        `json:"user,omitempty"`
+	Zlib      bool        `json:"zlib,omitempty"`
 }
 
 type User struct {
@@ -135,8 +137,8 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n\n", shell.Colorize("PAYLOAD: ", shell.Black, shell.Green), utils.PrettyPrintInterface(d.Payload))
 }
 
-func (d *Datagram) DisplayReceiveSummary() {
-	structsLogger.Debug("RECEIVED",
+func (d *Datagram) DisplayReceiveSummary(logger *slog.Logger) {
+	logger.Debug("RECEIVED",
 		"pattern", d.Pattern,
 		"id", d.Id,
 		"username", d.Username,
@@ -144,8 +146,8 @@ func (d *Datagram) DisplayReceiveSummary() {
 	)
 }
 
-func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
-	structsLogger.Debug("SENT",
+func (d *Datagram) DisplaySentSummary(logger *slog.Logger, queuePosition int, queueLen int) {
+	logger.Debug("SENT",
 		"pattern", d.Pattern,
 		"id", d.Id,
 		"username", d.Username,
@@ -156,8 +158,8 @@ func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
 	)
 }
 
-func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
-	structsLogger.Debug("SENT",
+func (d *Datagram) DisplaySentSummaryEvent(logger *slog.Logger, kind string, reason string, msg string, count int32) {
+	logger.Debug("SENT",
 		"pattern", d.Pattern,
 		"kind", kind,
 		"reason", reason,
@@ -166,8 +168,8 @@ func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg strin
 	)
 }
 
-func (d *Datagram) DisplayStreamSummary() {
-	structsLogger.Debug("STREAMING",
+func (d *Datagram) DisplayStreamSummary(logger *slog.Logger) {
+	logger.Debug("STREAMING",
 		"pattern", d.Pattern,
 		"id", d.Id,
 	)

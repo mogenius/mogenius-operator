@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.etcd.io/bbolt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const (
@@ -39,9 +40,9 @@ type BoltDbStats interface {
 	GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats
 	GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats
 	GetTrafficStatsEntrySumForController(controller K8sController, includeSocketConnections bool) *structs.InterfaceStats
-	GetWorkspaceStatsCpuUtilization(workspaceName string) ([]GenericChartEntry, error)
-	GetWorkspaceStatsMemoryUtilization(workspaceName string) ([]GenericChartEntry, error)
-	GetWorkspaceStatsTrafficUtilization(workspaceName string) ([]GenericChartEntry, error)
+	GetWorkspaceStatsCpuUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetWorkspaceStatsMemoryUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetWorkspaceStatsTrafficUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	ReplaceCniData(data []structs.CniData)
 }
 
@@ -529,39 +530,90 @@ func (self *boldDbStatsModule) GetTrafficStatsEntrySumForController(controller K
 	return result
 }
 
-func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(workspaceName string) ([]GenericChartEntry, error) {
-	result := []GenericChartEntry{}
+func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	result := make([]GenericChartEntry, req.TimeOffSetMinutes)
 
-	// TODO: BENE RICHTIGER CODE REIN
-	result = append(result, GenericChartEntry{
-		Time:  "2021-01-01T00:00:00Z",
-		Value: 1.0,
-	})
+	for _, controller := range resources {
+		_ = self.db.View(func(tx *bbolt.Tx) error {
+			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_POD_STATS_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
+			if err != nil {
+				return nil
+			}
 
+			cursor := bucket.Cursor()
+			index := 0
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				entry := structs.PodStats{}
+				_ = structs.UnmarshalPodStats(&entry, value)
+				result[index].Time = entry.CreatedAt
+				result[index].Value += float64(entry.Cpu)
+
+				index++
+				if index >= req.TimeOffSetMinutes {
+					break
+				}
+			}
+			return nil
+		})
+	}
 	return result, nil
 }
 
-func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(workspaceName string) ([]GenericChartEntry, error) {
-	result := []GenericChartEntry{}
+func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	result := make([]GenericChartEntry, req.TimeOffSetMinutes)
 
-	// TODO: BENE RICHTIGER CODE REIN
-	result = append(result, GenericChartEntry{
-		Time:  "2021-01-01T00:00:00Z",
-		Value: 0.0,
-	})
+	for _, controller := range resources {
+		_ = self.db.View(func(tx *bbolt.Tx) error {
+			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_POD_STATS_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
+			if err != nil {
+				return nil
+			}
 
+			cursor := bucket.Cursor()
+			index := 0
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				entry := structs.PodStats{}
+				_ = structs.UnmarshalPodStats(&entry, value)
+				result[index].Time = entry.CreatedAt
+				result[index].Value += float64(entry.Memory)
+
+				index++
+				if index >= req.TimeOffSetMinutes {
+					break
+				}
+			}
+			return nil
+		})
+	}
 	return result, nil
 }
 
-func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(workspaceName string) ([]GenericChartEntry, error) {
-	result := []GenericChartEntry{}
+func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	result := make([]GenericChartEntry, req.TimeOffSetMinutes)
 
-	// TODO: BENE RICHTIGER CODE REIN
-	result = append(result, GenericChartEntry{
-		Time:  "2021-01-01T00:00:00Z",
-		Value: 0.0,
-	})
+	for _, controller := range resources {
+		_ = self.db.View(func(tx *bbolt.Tx) error {
+			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_TRAFFIC_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
+			if err != nil {
+				return nil
+			}
 
+			cursor := bucket.Cursor()
+			index := 0
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				entry := structs.InterfaceStats{}
+				_ = structs.UnmarshalInterfaceStats(&entry, value)
+				result[index].Time = entry.CreatedAt
+				result[index].Value += float64(entry.ReceivedBytes + entry.TransmitBytes)
+
+				index++
+				if index >= req.TimeOffSetMinutes {
+					break
+				}
+			}
+			return nil
+		})
+	}
 	return result, nil
 }
 

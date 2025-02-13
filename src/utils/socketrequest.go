@@ -85,7 +85,8 @@ type WebsocketRequestDeleteGrant struct {
 }
 
 type WorkspaceStatsRequest struct {
-	WorkspaceName string `json:"workspaceName"`
+	WorkspaceName     string `json:"workspaceName"`
+	TimeOffSetMinutes int    `json:"timeOffSetMinutes"`
 }
 
 type WorkspaceWorkloadRequest struct {

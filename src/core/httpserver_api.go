@@ -34,7 +34,7 @@ func (self *httpService) httpSocketApi(w http.ResponseWriter, r *http.Request) {
 	}
 	self.logger.Info("http request for pattern", "datagram", datagram)
 
-	result := self.socketapi.ExecuteCommandRequest(datagram, self)
+	result := self.socketapi.ExecuteCommandRequest(datagram)
 	datagram.Payload = result
 
 	w.WriteHeader(http.StatusOK)

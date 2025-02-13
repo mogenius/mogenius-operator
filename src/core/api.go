@@ -72,6 +72,7 @@ type Api interface {
 	DeleteGrant(name string) (string, error)
 
 	GetWorkspaceResources(data utils.WorkspaceWorkloadRequest) ([]unstructured.Unstructured, error)
+	GetWorkspaceControllers(data utils.WorkspaceWorkloadRequest) ([]unstructured.Unstructured, error)
 }
 
 type api struct {
@@ -309,7 +310,7 @@ func (self *api) GetWorkspaceResources(data utils.WorkspaceWorkloadRequest) ([]u
 
 	for _, v := range workspace.Resources {
 		if v.Type == "namespace" {
-			nsResources, err := kubernetes.GetUnstructuredNamespaceResourceList(v.Namespace, data.Whitelist, data.Blacklist)
+			nsResources, err := kubernetes.GetUnstructuredNamespaceResourceList(v.Id, data.Whitelist, data.Blacklist)
 			if err != nil {
 				return result, err
 			}
@@ -330,4 +331,16 @@ func (self *api) GetWorkspaceResources(data utils.WorkspaceWorkloadRequest) ([]u
 	}
 
 	return result, nil
+}
+
+func (self *api) GetWorkspaceControllers(data utils.WorkspaceWorkloadRequest) ([]unstructured.Unstructured, error) {
+	result := []unstructured.Unstructured{}
+	res, err := self.GetWorkspaceResources(data)
+
+	for _, v := range res {
+		if v.GetKind() == "Deployment" || v.GetKind() == "StatefulSet" || v.GetKind() == "DaemonSet" {
+			result = append(result, v)
+		}
+	}
+	return result, err
 }
