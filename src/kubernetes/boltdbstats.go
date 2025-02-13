@@ -40,9 +40,9 @@ type BoltDbStats interface {
 	GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats
 	GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats
 	GetTrafficStatsEntrySumForController(controller K8sController, includeSocketConnections bool) *structs.InterfaceStats
-	GetWorkspaceStatsCpuUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
-	GetWorkspaceStatsMemoryUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
-	GetWorkspaceStatsTrafficUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	ReplaceCniData(data []structs.CniData)
 }
 
@@ -530,8 +530,8 @@ func (self *boldDbStatsModule) GetTrafficStatsEntrySumForController(controller K
 	return result
 }
 
-func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
-	result := make([]GenericChartEntry, req.TimeOffSetMinutes)
+func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	result := make([]GenericChartEntry, timeOffsetInMinutes)
 
 	for _, controller := range resources {
 		_ = self.db.View(func(tx *bbolt.Tx) error {
@@ -549,7 +549,7 @@ func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(req utils.Workspa
 				result[index].Value += float64(entry.Cpu)
 
 				index++
-				if index >= req.TimeOffSetMinutes {
+				if index >= timeOffsetInMinutes {
 					break
 				}
 			}
@@ -559,8 +559,8 @@ func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(req utils.Workspa
 	return result, nil
 }
 
-func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
-	result := make([]GenericChartEntry, req.TimeOffSetMinutes)
+func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	result := make([]GenericChartEntry, timeOffsetInMinutes)
 
 	for _, controller := range resources {
 		_ = self.db.View(func(tx *bbolt.Tx) error {
@@ -578,7 +578,7 @@ func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(req utils.Work
 				result[index].Value += float64(entry.Memory)
 
 				index++
-				if index >= req.TimeOffSetMinutes {
+				if index >= timeOffsetInMinutes {
 					break
 				}
 			}
@@ -588,8 +588,8 @@ func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(req utils.Work
 	return result, nil
 }
 
-func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(req utils.WorkspaceStatsRequest, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
-	result := make([]GenericChartEntry, req.TimeOffSetMinutes)
+func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	result := make([]GenericChartEntry, timeOffsetInMinutes)
 
 	for _, controller := range resources {
 		_ = self.db.View(func(tx *bbolt.Tx) error {
@@ -607,7 +607,7 @@ func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(req utils.Wor
 				result[index].Value += float64(entry.ReceivedBytes + entry.TransmitBytes)
 
 				index++
-				if index >= req.TimeOffSetMinutes {
+				if index >= timeOffsetInMinutes {
 					break
 				}
 			}
