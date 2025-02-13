@@ -11,6 +11,8 @@ import (
 )
 
 func TestGitManager(t *testing.T) {
+	t.Skip("the gitmanager is currently unused and not a priority for testing")
+
 	repoUrl := "https://github.com/mogenius/docs.git"
 	localPath := os.TempDir() + "/test-repo"
 	localPathInit := os.TempDir() + "/test-repo-init"

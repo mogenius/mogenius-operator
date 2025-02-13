@@ -68,10 +68,6 @@ func ShutdownNamespace(r NamespaceShutdownRequest) *structs.Job {
 	return job
 }
 
-func PodIds(r NamespacePodIdsRequest) interface{} {
-	return kubernetes.PodIdsFor(r.Namespace, nil)
-}
-
 func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClusterPodsDto {
 	inDbButNotInCluster := []string{}
 	clusterPodNames := kubernetes.AllPodNames()
@@ -88,15 +84,15 @@ func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClu
 	}
 }
 
-func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
+func ValidateClusterPorts(r NamespaceValidatePortsRequest) {
 	serviceLogger.Info("CleanupIngressPorts: received ports from DB.", "amountPorts", len(r.Ports), "ports", r.Ports)
 	if len(r.Ports) <= 0 {
 		serviceLogger.Error("Received empty ports list. Something seems wrong. Skipping process.")
-		return nil
+		return
 	}
 	mokubernetes.CleanupIngressControllerServicePorts(r.Ports)
 
-	return nil
+	return
 }
 
 func ListAllNamespaces() []string {

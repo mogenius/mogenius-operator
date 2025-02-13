@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/client-go/rest"
+	v1 "k8s.io/api/core/v1"
 )
 
-func UpdateService(r ServiceUpdateRequest) interface{} {
+func UpdateService(r ServiceUpdateRequest) *structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
@@ -67,7 +67,7 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 	return job
 }
 
-func DeleteService(r ServiceDeleteRequest) interface{} {
+func DeleteService(r ServiceDeleteRequest) *structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
@@ -135,49 +135,17 @@ func UpdateSecrets(r ServiceUpdateRequest) interface{} {
 // 	return job
 // }
 
-func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
-	return kubernetes.PodIdsFor(r.Namespace, &r.ServiceId)
-}
-
-func ServicePodExists(r ServicePodExistsRequest) interface{} {
-	return kubernetes.PodExists(r.K8sNamespace, r.K8sPod)
-}
-
-func PodLog(r ServiceGetLogRequest) interface{} {
-	return kubernetes.GetLog(r.Namespace, r.PodId, r.Timestamp)
-}
-
-func PodLogError(r ServiceGetLogRequest) interface{} {
-	return kubernetes.GetLogError(r.Namespace, r.PodId)
-}
-
-func PodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
-	return kubernetes.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
-}
-
-func PreviousPodLogStream(namespace, podName string) (*rest.Request, error) {
-	return kubernetes.StreamPreviousLog(namespace, podName)
-}
-
-func PodStatus(r ServiceResourceStatusRequest) interface{} {
-	return kubernetes.PodStatus(r.Namespace, r.Name, r.StatusOnly)
-}
-
 var servicePodStatusDebounce = utils.NewDebounce("servicePodStatusDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-func ServicePodStatus(r ServicePodsRequest) interface{} {
+func ServicePodStatus(r ServicePodsRequest) []v1.Pod {
 	key := fmt.Sprintf("%s-%s", r.Namespace, r.ControllerName)
 	result, _ := servicePodStatusDebounce.CallFn(key, func() (interface{}, error) {
-		return ServicePodStatus2(r), nil
+		return kubernetes.ServicePodStatus(r.Namespace, r.ControllerName), nil
 	})
-	return result
+	return result.([]v1.Pod)
 }
 
-func ServicePodStatus2(r ServicePodsRequest) interface{} {
-	return kubernetes.ServicePodStatus(r.Namespace, r.ControllerName)
-}
-
-func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
+func TriggerJobService(r ServiceTriggerJobRequest) *structs.Job {
 	var wg sync.WaitGroup
 
 	job := structs.CreateJob("Trigger Job Service "+r.NamespaceDisplayName, r.ProjectId, r.NamespaceName, r.ControllerName)
@@ -192,7 +160,7 @@ func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
 	return job
 }
 
-func Restart(r ServiceRestartRequest) interface{} {
+func Restart(r ServiceRestartRequest) *structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
@@ -219,7 +187,7 @@ func Restart(r ServiceRestartRequest) interface{} {
 	return job
 }
 
-func StopService(r ServiceStopRequest) interface{} {
+func StopService(r ServiceStopRequest) *structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob("Stop Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
 	job.Start()
@@ -242,7 +210,7 @@ func StopService(r ServiceStopRequest) interface{} {
 	return job
 }
 
-func StartService(r ServiceStartRequest) interface{} {
+func StartService(r ServiceStartRequest) *structs.Job {
 	var wg sync.WaitGroup
 
 	job := structs.CreateJob("Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)

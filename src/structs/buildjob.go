@@ -155,20 +155,10 @@ func BuildJobExample() BuildJob {
 	}
 }
 
-type BuildJobStatusRequest struct {
-	BuildId uint64 `json:"buildId" validate:"required"`
-}
-
 type BuildTaskRequest struct {
 	Namespace  string `json:"namespace" validate:"required"`
 	Controller string `json:"controller" validate:"required"`
 	Container  string `json:"container" validate:"required"`
-}
-
-func BuildJobStatusRequestExample() BuildJobStatusRequest {
-	return BuildJobStatusRequest{
-		BuildId: 1234,
-	}
 }
 
 type BuildTaskListOfServicesRequest struct {

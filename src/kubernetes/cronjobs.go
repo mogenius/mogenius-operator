@@ -423,12 +423,12 @@ func hasLabel(labels map[string]string, labelKey string, labelValue string) bool
 
 var listCronjobJobsDebounce = utils.NewDebounce("listCronjobJobsDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-func ListCronjobJobs(controllerName string, namespaceName string, projectId string) interface{} {
+func ListCronjobJobs(controllerName string, namespaceName string, projectId string) ListJobInfoResponse {
 	key := fmt.Sprintf("%s-%s-%s", controllerName, namespaceName, projectId)
 	result, _ := listCronjobJobsDebounce.CallFn(key, func() (interface{}, error) {
 		return ListCronjobJobs2(controllerName, namespaceName, projectId), nil
 	})
-	return result
+	return result.(ListJobInfoResponse)
 }
 
 func ListCronjobJobs2(controllerName string, namespaceName string, projectId string) ListJobInfoResponse {
