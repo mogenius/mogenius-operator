@@ -737,7 +737,7 @@ func (self *socketApi) registerPatterns() {
 
 		type Request struct {
 			WorkspaceName     string `json:"workspaceName"`
-			TimeOffSetMinutes int    `json:"timeOffSetMinutes"`
+			TimeOffsetMinutes int    `json:"timeOffsetMinutes"`
 		}
 
 		self.RegisterPatternHandler(
@@ -753,7 +753,7 @@ func (self *socketApi) registerPatterns() {
 				if err != nil {
 					return nil, err
 				}
-				return self.dbstats.GetWorkspaceStatsCpuUtilization(data.TimeOffSetMinutes, resources)
+				return self.dbstats.GetWorkspaceStatsCpuUtilization(data.TimeOffsetMinutes, resources)
 			},
 		)
 
@@ -770,7 +770,7 @@ func (self *socketApi) registerPatterns() {
 				if err != nil {
 					return nil, err
 				}
-				return self.dbstats.GetWorkspaceStatsMemoryUtilization(data.TimeOffSetMinutes, resources)
+				return self.dbstats.GetWorkspaceStatsMemoryUtilization(data.TimeOffsetMinutes, resources)
 			},
 		)
 
@@ -787,7 +787,7 @@ func (self *socketApi) registerPatterns() {
 				if err != nil {
 					return nil, err
 				}
-				return self.dbstats.GetWorkspaceStatsTrafficUtilization(data.TimeOffSetMinutes, resources)
+				return self.dbstats.GetWorkspaceStatsTrafficUtilization(data.TimeOffsetMinutes, resources)
 			},
 		)
 	}
