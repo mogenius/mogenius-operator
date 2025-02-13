@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
+	"slices"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -71,8 +72,8 @@ type Api interface {
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	DeleteGrant(name string) (string, error)
 
-	GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error)
-	GetWorkspaceControllers(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error)
+	GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+	GetWorkspaceControllers(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 }
 
 type api struct {
@@ -299,7 +300,7 @@ func (self *api) DeleteGrant(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
-func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error) {
+func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
 	result := []unstructured.Unstructured{}
 
 	// Get workspace
@@ -310,6 +311,11 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 
 	for _, v := range workspace.Resources {
 		if v.Type == "namespace" {
+			if len(namespaceWhitelist) > 0 {
+				if !slices.Contains(namespaceWhitelist, v.Id) {
+					continue
+				}
+			}
 			nsResources, err := kubernetes.GetUnstructuredNamespaceResourceList(v.Id, whitelist, blacklist)
 			if err != nil {
 				return result, err
@@ -317,6 +323,11 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 			result = append(result, *nsResources...)
 		}
 		if v.Type == "helm" {
+			if len(namespaceWhitelist) > 0 {
+				if !slices.Contains(namespaceWhitelist, v.Namespace) {
+					continue
+				}
+			}
 			helmReq := helm.HelmReleaseGetWorkloadsRequest{
 				Namespace: v.Namespace,
 				Release:   v.Id,
@@ -333,9 +344,9 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 	return result, nil
 }
 
-func (self *api) GetWorkspaceControllers(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error) {
+func (self *api) GetWorkspaceControllers(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
 	result := []unstructured.Unstructured{}
-	res, err := self.GetWorkspaceResources(workspaceName, whitelist, blacklist)
+	res, err := self.GetWorkspaceResources(workspaceName, whitelist, blacklist, namespaceWhitelist)
 
 	for _, v := range res {
 		if v.GetKind() == "Deployment" || v.GetKind() == "StatefulSet" || v.GetKind() == "DaemonSet" {

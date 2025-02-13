@@ -1000,7 +1000,7 @@ func (self *socketApi) registerPatterns() {
 				if err := utils.ValidateJSON(data); err != nil {
 					return nil, err
 				}
-				resources, err := self.apiService.GetWorkspaceControllers(data.WorkspaceName, nil, nil)
+				resources, err := self.apiService.GetWorkspaceControllers(data.WorkspaceName, nil, nil, []string{})
 				if err != nil {
 					return nil, err
 				}
@@ -1020,7 +1020,7 @@ func (self *socketApi) registerPatterns() {
 				if err := utils.ValidateJSON(data); err != nil {
 					return nil, err
 				}
-				resources, err := self.apiService.GetWorkspaceControllers(data.WorkspaceName, nil, nil)
+				resources, err := self.apiService.GetWorkspaceControllers(data.WorkspaceName, nil, nil, []string{})
 				if err != nil {
 					return nil, err
 				}
@@ -1040,7 +1040,7 @@ func (self *socketApi) registerPatterns() {
 				if err := utils.ValidateJSON(data); err != nil {
 					return nil, err
 				}
-				resources, err := self.apiService.GetWorkspaceControllers(data.WorkspaceName, nil, nil)
+				resources, err := self.apiService.GetWorkspaceControllers(data.WorkspaceName, nil, nil, []string{})
 				if err != nil {
 					return nil, err
 				}
@@ -2796,9 +2796,10 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			WorkspaceName string                     `json:"workspaceName"`
-			Whitelist     []*utils.SyncResourceEntry `json:"whitelist"`
-			Blacklist     []*utils.SyncResourceEntry `json:"blacklist"`
+			WorkspaceName      string                     `json:"workspaceName"`
+			Whitelist          []*utils.SyncResourceEntry `json:"whitelist"`
+			Blacklist          []*utils.SyncResourceEntry `json:"blacklist"`
+			NamespaceWhitelist []string                   `json:"namespaceWhitelist"`
 		}
 
 		self.RegisterPatternHandler(
@@ -2810,7 +2811,7 @@ func (self *socketApi) registerPatterns() {
 			func(datagram structs.Datagram) (interface{}, error) {
 				data := Request{}
 				structs.MarshalUnmarshal(&datagram, &data)
-				return self.apiService.GetWorkspaceResources(data.WorkspaceName, data.Whitelist, data.Blacklist)
+				return self.apiService.GetWorkspaceResources(data.WorkspaceName, data.Whitelist, data.Blacklist, data.NamespaceWhitelist)
 			},
 		)
 	}
