@@ -531,6 +531,14 @@ func (self *boldDbStatsModule) GetTrafficStatsEntrySumForController(controller K
 }
 
 func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	// setup min value
+	if timeOffsetInMinutes < 5 {
+		timeOffsetInMinutes = 5
+	}
+	if timeOffsetInMinutes > 60*24*7 {
+		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
+	}
+
 	result := make([]GenericChartEntry, timeOffsetInMinutes)
 
 	for _, controller := range resources {
@@ -560,6 +568,14 @@ func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinut
 }
 
 func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	// setup min value
+	if timeOffsetInMinutes < 5 {
+		timeOffsetInMinutes = 5
+	}
+	if timeOffsetInMinutes > 60*24*7 {
+		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
+	}
+
 	result := make([]GenericChartEntry, timeOffsetInMinutes)
 
 	for _, controller := range resources {
@@ -589,7 +605,15 @@ func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInMi
 }
 
 func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
-	result := make([]GenericChartEntry, timeOffsetInMinutes)
+	// setup min value
+	if timeOffsetInMinutes < 5 {
+		timeOffsetInMinutes = 5
+	}
+	if timeOffsetInMinutes > 60*24*7 {
+		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
+	}
+
+	result := make([]GenericChartEntry, timeOffsetInMinutes+1)
 
 	for _, controller := range resources {
 		_ = self.db.View(func(tx *bbolt.Tx) error {
@@ -607,13 +631,21 @@ func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInM
 				result[index].Value += float64(entry.ReceivedBytes + entry.TransmitBytes)
 
 				index++
-				if index >= timeOffsetInMinutes {
+				if index >= timeOffsetInMinutes+1 {
 					break
 				}
 			}
 			return nil
 		})
 	}
+	for i := 0; i < len(result); i++ {
+		if i+1 < len(result) {
+			result[i].Value = result[i].Value - result[i+1].Value
+		}
+	}
+	// delete last entry of the array because it cannot be calculated correctly
+	result = result[:len(result)-1]
+
 	return result, nil
 }
 
