@@ -102,12 +102,12 @@ func ValidateContainerRegistryAuthString(input string) error {
 		return fmt.Errorf("missing 'auths' field in JSON")
 	}
 
-	// Further checks to ensure the fields are not empty (optional)
-	for _, creds := range config.Auths {
-		if creds.Username == "" || creds.Password == "" || creds.Auth == "" {
-			return fmt.Errorf("missing required fields in credentials (username, password, auth)")
-		}
-	}
+	// removed because for GCP these fields are not needed
+	// for _, creds := range config.Auths {
+	// 	// if creds.Username == "" || creds.Password == "" || creds.Auth == "" {
+	// 	// 	return fmt.Errorf("missing required fields in credentials (username, password, auth)")
+	// 	// }
+	// }
 
 	return nil
 }
