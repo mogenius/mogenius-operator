@@ -2488,8 +2488,11 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name       string `json:"name" validate:"required"`
-			MogeniusId string `json:"mogeniusId" validate:"required"`
+			Name       string `json:"name"`
+			FirstName  string `json:"firstName"`
+			LastName   string `json:"lastName"`
+			Email      string `json:"email"`
+			MogeniusId string `json:"mogeniusId"`
 		}
 
 		self.RegisterPatternHandler(
@@ -2504,7 +2507,12 @@ func (self *socketApi) registerPatterns() {
 				if err != nil {
 					return nil, err
 				}
-				return self.apiService.CreateUser(data.Name, v1alpha1.NewUserSpec(data.MogeniusId))
+				return self.apiService.CreateUser(data.Name, v1alpha1.NewUserSpec(
+					data.FirstName,
+					data.LastName,
+					data.Email,
+					data.MogeniusId,
+				))
 			},
 		)
 	}
@@ -2534,6 +2542,9 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			Name       string `json:"name" validate:"required"`
+			FirstName  string `json:"firstName"`
+			LastName   string `json:"lastName"`
+			Email      string `json:"email"`
 			MogeniusId string `json:"mogeniusId" validate:"required"`
 		}
 
@@ -2549,7 +2560,12 @@ func (self *socketApi) registerPatterns() {
 				if err != nil {
 					return nil, err
 				}
-				return self.apiService.UpdateUser(data.Name, v1alpha1.NewUserSpec(data.MogeniusId))
+				return self.apiService.UpdateUser(data.Name, v1alpha1.NewUserSpec(
+					data.FirstName,
+					data.LastName,
+					data.Email,
+					data.MogeniusId,
+				))
 			},
 		)
 	}

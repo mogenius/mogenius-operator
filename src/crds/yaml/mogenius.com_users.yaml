@@ -37,8 +37,13 @@ spec:
             type: object
           spec:
             properties:
+              email:
+                type: string
+              firstName:
+                type: string
+              lastName:
+                type: string
               mogeniusId:
-                description: mogenius identifier
                 type: string
             type: object
           status:

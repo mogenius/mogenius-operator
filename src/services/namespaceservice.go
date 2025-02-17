@@ -91,8 +91,6 @@ func ValidateClusterPorts(r NamespaceValidatePortsRequest) {
 		return
 	}
 	mokubernetes.CleanupIngressControllerServicePorts(r.Ports)
-
-	return
 }
 
 func ListAllNamespaces() []string {

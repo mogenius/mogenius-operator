@@ -29,14 +29,16 @@ type User struct {
 }
 
 type UserSpec struct {
-	// mogenius identifier
-	MogeniusId string `json:"mogeniusId,omitempty" validate:"required"`
+	FirstName  string `json:"firstName,omitempty"`
+	LastName   string `json:"lastName,omitempty"`
+	Email      string `json:"email,omitempty"`
+	MogeniusId string `json:"mogeniusId,omitempty"`
 
 	// TODO: to manage access through kubectl we will have to store references to kubernetes (service-)accounts
 	// KubernetesId string `json:"kubernetesId,omitempty"`
 }
 
-func NewUserSpec(mogeniusId string) UserSpec {
+func NewUserSpec(firstName string, lastName string, email string, mogeniusId string) UserSpec {
 	return UserSpec{
 		MogeniusId: mogeniusId,
 	}

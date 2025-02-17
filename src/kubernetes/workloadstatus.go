@@ -6,13 +6,14 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"reflect"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type WorkloadStatusItemDto struct {
@@ -155,7 +156,7 @@ func GetWorkloadStatusItems(
 		SpecType:      specType,
 	})
 
-	if ignoreDependentResources == true {
+	if ignoreDependentResources {
 		return items
 	}
 
@@ -390,7 +391,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		}
 	} else
 	// filter by namespaces and resourceNames
-	if isResourceEntityEmpty == true && requestData.Namespaces != nil && requestData.ResourceNames != nil {
+	if isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames != nil {
 		k8sLogger.Debug("Filtering by namespaces and resourceNames")
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
