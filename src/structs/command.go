@@ -96,7 +96,7 @@ func (cmd *Command) Fail(job *Job, err string) {
 	cmd.Message = err
 	cmd.Finished = time.Now()
 	if moDebug {
-		structsLogger.Error("Command failed", "title", cmd.Title, "error", err)
+		structsLogger.Error("Command failed", "title", cmd.Title, "message", cmd.Message, "error", err, "namespace", job.NamespaceName, "controller", job.ControllerName)
 	}
 	ReportCmdStateToServer(job, cmd)
 }

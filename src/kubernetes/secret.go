@@ -183,14 +183,6 @@ func ExistsClusterImagePullSecret(namespace string) bool {
 func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ContainerImagePullSecretName, service.ControllerName))
 
-	// delete old secret
-	// TODO: remove this after a while
-	containerSecretServiceName := "container-secret-service-" + service.ControllerName
-	err := DeleteK8sSecretBy(namespace.Name, containerSecretServiceName)
-	if err != nil {
-		k8sLogger.Error("Error deleting secret", "namespace", namespace.Name, "secret", containerSecretServiceName, "error", err)
-	}
-
 	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
 	authStr := service.GetImageRepoSecretDecryptValue()
 	if authStr == nil {
@@ -230,7 +222,7 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
 
 		// Check if exists
-		_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
 			cmd.Success(job, "Created Container ImagePullSecret")

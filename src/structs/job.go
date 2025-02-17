@@ -219,11 +219,12 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 		)
 	case JobStateFailed, JobStateTimeout, JobStateCanceled:
 		message = fmt.Sprintf(
-			"   %s %s %s (%sms)\n",
+			"   %s %s %s (%sms)%s",
 			typeName,
 			shell.Colorize(utils.FillWith(string(data.State), 15, " "), shell.White, shell.BgRed),
 			utils.FillWith(data.Title, 96, " "),
 			duration,
+			"\n"+data.Message,
 		)
 	case JobStateSucceeded:
 		message = fmt.Sprintf(
