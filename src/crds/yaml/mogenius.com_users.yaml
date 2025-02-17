@@ -43,8 +43,6 @@ spec:
                 type: string
               lastName:
                 type: string
-              mogeniusId:
-                type: string
             type: object
           status:
             type: object

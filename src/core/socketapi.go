@@ -2488,11 +2488,10 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name       string `json:"name"`
-			FirstName  string `json:"firstName"`
-			LastName   string `json:"lastName"`
-			Email      string `json:"email"`
-			MogeniusId string `json:"mogeniusId"`
+			Name      string `json:"name"`
+			FirstName string `json:"firstName"`
+			LastName  string `json:"lastName"`
+			Email     string `json:"email"`
 		}
 
 		self.RegisterPatternHandler(
@@ -2511,7 +2510,6 @@ func (self *socketApi) registerPatterns() {
 					data.FirstName,
 					data.LastName,
 					data.Email,
-					data.MogeniusId,
 				))
 			},
 		)
@@ -2541,11 +2539,10 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name       string `json:"name" validate:"required"`
-			FirstName  string `json:"firstName"`
-			LastName   string `json:"lastName"`
-			Email      string `json:"email"`
-			MogeniusId string `json:"mogeniusId" validate:"required"`
+			Name      string `json:"name" validate:"required"`
+			FirstName string `json:"firstName"`
+			LastName  string `json:"lastName"`
+			Email     string `json:"email"`
 		}
 
 		self.RegisterPatternHandler(
@@ -2564,7 +2561,6 @@ func (self *socketApi) registerPatterns() {
 					data.FirstName,
 					data.LastName,
 					data.Email,
-					data.MogeniusId,
 				))
 			},
 		)
