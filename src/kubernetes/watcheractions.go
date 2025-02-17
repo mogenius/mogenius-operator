@@ -407,6 +407,47 @@ func DescribeUnstructuredResource(group string, version string, name string, nam
 	return output, nil
 }
 
+func TriggerUnstructuredResource(group string, version string, name string, namespace string, resourceName string) (*unstructured.Unstructured, error) {
+	dynamicClient := clientProvider.DynamicClient()
+
+	if name == "cronjobs" || name == "jobs" {
+		job, err := GetUnstructuredResource(group, version, name, namespace, resourceName)
+		if err != nil {
+			return nil, err
+		}
+
+		// cleanup
+		unstructured.RemoveNestedField(job.Object, "metadata", "uid")
+		unstructured.RemoveNestedField(job.Object, "metadata", "resourceVersion")
+		unstructured.RemoveNestedField(job.Object, "metadata", "creationTimestamp")
+		unstructured.RemoveNestedField(job.Object, "metadata", "labels", "controller-uid")
+		unstructured.RemoveNestedField(job.Object, "metadata", "labels", "batch.kubernetes.io/controller-uid")
+		unstructured.RemoveNestedField(job.Object, "metadata", "labels", "batch.kubernetes.io/job-name")
+		unstructured.RemoveNestedField(job.Object, "spec", "selector")
+		unstructured.RemoveNestedField(job.Object, "spec", "template", "metadata", "labels", "controller-uid")
+		unstructured.RemoveNestedField(job.Object, "spec", "template", "metadata", "labels", "job-name")
+		unstructured.RemoveNestedField(job.Object, "spec", "template", "metadata", "labels", "batch.kubernetes.io/controller-uid")
+		unstructured.RemoveNestedField(job.Object, "spec", "template", "metadata", "labels", "batch.kubernetes.io/job-name")
+		unstructured.RemoveNestedField(job.Object, "status")
+
+		// replace
+		jobname := job.GetName() + "-" + utils.NanoIdSmallLowerCase()
+		job.SetName(jobname)
+		job.SetKind("Job")
+		if name == "cronjobs" {
+			template, _, err := unstructured.NestedMap(job.Object, "spec", "jobTemplate", "spec", "template")
+			if err != nil {
+				return nil, fmt.Errorf("Field jobTemplate not found")
+			}
+			unstructured.SetNestedField(job.Object, template, "spec", "template")
+			name = "jobs"
+		}
+
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Create(context.TODO(), job, metav1.CreateOptions{})
+	}
+	return nil, fmt.Errorf("%s is a invalid resource for trigger. Only jobs or cronjobs can be triggert.", name)
+}
+
 func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
 	dynamicClient := clientProvider.DynamicClient()
 	obj, err := GetObjectFromFile(file)

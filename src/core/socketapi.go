@@ -2369,6 +2369,18 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandler(
+		"trigger/workload",
+		PatternConfig{
+			RequestSchema: schema.Generate(utils.SyncResourceItem{}),
+		},
+		func(datagram structs.Datagram) (any, error) {
+			data := utils.SyncResourceItem{}
+			_ = self.loadRequest(&datagram, &data)
+			return kubernetes.TriggerUnstructuredResource(data.Group, data.Version, data.Name, data.Namespace, data.ResourceName)
+		},
+	)
+
+	self.RegisterPatternHandler(
 		"get/workspaces",
 		PatternConfig{
 			ResponseSchema: schema.Generate([]GetWorkspaceResult{}),
