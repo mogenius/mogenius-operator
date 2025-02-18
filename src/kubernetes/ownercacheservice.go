@@ -50,6 +50,7 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 
 func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8sController {
 	if len(ownerRefs) > 0 {
+		var lastValidController *K8sController
 		owner := ownerRefs[0]
 
 		switch owner.Kind {
@@ -57,7 +58,8 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			data, err := GetReplicaset(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
-					return utils.Pointer(NewK8sController("ReplicaSet", data.Name, namespace))
+					lastValidController = utils.Pointer(NewK8sController("ReplicaSet", data.Name, namespace))
+					return lastValidController
 				} else {
 					// recurse
 					return OwnerFromReference(namespace, data.OwnerReferences)
@@ -68,7 +70,8 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			data, err := GetK8sDeployment(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
-					return utils.Pointer(NewK8sController("Deployment", data.Name, namespace))
+					lastValidController = utils.Pointer(NewK8sController("Deployment", data.Name, namespace))
+					return lastValidController
 				} else {
 					// recurse
 					return OwnerFromReference(namespace, data.OwnerReferences)
@@ -79,7 +82,8 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			data, err := GetStatefulSet(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
-					return utils.Pointer(NewK8sController("StatefulSet", data.Name, namespace))
+					lastValidController = utils.Pointer(NewK8sController("StatefulSet", data.Name, namespace))
+					return lastValidController
 				} else {
 					// recurse
 					return OwnerFromReference(namespace, data.OwnerReferences)
@@ -90,7 +94,8 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			data, err := GetK8sDaemonset(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
-					return utils.Pointer(NewK8sController("DaemonSet", data.Name, namespace))
+					lastValidController = utils.Pointer(NewK8sController("DaemonSet", data.Name, namespace))
+					return lastValidController
 				} else {
 					// recurse
 					return OwnerFromReference(namespace, data.OwnerReferences)
@@ -101,7 +106,8 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			data, err := GetJob(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
-					return utils.Pointer(NewK8sController("Job", data.Name, namespace))
+					lastValidController = utils.Pointer(NewK8sController("Job", data.Name, namespace))
+					return lastValidController
 				} else {
 					// recurse
 					return OwnerFromReference(namespace, data.OwnerReferences)
@@ -112,7 +118,8 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			data, err := GetCronJob(namespace, owner.Name)
 			if err == nil && data != nil {
 				if data.OwnerReferences == nil {
-					return utils.Pointer(NewK8sController("CronJob", data.Name, namespace))
+					lastValidController = utils.Pointer(NewK8sController("CronJob", data.Name, namespace))
+					return lastValidController
 				} else {
 					// recurse
 					return OwnerFromReference(namespace, data.OwnerReferences)
@@ -123,7 +130,8 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			data := GetPod(namespace, owner.Name)
 			if data != nil {
 				if data.OwnerReferences == nil {
-					return utils.Pointer(NewK8sController("Pod", data.Name, namespace))
+					lastValidController = utils.Pointer(NewK8sController("Pod", data.Name, namespace))
+					return lastValidController
 				} else {
 					// recurse
 					return OwnerFromReference(namespace, data.OwnerReferences)
@@ -138,7 +146,8 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			if data != nil {
 				if data.OwnerReferences == nil {
-					return utils.Pointer(NewK8sController("Node", data.Name, ""))
+					lastValidController = utils.Pointer(NewK8sController("Node", data.Name, ""))
+					return lastValidController
 				} else {
 					// recurse
 					return OwnerFromReference(namespace, data.OwnerReferences)
@@ -146,8 +155,11 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 			return nil
 		default:
-			k8sLogger.Error("NOT IMPLEMENTED owner kind", "owner kind", owner.Kind)
-			return nil
+			if lastValidController == nil {
+				k8sLogger.Error("UNKNOWN owner kind", "owner kind", owner.Kind)
+				return nil
+			}
+			return lastValidController
 		}
 	}
 	return nil
