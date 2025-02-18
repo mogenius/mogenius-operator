@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
+	"gopkg.in/yaml.v3"
 )
 
 type SchemaType string
@@ -22,22 +23,77 @@ const (
 	SchemaTypeMap             SchemaType = "map"
 	SchemaTypeFunction        SchemaType = "function"
 	SchemaTypeInterface       SchemaType = "interface"
-	SchemaTypeSchema          SchemaType = "schema" // prevent recursion
 )
 
 type Schema struct {
-	Type    SchemaType `json:"type"`
-	Pointer bool       `json:"pointer,omitempty"`
-	// Type == Array
-	ElementType *Schema `json:"elementType,omitempty"`
-	// Type == Struct
-	Properties map[string]*Schema `json:"properties,omitempty"`
-	// Type == Map
-	KeyType   *Schema `json:"keyType,omitempty"`
-	ValueType *Schema `json:"valueType,omitempty"`
+	TypeInfo      *TypeInfo               `json:"typeInfo,omitempty"`
+	StructLayouts map[string]StructLayout `json:"structs,omitempty"`
 }
 
-var typeOfSchema = reflect.TypeOf(Schema{})
+type TypeInfo struct {
+	Type    SchemaType `json:"type"`
+	Pointer bool       `json:"pointer,omitempty"`
+
+	// Type == Array
+	ElementType *TypeInfo `json:"elementType,omitempty"`
+
+	// Type == Struct
+	StructRef string `json:"structRef,omitempty"`
+
+	// Type == Map
+	KeyType   *TypeInfo `json:"keyType,omitempty"`
+	ValueType *TypeInfo `json:"valueType,omitempty"`
+}
+
+func (self *TypeInfo) StructLayout(schema *Schema) (*StructLayout, error) {
+	if self.Type != SchemaTypeStruct {
+		return nil, fmt.Errorf("not a struct")
+	}
+
+	layout, ok := schema.StructLayouts[self.StructRef]
+	if !ok {
+		return nil, fmt.Errorf("layout not found")
+	}
+
+	return &layout, nil
+}
+
+type StructLayout struct {
+	Name          string               `json:"name,omitempty"`
+	Properties    map[string]*TypeInfo `json:"properties"`
+	reflectedType reflect.Type         `json:"-"`
+}
+
+func (self *StructLayout) IsAnonymous() bool {
+	return self.Name == ""
+}
+
+func (self *StructLayout) Equals(other *StructLayout) bool {
+	if self.Name != other.Name {
+		return false
+	}
+
+	if self.reflectedType.NumField() != other.reflectedType.NumField() {
+		return false
+	}
+
+	fieldAmount := self.reflectedType.NumField()
+	for n := 0; n < fieldAmount; n++ {
+		selfReflectedStructField := self.reflectedType.Field(n)
+		otherReflectedStructField := other.reflectedType.Field(n)
+		if selfReflectedStructField.Name != otherReflectedStructField.Name {
+			return false
+		}
+		if selfReflectedStructField.PkgPath != otherReflectedStructField.PkgPath {
+			return false
+		}
+		if selfReflectedStructField.Type != otherReflectedStructField.Type {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (self *Schema) Json() string {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -46,160 +102,300 @@ func (self *Schema) Json() string {
 	return string(bytes)
 }
 
+func (self *Schema) Yaml() string {
+	// this is going through json to inherit the json tag config
+	jsonData := self.Json()
+
+	var data interface{}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal([]byte(jsonData), &data)
+	assert.Assert(err == nil, err)
+
+	bytes, err := yaml.Marshal(data)
+	assert.Assert(err == nil, err)
+
+	return string(bytes)
+}
+
 func Generate(input any) *Schema {
-	s, err := parseSchema(reflect.TypeOf(input), 0)
+	schema := &Schema{}
+	schema.StructLayouts = map[string]StructLayout{}
+	typeInfo, err := parseSchema(schema, reflect.TypeOf(input), 0)
 	assert.Assert(err == nil, "schema generation failed", err)
-	return s
+	schema.TypeInfo = typeInfo
+	return schema
 }
 
 func TryGenerate(input any) (*Schema, error) {
-	s, err := parseSchema(reflect.TypeOf(input), 0)
+	schema := &Schema{}
+	schema.StructLayouts = map[string]StructLayout{}
+	typeInfo, err := parseSchema(schema, reflect.TypeOf(input), 0)
 	if err != nil {
 		return nil, err
 	}
-	return s, nil
+	schema.TypeInfo = typeInfo
+	return schema, nil
 }
 
-func parseSchema(input reflect.Type, depth int) (*Schema, error) {
+func parseSchema(schema *Schema, input reflect.Type, depth int) (*TypeInfo, error) {
 	if depth > 4096 {
 		return nil, fmt.Errorf("exceeded max recursion depth of 4096")
 	}
 
-	s := &Schema{}
-	s.Pointer = false
+	typeInfo := &TypeInfo{}
+	typeInfo.Pointer = false
 
 	if input.Kind() == reflect.Ptr {
 		input = input.Elem()
-		s.Pointer = true
+		typeInfo.Pointer = true
 	}
 
 	switch input.Kind() {
 	case reflect.Bool:
-		s.Type = SchemaTypeBoolean
-		return s, nil
+		typeInfo.Type = SchemaTypeBoolean
+		return typeInfo, nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		s.Type = SchemaTypeInteger
-		return s, nil
+		typeInfo.Type = SchemaTypeInteger
+		return typeInfo, nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		s.Type = SchemaTypeUnsignedInteger
-		return s, nil
+		typeInfo.Type = SchemaTypeUnsignedInteger
+		return typeInfo, nil
 	case reflect.Float32, reflect.Float64:
-		s.Type = SchemaTypeFloat
-		return s, nil
+		typeInfo.Type = SchemaTypeFloat
+		return typeInfo, nil
 	case reflect.String:
-		s.Type = SchemaTypeString
-		return s, nil
+		typeInfo.Type = SchemaTypeString
+		return typeInfo, nil
 	case reflect.Func:
-		s.Type = SchemaTypeFunction
-		return s, nil
+		typeInfo.Type = SchemaTypeFunction
+		return typeInfo, nil
 	case reflect.Interface:
-		s.Type = SchemaTypeInterface
-		s.Pointer = true
-		return s, nil
-	case reflect.Struct:
-		if typeOfSchema == input {
-			s.Type = SchemaTypeSchema
-			return s, nil
+		typeInfo.Type = SchemaTypeInterface
+		typeInfo.Pointer = true
+		return typeInfo, nil
+	case reflect.Map:
+		typeInfo.Type = SchemaTypeMap
+		keyType, err := parseSchema(schema, input.Key(), depth+1)
+		if err != nil {
+			return nil, err
 		}
-		s.Type = SchemaTypeStruct
-		s.Properties = map[string]*Schema{}
+		typeInfo.KeyType = keyType
+		valueType, err := parseSchema(schema, input.Elem(), depth+1)
+		if err != nil {
+			return nil, err
+		}
+		typeInfo.ValueType = valueType
+		return typeInfo, nil
+	case reflect.Slice, reflect.Array:
+		typeInfo.Type = SchemaTypeArray
+		elems, err := parseSchema(schema, input.Elem(), depth+1)
+		if err != nil {
+			return nil, err
+		}
+		typeInfo.ElementType = elems
+		return typeInfo, nil
+	case reflect.Struct:
+		typeInfo.Type = SchemaTypeStruct
+		structDeclaration := &StructLayout{}
+		anonymous := input.PkgPath() == "" && input.Name() == ""
+		if !anonymous {
+			structDeclaration.Name = input.PkgPath() + "." + input.Name()
+		}
+		structDeclaration.Properties = map[string]*TypeInfo{}
+		structDeclaration.reflectedType = input
+
+		// early exit if type was already added to schema
+		for key, existingDeclaration := range schema.StructLayouts {
+			if existingDeclaration.Equals(structDeclaration) {
+				typeInfo.StructRef = key
+				return typeInfo, nil
+			}
+		}
+
+		// create a new struct declaration and reference it
+		var structId string
+		if anonymous {
+			structId = fmt.Sprintf("ANON_STRUCT_%d", len(schema.StructLayouts))
+		} else {
+			structId = structDeclaration.Name
+		}
+		typeInfo.StructRef = structId
+		schema.StructLayouts[structId] = *structDeclaration
+
 		fieldAmount := input.NumField()
 		for n := 0; n < fieldAmount; n++ {
-			f := input.Field(n)
-			fieldName := strings.Split(f.Tag.Get("json"), ",")[0]
+			inputStructField := input.Field(n)
+			fieldName := strings.Split(inputStructField.Tag.Get("json"), ",")[0]
 			if fieldName == "" {
-				fieldName = f.Name
+				fieldName = inputStructField.Name
 			}
 			assert.Assert(fieldName != "")
-			fieldType, err := parseSchema(f.Type, depth+1)
+			fieldType, err := parseSchema(schema, inputStructField.Type, depth+1)
 			if err != nil {
 				return nil, err
 			}
-			s.Properties[fieldName] = fieldType
+			structDeclaration.Properties[fieldName] = fieldType
 		}
-		return s, nil
-	case reflect.Map:
-		s.Type = SchemaTypeMap
-		keyType, err := parseSchema(input.Key(), depth+1)
-		if err != nil {
-			return nil, err
-		}
-		s.KeyType = keyType
-		valueType, err := parseSchema(input.Elem(), depth+1)
-		if err != nil {
-			return nil, err
-		}
-		s.ValueType = valueType
-		return s, nil
-	case reflect.Slice, reflect.Array:
-		s.Type = SchemaTypeArray
-		elems, err := parseSchema(input.Elem(), depth+1)
-		if err != nil {
-			return nil, err
-		}
-		s.ElementType = elems
-		return s, nil
+
+		return typeInfo, nil
 	default:
 		assert.Assert(false, "Unreachable: Unhandled Type", input.Kind().String())
 		panic(1)
 	}
 }
 
-func NewSchema(stype SchemaType, pointer bool) *Schema {
-	return &Schema{
-		Type:    SchemaTypeBoolean,
-		Pointer: pointer,
-	}
-}
-
 func String() *Schema {
-	return NewSchema(SchemaTypeString, false)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeString
+	typeInfo.Pointer = false
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func StringPointer() *Schema {
-	return NewSchema(SchemaTypeString, true)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeString
+	typeInfo.Pointer = true
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func Integer() *Schema {
-	return NewSchema(SchemaTypeInteger, false)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeInteger
+	typeInfo.Pointer = false
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func IntegerPointer() *Schema {
-	return NewSchema(SchemaTypeInteger, true)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeInteger
+	typeInfo.Pointer = true
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func UnsignedInteger() *Schema {
-	return NewSchema(SchemaTypeUnsignedInteger, false)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeUnsignedInteger
+	typeInfo.Pointer = false
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func UnsignedIntegerPointer() *Schema {
-	return NewSchema(SchemaTypeUnsignedInteger, true)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeUnsignedInteger
+	typeInfo.Pointer = true
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func Float() *Schema {
-	return NewSchema(SchemaTypeFloat, false)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeFloat
+	typeInfo.Pointer = false
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func FloatPointer() *Schema {
-	return NewSchema(SchemaTypeFloat, true)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeFloat
+	typeInfo.Pointer = true
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func Boolean() *Schema {
-	return NewSchema(SchemaTypeBoolean, false)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeBoolean
+	typeInfo.Pointer = false
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func BooleanPointer() *Schema {
-	return NewSchema(SchemaTypeBoolean, true)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeBoolean
+	typeInfo.Pointer = true
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func Interface() *Schema {
-	return NewSchema(SchemaTypeInterface, true)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeInterface
+	typeInfo.Pointer = true
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func Any() *Schema {
-	return NewSchema(SchemaTypeInterface, true)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeInterface
+	typeInfo.Pointer = true
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }
 
 func Error() *Schema {
-	return NewSchema(SchemaTypeInterface, true)
+	typeInfo := &TypeInfo{}
+	typeInfo.Type = SchemaTypeInterface
+	typeInfo.Pointer = true
+
+	schema := &Schema{}
+	schema.TypeInfo = typeInfo
+	schema.StructLayouts = map[string]StructLayout{}
+
+	return schema
 }

@@ -2,6 +2,7 @@ package core
 
 import (
 	"log/slog"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -74,6 +75,8 @@ type Api interface {
 
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetWorkspaceControllers(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+
+	Link(workspaceManager WorkspaceManager)
 }
 
 type api struct {
@@ -81,13 +84,18 @@ type api struct {
 	logger           *slog.Logger
 }
 
-func NewApi(logger *slog.Logger, workspaceManager WorkspaceManager) Api {
+func NewApi(logger *slog.Logger) Api {
 	apiModule := &api{}
 
 	apiModule.logger = logger
-	apiModule.workspaceManager = workspaceManager
 
 	return apiModule
+}
+
+func (self *api) Link(workspaceManager WorkspaceManager) {
+	assert.Assert(workspaceManager != nil)
+
+	self.workspaceManager = workspaceManager
 }
 
 type GetWorkspaceResult struct {

@@ -7,18 +7,18 @@ import (
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shell"
+	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/version"
 	"os"
 )
 
 func RunInstall(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
-	versionModule := version.NewVersion()
-	versionModule.PrintVersionInfo()
-
 	configModule.Validate()
 
-	utils.Setup(logManagerModule, configModule)
+	systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
+	defer shutdown.ExecuteShutdownHandlers()
+
+	systems.versionModule.PrintVersionInfo()
 
 	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
