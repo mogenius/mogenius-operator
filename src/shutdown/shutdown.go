@@ -17,6 +17,10 @@ func Add(fn func()) {
 	DefaultShutdown.Add(fn)
 }
 
+func ExecuteShutdownHandlers() {
+	DefaultShutdown.ExecuteShutdownHandlers()
+}
+
 func Listen() {
 	DefaultShutdown.Listen()
 }
@@ -37,15 +41,15 @@ func New() *Shutdown {
 	}
 }
 
-func (s *Shutdown) Add(fn func()) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.hooks = append(s.hooks, fn)
+func (self *Shutdown) Add(fn func()) {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
+	self.hooks = append(self.hooks, fn)
 }
 
-func (s *Shutdown) SendShutdownSignal(indicateFailure bool) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+func (self *Shutdown) SendShutdownSignal(indicateFailure bool) {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
 	logger.Println("sending request to shut down")
 	if indicateFailure {
 		err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
@@ -60,15 +64,11 @@ func (s *Shutdown) SendShutdownSignal(indicateFailure bool) {
 	}
 }
 
-func (s *Shutdown) Listen() {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	receivedSignal := <-ch
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	logger.Println("received request to shut down: ", receivedSignal.String())
+func (self *Shutdown) ExecuteShutdownHandlers() {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
 	var wg sync.WaitGroup
-	for _, fn := range s.hooks {
+	for _, fn := range self.hooks {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -77,6 +77,16 @@ func (s *Shutdown) Listen() {
 	}
 	wg.Wait()
 	logger.Println("finished shutdown routines")
+}
+
+func (self *Shutdown) Listen() {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	receivedSignal := <-ch
+	logger.Println("received request to shut down: ", receivedSignal.String())
+
+	self.ExecuteShutdownHandlers()
+
 	switch receivedSignal {
 	case syscall.SIGINT:
 		os.Exit(0)

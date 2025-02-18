@@ -5,63 +5,28 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/controllers"
-	"mogenius-k8s-manager/src/core"
-	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/version"
-	"mogenius-k8s-manager/src/websocket"
-	"mogenius-k8s-manager/src/xterm"
 	"net/url"
 	"strconv"
 )
 
 func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
 	go func() {
+		defer func() {
+			shutdown.SendShutdownSignal(true)
+		}()
 		configModule.Validate()
 
-		var err error
+		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
 
-		clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
-		versionModule := version.NewVersion()
-		watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
-		shutdown.Add(watcherModule.UnwatchAll)
-		workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
-		apiModule := core.NewApi(logManagerModule.CreateLogger("api"), workspaceManager)
-		dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
-		assert.Assert(err == nil, err)
-
-		helm.Setup(logManagerModule, configModule)
-		err = mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
-		assert.Assert(err == nil, err)
-		controllers.Setup(logManagerModule, configModule)
-		dtos.Setup(logManagerModule)
-		services.Setup(logManagerModule, configModule, clientProvider)
-		servicesexternal.Setup(logManagerModule, configModule)
-		store.Setup(logManagerModule)
-		structs.Setup(logManagerModule, configModule)
-		xterm.Setup(logManagerModule, configModule, clientProvider)
-		httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
-		utils.Setup(logManagerModule, configModule)
-		jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
-		shutdown.Add(jobConnectionClient.Terminate)
-		socketapi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, dbstatsModule)
-		xtermclient := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
-
-		socketapi.Link(httpApi, xtermclient, apiModule)
-		httpApi.Link(socketapi)
-
-		versionModule.PrintVersionInfo()
+		systems.versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
 		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
@@ -86,12 +51,11 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		utils.SetupClusterSecret(clusterSecret)
 
 		store.Start()
-		go httpApi.Run(configModule.Get("MO_HTTP_ADDR"))
+		go systems.httpApi.Run(configModule.Get("MO_HTTP_ADDR"))
 		err = mokubernetes.Start()
 		if err != nil {
 			cmdLogger.Error("Error starting kubernetes service", "error", err)
-			shutdown.SendShutdownSignal(true)
-			select {}
+			return
 		}
 
 		// INIT MOUNTS
@@ -127,11 +91,11 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		url, err := url.Parse(configModule.Get("MO_API_SERVER"))
 		assert.Assert(err == nil, err)
-		err = jobConnectionClient.SetUrl(*url)
+		err = systems.jobConnectionClient.SetUrl(*url)
 		assert.Assert(err == nil, err)
-		err = jobConnectionClient.SetHeader(utils.HttpHeader(""))
+		err = systems.jobConnectionClient.SetHeader(utils.HttpHeader(""))
 		assert.Assert(err == nil, err)
-		err = jobConnectionClient.Connect()
+		err = systems.jobConnectionClient.Connect()
 		if err != nil {
 			cmdLogger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
 			shutdown.SendShutdownSignal(true)
@@ -142,7 +106,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		configModule.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
 			url, err := url.Parse(value)
 			assert.Assert(err == nil, err)
-			err = jobConnectionClient.SetUrl(*url)
+			err = systems.jobConnectionClient.SetUrl(*url)
 			if err != nil {
 				cmdLogger.Error("failed to update jobConnectionClient URL", "url", url.String(), "error", err)
 			}
@@ -152,7 +116,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			"MO_CLUSTER_MFA_ID",
 			"MO_CLUSTER_NAME",
 		}, func(key string, value string, isSecret bool) {
-			header, err := jobConnectionClient.GetHeader()
+			header, err := systems.jobConnectionClient.GetHeader()
 			assert.Assert(err == nil, err)
 			if key == "MO_API_KEY" {
 				header["x-authorization"] = []string{value}
@@ -165,14 +129,14 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			if key == "MO_CLUSTER_NAME" {
 				header["x-cluster-name"] = []string{value}
 			}
-			err = jobConnectionClient.SetHeader(header)
+			err = systems.jobConnectionClient.SetHeader(header)
 			if err != nil {
 				cmdLogger.Error("failed to update jobConnectionClient header", "header", header, "error", err)
 			}
 		})
 
 		go structs.ConnectToEventQueue()
-		go structs.ConnectToJobQueue(jobConnectionClient)
+		go structs.ConnectToJobQueue(systems.jobConnectionClient)
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 
@@ -194,7 +158,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			}
 		}()
 
-		socketapi.Run()
+		systems.socketApi.Run()
 	}()
 
 	shutdown.Listen()

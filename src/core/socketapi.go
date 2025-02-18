@@ -1505,8 +1505,7 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"namespace/validate-ports",
 		PatternConfig{
-			RequestSchema:  schema.Generate(services.NamespaceValidatePortsRequest{}),
-			ResponseSchema: schema.NewSchema(schema.SchemaTypeInterface, false),
+			RequestSchema: schema.Generate(services.NamespaceValidatePortsRequest{}),
 		},
 		func(datagram structs.Datagram) any {
 			data := services.NamespaceValidatePortsRequest{}

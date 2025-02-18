@@ -3,11 +3,26 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/controllers"
+	"mogenius-k8s-manager/src/core"
+	"mogenius-k8s-manager/src/dtos"
+	"mogenius-k8s-manager/src/helm"
+	"mogenius-k8s-manager/src/k8sclient"
+	"mogenius-k8s-manager/src/kubernetes"
+	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/services"
+	"mogenius-k8s-manager/src/servicesexternal"
+	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
+	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
+	"mogenius-k8s-manager/src/websocket"
+	"mogenius-k8s-manager/src/xterm"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -431,4 +446,76 @@ func ApplyStageOverrides(configModule *config.Config) {
 	case "":
 		// does not override
 	}
+}
+
+// Full initialization process for mogenius-k8s-manager clients services (and packages)
+func InitializeSystems(
+	logManagerModule logging.LogManagerModule,
+	configModule *config.Config,
+	cmdLogger *slog.Logger,
+) systems {
+	assert.Assert(logManagerModule != nil)
+	assert.Assert(configModule != nil)
+	assert.Assert(cmdLogger != nil)
+
+	// initialize client modules
+	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
+	versionModule := version.NewVersion()
+	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
+	shutdown.Add(watcherModule.UnwatchAll)
+	dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
+	assert.Assert(err == nil, err)
+	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
+
+	// golang package setups are deprecated and will be removed in the future by migrating all state to services
+	helm.Setup(logManagerModule, configModule)
+	err = mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
+	assert.Assert(err == nil, err)
+	controllers.Setup(logManagerModule, configModule)
+	dtos.Setup(logManagerModule)
+	services.Setup(logManagerModule, configModule, clientProvider)
+	servicesexternal.Setup(logManagerModule, configModule)
+	store.Setup(logManagerModule)
+	structs.Setup(logManagerModule, configModule)
+	xterm.Setup(logManagerModule, configModule, clientProvider)
+	utils.Setup(logManagerModule, configModule)
+
+	// initialization step 1 for services
+	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
+	apiModule := core.NewApi(logManagerModule.CreateLogger("api"))
+	httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
+	shutdown.Add(jobConnectionClient.Terminate)
+	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, dbstatsModule)
+	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
+
+	// initialization step 2 for services
+	socketApi.Link(httpApi, xtermService, apiModule)
+	httpApi.Link(socketApi)
+	apiModule.Link(workspaceManager)
+
+	return systems{
+		clientProvider,
+		versionModule,
+		watcherModule,
+		dbstatsModule,
+		jobConnectionClient,
+		workspaceManager,
+		apiModule,
+		socketApi,
+		httpApi,
+		xtermService,
+	}
+}
+
+type systems struct {
+	clientProvider      k8sclient.K8sClientProvider
+	versionModule       *version.Version
+	watcherModule       *kubernetes.Watcher
+	dbstatsModule       kubernetes.BoltDbStats
+	jobConnectionClient websocket.WebsocketClient
+	workspaceManager    core.WorkspaceManager
+	apiModule           core.Api
+	socketApi           core.SocketApi
+	httpApi             core.HttpService
+	xtermService        core.XtermService
 }
