@@ -235,7 +235,7 @@ jobs:
           path: "helm"
 
       - name: Install Helm
-        uses: azure/setup-helm@v4.2.0
+        uses: azure/setup-helm@v4.3.0
         id: install
 
       - name: package and push
