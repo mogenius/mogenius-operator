@@ -136,7 +136,9 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			}
 
 		default:
-			k8sLogger.Error("NOT IMPLEMENTED owner kind", "owner kind", owner.Kind)
+			if lastValidController == nil {
+				k8sLogger.Error("NOT IMPLEMENTED owner kind", "owner kind", owner.Kind)
+			}
 		}
 	}
 

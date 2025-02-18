@@ -186,12 +186,12 @@ func (self *boldDbStatsModule) cleanupStats() {
 					entry := structs.InterfaceStats{}
 					err := structs.UnmarshalInterfaceStats(&entry, v)
 					if err != nil {
-						return fmt.Errorf("cleanupStatsTraffic: %s", err.Error())
+						return fmt.Errorf("cleanupStatsTraffic marshall (%s): %s", string(k), err.Error())
 					}
 					if self.isMoreThan14DaysOld(entry.CreatedAt) {
 						err := controllerBucket.DeleteBucket(k)
 						if err != nil {
-							return fmt.Errorf("cleanupStatsTraffic: %s", err.Error())
+							return fmt.Errorf("cleanupStatsTraffic (%s): %s", string(k), err.Error())
 						}
 					}
 					return nil
