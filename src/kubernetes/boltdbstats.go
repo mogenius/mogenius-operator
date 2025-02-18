@@ -178,20 +178,20 @@ func (self *boldDbStatsModule) cleanupStats() {
 	err := self.db.Update(func(tx *bbolt.Tx) error {
 		// TRAFFIC
 		bucketTraffic := tx.Bucket([]byte(BOLT_DB_STATS_TRAFFIC_BUCKET_NAME))
-		err := bucketTraffic.ForEach(func(k, v []byte) error {
-			namespaceBucket := bucketTraffic.Bucket(k)
-			err := namespaceBucket.ForEach(func(k, v []byte) error {
-				controllerBucket := namespaceBucket.Bucket(k)
-				err := controllerBucket.ForEach(func(k, v []byte) error {
+		err := bucketTraffic.ForEach(func(trafficKey, v []byte) error {
+			namespaceBucket := bucketTraffic.Bucket(trafficKey)
+			err := namespaceBucket.ForEach(func(namespaceKey, v []byte) error {
+				controllerBucket := namespaceBucket.Bucket(namespaceKey)
+				err := controllerBucket.ForEach(func(controllerKey, v []byte) error {
 					entry := structs.InterfaceStats{}
 					err := structs.UnmarshalInterfaceStats(&entry, v)
 					if err != nil {
-						return fmt.Errorf("cleanupStatsTraffic marshall (%s): %s", string(k), err.Error())
+						return fmt.Errorf("cleanupStatsTraffic marshall (%s/%s/%s): %s", string(trafficKey), string(namespaceKey), string(controllerKey), err.Error())
 					}
 					if self.isMoreThan14DaysOld(entry.CreatedAt) {
-						err := controllerBucket.DeleteBucket(k)
+						err := controllerBucket.DeleteBucket(controllerKey)
 						if err != nil {
-							return fmt.Errorf("cleanupStatsTraffic (%s): %s", string(k), err.Error())
+							return fmt.Errorf("cleanupStatsTraffic (%s/%s/%s): %s", string(trafficKey), string(namespaceKey), string(controllerKey), err.Error())
 						}
 					}
 					return nil
