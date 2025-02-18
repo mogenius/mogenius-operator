@@ -71,9 +71,8 @@ After that simply restart the deployment and you are good to go.
 ```sh
 apk add go
 go install github.com/br0xen/boltbrowser@latest
-cp /data/db/mogenius-stats-3.db mogenius-stats1.db
-cp /data/db/mogenius-3.db mogenius1.db
-/root/go/bin/boltbrowser mogenius-stats3.db
+cp /data/db/mogenius-stats-3.db mogenius-stats-3.db
+/root/go/bin/boltbrowser mogenius-stats-3.db
 ```
 
 ## Upgrade Modules

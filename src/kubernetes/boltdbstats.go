@@ -189,7 +189,7 @@ func (self *boldDbStatsModule) cleanupStats() {
 						return fmt.Errorf("cleanupStatsTraffic marshall (%s/%s/%s): %s", string(trafficKey), string(namespaceKey), string(controllerKey), err.Error())
 					}
 					if self.isMoreThan14DaysOld(entry.CreatedAt) {
-						err := controllerBucket.DeleteBucket(controllerKey)
+						err := controllerBucket.Delete(controllerKey)
 						if err != nil {
 							return fmt.Errorf("cleanupStatsTraffic (%s/%s/%s): %s", string(trafficKey), string(namespaceKey), string(controllerKey), err.Error())
 						}
@@ -222,7 +222,7 @@ func (self *boldDbStatsModule) cleanupStats() {
 						return fmt.Errorf("cleanupStatsPods: %s", err.Error())
 					}
 					if self.isMoreThan14DaysOld(entry.CreatedAt) {
-						err := controllerBucket.DeleteBucket(k)
+						err := controllerBucket.Delete(k)
 						if err != nil {
 							return fmt.Errorf("cleanupStatsPods: %s", err.Error())
 						}
@@ -254,7 +254,7 @@ func (self *boldDbStatsModule) cleanupStats() {
 					return fmt.Errorf("cleanupStatsNodes: %s", err.Error())
 				}
 				if self.isMoreThan14DaysOld(entry.CreatedAt) {
-					err := bucketNodes.DeleteBucket(k)
+					err := bucketNodes.Delete(k)
 					if err != nil {
 						return fmt.Errorf("cleanupStatsNodes: %s", err.Error())
 					}
