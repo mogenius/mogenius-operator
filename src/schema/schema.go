@@ -22,7 +22,7 @@ const (
 	SchemaTypeArray           SchemaType = "array"
 	SchemaTypeMap             SchemaType = "map"
 	SchemaTypeFunction        SchemaType = "function"
-	SchemaTypeInterface       SchemaType = "interface"
+	SchemaTypeAny             SchemaType = "any"
 )
 
 type Schema struct {
@@ -170,7 +170,7 @@ func parseSchema(schema *Schema, input reflect.Type, depth int) (*TypeInfo, erro
 		typeInfo.Type = SchemaTypeFunction
 		return typeInfo, nil
 	case reflect.Interface:
-		typeInfo.Type = SchemaTypeInterface
+		typeInfo.Type = SchemaTypeAny
 		typeInfo.Pointer = true
 		return typeInfo, nil
 	case reflect.Map:
@@ -228,6 +228,9 @@ func parseSchema(schema *Schema, input reflect.Type, depth int) (*TypeInfo, erro
 			fieldName := strings.Split(inputStructField.Tag.Get("json"), ",")[0]
 			if fieldName == "" {
 				fieldName = inputStructField.Name
+			}
+			if fieldName == "-" { // special syntax for the json serializer to hide a field so we do the same
+				continue
 			}
 			assert.Assert(fieldName != "")
 			fieldType, err := parseSchema(schema, inputStructField.Type, depth+1)
@@ -366,7 +369,7 @@ func BooleanPointer() *Schema {
 
 func Interface() *Schema {
 	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeInterface
+	typeInfo.Type = SchemaTypeAny
 	typeInfo.Pointer = true
 
 	schema := &Schema{}
@@ -378,7 +381,7 @@ func Interface() *Schema {
 
 func Any() *Schema {
 	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeInterface
+	typeInfo.Type = SchemaTypeAny
 	typeInfo.Pointer = true
 
 	schema := &Schema{}
@@ -390,7 +393,7 @@ func Any() *Schema {
 
 func Error() *Schema {
 	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeInterface
+	typeInfo.Type = SchemaTypeAny
 	typeInfo.Pointer = true
 
 	schema := &Schema{}

@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,6 +33,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	jsoniter "github.com/json-iterator/go"
+	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
@@ -52,6 +54,9 @@ type SocketApi interface {
 		config PatternConfig,
 		callback func(datagram structs.Datagram) any,
 	)
+	PatternConfigs() map[string]PatternConfig
+	NormalizePatternName(pattern string) string
+	AssertPatternsUnique()
 }
 
 type socketApi struct {
@@ -115,7 +120,19 @@ func (self *socketApi) Run() {
 	assert.Assert(self.httpService != nil)
 	assert.Assert(self.xtermService != nil)
 
+	self.AssertPatternsUnique()
 	self.startK8sManager()
+}
+
+func (self *socketApi) AssertPatternsUnique() {
+	patternConfigs := self.PatternConfigs()
+	var patterns []string
+
+	for pattern := range patternConfigs {
+		normalizedPattern := self.NormalizePatternName(pattern)
+		assert.Assert(!slices.Contains(patterns, normalizedPattern), "duplicate normalized pattern", normalizedPattern)
+		patterns = append(patterns, normalizedPattern)
+	}
 }
 
 func (self *socketApi) RegisterPatternHandler(
@@ -155,7 +172,7 @@ func (self *socketApi) RegisterPatternHandlerRaw(
 	}
 }
 
-func (self *socketApi) patternConfigs() map[string]PatternConfig {
+func (self *socketApi) PatternConfigs() map[string]PatternConfig {
 	patterns := map[string]PatternConfig{}
 
 	for pattern, handler := range self.patternHandler {
@@ -188,7 +205,7 @@ func (self *socketApi) registerPatterns() {
 					resp.BuildInfo.BuildType = "dev"
 				}
 				resp.BuildInfo.Version = *version.NewVersion()
-				resp.Patterns = self.patternConfigs()
+				resp.Patterns = self.PatternConfigs()
 				return resp, nil
 			},
 		)
@@ -1771,9 +1788,8 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-list",
 		PatternConfig{
-			RequestSchema: schema.Generate(helm.HelmReleaseListRequest{}),
-			// ResponseSchema: schema.Generate([]*release.Release{}), // TODO: recursion??
-			ResponseSchema: schema.Any(),
+			RequestSchema:  schema.Generate(helm.HelmReleaseListRequest{}),
+			ResponseSchema: schema.Generate([]*release.Release{}),
 		},
 		func(datagram structs.Datagram) any {
 			data := helm.HelmReleaseListRequest{}
@@ -1804,9 +1820,8 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-release-history",
 		PatternConfig{
-			RequestSchema: schema.Generate(helm.HelmReleaseHistoryRequest{}),
-			// ResponseSchema: schema.Generate([]*release.Release{}), // TODO: recursion??
-			ResponseSchema: schema.Any(),
+			RequestSchema:  schema.Generate(helm.HelmReleaseHistoryRequest{}),
+			ResponseSchema: schema.Generate([]*release.Release{}),
 		},
 		func(datagram structs.Datagram) any {
 			data := helm.HelmReleaseHistoryRequest{}
@@ -4037,4 +4052,11 @@ func (self *socketApi) executeBinaryRequestUpload(datagram structs.Datagram) *se
 	data := services.FilesUploadRequest{}
 	structs.MarshalUnmarshal(&datagram, &data)
 	return &data
+}
+
+func (self *socketApi) NormalizePatternName(pattern string) string {
+	pattern = strings.ToUpper(pattern)
+	pattern = strings.ReplaceAll(pattern, "/", "_")
+	pattern = strings.ReplaceAll(pattern, "-", "_")
+	return pattern
 }
