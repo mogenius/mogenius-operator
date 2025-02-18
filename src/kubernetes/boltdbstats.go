@@ -649,8 +649,10 @@ func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInM
 			result[i].Value = result[i].Value - result[i+1].Value
 		}
 	}
-	// delete last entry of the array because it cannot be calculated correctly
-	result = result[:len(result)-1]
+	// delete last entry of the array because it cannot be calculated correctly (because of the subtraction of the next value)
+	if len(result) > 0 {
+		result = result[:len(result)-1]
+	}
 
 	return result, nil
 }

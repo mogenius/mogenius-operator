@@ -439,7 +439,7 @@ func TriggerUnstructuredResource(group string, version string, name string, name
 			if err != nil {
 				return nil, fmt.Errorf("Field jobTemplate not found")
 			}
-			unstructured.SetNestedField(job.Object, template, "spec", "template")
+			_ = unstructured.SetNestedField(job.Object, template, "spec", "template")
 			name = "jobs"
 		}
 
