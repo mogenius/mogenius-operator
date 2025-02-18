@@ -644,9 +644,14 @@ func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInM
 			return nil
 		})
 	}
+
+	// the entries in traffic are always incremental, so we need to normalize the values (11, 14, 16, 19 -> 3, 2, 3)
 	for i := 0; i < len(result); i++ {
 		if i+1 < len(result) {
-			result[i].Value = result[i].Value - result[i+1].Value
+			normalized := result[i].Value - result[i+1].Value
+			if normalized > 0 {
+				result[i].Value = normalized
+			}
 		}
 	}
 	// delete last entry of the array because it cannot be calculated correctly (because of the subtraction of the next value)
