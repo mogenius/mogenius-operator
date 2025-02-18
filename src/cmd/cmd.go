@@ -37,14 +37,15 @@ const defaultLogDir string = "logs"
 
 var CLI struct {
 	// Commands
-	Clean   struct{} `cmd:"" help:"remove the operator from the cluster"`
-	Cluster struct{} `cmd:"" help:"start the operator"`
-	Config  struct{} `cmd:"" help:"print application config in ENV format"`
-	Install struct{} `cmd:"" help:"install the operator into your cluster"`
-	System  struct{} `cmd:"" help:"check the system for all required components and offer healing"`
-	Version struct{} `cmd:"" help:"print version information" default:"1"`
-	Exec    execArgs `cmd:"" help:"open an interactive shell inside a container"`
-	Logs    logArgs  `cmd:"" help:"retrieve streaming logs of a container"`
+	Clean    struct{}     `cmd:"" help:"remove the operator from the cluster"`
+	Cluster  struct{}     `cmd:"" help:"start the operator"`
+	Config   struct{}     `cmd:"" help:"print application config in ENV format"`
+	Install  struct{}     `cmd:"" help:"install the operator into your cluster"`
+	System   struct{}     `cmd:"" help:"check the system for all required components and offer healing"`
+	Version  struct{}     `cmd:"" help:"print version information" default:"1"`
+	Patterns patternsArgs `cmd:"" help:"print patterns to shell"`
+	Exec     execArgs     `cmd:"" help:"open an interactive shell inside a container"`
+	Logs     logArgs      `cmd:"" help:"retrieve streaming logs of a container"`
 }
 
 func Run() error {
@@ -155,6 +156,12 @@ func Run() error {
 		return nil
 	case "logs":
 		err := RunLogs(&CLI.Logs, cmdLogger)
+		if err != nil {
+			return err
+		}
+		return nil
+	case "patterns":
+		err := RunPatterns(&CLI.Patterns, slogManager, configModule, cmdLogger)
 		if err != nil {
 			return err
 		}
