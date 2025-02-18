@@ -539,8 +539,7 @@ func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinut
 		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
 	}
 
-	result := make([]GenericChartEntry, timeOffsetInMinutes)
-
+	result := []GenericChartEntry{}
 	for _, controller := range resources {
 		_ = self.db.View(func(tx *bbolt.Tx) error {
 			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_POD_STATS_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
@@ -553,6 +552,9 @@ func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinut
 			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
 				entry := structs.PodStats{}
 				_ = structs.UnmarshalPodStats(&entry, value)
+				if len(result) <= index {
+					result = append(result, GenericChartEntry{})
+				}
 				result[index].Time = entry.CreatedAt
 				result[index].Value += float64(entry.Cpu)
 
@@ -576,8 +578,7 @@ func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInMi
 		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
 	}
 
-	result := make([]GenericChartEntry, timeOffsetInMinutes)
-
+	result := []GenericChartEntry{}
 	for _, controller := range resources {
 		_ = self.db.View(func(tx *bbolt.Tx) error {
 			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_POD_STATS_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
@@ -590,6 +591,9 @@ func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInMi
 			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
 				entry := structs.PodStats{}
 				_ = structs.UnmarshalPodStats(&entry, value)
+				if len(result) <= index {
+					result = append(result, GenericChartEntry{})
+				}
 				result[index].Time = entry.CreatedAt
 				result[index].Value += float64(entry.Memory)
 
@@ -613,8 +617,7 @@ func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInM
 		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
 	}
 
-	result := make([]GenericChartEntry, timeOffsetInMinutes+1)
-
+	result := []GenericChartEntry{}
 	for _, controller := range resources {
 		_ = self.db.View(func(tx *bbolt.Tx) error {
 			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_TRAFFIC_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
@@ -627,11 +630,14 @@ func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInM
 			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
 				entry := structs.InterfaceStats{}
 				_ = structs.UnmarshalInterfaceStats(&entry, value)
+				if len(result) <= index {
+					result = append(result, GenericChartEntry{})
+				}
 				result[index].Time = entry.CreatedAt
 				result[index].Value += float64(entry.ReceivedBytes + entry.TransmitBytes)
 
 				index++
-				if index >= timeOffsetInMinutes+1 {
+				if index >= timeOffsetInMinutes {
 					break
 				}
 			}
