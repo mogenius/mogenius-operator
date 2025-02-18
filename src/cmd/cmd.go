@@ -184,6 +184,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 				"pre-prod",
 				"dev",
 				"local",
+				"none",
 				"", // empty to skip overrides
 			}
 			if !slices.Contains(allowedStages, val) {
@@ -428,6 +429,9 @@ func ApplyStageOverrides(configModule *config.Config) {
 	case "local":
 		configModule.Set("MO_API_SERVER", "ws://127.0.0.1:7011/ws")
 		configModule.Set("MO_EVENT_SERVER", "ws://127.0.0.1:7011/ws")
+	case "none":
+		configModule.Set("MO_API_SERVER", "")
+		configModule.Set("MO_EVENT_SERVER", "")
 	case "":
 		// does not override
 	}

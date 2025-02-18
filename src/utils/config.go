@@ -67,6 +67,7 @@ func ToYaml(data interface{}) (string, error) {
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
+const STAGE_NONE = "none"
 
 var ClusterProviderCached KubernetesProvider = UNKNOWN
 

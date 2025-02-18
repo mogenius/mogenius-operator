@@ -132,12 +132,16 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		err = jobConnectionClient.SetHeader(utils.HttpHeader(""))
 		assert.Assert(err == nil, err)
 		err = jobConnectionClient.Connect()
-		if err != nil {
-			cmdLogger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
-			shutdown.SendShutdownSignal(true)
-			select {}
+		fmt.Println(configModule.Get("MO_STAGE"))
+		fmt.Println(err)
+		if configModule.Get("MO_STAGE") != utils.STAGE_NONE {
+			if err != nil {
+				cmdLogger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
+				shutdown.SendShutdownSignal(true)
+				select {}
+			}
+			assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
 		}
-		assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
 
 		configModule.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
 			url, err := url.Parse(value)
@@ -171,8 +175,10 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			}
 		})
 
-		go structs.ConnectToEventQueue()
-		go structs.ConnectToJobQueue(jobConnectionClient)
+		if configModule.Get("MO_STAGE") != utils.STAGE_NONE {
+			go structs.ConnectToEventQueue()
+			go structs.ConnectToJobQueue(jobConnectionClient)
+		}
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 

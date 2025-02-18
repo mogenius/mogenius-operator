@@ -20,6 +20,7 @@ MO_CLUSTER_MFA_ID=
 ## - "pre-prod": to run against the pre-prod APIs
 ## - "dev": to run against the dev APIs
 ## - "local": to run agains APIs on localhost
+## - "none": to run standalone without external APIs
 ## - "": to define APIs manually using `MO_API_SERVER` and `MO_EVENT_SERVER`
 MO_STAGE=dev
 
