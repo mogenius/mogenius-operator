@@ -132,8 +132,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		err = jobConnectionClient.SetHeader(utils.HttpHeader(""))
 		assert.Assert(err == nil, err)
 		err = jobConnectionClient.Connect()
-		fmt.Println(configModule.Get("MO_STAGE"))
-		fmt.Println(err)
 		if configModule.Get("MO_STAGE") != utils.STAGE_NONE {
 			if err != nil {
 				cmdLogger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
