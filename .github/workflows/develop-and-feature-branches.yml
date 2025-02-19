@@ -347,5 +347,6 @@ jobs:
         run: |
           cd ./helm
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
+          sed -i -e "s/repository: mogenius\/mogenius-k8s-manager/repository: mogenius\/mogenius-k8s-manager-dev/" values.yaml  
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
