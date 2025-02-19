@@ -15,7 +15,7 @@ type WorkspaceManager interface {
 	UpdateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (*v1alpha1.Workspace, error)
 	DeleteWorkspace(name string) error
 
-	GetAllUsers() ([]v1alpha1.User, error)
+	GetAllUsers(email *string) ([]v1alpha1.User, error)
 	CreateUser(name string, spec v1alpha1.UserSpec) (*v1alpha1.User, error)
 	GetUser(name string) (*v1alpha1.User, error)
 	UpdateUser(name string, spec v1alpha1.UserSpec) (*v1alpha1.User, error)
@@ -27,7 +27,7 @@ type WorkspaceManager interface {
 	UpdateTeam(name string, spec v1alpha1.TeamSpec) (*v1alpha1.Team, error)
 	DeleteTeam(name string) error
 
-	GetAllGrants() ([]v1alpha1.Grant, error)
+	GetAllGrants(targetType, targetName *string) ([]v1alpha1.Grant, error)
 	CreateGrant(name string, spec v1alpha1.GrantSpec) (*v1alpha1.Grant, error)
 	GetGrant(name string) (*v1alpha1.Grant, error)
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (*v1alpha1.Grant, error)
@@ -91,10 +91,21 @@ func (self *workspaceManager) DeleteWorkspace(name string) error {
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteWorkspace(self.namespace, name)
 }
 
-func (self *workspaceManager) GetAllUsers() ([]v1alpha1.User, error) {
+func (self *workspaceManager) GetAllUsers(email *string) ([]v1alpha1.User, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.ListUsers(self.namespace)
+	result, err := self.mogeniusClientSet.MogeniusV1alpha1.ListUsers(self.namespace)
+	if err == nil && email != nil {
+		filteredResult := make([]v1alpha1.User, 0, len(result))
+		for _, grant := range result {
+			if grant.Spec.Email == *email {
+				filteredResult = append(filteredResult, grant)
+			}
+		}
+		result = filteredResult
+	}
+
+	return result, err
 }
 
 func (self *workspaceManager) GetUser(name string) (*v1alpha1.User, error) {
@@ -151,10 +162,21 @@ func (self *workspaceManager) DeleteTeam(name string) error {
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteTeam(self.namespace, name)
 }
 
-func (self *workspaceManager) GetAllGrants() ([]v1alpha1.Grant, error) {
+func (self *workspaceManager) GetAllGrants(targetType, targetName *string) ([]v1alpha1.Grant, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.ListGrants(self.namespace)
+	result, err := self.mogeniusClientSet.MogeniusV1alpha1.ListGrants(self.namespace)
+	if err == nil && targetType != nil && targetName != nil {
+		filteredResult := make([]v1alpha1.Grant, 0, len(result))
+		for _, grant := range result {
+			if grant.Spec.TargetType == *targetType && grant.Spec.TargetName == *targetName {
+				filteredResult = append(filteredResult, grant)
+			}
+		}
+		result = filteredResult
+	}
+
+	return result, err
 }
 
 func (self *workspaceManager) GetGrant(name string) (*v1alpha1.Grant, error) {

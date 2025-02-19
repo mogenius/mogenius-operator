@@ -55,7 +55,7 @@ type Api interface {
 	UpdateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (string, error)
 	DeleteWorkspace(name string) (string, error)
 
-	GetAllUsers() ([]v1alpha1.User, error)
+	GetAllUsers(email *string) ([]v1alpha1.User, error)
 	GetUser(name string) (*v1alpha1.User, error)
 	CreateUser(name string, spec v1alpha1.UserSpec) (string, error)
 	UpdateUser(name string, spec v1alpha1.UserSpec) (string, error)
@@ -67,7 +67,7 @@ type Api interface {
 	UpdateTeam(name string, spec v1alpha1.TeamSpec) (string, error)
 	DeleteTeam(name string) (string, error)
 
-	GetAllGrants() ([]v1alpha1.Grant, error)
+	GetAllGrants(targetType, targetName *string) ([]v1alpha1.Grant, error)
 	GetGrant(name string) (*v1alpha1.Grant, error)
 	CreateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
@@ -173,8 +173,8 @@ func (self *api) DeleteWorkspace(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
-func (self *api) GetAllUsers() ([]v1alpha1.User, error) {
-	resources, err := self.workspaceManager.GetAllUsers()
+func (self *api) GetAllUsers(email *string) ([]v1alpha1.User, error) {
+	resources, err := self.workspaceManager.GetAllUsers(email)
 	if err != nil {
 		return []v1alpha1.User{}, err
 	}
@@ -263,8 +263,8 @@ func (self *api) DeleteTeam(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
-func (self *api) GetAllGrants() ([]v1alpha1.Grant, error) {
-	resources, err := self.workspaceManager.GetAllGrants()
+func (self *api) GetAllGrants(targetType, targetName *string) ([]v1alpha1.Grant, error) {
+	resources, err := self.workspaceManager.GetAllGrants(targetType, targetName)
 	if err != nil {
 		return []v1alpha1.Grant{}, err
 	}
