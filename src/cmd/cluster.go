@@ -8,9 +8,9 @@ import (
 	"mogenius-k8s-manager/src/helm"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"net/url"
@@ -25,6 +25,11 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		configModule.Validate()
 
 		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
+
+		err := systems.redisModule.Connect()
+		assert.Assert(err == nil, err)
+
+		redisstore.StartGlobalRedis(logManagerModule.CreateLogger("global-redis"))
 
 		systems.versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
@@ -50,7 +55,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		utils.SetupClusterSecret(clusterSecret)
 
-		store.Start()
 		go systems.httpApi.Run(configModule.Get("MO_HTTP_ADDR"))
 		err = mokubernetes.Start()
 		if err != nil {

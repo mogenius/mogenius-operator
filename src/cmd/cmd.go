@@ -14,6 +14,7 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
@@ -248,6 +249,22 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:         "MO_REDIS_HOST",
+		Description: utils.Pointer("URL of operator redis Server"),
+		Validate: func(value string) error {
+			_, err := url.Parse(value)
+			if err != nil {
+				return fmt.Errorf("'MO_REDIS_HOST' needs to be a URL: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_REDIS_PASSWORD",
+		DefaultValue: utils.Pointer(""),
+		Description:  utils.Pointer("Password of operator redis Server"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "helm-data")),
 		Description:  utils.Pointer("path to the helm data"),
@@ -466,6 +483,7 @@ func InitializeSystems(
 	assert.Assert(cmdLogger != nil)
 
 	// initialize client modules
+	redisModule := redisstore.NewRedis(logManagerModule.CreateLogger("redis"))
 	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
@@ -511,6 +529,7 @@ func InitializeSystems(
 		socketApi,
 		httpApi,
 		xtermService,
+		redisModule,
 	}
 }
 
@@ -525,4 +544,5 @@ type systems struct {
 	socketApi           core.SocketApi
 	httpApi             core.HttpService
 	xtermService        core.XtermService
+	redisModule         redisstore.RedisStore
 }

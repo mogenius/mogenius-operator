@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"os"
@@ -64,11 +65,11 @@ func WatchStoreResources(watcher WatcherModule) error {
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			SetStoreIfNeeded(resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			setStoreIfNeeded(resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
 		}, func(resource WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
-			SetStoreIfNeeded(resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
+			setStoreIfNeeded(resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			DeleteFromStoreIfNeeded(resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			deleteFromStoreIfNeeded(resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
 		})
 		if err != nil {
 			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
@@ -81,27 +82,10 @@ func WatchStoreResources(watcher WatcherModule) error {
 	return nil
 }
 
-func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	//if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
-	//	err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
-	//	if err != nil {
-	//		k8sLogger.Error("Error setting object in store", "error", err)
-	//	}
-	//	if kind == "Event" {
-	//		var event v1.Event
-	//		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-	//		if err != nil {
-	//			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-	//			return
-	//		}
-	//		processEvent(&event)
-	//	}
-	//	return
-	//}
-
+func setStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
 	if kind == "Namespace" {
 		obj = removeUnusedFieds(obj)
-		err := store.GlobalStore.Set(obj, groupVersion, kind, name)
+		err := redisstore.Global.SetObject(obj, 0, groupVersion, kind, name)
 		if err != nil {
 			k8sLogger.Error("Error setting object in store", "error", err)
 		}
@@ -110,7 +94,7 @@ func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 
 	if kind == "NetworkPolicy" {
 		obj = removeUnusedFieds(obj)
-		err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
+		err := redisstore.Global.SetObject(obj, 0, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error setting object in store", "error", err)
 		}
@@ -128,7 +112,7 @@ func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 
 	// other resources
 	obj = removeUnusedFieds(obj)
-	err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
+	err := redisstore.Global.SetObject(obj, 0, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
@@ -143,7 +127,7 @@ func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 	}
 }
 
-func DeleteFromStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+func deleteFromStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
 	//if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
 	//	err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
 	//	if err != nil {
@@ -162,7 +146,7 @@ func DeleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 	//}
 
 	if kind == "Namespace" {
-		err := store.GlobalStore.Delete(groupVersion, kind, name)
+		err := redisstore.Global.Delete(groupVersion, kind, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -181,7 +165,7 @@ func DeleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 	}
 
 	if kind == "NetworkPolicy" {
-		err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
+		err := redisstore.Global.Delete(groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -198,7 +182,7 @@ func DeleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 	}
 
 	// other resources
-	err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
+	err := redisstore.Global.Delete(groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}

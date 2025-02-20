@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -819,8 +818,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "apps/v1",
 			Version:   "",
 		}
-		resultType := reflect.TypeOf(appsv1.Deployment{})
-		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GetByKeyParts(resource.Group, resourceController.String(), namespace, controllerName)
 	case ReplicaSet:
 		// TODO replace with GetAvailableResources in the future
 		resourceNamespace := ""
@@ -831,8 +829,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "apps/v1",
 			Version:   "",
 		}
-		resultType := reflect.TypeOf(appsv1.ReplicaSet{})
-		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GetByKeyParts(resource.Group, resourceController.String(), namespace, controllerName)
 	// case StatefulSet:
 	// 	// ae: not used at the moment, old code
 	// 	resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
@@ -849,8 +846,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "batch/v1",
 			Version:   "",
 		}
-		resultType := reflect.TypeOf(batchv1.Job{})
-		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GetByKeyParts(resource.Group, resourceController.String(), namespace, controllerName)
 	case CronJob:
 		// TODO replace with GetAvailableResources in the future
 		resourceNamespace := ""
@@ -861,8 +857,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "batch/v1",
 			Version:   "",
 		}
-		resultType := reflect.TypeOf(batchv1.CronJob{})
-		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GetByKeyParts(resource.Group, resourceController.String(), namespace, controllerName)
 	}
 
 	// if err != nil {
