@@ -29,6 +29,9 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		err := systems.redisModule.Connect()
 		assert.Assert(err == nil, err)
 
+		err = systems.dbstatsModule.Start()
+		assert.Assert(err == nil, err)
+
 		redisstore.StartGlobalRedis(logManagerModule.CreateLogger("global-redis"))
 
 		systems.versionModule.PrintVersionInfo()

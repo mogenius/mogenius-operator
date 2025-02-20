@@ -35,7 +35,7 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 
 	pod := GetPod(namespace, podName)
 	if pod == nil {
-		k8sLogger.Error("Pod not found.", "namespace", namespace, "podname", podName)
+		k8sLogger.Error("Pod not found.", "namespace", namespace, "pod", podName)
 		return nil
 	}
 	ctlr := OwnerFromReference(pod.Namespace, pod.OwnerReferences)
@@ -44,7 +44,7 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 		return ctlr
 	}
 
-	k8sLogger.Debug("Pod has no owner.", "namespace", namespace, "podname", podName)
+	k8sLogger.Debug("Pod has no owner.", "namespace", namespace, "pod", podName)
 	return nil
 }
 

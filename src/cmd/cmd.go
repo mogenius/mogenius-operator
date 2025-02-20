@@ -488,13 +488,12 @@ func InitializeSystems(
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
-	dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
-	assert.Assert(err == nil, err)
+	dbstatsModule := kubernetes.NewRedisStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
 	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule)
-	err = mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
+	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
@@ -537,7 +536,7 @@ type systems struct {
 	clientProvider      k8sclient.K8sClientProvider
 	versionModule       *version.Version
 	watcherModule       *kubernetes.Watcher
-	dbstatsModule       kubernetes.BoltDbStats
+	dbstatsModule       kubernetes.RedisStatsDb
 	jobConnectionClient websocket.WebsocketClient
 	workspaceManager    core.WorkspaceManager
 	apiModule           core.Api

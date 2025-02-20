@@ -19,10 +19,6 @@ func Setup(logManagerModule logging.LogManagerModule) {
 
 var ErrNotFound = errors.New("not found")
 
-func IsNotFound(err error) bool {
-	return errors.Is(err, ErrNotFound)
-}
-
 func GetByKeyParts(keys ...string) interface{} {
 	key := CreateKey(keys...)
 
@@ -37,7 +33,7 @@ func GetByKeyParts(keys ...string) interface{} {
 func SearchByKeyParts(parts ...string) ([]unstructured.Unstructured, error) {
 	key := CreateKey(parts...)
 
-	items, err := redisstore.GetObjectsByPrefix[unstructured.Unstructured](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), key)
+	items, err := redisstore.GetObjectsByPrefix[unstructured.Unstructured](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, key)
 
 	if len(items) == 0 {
 		return nil, ErrNotFound

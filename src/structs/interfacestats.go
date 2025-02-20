@@ -22,7 +22,7 @@ type InterfaceStats struct {
 	TransmitStartBytes uint64            `json:"transmitStartBytes"`
 	ReceivedStartBytes uint64            `json:"receivedStartBytes"`
 	StartTime          string            `json:"startTime"` // start time of the Interface/Pod
-	CreatedAt          string            `json:"createdAt"` // when the entry was written into boltDB
+	CreatedAt          string            `json:"createdAt"` // when the entry was written into the storage
 	SocketConnections  map[string]uint64 `json:"socketConnections"`
 }
 

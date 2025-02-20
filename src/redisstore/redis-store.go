@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/utils"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,7 +25,17 @@ type RedisStore interface {
 	Delete(keys ...string) error
 	Keys(pattern string) ([]string, error)
 	Exists(keys ...string) (bool, error)
+
+	GetClient() *redis.Client
 }
+
+type SortOrder int
+
+const (
+	ORDER_NONE SortOrder = 0
+	ORDER_ASC  SortOrder = 1
+	ORDER_DESC SortOrder = 2
+)
 
 type redisStore struct {
 	ctx         context.Context
@@ -85,6 +97,10 @@ func GetGlobalRedisClient() *redis.Client {
 	return Global.redisClient
 }
 
+func (r *redisStore) GetClient() *redis.Client {
+	return r.redisClient
+}
+
 func (r *redisStore) Set(value interface{}, expiration time.Duration, keys ...string) error {
 	key := CreateKey(keys...)
 
@@ -104,7 +120,7 @@ func (r *redisStore) SetObject(value interface{}, expiration time.Duration, keys
 		r.logger.Error("Error marshalling object for Redis", "key", key, "error", err)
 		return err
 	}
-	return r.Set(objStr, expiration, keys...)
+	return r.Set(objStr, expiration, key)
 }
 
 func (r *redisStore) Get(keys ...string) (string, error) {
@@ -138,7 +154,7 @@ func (r *redisStore) GetObject(keys ...string) (interface{}, error) {
 	return result, nil
 }
 
-func GetObjectsByPrefix[T any](ctx context.Context, r *redis.Client, keys ...string) ([]T, error) {
+func GetObjectsByPrefix[T any](ctx context.Context, r *redis.Client, order SortOrder, keys ...string) ([]T, error) {
 	key := CreateKey(keys...)
 	var cursor uint64
 	pattern := key + "*"
@@ -155,6 +171,9 @@ func GetObjectsByPrefix[T any](ctx context.Context, r *redis.Client, keys ...str
 			break
 		}
 	}
+
+	// sort
+	SortStringsByTimestamp(keyList, order)
 
 	// Fetch the values for these keys
 	var objects []T
@@ -257,4 +276,32 @@ func (r *redisStore) Exists(keys ...string) (bool, error) {
 
 func CreateKey(parts ...string) string {
 	return strings.Join(parts, ":")
+}
+
+func SortStringsByTimestamp(stringsToSort []string, order SortOrder) {
+	if order == ORDER_NONE {
+		return
+	}
+
+	sort.Slice(stringsToSort, func(i, j int) bool {
+		// Extract the timestamp parts from the strings
+		timestamp1, err1 := extractTimestamp(stringsToSort[i])
+		timestamp2, err2 := extractTimestamp(stringsToSort[j])
+
+		// Handle potential errors
+		if err1 != nil || err2 != nil {
+			// If parsing fails for either, assume i < j to avoid changing order unpredictably
+			return false
+		}
+
+		if order == ORDER_ASC {
+			return timestamp1 < timestamp2
+		}
+		return timestamp1 > timestamp2
+	})
+}
+
+func extractTimestamp(s string) (int, error) {
+	parts := strings.Split(s, ":")
+	return strconv.Atoi(parts[len(parts)-1])
 }
