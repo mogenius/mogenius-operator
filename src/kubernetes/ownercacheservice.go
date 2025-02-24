@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"mogenius-k8s-manager/src/utils"
+	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -24,14 +25,18 @@ func (owner *K8sController) Identifier() string {
 	return owner.Namespace
 }
 
-var OwnerCache = make(map[string]K8sController)
+var ownerCache = make(map[string]K8sController)
+
+var dataLock sync.Mutex = sync.Mutex{}
 
 func ControllerForPod(namespace string, podName string) *K8sController {
 	// check if is in cache
-	foundOwner, isInCache := OwnerCache[podName]
+	dataLock.Lock()
+	foundOwner, isInCache := ownerCache[podName]
 	if isInCache {
 		return utils.Pointer(foundOwner)
 	}
+	dataLock.Unlock()
 
 	pod := GetPod(namespace, podName)
 	if pod == nil {
@@ -40,7 +45,9 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 	}
 	ctlr := OwnerFromReference(pod.Namespace, pod.OwnerReferences)
 	if ctlr != nil {
-		OwnerCache[pod.Name] = *ctlr
+		dataLock.Lock()
+		ownerCache[pod.Name] = *ctlr
+		dataLock.Unlock()
 		return ctlr
 	}
 

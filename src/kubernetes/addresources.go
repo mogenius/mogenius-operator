@@ -195,6 +195,23 @@ func GetSyncRepoData() (*dtos.SyncRepoData, error) {
 	return &result, nil
 }
 
+func GetRedisPwd() (*string, error) {
+	clientset := clientProvider.K8sClientSet()
+	secretClient := clientset.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
+
+	existingSecret, getErr := secretClient.Get(context.TODO(), "mogenius-k8s-manager-redis", metav1.GetOptions{})
+	if getErr != nil {
+		return nil, getErr
+	}
+
+	foundPwd := string(existingSecret.Data["redis-password"])
+	if foundPwd == "" {
+		return nil, fmt.Errorf("redis password not found")
+	}
+
+	return &foundPwd, nil
+}
+
 func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error, syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
 	// CREATE NEW SECRET
 	apikey := config.Get("MO_API_KEY")

@@ -50,9 +50,6 @@ RUN apk add --no-cache dumb-init nfs-utils ca-certificates
 
 WORKDIR /app
 
-# e.g. "--dns 1.1.1.1"
-ENV DOCKERD_ARGS=""
-
 ## mogenius-k8s-manager release default settings
 ENV MO_LOG_LEVEL="warn"
 

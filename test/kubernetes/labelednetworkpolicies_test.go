@@ -180,7 +180,7 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 }
 
 func TestListAllConflictingNetworkPolicies(t *testing.T) {
-	store.Start()
+
 	list, err := kubernetes.ListAllConflictingNetworkPolicies("mogenius")
 	assert.AssertT(t, err == nil, err)
 	t.Log(list)
@@ -210,7 +210,6 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 
 	logManager := logging.NewMockSlogManager(t)
 	store.Setup(logManager)
-	store.Start()
 
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()

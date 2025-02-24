@@ -11,6 +11,7 @@ import (
 	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"net/url"
@@ -27,11 +28,20 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
 
 		// DB (redis)
-		err := systems.redisModule.Connect()
+		redisPwd, err := mokubernetes.GetRedisPwd()
+		if err != nil && redisPwd != nil {
+			cmdLogger.Error("Error getting redis password", "error", err)
+			shutdown.SendShutdownSignal(true)
+			select {}
+		}
+		configModule.Set("MO_REDIS_PASSWORD", *redisPwd)
+		err = systems.redisModule.Connect()
 		assert.Assert(err == nil, err)
 		err = systems.dbstatsModule.Start()
 		assert.Assert(err == nil, err)
 		redisstore.StartGlobalRedis(logManagerModule.CreateLogger("global-redis"))
+		// clean redis on every startup
+		store.DropAllResourcesFromRedis()
 
 		systems.versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())

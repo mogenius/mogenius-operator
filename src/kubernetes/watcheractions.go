@@ -21,6 +21,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	REDIS_KEY_PREFIX = "resources"
+)
+
 type GetUnstructuredNamespaceResourceListRequest struct {
 	Namespace string                     `json:"namespace" validate:"required"`
 	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
@@ -85,7 +89,7 @@ func WatchStoreResources(watcher WatcherModule) error {
 func setStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
 	if kind == "Namespace" {
 		obj = removeUnusedFieds(obj)
-		err := redisstore.Global.SetObject(obj, 0, groupVersion, kind, name)
+		err := redisstore.Global.SetObject(obj, 0, REDIS_KEY_PREFIX, groupVersion, kind, name)
 		if err != nil {
 			k8sLogger.Error("Error setting object in store", "error", err)
 		}
@@ -94,7 +98,7 @@ func setStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 
 	if kind == "NetworkPolicy" {
 		obj = removeUnusedFieds(obj)
-		err := redisstore.Global.SetObject(obj, 0, groupVersion, kind, namespace, name)
+		err := redisstore.Global.SetObject(obj, 0, REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error setting object in store", "error", err)
 		}
@@ -112,7 +116,7 @@ func setStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 
 	// other resources
 	obj = removeUnusedFieds(obj)
-	err := redisstore.Global.SetObject(obj, 0, groupVersion, kind, namespace, name)
+	err := redisstore.Global.SetObject(obj, 0, REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
@@ -128,31 +132,6 @@ func setStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 }
 
 func deleteFromStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	//if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
-	//	err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
-	//	if err != nil {
-	//		k8sLogger.Error("Error deleting object in store", "error", err)
-	//	}
-	//	if kind == "Event" {
-	//		var event v1.Event
-	//		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-	//		if err != nil {
-	//			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-	//			return
-	//		}
-	//		processEvent(&event)
-	//	}
-	//	return
-	//}
-
-	if kind == "Namespace" {
-		err := redisstore.Global.Delete(groupVersion, kind, name)
-		if err != nil {
-			k8sLogger.Error("Error deleting object in store", "error", err)
-		}
-		return
-	}
-
 	if kind == "PersistentVolume" {
 		var pv v1.PersistentVolume
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &pv)
@@ -165,7 +144,7 @@ func deleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 	}
 
 	if kind == "NetworkPolicy" {
-		err := redisstore.Global.Delete(groupVersion, kind, namespace, name)
+		err := redisstore.Global.Delete(REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -182,7 +161,7 @@ func deleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 	}
 
 	// other resources
-	err := redisstore.Global.Delete(groupVersion, kind, namespace, name)
+	err := redisstore.Global.Delete(REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}

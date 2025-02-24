@@ -11,6 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+const (
+	REDIS_KEY_PREFIX = "resources"
+)
+
 var storeLogger *slog.Logger
 
 func Setup(logManagerModule logging.LogManagerModule) {
@@ -75,35 +79,53 @@ func SearchByNamespace(namespace string, whitelist []*utils.SyncResourceEntry) (
 	return items, err
 }
 
+func DropAllResourcesFromRedis() error {
+	keys, err := redisstore.Global.Keys(REDIS_KEY_PREFIX + ":*")
+	if err != nil {
+		storeLogger.Error("failed to get keys", "error", err)
+		return err
+	}
+	for _, v := range keys {
+		err = redisstore.Global.Delete(v)
+		if err != nil {
+			storeLogger.Error("failed to delete key", "key", v, "error", err)
+		}
+	}
+	return err
+}
+
 func CreateKey(parts ...string) string {
+	parts = append([]string{REDIS_KEY_PREFIX}, parts...)
 	return strings.Join(parts, ":")
 }
 
 func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
-	parts := make([]string, 4)
+	parts := make([]string, 5)
+
+	parts[0] = REDIS_KEY_PREFIX
 
 	if groupVersion != nil && *groupVersion != "" {
-		parts[0] = *groupVersion
-	} else {
-		parts[0] = "*"
-	}
-
-	if kind != nil && *kind != "" {
-		parts[1] = *kind
+		parts[1] = *groupVersion
 	} else {
 		parts[1] = "*"
 	}
 
-	if namespace != nil && *namespace != "" {
-		parts[2] = *namespace
+	if kind != nil && *kind != "" {
+		parts[2] = *kind
 	} else {
 		parts[2] = "*"
 	}
 
-	if name != nil && *name != "" {
-		parts[3] = *name
+	if namespace != nil && *namespace != "" {
+		parts[3] = *namespace
 	} else {
 		parts[3] = "*"
+	}
+
+	if name != nil && *name != "" {
+		parts[4] = *name
+	} else {
+		parts[4] = "*"
 	}
 
 	pattern := strings.Join(parts, ":")
