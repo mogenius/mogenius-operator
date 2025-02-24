@@ -489,11 +489,12 @@ func InitializeSystems(
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
 	dbstatsModule := kubernetes.NewRedisStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
+	dbBuildModule := kubernetes.NewRedisBuildModule(configModule, logManagerModule.CreateLogger("build-stats"))
 	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule)
-	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
+	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, &dbBuildModule)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
@@ -518,17 +519,18 @@ func InitializeSystems(
 	apiModule.Link(workspaceManager)
 
 	return systems{
-		clientProvider,
-		versionModule,
-		watcherModule,
-		dbstatsModule,
-		jobConnectionClient,
-		workspaceManager,
-		apiModule,
-		socketApi,
-		httpApi,
-		xtermService,
-		redisModule,
+		clientProvider:      clientProvider,
+		versionModule:       versionModule,
+		watcherModule:       watcherModule,
+		dbstatsModule:       dbstatsModule,
+		buildstatsModule:    dbBuildModule,
+		jobConnectionClient: jobConnectionClient,
+		workspaceManager:    workspaceManager,
+		apiModule:           apiModule,
+		socketApi:           socketApi,
+		httpApi:             httpApi,
+		xtermService:        xtermService,
+		redisModule:         redisModule,
 	}
 }
 
@@ -537,6 +539,7 @@ type systems struct {
 	versionModule       *version.Version
 	watcherModule       *kubernetes.Watcher
 	dbstatsModule       kubernetes.RedisStatsDb
+	buildstatsModule    kubernetes.RedisBuildDb
 	jobConnectionClient websocket.WebsocketClient
 	workspaceManager    core.WorkspaceManager
 	apiModule           core.Api

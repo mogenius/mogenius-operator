@@ -2854,19 +2854,9 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	self.RegisterPatternHandlerRaw(
-		"build/builder-status",
-		PatternConfig{
-			ResponseSchema: schema.Generate(structs.BuilderStatus{}),
-		},
-		func(datagram structs.Datagram) any {
-			return kubernetes.GetDb().GetBuilderStatus()
-		},
-	)
-
 	{
 		type Request struct {
-			BuildId uint64 `json:"buildId" validate:"required"`
+			BuildId int64 `json:"buildId" validate:"required"`
 		}
 
 		self.RegisterPatternHandlerRaw(
@@ -2966,7 +2956,7 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			BuildId uint64 `json:"buildId" validate:"required"`
+			BuildId int64 `json:"buildId" validate:"required"`
 		}
 		self.RegisterPatternHandlerRaw(
 			"build/delete",

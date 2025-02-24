@@ -860,11 +860,6 @@ func controller(namespace string, controllerName string, resourceController Reso
 		resourceInterface = store.GetByKeyParts(resource.Group, resourceController.String(), namespace, controllerName)
 	}
 
-	// if err != nil {
-	// 	ServiceLogger.Warningf("Warning fetching resources %s, ns: %s, name: %s, err: %s", resourceController.String(), namespace, controllerName, err)
-	// 	return nil, err
-	// }
-
 	if resourceInterface == nil {
 		return nil, fmt.Errorf("Warning fetching controller: %s", controllerName)
 	}
@@ -872,40 +867,11 @@ func controller(namespace string, controllerName string, resourceController Reso
 	return resourceInterface, nil
 }
 
-// func pods(namespace string, labelSelector *metav1.LabelSelector) (*corev1.PodList, error) {
-// 	if labelSelector != nil {
-// 		provider, err := NewKubeProvider()
-// 		if err != nil {
-// 			ServiceLogger.Warningf("Warningf: %s", err.Error())
-// 			return nil, nil
-// 		}
-// 		selector := metav1.FormatLabelSelector(labelSelector)
-// 		pods, err := provider.ClientSet.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
-// 			LabelSelector: selector,
-// 			FieldSelector: "status.phase!=Succeeded",
-// 		})
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		return pods, nil
-// 	}
-
-// 	return &corev1.PodList{}, nil
-// }
-
 func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
 	lastJob := kubernetes.GetDb().GetLastBuildForNamespaceAndControllerName(namespace, name)
 	if lastJob.IsEmpty() {
 		return resourceItems, nil
 	}
-
-	// TODO Remove this code
-	//lastJob := LastBuildForNamespaceAndControllerName(namespace, name)
-	//if lastJob.IsEmpty() {
-	//	return resourceItems, nil
-	//}
 
 	item := &ResourceItem{
 		Kind:         "BuildJob",

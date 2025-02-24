@@ -7,5 +7,4 @@ type BuilderStatus struct {
 	FailedBuilds     int `json:"FailedBuilds"`
 	FinishedBuilds   int `json:"finishedBuilds"`
 	CanceledBuilds   int `json:"canceledBuilds"`
-	TotalScans       int `json:"totalScans"`
 }

@@ -127,7 +127,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 	defer func() {
 		// reset everything if done
 		if !moDebug {
-			err := executeCmd(job, nil, kubernetes.BOLT_DB_PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+			err := executeCmd(job, nil, kubernetes.DB_PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
 			if err != nil {
 				serviceLogger.Error("Error cleaning up", "error", err, "namespace", buildJob.Namespace.Name, "controller", buildJob.Service.ControllerName, "service", buildJob.Service.ControllerName)
 			}
@@ -141,7 +141,7 @@ func build(job *structs.Job, buildJob *structs.BuildJob, container *dtos.K8sCont
 
 	// CLEANUP
 	if !moDebug {
-		err := executeCmd(job, nil, kubernetes.BOLT_DB_PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
+		err := executeCmd(job, nil, kubernetes.DB_PREFIX_CLEANUP, buildJob, container, false, false, timeoutCtx, "/bin/sh", "-c", fmt.Sprintf("rm -rf %s", workingDir))
 		if err != nil {
 			serviceLogger.Error("Error cleaning up", "error", err, "namespace", buildJob.Namespace.Name, "controller", buildJob.Service.ControllerName, "service", buildJob.Service.ControllerName)
 		}
@@ -231,7 +231,7 @@ func AddBuildJob(buildJob structs.BuildJob) structs.BuildAddResult {
 	return structs.BuildAddResult{BuildId: nextBuildId}
 }
 
-func Cancel(buildNo uint64) structs.BuildCancelResult {
+func Cancel(buildNo int64) structs.BuildCancelResult {
 	// CANCEL PROCESS
 	if currentBuildContext != nil {
 		if currentBuildJob != nil {
@@ -246,8 +246,8 @@ func Cancel(buildNo uint64) structs.BuildCancelResult {
 	return structs.BuildCancelResult{Error: "Error: No active build jobs found."}
 }
 
-func DeleteBuild(buildId uint64) structs.BuildDeleteResult {
-	err := kubernetes.GetDb().DeleteBuildJobFromDb(kubernetes.BOLT_DB_BUILD_BUCKET_NAME, buildId)
+func DeleteBuild(buildId int64) structs.BuildDeleteResult {
+	err := kubernetes.GetDb().DeleteBuildJobFromDb(kubernetes.DB_BUILD_BUCKET_NAME, buildId)
 	if err != nil {
 		errStr := fmt.Sprintf("Error deleting build '%d' in bucket. REASON: %s", buildId, err.Error())
 		serviceLogger.Error(errStr)

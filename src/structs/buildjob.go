@@ -57,7 +57,7 @@ type BuildJob struct {
 	State          JobStateEnum `json:"state"`
 	StartedAt      string       `json:"startedAt"`
 	DurationMs     int          `json:"durationMs"`
-	BuildId        uint64       `json:"buildId"`
+	BuildId        int64        `json:"buildId"`
 	Image          string       `json:"image"`
 
 	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
@@ -238,7 +238,7 @@ type BuildDeleteResult struct {
 }
 
 type BuildJobInfo struct {
-	BuildId    uint64 `json:"buildId"`
+	BuildId    int64  `json:"buildId"`
 	ProjectId  string `json:"projectId"`
 	Namespace  string `json:"namespace"`
 	Controller string `json:"controller"`
@@ -296,7 +296,7 @@ const (
 
 type BuildJobInfoEntry struct {
 	Prefix     BuildPrefixEnum `json:"prefix"`
-	BuildId    uint64          `json:"buildId"`
+	BuildId    int64           `json:"buildId"`
 	ProjectId  string          `json:"projectId"`
 	Namespace  string          `json:"namespace"`
 	Controller string          `json:"controller"`
@@ -327,20 +327,16 @@ type BuildScanImageEntry struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-func BuildJobInfoEntryKey(buildId uint64, prefix BuildPrefixEnum, namespace string, controller string, container string) string {
-	return fmt.Sprintf("%s___%s___%s___%s___%s", utils.SequenceToKey(buildId), prefix, namespace, controller, container)
-}
-
-func BuildJobInfosKeySuffix(namespace string, controller string, container string) string {
-	return fmt.Sprintf("___%s___%s___%s", namespace, controller, container)
+func BuildJobInfoEntryKey(buildId int64, prefix BuildPrefixEnum, namespace string, controller string, container string) string {
+	return fmt.Sprintf("%s:%s:%s:%s:%s", utils.SequenceToKey(buildId), prefix, namespace, controller, container)
 }
 
 func GetLastBuildJobInfosFromDbByNamespaceAndControllerName(namespace string, controller string) string {
-	return fmt.Sprintf("___%s___%s___", namespace, controller)
+	return fmt.Sprintf(":%s:%s:", namespace, controller)
 }
 
-func GetBuildJobInfosPrefix(buildId uint64, prefix BuildPrefixEnum, namespace string, controller string) string {
-	return fmt.Sprintf("%s___%s___%s___%s", utils.SequenceToKey(buildId), prefix, namespace, controller)
+func GetBuildJobInfosPrefix(buildId int64, prefix BuildPrefixEnum, namespace string, controller string) string {
+	return fmt.Sprintf("%s:%s:%s:%s", utils.SequenceToKey(buildId), prefix, namespace, controller)
 }
 
 func CreateBuildJobInfoEntryFromScanImageReq(req ScanImageRequest) BuildJobInfoEntry {
@@ -446,7 +442,7 @@ func CreateBuildJobEntryFromData(data []byte) BuildJobInfoEntry {
 	return result
 }
 
-func CreateBuildJobInfoEntryBytes(
+func CreateBuildJobInfoEntry(
 	state JobStateEnum,
 	cmdOutput string,
 	startTime time.Time,
@@ -454,7 +450,7 @@ func CreateBuildJobInfoEntryBytes(
 	prefix BuildPrefixEnum,
 	job *BuildJob,
 	container *dtos.K8sContainerDto,
-) []byte {
+) BuildJobInfoEntry {
 	entry := BuildJobInfoEntry{
 		Prefix:     prefix,
 		BuildId:    job.BuildId,
@@ -468,13 +464,7 @@ func CreateBuildJobInfoEntryBytes(
 		StartTime:  startTime.Format(time.RFC3339),
 		FinishTime: finishTime.Format(time.RFC3339),
 	}
-
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	bytes, err := json.Marshal(entry)
-	if err != nil {
-		structsLogger.Error("createBuildJobInfoEntryBytes", "error", err)
-	}
-	return bytes
+	return entry
 }
 
 func CreateScanImageEntryBytes(
@@ -493,19 +483,3 @@ func CreateScanImageEntryBytes(
 	return bytes
 
 }
-
-// func CreateBuildJobInfoEntryBytesForScan(state JobStateEnum, cmdOutput []byte, startTime time.Time, finishTime time.Time) []byte {
-// 	entry := BuildJobInfoEntry{
-// 		State:      state,
-// 		Result:     string(cmdOutput),
-// 		StartTime:  startTime.Format(time.RFC3339),
-// 		FinishTime: finishTime.Format(time.RFC3339),
-// 	}
-
-// 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-// 	bytes, err := json.Marshal(entry)
-// 	if err != nil {
-// 		StructsLogger.Error("CreateBuildJobInfoEntryBytesForScan", "error", err)
-// 	}
-// 	return bytes
-// }

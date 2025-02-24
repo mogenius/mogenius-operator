@@ -48,10 +48,6 @@ func processEvent(event *v1Core.Event) {
 				parts = parts[:len(parts)-2]
 			}
 			controllerName := strings.Join(parts, "-")
-			err := db.AddPodEvent(event.InvolvedObject.Namespace, controllerName, event, 150)
-			if err != nil {
-				k8sLogger.Error("Error adding event to db", "error", err.Error())
-			}
 
 			key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, controllerName)
 			ch, exists := EventChannels[key]

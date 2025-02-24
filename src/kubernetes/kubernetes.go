@@ -13,23 +13,20 @@ var config cfg.ConfigModule
 var k8sLogger *slog.Logger
 var watcher WatcherModule
 var clientProvider k8sclient.K8sClientProvider
-var db BoltDb
+var db RedisBuildDb
 
 func Setup(
 	logManagerModule logging.LogManagerModule,
 	configModule cfg.ConfigModule,
 	watcherModule WatcherModule,
 	clientProviderModule k8sclient.K8sClientProvider,
+	redisBuildDb *RedisBuildDb,
 ) error {
 	k8sLogger = logManagerModule.CreateLogger("kubernetes")
 	config = configModule
 	watcher = watcherModule
 	clientProvider = clientProviderModule
-	boltDbModule, err := NewBoltDbModule(config, logManagerModule.CreateLogger("db"))
-	if err != nil {
-		return err
-	}
-	db = boltDbModule
+	db = *redisBuildDb
 
 	if utils.ClusterProviderCached == utils.UNKNOWN {
 		foundProvider, err := GuessClusterProvider()
@@ -49,12 +46,10 @@ func Start() error {
 		return err
 	}
 
-	db.ExecuteMigrations()
-
 	return nil
 }
 
-func GetDb() BoltDb {
+func GetDb() RedisBuildDb {
 	assert.Assert(db != nil)
 	return db
 }

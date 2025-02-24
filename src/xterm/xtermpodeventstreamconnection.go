@@ -101,7 +101,9 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		data := kubernetes.GetDb().GetEventByKey(key)
+		// TODO BROKEN
+		// data := kubernetes.GetDb().GetEventByKey(key)
+		data := ""
 		if ch != nil {
 			ch <- string(data)
 		}

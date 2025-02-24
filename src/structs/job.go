@@ -25,7 +25,7 @@ type Job struct {
 	State          JobStateEnum `json:"state"`
 	Started        time.Time    `json:"started"`
 	Finished       time.Time    `json:"finished"`
-	BuildId        uint64       `json:"buildId,omitempty"`
+	BuildId        int64        `json:"buildId,omitempty"`
 	ContainerName  string       `json:"containerName,omitempty"`
 }
 

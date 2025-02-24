@@ -229,7 +229,7 @@ func GetVersionData(url string) (*HelmData, error) {
 	return &helmData, nil
 }
 
-func SequenceToKey(id uint64) []byte {
+func SequenceToKey(id int64) []byte {
 	return []byte(fmt.Sprintf("%020d", id))
 }
 

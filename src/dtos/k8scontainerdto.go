@@ -36,8 +36,8 @@ type K8sContainerDto struct {
 
 var KubernetesGetSecretValueByPrefixControllerNameAndKey func(string, string, string, string) (string, error)
 
-func (k *K8sContainerDto) GetInjectDockerEnvVars(namespaceName string, buildId uint64, gitTag string) string {
-	buildIdStr := strconv.FormatUint(buildId, 10)
+func (k *K8sContainerDto) GetInjectDockerEnvVars(namespaceName string, buildId int64, gitTag string) string {
+	buildIdStr := strconv.FormatInt(buildId, 10)
 	gitTag = strings.ReplaceAll(gitTag, "\n", "")
 	result := ""
 	for _, v := range k.EnvVars {
@@ -67,8 +67,8 @@ func (k *K8sContainerDto) GetInjectDockerEnvVars(namespaceName string, buildId u
 	return result
 }
 
-func (k *K8sContainerDto) AvailableDockerBuildArgs(buildId uint64, gitTag string) string {
-	buildIdStr := strconv.FormatUint(buildId, 10)
+func (k *K8sContainerDto) AvailableDockerBuildArgs(buildId int64, gitTag string) string {
+	buildIdStr := strconv.FormatInt(buildId, 10)
 
 	gitTag = strings.ReplaceAll(gitTag, "\n", "")
 	result := ""

@@ -3,7 +3,6 @@ package xterm
 import (
 	"context"
 	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"net/url"
 	"strconv"
@@ -32,7 +31,7 @@ func readChannelBuildLog(ch chan string, conn *websocket.Conn, connWriteLock *sy
 	}
 }
 
-func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string, container string, buildTask structs.BuildPrefixEnum, buildId uint64) {
+func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string, container string, buildTask structs.BuildPrefixEnum, buildId int64) {
 	if wsConnectionRequest.WebsocketScheme == "" {
 		xtermLogger.Error("WebsocketScheme is empty")
 		return
@@ -86,8 +85,10 @@ func XTermBuildLogStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		data := kubernetes.GetDb().GetItemByKey(key)
-		build := structs.CreateBuildJobEntryFromData(data)
+		// TODO BROKEN
+		// data := kubernetes.GetDb().GetItemByKey(key)
+		// build := structs.CreateBuildJobEntryFromData(data)
+		build := structs.CreateBuildJobEntryFromData([]byte{})
 		if ch != nil {
 			ch <- build.Result
 		}

@@ -66,7 +66,7 @@ type BuildLogConnectionRequest struct {
 	Controller   string                  `json:"controller" validate:"required"`
 	Container    string                  `json:"container" validate:"required"`
 	BuildTask    structs.BuildPrefixEnum `json:"buildTask" validate:"required"` // clone, build, test, deploy, .....
-	BuildId      uint64                  `json:"buildId" validate:"required"`
+	BuildId      int64                   `json:"buildId" validate:"required"`
 	WsConnection WsConnectionRequest     `json:"wsConnectionRequest" validate:"required"`
 }
 
