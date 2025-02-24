@@ -2502,15 +2502,27 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	self.RegisterPatternHandler(
-		"get/users",
-		PatternConfig{
-			ResponseSchema: schema.Generate([]v1alpha1.User{}),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return self.apiService.GetAllUsers()
-		},
-	)
+	{
+		type Request struct {
+			Email *string `json:"email"`
+		}
+
+		self.RegisterPatternHandler(
+			"get/users",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]v1alpha1.User{}),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.GetAllUsers(data.Email)
+			},
+		)
+	}
 
 	{
 		type Request struct {
@@ -2716,15 +2728,28 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	self.RegisterPatternHandler(
-		"get/grants",
-		PatternConfig{
-			ResponseSchema: schema.Generate([]v1alpha1.Grant{}),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return self.apiService.GetAllGrants()
-		},
-	)
+	{
+
+		type Request struct {
+			TargetType *string `json:"targetType"`
+			TargetName *string `json:"targetName"`
+		}
+		self.RegisterPatternHandler(
+			"get/grants",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]v1alpha1.Grant{}),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				err := self.loadRequest(&datagram, &data)
+				if err != nil {
+					return nil, err
+				}
+				return self.apiService.GetAllGrants(data.TargetType, data.TargetName)
+			},
+		)
+	}
 
 	{
 		type Request struct {
