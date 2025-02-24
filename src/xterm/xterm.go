@@ -10,7 +10,6 @@ import (
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"net/url"
 	"os"
@@ -59,15 +58,6 @@ type PodCmdConnectionRequest struct {
 	Container    string              `json:"container" validate:"required"`
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 	LogTail      string              `json:"logTail"`
-}
-
-type BuildLogConnectionRequest struct {
-	Namespace    string                  `json:"namespace" validate:"required"`
-	Controller   string                  `json:"controller" validate:"required"`
-	Container    string                  `json:"container" validate:"required"`
-	BuildTask    structs.BuildPrefixEnum `json:"buildTask" validate:"required"` // clone, build, test, deploy, .....
-	BuildId      int64                   `json:"buildId" validate:"required"`
-	WsConnection WsConnectionRequest     `json:"wsConnectionRequest" validate:"required"`
 }
 
 type OperatorLogConnectionRequest struct {

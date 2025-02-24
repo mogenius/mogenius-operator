@@ -247,23 +247,6 @@ func SystemCheck() SystemCheckResponse {
 			"")
 	})
 
-	// check for docker
-	wg.Add(1)
-	go SysCheckExec("CheckDocker", &wg, &entries, func() SystemCheckEntry {
-		dockerResult, dockerOutput, dockerErr := IsDockerInstalled()
-		return CreateSystemCheckEntry(
-			"docker",
-			dockerResult,
-			dockerOutput,
-			"",
-			dockerErr,
-			"",
-			true,
-			false,
-			dockerOutput,
-			"")
-	})
-
 	// check for cert-manager
 	wg.Add(1)
 	go SysCheckExec("CheckCertManager", &wg, &entries, func() SystemCheckEntry {
@@ -635,10 +618,4 @@ func deleteSystemCheckEntryByName(entries []SystemCheckEntry, name string) []Sys
 		}
 	}
 	return entries
-}
-
-func IsDockerInstalled() (bool, string, error) {
-	cmd := utils.RunOnLocalShell("/usr/local/bin/docker --version")
-	output, err := cmd.CombinedOutput()
-	return err == nil, strings.TrimRight(string(output), "\n\r"), err
 }

@@ -26,21 +26,6 @@ type PersistentFileDto struct {
 	Mode         string `json:"mode,omitempty"`
 }
 
-func PersistentFileDtoExampleData() PersistentFileDto {
-	return PersistentFileDto{
-		Name:         "name",
-		Type:         "directory",
-		RelativePath: "relativePath",
-		SizeInBytes:  1,
-		Size:         "size",
-		Hash:         "hash",
-		CreatedAt:    time.Now().Format(time.RFC3339),
-		ModifiedAt:   time.Now().Format(time.RFC3339),
-		Uid_gid:      "uid_gid",
-		Mode:         "123",
-	}
-}
-
 func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 	info, err := os.Stat(path)
 	if err != nil {

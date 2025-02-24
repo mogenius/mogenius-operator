@@ -12,7 +12,6 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -165,10 +164,6 @@ func TestHelmRepoList(t *testing.T) {
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
-	})
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 

@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/kubernetes"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -59,11 +57,9 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		return
 	}
 
-	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
-	assert.Assert(err == nil, err)
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(600))
 	// websocket connection
 	readMessages, conn, connWriteLock, _, err := GenerateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {

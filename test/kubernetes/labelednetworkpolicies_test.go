@@ -11,7 +11,6 @@ import (
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -89,10 +88,6 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
-	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
@@ -108,10 +103,6 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
-	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
@@ -127,10 +118,6 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
-	})
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
@@ -208,10 +195,6 @@ func TestRemoveAllNetworkPolicies(t *testing.T) {
 func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
-	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
@@ -268,10 +251,6 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 func TestDeleteNetworkPolicy(t *testing.T) {
 	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
-	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)

@@ -2,8 +2,6 @@ package dtos
 
 import (
 	"mogenius-k8s-manager/src/logging"
-
-	"mogenius-k8s-manager/src/utils"
 )
 
 type K8sProjectDto struct {
@@ -20,24 +18,6 @@ type K8sProjectDto struct {
 	ContainerRegistryUrl  *string                `json:"containerRegistryUrl"`
 	ContainerRegistryUser *string                `json:"containerRegistryUser"`
 	ContainerRegistryPat  *string                `json:"containerRegistryPat"`
-}
-
-func K8sProjectDtoExampleData() K8sProjectDto {
-	return K8sProjectDto{
-		Id:                    "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		DisplayName:           "displayName",
-		Name:                  "name",
-		GitAccessToken:        utils.Pointer("gitAccessToken"),
-		GitUserId:             utils.Pointer("gitUserId"),
-		GitConnectionType:     utils.Pointer(GitConGitHub),
-		ClusterId:             "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		ClusterDisplayName:    "clusterName",
-		ClusterMfaId:          "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		ContainerRegistryPath: utils.Pointer("docker.io/mogee1"),
-		ContainerRegistryUrl:  utils.Pointer("https://index.docker.io/v1"),
-		ContainerRegistryUser: utils.Pointer("YYY_FAKE_USER"),
-		ContainerRegistryPat:  utils.Pointer("YYY_FAKE_PAT-pqKg4"),
-	}
 }
 
 func (p *K8sProjectDto) AddSecretsToRedaction() {

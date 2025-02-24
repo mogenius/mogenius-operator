@@ -87,17 +87,6 @@ func DeleteService(r ServiceDeleteRequest) *structs.Job {
 
 	mokubernetes.DeleteIngress(job, r.Namespace, r.Service, &wg)
 
-	go func() {
-		wg.Wait()
-		job.Finish()
-
-		time.Sleep(10 * time.Second)
-		for _, container := range r.Service.Containers {
-			serviceLogger.Info("Deleting build data", "namespace", r.Namespace.Name, "controller", r.Service.ControllerName, "container", container.Name)
-			kubernetes.GetDb().DeleteAllBuildData(r.Namespace.Name, r.Service.ControllerName, container.Name)
-		}
-	}()
-
 	return job
 }
 
@@ -343,24 +332,9 @@ type ServiceDeleteRequest struct {
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
-func ServiceDeleteRequestExample() ServiceDeleteRequest {
-	return ServiceDeleteRequest{
-		Project:   dtos.K8sProjectDtoExampleData(),
-		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Service:   dtos.K8sServiceDtoExampleData(),
-	}
-}
-
 type ServiceGetPodIdsRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	ServiceId string `json:"serviceId" validate:"required"`
-}
-
-func ServiceGetPodIdsRequestExample() ServiceGetPodIdsRequest {
-	return ServiceGetPodIdsRequest{
-		Namespace: "mogenius",
-		ServiceId: "mo-",
-	}
 }
 
 type ServicePodExistsRequest struct {
@@ -368,60 +342,15 @@ type ServicePodExistsRequest struct {
 	K8sPod       string `json:"k8sPod" validate:"required"`
 }
 
-func ServicePodExistsRequestExample() ServicePodExistsRequest {
-	return ServicePodExistsRequest{
-		K8sNamespace: "mogenius",
-		K8sPod:       "mogenius-traffic-collector-jfnjw",
-	}
-}
-
 type ServicePodsRequest struct {
 	Namespace      string `json:"namespace" validate:"required"`
 	ControllerName string `json:"controllerName" validate:"required"`
 }
 
-func ServicePodsRequestExample() ServicePodsRequest {
-	return ServicePodsRequest{
-		Namespace:      "mogenius",
-		ControllerName: "k8s",
-	}
-}
-
-// type ServiceSetImageRequest struct {
-// 	ProjectId          string                  `json:"projectId" validate:"required"`
-// 	NamespaceId        string                  `json:"namespaceId" validate:"required"`
-// 	ServiceId          string                  `json:"serviceId" validate:"required"`
-// 	NamespaceName      string                  `json:"namespaceName" validate:"required"`
-// 	ControllerName     string                  `json:"controllerName" validate:"required"`
-// 	ServiceDisplayName string                  `json:"serviceDisplayName" validate:"required"`
-// 	ImageName          string                  `json:"imageName" validate:"required"`
-// 	ServiceType        dtos.K8sServiceTypeEnum `json:"serviceType,omitempty"`
-// }
-
-// func ServiceSetImageRequestExample() ServiceSetImageRequest {
-// 	return ServiceSetImageRequest{
-// 		ProjectId:          "PROJECTID",
-// 		ServiceId:          "SERVICEID",
-// 		NamespaceId:        "NAMESPACEID",
-// 		NamespaceName:      "NAMESPACENAMe",
-// 		ControllerName:     "ControllerNAME",
-// 		ServiceDisplayName: "ServiceDisplayName",
-// 		ImageName:          "nginx:latest",
-// 	}
-// }
-
 type ServiceGetLogRequest struct {
 	Namespace string     `json:"namespace" validate:"required"`
 	PodId     string     `json:"podId" validate:"required"`
 	Timestamp *time.Time `json:"timestamp"`
-}
-
-func ServiceGetLogRequestExample() ServiceGetLogRequest {
-	return ServiceGetLogRequest{
-		Namespace: "gcp2-new-xrrllb-y0y3g6",
-		PodId:     "nginx-63uleb-686867bb6c-bsdvl",
-		Timestamp: utils.Pointer(time.Now()),
-	}
 }
 
 type ServiceLogStreamRequest struct {
@@ -436,15 +365,6 @@ type CmdWindowSize struct {
 	Cols uint16 `json:"cols"`
 }
 
-func ServiceLogStreamRequestExample() ServiceLogStreamRequest {
-	return ServiceLogStreamRequest{
-		Namespace:    "mogenius",
-		PodId:        "mogenius-k8s-manager-8576c46478-lv6gn",
-		SinceSeconds: -1,
-		PostTo:       "ws://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
-	}
-}
-
 type ServiceLogStreamResult struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error,omitempty"`
@@ -457,41 +377,15 @@ type ServiceResourceStatusRequest struct {
 	StatusOnly bool   `json:"statusOnly"`
 }
 
-func ServiceResourceStatusRequestExample() ServiceResourceStatusRequest {
-	return ServiceResourceStatusRequest{
-		Resource:   "pods",
-		Namespace:  "mogenius",
-		Name:       "mogenius-k8s-manager-gcp2-6c969cb878-tcksq",
-		StatusOnly: true,
-	}
-}
-
 type ServiceRestartRequest struct {
 	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
-
-func ServiceRestartRequestExample() ServiceRestartRequest {
-	return ServiceRestartRequest{
-		Project:   dtos.K8sProjectDtoExampleData(),
-		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Service:   dtos.K8sServiceDtoExampleData(),
-	}
-}
-
 type ServiceStopRequest struct {
 	ProjectId string               `json:"projectId" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
-}
-
-func ServiceStopRequestExample() ServiceStopRequest {
-	return ServiceStopRequest{
-		ProjectId: "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Service:   dtos.K8sServiceDtoExampleData(),
-	}
 }
 
 type ServiceStartRequest struct {
@@ -499,27 +393,10 @@ type ServiceStartRequest struct {
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
-
-func ServiceStartRequestExample() ServiceStartRequest {
-	return ServiceStartRequest{
-		Project:   dtos.K8sProjectDtoExampleData(),
-		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Service:   dtos.K8sServiceDtoExampleData(),
-	}
-}
-
 type ServiceUpdateRequest struct {
 	Project   dtos.K8sProjectDto   `json:"project" validate:"required"`
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
-}
-
-func ServiceUpdateRequestExample() ServiceUpdateRequest {
-	return ServiceUpdateRequest{
-		Project:   dtos.K8sProjectDtoExampleData(),
-		Namespace: dtos.K8sNamespaceDtoExampleData(),
-		Service:   dtos.K8sServiceDtoExampleData(),
-	}
 }
 
 type ServiceTriggerJobRequest struct {
@@ -529,12 +406,4 @@ type ServiceTriggerJobRequest struct {
 	NamespaceId          string `json:"namespaceId" validate:"required"`
 	ControllerName       string `json:"controllerName" validate:"required"`
 	ServiceId            string `json:"serviceId" validate:"required"`
-}
-
-func ServiceTriggerJobRequestExample() ServiceTriggerJobRequest {
-	return ServiceTriggerJobRequest{
-		ProjectId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceName:  "my-namespace",
-		ControllerName: "my-service",
-	}
 }

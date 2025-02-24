@@ -242,27 +242,9 @@ type ClusterHelmRequest struct {
 	HelmValues       string `json:"helmValues" validate:"required"`
 }
 
-func ClusterHelmRequestExample() ClusterHelmRequest {
-	return ClusterHelmRequest{
-		Namespace:       "mogenius",
-		NamespaceId:     "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		HelmRepoUrl:     "https://charts.bitnami.com/bitnami",
-		HelmReleaseName: "test-helm-release",
-		HelmChartName:   "bitnami/nginx",
-		HelmValues:      "",
-	}
-}
-
 type ClusterHelmUninstallRequest struct {
 	NamespaceId     string `json:"namespaceId" validate:"required"`
 	HelmReleaseName string `json:"helmReleaseName" validate:"required"`
-}
-
-func ClusterHelmUninstallRequestExample() ClusterHelmUninstallRequest {
-	return ClusterHelmUninstallRequest{
-		NamespaceId:     "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		HelmReleaseName: "test-helm-release",
-	}
 }
 
 type ClusterWriteConfigMap struct {
@@ -272,29 +254,10 @@ type ClusterWriteConfigMap struct {
 	Data      string            `json:"data" validate:"required"`
 }
 
-func ClusterWriteConfigMapExample() ClusterWriteConfigMap {
-	return ClusterWriteConfigMap{
-		Namespace: "mogenius",
-		Name:      "my-funky-configmap",
-		Labels: map[string]string{
-			"app": "my-funky-app",
-		},
-		Data: "my-funky-data-yaml-string",
-	}
-}
-
 type ClusterListWorkloads struct {
 	Namespace     string `json:"namespace"`
 	LabelSelector string `json:"labelSelector"`
 	Prefix        string `json:"prefix"`
-}
-
-func ClusterListWorkloadsExample() ClusterListWorkloads {
-	return ClusterListWorkloads{
-		Namespace:     "mogenius",
-		LabelSelector: "",
-		Prefix:        "metal",
-	}
 }
 
 type ClusterUpdateLocalTlsSecret struct {
@@ -302,23 +265,9 @@ type ClusterUpdateLocalTlsSecret struct {
 	LocalTlsKey string `json:"localTlsKey" validate:"required"`
 }
 
-func ClusterUpdateLocalTlsSecretExample() ClusterUpdateLocalTlsSecret {
-	return ClusterUpdateLocalTlsSecret{
-		LocalTlsCrt: "my-funky-crt",
-		LocalTlsKey: "my-funky-key",
-	}
-}
-
 type ClusterGetConfigMap struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Name      string `json:"name" validate:"required"`
-}
-
-func ClusterGetConfigMapExample() ClusterGetConfigMap {
-	return ClusterGetConfigMap{
-		Namespace: "mogenius",
-		Name:      "my-funky-configmap",
-	}
 }
 
 type ClusterGetDeployment struct {
@@ -326,33 +275,13 @@ type ClusterGetDeployment struct {
 	Name      string `json:"name" validate:"required"`
 }
 
-func ClusterGetDeploymentExample() ClusterGetDeployment {
-	return ClusterGetDeployment{
-		Namespace: "mogenius",
-		Name:      "my-funky-deployment",
-	}
-}
-
 type ClusterGetPersistentVolume struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Name      string `json:"name" validate:"required"`
 }
 
-func ClusterGetPersistentVolumeExample() ClusterGetPersistentVolume {
-	return ClusterGetPersistentVolume{
-		Namespace: "mogenius",
-		Name:      "nfs-server-my-funky-nfs",
-	}
-}
-
 type NfsStorageInstallRequest struct {
 	ClusterProvider utils.KubernetesProvider `json:"clusterProvider"`
-}
-
-func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
-	return NfsStorageInstallRequest{
-		ClusterProvider: utils.AKS,
-	}
 }
 
 type NfsVolumeRequest struct {
@@ -361,34 +290,13 @@ type NfsVolumeRequest struct {
 	SizeInGb      int    `json:"sizeInGb" validate:"required"`
 }
 
-func NfsVolumeRequestExample() NfsVolumeRequest {
-	return NfsVolumeRequest{
-		NamespaceName: "name",
-		VolumeName:    "my-fancy-volume-name",
-		SizeInGb:      10,
-	}
-}
-
 type NfsVolumeStatsRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
 	VolumeName    string `json:"volumeName" validate:"required"`
 }
 
-func NfsVolumeStatsRequestExample() NfsVolumeStatsRequest {
-	return NfsVolumeStatsRequest{
-		NamespaceName: "name",
-		VolumeName:    "my-fancy-volume-name",
-	}
-}
-
 type NfsNamespaceStatsRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
-}
-
-func NfsNamespaceStatsRequestExample() NfsNamespaceStatsRequest {
-	return NfsNamespaceStatsRequest{
-		NamespaceName: "test-bene-prod-a7fm72",
-	}
 }
 
 type NfsVolumeStatsResponse struct {

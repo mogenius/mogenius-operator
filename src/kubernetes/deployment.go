@@ -241,13 +241,6 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	// REPLICAS
 	spec.Replicas = utils.Pointer(int32(service.ReplicaCount))
 
-	// PAUSE only on "freshly created" or Repository-Types which needs a build beforehand
-	if freshlyCreated && service.HasContainerWithGitRepo() {
-		spec.Paused = true
-	} else {
-		spec.Paused = false
-	}
-
 	// LABELS
 	if spec.Selector == nil {
 		spec.Selector = &metav1.LabelSelector{}

@@ -277,31 +277,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"git_vault_data_path"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(workDir, "mogenius.db")),
-		Description:  utils.Pointer("path to the bbolt database"),
-		Envs:         []string{"bbolt_db_path"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_STATS_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(workDir, "mogenius-stats.db")),
-		Description:  utils.Pointer("path to the bbolt database"),
-		Envs:         []string{"bbolt_db_path"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_STATS_MAX_DATA_POINTS",
-		DefaultValue: utils.Pointer("6000"),
-		Description:  utils.Pointer(`after n data points in bucket will be overwritten following the "Last In - First Out" principle`),
-		Envs:         []string{"max_data_points"},
-		Validate: func(value string) error {
-			_, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("'MO_BBOLT_DB_STATS_MAX_DATA_POINTS' needs to be an integer: %s", err.Error())
-			}
-			return nil
-		},
-	})
-	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",
 		DefaultValue: utils.Pointer("mogenius git-user"),
 		Description:  utils.Pointer("user name which is used when interacting with git"),
@@ -320,32 +295,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"local_registry_host"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BUILDER_BUILD_TIMEOUT",
-		DefaultValue: utils.Pointer("3600"),
-		Description:  utils.Pointer("seconds until the build will be canceled"),
-		Envs:         []string{"max_build_time"},
-		Validate: func(value string) error {
-			_, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("'MO_BUILDER_BUILD_TIMEOUT' needs to be an integer: %s", err.Error())
-			}
-			return nil
-		},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BUILDER_MAX_CONCURRENT_BUILDS",
-		DefaultValue: utils.Pointer("1"),
-		Description:  utils.Pointer("number of concurrent builds"),
-		Envs:         []string{"max_concurrent_builds"},
-		Validate: func(value string) error {
-			_, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("'MO_BUILDER_MAX_CONCURRENT_BUILDS' needs to be an integer: %s", err.Error())
-			}
-			return nil
-		},
-	})
-	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_DEFAULT_MOUNT_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "mo-data")),
 		Description:  utils.Pointer("all containers have access to this mount point"),
@@ -359,7 +308,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Validate: func(value string) error {
 			_, err := strconv.Atoi(value)
 			if err != nil {
-				return fmt.Errorf("'MO_BUILDER_MAX_CONCURRENT_BUILDS' needs to be an integer: %s", err.Error())
+				return fmt.Errorf("'MO_UPDATE_INTERVAL' needs to be an integer: %s", err.Error())
 			}
 			return nil
 		},
@@ -489,12 +438,11 @@ func InitializeSystems(
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
 	dbstatsModule := kubernetes.NewRedisStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
-	dbBuildModule := kubernetes.NewRedisBuildModule(configModule, logManagerModule.CreateLogger("build-stats"))
 	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule)
-	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, &dbBuildModule)
+	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
@@ -523,7 +471,6 @@ func InitializeSystems(
 		versionModule:       versionModule,
 		watcherModule:       watcherModule,
 		dbstatsModule:       dbstatsModule,
-		buildstatsModule:    dbBuildModule,
 		jobConnectionClient: jobConnectionClient,
 		workspaceManager:    workspaceManager,
 		apiModule:           apiModule,
@@ -539,7 +486,6 @@ type systems struct {
 	versionModule       *version.Version
 	watcherModule       *kubernetes.Watcher
 	dbstatsModule       kubernetes.RedisStatsDb
-	buildstatsModule    kubernetes.RedisBuildDb
 	jobConnectionClient websocket.WebsocketClient
 	workspaceManager    core.WorkspaceManager
 	apiModule           core.Api

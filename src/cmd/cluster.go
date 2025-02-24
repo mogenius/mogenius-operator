@@ -26,13 +26,10 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
 
+		// DB (redis)
 		err := systems.redisModule.Connect()
 		assert.Assert(err == nil, err)
-
-		// DB (redis)
 		err = systems.dbstatsModule.Start()
-		assert.Assert(err == nil, err)
-		err = systems.buildstatsModule.Start()
 		assert.Assert(err == nil, err)
 		redisstore.StartGlobalRedis(logManagerModule.CreateLogger("global-redis"))
 
@@ -81,7 +78,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		}
 
 		go func() {
-			services.DISABLEQUEUE = true
 			basicApps, userApps := services.InstallDefaultApplications()
 			if basicApps != "" || userApps != "" {
 				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
@@ -92,8 +88,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 					select {}
 				}
 			}
-			services.DISABLEQUEUE = false
-			services.ProcessQueue() // Process the queue maybe there are builds left to build
 		}()
 
 		mokubernetes.InitOrUpdateCrds()

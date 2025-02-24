@@ -3,12 +3,9 @@ package services
 import (
 	"errors"
 	"fmt"
-	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"sort"
-	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -75,20 +72,11 @@ type ServiceStatusRequest struct {
 	GitRepository  bool   `json:"gitRepository"`
 }
 
-func ServiceStatusRequestExample() ServiceStatusRequest {
-	return ServiceStatusRequest{
-		Namespace:      "YOUR-NAMESPACE",
-		ControllerName: "YOUR-SERVICE-NAME",
-		Controller:     Deployment.String(),
-	}
-}
-
 // BEGIN new status and messages
 
 type ServiceStatusKindType string
 
 const (
-	ServiceStatusKindTypeBuildJob    ServiceStatusKindType = "BuildJob"
 	ServiceStatusKindTypeDeployment  ServiceStatusKindType = "Deployment"
 	ServiceStatusKindTypeReplicaSet  ServiceStatusKindType = "ReplicaSet"
 	ServiceStatusKindTypeStatefulSet ServiceStatusKindType = "StatefulSet"
@@ -102,8 +90,6 @@ const (
 
 func NewServiceStatusKindType(serviceStatusKindType string) ServiceStatusKindType {
 	switch serviceStatusKindType {
-	case string(ServiceStatusKindTypeBuildJob):
-		return ServiceStatusKindTypeBuildJob
 	case string(ServiceStatusKindTypeDeployment):
 		return ServiceStatusKindTypeDeployment
 	case string(ServiceStatusKindTypeReplicaSet):
@@ -189,7 +175,6 @@ type ServiceStatusResponse struct {
 	HasDeployment bool                   `json:"hasDeployment"`
 	HasCronJob    bool                   `json:"hasCronJob"`
 	HasJob        bool                   `json:"hasJob"`
-	HasBuild      bool                   `json:"hasBuild"`
 	Warnings      []ServiceStatusMessage `json:"warnings,omitempty"`
 }
 
@@ -202,8 +187,6 @@ func ProcessServiceStatusResponse(r []ResourceItem) ServiceStatusResponse {
 		s.Items = append(s.Items, newItem)
 
 		switch item.Kind {
-		case string(ServiceStatusKindTypeBuildJob):
-			s.HasBuild = true
 		case string(ServiceStatusKindTypeDeployment):
 			s.HasDeployment = true
 		case string(ServiceStatusKindTypeReplicaSet), string(ServiceStatusKindTypeStatefulSet), string(ServiceStatusKindTypeDaemonSet):
@@ -260,10 +243,6 @@ func NewServiceStatusItem(item ResourceItem, s *ServiceStatusResponse) ServiceSt
 	// Set status
 	if item.StatusObject != nil {
 		switch item.Kind {
-		case string(ServiceStatusKindTypeBuildJob):
-			if status := item.BuildJobStatus(); status != nil {
-				newItem.Status = *status
-			}
 		case string(ServiceStatusKindTypeCronJob):
 			if status, switchedOn := item.CronJobStatus(); status != nil {
 				newItem.Status = *status
@@ -471,61 +450,20 @@ func (r *ResourceItem) PodStatus() (*ServiceStatusType, []ServiceStatusMessage, 
 	return nil, nil, nil
 }
 
-func (r *ResourceItem) BuildJobStatus() *ServiceStatusType {
-	// When StatusObject is not nil, then type casting to structs.BuildJob
-	var success *bool
-	// var messages []ServiceStatusMessage
-
-	if r.StatusObject != nil {
-		if buildJobInfo, ok := r.StatusObject.(structs.BuildJobInfo); ok {
-			for _, task := range buildJobInfo.Tasks {
-				switch task.State {
-				case structs.JobStateStarted, structs.JobStatePending:
-					status := ServiceStatusTypePending
-					return &status
-				case structs.JobStateSucceeded:
-					if success == nil {
-						success = new(bool)
-						*success = true
-					}
-				case structs.JobStateFailed, structs.JobStateCanceled, structs.JobStateTimeout:
-					// messages = append(messages, ServiceStatusMessage{
-					// 	Type:    ServiceStatusMessageTypeError,
-					// 	Message: fmt.Sprintf("BuildId '%d', step '%s' failed with state '%s'. Result:\n\n%s", buildJobInfo.BuildId, task.Prefix, task.State, task.Result),
-					// })
-
-					status := ServiceStatusTypeError
-					return &status
-				default:
-					status := ServiceStatusTypeUnkown
-					return &status
-				}
-			}
-		}
-	}
-
-	if success != nil {
-		status := ServiceStatusTypeSuccess
-		return &status
-	}
-
-	return nil
-}
-
 func (r *ResourceItem) CronJobStatus() (*ServiceStatusType, bool) {
 	if r.StatusObject != nil {
 		if cronJob, ok := r.StatusObject.(CronJobStatus); ok {
 			switchedOn := !cronJob.Suspend
 
-			if cronJob.Image != "" && !strings.Contains(cronJob.Image, utils.IMAGE_PLACEHOLDER) && !cronJob.Suspend {
+			if cronJob.Image != "" && !cronJob.Suspend {
 				status := ServiceStatusTypeSuccess
 				return &status, switchedOn
 			}
-			if strings.Contains(cronJob.Image, utils.IMAGE_PLACEHOLDER) && !cronJob.Suspend {
+			if !cronJob.Suspend {
 				status := ServiceStatusTypeError
 				return &status, switchedOn
 			}
-			if strings.Contains(cronJob.Image, utils.IMAGE_PLACEHOLDER) && cronJob.Suspend {
+			if cronJob.Suspend {
 				status := ServiceStatusTypeUnkown
 				return &status, switchedOn
 			}
@@ -574,12 +512,6 @@ func (r *ResourceItem) DeploymentStatus() (*ServiceStatusType, bool) {
 				isHappy := deploymentStatus.Replicas == originalDeploymentStatus.AvailableReplicas
 				if !isHappy {
 					status := ServiceStatusTypeSuccess
-					return &status, switchedOn
-				}
-
-				// placeholder image
-				if strings.Contains(deploymentStatus.Image, utils.IMAGE_PLACEHOLDER) {
-					status := ServiceStatusTypePending
 					return &status, switchedOn
 				}
 
@@ -733,14 +665,6 @@ func statusService(r ServiceStatusRequest) ServiceStatusResponse {
 		serviceLogger.Warn("failed to get statusItems", "error", err)
 	}
 
-	// buildItem
-	if r.GitRepository {
-		resourceItems, err = buildItem(r.Namespace, r.ControllerName, resourceItems)
-		if err != nil {
-			serviceLogger.Warn("failed to buildItem", "error", err)
-		}
-	}
-
 	for _, event := range events {
 		for i, item := range resourceItems {
 			if item.Name == event.InvolvedObject.Name && item.Namespace == event.InvolvedObject.Namespace {
@@ -865,26 +789,6 @@ func controller(namespace string, controllerName string, resourceController Reso
 	}
 
 	return resourceInterface, nil
-}
-
-func buildItem(namespace, name string, resourceItems []ResourceItem) ([]ResourceItem, error) {
-	lastJob := kubernetes.GetDb().GetLastBuildForNamespaceAndControllerName(namespace, name)
-	if lastJob.IsEmpty() {
-		return resourceItems, nil
-	}
-
-	item := &ResourceItem{
-		Kind:         "BuildJob",
-		Name:         name,
-		Namespace:    namespace,
-		OwnerName:    "",
-		OwnerKind:    "",
-		StatusObject: lastJob,
-	}
-
-	resourceItems = append(resourceItems, *item)
-
-	return resourceItems, nil
 }
 
 func containerItems(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem {

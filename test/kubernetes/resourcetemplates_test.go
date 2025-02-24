@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
-	"path/filepath"
 	"testing"
 )
 
@@ -18,10 +17,6 @@ func TestResourceTemplates(t *testing.T) {
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
-	})
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)

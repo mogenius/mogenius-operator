@@ -6,12 +6,3 @@ type NamespaceServicePortDto struct {
 	ExternalPort int          `json:"externalPort" validate:"required"`
 	Expose       bool         `json:"expose" validate:"required"`
 }
-
-func NamespaceServicePortDtoExampleData() NamespaceServicePortDto {
-	return NamespaceServicePortDto{
-		PortType:     PortTypeTCP,
-		InternalPort: 80,
-		ExternalPort: 12345,
-		Expose:       true,
-	}
-}

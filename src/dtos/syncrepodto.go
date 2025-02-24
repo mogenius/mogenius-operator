@@ -36,19 +36,6 @@ func (p *SyncRepoData) AddSecretsToRedaction() {
 	}
 }
 
-func SyncRepoDataExampleData() SyncRepoData {
-	return SyncRepoData{
-		Repo:               "https://github.com/beneiltis/fuckumucku.git",
-		Pat:                "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",
-		Branch:             "main",
-		AllowPull:          true,
-		AllowPush:          true,
-		SyncFrequencyInSec: 5,
-		SyncResources:      []utils.SyncResourceEntry{},
-		IgnoredNamespaces:  DefaultIgnoredNamespaces(),
-	}
-}
-
 func CreateSyncRepoDataFrom(secret *core.Secret) SyncRepoData {
 	result := SyncRepoData{
 		Repo:   string(secret.Data["sync-repo-url"]),

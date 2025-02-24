@@ -99,16 +99,6 @@ func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	return datagram
 }
 
-func CreateDatagramBuildLogs(payload BuildJobInfo) Datagram {
-	datagram := Datagram{
-		Id:        utils.NanoId(),
-		Pattern:   "build-logs-notification",
-		Payload:   payload,
-		CreatedAt: time.Now(),
-	}
-	return datagram
-}
-
 func CreateDatagramAck(pattern string, id string) Datagram {
 	datagram := Datagram{
 		Id:        id,
