@@ -33,16 +33,7 @@ func processEvent(event *v1Core.Event) {
 		structs.EventServerSendData(datagram, kind, reason, message, count)
 
 		// deployment events
-		ignoreKind := []string{"CertificateRequest", "Certificate"}
-		ignoreNamespaces := []string{"kube-system", "kube-public", "default", "mogenius"}
-		if event.InvolvedObject.Kind == "Pod" &&
-			!utils.ContainsString(ignoreNamespaces, event.InvolvedObject.Namespace) &&
-			!utils.ContainsString(ignoreKind, event.InvolvedObject.Kind) {
-
-			//personJSON, err := json.Marshal(event)
-			//if err == nil {
-			//	fmt.Println("event as JSON:", string(personJSON))
-			//}
+		if event.InvolvedObject.Kind == "Pod" {
 			parts := strings.Split(event.InvolvedObject.Name, "-")
 
 			if len(parts) >= 2 {
