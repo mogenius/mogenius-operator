@@ -24,7 +24,7 @@ func ListNetworkPolicies(namespace string) ([]networkingV1.NetworkPolicy, error)
 		Version:   "",
 	}
 
-	policies, err := redisstore.GetObjectsByPrefix[networkingV1.NetworkPolicy](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, resource.Group, "NetworkPolicy", namespace)
+	policies, err := redisstore.GetObjectsByPrefix[networkingV1.NetworkPolicy](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, REDIS_KEY_PREFIX, resource.Group, "NetworkPolicy", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -82,7 +82,7 @@ func ListDeployments(namespace string) ([]appsV1.Deployment, error) {
 		Version:   "",
 	}
 
-	deployments, err := redisstore.GetObjectsByPrefix[appsV1.Deployment](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, resource.Group, "Deployment", namespace)
+	deployments, err := redisstore.GetObjectsByPrefix[appsV1.Deployment](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, REDIS_KEY_PREFIX, resource.Group, "Deployment", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -110,7 +110,7 @@ func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 		Group:     "apps/v1",
 		Version:   "",
 	}
-	statefulsets, err := redisstore.GetObjectsByPrefix[appsV1.StatefulSet](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, resource.Group, "StatefulSet", namespace)
+	statefulsets, err := redisstore.GetObjectsByPrefix[appsV1.StatefulSet](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, REDIS_KEY_PREFIX, resource.Group, "StatefulSet", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -129,7 +129,7 @@ func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 func ListEvents(namespace string) ([]coreV1.Event, error) {
 	result := []coreV1.Event{}
 
-	events, err := redisstore.GetObjectsByPrefix[coreV1.Event](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_DESC, "Event", namespace)
+	events, err := redisstore.GetObjectsByPrefix[coreV1.Event](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_DESC, REDIS_KEY_PREFIX, "Event", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -158,7 +158,7 @@ func ListPods(parts ...string) ([]coreV1.Pod, error) {
 		Version:   "",
 	}
 
-	args := append([]string{resource.Group, "Pod"}, parts...)
+	args := append([]string{REDIS_KEY_PREFIX, resource.Group, "Pod"}, parts...)
 	pods, err := redisstore.GetObjectsByPrefix[coreV1.Pod](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, args...)
 	if err != nil {
 		return result, err
@@ -180,7 +180,7 @@ func ListAllNamespaces() ([]coreV1.Namespace, error) {
 		Version:   "",
 	}
 
-	namespaces, err := redisstore.GetObjectsByPrefix[coreV1.Namespace](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, resource.Group, "Namespace")
+	namespaces, err := redisstore.GetObjectsByPrefix[coreV1.Namespace](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, REDIS_KEY_PREFIX, resource.Group, "Namespace")
 	if err != nil {
 		return result, err
 	}
@@ -197,14 +197,14 @@ func GetNamespace(name string) *coreV1.Namespace {
 		Version: "",
 	}
 
-	namespace, _ := redisstore.GetObjectForKey[coreV1.Namespace](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), resource.Group, resource.Kind, name)
+	namespace, _ := redisstore.GetObjectForKey[coreV1.Namespace](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), REDIS_KEY_PREFIX, resource.Group, resource.Kind, name)
 	return namespace
 }
 
 func GetResourceByKindAndNamespace(groupVersion string, kind string, namespace string) []unstructured.Unstructured {
 	var results []unstructured.Unstructured
 
-	storeResults, err := redisstore.GetObjectsByPrefix[unstructured.Unstructured](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, groupVersion, kind, namespace)
+	storeResults, err := redisstore.GetObjectsByPrefix[unstructured.Unstructured](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, REDIS_KEY_PREFIX, groupVersion, kind, namespace)
 	if err != nil {
 		return results
 	}

@@ -94,6 +94,21 @@ func DropAllResourcesFromRedis() error {
 	return err
 }
 
+func DropAllPodEventsFromRedis() error {
+	keys, err := redisstore.Global.Keys("pod-events" + ":*")
+	if err != nil {
+		storeLogger.Error("failed to get keys", "error", err)
+		return err
+	}
+	for _, v := range keys {
+		err = redisstore.Global.Delete(v)
+		if err != nil {
+			storeLogger.Error("failed to delete key", "key", v, "error", err)
+		}
+	}
+	return err
+}
+
 func CreateKey(parts ...string) string {
 	parts = append([]string{REDIS_KEY_PREFIX}, parts...)
 	return strings.Join(parts, ":")

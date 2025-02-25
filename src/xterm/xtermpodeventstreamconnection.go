@@ -98,13 +98,28 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		data, err := redisstore.ListFromBucketWithType[string](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), 0, 100, "pod-events", key)
+		data, err := redisstore.Global.LastNEntryFromBucketWithType(50, kubernetes.DB_STATS_POD_EVENTS_NAME, key)
+		if err != nil {
+			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+			return
+		}
+		var events []*v1.Event
+		for _, v := range data {
+			var event v1.Event
+			err := json.Unmarshal([]byte(v), &event)
+			if err != nil {
+				xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+				continue
+			}
+			events = append(events, &event)
+		}
+		updatedData, err := json.Marshal(events)
 		if err != nil {
 			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
 			return
 		}
 		if ch != nil {
-			ch <- strings.Join(data, "\n")
+			ch <- string(updatedData)
 		}
 	}(ch)
 

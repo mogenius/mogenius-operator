@@ -27,6 +27,7 @@ type RedisStore interface {
 
 	AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
 	ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
+	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 
 	Delete(keys ...string) error
 	Keys(pattern string) ([]string, error)
@@ -194,6 +195,30 @@ func (r *redisStore) ListFromBucket(start int64, stop int64, bucketKey ...string
 	// start=0 stop=-1 to retrieve all elements from start to the end of the list
 	elements, err := r.redisClient.LRange(r.ctx, key, start, stop).Result()
 	return elements, err
+}
+
+func (r *redisStore) LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error) {
+	key := CreateKey(bucketKey...)
+
+	// Get the length of the list
+	length, err := r.redisClient.LLen(r.ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate start index for LRANGE
+	start := length - number
+	if start < 0 {
+		start = 0 // Ensure start index is not negative
+	}
+
+	// Use LRANGE to get the last N elements
+	elements, err := r.redisClient.LRange(r.ctx, key, start, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return elements, nil
 }
 
 func ListFromBucketWithType[T any](ctx context.Context, r *redis.Client, start int64, stop int64, bucketKey ...string) ([]T, error) {

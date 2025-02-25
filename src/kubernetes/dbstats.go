@@ -14,6 +14,7 @@ import (
 const (
 	DB_STATS_TRAFFIC_BUCKET_NAME    = "traffic-stats"
 	DB_STATS_POD_STATS_BUCKET_NAME  = "pod-stats"
+	DB_STATS_POD_EVENTS_NAME        = "pod-events"
 	DB_STATS_NODE_STATS_BUCKET_NAME = "node-stats"
 	DB_STATS_SOCKET_STATS_BUCKET    = "socket-stats"
 	DB_STATS_CNI_BUCKET_NAME        = "cluster-cni-configuration"
@@ -162,7 +163,8 @@ func (self *redisStatsDbModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinu
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		// values, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -211,7 +213,8 @@ func (self *redisStatsDbModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInM
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		// values, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -260,7 +263,8 @@ func (self *redisStatsDbModule) GetWorkspaceStatsTrafficUtilization(timeOffsetIn
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := redisstore.LastNEntryFromBucketWithType[structs.InterfaceStats](self.redis.GetContext(), self.redis.GetClient(), int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		// values, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}

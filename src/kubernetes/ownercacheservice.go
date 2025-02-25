@@ -65,7 +65,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 				lastValidController = utils.Pointer(NewK8sController("ReplicaSet", data.Name, namespace))
 				if data.OwnerReferences != nil {
 					// recurse and update lastValidController if successful
-					returnOrUpdated(lastValidController,
+					return returnOrUpdated(lastValidController,
 						OwnerFromReference(namespace, data.OwnerReferences))
 				}
 			}
@@ -75,7 +75,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			if err == nil && data != nil {
 				lastValidController = utils.Pointer(NewK8sController("Deployment", data.Name, namespace))
 				if data.OwnerReferences != nil {
-					returnOrUpdated(lastValidController,
+					return returnOrUpdated(lastValidController,
 						OwnerFromReference(namespace, data.OwnerReferences))
 				}
 			}
@@ -85,7 +85,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			if err == nil && data != nil {
 				lastValidController = utils.Pointer(NewK8sController("StatefulSet", data.Name, namespace))
 				if data.OwnerReferences != nil {
-					returnOrUpdated(lastValidController,
+					return returnOrUpdated(lastValidController,
 						OwnerFromReference(namespace, data.OwnerReferences))
 				}
 			}
@@ -95,7 +95,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			if err == nil && data != nil {
 				lastValidController = utils.Pointer(NewK8sController("DaemonSet", data.Name, namespace))
 				if data.OwnerReferences != nil {
-					returnOrUpdated(lastValidController,
+					return returnOrUpdated(lastValidController,
 						OwnerFromReference(namespace, data.OwnerReferences))
 				}
 			}
@@ -105,7 +105,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			if err == nil && data != nil {
 				lastValidController = utils.Pointer(NewK8sController("Job", data.Name, namespace))
 				if data.OwnerReferences != nil {
-					returnOrUpdated(lastValidController,
+					return returnOrUpdated(lastValidController,
 						OwnerFromReference(namespace, data.OwnerReferences))
 				}
 			}
@@ -115,7 +115,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			if err == nil && data != nil {
 				lastValidController = utils.Pointer(NewK8sController("CronJob", data.Name, namespace))
 				if data.OwnerReferences != nil {
-					returnOrUpdated(lastValidController,
+					return returnOrUpdated(lastValidController,
 						OwnerFromReference(namespace, data.OwnerReferences))
 				}
 			}
@@ -125,7 +125,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			if data != nil {
 				lastValidController = utils.Pointer(NewK8sController("Pod", data.Name, namespace))
 				if data.OwnerReferences != nil {
-					returnOrUpdated(lastValidController,
+					return returnOrUpdated(lastValidController,
 						OwnerFromReference(namespace, data.OwnerReferences))
 				}
 			}
@@ -135,7 +135,7 @@ func OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8
 			if err == nil && data != nil {
 				lastValidController = utils.Pointer(NewK8sController("Node", data.Name, ""))
 				if data.OwnerReferences != nil {
-					returnOrUpdated(lastValidController,
+					return returnOrUpdated(lastValidController,
 						OwnerFromReference(namespace, data.OwnerReferences))
 				}
 			}

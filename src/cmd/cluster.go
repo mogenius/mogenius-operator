@@ -42,6 +42,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		redisstore.StartGlobalRedis(logManagerModule.CreateLogger("global-redis"))
 		// clean redis on every startup
 		store.DropAllResourcesFromRedis()
+		store.DropAllPodEventsFromRedis()
 
 		systems.versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
