@@ -25,6 +25,9 @@ type RedisStore interface {
 	Get(keys ...string) (string, error)
 	GetObject(keys ...string) (interface{}, error)
 
+	AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
+	ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
+
 	Delete(keys ...string) error
 	Keys(pattern string) ([]string, error)
 	Exists(keys ...string) (bool, error)
@@ -167,6 +170,85 @@ func (r *redisStore) GetObject(keys ...string) (interface{}, error) {
 	return result, nil
 }
 
+func (r *redisStore) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
+	return AddToBucket(r.ctx, r.redisClient, maxSize, value, bucketKey...)
+}
+
+func AddToBucket(ctx context.Context, r *redis.Client, maxSize int64, value interface{}, bucketKey ...string) error {
+	key := CreateKey(bucketKey...)
+	// Add the new elements to the end of the list
+	if err := r.RPush(ctx, key, utils.PrettyPrintInterface(value)).Err(); err != nil {
+		return err
+	}
+
+	// Trim the list to keep only the last maxSize elements
+	if err := r.LTrim(ctx, key, -maxSize, -1).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *redisStore) ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error) {
+	key := CreateKey(bucketKey...)
+	// start=0 stop=-1 to retrieve all elements from start to the end of the list
+	elements, err := r.redisClient.LRange(r.ctx, key, start, stop).Result()
+	return elements, err
+}
+
+func ListFromBucketWithType[T any](ctx context.Context, r *redis.Client, start int64, stop int64, bucketKey ...string) ([]T, error) {
+	key := CreateKey(bucketKey...)
+	// Use -1 as end index to retrieve all elements from start to the end of the list
+	elements, err := r.LRange(ctx, key, start, stop).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var objects []T
+	for _, v := range elements {
+		var obj T
+		if err := json.Unmarshal([]byte(v), &obj); err != nil {
+			return nil, fmt.Errorf("error unmarshalling value from Redis bucket, error: %v", err)
+		}
+		objects = append(objects, obj)
+	}
+
+	return objects, nil
+}
+
+func LastNEntryFromBucketWithType[T any](ctx context.Context, r *redis.Client, number int64, bucketKey ...string) ([]T, error) {
+	key := CreateKey(bucketKey...)
+
+	// Get the length of the list
+	length, err := r.LLen(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate start index for LRANGE
+	start := length - number
+	if start < 0 {
+		start = 0 // Ensure start index is not negative
+	}
+
+	// Use LRANGE to get the last N elements
+	elements, err := r.LRange(ctx, key, start, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var objects []T
+	for _, v := range elements {
+		var obj T
+		if err := json.Unmarshal([]byte(v), &obj); err != nil {
+			return nil, fmt.Errorf("error unmarshalling value from Redis bucket, error: %v", err)
+		}
+		objects = append(objects, obj)
+	}
+
+	return objects, nil
+}
+
 func GetObjectsByPrefix[T any](ctx context.Context, r *redis.Client, order SortOrder, keys ...string) ([]T, error) {
 	key := CreateKey(keys...)
 	// var cursor uint64
@@ -187,11 +269,13 @@ func GetObjectsByPrefix[T any](ctx context.Context, r *redis.Client, order SortO
 		return nil, err
 	}
 	for _, v := range values {
-		var obj T
-		if err := json.Unmarshal([]byte(v.(string)), &obj); err != nil {
-			return nil, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+		if v != nil {
+			var obj T
+			if err := json.Unmarshal([]byte(v.(string)), &obj); err != nil {
+				return nil, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+			}
+			objects = append(objects, obj)
 		}
-		objects = append(objects, obj)
 	}
 	return objects, nil
 }

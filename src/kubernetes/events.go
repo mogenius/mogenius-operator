@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/dtos"
+	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/utils"
 	"strings"
 
@@ -48,8 +49,12 @@ func processEvent(event *v1Core.Event) {
 				parts = parts[:len(parts)-2]
 			}
 			controllerName := strings.Join(parts, "-")
+			err := redisstore.AddToBucket(redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), 100, event, "pod-events", event.InvolvedObject.Namespace, controllerName)
+			if err != nil {
+				k8sLogger.Error("Error adding event to pod-events", "error", err.Error())
+			}
 
-			key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, controllerName)
+			key := fmt.Sprintf("%s:%s", event.InvolvedObject.Namespace, controllerName)
 			ch, exists := EventChannels[key]
 			if exists {
 				var events []*v1Core.Event

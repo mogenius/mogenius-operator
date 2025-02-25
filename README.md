@@ -30,6 +30,11 @@ MO_STAGE=dev
 ## ```
 ```
 
+## .env update
+```
+if [[ -f .env ]]; then export $(grep -v '^#' .env | xargs); fi
+```
+
 Get the `api-key`, `mfa-id` and `cluster-name` from the operator secret `mogenius/mogenius` and adjust the `.env` accordingly.
 
 Change the replicas to `0`:
@@ -121,6 +126,14 @@ rm -rf ~/.helm/cache/archive/*
 rm -rf ~/.helm/repository/cache/*
 helm repo update
 ```
+
+## Send Pod-Stats & Traffic-Stats
+Add this to the respective daemonset and deployment (on docker-desktop):
+```
+- name: k8s_manager_server_ws
+  value: ws://host.docker.internal:1337/ws
+
+```sh
 
 ## LINKS
 

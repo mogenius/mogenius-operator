@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/redisstore"
 	"net/url"
 	"strings"
 	"sync"
@@ -67,7 +68,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		return
 	}
 
-	key := fmt.Sprintf("%s-%s", namespace, controller)
+	key := fmt.Sprintf("%s:%s", namespace, controller)
 
 	defer func() {
 		// XtermLogger.Info("[XTermPodEventStreamConnection] Closing connection.")
@@ -97,11 +98,13 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		// TODO BROKEN
-		// data := kubernetes.GetDb().GetEventByKey(key)
-		data := ""
+		data, err := redisstore.ListFromBucketWithType[string](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), 0, 100, "pod-events", key)
+		if err != nil {
+			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+			return
+		}
 		if ch != nil {
-			ch <- string(data)
+			ch <- strings.Join(data, "\n")
 		}
 	}(ch)
 

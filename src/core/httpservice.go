@@ -134,22 +134,12 @@ func (self *httpService) Run(addr string) {
 
 	mux.Handle("GET /ws", self.withRequestLogging(http.HandlerFunc(self.handleWs)))
 
-	moDebug, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
-	assert.Assert(err == nil, err)
-	if moDebug {
-		self.logger.Debug("adding debug routes to http.ServeMux", "addr", addr)
-		mux.Handle("GET /debug/sum-traffic", self.withRequestLogging(http.HandlerFunc(self.debugGetTrafficSum)))
-		mux.Handle("GET /debug/traffic", self.withRequestLogging(http.HandlerFunc(self.debugGetTraffic)))
-		mux.Handle("GET /debug/last-ns", self.withRequestLogging(http.HandlerFunc(self.debugGetLastNs)))
-		mux.Handle("GET /debug/ns", self.withRequestLogging(http.HandlerFunc(self.debugGetNs)))
-	}
-
 	if utils.IsDevBuild() {
 		self.addApiRoutes(mux)
 	}
 
 	self.logger.Info("starting API server", "addr", addr)
-	err = http.ListenAndServe(addr, mux)
+	err := http.ListenAndServe(addr, mux)
 	if err != nil {
 		self.logger.Error("failed to start api server", "error", err)
 	}
@@ -333,51 +323,6 @@ func (self *httpService) postNodeStats(w http.ResponseWriter, r *http.Request) {
 	self.dbstats.AddNodeStatsToDb(*stat)
 }
 
-func (self *httpService) debugGetTrafficSum(w http.ResponseWriter, r *http.Request) {
-	ns := r.URL.Query().Get("ns")
-
-	stats := self.dbstats.GetTrafficStatsEntriesSumForNamespace(ns)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(stats)
-	if err != nil {
-		self.logger.Error("failed to json encode response", "error", err)
-	}
-}
-
-func (self *httpService) debugGetLastNs(w http.ResponseWriter, r *http.Request) {
-	ns := r.URL.Query().Get("ns")
-	stats := self.dbstats.GetLastPodStatsEntriesForNamespace(ns)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(stats)
-	if err != nil {
-		self.logger.Error("failed to json encode response", "error", err)
-	}
-}
-
-func (self *httpService) debugGetTraffic(w http.ResponseWriter, r *http.Request) {
-	ns := r.URL.Query().Get("ns")
-	stats := self.dbstats.GetTrafficStatsEntriesForNamespace(ns)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(stats)
-	if err != nil {
-		self.logger.Error("failed to json encode response", "error", err)
-	}
-}
-
-func (self *httpService) debugGetNs(w http.ResponseWriter, r *http.Request) {
-	ns := r.URL.Query().Get("ns")
-	stats := self.dbstats.GetPodStatsEntriesForNamespace(ns)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(stats)
-	if err != nil {
-		self.logger.Error("failed to json encode response", "error", err)
-	}
-}
-
 func (self *httpService) withRequestLogging(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		self.logger.Debug("api request",
@@ -429,7 +374,6 @@ func (self *httpService) handleWs(w http.ResponseWriter, r *http.Request) {
 			self.logger.Error("Reading message from websocket", "error", err)
 			break
 		}
-
 		self.handleIncomingDatagram(datagram)
 	}
 }

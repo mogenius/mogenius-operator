@@ -31,12 +31,10 @@ var dataLock sync.Mutex = sync.Mutex{}
 
 func ControllerForPod(namespace string, podName string) *K8sController {
 	// check if is in cache
-	dataLock.Lock()
 	foundOwner, isInCache := ownerCache[podName]
 	if isInCache {
 		return utils.Pointer(foundOwner)
 	}
-	dataLock.Unlock()
 
 	pod := GetPod(namespace, podName)
 	if pod == nil {

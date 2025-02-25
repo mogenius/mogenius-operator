@@ -87,35 +87,19 @@ func WatchStoreResources(watcher WatcherModule) error {
 }
 
 func setStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	if kind == "Namespace" {
-		obj = removeUnusedFieds(obj)
-		err := redisstore.Global.SetObject(obj, 0, REDIS_KEY_PREFIX, groupVersion, kind, name)
-		if err != nil {
-			k8sLogger.Error("Error setting object in store", "error", err)
-		}
-		return
-	}
+	obj = removeUnusedFieds(obj)
 
 	if kind == "NetworkPolicy" {
-		obj = removeUnusedFieds(obj)
-		err := redisstore.Global.SetObject(obj, 0, REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
-		if err != nil {
-			k8sLogger.Error("Error setting object in store", "error", err)
-		}
-
 		var netPol v1Net.NetworkPolicy
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
 		if err != nil {
 			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 			return
 		}
-
 		HandleNetworkPolicyChange(&netPol, "Added/Updated")
-		return
 	}
 
 	// other resources
-	obj = removeUnusedFieds(obj)
 	err := redisstore.Global.SetObject(obj, 0, REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
