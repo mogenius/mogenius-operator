@@ -173,11 +173,7 @@ func GetWorkloadStatusItems(
 				}
 
 				if replicasInt64 > 0 && hasOwnerReference(replicaset.GetOwnerReferences(), workload.GetUID()) {
-					replicasetUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(replicaset)
-					if err != nil {
-						continue
-					}
-					replicaSetsList = append(replicaSetsList, unstructured.Unstructured{Object: replicasetUnstructured})
+					replicaSetsList = append(replicaSetsList, replicaset)
 				}
 			}
 
@@ -195,11 +191,7 @@ func GetWorkloadStatusItems(
 			var jobsList []unstructured.Unstructured
 			for _, job := range jobs {
 				if hasOwnerReference(job.GetOwnerReferences(), workload.GetUID()) {
-					jobUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(job)
-					if err != nil {
-						continue
-					}
-					jobsList = append(jobsList, unstructured.Unstructured{Object: jobUnstructured})
+					jobsList = append(jobsList, job)
 				}
 			}
 
@@ -223,11 +215,7 @@ func GetWorkloadStatusItems(
 			var podsList []unstructured.Unstructured
 			for _, pod := range pods {
 				if hasOwnerReference(pod.GetOwnerReferences(), workload.GetUID()) {
-					podUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pod)
-					if err != nil {
-						continue
-					}
-					podsList = append(podsList, unstructured.Unstructured{Object: podUnstructured})
+					podsList = append(podsList, pod)
 				}
 			}
 

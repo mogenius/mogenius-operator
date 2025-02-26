@@ -164,7 +164,6 @@ func (self *redisStatsDbModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinu
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
 		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
-		// values, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -214,7 +213,6 @@ func (self *redisStatsDbModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInM
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
 		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
-		// values, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -264,7 +262,6 @@ func (self *redisStatsDbModule) GetWorkspaceStatsTrafficUtilization(timeOffsetIn
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
 		values, err := redisstore.LastNEntryFromBucketWithType[structs.InterfaceStats](self.redis.GetContext(), self.redis.GetClient(), int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
-		// values, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -423,9 +420,3 @@ type GenericChartEntry struct {
 	Time  string  `json:"time"`
 	Value float64 `json:"value"`
 }
-
-// func ControllerNameFromKey(key string) *string {
-// 	// Example string "traffic-stats:docker-desktop-test-default-lla1yy:nginx-996cc9695"
-// 	// 1. traffic-stats, 2. Namespace, 3. Controllername
-
-// }

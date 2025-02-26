@@ -40,7 +40,7 @@ func processEvent(event *v1Core.Event) {
 				parts = parts[:len(parts)-2]
 			}
 			controllerName := strings.Join(parts, "-")
-			err := redisstore.AddToBucket(redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), 100, event, DB_STATS_POD_EVENTS_NAME, event.InvolvedObject.Namespace, controllerName)
+			err := redisstore.AddToBucket(redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), 100, event, "pod-events", event.InvolvedObject.Namespace, controllerName)
 			if err != nil {
 				k8sLogger.Error("Error adding event to pod-events", "error", err.Error())
 			}
