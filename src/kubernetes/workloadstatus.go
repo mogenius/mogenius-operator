@@ -337,9 +337,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 				if err != nil {
 					k8sLogger.Warn("Error getting workload", "error", err)
 				} else {
-					for _, workload := range workloads {
-						workloadList = append(workloadList, workload)
-					}
+					workloadList = append(workloadList, workloads...)
 				}
 			}
 		}
@@ -352,9 +350,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 			if err != nil {
 				k8sLogger.Warn("Error getting workload", "error", err)
 			} else {
-				for _, workload := range workloads {
-					workloadList = append(workloadList, workload)
-				}
+				workloadList = append(workloadList, workloads...)
 			}
 		}
 	} else
@@ -367,9 +363,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 				if err != nil {
 					k8sLogger.Warn("Error getting workload", "error", err)
 				} else {
-					for _, workload := range workloads {
-						workloadList = append(workloadList, workload)
-					}
+					workloadList = append(workloadList, workloads...)
 				}
 			}
 		}

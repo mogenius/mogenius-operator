@@ -438,7 +438,7 @@ func InitializeSystems(
 	servicesexternal.Setup(logManagerModule, configModule)
 	store.Setup(logManagerModule)
 	structs.Setup(logManagerModule, configModule)
-	xterm.Setup(logManagerModule, configModule, clientProvider)
+	xterm.Setup(logManagerModule, clientProvider)
 	utils.Setup(logManagerModule, configModule)
 
 	// initialization step 1 for services

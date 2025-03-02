@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
@@ -30,13 +29,11 @@ import (
 
 var logManager logging.LogManagerModule
 var xtermLogger *slog.Logger
-var config cfg.ConfigModule
 var clientProvider k8sclient.K8sClientProvider
 
-func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule, clientProviderModule k8sclient.K8sClientProvider) {
+func Setup(logManagerModule logging.LogManagerModule, clientProviderModule k8sclient.K8sClientProvider) {
 	logManager = logManagerModule
 	xtermLogger = logManagerModule.CreateLogger("xterm")
-	config = configModule
 	clientProvider = clientProviderModule
 }
 

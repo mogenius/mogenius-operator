@@ -41,8 +41,14 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		assert.Assert(err == nil, err)
 		redisstore.StartGlobalRedis(logManagerModule.CreateLogger("global-redis"))
 		// clean redis on every startup
-		store.DropAllResourcesFromRedis()
-		store.DropAllPodEventsFromRedis()
+		err = store.DropAllResourcesFromRedis()
+		if err != nil {
+			cmdLogger.Error("Error dropping all resources from redis", "error", err)
+		}
+		err = store.DropAllPodEventsFromRedis()
+		if err != nil {
+			cmdLogger.Error("Error dropping all pod events from redis", "error", err)
+		}
 
 		systems.versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
