@@ -104,14 +104,6 @@ func DeleteK8sSecretBy(namespace string, name string) error {
 func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name))
 
-	// delete old secret
-	// TODO: remove this after a while
-	containerSecretName := "container-secret-" + namespace.Name
-	err := DeleteK8sSecretBy(namespace.Name, containerSecretName)
-	if err != nil {
-		k8sLogger.Error("Error deleting secret", "namespace", namespace.Name, "secret", containerSecretName, "error", err)
-	}
-
 	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
 	if project.ContainerRegistryUser == nil || project.ContainerRegistryPat == nil || project.ContainerRegistryUrl == nil {
 		// delete if exists
@@ -244,13 +236,6 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 
 func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ContainerImagePullSecretName, service.ControllerName))
-
-	// delete old secret
-	// TODO: remove this after a while
-	err := DeleteK8sSecretBy(namespace.Name, "container-secret-service-"+service.ControllerName)
-	if err != nil {
-		k8sLogger.Error("Error deleting secret", "error", err)
-	}
 
 	cmd := structs.CreateCommand("delete", "Delete Container secret", job)
 	wg.Add(1)

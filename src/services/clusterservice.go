@@ -306,7 +306,6 @@ type NfsVolumeStatsResponse struct {
 	UsedBytes  uint64 `json:"usedBytes"`
 }
 
-// @TODO: add request/respionse example for nfs status
 type NfsStatusRequest struct {
 	Name             string `json:"name" validate:"required"`
 	Namespace        string `json:"namespace"`

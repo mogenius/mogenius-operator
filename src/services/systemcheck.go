@@ -445,21 +445,6 @@ func SystemCheck() SystemCheckResponse {
 		return metallbEntry
 	})
 
-	// TODO: FIXEN UND WIEDER EINBAUEN: MOG-1051
-	// keplerVersion, keplerInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
-	// keplerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameKepler, keplerVersion)
-	// if keplerInstalledErr != nil {
-	// 	keplerMsg = fmt.Sprintf("%s is not installed.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler)
-	// }
-	// keplerDescription := "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption."
-	// currentKeplerVersion := getMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
-	// keplerEntry := CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false, keplerVersion, currentKeplerVersion)
-	// keplerEntry.InstallPattern = structs.PAT_INSTALL_KEPLER
-	// keplerEntry.UninstallPattern = structs.PAT_UNINSTALL_KEPLER
-	// keplerEntry.UpgradePattern = "" // structs.PAT_UPGRADE_KEPLER
-	// keplerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
-	// entries = append(entries, keplerEntry)
-
 	// check for local dev setup
 	wg.Add(1)
 	go SysCheckExec("CheckLocalDevSetup", &wg, &entries, func() SystemCheckEntry {

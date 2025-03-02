@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
@@ -12,7 +11,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"net/http"
-	"strconv"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -123,15 +121,6 @@ func (self *httpService) Run(addr string) {
 	mux.Handle("GET /healtz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 
-	// Deprecated: will be removed when ws is active
-	mux.Handle("POST /traffic", self.withRequestLogging(http.HandlerFunc(self.postTraffic)))
-	// Deprecated: will be removed when ws is active
-	mux.Handle("POST /cni", self.withRequestLogging(http.HandlerFunc(self.postCni)))
-	// Deprecated: will be removed when ws is active
-	mux.Handle("POST /podstats", self.withRequestLogging(http.HandlerFunc(self.postPodStats)))
-	// Deprecated: will be removed when ws is active
-	mux.Handle("POST /nodestats", self.withRequestLogging(http.HandlerFunc(self.postNodeStats)))
-
 	mux.Handle("GET /ws", self.withRequestLogging(http.HandlerFunc(self.handleWs)))
 
 	if utils.IsDevBuild() {
@@ -169,158 +158,6 @@ func (self *httpService) getHealthz(w http.ResponseWriter, _ *http.Request) {
 	if err != nil {
 		self.logger.Error("failed to json encode response", "error", err)
 	}
-}
-
-// Deprecated: will be removed when ws is active
-func (self *httpService) postTraffic(w http.ResponseWriter, r *http.Request) {
-	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
-	assert.Assert(err == nil, err)
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		self.logger.Error("failed to read request body", "error", err)
-		return
-	}
-
-	if debugMode {
-		var parsedJson interface{}
-		err = json.Unmarshal(body, &parsedJson)
-		if err != nil {
-			self.logger.Error("failed to indent json", "error", err)
-			return
-		}
-		self.logger.Debug("POST /traffic", "body", parsedJson)
-	}
-
-	stat := &structs.InterfaceStats{}
-	err = structs.UnmarshalInterfaceStats(stat, body)
-	if err != nil {
-		self.logger.Error("failed to unmarshal interface stats", "error", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		err := json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
-		})
-		if err != nil {
-			self.logger.Error("failed to json encode response", "error", err)
-		}
-		return
-	}
-
-	self.dbstats.AddInterfaceStatsToDb(*stat)
-}
-
-// Deprecated: will be removed when ws is active
-func (self *httpService) postCni(w http.ResponseWriter, r *http.Request) {
-	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
-	assert.Assert(err == nil)
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		self.logger.Error("failed to read request body", "error", err)
-		return
-	}
-
-	if debugMode {
-		var parsedJson interface{}
-		err = json.Unmarshal(body, &parsedJson)
-		if err != nil {
-			self.logger.Error("failed to indent json", "error", err)
-			return
-		}
-		self.logger.Debug("POST /cni", "body", parsedJson)
-	}
-
-	cniData := &[]structs.CniData{}
-	err = structs.UnmarshalCniData(cniData, body)
-	if err != nil {
-		self.logger.Error("failed to unmarshal cniData", "error", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		err := json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
-		})
-		if err != nil {
-			self.logger.Error("failed to json encode response", "error", err)
-		}
-		return
-	}
-
-	self.dbstats.ReplaceCniData(*cniData)
-}
-
-// Deprecated: will be removed when ws is active
-func (self *httpService) postPodStats(w http.ResponseWriter, r *http.Request) {
-	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
-	assert.Assert(err == nil, err)
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		self.logger.Error("failed to read request body", "error", err)
-		return
-	}
-
-	if debugMode {
-		var parsedJson interface{}
-		err = json.Unmarshal(body, &parsedJson)
-		if err != nil {
-			self.logger.Error("failed to indent json", "error", err)
-			return
-		}
-		self.logger.Debug("POST /podstats", "body", parsedJson)
-	}
-
-	stat := &structs.PodStats{}
-	err = structs.UnmarshalPodStats(stat, body)
-	if err != nil {
-		self.logger.Error("failed to unmarshal interface stats", "error", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		err := json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
-		})
-		if err != nil {
-			self.logger.Error("failed to json encode response", "error", err)
-		}
-		return
-	}
-
-	self.dbstats.AddPodStatsToDb(*stat)
-}
-
-// Deprecated: will be removed when ws is active
-func (self *httpService) postNodeStats(w http.ResponseWriter, r *http.Request) {
-	debugMode, err := strconv.ParseBool(self.config.Get("MO_DEBUG"))
-	assert.Assert(err == nil, err)
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		self.logger.Error("failed to read request body", "error", err)
-		return
-	}
-
-	if debugMode {
-		var parsedJson interface{}
-		err = json.Unmarshal(body, &parsedJson)
-		if err != nil {
-			self.logger.Error("failed to indent json", "error", err)
-			return
-		}
-		self.logger.Debug("POST /nodestats", "body", parsedJson)
-	}
-
-	stat := &structs.NodeStats{}
-	err = structs.UnmarshalNodeStats(stat, body)
-	if err != nil {
-		self.logger.Error("failed to unmarshal interface stats", "error", err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		err := json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
-		})
-		if err != nil {
-			self.logger.Error("failed to json encode response", "error", err)
-		}
-		return
-	}
-
-	self.dbstats.AddNodeStatsToDb(*stat)
 }
 
 func (self *httpService) withRequestLogging(handler http.Handler) http.Handler {

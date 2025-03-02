@@ -387,18 +387,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_DEBUG",
-		DefaultValue: utils.Pointer("false"),
-		Description:  utils.Pointer("enable debug mode"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_DEBUG' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
-	})
 }
 
 func ApplyStageOverrides(configModule *config.Config) {

@@ -348,7 +348,6 @@ func (self *redisStatsDbModule) GetTrafficStatsEntriesForNamespace(namespace str
 	return &values
 }
 
-// TODO: calculation is wrong here
 func (self *redisStatsDbModule) GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats {
 	result := []structs.InterfaceStats{}
 
@@ -368,31 +367,7 @@ func (self *redisStatsDbModule) GetTrafficStatsEntriesSumForNamespace(namespace 
 		}
 
 	}
-
 	return result
-
-	// FORMER CODE
-	// result := []structs.InterfaceStats{}
-	// err := self.db.View(func(tx *bbolt.Tx) error {
-	// 	bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_TRAFFIC_BUCKET_NAME)), []string{namespace})
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	controllerCursor := bucket.Cursor()
-	// 	for controllerName, _ := controllerCursor.First(); controllerName != nil; controllerName, _ = controllerCursor.Next() {
-	// 		controller := NewK8sController("", string(controllerName), namespace)
-	// 		entry := self.GetTrafficStatsEntrySumForController(controller, false)
-	// 		if entry != nil {
-	// 			result = append(result, *entry)
-	// 		}
-	// 	}
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	self.logger.Warn("GetTrafficStatsEntriesSumForNamespace", "error", err)
-	// }
-	// return result
 }
 
 func (self *redisStatsDbModule) AddPodStatsToDb(stats structs.PodStats) {

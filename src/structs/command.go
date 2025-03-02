@@ -2,10 +2,8 @@ package structs
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/utils"
 	"os/exec"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -89,15 +87,9 @@ func (cmd *Command) Start(job *Job, msg string) {
 }
 
 func (cmd *Command) Fail(job *Job, err string) {
-	moDebug, erro := strconv.ParseBool(config.Get("MO_DEBUG"))
-	assert.Assert(erro == nil)
-
 	cmd.State = JobStateFailed
 	cmd.Message = err
 	cmd.Finished = time.Now()
-	if moDebug {
-		structsLogger.Error("Command failed", "title", cmd.Title, "message", cmd.Message, "error", err, "namespace", job.NamespaceName, "controller", job.ControllerName)
-	}
 	ReportCmdStateToServer(job, cmd)
 }
 

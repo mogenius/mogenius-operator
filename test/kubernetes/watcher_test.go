@@ -16,10 +16,6 @@ import (
 func TestWatcher(t *testing.T) {
 	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_DEBUG",
-		DefaultValue: utils.Pointer("true"),
-	})
 	structs.Setup(logManager, config)
 
 	createNewDeplString := test.YamlSanitize(`
