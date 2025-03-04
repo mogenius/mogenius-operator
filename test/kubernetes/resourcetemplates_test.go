@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/utils"
 	"testing"
 )
@@ -20,7 +21,8 @@ func TestResourceTemplates(t *testing.T) {
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
+	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
 	assert.AssertT(t, err == nil, err)
 
 	// CREATE

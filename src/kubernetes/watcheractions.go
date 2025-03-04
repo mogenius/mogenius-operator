@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"os"
@@ -100,7 +99,7 @@ func setStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 	}
 
 	// other resources
-	err := redisstore.Global.SetObject(obj, 0, REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
+	err := redisStore.SetObject(obj, 0, REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
@@ -128,7 +127,7 @@ func deleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 	}
 
 	if kind == "NetworkPolicy" {
-		err := redisstore.Global.Delete(REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
+		err := redisStore.Delete(REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -145,7 +144,7 @@ func deleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 	}
 
 	// other resources
-	err := redisstore.Global.Delete(REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
+	err := redisStore.Delete(REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}

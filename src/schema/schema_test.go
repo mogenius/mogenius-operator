@@ -12,7 +12,6 @@ func TestString(t *testing.T) {
 	assert.AssertT(t, err == nil, err)
 	assert.AssertT(t, s.TypeInfo.Type == schema.SchemaTypeString)
 	assert.AssertT(t, !s.TypeInfo.Pointer)
-	assert.AssertT(t, false)
 }
 
 func TestStringPointer(t *testing.T) {

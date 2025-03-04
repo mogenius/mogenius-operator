@@ -49,8 +49,8 @@ type redisStatsDbModule struct {
 	redis  redisstore.RedisStore
 }
 
-func NewRedisStatsModule(config cfg.ConfigModule, logger *slog.Logger) RedisStatsDb {
-	redisStore := redisstore.NewRedis(logger)
+func NewRedisStatsModule(logger *slog.Logger, config cfg.ConfigModule) RedisStatsDb {
+	redisStore := redisstore.NewRedisStore(logger, config)
 
 	dbStatsModule := redisStatsDbModule{
 		config: config,
@@ -97,12 +97,12 @@ func (self *redisStatsDbModule) ReplaceCniData(data []structs.CniData) {
 }
 
 func (self *redisStatsDbModule) GetCniData() ([]structs.CniData, error) {
-	result, err := redisstore.GetObjectsByPrefix[structs.CniData](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_NONE, DB_STATS_CNI_BUCKET_NAME)
+	result, err := redisstore.GetObjectsByPrefix[structs.CniData](self.redis, redisstore.ORDER_NONE, DB_STATS_CNI_BUCKET_NAME)
 	return result, err
 }
 
 func (self *redisStatsDbModule) GetPodStatsEntriesForController(controller K8sController) *[]structs.PodStats {
-	result, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
+	result, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis, redisstore.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error("GetPodStatsEntriesForController", "error", err)
 	}
@@ -110,7 +110,7 @@ func (self *redisStatsDbModule) GetPodStatsEntriesForController(controller K8sCo
 }
 
 func (self *redisStatsDbModule) GetLastPodStatsEntryForController(controller K8sController) *structs.PodStats {
-	values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), 1, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
+	values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis, 1, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -121,7 +121,7 @@ func (self *redisStatsDbModule) GetLastPodStatsEntryForController(controller K8s
 }
 
 func (self *redisStatsDbModule) GetTrafficStatsEntriesForController(controller K8sController) *[]structs.InterfaceStats {
-	result, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_NONE, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
+	result, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis, redisstore.ORDER_NONE, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -129,7 +129,7 @@ func (self *redisStatsDbModule) GetTrafficStatsEntriesForController(controller K
 }
 
 func (self *redisStatsDbModule) GetTrafficStatsEntrySumForController(controller K8sController, includeSocketConnections bool) *structs.InterfaceStats {
-	entries, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
+	entries, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis, redisstore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -163,7 +163,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinu
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -212,7 +212,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInM
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -261,7 +261,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsTrafficUtilization(timeOffsetIn
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := redisstore.LastNEntryFromBucketWithType[structs.InterfaceStats](self.redis.GetContext(), self.redis.GetClient(), int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := redisstore.LastNEntryFromBucketWithType[structs.InterfaceStats](self.redis, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -314,7 +314,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsTrafficUtilization(timeOffsetIn
 }
 
 func (self *redisStatsDbModule) GetSocketConnectionsForController(controller K8sController) *structs.SocketConnections {
-	value, err := redisstore.GetObjectForKey[structs.SocketConnections](self.redis.GetContext(), self.redis.GetClient(), DB_STATS_SOCKET_STATS_BUCKET, controller.Namespace, controller.Name)
+	value, err := redisstore.GetObjectForKey[structs.SocketConnections](self.redis, DB_STATS_SOCKET_STATS_BUCKET, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -323,7 +323,7 @@ func (self *redisStatsDbModule) GetSocketConnectionsForController(controller K8s
 }
 
 func (self *redisStatsDbModule) GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
-	values, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
+	values, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis, redisstore.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -332,7 +332,7 @@ func (self *redisStatsDbModule) GetPodStatsEntriesForNamespace(namespace string)
 }
 
 func (self *redisStatsDbModule) GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
-	values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis.GetContext(), self.redis.GetClient(), 1, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
+	values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis, 1, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -340,7 +340,7 @@ func (self *redisStatsDbModule) GetLastPodStatsEntriesForNamespace(namespace str
 }
 
 func (self *redisStatsDbModule) GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats {
-	values, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis.GetContext(), self.redis.GetClient(), redisstore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, namespace)
+	values, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis, redisstore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, namespace)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}

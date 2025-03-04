@@ -9,6 +9,7 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"testing"
@@ -90,7 +91,8 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
+	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.EnsureLabeledNetworkPolicy("default", labelPolicy1)
@@ -105,7 +107,8 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
+	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.InitNetworkPolicyConfigMap()
@@ -121,7 +124,8 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
+	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
 	assert.AssertT(t, err == nil, err)
 
 	ports, err := kubernetes.ReadNetworkPolicyPorts()
@@ -180,7 +184,14 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 }
 
 func TestListAllConflictingNetworkPolicies(t *testing.T) {
-
+	logManager := logging.NewMockSlogManager(t)
+	config := cfg.NewConfig()
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
+	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
+	store.Setup(logManager, redisStoreModule)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
+	assert.AssertT(t, err == nil, err)
 	list, err := kubernetes.ListAllConflictingNetworkPolicies("mogenius")
 	assert.AssertT(t, err == nil, err)
 	t.Log(list)
@@ -197,7 +208,8 @@ func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
+	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.CleanupLabeledNetworkPolicies("mogenius")
@@ -208,8 +220,10 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	t.Skip("test currently relies on sleep introducing flakyness")
 	var namespaceName = "mogenius"
 
+	config := cfg.NewConfig()
 	logManager := logging.NewMockSlogManager(t)
-	store.Setup(logManager)
+	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
+	store.Setup(logManager, redisStoreModule)
 
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()
@@ -252,7 +266,8 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
+	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy1))

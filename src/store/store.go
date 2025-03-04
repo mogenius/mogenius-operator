@@ -16,9 +16,11 @@ const (
 )
 
 var storeLogger *slog.Logger
+var redisStore redisstore.RedisStore
 
-func Setup(logManagerModule logging.LogManagerModule) {
+func Setup(logManagerModule logging.LogManagerModule, storeModule redisstore.RedisStore) {
 	storeLogger = logManagerModule.CreateLogger("store")
+	redisStore = storeModule
 }
 
 var ErrNotFound = errors.New("not found")
@@ -26,7 +28,7 @@ var ErrNotFound = errors.New("not found")
 func GetByKeyParts(keys ...string) interface{} {
 	key := CreateKey(keys...)
 
-	value, err := redisstore.Global.GetObject(key)
+	value, err := redisStore.GetObject(key)
 	if err != nil {
 		storeLogger.Warn("failed to get value", "key", key, "error", err)
 		return nil
@@ -37,7 +39,7 @@ func GetByKeyParts(keys ...string) interface{} {
 func SearchByKeyParts(parts ...string) ([]unstructured.Unstructured, error) {
 	key := CreateKey(parts...)
 
-	items, err := redisstore.GetObjectsByPrefix[unstructured.Unstructured](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), redisstore.ORDER_NONE, key)
+	items, err := redisstore.GetObjectsByPrefix[unstructured.Unstructured](redisStore, redisstore.ORDER_NONE, key)
 
 	if len(items) == 0 {
 		return nil, ErrNotFound
@@ -50,7 +52,7 @@ func SearchByKeyParts(parts ...string) ([]unstructured.Unstructured, error) {
 func SearchByNamespaceAndName(namespace string, name string) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(nil, nil, &namespace, &name)
 
-	items, err := redisstore.GetObjectsByPattern[unstructured.Unstructured](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), pattern, []string{})
+	items, err := redisstore.GetObjectsByPattern[unstructured.Unstructured](redisStore, pattern, []string{})
 
 	return items, err
 }
@@ -58,7 +60,7 @@ func SearchByNamespaceAndName(namespace string, name string) ([]unstructured.Uns
 func SearchByGroupKindNameNamespace(group string, kind string, name string, namespace *string) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(&group, &kind, namespace, &name)
 
-	items, err := redisstore.GetObjectsByPattern[unstructured.Unstructured](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), pattern, []string{})
+	items, err := redisstore.GetObjectsByPattern[unstructured.Unstructured](redisStore, pattern, []string{})
 
 	return items, err
 }
@@ -74,19 +76,19 @@ func SearchByNamespace(namespace string, whitelist []*utils.SyncResourceEntry) (
 		}
 	}
 
-	items, err := redisstore.GetObjectsByPattern[unstructured.Unstructured](redisstore.GetGlobalCtx(), redisstore.GetGlobalRedisClient(), pattern, searchKeys)
+	items, err := redisstore.GetObjectsByPattern[unstructured.Unstructured](redisStore, pattern, searchKeys)
 
 	return items, err
 }
 
 func DropAllResourcesFromRedis() error {
-	keys, err := redisstore.Global.Keys(REDIS_KEY_PREFIX + ":*")
+	keys, err := redisStore.Keys(REDIS_KEY_PREFIX + ":*")
 	if err != nil {
 		storeLogger.Error("failed to get keys", "error", err)
 		return err
 	}
 	for _, v := range keys {
-		err = redisstore.Global.Delete(v)
+		err = redisStore.Delete(v)
 		if err != nil {
 			storeLogger.Error("failed to delete key", "key", v, "error", err)
 		}
@@ -95,13 +97,13 @@ func DropAllResourcesFromRedis() error {
 }
 
 func DropAllPodEventsFromRedis() error {
-	keys, err := redisstore.Global.Keys("pod-events" + ":*")
+	keys, err := redisStore.Keys("pod-events" + ":*")
 	if err != nil {
 		storeLogger.Error("failed to get keys", "error", err)
 		return err
 	}
 	for _, v := range keys {
-		err = redisstore.Global.Delete(v)
+		err = redisStore.Delete(v)
 		if err != nil {
 			storeLogger.Error("failed to delete key", "key", v, "error", err)
 		}

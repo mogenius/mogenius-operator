@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/redisstore"
 	"net/url"
 	"strings"
 	"sync"
@@ -98,7 +97,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		data, err := redisstore.Global.LastNEntryFromBucketWithType(50, kubernetes.DB_STATS_POD_EVENTS_NAME, key)
+		data, err := store.LastNEntryFromBucketWithType(50, kubernetes.DB_STATS_POD_EVENTS_NAME, key)
 		if err != nil {
 			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
 			return

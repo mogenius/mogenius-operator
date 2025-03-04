@@ -420,25 +420,25 @@ func InitializeSystems(
 	assert.Assert(cmdLogger != nil)
 
 	// initialize client modules
-	redisModule := redisstore.NewRedis(logManagerModule.CreateLogger("redis"))
+	redisModule := redisstore.NewRedisStore(logManagerModule.CreateLogger("redis"), configModule)
 	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
-	dbstatsModule := kubernetes.NewRedisStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
+	dbstatsModule := kubernetes.NewRedisStatsModule(logManagerModule.CreateLogger("db-stats"), configModule)
 	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule)
-	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
+	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, redisModule)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
 	services.Setup(logManagerModule, configModule, clientProvider)
 	servicesexternal.Setup(logManagerModule, configModule)
-	store.Setup(logManagerModule)
+	store.Setup(logManagerModule, redisModule)
 	structs.Setup(logManagerModule, configModule)
-	xterm.Setup(logManagerModule, clientProvider)
+	xterm.Setup(logManagerModule, clientProvider, redisModule)
 	utils.Setup(logManagerModule, configModule)
 
 	// initialization step 1 for services
@@ -455,17 +455,17 @@ func InitializeSystems(
 	apiModule.Link(workspaceManager)
 
 	return systems{
-		clientProvider:      clientProvider,
-		versionModule:       versionModule,
-		watcherModule:       watcherModule,
-		dbstatsModule:       dbstatsModule,
-		jobConnectionClient: jobConnectionClient,
-		workspaceManager:    workspaceManager,
-		apiModule:           apiModule,
-		socketApi:           socketApi,
-		httpApi:             httpApi,
-		xtermService:        xtermService,
-		redisModule:         redisModule,
+		clientProvider,
+		versionModule,
+		watcherModule,
+		dbstatsModule,
+		jobConnectionClient,
+		workspaceManager,
+		apiModule,
+		socketApi,
+		httpApi,
+		xtermService,
+		redisModule,
 	}
 }
 

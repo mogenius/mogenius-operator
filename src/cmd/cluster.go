@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/src/helm"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/store"
@@ -29,17 +28,16 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		// DB (redis)
 		redisPwd, err := mokubernetes.GetRedisPwd()
-		if err != nil && redisPwd != nil {
+		if err != nil {
 			cmdLogger.Error("Error getting redis password", "error", err)
-			shutdown.SendShutdownSignal(true)
-			select {}
 		}
-		configModule.Set("MO_REDIS_PASSWORD", *redisPwd)
+		if redisPwd != nil {
+			configModule.Set("MO_REDIS_PASSWORD", *redisPwd)
+		}
 		err = systems.redisModule.Connect()
 		assert.Assert(err == nil, err)
 		err = systems.dbstatsModule.Start()
 		assert.Assert(err == nil, err)
-		redisstore.StartGlobalRedis(logManagerModule.CreateLogger("global-redis"))
 		// clean redis on every startup
 		err = store.DropAllResourcesFromRedis()
 		if err != nil {
