@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	REDIS_KEY_PREFIX = "resources"
+	VALKEY_KEY_PREFIX = "resources"
 )
 
 var storeLogger *slog.Logger
@@ -81,8 +81,8 @@ func SearchByNamespace(namespace string, whitelist []*utils.SyncResourceEntry) (
 	return items, err
 }
 
-func DropAllResourcesFromRedis() error {
-	keys, err := redisStore.Keys(REDIS_KEY_PREFIX + ":*")
+func DropAllResourcesFromValkey() error {
+	keys, err := redisStore.Keys(VALKEY_KEY_PREFIX + ":*")
 	if err != nil {
 		storeLogger.Error("failed to get keys", "error", err)
 		return err
@@ -96,7 +96,7 @@ func DropAllResourcesFromRedis() error {
 	return err
 }
 
-func DropAllPodEventsFromRedis() error {
+func DropAllPodEventsFromValkey() error {
 	keys, err := redisStore.Keys("pod-events" + ":*")
 	if err != nil {
 		storeLogger.Error("failed to get keys", "error", err)
@@ -112,14 +112,14 @@ func DropAllPodEventsFromRedis() error {
 }
 
 func CreateKey(parts ...string) string {
-	parts = append([]string{REDIS_KEY_PREFIX}, parts...)
+	parts = append([]string{VALKEY_KEY_PREFIX}, parts...)
 	return strings.Join(parts, ":")
 }
 
 func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
 	parts := make([]string, 5)
 
-	parts[0] = REDIS_KEY_PREFIX
+	parts[0] = VALKEY_KEY_PREFIX
 
 	if groupVersion != nil && *groupVersion != "" {
 		parts[1] = *groupVersion

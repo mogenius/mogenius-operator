@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	REDIS_KEY_PREFIX = "resources"
+	VALKEY_KEY_PREFIX = "resources"
 )
 
 type GetUnstructuredNamespaceResourceListRequest struct {
@@ -99,7 +99,7 @@ func setStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 	}
 
 	// other resources
-	err := redisStore.SetObject(obj, 0, REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
+	err := redisStore.SetObject(obj, 0, VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
@@ -127,7 +127,7 @@ func deleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 	}
 
 	if kind == "NetworkPolicy" {
-		err := redisStore.Delete(REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
+		err := redisStore.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -144,7 +144,7 @@ func deleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 	}
 
 	// other resources
-	err := redisStore.Delete(REDIS_KEY_PREFIX, groupVersion, kind, namespace, name)
+	err := redisStore.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}

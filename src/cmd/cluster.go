@@ -26,26 +26,26 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
 
-		// DB (redis)
-		redisPwd, err := mokubernetes.GetRedisPwd()
+		// DB (valkey) setup
+		valkeyPwd, err := mokubernetes.GetValkeyPwd()
 		if err != nil {
-			cmdLogger.Error("Error getting redis password", "error", err)
+			cmdLogger.Error("Error getting valkey password", "error", err)
 		}
-		if redisPwd != nil {
-			configModule.Set("MO_REDIS_PASSWORD", *redisPwd)
+		if valkeyPwd != nil {
+			configModule.Set("MO_VALKEY_PASSWORD", *valkeyPwd)
 		}
 		err = systems.redisModule.Connect()
 		assert.Assert(err == nil, err)
 		err = systems.dbstatsModule.Start()
 		assert.Assert(err == nil, err)
-		// clean redis on every startup
-		err = store.DropAllResourcesFromRedis()
+		// clean valkey on every startup
+		err = store.DropAllResourcesFromValkey()
 		if err != nil {
-			cmdLogger.Error("Error dropping all resources from redis", "error", err)
+			cmdLogger.Error("Error dropping all resources from valkey", "error", err)
 		}
-		err = store.DropAllPodEventsFromRedis()
+		err = store.DropAllPodEventsFromValkey()
 		if err != nil {
-			cmdLogger.Error("Error dropping all pod events from redis", "error", err)
+			cmdLogger.Error("Error dropping all pod events from valkey", "error", err)
 		}
 
 		systems.versionModule.PrintVersionInfo()

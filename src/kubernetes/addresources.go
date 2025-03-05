@@ -195,18 +195,18 @@ func GetSyncRepoData() (*dtos.SyncRepoData, error) {
 	return &result, nil
 }
 
-func GetRedisPwd() (*string, error) {
+func GetValkeyPwd() (*string, error) {
 	clientset := clientProvider.K8sClientSet()
 	secretClient := clientset.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
 
-	existingSecret, getErr := secretClient.Get(context.TODO(), "mogenius-k8s-manager-redis", metav1.GetOptions{})
+	existingSecret, getErr := secretClient.Get(context.TODO(), "mogenius-k8s-manager-valkey", metav1.GetOptions{})
 	if getErr != nil {
 		return nil, getErr
 	}
 
-	foundPwd := string(existingSecret.Data["redis-password"])
+	foundPwd := string(existingSecret.Data["valkey-password"])
 	if foundPwd == "" {
-		return nil, fmt.Errorf("redis password not found")
+		return nil, fmt.Errorf("valkey password not found")
 	}
 
 	return &foundPwd, nil

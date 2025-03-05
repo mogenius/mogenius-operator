@@ -249,20 +249,20 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:         "MO_REDIS_HOST",
-		Description: utils.Pointer("URL of operator redis Server"),
+		Key:         "MO_VALKEY_HOST",
+		Description: utils.Pointer("URL of operator valkey Server"),
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
 			if err != nil {
-				return fmt.Errorf("'MO_REDIS_HOST' needs to be a URL: %s", err.Error())
+				return fmt.Errorf("'MO_VALKEY_HOST' needs to be a URL: %s", err.Error())
 			}
 			return nil
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_REDIS_PASSWORD",
+		Key:          "MO_VALKEY_PASSWORD",
 		DefaultValue: utils.Pointer(""),
-		Description:  utils.Pointer("Password of operator redis Server"),
+		Description:  utils.Pointer("Password of operator valkey Server"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",

@@ -67,24 +67,24 @@ func NewRedisStore(logger *slog.Logger, configModule config.ConfigModule) RedisS
 }
 
 func (self *redisStore) Connect() error {
-	self.logger.Info("Connecting to Redis")
+	self.logger.Info("Connecting to valkey")
 
-	redisHost := self.config.Get("MO_REDIS_HOST")
+	redisHost := self.config.Get("MO_VALKEY_HOST")
 	redisUrl, err := url.Parse(redisHost)
 	assert.Assert(err == nil, err)
 	redisAddr := redisUrl.Host
-	redisPwd := self.config.Get("MO_REDIS_PASSWORD")
+	valkeyPwd := self.config.Get("MO_VALKEY_PASSWORD")
 
 	self.redisClient = redis.NewClient(&redis.Options{
 		Addr:       redisAddr,
-		Password:   redisPwd,
+		Password:   valkeyPwd,
 		DB:         0,
 		MaxRetries: 0,
 	})
 
 	_, err = self.redisClient.Ping(self.ctx).Result()
 	if err != nil {
-		self.logger.Info("redis connection failed", "url", redisAddr, "password", redisPwd, "error", err)
+		self.logger.Info("valkey connection failed", "url", redisAddr, "password", valkeyPwd, "error", err)
 		return fmt.Errorf("could not connect to Redis: %v", err)
 	}
 	self.logger.Info("Connected to Redis", "hostUrl", redisUrl)
@@ -283,7 +283,7 @@ func ListFromBucketWithType[T any](store RedisStore, start int64, stop int64, bu
 	for _, v := range elements {
 		var obj T
 		if err := json.Unmarshal([]byte(v), &obj); err != nil {
-			return nil, fmt.Errorf("error unmarshalling value from Redis bucket, error: %v", err)
+			return nil, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
 		}
 		objects = append(objects, obj)
 	}
@@ -316,7 +316,7 @@ func LastNEntryFromBucketWithType[T any](store RedisStore, number int64, bucketK
 	for _, v := range elements {
 		var obj T
 		if err := json.Unmarshal([]byte(v), &obj); err != nil {
-			return nil, fmt.Errorf("error unmarshalling value from Redis bucket, error: %v", err)
+			return nil, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
 		}
 		objects = append(objects, obj)
 	}
