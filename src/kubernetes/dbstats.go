@@ -299,7 +299,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsTrafficUtilization(timeOffsetIn
 	// the entries in traffic are always incremental, so we need to normalize the values (11, 14, 16, 19 -> 3, 2, 3)
 	for i := 0; i < len(sortedEntries); i++ {
 		if i+1 < len(result) {
-			normalized := sortedEntries[i].Value - sortedEntries[i+1].Value
+			normalized := sortedEntries[i+1].Value - sortedEntries[i].Value
 			if normalized > 0 {
 				sortedEntries[i].Value = normalized
 			}
