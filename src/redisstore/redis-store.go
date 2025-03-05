@@ -69,14 +69,13 @@ func NewRedisStore(logger *slog.Logger, configModule config.ConfigModule) RedisS
 func (self *redisStore) Connect() error {
 	self.logger.Info("Connecting to valkey")
 
-	redisHost := self.config.Get("MO_VALKEY_HOST")
-	redisUrl, err := url.Parse(redisHost)
+	valkeyHost := self.config.Get("MO_VALKEY_HOST")
+	valkeyUrl, err := url.Parse(valkeyHost)
 	assert.Assert(err == nil, err)
-	redisAddr := redisUrl.Host
 	valkeyPwd := self.config.Get("MO_VALKEY_PASSWORD")
 
 	self.redisClient = redis.NewClient(&redis.Options{
-		Addr:       redisAddr,
+		Addr:       valkeyUrl.String(),
 		Password:   valkeyPwd,
 		DB:         0,
 		MaxRetries: 0,
@@ -84,10 +83,10 @@ func (self *redisStore) Connect() error {
 
 	_, err = self.redisClient.Ping(self.ctx).Result()
 	if err != nil {
-		self.logger.Info("valkey connection failed", "url", redisAddr, "password", valkeyPwd, "error", err)
-		return fmt.Errorf("could not connect to Redis: %v", err)
+		self.logger.Info("valkey connection failed", "url", valkeyUrl.String(), "password", valkeyPwd, "error", err)
+		return fmt.Errorf("could not connect to valkey: %v", err)
 	}
-	self.logger.Info("Connected to Redis", "hostUrl", redisUrl)
+	self.logger.Info("Connected to valkey", "hostUrl", valkeyUrl)
 	return nil
 }
 
