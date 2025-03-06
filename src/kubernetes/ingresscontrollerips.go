@@ -7,7 +7,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"net"
 
 	v1 "k8s.io/api/core/v1"
@@ -23,14 +22,13 @@ func GetIngressControllerIps(useLocalKubeConfig bool) []net.IP {
 
 	for _, pod := range pods.Items {
 		ip := net.ParseIP(pod.Status.PodIP)
-		fmt.Println(pod.Name, ip)
 		if ip != nil {
 			result = append(result, ip)
 		}
 	}
 
 	if err != nil {
-		fmt.Println("Error:", err)
+		k8sLogger.Error(err.Error())
 		return result
 	}
 	return result
@@ -43,23 +41,21 @@ func GetClusterExternalIps() []string {
 	clientset := clientProvider.K8sClientSet()
 	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/name=ingress-nginx"
 	services, err := clientset.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
-	allServices = append(allServices, services.Items...)
-
 	if err != nil {
-		fmt.Println("Error:", err)
+		k8sLogger.Error(err.Error())
 		return result
 	}
+	allServices = append(allServices, services.Items...)
 
 	// check if traefik is used
 	if len(result) <= 0 {
 		traefikSelector := "app.kubernetes.io/name=traefik"
 		services, err := clientset.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: traefikSelector})
-		allServices = append(allServices, services.Items...)
-
 		if err != nil {
-			fmt.Println("Error:", err)
+			k8sLogger.Error(err.Error())
 			return result
 		}
+		allServices = append(allServices, services.Items...)
 	}
 
 	for _, service := range allServices {

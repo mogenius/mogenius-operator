@@ -3,8 +3,6 @@ package structs
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/utils"
-	"regexp"
-	"strings"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -107,35 +105,4 @@ func (data *InterfaceStats) ToBytes() []byte {
 		return nil
 	}
 	return bytes
-}
-
-func (data *SocketConnections) UniqueIps() []string {
-	result := []string{}
-
-	for key := range data.Connections {
-		// split TCP-10.96.0.10:53-10.1.11.193:48013
-		pattern := `^(TCP|UDP)-([\d.]+):(\d+)-([\d.]+):(\d+)$`
-		re := regexp.MustCompile(pattern)
-		match := re.FindStringSubmatch(key)
-		if match == nil {
-			fmt.Println("No match found")
-			continue
-		}
-
-		// protocol := match[1]
-		srcIP := match[2]
-		// srcPort, _ := strconv.Atoi(match[3])
-		dstIP := match[4]
-		// dstPort, _ := strconv.Atoi(match[5])
-
-		// filter strange IPs
-		if strings.HasPrefix(srcIP, "0.") || strings.HasPrefix(dstIP, "0.") {
-			continue
-		}
-
-		result = utils.AppendIfNotExist(result, srcIP)
-		result = utils.AppendIfNotExist(result, dstIP)
-	}
-
-	return result
 }

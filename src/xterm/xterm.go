@@ -452,7 +452,7 @@ func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc,
 					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
 					connWriteLock.Unlock()
 					if err != nil {
-						fmt.Println("WriteMessage", err.Error())
+						xtermLogger.Error("Error", "WriteMessage", err.Error())
 					}
 					continue
 				}
