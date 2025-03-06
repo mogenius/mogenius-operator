@@ -473,7 +473,9 @@ func InitializeSystems(
 	dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
 	assert.Assert(err == nil, err)
 	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-job-client"))
+	shutdown.Add(jobConnectionClient.Terminate)
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
+	shutdown.Add(eventConnectionClient.Terminate)
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule)
@@ -492,7 +494,6 @@ func InitializeSystems(
 	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
 	apiModule := core.NewApi(logManagerModule.CreateLogger("api"))
 	httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
-	shutdown.Add(jobConnectionClient.Terminate)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, dbstatsModule)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 

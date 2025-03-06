@@ -46,13 +46,22 @@ func ConnectToEventQueue(eventClient websocket.WebsocketClient) {
 
 			ctx := context.Background()
 			ctx.Done()
-			<-eventConnectionGuard
+			select {
+			case <-eventQueueCtx.Done():
+				return
+			case <-eventConnectionGuard:
+			}
 
 			ticker.Stop()
 			close(quit)
 		}()
 
-		<-time.After(RETRYTIMEOUT * time.Second)
+		select {
+		case <-eventQueueCtx.Done():
+			structsLogger.Debug("shutting down eventsqueue")
+			return
+		case <-time.After(RETRYTIMEOUT * time.Second):
+		}
 	}
 }
 
