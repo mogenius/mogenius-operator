@@ -26,7 +26,6 @@ func ConnectToJobQueue(jobClient websocket.WebsocketClient) {
 					case <-jobQueueCtx.Done():
 						return
 					case <-quit:
-						// close go routine
 						return
 					case <-ticker.C:
 						processJobNow(jobClient)

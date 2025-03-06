@@ -3,6 +3,7 @@ package structs
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"os/exec"
 	"sync"
 	"time"
@@ -18,7 +19,7 @@ type Command struct {
 	Finished time.Time    `json:"finished"`
 }
 
-func CreateCommand(command string, title string, job *Job) *Command {
+func CreateCommand(eventClient websocket.WebsocketClient, command string, title string, job *Job) *Command {
 	cmd := &Command{
 		Id:      utils.NanoId(),
 		Command: command,
@@ -27,16 +28,16 @@ func CreateCommand(command string, title string, job *Job) *Command {
 		State:   JobStatePending,
 		Started: time.Now(),
 	}
-	job.AddCmd(cmd)
+	job.AddCmd(eventClient, cmd)
 	return cmd
 }
 
-func CreateShellCommand(command string, title string, job *Job, shellCmd string, wg *sync.WaitGroup) {
+func CreateShellCommand(eventClient websocket.WebsocketClient, command string, title string, job *Job, shellCmd string, wg *sync.WaitGroup) {
 	wg.Add(1)
-	cmd := CreateCommand(command, title, job)
+	cmd := CreateCommand(eventClient, command, title, job)
 	go func() {
 		defer wg.Done()
-		cmd.Start(job, title)
+		cmd.Start(eventClient, job, title)
 
 		output, err := exec.Command("sh", "-c", shellCmd).Output()
 		structsLogger.Debug("executed command", "cmd", string(shellCmd), "output", string(output))
@@ -45,11 +46,11 @@ func CreateShellCommand(command string, title string, job *Job, shellCmd string,
 			exitCode := exitErr.ExitCode()
 			errorMsg := string(exitErr.Stderr)
 			structsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
-			cmd.Fail(job, fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
+			cmd.Fail(eventClient, job, fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
 		} else if err != nil {
 			structsLogger.Error("exec.Command", "cmd", shellCmd, "error", err)
 		} else {
-			cmd.Success(job, title)
+			cmd.Success(eventClient, job, title)
 		}
 	}()
 }
@@ -80,22 +81,22 @@ func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func
 	}()
 }
 
-func (cmd *Command) Start(job *Job, msg string) {
+func (cmd *Command) Start(eventClient websocket.WebsocketClient, job *Job, msg string) {
 	cmd.State = JobStateStarted
 	cmd.Message = msg
-	ReportCmdStateToServer(job, cmd)
+	ReportCmdStateToServer(eventClient, job, cmd)
 }
 
-func (cmd *Command) Fail(job *Job, err string) {
+func (cmd *Command) Fail(eventClient websocket.WebsocketClient, job *Job, err string) {
 	cmd.State = JobStateFailed
 	cmd.Message = err
 	cmd.Finished = time.Now()
-	ReportCmdStateToServer(job, cmd)
+	ReportCmdStateToServer(eventClient, job, cmd)
 }
 
-func (cmd *Command) Success(job *Job, msg string) {
+func (cmd *Command) Success(eventClient websocket.WebsocketClient, job *Job, msg string) {
 	cmd.State = JobStateSucceeded
 	cmd.Message = msg
 	cmd.Finished = time.Now()
-	ReportCmdStateToServer(job, cmd)
+	ReportCmdStateToServer(eventClient, job, cmd)
 }

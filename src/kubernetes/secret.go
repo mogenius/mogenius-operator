@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"sync"
 
 	v1 "k8s.io/api/core/v1"
@@ -101,7 +102,7 @@ func DeleteK8sSecretBy(namespace string, name string) error {
 // Cluster Image Pull Secret
 // -----------------------------------------------------
 
-func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
+func CreateOrUpdateClusterImagePullSecret(eventClient websocket.WebsocketClient, job *structs.Job, project dtos.K8sProjectDto, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name))
 
 	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
@@ -114,11 +115,11 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 		return
 	}
 
-	cmd := structs.CreateCommand("create", "Create Cluster ImagePullSecret", job)
+	cmd := structs.CreateCommand(eventClient, "create", "Create Cluster ImagePullSecret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Creating Cluster ImagePullSecret")
+		cmd.Start(eventClient, job, "Creating Cluster ImagePullSecret")
 
 		clientset := clientProvider.K8sClientSet()
 		secretClient := clientset.CoreV1().Secrets(namespace.Name)
@@ -141,18 +142,18 @@ func CreateOrUpdateClusterImagePullSecret(job *structs.Job, project dtos.K8sProj
 		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
-			cmd.Success(job, "Created Cluster ImagePullSecret")
+			cmd.Success(eventClient, job, "Created Cluster ImagePullSecret")
 		} else {
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret (create) ERROR: %s", err.Error()))
+					cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
-					cmd.Success(job, "Created Cluster ImagePullSecret")
+					cmd.Success(eventClient, job, "Created Cluster ImagePullSecret")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret ERROR: %s", err.Error()))
 			}
 		}
 	}(wg)
@@ -172,7 +173,7 @@ func ExistsClusterImagePullSecret(namespace string) bool {
 // Container Image Pull Secret
 // -----------------------------------------------------
 
-func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func CreateOrUpdateContainerImagePullSecret(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ContainerImagePullSecretName, service.ControllerName))
 
 	// DO NOT CREATE SECRET IF NO IMAGE REPO SECRET IS PROVIDED
@@ -186,16 +187,16 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 		return
 	}
 
-	cmd := structs.CreateCommand("create", "Create Container ImagePullSecret", job)
+	cmd := structs.CreateCommand(eventClient, "create", "Create Container ImagePullSecret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Creating Container ImagePullSecret")
+		cmd.Start(eventClient, job, "Creating Container ImagePullSecret")
 
 		if authStr != nil {
 			err := ValidateContainerRegistryAuthString(*authStr)
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("The provided ImagePullSecret does not match the required format: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("The provided ImagePullSecret does not match the required format: %s", err.Error()))
 				return
 			}
 		}
@@ -217,31 +218,31 @@ func CreateOrUpdateContainerImagePullSecret(job *structs.Job, namespace dtos.K8s
 		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 		if err == nil {
 			// UPDATED
-			cmd.Success(job, "Created Container ImagePullSecret")
+			cmd.Success(eventClient, job, "Created Container ImagePullSecret")
 		} else {
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret (create) ERROR: %s", err.Error()))
+					cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
 					// CREATED
-					cmd.Success(job, "Created Container ImagePullSecret")
+					cmd.Success(eventClient, job, "Created Container ImagePullSecret")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret ERROR: %s", err.Error()))
 			}
 		}
 	}(wg)
 }
 
-func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func DeleteContainerImagePullSecret(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ContainerImagePullSecretName, service.ControllerName))
 
-	cmd := structs.CreateCommand("delete", "Delete Container secret", job)
+	cmd := structs.CreateCommand(eventClient, "delete", "Delete Container secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting Container secret")
+		cmd.Start(eventClient, job, "Deleting Container secret")
 
 		clientset := clientProvider.K8sClientSet()
 		secretClient := clientset.CoreV1().Secrets(namespace.Name)
@@ -254,18 +255,18 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 
 		// ignore if not found
 		if apierrors.IsNotFound(err) {
-			cmd.Success(job, "Deleted Container secret")
+			cmd.Success(eventClient, job, "Deleted Container secret")
 			return
 		} else if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
 			return
 		}
 
 		err = secretClient.Delete(context.TODO(), secretName, deleteOptions)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Deleted Container secret")
+			cmd.Success(eventClient, job, "Deleted Container secret")
 		}
 	}(wg)
 }
@@ -274,12 +275,12 @@ func DeleteContainerImagePullSecret(job *structs.Job, namespace dtos.K8sNamespac
 // Service Secret
 // -----------------------------------------------------
 
-func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Update Kubernetes secret", job)
+func UpdateOrCreateControllerSecret(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "update", "Update Kubernetes secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Updating secret")
+		cmd.Start(eventClient, job, "Updating secret")
 
 		clientset := clientProvider.K8sClientSet()
 		secretClient := clientset.CoreV1().Secrets(namespace.Name)
@@ -310,18 +311,18 @@ func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespac
 
 			// ignore if not found
 			if apierrors.IsNotFound(err) {
-				cmd.Success(job, "Deleted unneeded secret")
+				cmd.Success(eventClient, job, "Deleted unneeded secret")
 				return
 			} else if err != nil {
-				cmd.Fail(job, fmt.Sprintf("Deleted unneeded secret ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("Deleted unneeded secret ERROR: %s", err.Error()))
 				return
 			}
 
 			err = secretClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("Deleted unneeded secret ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("Deleted unneeded secret ERROR: %s", err.Error()))
 			} else {
-				cmd.Success(job, "Deleted unneeded secret")
+				cmd.Success(eventClient, job, "Deleted unneeded secret")
 			}
 			return
 		}
@@ -331,27 +332,27 @@ func UpdateOrCreateControllerSecret(job *structs.Job, namespace dtos.K8sNamespac
 			if apierrors.IsNotFound(err) {
 				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
+					cmd.Fail(eventClient, job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
 				} else {
-					cmd.Success(job, "Created secret")
+					cmd.Success(eventClient, job, "Created secret")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
 			}
 		} else {
-			cmd.Success(job, "Update secret")
+			cmd.Success(eventClient, job, "Update secret")
 		}
 	}(wg)
 }
 
-func DeleteControllerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func DeleteControllerSecret(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
 	secretName := service.ControllerName
 
-	cmd := structs.CreateCommand("delete", "Delete Controller secret", job)
+	cmd := structs.CreateCommand(eventClient, "delete", "Delete Controller secret", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting Controller secret")
+		cmd.Start(eventClient, job, "Deleting Controller secret")
 
 		clientset := clientProvider.K8sClientSet()
 		secretClient := clientset.CoreV1().Secrets(namespace.Name)
@@ -364,18 +365,18 @@ func DeleteControllerSecret(job *structs.Job, namespace dtos.K8sNamespaceDto, se
 
 		// ignore if not found
 		if apierrors.IsNotFound(err) {
-			cmd.Success(job, "Deleted controller secret")
+			cmd.Success(eventClient, job, "Deleted controller secret")
 			return
 		} else if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteControllerSecret ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteControllerSecret ERROR: %s", err.Error()))
 			return
 		}
 
 		err = secretClient.Delete(context.TODO(), secretName, deleteOptions)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteControllerSecret ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteControllerSecret ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Deleted Controller secret")
+			cmd.Success(eventClient, job, "Deleted Controller secret")
 		}
 	}(wg)
 }

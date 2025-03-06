@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"strings"
 
 	"mogenius-k8s-manager/src/structs"
@@ -21,7 +22,7 @@ const CONCURRENTCONNECTIONS = 1
 
 var EventChannels = make(map[string]chan string)
 
-func processEvent(event *v1Core.Event) {
+func processEvent(eventClient websocket.WebsocketClient, event *v1Core.Event) {
 	if event != nil {
 		eventDto := dtos.CreateEvent(string(event.Type), event)
 		datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
@@ -29,7 +30,7 @@ func processEvent(event *v1Core.Event) {
 		kind := event.InvolvedObject.Kind
 		reason := event.Reason
 		count := event.Count
-		structs.EventServerSendData(datagram, kind, reason, message, count)
+		structs.EventServerSendData(eventClient, datagram, kind, reason, message, count)
 
 		// deployment events
 		if event.InvolvedObject.Kind == "Pod" {

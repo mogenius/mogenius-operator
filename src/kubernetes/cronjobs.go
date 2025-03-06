@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"sort"
 	"strings"
 	"sync"
@@ -62,12 +63,12 @@ type StatusMessage struct {
 	Message string `json:"message"`
 }
 
-func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("trigger", fmt.Sprintf("Trigger Job from CronJob '%s'.", namespace), job)
+func TriggerJobFromCronjob(eventClient websocket.WebsocketClient, job *structs.Job, namespace string, controller string, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "trigger", fmt.Sprintf("Trigger Job from CronJob '%s'.", namespace), job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Trigger Job from CronJob")
+		cmd.Start(eventClient, job, "Trigger Job from CronJob")
 
 		clientset := clientProvider.K8sClientSet()
 
@@ -75,7 +76,7 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		cronjobs := clientset.BatchV1().CronJobs(namespace)
 		cronjob, err := cronjobs.Get(context.TODO(), controller, metav1.GetOptions{})
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("Failed get CronJob for trigger ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("Failed get CronJob for trigger ERROR: %s", err.Error()))
 			return
 		}
 
@@ -111,9 +112,9 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 		// create job
 		_, err = jobs.Create(context.TODO(), jobSpec, metav1.CreateOptions{})
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("Failed create Job via CronJob trigger ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("Failed create Job via CronJob trigger ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Triggered Job from CronJob")
+			cmd.Success(eventClient, job, "Triggered Job from CronJob")
 		}
 	}(wg)
 }
@@ -155,12 +156,12 @@ func TriggerJobFromCronjob(job *structs.Job, namespace string, controller string
 // 	}(wg)
 // }
 
-func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", fmt.Sprintf("Deleting CronJob '%s'.", service.ControllerName), job)
+func DeleteCronJob(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "delete", fmt.Sprintf("Deleting CronJob '%s'.", service.ControllerName), job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting CronJob")
+		cmd.Start(eventClient, job, "Deleting CronJob")
 
 		clientset := clientProvider.K8sClientSet()
 		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
@@ -171,20 +172,20 @@ func DeleteCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 
 		err := cronJobClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteCronJob ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteCronJob ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Deleted CronJob")
+			cmd.Success(eventClient, job, "Deleted CronJob")
 		}
 
 	}(wg)
 }
 
-func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Updating CronJob", job)
+func UpdateCronJob(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "update", "Updating CronJob", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Updating CronJob")
+		cmd.Start(eventClient, job, "Updating CronJob")
 
 		clientset := clientProvider.K8sClientSet()
 		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
@@ -200,26 +201,26 @@ func UpdateCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			if apierrors.IsNotFound(err) {
 				_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions())
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("CreateCronJob ERROR: %s", err.Error()))
+					cmd.Fail(eventClient, job, fmt.Sprintf("CreateCronJob ERROR: %s", err.Error()))
 				} else {
-					cmd.Success(job, "Created CronJob")
+					cmd.Success(eventClient, job, "Created CronJob")
 				}
 			} else {
-				cmd.Fail(job, fmt.Sprintf("Updating CronJob ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("Updating CronJob ERROR: %s", err.Error()))
 			}
 		} else {
-			cmd.Success(job, "Updating CronJob")
+			cmd.Success(eventClient, job, "Updating CronJob")
 		}
 
 	}(wg)
 }
 
-func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("start", "Start CronJob", job)
+func StartCronJob(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "start", "Start CronJob", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Starting CronJob")
+		cmd.Start(eventClient, job, "Starting CronJob")
 
 		clientset := clientProvider.K8sClientSet()
 		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
@@ -233,19 +234,19 @@ func StartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos
 
 		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("StartingCronJob ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("StartingCronJob ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Started CronJob")
+			cmd.Success(eventClient, job, "Started CronJob")
 		}
 	}(wg)
 }
 
-func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("stop", "Stopping CronJob", job)
+func StopCronJob(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "stop", "Stopping CronJob", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Stopping CronJob")
+		cmd.Start(eventClient, job, "Stopping CronJob")
 
 		clientset := clientProvider.K8sClientSet()
 		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
@@ -258,19 +259,19 @@ func StopCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.
 
 		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("StopCronJob ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("StopCronJob ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Stopped CronJob")
+			cmd.Success(eventClient, job, "Stopped CronJob")
 		}
 	}(wg)
 }
 
-func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("restart", "Restart CronJob", job)
+func RestartCronJob(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "restart", "Restart CronJob", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Restarting CronJob ")
+		cmd.Start(eventClient, job, "Restarting CronJob ")
 
 		clientset := clientProvider.K8sClientSet()
 		cronJobClient := clientset.BatchV1().CronJobs(namespace.Name)
@@ -291,9 +292,9 @@ func RestartCronJob(job *structs.Job, namespace dtos.K8sNamespaceDto, service dt
 
 		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("RestartCronJob ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("RestartCronJob ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Restart CronJob")
+			cmd.Success(eventClient, job, "Restart CronJob")
 		}
 	}(wg)
 }

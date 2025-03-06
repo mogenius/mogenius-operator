@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	gorillawebsocket "github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
@@ -62,7 +63,9 @@ type SocketApi interface {
 type socketApi struct {
 	logger *slog.Logger
 
-	client  websocket.WebsocketClient
+	jobClient    websocket.WebsocketClient
+	eventsClient websocket.WebsocketClient
+
 	config  config.ConfigModule
 	dbstats kubernetes.RedisStatsDb
 
@@ -90,12 +93,14 @@ type PatternConfig struct {
 func NewSocketApi(
 	logger *slog.Logger,
 	configModule config.ConfigModule,
-	client websocket.WebsocketClient,
+	jobClient websocket.WebsocketClient,
+	eventsClient websocket.WebsocketClient,
 	dbstatsModule kubernetes.RedisStatsDb,
 ) SocketApi {
 	self := &socketApi{}
 	self.config = configModule
-	self.client = client
+	self.jobClient = jobClient
+	self.eventsClient = eventsClient
 	self.logger = logger
 	self.dbstats = dbstatsModule
 	self.patternHandler = map[string]PatternHandler{}
@@ -276,7 +281,7 @@ func (self *socketApi) registerPatterns() {
 				if err := utils.ValidateJSON(data); err != nil {
 					return err
 				}
-				return UpgradeK8sManager(data.Command)
+				return self.upgradeK8sManager(data.Command)
 			},
 		)
 	}
@@ -1039,7 +1044,7 @@ func (self *socketApi) registerPatterns() {
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.InstallHelmChart(data)
+			return services.InstallHelmChart(self.eventsClient, data)
 		},
 	)
 
@@ -1055,7 +1060,7 @@ func (self *socketApi) registerPatterns() {
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.DeleteHelmChart(data)
+			return services.DeleteHelmChart(self.eventsClient, data)
 		},
 	)
 
@@ -1223,7 +1228,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Project.AddSecretsToRedaction()
-			return services.CreateNamespace(data)
+			return services.CreateNamespace(self.eventsClient, data)
 		},
 	)
 
@@ -1239,7 +1244,7 @@ func (self *socketApi) registerPatterns() {
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.DeleteNamespace(data)
+			return services.DeleteNamespace(self.eventsClient, data)
 		},
 	)
 
@@ -1256,7 +1261,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.ShutdownNamespace(data)
+			return services.ShutdownNamespace(self.eventsClient, data)
 		},
 	)
 
@@ -1668,7 +1673,7 @@ func (self *socketApi) registerPatterns() {
 			}
 			data.Service.AddSecretsToRedaction()
 			data.Project.AddSecretsToRedaction()
-			return services.UpdateService(data)
+			return services.UpdateService(self.eventsClient, data)
 		},
 	)
 
@@ -1686,7 +1691,7 @@ func (self *socketApi) registerPatterns() {
 			}
 			data.Service.AddSecretsToRedaction()
 			data.Project.AddSecretsToRedaction()
-			return services.DeleteService(data)
+			return services.DeleteService(self.eventsClient, data)
 		},
 	)
 
@@ -1734,7 +1739,7 @@ func (self *socketApi) registerPatterns() {
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.ServicePodStatus(data)
+			return services.ServicePodStatus(self.eventsClient, data)
 		},
 	)
 
@@ -1799,7 +1804,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.Restart(data)
+			return services.Restart(self.eventsClient, data)
 		},
 	)
 
@@ -1816,7 +1821,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.StopService(data)
+			return services.StopService(self.eventsClient, data)
 		},
 	)
 
@@ -1833,7 +1838,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.StartService(data)
+			return services.StartService(self.eventsClient, data)
 		},
 	)
 
@@ -1851,7 +1856,7 @@ func (self *socketApi) registerPatterns() {
 			}
 			data.Project.AddSecretsToRedaction()
 			data.Service.AddSecretsToRedaction()
-			return services.UpdateService(data)
+			return services.UpdateService(self.eventsClient, data)
 		},
 	)
 
@@ -1867,7 +1872,7 @@ func (self *socketApi) registerPatterns() {
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.TriggerJobService(data)
+			return services.TriggerJobService(self.eventsClient, data)
 		},
 	)
 
@@ -2631,7 +2636,7 @@ func (self *socketApi) registerPatterns() {
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.CreateMogeniusNfsVolume(data)
+			return services.CreateMogeniusNfsVolume(self.eventsClient, data)
 		},
 	)
 
@@ -2647,7 +2652,7 @@ func (self *socketApi) registerPatterns() {
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return services.DeleteMogeniusNfsVolume(data)
+			return services.DeleteMogeniusNfsVolume(self.eventsClient, data)
 		},
 	)
 
@@ -3055,23 +3060,6 @@ func (self *socketApi) loadRequest(datagram *structs.Datagram, data interface{})
 func (self *socketApi) startK8sManager() {
 	self.updateCheck()
 	self.versionTicker()
-
-	go func() {
-		for status := range structs.EventConnectionStatus {
-			if status {
-				// CONNECTED
-				for {
-					_, _, err := structs.EventQueueConnection.ReadMessage()
-					if err != nil {
-						self.logger.Error("failed to read message for event queue", "eventConnectionUrl", structs.EventConnectionUrl, "error", err)
-						break
-					}
-				}
-				structs.EventQueueConnection.Close()
-			}
-		}
-	}()
-
 	self.startMessageHandler()
 }
 
@@ -3084,8 +3072,8 @@ func (self *socketApi) startMessageHandler() {
 	semaphoreChan := make(chan struct{}, maxGoroutines)
 	var wg sync.WaitGroup
 
-	for !self.client.IsTerminated() {
-		_, message, err := self.client.ReadMessage()
+	for !self.jobClient.IsTerminated() {
+		_, message, err := self.jobClient.ReadMessage()
 		if err != nil {
 			self.logger.Error("failed to read message from websocket connection", "error", err)
 			time.Sleep(time.Second) // wait before next attempt to read
@@ -3111,7 +3099,7 @@ func (self *socketApi) startMessageHandler() {
 			os.Remove(*preparedFileName)
 
 			var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
-			self.JobServerSendData(self.client, ack)
+			self.JobServerSendData(self.jobClient, ack)
 
 			preparedFileName = nil
 			preparedFileRequest = nil
@@ -3139,7 +3127,7 @@ func (self *socketApi) startMessageHandler() {
 			preparedFileRequest = self.executeBinaryRequestUpload(datagram)
 
 			var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
-			self.JobServerSendData(self.client, ack)
+			self.JobServerSendData(self.jobClient, ack)
 			continue
 		}
 
@@ -3178,7 +3166,7 @@ func (self *socketApi) startMessageHandler() {
 					CreatedAt: datagram.CreatedAt,
 					Zlib:      err == nil,
 				}
-				self.JobServerSendData(self.client, result)
+				self.JobServerSendData(self.jobClient, result)
 			}()
 		}
 	}
@@ -3413,14 +3401,14 @@ func NewMessageResponse(result interface{}, err error) MessageResponse {
 	}
 }
 
-func UpgradeK8sManager(command string) *structs.Job {
+func (self *socketApi) upgradeK8sManager(command string) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Upgrade mogenius platform", "UPGRADE", "", "")
-	job.Start()
-	kubernetes.UpgradeMyself(job, command, &wg)
+	job := structs.CreateJob(self.eventsClient, "Upgrade mogenius platform", "UPGRADE", "", "")
+	job.Start(self.eventsClient)
+	kubernetes.UpgradeMyself(self.eventsClient, job, command, &wg)
 	wg.Wait()
-	job.Finish()
+	job.Finish(self.eventsClient)
 	return job
 }
 
@@ -3477,7 +3465,7 @@ func (self *socketApi) streamData(restReq *rest.Request, toServerUrl string) {
 	if err != nil {
 		self.logger.Error(err.Error())
 	} else {
-		structs.SendDataWs(toServerUrl, stream)
+		self.sendDataWs(toServerUrl, stream)
 	}
 	endGofunc()
 }
@@ -3513,7 +3501,7 @@ func (self *socketApi) multiStreamData(previousRestReq *rest.Request, restReq *r
 
 	mergedStream := io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, headlineCurrentLog, nl, stream)
 
-	structs.SendDataWs(toServerUrl, io.NopCloser(mergedStream))
+	self.sendDataWs(toServerUrl, io.NopCloser(mergedStream))
 }
 
 func (self *socketApi) execShConnection(podCmdConnectionRequest xterm.PodCmdConnectionRequest) {
@@ -3610,4 +3598,74 @@ func (self *socketApi) NormalizePatternName(pattern string) string {
 	pattern = strings.ReplaceAll(pattern, "/", "_")
 	pattern = strings.ReplaceAll(pattern, "-", "_")
 	return pattern
+}
+
+func (self *socketApi) sendDataWs(sendToServer string, reader io.ReadCloser) {
+	defer func() {
+		if reader != nil {
+			err := reader.Close()
+			if err != nil {
+				self.logger.Debug("failed to close reader", "error", err)
+			}
+		}
+	}()
+
+	header := utils.HttpHeader("-logs")
+	conn, _, err := gorillawebsocket.DefaultDialer.Dial(sendToServer, header)
+	if err != nil {
+		self.logger.Error("Connection to stream endpoint failed", "sendToServer", sendToServer, "error", err)
+		return
+	}
+
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			self.logger.Debug("failed to close connection", "error", err)
+		}
+	}()
+
+	// API send ack when it is ready to receive messages.
+	err = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if err != nil {
+		self.logger.Error("Error setting read deadline.", "error", err)
+		return
+	}
+	_, ack, err := conn.ReadMessage()
+	if err != nil {
+		self.logger.Error("Error reading ack message.", "error", err)
+		return
+	}
+
+	self.logger.Info("Ready ack from stream endpoint.", "ack", string(ack))
+
+	buf := make([]byte, 1024)
+	for {
+		if reader != nil {
+			n, err := reader.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					self.logger.Error("Unexpected stop of stream.", "sendToServer", sendToServer)
+				}
+				return
+			}
+			// debugging
+			// str := string(buf[:n])
+			// StructsLogger.Info("Send data ws.", "data", str)
+
+			err = conn.WriteMessage(gorillawebsocket.BinaryMessage, buf[:n])
+			if err != nil {
+				self.logger.Error("Error sending data", "sendToServer", sendToServer, "error", err)
+				return
+			}
+
+			// if conn, ok := conn.UnderlyingConn().(*net.TCPConn); ok {
+			// 	err := conn.SetWriteBuffer(0)
+			// 	if err != nil {
+			// 		StructsLogger.Error("Error flushing connection", "error", err)
+			// 	}
+			// }
+		} else {
+			return
+		}
+	}
 }

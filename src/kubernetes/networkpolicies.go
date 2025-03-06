@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/websocket"
 	"sync"
 	"time"
 
@@ -15,12 +16,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, name string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("create", "Create NetworkPolicy namespace", job)
+func CreateNetworkPolicyNamespace(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, name string, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "create", "Create NetworkPolicy namespace", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Creating NetworkPolicy")
+		cmd.Start(eventClient, job, "Creating NetworkPolicy")
 
 		clientset := clientProvider.K8sClientSet()
 		netPolClient := clientset.NetworkingV1().NetworkPolicies(namespace.Name)
@@ -38,9 +39,9 @@ func CreateNetworkPolicyNamespace(job *structs.Job, namespace dtos.K8sNamespaceD
 
 		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Created NetworkPolicy")
+			cmd.Success(eventClient, job, "Created NetworkPolicy")
 		}
 	}(wg)
 }
@@ -61,7 +62,7 @@ func DeleteNetworkPolicy(namespaceName, name string) error {
 	return nil
 }
 
-func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
+func HandleNetworkPolicyChange(eventClient websocket.WebsocketClient, netPol *v1.NetworkPolicy, reason string) {
 	annotations := createAnnotations("mogenius.io/created", time.Now().String())
 	// create a new event
 	event := &v1Core.Event{
@@ -85,7 +86,7 @@ func HandleNetworkPolicyChange(netPol *v1.NetworkPolicy, reason string) {
 
 	k8sLogger.Debug("Sending custom network policy event to dispatcher", "event", event)
 
-	processEvent(event)
+	processEvent(eventClient, event)
 }
 
 func createAnnotations(items ...string) map[string]string {
