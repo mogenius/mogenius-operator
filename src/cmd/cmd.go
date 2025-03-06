@@ -24,6 +24,7 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -249,12 +250,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:         "MO_VALKEY_HOST",
+		Key:         "MO_VALKEY_ADDR",
 		Description: utils.Pointer("URL of operator valkey Server"),
 		Validate: func(value string) error {
-			_, err := url.Parse(value)
+			_, _, err := net.SplitHostPort(value)
 			if err != nil {
-				return fmt.Errorf("'MO_VALKEY_HOST' needs to be a URL: %s", err.Error())
+				return fmt.Errorf("'MO_VALKEY_ADDR' needs to be a host:port address: %s", err.Error())
 			}
 			return nil
 		},

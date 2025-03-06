@@ -7,7 +7,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/utils"
-	"net/url"
+	"net"
 	"sort"
 	"strconv"
 	"strings"
@@ -69,13 +69,14 @@ func NewRedisStore(logger *slog.Logger, configModule config.ConfigModule) RedisS
 func (self *redisStore) Connect() error {
 	self.logger.Info("Connecting to valkey")
 
-	valkeyHost := self.config.Get("MO_VALKEY_HOST")
-	valkeyUrl, err := url.Parse(valkeyHost)
+	valkeyHost := self.config.Get("MO_VALKEY_ADDR")
+	valkeyHost, valkeyPort, err := net.SplitHostPort(valkeyHost)
 	assert.Assert(err == nil, err)
+	valkeyAddr := valkeyHost + ":" + valkeyPort
 	valkeyPwd := self.config.Get("MO_VALKEY_PASSWORD")
 
 	self.redisClient = redis.NewClient(&redis.Options{
-		Addr:       valkeyUrl.String(),
+		Addr:       valkeyAddr,
 		Password:   valkeyPwd,
 		DB:         0,
 		MaxRetries: 0,
@@ -83,10 +84,10 @@ func (self *redisStore) Connect() error {
 
 	_, err = self.redisClient.Ping(self.ctx).Result()
 	if err != nil {
-		self.logger.Info("valkey connection failed", "url", valkeyUrl.String(), "password", valkeyPwd, "error", err)
+		self.logger.Info("valkey connection failed", "addr", valkeyAddr, "password", valkeyPwd, "error", err)
 		return fmt.Errorf("could not connect to valkey: %v", err)
 	}
-	self.logger.Info("Connected to valkey", "hostUrl", valkeyUrl)
+	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
 	return nil
 }
 
