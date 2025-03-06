@@ -547,7 +547,7 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 		} else if ImagesContain(node.Status.Images, "pluscloudopen") {
 			return utils.PLUSSERVER, nil
 		} else {
-			fmt.Println("This cluster's provider is unknown or it might be self-managed.")
+			k8sLogger.Error("This cluster's provider is unknown or it might be self-managed.")
 			return utils.UNKNOWN, nil
 		}
 	}
