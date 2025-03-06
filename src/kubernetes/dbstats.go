@@ -21,6 +21,7 @@ const (
 )
 
 var DefaultMaxSize int64 = 60 * 24 * 7
+var DefaultMaxSizeSocketConnections int64 = 60
 
 type RedisStatsDb interface {
 	Start() error
@@ -76,7 +77,7 @@ func (self *redisStatsDbModule) AddInterfaceStatsToDb(stats structs.InterfaceSta
 	}
 
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
-	err := self.redis.AddToBucket(DefaultMaxSize, stats.SocketConnections, DB_STATS_SOCKET_STATS_BUCKET, stats.Namespace, controller.Name)
+	err := self.redis.AddToBucket(DefaultMaxSizeSocketConnections, stats.SocketConnections, DB_STATS_SOCKET_STATS_BUCKET, stats.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error("Error adding interface stats socketconnections", "namespace", stats.Namespace, "podName", stats.PodName, "error", err)
 	}
