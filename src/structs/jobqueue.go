@@ -46,7 +46,6 @@ func ConnectToJobQueue(jobClient websocket.WebsocketClient) {
 			return
 		case <-time.After(RETRYTIMEOUT * time.Second):
 		}
-		<-time.After(RETRYTIMEOUT * time.Second)
 	}
 }
 
