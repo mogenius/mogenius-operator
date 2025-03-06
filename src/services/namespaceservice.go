@@ -6,63 +6,64 @@ import (
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"os"
 	"sync"
 
 	"helm.sh/helm/v3/pkg/action"
 )
 
-func CreateNamespace(r NamespaceCreateRequest) *structs.Job {
+func CreateNamespace(eventClient websocket.WebsocketClient, r NamespaceCreateRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Create namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
-	job.Start()
-	CreateNamespaceCmds(job, r, &wg)
+	job := structs.CreateJob(eventClient, "Create namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
+	job.Start(eventClient)
+	CreateNamespaceCmds(eventClient, job, r, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
 }
 
-func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) {
-	mokubernetes.CreateNamespace(job, r.Project, r.Namespace)
+func CreateNamespaceCmds(eventClient websocket.WebsocketClient, job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) {
+	mokubernetes.CreateNamespace(eventClient, job, r.Project, r.Namespace)
 	// mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, "allow-namespace-communication", wg)
 
 	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, wg)
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, wg)
 	// }
 }
 
-func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
+func DeleteNamespace(eventClient websocket.WebsocketClient, r NamespaceDeleteRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
-	job.Start()
-	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
+	job := structs.CreateJob(eventClient, "Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
+	job.Start(eventClient)
+	mokubernetes.DeleteNamespace(eventClient, job, r.Namespace, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
 }
 
-func ShutdownNamespace(r NamespaceShutdownRequest) *structs.Job {
+func ShutdownNamespace(eventClient websocket.WebsocketClient, r NamespaceShutdownRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
-	job.Start()
-	mokubernetes.StopDeployment(job, r.Namespace, r.Service, &wg)
-	mokubernetes.DeleteService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
+	job := structs.CreateJob(eventClient, "Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
+	job.Start(eventClient)
+	mokubernetes.StopDeployment(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job

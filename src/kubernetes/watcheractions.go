@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"os"
 	"slices"
 	"strings"
@@ -32,7 +33,7 @@ type GetUnstructuredLabeledResourceListRequest struct {
 	Blacklist []*utils.SyncResourceEntry `json:"blacklist"`
 }
 
-func WatchStoreResources(watcher WatcherModule) error {
+func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketClient) error {
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return err
@@ -64,11 +65,11 @@ func WatchStoreResources(watcher WatcherModule) error {
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			SetStoreIfNeeded(resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			SetStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
 		}, func(resource WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
-			SetStoreIfNeeded(resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
+			SetStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			DeleteFromStoreIfNeeded(resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			DeleteFromStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
 		})
 		if err != nil {
 			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
@@ -81,7 +82,7 @@ func WatchStoreResources(watcher WatcherModule) error {
 	return nil
 }
 
-func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+func SetStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
 	//if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
 	//	err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
 	//	if err != nil {
@@ -122,7 +123,7 @@ func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 			return
 		}
 
-		HandleNetworkPolicyChange(&netPol, "Added/Updated")
+		HandleNetworkPolicyChange(eventClient, &netPol, "Added/Updated")
 		return
 	}
 
@@ -139,11 +140,11 @@ func SetStoreIfNeeded(groupVersion string, kind string, namespace string, name s
 			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 			return
 		}
-		processEvent(&event)
+		processEvent(eventClient, &event)
 	}
 }
 
-func DeleteFromStoreIfNeeded(groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+func DeleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
 	//if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
 	//	err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
 	//	if err != nil {
@@ -193,7 +194,7 @@ func DeleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 			return
 		}
 
-		HandleNetworkPolicyChange(&netPol, "Deleted")
+		HandleNetworkPolicyChange(eventClient, &netPol, "Deleted")
 		return
 	}
 
@@ -209,7 +210,7 @@ func DeleteFromStoreIfNeeded(groupVersion string, kind string, namespace string,
 			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 			return
 		}
-		processEvent(&event)
+		processEvent(eventClient, &event)
 	}
 }
 

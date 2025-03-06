@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"sync"
 
 	v1 "k8s.io/api/networking/v1"
@@ -36,20 +37,20 @@ func AllIngresses(namespaceName string) []v1.Ingress {
 	return result
 }
 
-func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Update Ingress", job)
+func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "update", "Update Ingress", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Updating ingress")
+		cmd.Start(eventClient, job, "Updating ingress")
 
 		ingressControllerType, err := DetermineIngressControllerType()
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("ERROR: %s", err.Error()))
 			return
 		}
 		if ingressControllerType == UNKNOWN || ingressControllerType == NONE {
-			cmd.Fail(job, "ERROR: Unknown or NONE ingress controller installed. Supported are NGINX and TRAEFIK")
+			cmd.Fail(eventClient, job, "ERROR: Unknown or NONE ingress controller installed. Supported are NGINX and TRAEFIK")
 			return
 		}
 
@@ -76,7 +77,7 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 		// check if ingress already exists
 		existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
-			cmd.Fail(job, fmt.Sprintf("Get Ingress ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("Get Ingress ERROR: %s", err.Error()))
 			return
 		}
 		if apierrors.IsNotFound(err) {
@@ -170,18 +171,18 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			if len(ingressToUpdate.Spec.Rules) <= 0 {
 				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
+					cmd.Fail(eventClient, job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
+					cmd.Success(eventClient, job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 				}
 			} else {
 				_, err := ingressClient.Update(context.TODO(), ingressToUpdate, metav1.UpdateOptions{})
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Update Ingress ERROR: %s", err.Error()))
+					cmd.Fail(eventClient, job, fmt.Sprintf("Update Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(job, fmt.Sprintf("Ingress '%s' updated", ingressName))
+					cmd.Success(eventClient, job, fmt.Sprintf("Ingress '%s' updated", ingressName))
 				}
 			}
 		} else {
@@ -190,15 +191,15 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 				if err != nil {
 					k8sLogger.Error("Error deleting ingress", "error", err)
 				}
-				cmd.Success(job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
+				cmd.Success(eventClient, job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 			} else {
 				// create
 				_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: DEPLOYMENTNAME})
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Create Ingress ERROR: %s", err.Error()))
+					cmd.Fail(eventClient, job, fmt.Sprintf("Create Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(job, fmt.Sprintf("Ingress '%s' created", ingressName))
+					cmd.Success(eventClient, job, fmt.Sprintf("Ingress '%s' created", ingressName))
 				}
 			}
 		}
@@ -206,12 +207,12 @@ func UpdateIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 	}(wg)
 }
 
-func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Deleting ingress", job)
+func DeleteIngress(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "delete", "Deleting ingress", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting ingress")
+		cmd.Start(eventClient, job, "Deleting ingress")
 
 		clientset := clientProvider.K8sClientSet()
 		ingressClient := clientset.NetworkingV1().Ingresses(namespace.Name)
@@ -222,13 +223,13 @@ func DeleteIngress(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			if existingIngress != nil && err == nil {
 				err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
+					cmd.Fail(eventClient, job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 					return
 				} else {
-					cmd.Success(job, "Deleted Ingress")
+					cmd.Success(eventClient, job, "Deleted Ingress")
 				}
 			} else {
-				cmd.Success(job, "Ingress already deleted")
+				cmd.Success(eventClient, job, "Ingress already deleted")
 			}
 		}
 	}(wg)
