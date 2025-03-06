@@ -52,7 +52,8 @@ type valkeyStore struct {
 	logger *slog.Logger
 	config config.ConfigModule
 
-	ctx         context.Context
+	ctx context.Context
+	// internal redis client used to connect to a valkey instance
 	redisClient *redis.Client
 }
 
@@ -86,10 +87,12 @@ func (self *valkeyStore) Connect() error {
 
 	_, err = self.redisClient.Ping(self.ctx).Result()
 	if err != nil {
-		self.logger.Info("valkey connection to Redis failed", "addr", valkeyAddr, "password", valkeyPwd, "error", err)
+		self.logger.Info("connection to Redis failed", "addr", valkeyAddr, "password", valkeyPwd, "error", err)
 		return fmt.Errorf("could not connect to Redis: %v", err)
 	}
+
 	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
+
 	return nil
 }
 
@@ -106,7 +109,7 @@ func (self *valkeyStore) GetLogger() *slog.Logger {
 }
 
 func (self *valkeyStore) Set(value interface{}, expiration time.Duration, keys ...string) error {
-	key := CreateKey(keys...)
+	key := createKey(keys...)
 
 	err := self.redisClient.Set(self.ctx, key, value, expiration).Err()
 	if err != nil {
@@ -117,7 +120,7 @@ func (self *valkeyStore) Set(value interface{}, expiration time.Duration, keys .
 }
 
 func (self *valkeyStore) SetObject(value interface{}, expiration time.Duration, keys ...string) error {
-	key := CreateKey(keys...)
+	key := createKey(keys...)
 
 	objStr, err := json.Marshal(value)
 	if err != nil {
@@ -128,7 +131,7 @@ func (self *valkeyStore) SetObject(value interface{}, expiration time.Duration, 
 }
 
 func (self *valkeyStore) Get(keys ...string) (string, error) {
-	key := CreateKey(keys...)
+	key := createKey(keys...)
 
 	val, err := self.redisClient.Get(self.ctx, key).Result()
 	if err != nil {
@@ -143,7 +146,7 @@ func (self *valkeyStore) Get(keys ...string) (string, error) {
 }
 
 func (self *valkeyStore) GetObject(keys ...string) (interface{}, error) {
-	key := CreateKey(keys...)
+	key := createKey(keys...)
 	var result interface{}
 	val, err := self.Get(key)
 	if err != nil {
@@ -159,21 +162,36 @@ func (self *valkeyStore) GetObject(keys ...string) (interface{}, error) {
 }
 
 func (self *valkeyStore) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
-	return AddToBucket(self.ctx, self.redisClient, maxSize, value, bucketKey...)
+	key := createKey(bucketKey...)
+	// Add the new elements to the end of the list
+	err := self.redisClient.RPush(self.ctx, key, utils.PrintJson(value)).Err()
+	if err != nil {
+		return err
+	}
+
+	// Trim the list to keep only the last maxSize elements
+	err = self.redisClient.LTrim(self.ctx, key, -maxSize, -1).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *valkeyStore) ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error) {
-	key := CreateKey(bucketKey...)
+func (self *valkeyStore) ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error) {
+	key := createKey(bucketKey...)
 	// start=0 stop=-1 to retrieve all elements from start to the end of the list
-	elements, err := r.redisClient.LRange(r.ctx, key, start, stop).Result()
+
+	elements, err := self.redisClient.LRange(self.ctx, key, start, stop).Result()
+
 	return elements, err
 }
 
-func (r *valkeyStore) LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error) {
-	key := CreateKey(bucketKey...)
+func (self *valkeyStore) LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error) {
+	key := createKey(bucketKey...)
 
 	// Get the length of the list
-	length, err := r.redisClient.LLen(r.ctx, key).Result()
+	length, err := self.redisClient.LLen(self.ctx, key).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +203,7 @@ func (r *valkeyStore) LastNEntryFromBucketWithType(number int64, bucketKey ...st
 	}
 
 	// Use LRANGE to get the last N elements
-	elements, err := r.redisClient.LRange(r.ctx, key, start, -1).Result()
+	elements, err := self.redisClient.LRange(self.ctx, key, start, -1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -193,34 +211,37 @@ func (r *valkeyStore) LastNEntryFromBucketWithType(number int64, bucketKey ...st
 	return elements, nil
 }
 
-func (r *valkeyStore) Delete(keys ...string) error {
-	key := CreateKey(keys...)
+func (self *valkeyStore) Delete(keys ...string) error {
+	key := createKey(keys...)
 
-	_, err := r.redisClient.Del(r.ctx, key).Result()
+	_, err := self.redisClient.Del(self.ctx, key).Result()
 	if err != nil {
-		r.logger.Error("Error deleting key from Redis", "key", key, "error", err)
+		self.logger.Error("Error deleting key from Redis", "key", key, "error", err)
 		return err
 	}
+
 	return nil
 }
 
-func (r *valkeyStore) Keys(pattern string) ([]string, error) {
-	keys, err := r.redisClient.Keys(r.ctx, pattern).Result()
+func (self *valkeyStore) Keys(pattern string) ([]string, error) {
+	keys, err := self.redisClient.Keys(self.ctx, pattern).Result()
 	if err != nil {
-		r.logger.Error("Error listing keys from Redis", "pattern", pattern, "error", err)
+		self.logger.Error("Error listing keys from Redis", "pattern", pattern, "error", err)
 		return nil, err
 	}
+
 	return keys, nil
 }
 
-func (r *valkeyStore) Exists(keys ...string) (bool, error) {
-	key := CreateKey(keys...)
+func (self *valkeyStore) Exists(keys ...string) (bool, error) {
+	key := createKey(keys...)
 
-	exists, err := r.redisClient.Exists(r.ctx, key).Result()
+	exists, err := self.redisClient.Exists(self.ctx, key).Result()
 	if err != nil {
-		r.logger.Error("Error checking if key exists in Redis", "key", key, "error", err)
+		self.logger.Error("Error checking if key exists in Redis", "key", key, "error", err)
 		return false, err
 	}
+
 	return exists > 0, nil
 }
 
@@ -258,43 +279,8 @@ func GetObjectsByPattern[T any](store ValkeyStore, pattern string, keywords []st
 	return objects, nil
 }
 
-func AddToBucket(ctx context.Context, r *redis.Client, maxSize int64, value interface{}, bucketKey ...string) error {
-	key := CreateKey(bucketKey...)
-	// Add the new elements to the end of the list
-	if err := r.RPush(ctx, key, utils.PrintJson(value)).Err(); err != nil {
-		return err
-	}
-
-	// Trim the list to keep only the last maxSize elements
-	if err := r.LTrim(ctx, key, -maxSize, -1).Err(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ListFromBucketWithType[T any](store ValkeyStore, start int64, stop int64, bucketKey ...string) ([]T, error) {
-	key := CreateKey(bucketKey...)
-	// Use -1 as end index to retrieve all elements from start to the end of the list
-	elements, err := store.GetRedisClient().LRange(store.GetContext(), key, start, stop).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	var objects []T
-	for _, v := range elements {
-		var obj T
-		if err := json.Unmarshal([]byte(v), &obj); err != nil {
-			return nil, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
-		}
-		objects = append(objects, obj)
-	}
-
-	return objects, nil
-}
-
 func LastNEntryFromBucketWithType[T any](store ValkeyStore, number int64, bucketKey ...string) ([]T, error) {
-	key := CreateKey(bucketKey...)
+	key := createKey(bucketKey...)
 
 	// Get the length of the list
 	length, err := store.GetRedisClient().LLen(store.GetContext(), key).Result()
@@ -327,7 +313,7 @@ func LastNEntryFromBucketWithType[T any](store ValkeyStore, number int64, bucket
 }
 
 func GetObjectsByPrefix[T any](redisStore ValkeyStore, order SortOrder, keys ...string) ([]T, error) {
-	key := CreateKey(keys...)
+	key := createKey(keys...)
 	// var cursor uint64
 	pattern := key + "*"
 	// Get the keys
@@ -337,7 +323,7 @@ func GetObjectsByPrefix[T any](redisStore ValkeyStore, order SortOrder, keys ...
 	}
 
 	// Sort keys
-	SortStringsByTimestamp(keyList, order)
+	sortStringsByTimestamp(keyList, order)
 
 	// Fetch the values
 	var objects []T
@@ -358,7 +344,7 @@ func GetObjectsByPrefix[T any](redisStore ValkeyStore, order SortOrder, keys ...
 }
 
 func GetObjectForKey[T any](store ValkeyStore, keys ...string) (*T, error) {
-	key := CreateKey(keys...)
+	key := createKey(keys...)
 
 	var obj *T
 	data, err := store.GetRedisClient().Get(store.GetContext(), key).Result()
@@ -369,11 +355,11 @@ func GetObjectForKey[T any](store ValkeyStore, keys ...string) (*T, error) {
 	return obj, err
 }
 
-func CreateKey(parts ...string) string {
+func createKey(parts ...string) string {
 	return strings.Join(parts, ":")
 }
 
-func SortStringsByTimestamp(stringsToSort []string, order SortOrder) {
+func sortStringsByTimestamp(stringsToSort []string, order SortOrder) {
 	if order == ORDER_NONE {
 		return
 	}
