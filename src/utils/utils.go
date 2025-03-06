@@ -652,6 +652,14 @@ func PrettyPrintString(i interface{}) string {
 	return string(iJson)
 }
 
+func PrintJson(i interface{}) string {
+	data, err := json.Marshal(i)
+	if err != nil {
+		utilsLogger.Error(err.Error())
+	}
+	return string(data)
+}
+
 type ResponseError struct {
 	Error string `json:"error,omitempty"`
 }

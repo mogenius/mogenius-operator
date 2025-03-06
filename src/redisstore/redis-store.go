@@ -258,7 +258,7 @@ func GetObjectsByPattern[T any](store RedisStore, pattern string, keywords []str
 func AddToBucket(ctx context.Context, r *redis.Client, maxSize int64, value interface{}, bucketKey ...string) error {
 	key := CreateKey(bucketKey...)
 	// Add the new elements to the end of the list
-	if err := r.RPush(ctx, key, utils.PrettyPrintInterface(value)).Err(); err != nil {
+	if err := r.RPush(ctx, key, utils.PrintJson(value)).Err(); err != nil {
 		return err
 	}
 
