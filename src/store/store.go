@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log/slog"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeystore"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -16,11 +16,11 @@ const (
 )
 
 var storeLogger *slog.Logger
-var redisStore redisstore.RedisStore
+var valkeyStore valkeystore.ValkeyStore
 
-func Setup(logManagerModule logging.LogManagerModule, storeModule redisstore.RedisStore) {
+func Setup(logManagerModule logging.LogManagerModule, storeModule valkeystore.ValkeyStore) {
 	storeLogger = logManagerModule.CreateLogger("store")
-	redisStore = storeModule
+	valkeyStore = storeModule
 }
 
 var ErrNotFound = errors.New("not found")
@@ -28,7 +28,7 @@ var ErrNotFound = errors.New("not found")
 func GetByKeyParts(keys ...string) interface{} {
 	key := CreateKey(keys...)
 
-	value, err := redisStore.GetObject(key)
+	value, err := valkeyStore.GetObject(key)
 	if err != nil {
 		storeLogger.Warn("failed to get value", "key", key, "error", err)
 		return nil
@@ -39,7 +39,7 @@ func GetByKeyParts(keys ...string) interface{} {
 func SearchByKeyParts(parts ...string) ([]unstructured.Unstructured, error) {
 	key := CreateKey(parts...)
 
-	items, err := redisstore.GetObjectsByPrefix[unstructured.Unstructured](redisStore, redisstore.ORDER_NONE, key)
+	items, err := valkeystore.GetObjectsByPrefix[unstructured.Unstructured](valkeyStore, valkeystore.ORDER_NONE, key)
 
 	if len(items) == 0 {
 		return nil, ErrNotFound
@@ -52,7 +52,7 @@ func SearchByKeyParts(parts ...string) ([]unstructured.Unstructured, error) {
 func SearchByNamespaceAndName(namespace string, name string) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(nil, nil, &namespace, &name)
 
-	items, err := redisstore.GetObjectsByPattern[unstructured.Unstructured](redisStore, pattern, []string{})
+	items, err := valkeystore.GetObjectsByPattern[unstructured.Unstructured](valkeyStore, pattern, []string{})
 
 	return items, err
 }
@@ -60,7 +60,7 @@ func SearchByNamespaceAndName(namespace string, name string) ([]unstructured.Uns
 func SearchByGroupKindNameNamespace(group string, kind string, name string, namespace *string) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(&group, &kind, namespace, &name)
 
-	items, err := redisstore.GetObjectsByPattern[unstructured.Unstructured](redisStore, pattern, []string{})
+	items, err := valkeystore.GetObjectsByPattern[unstructured.Unstructured](valkeyStore, pattern, []string{})
 
 	return items, err
 }
@@ -76,19 +76,19 @@ func SearchByNamespace(namespace string, whitelist []*utils.SyncResourceEntry) (
 		}
 	}
 
-	items, err := redisstore.GetObjectsByPattern[unstructured.Unstructured](redisStore, pattern, searchKeys)
+	items, err := valkeystore.GetObjectsByPattern[unstructured.Unstructured](valkeyStore, pattern, searchKeys)
 
 	return items, err
 }
 
 func DropAllResourcesFromValkey() error {
-	keys, err := redisStore.Keys(VALKEY_KEY_PREFIX + ":*")
+	keys, err := valkeyStore.Keys(VALKEY_KEY_PREFIX + ":*")
 	if err != nil {
 		storeLogger.Error("failed to get keys", "error", err)
 		return err
 	}
 	for _, v := range keys {
-		err = redisStore.Delete(v)
+		err = valkeyStore.Delete(v)
 		if err != nil {
 			storeLogger.Error("failed to delete key", "key", v, "error", err)
 		}
@@ -97,13 +97,13 @@ func DropAllResourcesFromValkey() error {
 }
 
 func DropAllPodEventsFromValkey() error {
-	keys, err := redisStore.Keys("pod-events" + ":*")
+	keys, err := valkeyStore.Keys("pod-events" + ":*")
 	if err != nil {
 		storeLogger.Error("failed to get keys", "error", err)
 		return err
 	}
 	for _, v := range keys {
-		err = redisStore.Delete(v)
+		err = valkeyStore.Delete(v)
 		if err != nil {
 			storeLogger.Error("failed to delete key", "key", v, "error", err)
 		}

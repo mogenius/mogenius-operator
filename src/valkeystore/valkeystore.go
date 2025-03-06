@@ -1,4 +1,4 @@
-package redisstore
+package valkeystore
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-type RedisStore interface {
+type ValkeyStore interface {
 	Connect() error
 	Set(value interface{}, expiration time.Duration, keys ...string) error
 	SetObject(value interface{}, expiration time.Duration, keys ...string) error
@@ -35,7 +35,7 @@ type RedisStore interface {
 	Keys(pattern string) ([]string, error)
 	Exists(keys ...string) (bool, error)
 
-	GetClient() *redis.Client
+	GetRedisClient() *redis.Client
 	GetContext() context.Context
 	GetLogger() *slog.Logger
 }
@@ -48,7 +48,7 @@ const (
 	ORDER_DESC SortOrder = 2
 )
 
-type redisStore struct {
+type valkeyStore struct {
 	logger *slog.Logger
 	config config.ConfigModule
 
@@ -56,8 +56,8 @@ type redisStore struct {
 	redisClient *redis.Client
 }
 
-func NewRedisStore(logger *slog.Logger, configModule config.ConfigModule) RedisStore {
-	self := &redisStore{}
+func NewValkeyStore(logger *slog.Logger, configModule config.ConfigModule) ValkeyStore {
+	self := &valkeyStore{}
 	self.ctx = context.Background()
 	self.logger = logger
 	self.config = configModule
@@ -66,12 +66,14 @@ func NewRedisStore(logger *slog.Logger, configModule config.ConfigModule) RedisS
 	return self
 }
 
-func (self *redisStore) Connect() error {
+func (self *valkeyStore) Connect() error {
 	self.logger.Info("Connecting to valkey")
 
 	valkeyHost := self.config.Get("MO_VALKEY_ADDR")
 	valkeyHost, valkeyPort, err := net.SplitHostPort(valkeyHost)
 	assert.Assert(err == nil, err)
+	assert.Assert(valkeyHost != "")
+	assert.Assert(valkeyPort != "")
 	valkeyAddr := valkeyHost + ":" + valkeyPort
 	valkeyPwd := self.config.Get("MO_VALKEY_PASSWORD")
 
@@ -84,26 +86,26 @@ func (self *redisStore) Connect() error {
 
 	_, err = self.redisClient.Ping(self.ctx).Result()
 	if err != nil {
-		self.logger.Info("valkey connection failed", "addr", valkeyAddr, "password", valkeyPwd, "error", err)
-		return fmt.Errorf("could not connect to valkey: %v", err)
+		self.logger.Info("valkey connection to Redis failed", "addr", valkeyAddr, "password", valkeyPwd, "error", err)
+		return fmt.Errorf("could not connect to Redis: %v", err)
 	}
 	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
 	return nil
 }
 
-func (self *redisStore) GetClient() *redis.Client {
+func (self *valkeyStore) GetRedisClient() *redis.Client {
 	return self.redisClient
 }
 
-func (self *redisStore) GetContext() context.Context {
+func (self *valkeyStore) GetContext() context.Context {
 	return self.ctx
 }
 
-func (self *redisStore) GetLogger() *slog.Logger {
+func (self *valkeyStore) GetLogger() *slog.Logger {
 	return self.logger
 }
 
-func (self *redisStore) Set(value interface{}, expiration time.Duration, keys ...string) error {
+func (self *valkeyStore) Set(value interface{}, expiration time.Duration, keys ...string) error {
 	key := CreateKey(keys...)
 
 	err := self.redisClient.Set(self.ctx, key, value, expiration).Err()
@@ -114,7 +116,7 @@ func (self *redisStore) Set(value interface{}, expiration time.Duration, keys ..
 	return nil
 }
 
-func (self *redisStore) SetObject(value interface{}, expiration time.Duration, keys ...string) error {
+func (self *valkeyStore) SetObject(value interface{}, expiration time.Duration, keys ...string) error {
 	key := CreateKey(keys...)
 
 	objStr, err := json.Marshal(value)
@@ -125,7 +127,7 @@ func (self *redisStore) SetObject(value interface{}, expiration time.Duration, k
 	return self.Set(objStr, expiration, key)
 }
 
-func (self *redisStore) Get(keys ...string) (string, error) {
+func (self *valkeyStore) Get(keys ...string) (string, error) {
 	key := CreateKey(keys...)
 
 	val, err := self.redisClient.Get(self.ctx, key).Result()
@@ -140,7 +142,7 @@ func (self *redisStore) Get(keys ...string) (string, error) {
 	return val, nil
 }
 
-func (self *redisStore) GetObject(keys ...string) (interface{}, error) {
+func (self *valkeyStore) GetObject(keys ...string) (interface{}, error) {
 	key := CreateKey(keys...)
 	var result interface{}
 	val, err := self.Get(key)
@@ -156,18 +158,18 @@ func (self *redisStore) GetObject(keys ...string) (interface{}, error) {
 	return result, nil
 }
 
-func (self *redisStore) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
+func (self *valkeyStore) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
 	return AddToBucket(self.ctx, self.redisClient, maxSize, value, bucketKey...)
 }
 
-func (r *redisStore) ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error) {
+func (r *valkeyStore) ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error) {
 	key := CreateKey(bucketKey...)
 	// start=0 stop=-1 to retrieve all elements from start to the end of the list
 	elements, err := r.redisClient.LRange(r.ctx, key, start, stop).Result()
 	return elements, err
 }
 
-func (r *redisStore) LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error) {
+func (r *valkeyStore) LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error) {
 	key := CreateKey(bucketKey...)
 
 	// Get the length of the list
@@ -191,7 +193,7 @@ func (r *redisStore) LastNEntryFromBucketWithType(number int64, bucketKey ...str
 	return elements, nil
 }
 
-func (r *redisStore) Delete(keys ...string) error {
+func (r *valkeyStore) Delete(keys ...string) error {
 	key := CreateKey(keys...)
 
 	_, err := r.redisClient.Del(r.ctx, key).Result()
@@ -202,7 +204,7 @@ func (r *redisStore) Delete(keys ...string) error {
 	return nil
 }
 
-func (r *redisStore) Keys(pattern string) ([]string, error) {
+func (r *valkeyStore) Keys(pattern string) ([]string, error) {
 	keys, err := r.redisClient.Keys(r.ctx, pattern).Result()
 	if err != nil {
 		r.logger.Error("Error listing keys from Redis", "pattern", pattern, "error", err)
@@ -211,7 +213,7 @@ func (r *redisStore) Keys(pattern string) ([]string, error) {
 	return keys, nil
 }
 
-func (r *redisStore) Exists(keys ...string) (bool, error) {
+func (r *valkeyStore) Exists(keys ...string) (bool, error) {
 	key := CreateKey(keys...)
 
 	exists, err := r.redisClient.Exists(r.ctx, key).Result()
@@ -222,8 +224,8 @@ func (r *redisStore) Exists(keys ...string) (bool, error) {
 	return exists > 0, nil
 }
 
-func GetObjectsByPattern[T any](store RedisStore, pattern string, keywords []string) ([]T, error) {
-	keyList := store.GetClient().Keys(store.GetContext(), pattern).Val()
+func GetObjectsByPattern[T any](store ValkeyStore, pattern string, keywords []string) ([]T, error) {
+	keyList := store.GetRedisClient().Keys(store.GetContext(), pattern).Val()
 
 	// filter for keywords
 	if len(keywords) > 0 {
@@ -241,7 +243,7 @@ func GetObjectsByPattern[T any](store RedisStore, pattern string, keywords []str
 
 	// Fetch the values for these keys
 	var objects []T
-	values, err := store.GetClient().MGet(store.GetContext(), keyList...).Result()
+	values, err := store.GetRedisClient().MGet(store.GetContext(), keyList...).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -271,10 +273,10 @@ func AddToBucket(ctx context.Context, r *redis.Client, maxSize int64, value inte
 	return nil
 }
 
-func ListFromBucketWithType[T any](store RedisStore, start int64, stop int64, bucketKey ...string) ([]T, error) {
+func ListFromBucketWithType[T any](store ValkeyStore, start int64, stop int64, bucketKey ...string) ([]T, error) {
 	key := CreateKey(bucketKey...)
 	// Use -1 as end index to retrieve all elements from start to the end of the list
-	elements, err := store.GetClient().LRange(store.GetContext(), key, start, stop).Result()
+	elements, err := store.GetRedisClient().LRange(store.GetContext(), key, start, stop).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -291,11 +293,11 @@ func ListFromBucketWithType[T any](store RedisStore, start int64, stop int64, bu
 	return objects, nil
 }
 
-func LastNEntryFromBucketWithType[T any](store RedisStore, number int64, bucketKey ...string) ([]T, error) {
+func LastNEntryFromBucketWithType[T any](store ValkeyStore, number int64, bucketKey ...string) ([]T, error) {
 	key := CreateKey(bucketKey...)
 
 	// Get the length of the list
-	length, err := store.GetClient().LLen(store.GetContext(), key).Result()
+	length, err := store.GetRedisClient().LLen(store.GetContext(), key).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +309,7 @@ func LastNEntryFromBucketWithType[T any](store RedisStore, number int64, bucketK
 	}
 
 	// Use LRANGE to get the last N elements
-	elements, err := store.GetClient().LRange(store.GetContext(), key, start, -1).Result()
+	elements, err := store.GetRedisClient().LRange(store.GetContext(), key, start, -1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -324,12 +326,12 @@ func LastNEntryFromBucketWithType[T any](store RedisStore, number int64, bucketK
 	return objects, nil
 }
 
-func GetObjectsByPrefix[T any](redisStore RedisStore, order SortOrder, keys ...string) ([]T, error) {
+func GetObjectsByPrefix[T any](redisStore ValkeyStore, order SortOrder, keys ...string) ([]T, error) {
 	key := CreateKey(keys...)
 	// var cursor uint64
 	pattern := key + "*"
 	// Get the keys
-	keyList := redisStore.GetClient().Keys(redisStore.GetContext(), pattern).Val()
+	keyList := redisStore.GetRedisClient().Keys(redisStore.GetContext(), pattern).Val()
 	if len(keyList) == 0 {
 		return nil, nil
 	}
@@ -339,7 +341,7 @@ func GetObjectsByPrefix[T any](redisStore RedisStore, order SortOrder, keys ...s
 
 	// Fetch the values
 	var objects []T
-	values, err := redisStore.GetClient().MGet(redisStore.GetContext(), keyList...).Result()
+	values, err := redisStore.GetRedisClient().MGet(redisStore.GetContext(), keyList...).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -355,11 +357,11 @@ func GetObjectsByPrefix[T any](redisStore RedisStore, order SortOrder, keys ...s
 	return objects, nil
 }
 
-func GetObjectForKey[T any](store RedisStore, keys ...string) (*T, error) {
+func GetObjectForKey[T any](store ValkeyStore, keys ...string) (*T, error) {
 	key := CreateKey(keys...)
 
 	var obj *T
-	data, err := store.GetClient().Get(store.GetContext(), key).Result()
+	data, err := store.GetRedisClient().Get(store.GetContext(), key).Result()
 	if err != nil {
 		return nil, err
 	}

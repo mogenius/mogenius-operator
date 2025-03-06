@@ -9,9 +9,9 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeystore"
 	"testing"
 	"time"
 
@@ -91,8 +91,8 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.EnsureLabeledNetworkPolicy("default", labelPolicy1)
@@ -107,8 +107,8 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.InitNetworkPolicyConfigMap()
@@ -124,8 +124,8 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	ports, err := kubernetes.ReadNetworkPolicyPorts()
@@ -188,9 +188,9 @@ func TestListAllConflictingNetworkPolicies(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
-	store.Setup(logManager, redisStoreModule)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	store.Setup(logManager, storeModule)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 	list, err := kubernetes.ListAllConflictingNetworkPolicies("mogenius")
 	assert.AssertT(t, err == nil, err)
@@ -208,8 +208,8 @@ func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.CleanupLabeledNetworkPolicies("mogenius")
@@ -222,8 +222,8 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 
 	config := cfg.NewConfig()
 	logManager := logging.NewMockSlogManager(t)
-	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
-	store.Setup(logManager, redisStoreModule)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	store.Setup(logManager, storeModule)
 
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()
@@ -266,8 +266,8 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy1))

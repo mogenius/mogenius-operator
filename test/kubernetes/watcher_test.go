@@ -2,7 +2,6 @@ package kubernetes_test
 
 import (
 	"mogenius-k8s-manager/src/assert"
-	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
@@ -15,8 +14,7 @@ import (
 
 func TestWatcher(t *testing.T) {
 	logManager := logging.NewMockSlogManager(t)
-	config := cfg.NewConfig()
-	structs.Setup(logManager, config)
+	structs.Setup(logManager)
 
 	createNewDeplString := test.YamlSanitize(`
 	apiVersion: apps/v1

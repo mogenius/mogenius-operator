@@ -67,7 +67,7 @@ type socketApi struct {
 	eventsClient websocket.WebsocketClient
 
 	config  config.ConfigModule
-	dbstats kubernetes.RedisStatsDb
+	dbstats kubernetes.ValkeyStatsDb
 
 	// the patternHandler should only be edited on startup
 	patternHandlerLock sync.RWMutex
@@ -95,7 +95,7 @@ func NewSocketApi(
 	configModule config.ConfigModule,
 	jobClient websocket.WebsocketClient,
 	eventsClient websocket.WebsocketClient,
-	dbstatsModule kubernetes.RedisStatsDb,
+	dbstatsModule kubernetes.ValkeyStatsDb,
 ) SocketApi {
 	self := &socketApi{}
 	self.config = configModule

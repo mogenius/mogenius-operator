@@ -3,8 +3,8 @@ package kubernetes
 import (
 	"log/slog"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/valkeystore"
 	"sort"
 	"time"
 
@@ -23,7 +23,7 @@ const (
 var DefaultMaxSize int64 = 60 * 24 * 7
 var DefaultMaxSizeSocketConnections int64 = 60
 
-type RedisStatsDb interface {
+type ValkeyStatsDb interface {
 	Start() error
 	AddInterfaceStatsToDb(stats structs.InterfaceStats)
 	AddNodeStatsToDb(stats structs.NodeStats)
@@ -44,74 +44,74 @@ type RedisStatsDb interface {
 	ReplaceCniData(data []structs.CniData)
 }
 
-type redisStatsDbModule struct {
+type valkeyStatsDbModule struct {
 	config cfg.ConfigModule
 	logger *slog.Logger
-	redis  redisstore.RedisStore
+	valkey valkeystore.ValkeyStore
 }
 
-func NewRedisStatsModule(logger *slog.Logger, config cfg.ConfigModule) RedisStatsDb {
-	redisStore := redisstore.NewRedisStore(logger, config)
+func NewValkeyStatsModule(logger *slog.Logger, config cfg.ConfigModule) ValkeyStatsDb {
+	valkeyStore := valkeystore.NewValkeyStore(logger, config)
 
-	dbStatsModule := redisStatsDbModule{
+	dbStatsModule := valkeyStatsDbModule{
 		config: config,
 		logger: logger,
-		redis:  redisStore,
+		valkey: valkeyStore,
 	}
 
 	return &dbStatsModule
 }
 
-func (self *redisStatsDbModule) Start() error {
-	err := self.redis.Connect()
+func (self *valkeyStatsDbModule) Start() error {
+	err := self.valkey.Connect()
 	if err != nil {
-		self.logger.Error("could not connect to Redis", "error", err)
+		self.logger.Error("could not connect to Valkey", "error", err)
 	}
 	return err
 }
 
-func (self *redisStatsDbModule) AddInterfaceStatsToDb(stats structs.InterfaceStats) {
+func (self *valkeyStatsDbModule) AddInterfaceStatsToDb(stats structs.InterfaceStats) {
 	controller := ControllerForPod(stats.Namespace, stats.PodName)
 	if controller == nil {
 		return
 	}
 
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
-	err := self.redis.AddToBucket(DefaultMaxSizeSocketConnections, stats.SocketConnections, DB_STATS_SOCKET_STATS_BUCKET, stats.Namespace, controller.Name)
+	err := self.valkey.AddToBucket(DefaultMaxSizeSocketConnections, stats.SocketConnections, DB_STATS_SOCKET_STATS_BUCKET, stats.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error("Error adding interface stats socketconnections", "namespace", stats.Namespace, "podName", stats.PodName, "error", err)
 	}
 	stats.SocketConnections = nil
-	err = self.redis.AddToBucket(DefaultMaxSize, stats, DB_STATS_TRAFFIC_BUCKET_NAME, stats.Namespace, controller.Name)
+	err = self.valkey.AddToBucket(DefaultMaxSize, stats, DB_STATS_TRAFFIC_BUCKET_NAME, stats.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error("Error adding interface stats", "namespace", stats.Namespace, "podName", stats.PodName, "error", err)
 	}
 }
 
-func (self *redisStatsDbModule) ReplaceCniData(data []structs.CniData) {
+func (self *valkeyStatsDbModule) ReplaceCniData(data []structs.CniData) {
 	for _, v := range data {
-		err := self.redis.SetObject(data, 0, DB_STATS_CNI_BUCKET_NAME, v.Node)
+		err := self.valkey.SetObject(data, 0, DB_STATS_CNI_BUCKET_NAME, v.Node)
 		if err != nil {
 			self.logger.Error("Error adding cni data", "node", v.Node, "error", err)
 		}
 	}
 }
 
-func (self *redisStatsDbModule) GetCniData() ([]structs.CniData, error) {
-	result, err := redisstore.GetObjectsByPrefix[structs.CniData](self.redis, redisstore.ORDER_NONE, DB_STATS_CNI_BUCKET_NAME)
+func (self *valkeyStatsDbModule) GetCniData() ([]structs.CniData, error) {
+	result, err := valkeystore.GetObjectsByPrefix[structs.CniData](self.valkey, valkeystore.ORDER_NONE, DB_STATS_CNI_BUCKET_NAME)
 	return result, err
 }
 
-func (self *redisStatsDbModule) GetPodStatsEntriesForController(controller K8sController) *[]structs.PodStats {
-	result, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis, redisstore.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
+func (self *valkeyStatsDbModule) GetPodStatsEntriesForController(controller K8sController) *[]structs.PodStats {
+	result, err := valkeystore.GetObjectsByPrefix[structs.PodStats](self.valkey, valkeystore.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error("GetPodStatsEntriesForController", "error", err)
 	}
 	return &result
 }
 
-func (self *redisStatsDbModule) GetLastPodStatsEntryForController(controller K8sController) *structs.PodStats {
-	values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis, 1, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
+func (self *valkeyStatsDbModule) GetLastPodStatsEntryForController(controller K8sController) *structs.PodStats {
+	values, err := valkeystore.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, 1, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -121,16 +121,16 @@ func (self *redisStatsDbModule) GetLastPodStatsEntryForController(controller K8s
 	return nil
 }
 
-func (self *redisStatsDbModule) GetTrafficStatsEntriesForController(controller K8sController) *[]structs.InterfaceStats {
-	result, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis, redisstore.ORDER_NONE, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
+func (self *valkeyStatsDbModule) GetTrafficStatsEntriesForController(controller K8sController) *[]structs.InterfaceStats {
+	result, err := valkeystore.GetObjectsByPrefix[structs.InterfaceStats](self.valkey, valkeystore.ORDER_NONE, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
 	return &result
 }
 
-func (self *redisStatsDbModule) GetTrafficStatsEntrySumForController(controller K8sController, includeSocketConnections bool) *structs.InterfaceStats {
-	entries, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis, redisstore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
+func (self *valkeyStatsDbModule) GetTrafficStatsEntrySumForController(controller K8sController, includeSocketConnections bool) *structs.InterfaceStats {
+	entries, err := valkeystore.GetObjectsByPrefix[structs.InterfaceStats](self.valkey, valkeystore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -153,7 +153,7 @@ func (self *redisStatsDbModule) GetTrafficStatsEntrySumForController(controller 
 	return result
 }
 
-func (self *redisStatsDbModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+func (self *valkeyStatsDbModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
 	// setup min value
 	if timeOffsetInMinutes < 5 {
 		timeOffsetInMinutes = 5
@@ -164,7 +164,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinu
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := valkeystore.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -202,7 +202,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinu
 	return sortedEntries, nil
 }
 
-func (self *redisStatsDbModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+func (self *valkeyStatsDbModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
 	// setup min value
 	if timeOffsetInMinutes < 5 {
 		timeOffsetInMinutes = 5
@@ -213,7 +213,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInM
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := valkeystore.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -251,7 +251,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInM
 	return sortedEntries, nil
 }
 
-func (self *redisStatsDbModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+func (self *valkeyStatsDbModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
 	// setup min value
 	if timeOffsetInMinutes < 5 {
 		timeOffsetInMinutes = 5
@@ -262,7 +262,7 @@ func (self *redisStatsDbModule) GetWorkspaceStatsTrafficUtilization(timeOffsetIn
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := redisstore.LastNEntryFromBucketWithType[structs.InterfaceStats](self.redis, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := valkeystore.LastNEntryFromBucketWithType[structs.InterfaceStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -314,8 +314,8 @@ func (self *redisStatsDbModule) GetWorkspaceStatsTrafficUtilization(timeOffsetIn
 	return sortedEntries, nil
 }
 
-func (self *redisStatsDbModule) GetSocketConnectionsForController(controller K8sController) *structs.SocketConnections {
-	value, err := redisstore.GetObjectForKey[structs.SocketConnections](self.redis, DB_STATS_SOCKET_STATS_BUCKET, controller.Namespace, controller.Name)
+func (self *valkeyStatsDbModule) GetSocketConnectionsForController(controller K8sController) *structs.SocketConnections {
+	value, err := valkeystore.GetObjectForKey[structs.SocketConnections](self.valkey, DB_STATS_SOCKET_STATS_BUCKET, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -323,8 +323,8 @@ func (self *redisStatsDbModule) GetSocketConnectionsForController(controller K8s
 	return value
 }
 
-func (self *redisStatsDbModule) GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
-	values, err := redisstore.GetObjectsByPrefix[structs.PodStats](self.redis, redisstore.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
+func (self *valkeyStatsDbModule) GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
+	values, err := valkeystore.GetObjectsByPrefix[structs.PodStats](self.valkey, valkeystore.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -332,16 +332,16 @@ func (self *redisStatsDbModule) GetPodStatsEntriesForNamespace(namespace string)
 	return &values
 }
 
-func (self *redisStatsDbModule) GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
-	values, err := redisstore.LastNEntryFromBucketWithType[structs.PodStats](self.redis, 1, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
+func (self *valkeyStatsDbModule) GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
+	values, err := valkeystore.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, 1, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
 	return values
 }
 
-func (self *redisStatsDbModule) GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats {
-	values, err := redisstore.GetObjectsByPrefix[structs.InterfaceStats](self.redis, redisstore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, namespace)
+func (self *valkeyStatsDbModule) GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats {
+	values, err := valkeystore.GetObjectsByPrefix[structs.InterfaceStats](self.valkey, valkeystore.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, namespace)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -349,11 +349,11 @@ func (self *redisStatsDbModule) GetTrafficStatsEntriesForNamespace(namespace str
 	return &values
 }
 
-func (self *redisStatsDbModule) GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats {
+func (self *valkeyStatsDbModule) GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats {
 	result := []structs.InterfaceStats{}
 
 	// all keys in this namespace
-	keys, err := self.redis.Keys(DB_STATS_TRAFFIC_BUCKET_NAME + ":" + namespace + ":*")
+	keys, err := self.valkey.Keys(DB_STATS_TRAFFIC_BUCKET_NAME + ":" + namespace + ":*")
 	if err != nil {
 		self.logger.Error("GetTrafficStatsEntriesSumForNamespace", "error", err)
 		return result
@@ -371,22 +371,22 @@ func (self *redisStatsDbModule) GetTrafficStatsEntriesSumForNamespace(namespace 
 	return result
 }
 
-func (self *redisStatsDbModule) AddPodStatsToDb(stats structs.PodStats) {
+func (self *valkeyStatsDbModule) AddPodStatsToDb(stats structs.PodStats) {
 	controller := ControllerForPod(stats.Namespace, stats.PodName)
 	if controller == nil {
 		return
 	}
 
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
-	err := self.redis.AddToBucket(DefaultMaxSize, stats, DB_STATS_POD_STATS_BUCKET_NAME, stats.Namespace, controller.Name)
+	err := self.valkey.AddToBucket(DefaultMaxSize, stats, DB_STATS_POD_STATS_BUCKET_NAME, stats.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error("Error adding pod stats", "namespace", stats.Namespace, "podName", stats.PodName, "error", err)
 	}
 }
 
-func (self *redisStatsDbModule) AddNodeStatsToDb(stats structs.NodeStats) {
+func (self *valkeyStatsDbModule) AddNodeStatsToDb(stats structs.NodeStats) {
 	stats.CreatedAt = time.Now().Format(time.RFC3339)
-	err := self.redis.AddToBucket(DefaultMaxSize, stats, DB_STATS_NODE_STATS_BUCKET_NAME, stats.Name)
+	err := self.valkey.AddToBucket(DefaultMaxSize, stats, DB_STATS_NODE_STATS_BUCKET_NAME, stats.Name)
 	if err != nil {
 		self.logger.Error("Error adding node stats", "node", stats.Name, "error", err)
 	}

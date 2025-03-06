@@ -25,7 +25,7 @@ type HttpService interface {
 type httpService struct {
 	logger      *slog.Logger
 	config      cfg.ConfigModule
-	dbstats     kubernetes.RedisStatsDb
+	dbstats     kubernetes.ValkeyStatsDb
 	api         Api
 	broadcaster *Broadcaster
 
@@ -90,7 +90,7 @@ func (self *Broadcaster) BroadcastResponse(message interface{}, messageType stri
 func NewHttpApi(
 	logManagerModule logging.LogManagerModule,
 	configModule cfg.ConfigModule,
-	dbstats kubernetes.RedisStatsDb,
+	dbstats kubernetes.ValkeyStatsDb,
 	apiModule Api,
 ) HttpService {
 	assert.Assert(logManagerModule != nil)

@@ -27,14 +27,17 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
 
 		// DB (valkey) setup
-		valkeyPwd, err := mokubernetes.GetValkeyPwd()
-		if err != nil {
-			cmdLogger.Error("Error getting valkey password", "error", err)
+		if !configModule.IsSet("MO_VALKEY_PASSWORD") {
+			valkeyPwd, err := mokubernetes.GetValkeyPwd()
+			if err != nil {
+				cmdLogger.Error("Error getting valkey password", "error", err)
+			}
+			if valkeyPwd != nil {
+				configModule.Set("MO_VALKEY_PASSWORD", *valkeyPwd)
+			}
 		}
-		if valkeyPwd != nil {
-			configModule.Set("MO_VALKEY_PASSWORD", *valkeyPwd)
-		}
-		err = systems.redisModule.Connect()
+
+		err := systems.valkeyModule.Connect()
 		assert.Assert(err == nil, err)
 		err = systems.dbstatsModule.Start()
 		assert.Assert(err == nil, err)

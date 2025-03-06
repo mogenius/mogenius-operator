@@ -6,7 +6,7 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/redisstore"
+	"mogenius-k8s-manager/src/valkeystore"
 	"mogenius-k8s-manager/test"
 	"testing"
 	"time"
@@ -18,8 +18,8 @@ func TestCustomResource(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 	yamlData := test.YamlSanitize(`
 	apiVersion: v1
@@ -61,8 +61,8 @@ func TestSecretStoreResource(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	redisStoreModule := redisstore.NewRedisStore(logManager.CreateLogger("redisstore"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, redisStoreModule)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	yamlData := test.YamlSanitize(`

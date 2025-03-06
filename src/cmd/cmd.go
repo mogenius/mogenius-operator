@@ -14,13 +14,13 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/redisstore"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeystore"
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
@@ -261,9 +261,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_VALKEY_PASSWORD",
-		DefaultValue: utils.Pointer(""),
-		Description:  utils.Pointer("Password of operator valkey Server"),
+		Key:         "MO_VALKEY_PASSWORD",
+		Description: utils.Pointer("Password of operator valkey Server"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
@@ -421,12 +420,12 @@ func InitializeSystems(
 	assert.Assert(cmdLogger != nil)
 
 	// initialize client modules
-	redisModule := redisstore.NewRedisStore(logManagerModule.CreateLogger("redis"), configModule)
+	valkeyModule := valkeystore.NewValkeyStore(logManagerModule.CreateLogger("valkey"), configModule)
 	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
-	dbstatsModule := kubernetes.NewRedisStatsModule(logManagerModule.CreateLogger("db-stats"), configModule)
+	dbstatsModule := kubernetes.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule)
 	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-job-client"))
 	shutdown.Add(jobConnectionClient.Terminate)
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
@@ -434,15 +433,15 @@ func InitializeSystems(
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule)
-	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, redisModule)
+	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyModule)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
 	services.Setup(logManagerModule, configModule, clientProvider)
 	servicesexternal.Setup(logManagerModule, configModule)
-	store.Setup(logManagerModule, redisModule)
-	structs.Setup(logManagerModule, configModule)
-	xterm.Setup(logManagerModule, clientProvider, redisModule)
+	store.Setup(logManagerModule, valkeyModule)
+	structs.Setup(logManagerModule)
+	xterm.Setup(logManagerModule, clientProvider, valkeyModule)
 	utils.Setup(logManagerModule, configModule)
 
 	// initialization step 1 for services
@@ -469,7 +468,7 @@ func InitializeSystems(
 		socketApi,
 		httpApi,
 		xtermService,
-		redisModule,
+		valkeyModule,
 	}
 }
 
@@ -477,7 +476,7 @@ type systems struct {
 	clientProvider        k8sclient.K8sClientProvider
 	versionModule         *version.Version
 	watcherModule         *kubernetes.Watcher
-	dbstatsModule         kubernetes.RedisStatsDb
+	dbstatsModule         kubernetes.ValkeyStatsDb
 	jobConnectionClient   websocket.WebsocketClient
 	eventConnectionClient websocket.WebsocketClient
 	workspaceManager      core.WorkspaceManager
@@ -485,5 +484,5 @@ type systems struct {
 	socketApi             core.SocketApi
 	httpApi               core.HttpService
 	xtermService          core.XtermService
-	redisModule           redisstore.RedisStore
+	valkeyModule          valkeystore.ValkeyStore
 }
