@@ -128,12 +128,14 @@ helm repo update
 ```
 
 ## Send Pod-Stats & Traffic-Stats
+
 Add this to the respective daemonset and deployment (on docker-desktop):
-```
+
+```sh
 - name: k8s_manager_server_ws
   value: ws://host.docker.internal:1337/ws
 
-```sh
+```
 
 ## LINKS
 
