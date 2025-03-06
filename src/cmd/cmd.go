@@ -251,7 +251,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_ADDR",
-		Description: utils.Pointer("URL of operator valkey Server"),
+		Description: utils.Pointer("Address of operator valkey Server"),
 		Validate: func(value string) error {
 			_, _, err := net.SplitHostPort(value)
 			if err != nil {
