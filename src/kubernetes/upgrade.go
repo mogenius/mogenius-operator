@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,12 +70,12 @@ func ClusterForceDisconnect() bool {
 	return true
 }
 
-func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("upgrade operator", "Upgrade mogenius platform ...", job)
+func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, command string, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "upgrade operator", "Upgrade mogenius platform ...", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Upgrade mogenius platform ...")
+		cmd.Start(eventClient, job, "Upgrade mogenius platform ...")
 
 		clientset := clientProvider.K8sClientSet()
 		jobClient := clientset.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
@@ -94,14 +95,14 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 			// CREATE
 			_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
 				return
 			}
 		} else {
 			// UPDATE
 			_, err = configmapClient.Update(context.TODO(), &configmap, metav1.UpdateOptions{})
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()))
 				return
 			}
 		}
@@ -112,17 +113,17 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 			// CREATE
 			_, err = jobClient.Create(context.TODO(), &k8sjob, MoCreateOptions())
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()))
 				return
 			}
 		} else {
 			// UPDATE
 			_, err = jobClient.Update(context.TODO(), &k8sjob, metav1.UpdateOptions{})
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpgradeMyself (update_job) ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_job) ERROR: %s", err.Error()))
 				return
 			}
 		}
-		cmd.Success(job, "Upgraded platform successfully.")
+		cmd.Success(eventClient, job, "Upgraded platform successfully.")
 	}(wg)
 }

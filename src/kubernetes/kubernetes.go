@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 )
 
 var config cfg.ConfigModule
@@ -43,8 +44,8 @@ func Setup(
 	return nil
 }
 
-func Start() error {
-	err := WatchStoreResources(watcher)
+func Start(eventClient websocket.WebsocketClient) error {
+	err := WatchStoreResources(watcher, eventClient)
 	if err != nil {
 		return err
 	}

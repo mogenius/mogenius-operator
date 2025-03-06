@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -115,12 +116,12 @@ func DeleteExternalSecretList(namePrefix string, projectName string) error {
 	return DeleteExternalSecret(utils.GetSecretListName(namePrefix))
 }
 
-func DeleteUnusedSecretsForNamespace(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Delete Unused Secrets", job)
+func DeleteUnusedSecretsForNamespace(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "delete", "Delete Unused Secrets", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting unused secrets")
+		cmd.Start(eventClient, job, "Deleting unused secrets")
 
 		deployments := AllDeployments(namespace.Name)
 
@@ -139,12 +140,12 @@ func DeleteUnusedSecretsForNamespace(job *structs.Job, namespace dtos.K8sNamespa
 			k8sLogger.Error("Error listing resources", "error", err)
 		}
 		if secrets == nil {
-			cmd.Success(job, "Deleted unused secrets")
+			cmd.Success(eventClient, job, "Deleted unused secrets")
 			return
 		}
 		existingSecrets, err := parseExternalSecretsListing(secrets)
 		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("DeleteUnusedSecretsForNamespace ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteUnusedSecretsForNamespace ERROR: %s", err.Error()))
 			return
 		}
 		for _, secret := range existingSecrets {
@@ -171,7 +172,7 @@ func DeleteUnusedSecretsForNamespace(job *structs.Job, namespace dtos.K8sNamespa
 				}
 			}
 		}
-		cmd.Success(job, "Deleted unused secrets")
+		cmd.Success(eventClient, job, "Deleted unused secrets")
 	}(wg)
 }
 

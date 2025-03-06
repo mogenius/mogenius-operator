@@ -472,7 +472,8 @@ func InitializeSystems(
 	shutdown.Add(watcherModule.UnwatchAll)
 	dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
 	assert.Assert(err == nil, err)
-	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-client"))
+	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-job-client"))
+	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule)
@@ -492,7 +493,7 @@ func InitializeSystems(
 	apiModule := core.NewApi(logManagerModule.CreateLogger("api"))
 	httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
 	shutdown.Add(jobConnectionClient.Terminate)
-	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, dbstatsModule)
+	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, dbstatsModule)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 
 	// initialization step 2 for services
@@ -506,6 +507,7 @@ func InitializeSystems(
 		watcherModule,
 		dbstatsModule,
 		jobConnectionClient,
+		eventConnectionClient,
 		workspaceManager,
 		apiModule,
 		socketApi,
@@ -515,14 +517,15 @@ func InitializeSystems(
 }
 
 type systems struct {
-	clientProvider      k8sclient.K8sClientProvider
-	versionModule       *version.Version
-	watcherModule       *kubernetes.Watcher
-	dbstatsModule       kubernetes.BoltDbStats
-	jobConnectionClient websocket.WebsocketClient
-	workspaceManager    core.WorkspaceManager
-	apiModule           core.Api
-	socketApi           core.SocketApi
-	httpApi             core.HttpService
-	xtermService        core.XtermService
+	clientProvider        k8sclient.K8sClientProvider
+	versionModule         *version.Version
+	watcherModule         *kubernetes.Watcher
+	dbstatsModule         kubernetes.BoltDbStats
+	jobConnectionClient   websocket.WebsocketClient
+	eventConnectionClient websocket.WebsocketClient
+	workspaceManager      core.WorkspaceManager
+	apiModule             core.Api
+	socketApi             core.SocketApi
+	httpApi               core.HttpService
+	xtermService          core.XtermService
 }

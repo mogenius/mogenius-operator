@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"strings"
 	"sync"
 
@@ -33,12 +34,12 @@ func AllServices(namespaceName string) []v1.Service {
 	return result
 }
 
-func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("delete", "Delete Service", job)
+func DeleteService(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "delete", "Delete Service", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Deleting Service")
+		cmd.Start(eventClient, job, "Deleting Service")
 
 		clientset := clientProvider.K8sClientSet()
 		serviceClient := clientset.CoreV1().Services(namespace.Name)
@@ -49,19 +50,19 @@ func DeleteService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 
 		err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
-			cmd.Fail(job, fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
+			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
 		} else {
-			cmd.Success(job, "Deleted Service")
+			cmd.Success(eventClient, job, "Deleted Service")
 		}
 	}(wg)
 }
 
-func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Update Application", job)
+func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "update", "Update Application", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Update Application")
+		cmd.Start(eventClient, job, "Update Application")
 
 		existingService, getSrvErr := GetService(namespace.Name, service.ControllerName)
 		if getSrvErr != nil {
@@ -84,19 +85,19 @@ func UpdateService(job *structs.Job, namespace dtos.K8sNamespaceDto, service dto
 			if getSrvErr == nil {
 				err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("UpdateApplication (Delete) ERROR: %s", err.Error()))
+					cmd.Fail(eventClient, job, fmt.Sprintf("UpdateApplication (Delete) ERROR: %s", err.Error()))
 				} else {
-					cmd.Success(job, "Updated Application")
+					cmd.Success(eventClient, job, "Updated Application")
 				}
 			} else {
-				cmd.Success(job, "Updated Application")
+				cmd.Success(eventClient, job, "Updated Application")
 			}
 		} else {
 			_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpdateApplication ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpdateApplication ERROR: %s", err.Error()))
 			} else {
-				cmd.Success(job, "Updated Application")
+				cmd.Success(eventClient, job, "Updated Application")
 			}
 		}
 	}(wg)

@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 )
 
 type DefaultResponse struct {
@@ -29,7 +30,7 @@ type Job struct {
 	ContainerName  string       `json:"containerName,omitempty"`
 }
 
-func CreateJob(title string, projectId string, namespace string, controllerName string) *Job {
+func CreateJob(eventClient websocket.WebsocketClient, title string, projectId string, namespace string, controllerName string) *Job {
 	job := &Job{
 		Id:             utils.NanoId(),
 		ProjectId:      projectId,
@@ -41,13 +42,13 @@ func CreateJob(title string, projectId string, namespace string, controllerName 
 		State:          JobStatePending,
 		Started:        time.Now(),
 	}
-	ReportJobStateToServer(job)
+	ReportJobStateToServer(eventClient, job)
 	return job
 }
 
-func (j *Job) Start() {
+func (j *Job) Start(eventClient websocket.WebsocketClient) {
 	j.State = JobStateStarted
-	ReportJobStateToServer(j)
+	ReportJobStateToServer(eventClient, j)
 }
 
 func (j *Job) DefaultReponse() DefaultResponse {
@@ -73,7 +74,7 @@ func (j *Job) Fail(msg string) {
 	j.Message = msg
 }
 
-func (j *Job) Finish() {
+func (j *Job) Finish(eventClient websocket.WebsocketClient) {
 	var allSuccess = true
 	var failedCmd = ""
 	for _, cmd := range j.Commands {
@@ -94,30 +95,30 @@ func (j *Job) Finish() {
 	}
 	j.Finished = time.Now()
 
-	ReportJobStateToServer(j)
+	ReportJobStateToServer(eventClient, j)
 }
 
-func (j *Job) AddCmd(cmd *Command) {
+func (j *Job) AddCmd(eventClient websocket.WebsocketClient, cmd *Command) {
 	j.Commands = append(j.Commands, cmd)
-	ReportCmdStateToServer(j, cmd)
+	ReportCmdStateToServer(eventClient, j, cmd)
 }
 
-func (j *Job) AddCmds(cmds []*Command) {
+func (j *Job) AddCmds(eventClient websocket.WebsocketClient, cmds []*Command) {
 	for _, cmd := range cmds {
-		j.AddCmd(cmd)
+		j.AddCmd(eventClient, cmd)
 	}
 }
 
-func ReportJobStateToServer(job *Job) {
+func ReportJobStateToServer(eventClient websocket.WebsocketClient, job *Job) {
 	stateLogJob(job)
 	result := CreateDatagramNotificationFromJob(job)
-	EventServerSendData(result, "", "", "", 1)
+	EventServerSendData(eventClient, result, "", "", "", 1)
 }
 
-func ReportCmdStateToServer(job *Job, cmd *Command) {
+func ReportCmdStateToServer(eventClient websocket.WebsocketClient, job *Job, cmd *Command) {
 	stateLogCmd(cmd, job.NamespaceName, job.ControllerName)
 	result := CreateDatagramNotificationFromJob(job)
-	EventServerSendData(result, "", "", "", 1)
+	EventServerSendData(eventClient, result, "", "", "", 1)
 }
 
 func stateLogJob(data *Job) {
