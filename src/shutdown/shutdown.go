@@ -1,12 +1,12 @@
 package shutdown
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 var logger *log.Logger = log.Default()
@@ -30,15 +30,17 @@ func SendShutdownSignal(indicateFailure bool) {
 }
 
 type Shutdown struct {
-	hooks []func()
-	mutex *sync.Mutex
+	hooks                  []func()
+	mutex                  *sync.Mutex
+	internalShutdownSignal chan bool
 }
 
 func New() *Shutdown {
-	return &Shutdown{
-		hooks: []func(){},
-		mutex: &sync.Mutex{},
-	}
+	self := &Shutdown{}
+	self.hooks = []func(){}
+	self.mutex = &sync.Mutex{}
+	self.internalShutdownSignal = make(chan bool)
+	return self
 }
 
 func (self *Shutdown) Add(fn func()) {
@@ -51,48 +53,65 @@ func (self *Shutdown) SendShutdownSignal(indicateFailure bool) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 	logger.Println("sending request to shut down")
-	if indicateFailure {
-		err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
-		if err != nil {
-			panic(fmt.Errorf("failed to send SIGTERM signal: %s", err.Error()))
-		}
-	} else {
-		err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-		if err != nil {
-			panic(fmt.Errorf("failed to send SIGINT signal: %s", err.Error()))
-		}
-	}
+	self.internalShutdownSignal <- indicateFailure
 }
 
-func (self *Shutdown) ExecuteShutdownHandlers() {
-	self.mutex.Lock()
-	defer self.mutex.Unlock()
-	var wg sync.WaitGroup
-	for _, fn := range self.hooks {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			fn()
-		}()
-	}
-	wg.Wait()
-	logger.Println("finished shutdown routines")
+func (self *Shutdown) ExecuteShutdownHandlers() chan struct{} {
+	finishedSignaler := make(chan struct{})
+	go func() {
+		self.mutex.Lock()
+		defer self.mutex.Unlock()
+		var wg sync.WaitGroup
+		for _, fn := range self.hooks {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				fn()
+			}()
+		}
+		wg.Wait()
+		finishedSignaler <- struct{}{}
+	}()
+	return finishedSignaler
 }
+
+const (
+	ExitCodeOk      int = 0
+	ExitCodeFailure int = 1
+	ExitCodeTimeout int = 126
+	ExitCodeUnknown int = 127
+)
 
 func (self *Shutdown) Listen() {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	receivedSignal := <-ch
-	logger.Println("received request to shut down: ", receivedSignal.String())
+	osSignalListener := make(chan os.Signal, 1)
+	signal.Notify(osSignalListener, syscall.SIGINT, syscall.SIGTERM)
+	exitCode := ExitCodeUnknown
 
-	self.ExecuteShutdownHandlers()
-
-	switch receivedSignal {
-	case syscall.SIGINT:
-		os.Exit(0)
-	case syscall.SIGTERM:
-		os.Exit(1)
-	default:
-		os.Exit(255)
+	select {
+	case receivedSignal := <-osSignalListener:
+		logger.Println("received signal to shut down: ", receivedSignal.String())
+		switch receivedSignal {
+		case syscall.SIGINT:
+			exitCode = ExitCodeOk
+		case syscall.SIGTERM:
+			exitCode = ExitCodeFailure
+		}
+	case indicateFailure := <-self.internalShutdownSignal:
+		logger.Printf("received internal request to shut down with failure(%v)", indicateFailure)
+		if indicateFailure {
+			exitCode = ExitCodeFailure
+		} else {
+			exitCode = ExitCodeOk
+		}
 	}
+
+	select {
+	case <-self.ExecuteShutdownHandlers():
+		logger.Printf("shutdown routines finished")
+	case <-time.After(30 * time.Second):
+		logger.Printf("timeout reached while handling shutdown routines")
+		exitCode = ExitCodeTimeout
+	}
+
+	os.Exit(exitCode)
 }
