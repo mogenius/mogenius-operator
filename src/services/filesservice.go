@@ -9,8 +9,6 @@ import (
 	"math"
 	"mime/multipart"
 	"mogenius-k8s-manager/src/dtos"
-	mokubernetes "mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
 	"net/http"
 	"os"
@@ -21,9 +19,9 @@ import (
 	"time"
 )
 
-func List(r FilesListRequest) []dtos.PersistentFileDto {
+func List(folder dtos.PersistentFileRequestDto) []dtos.PersistentFileDto {
 	result := []dtos.PersistentFileDto{}
-	pathToFile, err := verify(&r.Folder)
+	pathToFile, err := verify(&folder)
 	if err != nil {
 		return result
 	}
@@ -44,11 +42,11 @@ func Info(r dtos.PersistentFileRequestDto) dtos.PersistentFileDto {
 	return dtos.PersistentFileDtoFrom(pathToFile, pathToFile)
 }
 
-func Download(r FilesDownloadRequest) interface{} {
+func Download(pfile dtos.PersistentFileRequestDto, postTo string) interface{} {
 	result := FilesDownloadResponse{
 		SizeInBytes: 0,
 	}
-	pathToFile, err := verify(&r.File)
+	pathToFile, err := verify(&pfile)
 	if err != nil {
 		result.Error = err.Error()
 		return result
@@ -145,7 +143,7 @@ func Download(r FilesDownloadRequest) interface{} {
 	multiPartWriter.Close()
 
 	// Upload the file
-	req, err := http.NewRequest("POST", r.PostTo, buf)
+	req, err := http.NewRequest("POST", postTo, buf)
 	if err != nil {
 		serviceLogger.Error("Error sending request", "error", err)
 		result.Error = err.Error()
@@ -164,7 +162,7 @@ func Download(r FilesDownloadRequest) interface{} {
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode > 299 {
-		result.Error = fmt.Sprintf("%s - '%s'.", r.PostTo, response.Status)
+		result.Error = fmt.Sprintf("%s - '%s'.", postTo, response.Status)
 	}
 
 	return result
@@ -189,8 +187,8 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
 	return nil
 }
 
-func CreateFolder(r FilesCreateFolderRequest) error {
-	pathToDir, err := verify(&r.Folder)
+func CreateFolder(folder dtos.PersistentFileRequestDto) error {
+	pathToDir, err := verify(&folder)
 	if err != nil {
 		return err
 	}
@@ -201,14 +199,14 @@ func CreateFolder(r FilesCreateFolderRequest) error {
 	return nil
 }
 
-func Rename(r FilesRenameRequest) error {
-	pathToFile, err := verify(&r.File)
+func Rename(file dtos.PersistentFileRequestDto, newName string) error {
+	pathToFile, err := verify(&file)
 	if err != nil {
 		return err
 	}
 
 	dir, _ := filepath.Split(pathToFile)
-	newPath := filepath.Join(dir, r.NewName)
+	newPath := filepath.Join(dir, newName)
 
 	err = os.Rename(pathToFile, newPath)
 	if err != nil {
@@ -217,17 +215,17 @@ func Rename(r FilesRenameRequest) error {
 	return nil
 }
 
-func Chown(r FilesChownRequest) interface{} {
-	pathToDir, err := verify(&r.File)
+func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) interface{} {
+	pathToDir, err := verify(&file)
 	if err != nil {
 		return utils.CreateError(err)
 	}
 
-	gid, err := strconv.Atoi(r.Gid)
+	gid, err := strconv.Atoi(gidString)
 	if err != nil {
 		return utils.CreateError(err)
 	}
-	uid, err := strconv.Atoi(r.Uid)
+	uid, err := strconv.Atoi(uidString)
 	if err != nil {
 		return utils.CreateError(err)
 	}
@@ -244,14 +242,14 @@ func Chown(r FilesChownRequest) interface{} {
 	return nil
 }
 
-func Chmod(r FilesChmodRequest) interface{} {
-	pathToDir, err := verify(&r.File)
+func Chmod(file dtos.PersistentFileRequestDto, mode string) interface{} {
+	pathToDir, err := verify(&file)
 	if err != nil {
 		return utils.CreateError(err)
 	}
 
 	// padding left leading zero if missing
-	var mod = fmt.Sprintf("%0*s", 4, r.Mode)
+	var mod = fmt.Sprintf("%0*s", 4, mode)
 	// Convert to base 8 (which is the traditional base for unix file modes)
 	// base 0, and it'll automatically choose base 8 due to the leading 0
 	permissions, err := strconv.ParseUint(mod, 0, 32)
@@ -268,8 +266,8 @@ func Chmod(r FilesChmodRequest) interface{} {
 	return nil
 }
 
-func Delete(r FilesDeleteRequest) interface{} {
-	pathToDir, err := verify(&r.File)
+func Delete(file dtos.PersistentFileRequestDto) interface{} {
+	pathToDir, err := verify(&file)
 	if err != nil {
 		return err
 	}
@@ -278,71 +276,6 @@ func Delete(r FilesDeleteRequest) interface{} {
 		return err
 	}
 	return nil
-}
-
-type ClusterIssuerInstallRequest struct {
-	Email string `json:"email" validate:"required,email"`
-}
-
-func (p *ClusterIssuerInstallRequest) AddSecretsToRedaction() {
-	logging.AddSecret(p.Email)
-}
-
-func ClusterIssuerInstallRequestExample() ClusterIssuerInstallRequest {
-	return ClusterIssuerInstallRequest{
-		Email: "bene@mogenius.com",
-	}
-}
-
-type NsStatsDataRequest struct {
-	Namespace string `json:"namespace" validate:"required"`
-}
-
-func NsStatsDataRequestExampleData() NsStatsDataRequest {
-	return NsStatsDataRequest{
-		Namespace: "fuckumucku2-prod-3z7yz9",
-	}
-}
-
-type StatsDataRequest struct {
-	Namespace string `json:"namespace" validate:"required"`
-	PodName   string `json:"podname" validate:"required"`
-}
-
-func StatsDataRequestExampleData() StatsDataRequest {
-	return StatsDataRequest{
-		Namespace: "mogenius",
-		PodName:   "mogenius-k8s-manager-58485d4885-qbwcc",
-	}
-}
-
-type FilesListRequest struct {
-	Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required"`
-}
-
-func FilesListRequestExampleData() FilesListRequest {
-	return FilesListRequest{
-		Folder: dtos.PersistentFileRequestDtoExampleData(),
-	}
-}
-
-type FilesDownloadRequest struct {
-	File   dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-	PostTo string                        `json:"postTo" validate:"required"`
-}
-
-func FilesDownloadRequestExampleData() FilesDownloadRequest {
-	return FilesDownloadRequest{
-		File:   dtos.PersistentFileDownloadDtoExampleData(),
-		PostTo: "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
-	}
-}
-
-func FilesDownloadDirectoryRequestExampleData() FilesDownloadRequest {
-	return FilesDownloadRequest{
-		File:   dtos.PersistentFileRequestNewFolderDtoExampleData(),
-		PostTo: "http://localhost:8080/path/to/send/data?id=E694180D-4E18-41EC-A4CC-F402EA825D60",
-	}
 }
 
 type FilesDownloadResponse struct {
@@ -361,64 +294,6 @@ func FilesUploadRequestExampleData() FilesUploadRequest {
 		File:        dtos.PersistentFileUploadDtoExampleData(),
 		SizeInBytes: 21217588,
 		Id:          "1234567890",
-	}
-}
-
-type FilesCreateFolderRequest struct {
-	Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required"`
-}
-
-func FilesCreateFolderRequestExampleData() FilesCreateFolderRequest {
-	return FilesCreateFolderRequest{
-		Folder: dtos.PersistentFileRequestNewFolderDtoExampleData(),
-	}
-}
-
-type FilesRenameRequest struct {
-	File    dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-	NewName string                        `json:"newName" validate:"required"`
-}
-
-func FilesRenameRequestExampleData() FilesRenameRequest {
-	return FilesRenameRequest{
-		File:    dtos.PersistentFileRequestNewFolderDtoExampleData(),
-		NewName: "newName",
-	}
-}
-
-type FilesChownRequest struct {
-	File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-	Uid  string                        `json:"uid" validate:"required"`
-	Gid  string                        `json:"gid" validate:"required"`
-}
-
-func FilesChownRequestExampleData() FilesChownRequest {
-	return FilesChownRequest{
-		File: dtos.PersistentFileRequestNewFolderDtoExampleData(),
-		Uid:  "1234",
-		Gid:  "2344",
-	}
-}
-
-type FilesChmodRequest struct {
-	File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-	Mode string                        `json:"mode" validate:"required"`
-}
-
-func FilesChmodRequestExampleData() FilesChmodRequest {
-	return FilesChmodRequest{
-		File: dtos.PersistentFileRequestDtoExampleData(),
-		Mode: "777",
-	}
-}
-
-type FilesDeleteRequest struct {
-	File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-}
-
-func FilesDeleteRequestExampleData() FilesDeleteRequest {
-	return FilesDeleteRequest{
-		File: dtos.PersistentFileRequestNewFolderDtoExampleData(),
 	}
 }
 
@@ -577,7 +452,7 @@ func verify(data *dtos.PersistentFileRequestDto) (string, error) {
 		data.Path = ""
 	}
 
-	mountPath := utils.MountPath(data.VolumeNamespace, data.VolumeName, "/", mokubernetes.RunsInCluster())
+	mountPath := utils.MountPath(data.VolumeNamespace, data.VolumeName, "/", clientProvider.RunsInCluster())
 	pathToFile := ""
 
 	_, mountPathExists := os.Stat(mountPath)

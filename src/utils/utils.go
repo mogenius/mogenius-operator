@@ -784,6 +784,18 @@ func ContainsEqual(s []string, str string) bool {
 	}
 	return false
 }
+func ContainsPattern(key []byte, pattern string) bool {
+	return strings.Contains(string(key), pattern)
+}
+
+func ContainsPatterns(s string, pattern []string) bool {
+	for _, p := range pattern {
+		if strings.Contains(s, p) {
+			return true
+		}
+	}
+	return false
+}
 
 func IsProduction() bool {
 	stage := config.Get("MO_STAGE")
@@ -861,4 +873,13 @@ func ParseJsonStringArray(input string) []string {
 		utilsLogger.Error("jsonStringArrayToStringArray: Failed to parse into []string.", "input", input)
 	}
 	return val
+}
+
+func ContainsResourceEntry(resources []*SyncResourceEntry, target SyncResourceEntry) bool {
+	for _, r := range resources {
+		if r.Kind == target.Kind && r.Group == target.Group {
+			return true
+		}
+	}
+	return false
 }

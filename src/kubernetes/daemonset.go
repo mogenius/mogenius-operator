@@ -11,11 +11,8 @@ import (
 func AllDaemonsets(namespaceName string) []v1.DaemonSet {
 	result := []v1.DaemonSet{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	daemonsetList, err := provider.ClientSet.AppsV1().DaemonSets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	clientset := clientProvider.K8sClientSet()
+	daemonsetList, err := clientset.AppsV1().DaemonSets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllDaemonsets", "error", err.Error())
 		return result
@@ -45,11 +42,8 @@ func IsDaemonSetInstalled(namespaceName string, name string) (string, error) {
 }
 
 func GetK8sDaemonset(namespaceName string, name string) (*v1.DaemonSet, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	daemonset, err := provider.ClientSet.AppsV1().DaemonSets(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	daemonset, err := clientset.AppsV1().DaemonSets(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
 	daemonset.Kind = "DaemonSet"
 	daemonset.APIVersion = "apps/v1"
 

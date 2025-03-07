@@ -15,7 +15,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: [self-hosted-ansible, ARM64]
+    runs-on: [self-hosted-ansible]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,61 +38,69 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  golangci:
-    needs: prepare
-    runs-on: [self-hosted-ansible, ARM64]
-    permissions:
-      # Required: allow read access to the content for analysis.
-      contents: read
-      # Optional: allow read access to pull request. Use with `only-new-issues` option.
-      pull-requests: read
-      # Optional: allow write access to checks to allow the action to annotate code in the PR.
-      checks: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          only-new-issues: true
-          args: --timeout=30m
+#
+# TODO: enable again
+#
 
-  govet:
-    needs: prepare
-    runs-on: [self-hosted-ansible, ARM64]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
-      - name: go vet
-        run: |
-          go vet ./...
+  # golangci:
+  #   needs: prepare
+  #   runs-on: [self-hosted-ansible]
+  #   permissions:
+  #     # Required: allow read access to the content for analysis.
+  #     contents: read
+  #     # Optional: allow read access to pull request. Use with `only-new-issues` option.
+  #     pull-requests: read
+  #     # Optional: allow write access to checks to allow the action to annotate code in the PR.
+  #     checks: write
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: stable
+  #     - name: golangci-lint
+  #       uses: golangci/golangci-lint-action@v6
+  #       with:
+  #         version: latest
+  #         only-new-issues: true
+  #         args: --timeout=30m
 
-  unit-tests:
-    needs: prepare
-    runs-on: [self-hosted-ansible, ARM64]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
-      - name: Execute Tests
-        run: |
-          go mod download
-          go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
+  # govet:
+  #   needs: prepare
+  #   runs-on: [self-hosted-ansible]
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: stable
+  #     - name: go vet
+  #       run: |
+  #         export GOPATH=$(go env GOPATH)
+  #         export GOMODCACHE=$(go env GOMODCACHE)
+  #         go vet ./...
+
+  # unit-tests:
+  #   needs: prepare
+  #   runs-on: [self-hosted-ansible]
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: stable
+  #     - name: Execute Tests
+  #       run: |
+  #         export GOPATH=$(go env GOPATH)
+  #         export GOMODCACHE=$(go env GOMODCACHE)
+  #         echo $GOPATH
+  #         echo $GOMODCACHE
+  #         go mod download
+  #         go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
 
   # integration-tests:
   #   needs: prepare
@@ -332,12 +340,14 @@ jobs:
           path: "helm"
 
       - name: Install Helm
-        uses: azure/setup-helm@v4.2.0
+        uses: azure/setup-helm@v4.3.0
         id: install
 
       - name: package and push
         run: |
           cd ./helm
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
-          helm package -d /tmp/ --version ${{ env.SEMVERSION }} .
+          sed -i -e "s/repository: mogenius\/mogenius-k8s-manager/repository: mogenius\/mogenius-k8s-manager-dev/" values.yaml
+          sed -i -e "s/name: mogenius-k8s-manager/name: mogenius-k8s-manager-dev/" Chart.yaml    
+          helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts

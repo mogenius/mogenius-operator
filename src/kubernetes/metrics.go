@@ -32,24 +32,21 @@ type ContainerMetrics struct {
 }
 
 func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
-	kubeProvider, err := NewKubeProvider()
-	if err != nil {
-		return nil
-	}
+	clientset := clientProvider.K8sClientSet()
 
 	metricsProvider, err := NewKubeProviderMetrics()
 	if err != nil {
 		return nil
 	}
 
-	deployment, err := kubeProvider.ClientSet.AppsV1().Deployments(data.Namespace).Get(context.TODO(), data.Name, metav1.GetOptions{})
+	deployment, err := clientset.AppsV1().Deployments(data.Namespace).Get(context.TODO(), data.Name, metav1.GetOptions{})
 	if err != nil {
 		k8sLogger.Error("Error getting deployment", "namespace", data.Namespace, "deployment", data.Name, "error", err)
 		return nil
 	}
 
 	labelSelector := metav1.FormatLabelSelector(deployment.Spec.Selector)
-	podList, err := kubeProvider.ClientSet.CoreV1().Pods(data.Namespace).List(context.TODO(), metav1.ListOptions{
+	podList, err := clientset.CoreV1().Pods(data.Namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: labelSelector,
 	})
 	if err != nil {

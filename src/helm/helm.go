@@ -1,18 +1,26 @@
 package helm
 
 import (
+	"errors"
 	"fmt"
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/repo"
@@ -90,7 +98,7 @@ type HelmChartSearchRequest struct {
 	Name string `json:"name,omitempty"`
 }
 
-type HelmChartInstallRequest struct {
+type HelmChartInstallUpgradeRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Chart     string `json:"chart" validate:"required"`
 	Release   string `json:"release" validate:"required"`
@@ -107,16 +115,6 @@ type HelmChartShowRequest struct {
 
 type HelmChartVersionRequest struct {
 	Chart string `json:"chart" validate:"required"`
-}
-
-type HelmReleaseUpgradeRequest struct {
-	Namespace string `json:"namespace" validate:"required"`
-	Chart     string `json:"chart" validate:"required"`
-	Release   string `json:"release" validate:"required"`
-	// Optional fields
-	Version string `json:"version,omitempty"`
-	Values  string `json:"values,omitempty"`
-	DryRun  bool   `json:"dryRun,omitempty"`
 }
 
 type HelmReleaseUninstallRequest struct {
@@ -152,6 +150,13 @@ type HelmReleaseGetRequest struct {
 	GetFormat structs.HelmGetEnum `json:"getFormat" validate:"required"` // "all" "hooks" "manifest" "notes" "values"
 }
 
+type HelmReleaseGetWorkloadsRequest struct {
+	Namespace string `json:"namespace" validate:"required"`
+	Release   string `json:"release" validate:"required"`
+
+	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
+}
+
 type HelmEntryWithoutPassword struct {
 	Name                  string `json:"name"`
 	URL                   string `json:"url"`
@@ -182,12 +187,13 @@ type HelmReleaseStatusInfo struct {
 }
 
 // Only for internal usage
-func CreateHelmChart(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmChartName string, helmValues string) (output string, err error) {
-	data := HelmChartInstallRequest{
+func CreateHelmChart(helmReleaseName string, helmRepoName string, helmRepoUrl string, helmChartName string, helmValues string, helmChartVersion string) (output string, err error) {
+	data := HelmChartInstallUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Chart:     helmChartName,
 		Release:   helmReleaseName,
 		Values:    helmValues,
+		Version:   helmChartVersion,
 	}
 
 	// make sure repo is available
@@ -723,10 +729,14 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 	return allCharts, nil
 }
 
-func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
+func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 	settings.Debug = true
+
+	if _, err := HelmRepoUpdate(); err != nil {
+		helmLogger.Error("failed to update helm repositories", "error", err)
+	}
 
 	logFn := func(msg string, args ...interface{}) {
 		helmLogger.Info(
@@ -757,6 +767,7 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 	install.Version = data.Version
 	install.Wait = false
 	install.Timeout = 300 * time.Second
+	install.Devel = true
 
 	chartPath, err := install.LocateChart(data.Chart, settings)
 	if err != nil {
@@ -807,9 +818,13 @@ func HelmChartInstall(data HelmChartInstallRequest) (string, error) {
 	return installStatus(*re), nil
 }
 
-func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
+func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (string, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
+
+	if _, err := HelmRepoUpdate(); err != nil {
+		helmLogger.Error("failed to update helm repositories", "error", err)
+	}
 
 	logFn := func(msg string, args ...interface{}) {
 		helmLogger.Info(
@@ -831,6 +846,7 @@ func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
 	upgrade.Namespace = data.Namespace
 	upgrade.Version = data.Version
 	upgrade.Timeout = 300 * time.Second
+	upgrade.Devel = true
 
 	chartPath, err := upgrade.LocateChart(data.Chart, settings)
 	if err != nil {
@@ -865,12 +881,11 @@ func HelmReleaseUpgrade(data HelmReleaseUpgradeRequest) (string, error) {
 
 	re, err := upgrade.Run(data.Release, chartRequested, valuesMap)
 	if err != nil {
-		helmLogger.Error("HelmUpgrade Run",
+		helmLogger.Error("HelmUpgrade Run failed",
 			"releaseName", data.Release,
 			"namespace", data.Namespace,
 			"error", err,
 		)
-		return "", err
 	}
 	if re == nil {
 		return "", fmt.Errorf("HelmUpgrade Error: Release not found")
@@ -1112,6 +1127,82 @@ func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
 			return "", fmt.Errorf("HelmGet Error: Unknown HelmGetEnum")
 		}
 	}
+}
+
+func IsManagedByHelmRelease(labels map[string]string, annotations map[string]string, releaseName string) bool {
+	labelManagedByHelm := labels != nil && labels["app.kubernetes.io/managed-by"] == "Helm"
+	labelInstanceRelease := labels != nil && labels["app.kubernetes.io/instance"] == releaseName
+	annotationReleaseName := annotations != nil && annotations["meta.helm.sh/release-name"] == releaseName
+
+	return annotationReleaseName || (labelManagedByHelm && (labelInstanceRelease || annotationReleaseName))
+}
+
+func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
+	workloads, err := store.GlobalStore.SearchByNamespace(reflect.TypeOf(unstructured.Unstructured{}), data.Namespace, data.Whitelist)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []unstructured.Unstructured
+	appendedWorkloadUIds := make(map[types.UID]bool)
+	var replicaSets []interface{}
+	replicaSetsFetched := false
+
+	for _, ref := range workloads {
+		if ref == nil {
+			continue
+		}
+
+		workload, ok := ref.(*unstructured.Unstructured)
+		if !ok || workload == nil {
+			continue
+		}
+
+		if appendedWorkloadUIds[workload.GetUID()] {
+			continue
+		}
+
+		if workload.GetKind() == "Pod" {
+			if !replicaSetsFetched {
+				replicaSets, err = store.GlobalStore.SearchByKeyParts(reflect.TypeOf(v1.ReplicaSet{}), "ReplicaSet", data.Namespace)
+				if errors.Is(err, store.ErrNotFound) {
+					helmLogger.Warn("ReplicaSet not found", "error", err)
+					replicaSets = nil
+				}
+				replicaSetsFetched = true
+			}
+
+			for _, ref := range replicaSets {
+				if ref == nil {
+					continue
+				}
+
+				replicaset, ok := ref.(*v1.ReplicaSet)
+				if !ok || replicaset == nil {
+					continue
+				}
+
+				for _, ownerReference := range workload.GetOwnerReferences() {
+					if ownerReference.UID == replicaset.UID {
+						if IsManagedByHelmRelease(replicaset.GetLabels(), replicaset.GetAnnotations(), data.Release) {
+							results = append(results, *workload)
+							appendedWorkloadUIds[workload.GetUID()] = true
+							break
+						}
+
+					}
+				}
+			}
+			continue
+		}
+
+		if IsManagedByHelmRelease(workload.GetLabels(), workload.GetAnnotations(), data.Release) {
+			results = append(results, *workload)
+			appendedWorkloadUIds[workload.GetUID()] = true
+		}
+	}
+
+	return results, nil
 }
 
 func printAllGet(rel *release.Release) string {

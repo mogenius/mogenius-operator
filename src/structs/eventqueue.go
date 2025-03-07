@@ -2,12 +2,10 @@ package structs
 
 import (
 	"context"
-	"mogenius-k8s-manager/src/utils"
-	"net/url"
+	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/websocket"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 type EventData struct {
@@ -20,14 +18,13 @@ type EventData struct {
 
 const RETRYTIMEOUT time.Duration = 3
 
-var eventSendMutex sync.Mutex
-var EventQueueConnection *websocket.Conn
-var eventConnectionGuard = make(chan struct{}, 1)
-var EventConnectionStatus chan bool = make(chan bool)
 var eventDataQueue []EventData = []EventData{}
-var EventConnectionUrl url.URL = url.URL{}
+var eventSendMutex sync.Mutex
+var eventConnectionGuard = make(chan struct{}, 1)
 
-func ConnectToEventQueue() {
+func ConnectToEventQueue(eventClient websocket.WebsocketClient) {
+	eventQueueCtx, cancel := context.WithCancel(context.Background())
+	shutdown.Add(cancel)
 	for {
 		eventConnectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
@@ -37,61 +34,38 @@ func ConnectToEventQueue() {
 			go func() {
 				for {
 					select {
-					case <-ticker.C:
-						processEventQueueNow()
-					case <-quit:
-						// close go routine
+					case <-eventQueueCtx.Done():
 						return
+					case <-quit:
+						return
+					case <-ticker.C:
+						processEventQueueNow(eventClient)
 					}
 				}
 			}()
 
 			ctx := context.Background()
-			connectEvent(ctx)
 			ctx.Done()
-			<-eventConnectionGuard
+			select {
+			case <-eventQueueCtx.Done():
+				return
+			case <-eventConnectionGuard:
+			}
 
 			ticker.Stop()
 			close(quit)
 		}()
 
-		<-time.After(RETRYTIMEOUT * time.Second)
+		select {
+		case <-eventQueueCtx.Done():
+			structsLogger.Debug("shutting down eventsqueue")
+			return
+		case <-time.After(RETRYTIMEOUT * time.Second):
+		}
 	}
 }
 
-func connectEvent(ctx context.Context) {
-	EventConnectionUrl, err := url.Parse(config.Get("MO_EVENT_SERVER"))
-	if err != nil {
-		structsLogger.Error("failed to parse MO_EVENT_SERVER as URL", "error", err)
-		EventConnectionStatus <- false
-		return
-	}
-
-	connection, _, err := websocket.DefaultDialer.Dial(EventConnectionUrl.String(), utils.HttpHeader(""))
-	if err != nil {
-		structsLogger.Error("Connection to EventServer failed", "url", EventConnectionUrl.String(), "error", err)
-		EventConnectionStatus <- false
-	} else {
-		structsLogger.Info("Connected to EventServer", "url", EventConnectionUrl.String(), "localAddr", connection.LocalAddr().String())
-		EventQueueConnection = connection
-		EventConnectionStatus <- true
-		err := Ping(EventQueueConnection, &eventSendMutex)
-		if err != nil {
-			structsLogger.Error("Error pinging event queue", "error", err)
-		}
-	}
-
-	defer func() {
-		// reset everything if connection dies
-		if EventQueueConnection != nil {
-			EventQueueConnection.Close()
-		}
-		ctx.Done()
-		EventConnectionStatus <- false
-	}()
-}
-
-func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32) {
+func EventServerSendData(eventClient websocket.WebsocketClient, datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32) {
 	data := EventData{
 		Datagram:   datagram,
 		K8sKind:    k8sKind,
@@ -100,23 +74,21 @@ func EventServerSendData(datagram Datagram, k8sKind string, k8sReason string, k8
 		Count:      count,
 	}
 	eventDataQueue = append(eventDataQueue, data)
-	processEventQueueNow()
+	processEventQueueNow(eventClient)
 }
 
-func processEventQueueNow() {
+func processEventQueueNow(eventClient websocket.WebsocketClient) {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 
-	if EventQueueConnection != nil {
-		for i := 0; i < len(eventDataQueue); i++ {
-			element := eventDataQueue[i]
+	for i := 0; i < len(eventDataQueue); i++ {
+		element := eventDataQueue[i]
 
-			err := EventQueueConnection.WriteJSON(element.Datagram)
-			if err == nil {
-				eventDataQueue = RemoveEventIndex(eventDataQueue, i)
-			} else {
-				structsLogger.Error("Error sending data to EventServer", "error", err)
-			}
+		err := eventClient.WriteJSON(element.Datagram)
+		if err == nil {
+			eventDataQueue = RemoveEventIndex(eventDataQueue, i)
+		} else {
+			structsLogger.Error("Error sending data to EventServer", "error", err)
 		}
 	}
 }

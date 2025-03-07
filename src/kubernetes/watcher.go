@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/k8sclient"
 	"sync"
 	"time"
 
@@ -19,12 +20,16 @@ import (
 type Watcher struct {
 	handlerMapLock sync.Mutex
 	activeHandlers map[WatcherResourceIdentifier]resourceContext
+	clientProvider k8sclient.K8sClientProvider
+	logger         *slog.Logger
 }
 
-func NewWatcher() *Watcher {
+func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) *Watcher {
 	return &Watcher{
 		handlerMapLock: sync.Mutex{},
 		activeHandlers: make(map[WatcherResourceIdentifier]resourceContext, 0),
+		clientProvider: clientProvider,
+		logger:         logger,
 	}
 }
 
@@ -34,28 +39,24 @@ type resourceContext struct {
 	handler  cache.ResourceEventHandlerRegistration
 }
 
-func (m *Watcher) Watch(logger *slog.Logger, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
+func (self *Watcher) Watch(logger *slog.Logger, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
 	assert.Assert(logger != nil)
-	m.handlerMapLock.Lock()
-	defer m.handlerMapLock.Unlock()
+	self.handlerMapLock.Lock()
+	defer self.handlerMapLock.Unlock()
 
-	for r := range m.activeHandlers {
+	for r := range self.activeHandlers {
 		if resource == r {
 			return fmt.Errorf("resources is already being watched")
 		}
 	}
 
-	provider, err := NewKubeProviderDynamic()
-	if provider == nil || err != nil {
-		return fmt.Errorf("failed to create provider for watcher: %s", err.Error())
-	}
-
+	dynamicClient := self.clientProvider.DynamicClient()
 	gv, err := schema.ParseGroupVersion(resource.GroupVersion)
 	if err != nil {
 		return fmt.Errorf("invalid groupVersion: %s", err)
 	}
 
-	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(provider.DynamicClient, time.Minute*10, v1.NamespaceAll, nil)
+	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, time.Minute*10, v1.NamespaceAll, nil)
 
 	resourceInformer := informerFactory.ForResource(CreateGroupVersionResource(gv.Group, gv.Version, resource.Name)).Informer()
 
@@ -122,28 +123,28 @@ func (m *Watcher) Watch(logger *slog.Logger, resource WatcherResourceIdentifier,
 		go resourceInformer.Run(stopCh)
 
 		if !cache.WaitForCacheSync(stopCh, resourceInformer.HasSynced) {
-			m.handlerMapLock.Lock()
-			defer m.handlerMapLock.Unlock()
-			resourceContext, ok := m.activeHandlers[resource]
+			self.handlerMapLock.Lock()
+			defer self.handlerMapLock.Unlock()
+			resourceContext, ok := self.activeHandlers[resource]
 			if !ok {
 				logger.Warn("Attempted to update resource state but resource has been removed from watcher", "resource", resource)
 			}
 			resourceContext.state = WatchingFailed
-			m.activeHandlers[resource] = resourceContext
+			self.activeHandlers[resource] = resourceContext
 			return
 		}
 
-		m.handlerMapLock.Lock()
-		defer m.handlerMapLock.Unlock()
-		resourceContext, ok := m.activeHandlers[resource]
+		self.handlerMapLock.Lock()
+		defer self.handlerMapLock.Unlock()
+		resourceContext, ok := self.activeHandlers[resource]
 		if !ok {
 			logger.Warn("Attempted to update resource state but resource has been removed from watcher", "resource", resource)
 		}
 		resourceContext.state = Watching
-		m.activeHandlers[resource] = resourceContext
+		self.activeHandlers[resource] = resourceContext
 	}()
 
-	m.activeHandlers[resource] = resourceContext{
+	self.activeHandlers[resource] = resourceContext{
 		state:    WatcherInitializing,
 		informer: resourceInformer,
 		handler:  handler,
@@ -174,7 +175,7 @@ func (m *Watcher) ListWatchedResources() []WatcherResourceIdentifier {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
-	resources := make([]WatcherResourceIdentifier, len(m.activeHandlers))
+	resources := []WatcherResourceIdentifier{}
 	for r := range m.activeHandlers {
 		resources = append(resources, r)
 	}
@@ -192,4 +193,13 @@ func (m *Watcher) State(resource WatcherResourceIdentifier) (WatcherResourceStat
 	}
 
 	return resourceContext.state, nil
+}
+
+func (self *Watcher) UnwatchAll() {
+	for _, resource := range self.ListWatchedResources() {
+		err := self.Unwatch(resource)
+		if err != nil {
+			self.logger.Error("failed to unwatch resource", "resource", resource, "error", err)
+		}
+	}
 }

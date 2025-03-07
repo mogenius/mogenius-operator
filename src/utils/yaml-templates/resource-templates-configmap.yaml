@@ -148,7 +148,7 @@ data:
         requests:
           storage: 1Gi
   HorizontalPodAutoscaler: |
-    apiVersion: autoscaling/v2beta2
+    apiVersion: autoscaling/v2
     kind: HorizontalPodAutoscaler
     metadata:
       name: my-hpa
@@ -163,7 +163,9 @@ data:
         - type: Resource
           resource:
             name: cpu
-            targetAverageUtilization: 50
+            target:
+              type: Utilization
+              averageUtilization: 50
   Service: |
     apiVersion: v1
     kind: Service

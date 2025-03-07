@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,11 +17,8 @@ func ClusterForceReconnect() bool {
 	// - podstats
 	// - k8s-manager
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return false
-	}
-	podClient := provider.ClientSet.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
 	podsToKill := []string{}
 	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", utils.HelmReleaseNameTrafficCollector)...)
@@ -44,18 +42,15 @@ func ClusterForceDisconnect() bool {
 	// - podstats
 	// - k8s-manager
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return false
-	}
-	podClient := provider.ClientSet.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
 	// stop k8s-manager
-	deploymentClient := provider.ClientSet.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
+	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
 	deployment, _ := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
 	deployment.Spec.Paused = true
 	deployment.Spec.Replicas = utils.Pointer[int32](0)
-	_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	_, err := deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 	if err != nil {
 		k8sLogger.Error("Error updating deployment", "deployment", deployment, "error", err)
 	}
@@ -75,20 +70,16 @@ func ClusterForceDisconnect() bool {
 	return true
 }
 
-func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("upgrade operator", "Upgrade mogenius platform ...", job)
+func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, command string, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "upgrade operator", "Upgrade mogenius platform ...", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Upgrade mogenius platform ...")
+		cmd.Start(eventClient, job, "Upgrade mogenius platform ...")
 
-		provider, err := NewKubeProvider()
-		if err != nil {
-			cmd.Fail(job, fmt.Sprintf("ERROR: %s", err.Error()))
-			return
-		}
-		jobClient := provider.ClientSet.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
-		configmapClient := provider.ClientSet.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
+		clientset := clientProvider.K8sClientSet()
+		jobClient := clientset.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
+		configmapClient := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
 		configmap := utils.InitUpgradeConfigMap()
 		configmap.Namespace = config.Get("MO_OWN_NAMESPACE")
@@ -99,19 +90,19 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 		k8sjob.Name = fmt.Sprintf("%s-%s", k8sjob.Name, utils.NanoIdSmallLowerCase())
 
 		// CONFIGMAP
-		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
+		_, err := configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
 		if err != nil {
 			// CREATE
 			_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
 				return
 			}
 		} else {
 			// UPDATE
 			_, err = configmapClient.Update(context.TODO(), &configmap, metav1.UpdateOptions{})
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()))
 				return
 			}
 		}
@@ -122,17 +113,17 @@ func UpgradeMyself(job *structs.Job, command string, wg *sync.WaitGroup) {
 			// CREATE
 			_, err = jobClient.Create(context.TODO(), &k8sjob, MoCreateOptions())
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()))
 				return
 			}
 		} else {
 			// UPDATE
 			_, err = jobClient.Update(context.TODO(), &k8sjob, metav1.UpdateOptions{})
 			if err != nil {
-				cmd.Fail(job, fmt.Sprintf("UpgradeMyself (update_job) ERROR: %s", err.Error()))
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_job) ERROR: %s", err.Error()))
 				return
 			}
 		}
-		cmd.Success(job, "Upgraded platform successfully.")
+		cmd.Success(eventClient, job, "Upgraded platform successfully.")
 	}(wg)
 }

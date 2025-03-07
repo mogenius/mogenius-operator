@@ -18,7 +18,6 @@ type Plugin struct {
 	MTU           int              `json:"mtu,omitempty"`
 	IPAM          *CniIPAM         `json:"ipam,omitempty"`
 	Policy        *CniPolicy       `json:"policy,omitempty"`
-	Kubernetes    *CniKubernetes   `json:"kubernetes,omitempty"`
 	SNAT          *bool            `json:"snat,omitempty"`
 	Capabilities  *CniCapabilities `json:"capabilities,omitempty"`
 }
@@ -29,10 +28,6 @@ type CniIPAM struct {
 
 type CniPolicy struct {
 	Type string `json:"type"`
-}
-
-type CniKubernetes struct {
-	Kubeconfig string `json:"kubeconfig"`
 }
 
 type CniCapabilities struct {

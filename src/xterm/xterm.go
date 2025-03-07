@@ -8,7 +8,7 @@ import (
 	"io"
 	"log/slog"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -32,11 +32,13 @@ import (
 var logManager logging.LogManagerModule
 var xtermLogger *slog.Logger
 var config cfg.ConfigModule
+var clientProvider k8sclient.K8sClientProvider
 
-func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule, clientProviderModule k8sclient.K8sClientProvider) {
 	logManager = logManagerModule
 	xtermLogger = logManagerModule.CreateLogger("xterm")
 	config = configModule
+	clientProvider = clientProviderModule
 }
 
 const (
@@ -47,6 +49,7 @@ type WsConnectionRequest struct {
 	ChannelId       string `json:"channelId" validate:"required"`
 	WebsocketScheme string `json:"websocketScheme" validate:"required"`
 	WebsocketHost   string `json:"websocketHost" validate:"required"`
+	CmdType         string `json:"cmdType"`
 }
 
 type PodCmdConnectionRequest struct {
@@ -153,7 +156,7 @@ func isPodAvailable(pod *v1.Pod) bool {
 	return false
 }
 
-func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernetes.KubeProvider, namespace string, podName string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
+func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, namespace string, podName string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	defer func() {
 		wg.Done()
 	}()
@@ -164,7 +167,8 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, provider *kubernet
 			xtermLogger.Error("Context done.")
 			return
 		default:
-			pod, err := provider.ClientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+			clientset := clientProvider.K8sClientSet()
+			pod, err := clientset.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 			if err != nil {
 				xtermLogger.Error("Unable to get pod", "error", err)
 				if conn != nil {
@@ -217,7 +221,7 @@ func clearScreen(conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	}
 }
 
-func generateWsConnection(
+func GenerateWsConnection(
 	cmdType string,
 	namespace string,
 	controller string,
@@ -227,7 +231,7 @@ func generateWsConnection(
 	wsConnectionRequest WsConnectionRequest,
 	ctx context.Context,
 	cancel context.CancelFunc,
-) (readMessages *chan XtermReadMessages, conn *websocket.Conn, connWriteLock *sync.Mutex, err error) {
+) (readMessages *chan XtermReadMessages, conn *websocket.Conn, connWriteLock *sync.Mutex, connReadLock *sync.Mutex, err error) {
 	maxRetries := 6
 	currentRetries := 0
 	xtermMessages := make(chan XtermReadMessages)
@@ -251,7 +255,7 @@ func generateWsConnection(
 			xtermLogger.Error("failed to connect, retrying in 5 seconds", "error", err.Error())
 			if currentRetries >= maxRetries {
 				xtermLogger.Error("Max retries reached, exiting.")
-				return nil, nil, nil, err
+				return nil, nil, nil, nil, err
 			}
 			time.Sleep(5 * time.Second)
 			currentRetries++
@@ -273,7 +277,7 @@ func generateWsConnection(
 			time.Sleep(5 * time.Second)
 			if currentRetries >= maxRetries {
 				xtermLogger.Error("Max retries reached, exiting.")
-				return &xtermMessages, conn, connWriteLock, err
+				return &xtermMessages, conn, connWriteLock, connReadLock, err
 			}
 			currentRetries++
 			continue
@@ -283,7 +287,7 @@ func generateWsConnection(
 
 		// oncloseWs will close the connection and the context
 		go oncloseWs(conn, connReadLock, ctx, cancel, xtermMessages)
-		return &xtermMessages, conn, connWriteLock, nil
+		return &xtermMessages, conn, connWriteLock, connReadLock, nil
 	}
 }
 
@@ -448,7 +452,7 @@ func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc,
 					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
 					connWriteLock.Unlock()
 					if err != nil {
-						fmt.Println("WriteMessage", err.Error())
+						xtermLogger.Error("Error", "WriteMessage", err.Error())
 					}
 					continue
 				}

@@ -10,11 +10,8 @@ import (
 func AllIngressClasses() []v1.IngressClass {
 	result := []v1.IngressClass{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	ingressList, err := provider.ClientSet.NetworkingV1().IngressClasses().List(context.TODO(), metav1.ListOptions{})
+	clientset := clientProvider.K8sClientSet()
+	ingressList, err := clientset.NetworkingV1().IngressClasses().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllIngressClasses", "error", err.Error())
 		return result
@@ -30,11 +27,8 @@ func AllIngressClasses() []v1.IngressClass {
 }
 
 func GetK8sIngressClass(name string) (*v1.IngressClass, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	ingress, err := provider.ClientSet.NetworkingV1().IngressClasses().Get(context.TODO(), name, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	ingress, err := clientset.NetworkingV1().IngressClasses().Get(context.TODO(), name, metav1.GetOptions{})
 	ingress.Kind = "IngressClass"
 	ingress.APIVersion = "networking.k8s.io/v1"
 

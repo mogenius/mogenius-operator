@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"os"
 	"slices"
 	"strings"
@@ -20,7 +21,19 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func WatchStoreResources(watcher WatcherModule) error {
+type GetUnstructuredNamespaceResourceListRequest struct {
+	Namespace string                     `json:"namespace" validate:"required"`
+	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
+	Blacklist []*utils.SyncResourceEntry `json:"blacklist"`
+}
+
+type GetUnstructuredLabeledResourceListRequest struct {
+	Label     string                     `json:"label" validate:"required"`
+	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
+	Blacklist []*utils.SyncResourceEntry `json:"blacklist"`
+}
+
+func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketClient) error {
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return err
@@ -37,9 +50,14 @@ func WatchStoreResources(watcher WatcherModule) error {
 		"Namespace",
 		"NetworkPolicy",
 		"PersistentVolume",
+		"Node",
 	}
 	for _, v := range resources {
-		if !slices.Contains(relevantResourceKinds, v.Kind) {
+		//if !slices.Contains(relevantResourceKinds, v.Kind) {
+		//	continue
+		//}
+		if v.Namespace == nil && !slices.Contains(relevantResourceKinds, v.Kind) {
+			k8sLogger.Debug("🚀 Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
 			continue
 		}
 		err := watcher.Watch(k8sLogger, WatcherResourceIdentifier{
@@ -47,14 +65,14 @@ func WatchStoreResources(watcher WatcherModule) error {
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			SetStoreIfNeeded(resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			SetStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
 		}, func(resource WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
-			SetStoreIfNeeded(resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
+			SetStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			DeleteFromStoreIfNeeded(resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			DeleteFromStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
 		})
 		if err != nil {
-			k8sLogger.Error("failed to initialize watchhandler for resource", "kind", v.Kind, "version", v.Version, "error", err)
+			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
 			return err
 		} else {
 			k8sLogger.Debug("🚀 Watching resource", "kind", v.Kind, "group", v.Group)
@@ -64,26 +82,27 @@ func WatchStoreResources(watcher WatcherModule) error {
 	return nil
 }
 
-func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
-		err := store.GlobalStore.Set(obj, kind, namespace, name)
-		if err != nil {
-			k8sLogger.Error("Error setting object in store", "error", err)
-		}
-		if kind == "Event" {
-			var event v1.Event
-			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-			if err != nil {
-				k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-				return
-			}
-			processEvent(&event)
-		}
-		return
-	}
+func SetStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+	//if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
+	//	err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
+	//	if err != nil {
+	//		k8sLogger.Error("Error setting object in store", "error", err)
+	//	}
+	//	if kind == "Event" {
+	//		var event v1.Event
+	//		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
+	//		if err != nil {
+	//			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
+	//			return
+	//		}
+	//		processEvent(&event)
+	//	}
+	//	return
+	//}
 
 	if kind == "Namespace" {
-		err := store.GlobalStore.Set(obj, kind, name)
+		obj = removeUnusedFieds(obj)
+		err := store.GlobalStore.Set(obj, groupVersion, kind, name)
 		if err != nil {
 			k8sLogger.Error("Error setting object in store", "error", err)
 		}
@@ -91,7 +110,8 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 	}
 
 	if kind == "NetworkPolicy" {
-		err := store.GlobalStore.Set(obj, kind, namespace, name)
+		obj = removeUnusedFieds(obj)
+		err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error setting object in store", "error", err)
 		}
@@ -103,31 +123,47 @@ func SetStoreIfNeeded(kind string, namespace string, name string, obj *unstructu
 			return
 		}
 
-		HandleNetworkPolicyChange(&netPol, "Added/Updated")
+		HandleNetworkPolicyChange(eventClient, &netPol, "Added/Updated")
 		return
+	}
+
+	// other resources
+	obj = removeUnusedFieds(obj)
+	err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
+	if err != nil {
+		k8sLogger.Error("Error setting object in store", "error", err)
+	}
+	if kind == "Event" {
+		var event v1.Event
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
+		if err != nil {
+			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
+			return
+		}
+		processEvent(eventClient, &event)
 	}
 }
 
-func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
-		err := store.GlobalStore.Delete(kind, namespace, name)
-		if err != nil {
-			k8sLogger.Error("Error deleting object in store", "error", err)
-		}
-		if kind == "Event" {
-			var event v1.Event
-			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-			if err != nil {
-				k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-				return
-			}
-			processEvent(&event)
-		}
-		return
-	}
+func DeleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+	//if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
+	//	err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
+	//	if err != nil {
+	//		k8sLogger.Error("Error deleting object in store", "error", err)
+	//	}
+	//	if kind == "Event" {
+	//		var event v1.Event
+	//		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
+	//		if err != nil {
+	//			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
+	//			return
+	//		}
+	//		processEvent(&event)
+	//	}
+	//	return
+	//}
 
 	if kind == "Namespace" {
-		err := store.GlobalStore.Delete(kind, name)
+		err := store.GlobalStore.Delete(groupVersion, kind, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -146,7 +182,7 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 	}
 
 	if kind == "NetworkPolicy" {
-		err := store.GlobalStore.Delete(kind, namespace, name)
+		err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -158,107 +194,195 @@ func DeleteFromStoreIfNeeded(kind string, namespace string, name string, obj *un
 			return
 		}
 
-		HandleNetworkPolicyChange(&netPol, "Deleted")
+		HandleNetworkPolicyChange(eventClient, &netPol, "Deleted")
 		return
+	}
+
+	// other resources
+	err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
+	if err != nil {
+		k8sLogger.Error("Error deleting object in store", "error", err)
+	}
+	if kind == "Event" {
+		var event v1.Event
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
+		if err != nil {
+			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
+			return
+		}
+		processEvent(eventClient, &event)
 	}
 }
 
 func GetUnstructuredResourceList(group string, version string, name string, namespace *string) (*unstructured.UnstructuredList, error) {
-	provider, err := NewKubeProviderDynamic()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating provider for GetUnstructuredResourceList. Cannot continue.", "error", err)
-		return nil, err
-	}
-
+	dynamicClient := clientProvider.DynamicClient()
 	if namespace != nil {
-		result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(*namespace).List(context.TODO(), metav1.ListOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(*namespace).List(context.TODO(), metav1.ListOptions{})
 		return removeManagedFieldsFromList(result), err
 	} else {
-		result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).List(context.TODO(), metav1.ListOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).List(context.TODO(), metav1.ListOptions{})
 		return removeManagedFieldsFromList(result), err
 	}
 }
 
-func GetUnstructuredResource(group string, version string, name string, namespace, resourceName string) (*unstructured.Unstructured, error) {
-	provider, err := NewKubeProviderDynamic()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating provider for GetUnstructuredResource. Cannot continue.", "error", err)
+func GetUnstructuredResourceListFromStore(group string, kind string, version string, name string, namespace *string) (unstructured.UnstructuredList, error) {
+	results := unstructured.UnstructuredList{}
+	if namespace == nil {
+		namespace = utils.Pointer("")
+	}
+	// try to get the data from the store (very fast)
+	result := store.GetResourceByKindAndNamespace(group, kind, *namespace)
+	if result != nil {
+		results.Items = result
+	}
+
+	// fallback: gather the data when the store is empty (can be slow)
+	if len(result) == 0 {
+		list, err := GetUnstructuredResourceList(group, version, name, namespace)
+		if err != nil {
+			return results, err
+		}
+		results.Items = list.Items
+	}
+
+	return results, nil
+}
+
+func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) (*[]unstructured.Unstructured, error) {
+	resources, err := GetAvailableResources()
+	if err != nil {
 		return nil, err
 	}
 
+	if whitelist == nil {
+		whitelist = []*utils.SyncResourceEntry{}
+	}
+
+	if blacklist == nil {
+		blacklist = []*utils.SyncResourceEntry{}
+	}
+
+	results := []unstructured.Unstructured{}
+
+	// dynamicClient := clientProvider.DynamicClient()
+	for _, v := range resources {
+		if v.Namespace != nil {
+			//result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+			//if err != nil {
+			//	if !os.IsNotExist(err) {
+			//		k8sLogger.Error("Error querying resource", "error", err)
+			//	}
+			//}
+			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
+				continue
+			}
+
+			result := store.GetResourceByKindAndNamespace(v.Group, v.Kind, namespace)
+			if result != nil {
+				results = append(results, result...)
+			}
+		}
+	}
+	return &results, nil
+}
+
+func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) (*unstructured.UnstructuredList, error) {
+	resources, err := GetAvailableResources()
+	if err != nil {
+		return nil, err
+	}
+
+	if whitelist == nil {
+		whitelist = []*utils.SyncResourceEntry{}
+	}
+
+	if blacklist == nil {
+		blacklist = []*utils.SyncResourceEntry{}
+	}
+
+	results := []unstructured.Unstructured{}
+
+	dynamicClient := clientProvider.DynamicClient()
+	//// dynamicClient := clientProvider.DynamicClient()
+	for _, v := range resources {
+		if v.Namespace != nil {
+
+			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
+				continue
+			}
+			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).List(context.TODO(), metav1.ListOptions{LabelSelector: label})
+
+			if err != nil {
+				if !os.IsNotExist(err) {
+					k8sLogger.Error("Error querying resource", "error", err)
+				}
+				continue
+			}
+			// result := store.GetResourceByKindAndNamespace(v.Group, v.Kind, namespace)
+			if result != nil {
+				results = append(results, result.Items...)
+			}
+		}
+	}
+	return &unstructured.UnstructuredList{Items: results}, nil
+}
+
+func GetUnstructuredResource(group string, version string, name string, namespace, resourceName string) (*unstructured.Unstructured, error) {
+	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
-		result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Get(context.TODO(), resourceName, metav1.GetOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Get(context.TODO(), resourceName, metav1.GetOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Get(context.TODO(), resourceName, metav1.GetOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Get(context.TODO(), resourceName, metav1.GetOptions{})
 		return removeManagedFields(result), err
 	}
 }
 
 func CreateUnstructuredResource(group string, version string, name string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
-	provider, err := NewKubeProviderDynamic()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating provider for CreateUnstructuredResource. Cannot continue.", "error", err)
-		return nil, err
-	}
-
+	dynamicClient := clientProvider.DynamicClient()
 	obj := &unstructured.Unstructured{}
-	err = yaml.Unmarshal([]byte(yamlData), obj)
+	err := yaml.Unmarshal([]byte(yamlData), obj)
 	if err != nil {
 		return nil, err
 	}
 
 	if namespace != nil {
-		result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Create(context.TODO(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	}
 }
 
 func UpdateUnstructuredResource(group string, version string, name string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
-	provider, err := NewKubeProviderDynamic()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating provider for UpdatedUnstructuredResource. Cannot continue.", "error", err)
-		return nil, err
-	}
-
+	dynamicClient := clientProvider.DynamicClient()
 	obj := &unstructured.Unstructured{}
-	err = yaml.Unmarshal([]byte(yamlData), obj)
+	err := yaml.Unmarshal([]byte(yamlData), obj)
 	if err != nil {
 		return nil, err
 	}
 
 	if namespace != nil {
-		result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Update(context.TODO(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	}
 }
 
 func DeleteUnstructuredResource(group string, version string, name string, namespace string, resourceName string) error {
-	provider, err := NewKubeProviderDynamic()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating provider for watcher. Cannot continue.", "error", err)
-		return err
-	}
-
+	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
-		return provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
 	} else {
-		return provider.DynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
 	}
 }
 
 func DescribeUnstructuredResource(group string, version string, name string, namespace, resourceName string) (string, error) {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating provider for watcher. Cannot continue.", "error", err)
-		return "", err
-	}
+	config := clientProvider.ClientConfig()
 
 	restMapping := &meta.RESTMapping{
 		Resource: CreateGroupVersionResource(group, version, name),
@@ -269,10 +393,10 @@ func DescribeUnstructuredResource(group string, version string, name string, nam
 		},
 	}
 
-	describer, ok := describe.GenericDescriberFor(restMapping, &provider.ClientConfig)
+	describer, ok := describe.GenericDescriberFor(restMapping, config)
 	if !ok {
-		fmt.Printf("Failed to get describer: %v\n", err)
-		return "", err
+		return "", fmt.Errorf("failed to get describer")
+
 	}
 
 	output, err := describer.Describe(namespace, resourceName, describe.DescriberSettings{ShowEvents: true})
@@ -284,13 +408,49 @@ func DescribeUnstructuredResource(group string, version string, name string, nam
 	return output, nil
 }
 
-func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
-	provider, err := NewKubeProviderDynamic()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating provider for watcher. Cannot continue.", "error", err)
-		return nil, err
-	}
+func TriggerUnstructuredResource(group string, version string, name string, namespace string, resourceName string) (*unstructured.Unstructured, error) {
+	dynamicClient := clientProvider.DynamicClient()
 
+	if name == "cronjobs" || name == "jobs" {
+		job, err := GetUnstructuredResource(group, version, name, namespace, resourceName)
+		if err != nil {
+			return nil, err
+		}
+
+		// cleanup
+		unstructured.RemoveNestedField(job.Object, "metadata", "uid")
+		unstructured.RemoveNestedField(job.Object, "metadata", "resourceVersion")
+		unstructured.RemoveNestedField(job.Object, "metadata", "creationTimestamp")
+		unstructured.RemoveNestedField(job.Object, "metadata", "labels", "controller-uid")
+		unstructured.RemoveNestedField(job.Object, "metadata", "labels", "batch.kubernetes.io/controller-uid")
+		unstructured.RemoveNestedField(job.Object, "metadata", "labels", "batch.kubernetes.io/job-name")
+		unstructured.RemoveNestedField(job.Object, "spec", "selector")
+		unstructured.RemoveNestedField(job.Object, "spec", "template", "metadata", "labels", "controller-uid")
+		unstructured.RemoveNestedField(job.Object, "spec", "template", "metadata", "labels", "job-name")
+		unstructured.RemoveNestedField(job.Object, "spec", "template", "metadata", "labels", "batch.kubernetes.io/controller-uid")
+		unstructured.RemoveNestedField(job.Object, "spec", "template", "metadata", "labels", "batch.kubernetes.io/job-name")
+		unstructured.RemoveNestedField(job.Object, "status")
+
+		// replace
+		jobname := job.GetName() + "-" + utils.NanoIdSmallLowerCase()
+		job.SetName(jobname)
+		job.SetKind("Job")
+		if name == "cronjobs" {
+			template, _, err := unstructured.NestedMap(job.Object, "spec", "jobTemplate", "spec", "template")
+			if err != nil {
+				return nil, fmt.Errorf("Field jobTemplate not found")
+			}
+			_ = unstructured.SetNestedField(job.Object, template, "spec", "template")
+			name = "jobs"
+		}
+
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Create(context.TODO(), job, metav1.CreateOptions{})
+	}
+	return nil, fmt.Errorf("%s is a invalid resource for trigger. Only jobs or cronjobs can be triggert.", name)
+}
+
+func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
+	dynamicClient := clientProvider.DynamicClient()
 	obj, err := GetObjectFromFile(file)
 	if err != nil {
 		return nil, err
@@ -302,7 +462,7 @@ func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
 	}
 
 	if namespaced {
-		res, err := provider.DynamicClient.Resource(
+		res, err := dynamicClient.Resource(
 			CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).Namespace(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
 		if err != nil {
 			k8sLogger.Error("Error querying resource", "error", err)
@@ -310,7 +470,7 @@ func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
 		}
 		return res.Object, nil
 	} else {
-		res, err := provider.DynamicClient.Resource(CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).List(context.TODO(), metav1.ListOptions{})
+		res, err := dynamicClient.Resource(CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			k8sLogger.Error("Error listing resource", "error", err)
 			return nil, err
@@ -348,13 +508,9 @@ func GetObjectFromFile(file string) (*unstructured.Unstructured, error) {
 }
 
 func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating provider for watcher. Cannot continue.", "error", err)
-		return nil, err
-	}
+	clientset := clientProvider.K8sClientSet()
 
-	resources, err := provider.ClientSet.Discovery().ServerPreferredResources()
+	resources, err := clientset.Discovery().ServerPreferredResources()
 	if err != nil {
 		k8sLogger.Error("Error discovering resources", "error", err)
 		return nil, err
@@ -454,4 +610,16 @@ func removeManagedFieldsFromList(objList *unstructured.UnstructuredList) *unstru
 	}
 
 	return objList
+}
+
+func removeUnusedFieds(obj *unstructured.Unstructured) *unstructured.Unstructured {
+	if obj == nil {
+		return obj
+	}
+
+	obj = removeManagedFields(obj)
+	unstructuredContent := obj.Object
+	delete(unstructuredContent, "data")
+
+	return obj
 }

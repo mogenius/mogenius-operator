@@ -1,7 +1,7 @@
 #
 # BUILDER IMAGE
 #
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # TODO add commit-log here.
 LABEL org.opencontainers.image.description="mogenius-k8s-manager"

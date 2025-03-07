@@ -1,7 +1,10 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
+	"log/slog"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
 	"time"
@@ -14,16 +17,64 @@ type Datagram struct {
 	Username  string      `json:"username,omitempty"`
 	Err       string      `json:"err,omitempty"`
 	CreatedAt time.Time   `json:"-"`
+	User      User        `json:"user,omitempty"`
+	Zlib      bool        `json:"zlib,omitempty"`
 }
 
-func CreateDatagramRequest(request Datagram, data interface{}) Datagram {
-	datagram := Datagram{
-		Id:        request.Id,
-		Pattern:   request.Pattern,
-		Payload:   data,
-		CreatedAt: request.CreatedAt,
+type User struct {
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
+	Email     string `json:"email,omitempty"`
+	Source    string `json:"source,omitempty"`
+}
+
+type UserSource string
+
+const (
+	SourceUser              UserSource = "user"
+	SourceDemoController    UserSource = "demo-controller"
+	SourceTaskService       UserSource = "task-service"
+	SourceQueueService      UserSource = "queue-service"
+	SourceK8sManagerService UserSource = "k8s-manager-service"
+	SourceGitService        UserSource = "git-service"
+)
+
+var UserSourceToString = map[UserSource]string{
+	SourceUser:              "user",
+	SourceDemoController:    "demo-controller",
+	SourceTaskService:       "task-service",
+	SourceQueueService:      "queue-service",
+	SourceK8sManagerService: "k8s-manager-service",
+	SourceGitService:        "git-service",
+}
+
+var UserSourceFromString = map[string]UserSource{
+	"user":                SourceUser,
+	"demo-controller":     SourceDemoController,
+	"task-service":        SourceTaskService,
+	"queue-service":       SourceQueueService,
+	"k8s-manager-service": SourceK8sManagerService,
+	"git-service":         SourceGitService,
+}
+
+func (self UserSource) MarshalJSON() ([]byte, error) {
+	val, ok := UserSourceToString[self]
+	assert.Assert(ok, "unhandled enum variant", self)
+	return []byte(`"` + val + `"`), nil
+}
+
+func (self *UserSource) UnmarshalJSON(data []byte) error {
+	var dataString *string
+	err := json.Unmarshal(data, &dataString)
+	if err != nil {
+		return err
 	}
-	return datagram
+	userSource, ok := UserSourceFromString[*dataString]
+	if !ok {
+		return fmt.Errorf("unknown user source: %s", *dataString)
+	}
+	*self = userSource
+	return nil
 }
 
 func CreateDatagramNotificationFromJob(data *Job) Datagram {
@@ -86,8 +137,8 @@ func (d *Datagram) DisplayBeautiful() {
 	fmt.Printf("%s %s\n\n", shell.Colorize("PAYLOAD: ", shell.Black, shell.Green), utils.PrettyPrintInterface(d.Payload))
 }
 
-func (d *Datagram) DisplayReceiveSummary() {
-	structsLogger.Debug("RECEIVED",
+func (d *Datagram) DisplayReceiveSummary(logger *slog.Logger) {
+	logger.Debug("RECEIVED",
 		"pattern", d.Pattern,
 		"id", d.Id,
 		"username", d.Username,
@@ -95,8 +146,8 @@ func (d *Datagram) DisplayReceiveSummary() {
 	)
 }
 
-func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
-	structsLogger.Debug("SENT",
+func (d *Datagram) DisplaySentSummary(logger *slog.Logger, queuePosition int, queueLen int) {
+	logger.Debug("SENT",
 		"pattern", d.Pattern,
 		"id", d.Id,
 		"username", d.Username,
@@ -107,8 +158,8 @@ func (d *Datagram) DisplaySentSummary(queuePosition int, queueLen int) {
 	)
 }
 
-func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg string, count int32) {
-	structsLogger.Debug("SENT",
+func (d *Datagram) DisplaySentSummaryEvent(logger *slog.Logger, kind string, reason string, msg string, count int32) {
+	logger.Debug("SENT",
 		"pattern", d.Pattern,
 		"kind", kind,
 		"reason", reason,
@@ -117,15 +168,11 @@ func (d *Datagram) DisplaySentSummaryEvent(kind string, reason string, msg strin
 	)
 }
 
-func (d *Datagram) DisplayStreamSummary() {
-	structsLogger.Debug("STREAMING",
+func (d *Datagram) DisplayStreamSummary(logger *slog.Logger) {
+	logger.Debug("STREAMING",
 		"pattern", d.Pattern,
 		"id", d.Id,
 	)
-}
-
-func (d *Datagram) Send() {
-	JobServerSendData(*d)
 }
 
 func (d *Datagram) GetSize() int64 {

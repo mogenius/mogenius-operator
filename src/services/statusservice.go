@@ -715,15 +715,15 @@ func NewResourceController(resourceController string) ResourceController {
 
 var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-func StatusServiceDebounced(r ServiceStatusRequest) interface{} {
+func StatusServiceDebounced(r ServiceStatusRequest) ServiceStatusResponse {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
 	result, _ := statusServiceDebounce.CallFn(key, func() (interface{}, error) {
 		return statusService(r), nil
 	})
-	return result
+	return result.(ServiceStatusResponse)
 }
 
-func statusService(r ServiceStatusRequest) interface{} {
+func statusService(r ServiceStatusRequest) ServiceStatusResponse {
 	events, err := store.ListEvents(r.Namespace)
 	if err != nil {
 		serviceLogger.Warn("failed to fetch events", "error", err)
@@ -810,11 +810,29 @@ func controller(namespace string, controllerName string, resourceController Reso
 
 	switch resourceController {
 	case Deployment:
+		// TODO replace with GetAvailableResources in the future
+		resourceNamespace := ""
+		resource := utils.SyncResourceEntry{
+			Kind:      "Deployment",
+			Name:      "deployments",
+			Namespace: &resourceNamespace,
+			Group:     "apps/v1",
+			Version:   "",
+		}
 		resultType := reflect.TypeOf(appsv1.Deployment{})
-		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
 	case ReplicaSet:
+		// TODO replace with GetAvailableResources in the future
+		resourceNamespace := ""
+		resource := utils.SyncResourceEntry{
+			Kind:      "ReplicaSet",
+			Name:      "replicasets",
+			Namespace: &resourceNamespace,
+			Group:     "apps/v1",
+			Version:   "",
+		}
 		resultType := reflect.TypeOf(appsv1.ReplicaSet{})
-		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
 	// case StatefulSet:
 	// 	// ae: not used at the moment, old code
 	// 	resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
@@ -822,20 +840,38 @@ func controller(namespace string, controllerName string, resourceController Reso
 	// 	// ae: not used at the moment, old code
 	// 	resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case Job:
+		// TODO replace with GetAvailableResources in the future
+		resourceNamespace := ""
+		resource := utils.SyncResourceEntry{
+			Kind:      "Job",
+			Name:      "jobs",
+			Namespace: &resourceNamespace,
+			Group:     "batch/v1",
+			Version:   "",
+		}
 		resultType := reflect.TypeOf(batchv1.Job{})
-		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
 	case CronJob:
+		// TODO replace with GetAvailableResources in the future
+		resourceNamespace := ""
+		resource := utils.SyncResourceEntry{
+			Kind:      "CronJob",
+			Name:      "cronjobs",
+			Namespace: &resourceNamespace,
+			Group:     "batch/v1",
+			Version:   "",
+		}
 		resultType := reflect.TypeOf(batchv1.CronJob{})
-		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GlobalStore.GetByKeyParts(resultType, resource.Group, resourceController.String(), namespace, controllerName)
 	}
 
 	// if err != nil {
-	// 	ServiceLogger.Warningf("\nWarning fetching resources %s, ns: %s, name: %s, err: %s\n", resourceController.String(), namespace, controllerName, err)
+	// 	ServiceLogger.Warningf("Warning fetching resources %s, ns: %s, name: %s, err: %s", resourceController.String(), namespace, controllerName, err)
 	// 	return nil, err
 	// }
 
 	if resourceInterface == nil {
-		return nil, fmt.Errorf("\nWarning fetching controller: %s\n", controllerName)
+		return nil, fmt.Errorf("Warning fetching controller: %s", controllerName)
 	}
 
 	return resourceInterface, nil

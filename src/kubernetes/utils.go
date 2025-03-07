@@ -28,9 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/dynamic"
-	appsV1 "k8s.io/client-go/kubernetes/typed/apps/v1"
-	coreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	netV1 "k8s.io/client-go/kubernetes/typed/networking/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/scheme"
@@ -117,29 +114,6 @@ func init() {
 	dtos.KubernetesGetSecretValueByPrefixControllerNameAndKey = GetSecretValueByPrefixControllerNameAndKey
 }
 
-func getProvider() *KubeProvider {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		k8sLogger.Error("Error creating kubeprovider")
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-	return provider
-}
-
-func GetCoreClient() coreV1.CoreV1Interface {
-	return getProvider().ClientSet.CoreV1()
-}
-
-func GetNetworkingClient() netV1.NetworkingV1Interface {
-	return getProvider().ClientSet.NetworkingV1()
-}
-
-func GetAppClient() appsV1.AppsV1Interface {
-
-	return getProvider().ClientSet.AppsV1()
-}
-
 func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
 	return K8sWorkloadResult{
 		Result: result,
@@ -181,14 +155,9 @@ func CurrentContextName() string {
 // }
 
 func ListNodes() []core.Node {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		k8sLogger.Error("error creating kubeprovider")
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
+	clientset := clientProvider.K8sClientSet()
 
-	nodeMetricsList, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodeMetricsList, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("failed to list nodes", "error", err)
 		shutdown.SendShutdownSignal(true)
@@ -198,11 +167,8 @@ func ListNodes() []core.Node {
 }
 
 func KubernetesVersion() *version2.Info {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil
-	}
-	info, err := provider.ClientSet.Discovery().ServerVersion()
+	clientset := clientProvider.K8sClientSet()
+	info, err := clientset.Discovery().ServerVersion()
 	if err != nil {
 		k8sLogger.Error("Error KubernetesVersion", "error", err)
 		return nil
@@ -279,7 +245,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 			}
 			autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
 			assert.Assert(err == nil, err)
-			if autoMountNfs && RunsInCluster() {
+			if autoMountNfs && clientProvider.RunsInCluster() {
 				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
 				mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
@@ -307,7 +273,7 @@ func Umount(volumeNamespace string, volumeName string) {
 	go func() {
 		autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
 		assert.Assert(err == nil, err)
-		if autoMountNfs && RunsInCluster() {
+		if autoMountNfs && clientProvider.RunsInCluster() {
 			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
@@ -327,12 +293,8 @@ func IsLocalClusterSetup() bool {
 }
 
 func GetCustomDeploymentTemplate() *v1.Deployment {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		k8sLogger.Error("GetCustomDeploymentTemplate", "error", err)
-		return nil
-	}
-	client := provider.ClientSet.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 	configmap, err := client.Get(context.TODO(), utils.MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME, metav1.GetOptions{})
 	if err != nil {
 		return nil
@@ -368,12 +330,8 @@ func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) st
 	var nfsStorageClassStr string = ""
 
 	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
-	provider, err := NewKubeProvider()
-	if err != nil {
-		k8sLogger.Error("failed to create kube provider", "error", err)
-		return nfsStorageClassStr
-	}
-	storageClasses, err := provider.ClientSet.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
+	clientset := clientProvider.K8sClientSet()
+	storageClasses, err := clientset.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("StorageClassForClusterProvider List", "error", err)
 		return nfsStorageClassStr
@@ -471,7 +429,7 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 }
 
 func FindResourceKind(namespace string, name string) (*dtos.K8sServiceControllerEnum, error) {
-	clientset := getProvider().ClientSet
+	clientset := clientProvider.K8sClientSet()
 
 	if _, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
 		return utils.Pointer(dtos.DEPLOYMENT), nil
@@ -501,12 +459,8 @@ func FindResourceKind(namespace string, name string) (*dtos.K8sServiceController
 }
 
 func GuessClusterProvider() (utils.KubernetesProvider, error) {
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		return utils.SELF_HOSTED, err
-	}
-
-	nodes, err := provider.ClientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	clientset := clientProvider.K8sClientSet()
+	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return utils.SELF_HOSTED, err
 	}
@@ -518,6 +472,7 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 
 	for _, node := range nodes.Items {
 		nodeInfo := map[string]string{}
+		// TODO: this is broken and deprecated (because it is broken)
 		nodeInfo["kubeProxyVersion"] = node.Status.NodeInfo.KubeProxyVersion //nolint:staticcheck
 		nodeInfo["kubeletVersion"] = node.Status.NodeInfo.KubeletVersion
 
@@ -592,7 +547,7 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 		} else if ImagesContain(node.Status.Images, "pluscloudopen") {
 			return utils.PLUSSERVER, nil
 		} else {
-			fmt.Println("This cluster's provider is unknown or it might be self-managed.")
+			k8sLogger.Error("This cluster's provider is unknown or it might be self-managed.")
 			return utils.UNKNOWN, nil
 		}
 	}
@@ -733,13 +688,9 @@ func AllResourcesFrom(namespace string, resourcesToLookFor []string) ([]interfac
 
 	result := []interface{}{}
 
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		return result, err
-	}
-
 	// Get a list of all resource types in the cluster
-	resourceList, err := provider.ClientSet.Discovery().ServerPreferredResources()
+	clientset := clientProvider.K8sClientSet()
+	resourceList, err := clientset.Discovery().ServerPreferredResources()
 	if err != nil {
 		return result, err
 	}
@@ -765,7 +716,7 @@ func AllResourcesFrom(namespace string, resourcesToLookFor []string) ([]interfac
 				Resource: aApiResource.Name,
 			}
 			// Get the REST client for this resource type
-			restClient := dynamic.New(provider.ClientSet.RESTClient()).Resource(resourceId).Namespace(namespace)
+			restClient := dynamic.New(clientset.RESTClient()).Resource(resourceId).Namespace(namespace)
 
 			// Get a list of all resources of this type in the namespace
 			list, err := restClient.List(context.Background(), metav1.ListOptions{})
@@ -816,12 +767,8 @@ func AllResourcesFromToCombinedYaml(namespace string, resourcesToLookFor []strin
 func ApiVersions() ([]string, error) {
 	result := []string{}
 
-	provider, err := NewKubeProvider()
-	if provider == nil || err != nil {
-		return result, err
-	}
-
-	groupResources, err := provider.ClientSet.DiscoveryClient.ServerPreferredResources()
+	clientset := clientProvider.K8sClientSet()
+	groupResources, err := clientset.DiscoveryClient.ServerPreferredResources()
 	if err != nil {
 		return result, err
 	}
@@ -878,4 +825,15 @@ func DetermineIngressControllerType() (IngressType, error) {
 	}
 
 	return UNKNOWN, fmt.Errorf("unknown ingress controller: %s", unknownController)
+}
+
+func IsCertManagerInstalled() (bool, error) {
+	deployments, err := GetDeploymentsWithFieldSelector("", "app.kubernetes.io/instance=cert-manager")
+	if err != nil {
+		return false, err
+	}
+	if len(deployments) > 0 {
+		return true, nil
+	}
+	return false, nil
 }

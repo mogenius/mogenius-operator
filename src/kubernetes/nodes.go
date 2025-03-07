@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"fmt"
 	"mogenius-k8s-manager/src/dtos"
 
 	v1 "k8s.io/api/core/v1"
@@ -15,7 +14,7 @@ func GetNodeStats() []dtos.NodeStat {
 	nodes := ListNodes()
 	nodeMetrics := ListNodeMetricss()
 
-	for index, node := range nodes {
+	for _, node := range nodes {
 
 		allPods := AllPodsOnNode(node.Name)
 		requestCpuCores, limitCpuCores := SumCpuResources(allPods)
@@ -60,7 +59,7 @@ func GetNodeStats() []dtos.NodeStat {
 		ephemeral, _ := node.Status.Capacity.StorageEphemeral().AsInt64()
 
 		nodeStat := dtos.NodeStat{
-			Name:                   fmt.Sprintf("Node-%d", index+1),
+			Name:                   node.Name,
 			MaschineId:             node.Status.NodeInfo.MachineID,
 			CpuInCores:             cpu,
 			CpuInCoresUtilized:     utilizedCores,
@@ -121,11 +120,8 @@ func SumCpuResources(pods []v1.Pod) (request float64, limit float64) {
 }
 
 func GetK8sNode(name string) (*v1.Node, error) {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil, err
-	}
-	node, err := provider.ClientSet.CoreV1().Nodes().Get(context.TODO(), name, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	node, err := clientset.CoreV1().Nodes().Get(context.TODO(), name, metav1.GetOptions{})
 	node.Kind = "Node"
 	node.APIVersion = "v1"
 	return node, err

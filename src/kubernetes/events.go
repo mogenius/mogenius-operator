@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"strings"
 
 	"mogenius-k8s-manager/src/structs"
@@ -21,7 +22,7 @@ const CONCURRENTCONNECTIONS = 1
 
 var EventChannels = make(map[string]chan string)
 
-func processEvent(event *v1Core.Event) {
+func processEvent(eventClient websocket.WebsocketClient, event *v1Core.Event) {
 	if event != nil {
 		eventDto := dtos.CreateEvent(string(event.Type), event)
 		datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
@@ -29,19 +30,10 @@ func processEvent(event *v1Core.Event) {
 		kind := event.InvolvedObject.Kind
 		reason := event.Reason
 		count := event.Count
-		structs.EventServerSendData(datagram, kind, reason, message, count)
+		structs.EventServerSendData(eventClient, datagram, kind, reason, message, count)
 
 		// deployment events
-		ignoreKind := []string{"CertificateRequest", "Certificate"}
-		ignoreNamespaces := []string{"kube-system", "kube-public", "default", "mogenius"}
-		if event.InvolvedObject.Kind == "Pod" &&
-			!utils.ContainsString(ignoreNamespaces, event.InvolvedObject.Namespace) &&
-			!utils.ContainsString(ignoreKind, event.InvolvedObject.Kind) {
-
-			//personJSON, err := json.Marshal(event)
-			//if err == nil {
-			//	fmt.Println("event as JSON:", string(personJSON))
-			//}
+		if event.InvolvedObject.Kind == "Pod" {
 			parts := strings.Split(event.InvolvedObject.Name, "-")
 
 			if len(parts) >= 2 {
@@ -82,11 +74,8 @@ func AllEventsForNamespace(namespaceName string) []v1Core.Event {
 func AllEventsForNamespace2(namespaceName string) []v1Core.Event {
 	result := []v1Core.Event{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	eventList, err := provider.ClientSet.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	clientset := clientProvider.K8sClientSet()
+	eventList, err := clientset.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllEvents", "error", err)
 		return result

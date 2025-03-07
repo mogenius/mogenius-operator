@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/config"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/helm"
+	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
@@ -87,7 +88,7 @@ func installForTests(t *testing.T) error {
 		t.Error(err)
 	}
 
-	helmInstallData := helm.HelmChartInstallRequest{
+	helmInstallData := helm.HelmChartInstallUpgradeRequest{
 		Namespace: testNamespace,
 		Chart:     testChart,
 		Release:   testRelease,
@@ -169,9 +170,10 @@ func TestHelmRepoList(t *testing.T) {
 		Key:          "MO_BBOLT_DB_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
 	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 
-	watcherModule := kubernetes.NewWatcher()
-	err := kubernetes.Setup(logManager, config, watcherModule)
+	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
 	assert.AssertT(t, err == nil, err)
 
 	err = testSetup()
@@ -252,7 +254,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 
 	// PAT_NAMESPACE_HELM_UPGRADE
 	// no futher testing needed no error is sufficient
-	releaseUpgradeData := helm.HelmReleaseUpgradeRequest{
+	releaseUpgradeData := helm.HelmChartInstallUpgradeRequest{
 		Namespace: testNamespace,
 		Chart:     testChart,
 		Release:   testRelease,

@@ -235,13 +235,13 @@ jobs:
           path: "helm"
 
       - name: Install Helm
-        uses: azure/setup-helm@v4.2.0
+        uses: azure/setup-helm@v4.3.0
         id: install
 
       - name: package and push
         run: |
           cd ./helm
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
-          helm package -d /tmp/ --version ${{ env.SEMVERSION }} .
+          helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
    

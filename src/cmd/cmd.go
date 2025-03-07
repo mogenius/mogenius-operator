@@ -3,11 +3,26 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/controllers"
+	"mogenius-k8s-manager/src/core"
+	"mogenius-k8s-manager/src/dtos"
+	"mogenius-k8s-manager/src/helm"
+	"mogenius-k8s-manager/src/k8sclient"
+	"mogenius-k8s-manager/src/kubernetes"
+	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/services"
+	"mogenius-k8s-manager/src/servicesexternal"
+	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
+	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
+	"mogenius-k8s-manager/src/websocket"
+	"mogenius-k8s-manager/src/xterm"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -22,14 +37,15 @@ const defaultLogDir string = "logs"
 
 var CLI struct {
 	// Commands
-	Clean   struct{} `cmd:"" help:"remove the operator from the cluster"`
-	Cluster struct{} `cmd:"" help:"start the operator"`
-	Config  struct{} `cmd:"" help:"print application config in ENV format"`
-	Install struct{} `cmd:"" help:"install the operator into your cluster"`
-	System  struct{} `cmd:"" help:"check the system for all required components and offer healing"`
-	Version struct{} `cmd:"" help:"print version information" default:"1"`
-	Exec    execArgs `cmd:"" help:"open an interactive shell inside a container"`
-	Logs    logArgs  `cmd:"" help:"retrieve streaming logs of a container"`
+	Clean    struct{}     `cmd:"" help:"remove the operator from the cluster"`
+	Cluster  struct{}     `cmd:"" help:"start the operator"`
+	Config   struct{}     `cmd:"" help:"print application config in ENV format"`
+	Install  struct{}     `cmd:"" help:"install the operator into your cluster"`
+	System   struct{}     `cmd:"" help:"check the system for all required components and offer healing"`
+	Version  struct{}     `cmd:"" help:"print version information" default:"1"`
+	Patterns patternsArgs `cmd:"" help:"print patterns to shell"`
+	Exec     execArgs     `cmd:"" help:"open an interactive shell inside a container"`
+	Logs     logArgs      `cmd:"" help:"retrieve streaming logs of a container"`
 }
 
 func Run() error {
@@ -144,6 +160,12 @@ func Run() error {
 			return err
 		}
 		return nil
+	case "patterns":
+		err := RunPatterns(&CLI.Patterns, slogManager, configModule, cmdLogger)
+		if err != nil {
+			return err
+		}
+		return nil
 	default:
 		return ctx.PrintUsage(true)
 	}
@@ -165,7 +187,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_CLUSTER_NAME",
-		Description: utils.Pointer("the name of the kubernetes cluster"),
+		Description: utils.Pointer("Name of the kubernetes cluster"),
 		Envs:        []string{"cluster_name"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
@@ -191,6 +213,11 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			}
 			return nil
 		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HTTP_ADDR",
+		DefaultValue: utils.Pointer(":1337"),
+		Description:  utils.Pointer("address of the controllers http api server"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
@@ -421,9 +448,85 @@ func ApplyStageOverrides(configModule *config.Config) {
 		configModule.Set("MO_API_SERVER", "wss://k8s-ws.dev.mogenius.com/ws")
 		configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.dev.mogenius.com/ws")
 	case "local":
-		configModule.Set("MO_API_SERVER", "ws://127.0.0.1:8080/ws")
-		configModule.Set("MO_EVENT_SERVER", "ws://127.0.0.1:8080/ws")
+		configModule.Set("MO_API_SERVER", "ws://127.0.0.1:7011/ws")
+		configModule.Set("MO_EVENT_SERVER", "ws://127.0.0.1:7011/ws")
 	case "":
 		// does not override
 	}
+}
+
+// Full initialization process for mogenius-k8s-manager clients services (and packages)
+func InitializeSystems(
+	logManagerModule logging.LogManagerModule,
+	configModule *config.Config,
+	cmdLogger *slog.Logger,
+) systems {
+	assert.Assert(logManagerModule != nil)
+	assert.Assert(configModule != nil)
+	assert.Assert(cmdLogger != nil)
+
+	// initialize client modules
+	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
+	versionModule := version.NewVersion()
+	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
+	shutdown.Add(watcherModule.UnwatchAll)
+	dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
+	assert.Assert(err == nil, err)
+	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-job-client"))
+	shutdown.Add(jobConnectionClient.Terminate)
+	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
+	shutdown.Add(eventConnectionClient.Terminate)
+
+	// golang package setups are deprecated and will be removed in the future by migrating all state to services
+	helm.Setup(logManagerModule, configModule)
+	err = mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
+	assert.Assert(err == nil, err)
+	controllers.Setup(logManagerModule, configModule)
+	dtos.Setup(logManagerModule)
+	services.Setup(logManagerModule, configModule, clientProvider)
+	servicesexternal.Setup(logManagerModule, configModule)
+	store.Setup(logManagerModule)
+	structs.Setup(logManagerModule, configModule)
+	xterm.Setup(logManagerModule, configModule, clientProvider)
+	utils.Setup(logManagerModule, configModule)
+
+	// initialization step 1 for services
+	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
+	apiModule := core.NewApi(logManagerModule.CreateLogger("api"))
+	httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
+	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, dbstatsModule)
+	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
+
+	// initialization step 2 for services
+	socketApi.Link(httpApi, xtermService, apiModule)
+	httpApi.Link(socketApi)
+	apiModule.Link(workspaceManager)
+
+	return systems{
+		clientProvider,
+		versionModule,
+		watcherModule,
+		dbstatsModule,
+		jobConnectionClient,
+		eventConnectionClient,
+		workspaceManager,
+		apiModule,
+		socketApi,
+		httpApi,
+		xtermService,
+	}
+}
+
+type systems struct {
+	clientProvider        k8sclient.K8sClientProvider
+	versionModule         *version.Version
+	watcherModule         *kubernetes.Watcher
+	dbstatsModule         kubernetes.BoltDbStats
+	jobConnectionClient   websocket.WebsocketClient
+	eventConnectionClient websocket.WebsocketClient
+	workspaceManager      core.WorkspaceManager
+	apiModule             core.Api
+	socketApi             core.SocketApi
+	httpApi               core.HttpService
+	xtermService          core.XtermService
 }

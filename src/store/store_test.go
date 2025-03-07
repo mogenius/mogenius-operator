@@ -5,6 +5,8 @@ import (
 	"mogenius-k8s-manager/src/store"
 	"reflect"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestStore(t *testing.T) {
@@ -42,8 +44,8 @@ func TestStore(t *testing.T) {
 	assert.AssertT(t, len(arrayValue) == 1, "GetByKeyPart should return a single value")
 	t.Logf("Value retrieved by GetByKeyPart: %s ✅", value)
 
-	// SearchByNames
-	data, err = store.SearchByNames("namespace", "name", interface{}("value"))
+	// SearchByNamespaceAndName
+	data, err = store.SearchByNamespaceAndName(reflect.TypeOf(unstructured.Unstructured{}), "namespace", "value")
 	assert.AssertT(t, err == nil, "value should be found", err)
 	t.Logf("Value searched: %s ✅", data)
 

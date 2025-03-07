@@ -5,12 +5,13 @@ default:
     just --list --unsorted
 
 # Run the application with flags similar to the production build
-run: build-native
+run: build
     dist/native/mogenius-k8s-manager cluster
 
 # Build a native binary with flags similar to the production build
-build-native:
+build: generate
     go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
+        -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
         -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
         -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
         -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
@@ -22,6 +23,7 @@ build-all: build-linux-amd64 build-linux-arm64 build-linux-armv7
 # Build binary for target linux-amd64
 build-linux-amd64:
     GOOS=linux GOARCH=amd64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
+        -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
         -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
         -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
         -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
@@ -50,6 +52,7 @@ build-docker-linux-amd64:
 # Build binary for target linux-arm64
 build-linux-arm64:
     GOOS=linux GOARCH=amd64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
+        -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
         -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
         -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
         -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
@@ -78,6 +81,7 @@ build-docker-linux-arm64:
 # Build binary for target linux-armv7
 build-linux-armv7:
     GOOS=linux GOARCH=arm go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
+        -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
         -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
         -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
         -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
@@ -103,17 +107,25 @@ build-docker-linux-armv7:
         -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest-amd64 \
         .
 
+# Install tools used by go generate
+_install_controller_gen:
+    go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+
+# Execute go generate
+generate: _install_controller_gen
+    go generate ./...
+
 # Run tests and linters for quick iteration locally.
-check: golangci-lint test-unit
+check: generate golangci-lint test-unit
 
 # Execute unit tests
-test-unit:
+test-unit: generate
     go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
 
 # Execute integration tests
-test-integration:
+test-integration: generate
     go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./test/...
 
 # Execute golangci-lint
-golangci-lint:
+golangci-lint: generate
     go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run '--fast=false' --sort-results '--max-same-issues=0' '--timeout=1h'

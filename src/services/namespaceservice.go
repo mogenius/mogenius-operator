@@ -1,83 +1,72 @@
 package services
 
 import (
-	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"os"
 	"sync"
 
 	"helm.sh/helm/v3/pkg/action"
 )
 
-func CreateNamespace(r NamespaceCreateRequest) *structs.Job {
+func CreateNamespace(eventClient websocket.WebsocketClient, r NamespaceCreateRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Create namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
-	job.Start()
-	CreateNamespaceCmds(job, r, &wg)
+	job := structs.CreateJob(eventClient, "Create namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
+	job.Start(eventClient)
+	CreateNamespaceCmds(eventClient, job, r, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
 }
 
-func CreateNamespaceCmds(job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) {
-	mokubernetes.CreateNamespace(job, r.Project, r.Namespace)
+func CreateNamespaceCmds(eventClient websocket.WebsocketClient, job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) {
+	mokubernetes.CreateNamespace(eventClient, job, r.Project, r.Namespace)
 	// mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, "allow-namespace-communication", wg)
 
 	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, wg)
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, wg)
 	// }
-	crds.CreateEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, crds.CrdEnvironment{
-		Id:          r.Namespace.Id,
-		DisplayName: r.Namespace.DisplayName,
-		CreatedBy:   "MISSING_FIELD",
-		Name:        r.Namespace.Name}, wg)
 }
 
-func DeleteNamespace(r NamespaceDeleteRequest) *structs.Job {
+func DeleteNamespace(eventClient websocket.WebsocketClient, r NamespaceDeleteRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
-	job.Start()
-	mokubernetes.DeleteNamespace(job, r.Namespace, &wg)
-
-	crds.DeleteEnvironmentCmd(job, r.Project.Name, r.Namespace.Name, &wg)
+	job := structs.CreateJob(eventClient, "Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
+	job.Start(eventClient)
+	mokubernetes.DeleteNamespace(eventClient, job, r.Namespace, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
 }
 
-func ShutdownNamespace(r NamespaceShutdownRequest) *structs.Job {
+func ShutdownNamespace(eventClient websocket.WebsocketClient, r NamespaceShutdownRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
-	job.Start()
-	mokubernetes.StopDeployment(job, r.Namespace, r.Service, &wg)
-	mokubernetes.DeleteService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
+	job := structs.CreateJob(eventClient, "Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
+	job.Start(eventClient)
+	mokubernetes.StopDeployment(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
-}
-
-func PodIds(r NamespacePodIdsRequest) interface{} {
-	return kubernetes.PodIdsFor(r.Namespace, nil)
 }
 
 func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClusterPodsDto {
@@ -96,15 +85,13 @@ func ValidateClusterPods(r NamespaceValidateClusterPodsRequest) dtos.ValidateClu
 	}
 }
 
-func ValidateClusterPorts(r NamespaceValidatePortsRequest) interface{} {
+func ValidateClusterPorts(r NamespaceValidatePortsRequest) {
 	serviceLogger.Info("CleanupIngressPorts: received ports from DB.", "amountPorts", len(r.Ports), "ports", r.Ports)
 	if len(r.Ports) <= 0 {
 		serviceLogger.Error("Received empty ports list. Something seems wrong. Skipping process.")
-		return nil
+		return
 	}
 	mokubernetes.CleanupIngressControllerServicePorts(r.Ports)
-
-	return nil
 }
 
 func ListAllNamespaces() []string {
@@ -122,50 +109,6 @@ func ListAllResourcesForNamespace(r NamespaceGatherAllResourcesRequest) dtos.Nam
 	result.Secrets = kubernetes.AllSecrets(r.NamespaceName)
 	result.Configmaps = kubernetes.AllConfigmaps(r.NamespaceName)
 	return result
-}
-
-type ProjectCreateRequest struct {
-	Project crds.CrdProject `json:"project" validate:"required"`
-}
-
-func ProjectCreateRequestExample() ProjectCreateRequest {
-	return ProjectCreateRequest{
-		Project: crds.CrdProjectExampleData(),
-	}
-}
-
-type ProjectUpdateRequest struct {
-	Id          string             `json:"id" validate:"required"`
-	ProjectName string             `json:"projectName"`
-	DisplayName string             `json:"displayName"`
-	ProductId   string             `json:"productId"`
-	Limits      crds.ProjectLimits `json:"limits"`
-}
-
-func ProjectUpdateRequestExample() ProjectUpdateRequest {
-	return ProjectUpdateRequest{
-		Id:          "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		ProjectName: "mogenius",
-		DisplayName: "displayName",
-		Limits: crds.ProjectLimits{
-			LimitMemoryMB:      1024,
-			LimitCpuCores:      1.0,
-			EphemeralStorageMB: 1024,
-			MaxVolumeSizeGb:    10,
-		},
-	}
-}
-
-type ProjectDeleteRequest struct {
-	ProjectName string `json:"projectName" validate:"required"`
-	ProjectId   string `json:"projectId" validate:"required"`
-}
-
-func ProjectDeleteRequestExample() ProjectDeleteRequest {
-	return ProjectDeleteRequest{
-		ProjectName: "mogenius",
-		ProjectId:   "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-	}
 }
 
 type NamespaceCreateRequest struct {

@@ -25,11 +25,7 @@ func NewKubeProviderCertManager() (*KubeProviderCertManager, error) {
 }
 
 func newKubeProviderCertManagerLocal() (*KubeProviderCertManager, error) {
-	config, err := ContextConfigLoader()
-	if err != nil {
-		return nil, err
-	}
-
+	config := clientProvider.ClientConfig()
 	cmClientset, err := cmclientset.NewForConfig(config)
 	if err != nil {
 		return nil, err

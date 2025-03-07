@@ -115,7 +115,7 @@ func XTermScanImageLogStreamConnection(
 	assert.Assert(err == nil, err)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
 	// websocket connection
-	readMessages, conn, connWriteLock, err := generateWsConnection(cmdType, namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, _, err := GenerateWsConnection(cmdType, namespace, controller, "", container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return

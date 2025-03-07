@@ -41,7 +41,7 @@ kubectl scale -n mogenius deployment mogenius-k8s-manager --replicas=0
 Now mogenius can be run locally:
 
 ```sh
-go run -trimpath src/main.go cluster
+just run
 ```
 
 ## local docker image in docker-desktop kubernetes
@@ -71,9 +71,8 @@ After that simply restart the deployment and you are good to go.
 ```sh
 apk add go
 go install github.com/br0xen/boltbrowser@latest
-cp /data/db/mogenius-stats-3.db mogenius-stats1.db
-cp /data/db/mogenius-3.db mogenius1.db
-/root/go/bin/boltbrowser mogenius-stats3.db
+cp /data/db/mogenius-stats-3.db mogenius-stats-3.db
+/root/go/bin/boltbrowser mogenius-stats-3.db
 ```
 
 ## Upgrade Modules
@@ -83,19 +82,20 @@ go get -u ./...
 go mod tidy
 ```
 
-## Testing
+## Testing/Linting Locally
 
 ```sh
-go test -v ./...
+# Run linter and unit tests locally
+just check
 
-# clean cache
-go clean -testcache
-```
+# Run linter
+just golangci-lint
 
-## Lint
+# Run quick unit tests
+just test-unit
 
-```sh
-golangci-lint run --fast=false --sort-results --max-same-issues=0 --timeout=1h
+# Run slow integration tests
+just test-integration
 ```
 
 ## Helm Install
@@ -133,9 +133,9 @@ helm repo update
 
 ## LINKS
 
-- [Just](https://github.com/casey/just) - A Task Runner. Checkout the `Justfile` for details or use `just -l` for an quick overview.
+- [Just](https://github.com/casey/just) - A Task Runner. Checkout the `Justfile` for details or use `just --list --unsorted` for an quick overview.
 
 ---------------------
 
-mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform
 
+mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform

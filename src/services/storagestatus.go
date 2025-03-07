@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"sort"
 	"strings"
@@ -94,12 +93,12 @@ type VolumeStatusMessage struct {
 
 var statusMogeniusNfsDebounce = utils.NewDebounce("statusMogeniusNfsDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-func StatusMogeniusNfs(r NfsStatusRequest) interface{} {
+func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 	key := fmt.Sprintf("%s-%s-%s", r.Name, r.Namespace, r.StorageAPIObject)
 	result, _ := statusMogeniusNfsDebounce.CallFn(key, func() (interface{}, error) {
 		return StatusMogeniusNfs2(r), nil
 	})
-	return result
+	return result.(NfsStatusResponse)
 }
 
 func StatusMogeniusNfs2(r NfsStatusRequest) NfsStatusResponse {
@@ -121,15 +120,8 @@ func StatusMogeniusNfs2(r NfsStatusRequest) NfsStatusResponse {
 		nfsStatusResponse.NamespaceName = r.Namespace
 	}
 
-	provider, err := mokubernetes.NewKubeProvider()
-	if err != nil {
-		serviceLogger.Warn("failed to create kube provider", "error", err)
-		nfsStatusResponse.ProcessNfsStatusResponse(nil, err)
-		return nfsStatusResponse
-	}
-
 	storageStatus := VolumeStatus{}
-	storageStatus.SetClient(provider.ClientSet)
+	storageStatus.SetClient(clientProvider.K8sClientSet())
 
 	if StorageAPIObjectFromString(r.StorageAPIObject) == VolumeTypePersistentVolume {
 		if _, err := storageStatus.GetByPVName(prefixName); err != nil {
@@ -260,7 +252,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 		// pv, pvc and nfs-pod are bounded and running
 		if bounded && boundedPodRunning {
 			if s.PersistentVolumeClaim != nil {
-				mountPath := utils.MountPath(s.Namespace, v.VolumeName, "/", mokubernetes.RunsInCluster())
+				mountPath := utils.MountPath(s.Namespace, v.VolumeName, "/", clientProvider.RunsInCluster())
 
 				if utils.ClusterProviderCached == utils.DOCKER_DESKTOP || utils.ClusterProviderCached == utils.K3S {
 					var usedBytes uint64 = sumAllBytesOfFolder(mountPath)

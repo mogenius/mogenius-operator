@@ -2,54 +2,54 @@ package services
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/gitmanager"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/websocket"
 	"os"
 	"sync"
 	"time"
 
-	"k8s.io/client-go/rest"
+	v1 "k8s.io/api/core/v1"
 )
 
-func UpdateService(r ServiceUpdateRequest) interface{} {
+func UpdateService(eventClient websocket.WebsocketClient, r ServiceUpdateRequest) *structs.Job {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
-	job.Start()
+	job := structs.CreateJob(eventClient, "Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job.Start(eventClient)
 
 	// check if namespace exists and CREATE IT IF NOT
 	nsExists, nsErr := kubernetes.NamespaceExists(r.Namespace.Name)
 	if nsErr != nil {
-		serviceLogger.Warn("failed to check if namespace exists", "error", nsErr)
+		serviceLogger.Warn("failed to check if namespace exists", "error", nsErr, "controller", r.Service.ControllerName, "namespace", r.Namespace.Name)
 	}
 	if !nsExists {
 		nsReq := NamespaceCreateRequest{
 			Project:   r.Project,
 			Namespace: r.Namespace,
 		}
-		CreateNamespaceCmds(job, nsReq, &wg)
+		CreateNamespaceCmds(eventClient, job, nsReq, &wg)
 	}
 
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
-	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg)
 	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.UpdateDeployment(job, r.Namespace, r.Service, &wg)
+		mokubernetes.UpdateDeployment(eventClient, job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		mokubernetes.UpdateCronJob(job, r.Namespace, r.Service, &wg)
+		mokubernetes.UpdateCronJob(eventClient, job, r.Namespace, r.Service, &wg)
 	}
 
 	if r.Service.HasContainerWithGitRepo() && serviceHasYamlSettings(r.Service) {
-		updateInfrastructureYaml(job, r.Service, &wg)
+		updateInfrastructureYaml(eventClient, job, r.Service, &wg)
 	}
 
 	// crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
@@ -62,37 +62,35 @@ func UpdateService(r ServiceUpdateRequest) interface{} {
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
 }
 
-func DeleteService(r ServiceDeleteRequest) interface{} {
+func DeleteService(eventClient websocket.WebsocketClient, r ServiceDeleteRequest) *structs.Job {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
-	job.Start()
-	mokubernetes.DeleteService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.DeleteContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.DeleteControllerSecret(job, r.Namespace, r.Service, &wg)
+	job := structs.CreateJob(eventClient, "Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job.Start(eventClient)
+	mokubernetes.DeleteService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.DeleteDeployment(job, r.Namespace, r.Service, &wg)
+		mokubernetes.DeleteDeployment(eventClient, job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		mokubernetes.DeleteCronJob(job, r.Namespace, r.Service, &wg)
+		mokubernetes.DeleteCronJob(eventClient, job, r.Namespace, r.Service, &wg)
 	}
 
 	// EXTERNAL SECRETS OPERATOR - cleanup unused secrets
-	mokubernetes.DeleteUnusedSecretsForNamespace(job, r.Namespace, r.Service, &wg)
+	mokubernetes.DeleteUnusedSecretsForNamespace(eventClient, job, r.Namespace, r.Service, &wg)
 
-	mokubernetes.DeleteIngress(job, r.Namespace, r.Service, &wg)
-
-	crds.DeleteApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, &wg)
+	mokubernetes.DeleteIngress(eventClient, job, r.Namespace, r.Service, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 
 		time.Sleep(10 * time.Second)
 		for _, container := range r.Service.Containers {
@@ -104,18 +102,18 @@ func DeleteService(r ServiceDeleteRequest) interface{} {
 	return job
 }
 
-func UpdateSecrets(r ServiceUpdateRequest) interface{} {
+func UpdateSecrets(eventClient websocket.WebsocketClient, r ServiceUpdateRequest) interface{} {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Update Secrets "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
-	job.Start()
+	job := structs.CreateJob(eventClient, "Update Secrets "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job.Start(eventClient)
 
-	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
-	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
@@ -138,136 +136,104 @@ func UpdateSecrets(r ServiceUpdateRequest) interface{} {
 // 	return job
 // }
 
-func ServicePodIds(r ServiceGetPodIdsRequest) interface{} {
-	return kubernetes.PodIdsFor(r.Namespace, &r.ServiceId)
-}
-
-func ServicePodExists(r ServicePodExistsRequest) interface{} {
-	return kubernetes.PodExists(r.K8sNamespace, r.K8sPod)
-}
-
-func PodLog(r ServiceGetLogRequest) interface{} {
-	return kubernetes.GetLog(r.Namespace, r.PodId, r.Timestamp)
-}
-
-func PodLogError(r ServiceGetLogRequest) interface{} {
-	return kubernetes.GetLogError(r.Namespace, r.PodId)
-}
-
-func PodLogStream(r ServiceLogStreamRequest) (*rest.Request, error) {
-	return kubernetes.StreamLog(r.Namespace, r.PodId, int64(r.SinceSeconds))
-}
-
-func PreviousPodLogStream(namespace, podName string) (*rest.Request, error) {
-	return kubernetes.StreamPreviousLog(namespace, podName)
-}
-
-func PodStatus(r ServiceResourceStatusRequest) interface{} {
-	return kubernetes.PodStatus(r.Namespace, r.Name, r.StatusOnly)
-}
-
 var servicePodStatusDebounce = utils.NewDebounce("servicePodStatusDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-func ServicePodStatus(r ServicePodsRequest) interface{} {
+func ServicePodStatus(eventClient websocket.WebsocketClient, r ServicePodsRequest) []v1.Pod {
 	key := fmt.Sprintf("%s-%s", r.Namespace, r.ControllerName)
 	result, _ := servicePodStatusDebounce.CallFn(key, func() (interface{}, error) {
-		return ServicePodStatus2(r), nil
+		return kubernetes.ServicePodStatus(r.Namespace, r.ControllerName), nil
 	})
-	return result
+	return result.([]v1.Pod)
 }
 
-func ServicePodStatus2(r ServicePodsRequest) interface{} {
-	return kubernetes.ServicePodStatus(r.Namespace, r.ControllerName)
-}
-
-func TriggerJobService(r ServiceTriggerJobRequest) interface{} {
+func TriggerJobService(eventClient websocket.WebsocketClient, r ServiceTriggerJobRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Trigger Job Service "+r.NamespaceDisplayName, r.ProjectId, r.NamespaceName, r.ControllerName)
-	job.Start()
-	mokubernetes.TriggerJobFromCronjob(job, r.NamespaceName, r.ControllerName, &wg)
+	job := structs.CreateJob(eventClient, "Trigger Job Service "+r.NamespaceDisplayName, r.ProjectId, r.NamespaceName, r.ControllerName)
+	job.Start(eventClient)
+	mokubernetes.TriggerJobFromCronjob(eventClient, job, r.NamespaceName, r.ControllerName, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
 }
 
-func Restart(r ServiceRestartRequest) interface{} {
+func Restart(eventClient websocket.WebsocketClient, r ServiceRestartRequest) *structs.Job {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
-	job.Start()
+	job := structs.CreateJob(eventClient, "Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job.Start(eventClient)
 
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
-	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
 	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.RestartDeployment(job, r.Namespace, r.Service, &wg)
+		mokubernetes.RestartDeployment(eventClient, job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		mokubernetes.RestartCronJob(job, r.Namespace, r.Service, &wg)
+		mokubernetes.RestartCronJob(eventClient, job, r.Namespace, r.Service, &wg)
 	}
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
 }
 
-func StopService(r ServiceStopRequest) interface{} {
+func StopService(eventClient websocket.WebsocketClient, r ServiceStopRequest) *structs.Job {
 	var wg sync.WaitGroup
-	job := structs.CreateJob("Stop Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
-	job.Start()
+	job := structs.CreateJob(eventClient, "Stop Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
+	job.Start(eventClient)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.StopDeployment(job, r.Namespace, r.Service, &wg)
+		mokubernetes.StopDeployment(eventClient, job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		mokubernetes.StopCronJob(job, r.Namespace, r.Service, &wg)
+		mokubernetes.StopCronJob(eventClient, job, r.Namespace, r.Service, &wg)
 	}
 
-	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
 }
 
-func StartService(r ServiceStartRequest) interface{} {
+func StartService(eventClient websocket.WebsocketClient, r ServiceStartRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob("Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
-	job.Start()
+	job := structs.CreateJob(eventClient, "Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job.Start(eventClient)
 
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(job, r.Project, r.Namespace, &wg)
-	mokubernetes.CreateOrUpdateContainerImagePullSecret(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateOrCreateControllerSecret(job, r.Namespace, r.Service, &wg)
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
+	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
 	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.StartDeployment(job, r.Namespace, r.Service, &wg)
+		mokubernetes.StartDeployment(eventClient, job, r.Namespace, r.Service, &wg)
 	case dtos.CRON_JOB:
-		mokubernetes.StartCronJob(job, r.Namespace, r.Service, &wg)
+		mokubernetes.StartCronJob(eventClient, job, r.Namespace, r.Service, &wg)
 	}
 
 	go func() {
 		wg.Wait()
-		job.Finish()
+		job.Finish(eventClient)
 	}()
 
 	return job
@@ -290,12 +256,12 @@ func serviceHasYamlSettings(service dtos.K8sServiceDto) bool {
 	return false
 }
 
-func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand("update", "Update infrastructure YAML", job)
+func updateInfrastructureYaml(eventClient websocket.WebsocketClient, job *structs.Job, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+	cmd := structs.CreateCommand(eventClient, "update", "Update infrastructure YAML", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		cmd.Start(job, "Update infrastructure YAML")
+		cmd.Start(eventClient, job, "Update infrastructure YAML")
 
 		// dont do this in local environment
 		// if config.Get("MO_STAGE") == "local" {
@@ -306,15 +272,15 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 		for _, container := range service.Containers {
 			if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 				if container.GitRepository == nil {
-					serviceLogger.Error("GitRepository cannot be nil", "controller", service.ControllerName)
+					serviceLogger.Error("GitRepository cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
 					continue
 				}
 				if container.GitBranch == nil {
-					serviceLogger.Error("GitBranch cannot be nil", "controller", service.ControllerName)
+					serviceLogger.Error("GitBranch cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
 					continue
 				}
 				if container.SettingsYaml == nil {
-					serviceLogger.Error("SettingsYaml cannot be nil", "controller", service.ControllerName)
+					serviceLogger.Error("SettingsYaml cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
 					continue
 				}
 
@@ -323,18 +289,21 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 
 				err := utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up before: %s", err.Error()))
+					serviceLogger.Error("Error cleaning up before", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+					cmd.Fail(eventClient, job, fmt.Sprintf("Error cleaning up before: %s", err.Error()))
 					return
 				}
 				err = gitmanager.CloneFast(*container.GitRepository, gitDir, *container.GitBranch)
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cloning: %s", err.Error()))
+					serviceLogger.Error("Error while cloning", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+					cmd.Fail(eventClient, job, fmt.Sprintf("Error cloning: %s", err.Error()))
 					return
 				}
 
 				err = utils.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error updating file: %s", err.Error()))
+					serviceLogger.Error("Error updating infrastructure YAML", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+					cmd.Fail(eventClient, job, fmt.Sprintf("Error updating file: %s", err.Error()))
 					return
 				}
 
@@ -347,22 +316,25 @@ func updateInfrastructureYaml(job *structs.Job, service dtos.K8sServiceDto, wg *
 					config.Get("MO_GIT_USER_EMAIL"),
 				)
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error commiting: %s", err.Error()))
+					serviceLogger.Error("Error while commiting", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+					cmd.Fail(eventClient, job, fmt.Sprintf("Error commiting: %s", err.Error()))
 					return
 				}
 				err = gitmanager.Push(gitDir, "origin")
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error pushing: %s", err.Error()))
+					serviceLogger.Error("Error while pushing", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+					cmd.Fail(eventClient, job, fmt.Sprintf("Error pushing: %s", err.Error()))
 					return
 				}
 				err = utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
 				if err != nil {
-					cmd.Fail(job, fmt.Sprintf("Error cleaning up after: %s", err.Error()))
+					serviceLogger.Error("Error cleaning up after done", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+					cmd.Fail(eventClient, job, fmt.Sprintf("Error cleaning up after: %s", err.Error()))
 					return
 				}
 			}
 		}
-		cmd.Success(job, "Update infrastructure YAML")
+		cmd.Success(eventClient, job, "Update infrastructure YAML")
 	}(wg)
 }
 
@@ -562,20 +534,6 @@ type ServiceTriggerJobRequest struct {
 
 func ServiceTriggerJobRequestExample() ServiceTriggerJobRequest {
 	return ServiceTriggerJobRequest{
-		ProjectId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		NamespaceName:  "my-namespace",
-		ControllerName: "my-service",
-	}
-}
-
-type ListCronjobJobsRequest struct {
-	ProjectId      string `json:"projectId" validate:"required"`
-	NamespaceName  string `json:"namespaceName" validate:"required"`
-	ControllerName string `json:"controllerName" validate:"required"`
-}
-
-func ListJobsByCronJobByServiceRequestExample() ListCronjobJobsRequest {
-	return ListCronjobJobsRequest{
 		ProjectId:      "B0919ACB-92DD-416C-AF67-E59AD4B25265",
 		NamespaceName:  "my-namespace",
 		ControllerName: "my-service",

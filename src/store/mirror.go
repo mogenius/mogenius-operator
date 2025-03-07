@@ -2,7 +2,9 @@ package store
 
 import (
 	"errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/utils"
 	"reflect"
 
 	appsV1 "k8s.io/api/apps/v1"
@@ -14,7 +16,18 @@ func ListNetworkPolicies(namespace string) ([]networkingV1.NetworkPolicy, error)
 	result := []networkingV1.NetworkPolicy{}
 
 	assert.Assert(GlobalStore != nil)
-	policies, err := GlobalStore.SearchByPrefix(reflect.TypeOf(networkingV1.NetworkPolicy{}), "NetworkPolicy", namespace)
+
+	// TODO replace with GetAvailableResources in the future
+	resourceNamespace := ""
+	resource := utils.SyncResourceEntry{
+		Kind:      "NetworkPolicy",
+		Name:      "networkpolicies",
+		Namespace: &resourceNamespace,
+		Group:     "networking.k8s.io/v1",
+		Version:   "",
+	}
+
+	policies, err := GlobalStore.SearchByPrefix(reflect.TypeOf(networkingV1.NetworkPolicy{}), resource.Group, "NetworkPolicy", namespace)
 	if errors.Is(err, ErrNotFound) {
 		return result, nil
 	}
@@ -45,7 +58,17 @@ func ListNetworkPolicies(namespace string) ([]networkingV1.NetworkPolicy, error)
 func ListDaemonSets(namespace string) ([]appsV1.DaemonSet, error) {
 	result := []appsV1.DaemonSet{}
 
-	daemonsets, err := GlobalStore.SearchByPrefix(reflect.TypeOf(appsV1.DaemonSet{}), "DaemonSet", namespace)
+	// TODO replace with GetAvailableResources in the future
+	resourceNamespace := ""
+	resource := utils.SyncResourceEntry{
+		Kind:      "DaemonSet",
+		Name:      "daemonsets",
+		Namespace: &resourceNamespace,
+		Group:     "apps/v1",
+		Version:   "",
+	}
+
+	daemonsets, err := GlobalStore.SearchByPrefix(reflect.TypeOf(appsV1.DaemonSet{}), resource.Group, "DaemonSet", namespace)
 	if errors.Is(err, ErrNotFound) {
 		return result, nil
 	}
@@ -76,7 +99,16 @@ func ListDaemonSets(namespace string) ([]appsV1.DaemonSet, error) {
 func ListDeployments(namespace string) ([]appsV1.Deployment, error) {
 	result := []appsV1.Deployment{}
 
-	deployments, err := GlobalStore.SearchByPrefix(reflect.TypeOf(appsV1.Deployment{}), "Deployment", namespace)
+	// TODO replace with GetAvailableResources in the future
+	resourceNamespace := ""
+	resource := utils.SyncResourceEntry{
+		Kind:      "Deployment",
+		Name:      "deployments",
+		Namespace: &resourceNamespace,
+		Group:     "apps/v1",
+		Version:   "",
+	}
+	deployments, err := GlobalStore.SearchByPrefix(reflect.TypeOf(appsV1.Deployment{}), resource.Group, "Deployment", namespace)
 	if errors.Is(err, ErrNotFound) {
 		return result, nil
 	}
@@ -107,7 +139,16 @@ func ListDeployments(namespace string) ([]appsV1.Deployment, error) {
 func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 	result := []appsV1.StatefulSet{}
 
-	statefulsets, err := GlobalStore.SearchByPrefix(reflect.TypeOf(appsV1.StatefulSet{}), "StatefulSet", namespace)
+	// TODO replace with GetAvailableResources in the future
+	resourceNamespace := ""
+	resource := utils.SyncResourceEntry{
+		Kind:      "StatefulSet",
+		Name:      "statefulsets",
+		Namespace: &resourceNamespace,
+		Group:     "apps/v1",
+		Version:   "",
+	}
+	statefulsets, err := GlobalStore.SearchByPrefix(reflect.TypeOf(appsV1.StatefulSet{}), resource.Group, "StatefulSet", namespace)
 	if errors.Is(err, ErrNotFound) {
 		return result, nil
 	}
@@ -138,7 +179,7 @@ func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 func ListEvents(namespace string) ([]coreV1.Event, error) {
 	result := []coreV1.Event{}
 
-	events, err := GlobalStore.SearchByPrefix(reflect.TypeOf(coreV1.Event{}), "Event", namespace)
+	events, err := GlobalStore.SearchByKeyParts(reflect.TypeOf(coreV1.Event{}), "Event", namespace)
 	if errors.Is(err, ErrNotFound) {
 		return result, nil
 	}
@@ -169,7 +210,17 @@ func ListEvents(namespace string) ([]coreV1.Event, error) {
 func ListPods(parts ...string) ([]coreV1.Pod, error) {
 	result := []coreV1.Pod{}
 
-	args := append([]string{"Pod"}, parts...)
+	// TODO replace with GetAvailableResources in the future
+	resourceNamespace := ""
+	resource := utils.SyncResourceEntry{
+		Kind:      "Pod",
+		Name:      "pods",
+		Namespace: &resourceNamespace,
+		Group:     "v1",
+		Version:   "",
+	}
+
+	args := append([]string{resource.Group, "Pod"}, parts...)
 	pods, err := GlobalStore.SearchByPrefix(reflect.TypeOf(coreV1.Pod{}), args...)
 	if errors.Is(err, ErrNotFound) {
 		return result, nil
@@ -197,7 +248,17 @@ func ListPods(parts ...string) ([]coreV1.Pod, error) {
 func ListAllNamespaces() ([]coreV1.Namespace, error) {
 	result := []coreV1.Namespace{}
 
-	namespaces, err := GlobalStore.SearchByPrefix(reflect.TypeOf(coreV1.Namespace{}), "Namespace")
+	// TODO replace with GetAvailableResources in the future
+	resourceNamespace := ""
+	resource := utils.SyncResourceEntry{
+		Kind:      "Namespace",
+		Name:      "namespaces",
+		Namespace: &resourceNamespace,
+		Group:     "v1",
+		Version:   "",
+	}
+
+	namespaces, err := GlobalStore.SearchByPrefix(reflect.TypeOf(coreV1.Namespace{}), resource.Group, "Namespace")
 	if errors.Is(err, ErrNotFound) {
 		return result, nil
 	}
@@ -222,7 +283,15 @@ func ListAllNamespaces() ([]coreV1.Namespace, error) {
 }
 
 func GetNamespace(name string) *coreV1.Namespace {
-	ref := GlobalStore.GetByKeyParts(reflect.TypeOf(coreV1.Namespace{}), "Namespace", name)
+	// TODO replace with GetAvailableResources in the future
+	resource := utils.SyncResourceEntry{
+		Kind:    "Namespace",
+		Name:    "namespaces",
+		Group:   "v1",
+		Version: "",
+	}
+
+	ref := GlobalStore.GetByKeyParts(reflect.TypeOf(coreV1.Namespace{}), resource.Group, resource.Kind, name)
 	if ref == nil {
 		return nil
 	}
@@ -233,4 +302,34 @@ func GetNamespace(name string) *coreV1.Namespace {
 	}
 
 	return namespace
+}
+
+func GetResourceByKindAndNamespace(groupVersion string, kind string, namespace string) []unstructured.Unstructured {
+	var results []unstructured.Unstructured
+
+	storeResults, err := GlobalStore.SearchByPrefix(reflect.TypeOf(unstructured.Unstructured{}), groupVersion, kind, namespace)
+	if errors.Is(err, ErrNotFound) {
+		return results
+	}
+	if err != nil {
+		return results
+	}
+
+	for _, ref := range storeResults {
+		if ref == nil {
+			continue
+		}
+
+		obj := ref.(*unstructured.Unstructured)
+		if obj == nil {
+			continue
+		}
+
+		if (namespace != "" && obj.GetNamespace() != namespace) || (kind != "" && obj.GetKind() != kind) {
+			continue
+		}
+
+		results = append(results, *obj)
+	}
+	return results
 }

@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"text/template"
@@ -12,12 +13,8 @@ import (
 )
 
 func GetPod(namespace string, podName string) *v1.Pod {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil
-	}
-
-	client := provider.ClientSet.CoreV1().Pods(namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().Pods(namespace)
 	pod, err := client.Get(context.TODO(), podName, metav1.GetOptions{})
 	pod.Kind = "Pod"
 	pod.APIVersion = "v1"
@@ -29,12 +26,8 @@ func GetPod(namespace string, podName string) *v1.Pod {
 }
 
 func KeplerPod() *v1.Pod {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		k8sLogger.Error("failed to create kube provider", "error", err)
-		return nil
-	}
-	podClient := provider.ClientSet.CoreV1().Pods("")
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods("")
 	labelSelector := "app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler"
 	pods, err := podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
@@ -56,11 +49,8 @@ type ServicePodExistsResult struct {
 func PodExists(namespace string, name string) ServicePodExistsResult {
 	result := ServicePodExistsResult{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	podClient := provider.ClientSet.CoreV1().Pods(namespace)
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(namespace)
 	pod, err := podClient.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil || pod == nil {
 		result.PodExists = false
@@ -74,12 +64,8 @@ func PodExists(namespace string, name string) ServicePodExistsResult {
 func AllPodsOnNode(nodeName string) []v1.Pod {
 	result := []v1.Pod{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-
-	podsList, err := provider.ClientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{
+	clientset := clientProvider.K8sClientSet()
+	podsList, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{
 		FieldSelector: "spec.nodeName=" + nodeName,
 	})
 	if err != nil {
@@ -118,11 +104,8 @@ func AllPodNamesForLabel(namespace string, labelKey string, labelValue string) [
 func AllPods(namespaceName string) []v1.Pod {
 	result := []v1.Pod{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	podsList, err := provider.ClientSet.CoreV1().Pods(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	clientset := clientProvider.K8sClientSet()
+	podsList, err := clientset.CoreV1().Pods(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllPods podMetricsList", "error", err.Error())
 		return result
@@ -137,13 +120,10 @@ func AllPods(namespaceName string) []v1.Pod {
 }
 
 func PodStatus(namespace string, name string, statusOnly bool) *v1.Pod {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil
-	}
+	clientset := clientProvider.K8sClientSet()
 	getOptions := metav1.GetOptions{}
 
-	podClient := provider.ClientSet.CoreV1().Pods(namespace)
+	podClient := clientset.CoreV1().Pods(namespace)
 
 	pod, err := podClient.Get(context.TODO(), name, getOptions)
 	pod.Kind = "Pod"
@@ -209,12 +189,9 @@ func LastTerminatedStateToString(terminatedState *v1.ContainerStateTerminated) s
 
 func ServicePodStatus(namespace string, serviceName string) []v1.Pod {
 	result := []v1.Pod{}
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
 
-	podClient := provider.ClientSet.CoreV1().Pods(namespace)
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(namespace)
 
 	pods, err := podClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -263,4 +240,24 @@ func PodIdsFor(namespace string, serviceId *string) []string {
 	sort.Strings(result)
 
 	return result
+}
+
+func DeleteAllPodsInNamespace(namespace string) error {
+	clientset := clientProvider.K8sClientSet()
+	podClient := clientset.CoreV1().Pods(namespace)
+
+	pods, err := podClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		k8sLogger.Error("DeleteAllPodsInNamespace", "error", err.Error())
+		return fmt.Errorf("failed to list pods in namespace %s: %s", namespace, err.Error())
+	}
+
+	for _, pod := range pods.Items {
+		err := podClient.Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+		if err != nil {
+			k8sLogger.Error("DeleteAllPodsInNamespace", "error", err.Error())
+			return fmt.Errorf("failed to delete pod %s in namespace %s: %s", pod.Name, namespace, err.Error())
+		}
+	}
+	return nil
 }

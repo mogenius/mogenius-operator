@@ -2,114 +2,73 @@ package structs
 
 import (
 	"context"
-	"mogenius-k8s-manager/src/utils"
-	"net/url"
+	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/websocket"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
 )
 
 var jobDataQueue []Datagram = []Datagram{}
+var jobSendMutex sync.Mutex
+var jobConnectionGuard = make(chan struct{}, 1)
 
-// Public
-var JobSendMutex sync.Mutex
-var JobQueueConnection *websocket.Conn
-var JobConnectionGuard = make(chan struct{}, 1)
-var JobConnectionStatus chan bool = make(chan bool)
-var JobConnectionUrl url.URL = url.URL{}
-
-func ConnectToJobQueue() {
+func ConnectToJobQueue(jobClient websocket.WebsocketClient) {
+	jobQueueCtx, cancel := context.WithCancel(context.Background())
+	shutdown.Add(cancel)
 	for {
-		JobConnectionGuard <- struct{}{} // would block if guard channel is already filled
+		jobConnectionGuard <- struct{}{} // would block if guard channel is already filled
 		go func() {
 			ticker := time.NewTicker(1 * time.Second)
 			quit := make(chan struct{})
-
 			go func() {
 				for {
 					select {
-					case <-ticker.C:
-						processJobNow()
-					case <-quit:
-						// close go routine
+					case <-jobQueueCtx.Done():
 						return
+					case <-quit:
+						return
+					case <-ticker.C:
+						processJobNow(jobClient)
 					}
 				}
 			}()
-
-			ctx := context.Background()
-			connectJob(ctx)
-			ctx.Done()
-			<-JobConnectionGuard
-
+			select {
+			case <-jobQueueCtx.Done():
+				return
+			case <-jobConnectionGuard:
+			}
 			ticker.Stop()
 			close(quit)
 		}()
-
-		<-time.After(RETRYTIMEOUT * time.Second)
+		select {
+		case <-jobQueueCtx.Done():
+			structsLogger.Debug("shutting down jobqueue")
+			return
+		case <-time.After(RETRYTIMEOUT * time.Second):
+		}
 	}
 }
 
-func connectJob(ctx context.Context) {
-	JobConnectionUrl, err := url.Parse(config.Get("MO_API_SERVER"))
-	if err != nil {
-		structsLogger.Error("failed to parse MO_API_SERVER as URL", "error", err)
-		JobConnectionStatus <- false
-		return
-	}
-
-	connection, _, err := websocket.DefaultDialer.Dial(JobConnectionUrl.String(), utils.HttpHeader(""))
-	if err != nil {
-		structsLogger.Error("Connection to JobServer failed", "url", JobConnectionUrl.String(), "error", err)
-		JobConnectionStatus <- false
-	} else {
-		structsLogger.Info("Connected to JobServer", "url", JobConnectionUrl.String(), "localAddr", connection.LocalAddr().String())
-		JobQueueConnection = connection
-		JobConnectionStatus <- true
-		err := Ping(JobQueueConnection, &JobSendMutex)
-		if err != nil {
-			structsLogger.Error("Error pinging job queue", "error", err)
-		}
-	}
-
-	defer func() {
-		// reset everything if connection dies
-		if JobQueueConnection != nil {
-			JobQueueConnection.Close()
-		}
-		ctx.Done()
-		JobConnectionStatus <- false
-	}()
-}
-
-func JobServerSendData(datagram Datagram) {
+func JobServerSendData(jobClient websocket.WebsocketClient, datagram Datagram) {
 	jobDataQueue = append(jobDataQueue, datagram)
-	processJobNow()
+	processJobNow(jobClient)
 }
 
-func processJobNow() {
-	JobSendMutex.Lock()
-	defer JobSendMutex.Unlock()
+func processJobNow(jobClient websocket.WebsocketClient) {
+	jobSendMutex.Lock()
+	defer jobSendMutex.Unlock()
 
-	if JobQueueConnection != nil {
-		for i := 0; i < len(jobDataQueue); i++ {
-			element := jobDataQueue[i]
-
-			err := JobQueueConnection.WriteJSON(element)
-			if err == nil {
-				element.DisplaySentSummary(i+1, len(jobDataQueue))
-				if isSuppressed := utils.Contains(SUPPRESSED_OUTPUT_PATTERN, element.Pattern); !isSuppressed {
-					structsLogger.Debug("sent summary", "payload", element.Payload)
-				}
-				jobDataQueue = removeJobIndex(jobDataQueue, i)
-			} else {
-				structsLogger.Error("Error writing json in job queue", "error", err)
-				return
-			}
+	for i := 0; i < len(jobDataQueue); i++ {
+		element := jobDataQueue[i]
+		err := jobClient.WriteJSON(element)
+		if err == nil {
+			element.DisplaySentSummary(structsLogger, i+1, len(jobDataQueue))
+			structsLogger.Debug("sent summary", "payload", element.Payload)
+			jobDataQueue = removeJobIndex(jobDataQueue, i)
+		} else {
+			structsLogger.Error("Error writing json in job queue", "error", err)
+			return
 		}
-	} else {
-		structsLogger.Debug("jobQueueConnection is nil.")
 	}
 }
 

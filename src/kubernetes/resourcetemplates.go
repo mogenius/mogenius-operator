@@ -37,7 +37,12 @@ func CreateOrUpdateResourceTemplateConfigmap() error {
 	// check if configmap exists
 	_, err = CreateUnstructuredResource("", "v1", "configmaps", utils.Pointer(""), string(updatedYaml))
 	if apierrors.IsAlreadyExists(err) {
-		k8sLogger.Info("Resource template configmap already exists")
+		_, err = UpdateUnstructuredResource("", "v1", "configmaps", utils.Pointer(""), string(updatedYaml))
+		if err != nil {
+			k8sLogger.Error("Resource template configmap failed to update", "error", err)
+			return err
+		}
+		k8sLogger.Info("Resource template configmap updated")
 		return nil
 	}
 

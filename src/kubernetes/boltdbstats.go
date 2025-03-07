@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.etcd.io/bbolt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const (
@@ -39,6 +40,9 @@ type BoltDbStats interface {
 	GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats
 	GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats
 	GetTrafficStatsEntrySumForController(controller K8sController, includeSocketConnections bool) *structs.InterfaceStats
+	GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	ReplaceCniData(data []structs.CniData)
 }
 
@@ -174,20 +178,20 @@ func (self *boldDbStatsModule) cleanupStats() {
 	err := self.db.Update(func(tx *bbolt.Tx) error {
 		// TRAFFIC
 		bucketTraffic := tx.Bucket([]byte(BOLT_DB_STATS_TRAFFIC_BUCKET_NAME))
-		err := bucketTraffic.ForEach(func(k, v []byte) error {
-			namespaceBucket := bucketTraffic.Bucket(k)
-			err := namespaceBucket.ForEach(func(k, v []byte) error {
-				controllerBucket := namespaceBucket.Bucket(k)
-				err := controllerBucket.ForEach(func(k, v []byte) error {
+		err := bucketTraffic.ForEach(func(trafficKey, v []byte) error {
+			namespaceBucket := bucketTraffic.Bucket(trafficKey)
+			err := namespaceBucket.ForEach(func(namespaceKey, v []byte) error {
+				controllerBucket := namespaceBucket.Bucket(namespaceKey)
+				err := controllerBucket.ForEach(func(controllerKey, v []byte) error {
 					entry := structs.InterfaceStats{}
 					err := structs.UnmarshalInterfaceStats(&entry, v)
 					if err != nil {
-						return fmt.Errorf("cleanupStatsTraffic: %s", err.Error())
+						return fmt.Errorf("cleanupStatsTraffic marshall (%s/%s/%s): %s", string(trafficKey), string(namespaceKey), string(controllerKey), err.Error())
 					}
 					if self.isMoreThan14DaysOld(entry.CreatedAt) {
-						err := controllerBucket.DeleteBucket(k)
+						err := controllerBucket.Delete(controllerKey)
 						if err != nil {
-							return fmt.Errorf("cleanupStatsTraffic: %s", err.Error())
+							return fmt.Errorf("cleanupStatsTraffic (%s/%s/%s): %s", string(trafficKey), string(namespaceKey), string(controllerKey), err.Error())
 						}
 					}
 					return nil
@@ -218,7 +222,7 @@ func (self *boldDbStatsModule) cleanupStats() {
 						return fmt.Errorf("cleanupStatsPods: %s", err.Error())
 					}
 					if self.isMoreThan14DaysOld(entry.CreatedAt) {
-						err := controllerBucket.DeleteBucket(k)
+						err := controllerBucket.Delete(k)
 						if err != nil {
 							return fmt.Errorf("cleanupStatsPods: %s", err.Error())
 						}
@@ -250,7 +254,7 @@ func (self *boldDbStatsModule) cleanupStats() {
 					return fmt.Errorf("cleanupStatsNodes: %s", err.Error())
 				}
 				if self.isMoreThan14DaysOld(entry.CreatedAt) {
-					err := bucketNodes.DeleteBucket(k)
+					err := bucketNodes.Delete(k)
 					if err != nil {
 						return fmt.Errorf("cleanupStatsNodes: %s", err.Error())
 					}
@@ -526,6 +530,138 @@ func (self *boldDbStatsModule) GetTrafficStatsEntrySumForController(controller K
 	return result
 }
 
+func (self *boldDbStatsModule) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	// setup min value
+	if timeOffsetInMinutes < 5 {
+		timeOffsetInMinutes = 5
+	}
+	if timeOffsetInMinutes > 60*24*7 {
+		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
+	}
+
+	result := []GenericChartEntry{}
+	for _, controller := range resources {
+		_ = self.db.View(func(tx *bbolt.Tx) error {
+			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_POD_STATS_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
+			if err != nil {
+				return nil
+			}
+
+			cursor := bucket.Cursor()
+			index := 0
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				entry := structs.PodStats{}
+				_ = structs.UnmarshalPodStats(&entry, value)
+				if len(result) <= index {
+					result = append(result, GenericChartEntry{})
+				}
+				result[index].Time = entry.CreatedAt
+				result[index].Value += float64(entry.Cpu)
+
+				index++
+				if index >= timeOffsetInMinutes {
+					break
+				}
+			}
+			return nil
+		})
+	}
+	return result, nil
+}
+
+func (self *boldDbStatsModule) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	// setup min value
+	if timeOffsetInMinutes < 5 {
+		timeOffsetInMinutes = 5
+	}
+	if timeOffsetInMinutes > 60*24*7 {
+		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
+	}
+
+	result := []GenericChartEntry{}
+	for _, controller := range resources {
+		_ = self.db.View(func(tx *bbolt.Tx) error {
+			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_POD_STATS_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
+			if err != nil {
+				return nil
+			}
+
+			cursor := bucket.Cursor()
+			index := 0
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				entry := structs.PodStats{}
+				_ = structs.UnmarshalPodStats(&entry, value)
+				if len(result) <= index {
+					result = append(result, GenericChartEntry{})
+				}
+				result[index].Time = entry.CreatedAt
+				result[index].Value += float64(entry.Memory)
+
+				index++
+				if index >= timeOffsetInMinutes {
+					break
+				}
+			}
+			return nil
+		})
+	}
+	return result, nil
+}
+
+func (self *boldDbStatsModule) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
+	// setup min value
+	if timeOffsetInMinutes < 5 {
+		timeOffsetInMinutes = 5
+	}
+	if timeOffsetInMinutes > 60*24*7 {
+		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
+	}
+
+	result := []GenericChartEntry{}
+	for _, controller := range resources {
+		_ = self.db.View(func(tx *bbolt.Tx) error {
+			bucket, err := self.getSubBucket(tx.Bucket([]byte(BOLT_DB_STATS_TRAFFIC_BUCKET_NAME)), []string{controller.GetNamespace(), controller.GetName()})
+			if err != nil {
+				return nil
+			}
+
+			cursor := bucket.Cursor()
+			index := 0
+			for key, value := cursor.Last(); key != nil; key, value = cursor.Prev() {
+				entry := structs.InterfaceStats{}
+				_ = structs.UnmarshalInterfaceStats(&entry, value)
+				if len(result) <= index {
+					result = append(result, GenericChartEntry{})
+				}
+				result[index].Time = entry.CreatedAt
+				result[index].Value += float64(entry.ReceivedBytes + entry.TransmitBytes)
+
+				index++
+				if index >= timeOffsetInMinutes {
+					break
+				}
+			}
+			return nil
+		})
+	}
+
+	// the entries in traffic are always incremental, so we need to normalize the values (11, 14, 16, 19 -> 3, 2, 3)
+	for i := 0; i < len(result); i++ {
+		if i+1 < len(result) {
+			normalized := result[i].Value - result[i+1].Value
+			if normalized > 0 {
+				result[i].Value = normalized
+			}
+		}
+	}
+	// delete last entry of the array because it cannot be calculated correctly (because of the subtraction of the next value)
+	if len(result) > 0 {
+		result = result[:len(result)-1]
+	}
+
+	return result, nil
+}
+
 func (self *boldDbStatsModule) GetSocketConnectionsForController(controller K8sController) *structs.SocketConnections {
 	result := &structs.SocketConnections{}
 	err := self.db.View(func(tx *bbolt.Tx) error {
@@ -734,4 +870,9 @@ func (self *boldDbStatsModule) AddNodeStatsToDb(stats structs.NodeStats) {
 	if err != nil {
 		self.logger.Error("Error adding node stats", "name", stats.Name, "error", err)
 	}
+}
+
+type GenericChartEntry struct {
+	Time  string  `json:"time"`
+	Value float64 `json:"value"`
 }

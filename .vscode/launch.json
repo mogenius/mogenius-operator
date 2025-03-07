@@ -27,7 +27,11 @@
       "program": "${workspaceFolder}/src/main.go",
       "args": ["cluster"],
       "asRoot": false,
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "buildFlags": [
+        "-ldflags",
+        "-X mogenius-k8s-manager/src/utils.DevBuild=yes"
+      ]
     },
     {
       "name": "TESTS",

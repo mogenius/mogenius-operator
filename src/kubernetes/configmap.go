@@ -14,11 +14,8 @@ import (
 func AllConfigmaps(namespaceName string) []v1.ConfigMap {
 	result := []v1.ConfigMap{}
 
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return result
-	}
-	configmapList, err := provider.ClientSet.CoreV1().ConfigMaps(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	clientset := clientProvider.K8sClientSet()
+	configmapList, err := clientset.CoreV1().ConfigMaps(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllConfigmaps", "error", err.Error())
 		return result
@@ -34,7 +31,7 @@ func AllConfigmaps(namespaceName string) []v1.ConfigMap {
 
 // only create the configmap if it does not exist
 func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
-	client := GetCoreClient().ConfigMaps(namespace)
+	client := clientProvider.K8sClientSet().CoreV1().ConfigMaps(namespace)
 
 	// check if the configmap already exists
 	_, err := client.Get(context.TODO(), configMap.Name, metav1.GetOptions{})
@@ -54,7 +51,7 @@ func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
 }
 
 func GetConfigMap(namespace string, name string) v1Core.ConfigMap {
-	client := GetCoreClient().ConfigMaps(namespace)
+	client := clientProvider.K8sClientSet().CoreV1().ConfigMaps(namespace)
 
 	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
@@ -64,11 +61,8 @@ func GetConfigMap(namespace string, name string) v1Core.ConfigMap {
 }
 
 func GetConfigMapWR(namespace string, name string) K8sWorkloadResult {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	client := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().ConfigMaps(namespace)
 
 	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
@@ -78,11 +72,8 @@ func GetConfigMapWR(namespace string, name string) K8sWorkloadResult {
 }
 
 func WriteConfigMap(namespace string, name string, data string, labels map[string]string) error {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return err
-	}
-	client := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().ConfigMaps(namespace)
 
 	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
@@ -115,11 +106,8 @@ func WriteConfigMap(namespace string, name string, data string, labels map[strin
 }
 
 func ListConfigMapWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	client := provider.ClientSet.CoreV1().ConfigMaps(namespace)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().ConfigMaps(namespace)
 
 	cfgMaps, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
@@ -139,12 +127,10 @@ func ListConfigMapWithFieldSelector(namespace string, labelSelector string, pref
 }
 
 func ConfigMapFor(namespace string, configMapName string, showError bool) *v1.ConfigMap {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return nil
-	}
-	configMapClient := provider.ClientSet.CoreV1().ConfigMaps(namespace)
-	configMap, err := configMapClient.Get(context.TODO(), configMapName, metav1.GetOptions{})
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().ConfigMaps(namespace)
+
+	configMap, err := client.Get(context.TODO(), configMapName, metav1.GetOptions{})
 	if err != nil {
 		if showError {
 			k8sLogger.Error("ConfigMapFor", "error", err.Error())
@@ -157,12 +143,10 @@ func ConfigMapFor(namespace string, configMapName string, showError bool) *v1.Co
 }
 
 func UpdateK8sConfigMap(data v1.ConfigMap) error {
-	provider, err := NewKubeProvider()
-	if err != nil {
-		return err
-	}
-	client := provider.ClientSet.CoreV1().ConfigMaps(data.Namespace)
-	_, err = client.Update(context.TODO(), &data, metav1.UpdateOptions{})
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().ConfigMaps(data.Namespace)
+
+	_, err := client.Update(context.TODO(), &data, metav1.UpdateOptions{})
 	if err != nil {
 		k8sLogger.Error("UpdateK8sConfigMap", "error", err.Error())
 		return err

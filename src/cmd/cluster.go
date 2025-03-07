@@ -5,53 +5,28 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/controllers"
-	"mogenius-k8s-manager/src/crds"
-	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/httpservice"
-	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/socketclient"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/version"
-	"mogenius-k8s-manager/src/xterm"
+	"net/url"
 	"strconv"
 )
 
 func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
 	go func() {
+		defer func() {
+			shutdown.SendShutdownSignal(true)
+		}()
 		configModule.Validate()
 
-		var err error
+		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
 
-		versionModule := version.NewVersion()
-		watcherModule := kubernetes.NewWatcher()
-		dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
-		assert.Assert(err == nil, err)
-
-		helm.Setup(logManagerModule, configModule)
-		err = mokubernetes.Setup(logManagerModule, configModule, watcherModule)
-		assert.Assert(err == nil, err)
-		controllers.Setup(logManagerModule, configModule)
-		crds.Setup(logManagerModule)
-		dtos.Setup(logManagerModule)
-		services.Setup(logManagerModule, configModule, dbstatsModule)
-		servicesexternal.Setup(logManagerModule, configModule)
-		socketclient.Setup(logManagerModule, configModule)
-		store.Setup(logManagerModule)
-		structs.Setup(logManagerModule, configModule)
-		utils.Setup(logManagerModule, configModule)
-		xterm.Setup(logManagerModule, configModule)
-		httpApi := httpservice.NewHttpApi(logManagerModule, configModule, dbstatsModule)
-
-		versionModule.PrintVersionInfo()
+		systems.versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
 		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
@@ -76,12 +51,58 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		utils.SetupClusterSecret(clusterSecret)
 
 		store.Start()
-		go httpApi.Run(":1337")
-		err = mokubernetes.Start()
+		go systems.httpApi.Run(configModule.Get("MO_HTTP_ADDR"))
+
+		url, err := url.Parse(configModule.Get("MO_EVENT_SERVER"))
+		assert.Assert(err == nil, err)
+		err = systems.eventConnectionClient.SetUrl(*url)
+		assert.Assert(err == nil, err)
+		err = systems.eventConnectionClient.SetHeader(utils.HttpHeader(""))
+		assert.Assert(err == nil, err)
+		err = systems.eventConnectionClient.Connect()
 		if err != nil {
-			cmdLogger.Error("Error starting kubernetes service", "error", err)
+			cmdLogger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
 			shutdown.SendShutdownSignal(true)
 			select {}
+		}
+		assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
+
+		configModule.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
+			url, err := url.Parse(value)
+			assert.Assert(err == nil, err)
+			err = systems.eventConnectionClient.SetUrl(*url)
+			if err != nil {
+				cmdLogger.Error("failed to update eventConnectionClient URL", "url", url.String(), "error", err)
+			}
+		})
+		configModule.OnChanged([]string{
+			"MO_API_KEY",
+			"MO_CLUSTER_MFA_ID",
+			"MO_CLUSTER_NAME",
+		}, func(key string, value string, isSecret bool) {
+			header, err := systems.eventConnectionClient.GetHeader()
+			assert.Assert(err == nil, err)
+			if key == "MO_API_KEY" {
+				header["x-authorization"] = []string{value}
+			}
+
+			if key == "MO_CLUSTER_MFA_ID" {
+				header["x-cluster-mfa-id"] = []string{value}
+			}
+
+			if key == "MO_CLUSTER_NAME" {
+				header["x-cluster-name"] = []string{value}
+			}
+			err = systems.eventConnectionClient.SetHeader(header)
+			if err != nil {
+				cmdLogger.Error("failed to update eventConnectionClient header", "header", header, "error", err)
+			}
+		})
+
+		err = mokubernetes.Start(systems.eventConnectionClient)
+		if err != nil {
+			cmdLogger.Error("Error starting kubernetes service", "error", err)
+			return
 		}
 
 		// INIT MOUNTS
@@ -110,13 +131,59 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 				}
 			}
 			services.DISABLEQUEUE = false
-			services.ProcessQueue() // Process the queue maybe there are builds left to build
+			services.ProcessQueue(systems.eventConnectionClient) // Process the queue maybe there are builds left to build
 		}()
 
 		mokubernetes.InitOrUpdateCrds()
 
-		go structs.ConnectToEventQueue()
-		go structs.ConnectToJobQueue()
+		url, err = url.Parse(configModule.Get("MO_API_SERVER"))
+		assert.Assert(err == nil, err)
+		err = systems.jobConnectionClient.SetUrl(*url)
+		assert.Assert(err == nil, err)
+		err = systems.jobConnectionClient.SetHeader(utils.HttpHeader(""))
+		assert.Assert(err == nil, err)
+		err = systems.jobConnectionClient.Connect()
+		if err != nil {
+			cmdLogger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
+			shutdown.SendShutdownSignal(true)
+			select {}
+		}
+		assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
+
+		configModule.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
+			url, err := url.Parse(value)
+			assert.Assert(err == nil, err)
+			err = systems.jobConnectionClient.SetUrl(*url)
+			if err != nil {
+				cmdLogger.Error("failed to update jobConnectionClient URL", "url", url.String(), "error", err)
+			}
+		})
+		configModule.OnChanged([]string{
+			"MO_API_KEY",
+			"MO_CLUSTER_MFA_ID",
+			"MO_CLUSTER_NAME",
+		}, func(key string, value string, isSecret bool) {
+			header, err := systems.jobConnectionClient.GetHeader()
+			assert.Assert(err == nil, err)
+			if key == "MO_API_KEY" {
+				header["x-authorization"] = []string{value}
+			}
+
+			if key == "MO_CLUSTER_MFA_ID" {
+				header["x-cluster-mfa-id"] = []string{value}
+			}
+
+			if key == "MO_CLUSTER_NAME" {
+				header["x-cluster-name"] = []string{value}
+			}
+			err = systems.jobConnectionClient.SetHeader(header)
+			if err != nil {
+				cmdLogger.Error("failed to update jobConnectionClient header", "header", header, "error", err)
+			}
+		})
+
+		go structs.ConnectToEventQueue(systems.eventConnectionClient)
+		go structs.ConnectToJobQueue(systems.jobConnectionClient)
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 
@@ -138,7 +205,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			}
 		}()
 
-		socketclient.StartK8sManager()
+		systems.socketApi.Run()
 	}()
 
 	shutdown.Listen()
