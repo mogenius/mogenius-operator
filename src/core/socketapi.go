@@ -322,10 +322,13 @@ func (self *socketApi) registerPatterns() {
 		"cluster/restart",
 		PatternConfig{},
 		func(datagram structs.Datagram) any {
-			self.logger.Info("😵😵😵 Received RESTART COMMAND. Restarting now ...")
-			time.Sleep(1 * time.Second)
-			shutdown.SendShutdownSignal(false)
-			select {}
+			go func() {
+				shutdownDelay := 1 * time.Second
+				self.logger.Info("😵😵😵 Received RESTART COMMAND. Initialized restart.", "delay", shutdownDelay)
+				time.Sleep(shutdownDelay)
+				shutdown.SendShutdownSignal(false)
+			}()
+			return nil
 		},
 	)
 
