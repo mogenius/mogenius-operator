@@ -638,6 +638,11 @@ func (self *websocketClient) healthcheck(err error) {
 					go self.requestReconnect()
 					return
 				}
+				if syscallErr.Err == syscall.EPIPE {
+					self.runtimeLogger.Debug("detected broken pipe error - triggering reconnect", "error", err)
+					go self.requestReconnect()
+					return
+				}
 			}
 		}
 	}
