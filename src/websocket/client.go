@@ -2,13 +2,12 @@ package websocket
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
-	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -621,29 +620,25 @@ func (self *websocketClient) healthcheck(err error) {
 			go self.requestReconnect()
 			return
 		}
-		if opErr, ok := err.(*net.OpError); ok {
-			if syscallErr, ok := opErr.Err.(*os.SyscallError); ok {
-				if syscallErr.Err == syscall.ECONNRESET {
-					self.runtimeLogger.Debug("detected connection reset error - triggering reconnect", "error", err)
-					go self.requestReconnect()
-					return
-				}
-				if syscallErr.Err == syscall.ECONNREFUSED {
-					self.runtimeLogger.Debug("detected connection refused error - triggering reconnect", "error", err)
-					go self.requestReconnect()
-					return
-				}
-				if syscallErr.Err == syscall.ECONNABORTED {
-					self.runtimeLogger.Debug("detected connection aborted error - triggering reconnect", "error", err)
-					go self.requestReconnect()
-					return
-				}
-				if syscallErr.Err == syscall.EPIPE {
-					self.runtimeLogger.Debug("detected broken pipe error - triggering reconnect", "error", err)
-					go self.requestReconnect()
-					return
-				}
-			}
+		if errors.Is(err, syscall.ECONNRESET) {
+			self.runtimeLogger.Debug("detected connection reset error - triggering reconnect", "error", err)
+			go self.requestReconnect()
+			return
+		}
+		if errors.Is(err, syscall.ECONNREFUSED) {
+			self.runtimeLogger.Debug("detected connection refused error - triggering reconnect", "error", err)
+			go self.requestReconnect()
+			return
+		}
+		if errors.Is(err, syscall.ECONNABORTED) {
+			self.runtimeLogger.Debug("detected connection aborted error - triggering reconnect", "error", err)
+			go self.requestReconnect()
+			return
+		}
+		if errors.Is(err, syscall.EPIPE) {
+			self.runtimeLogger.Debug("detected broken pipe error - triggering reconnect", "error", err)
+			go self.requestReconnect()
+			return
 		}
 	}
 }
