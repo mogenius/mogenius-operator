@@ -150,6 +150,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) interface{} {
 	multiPartWriter.Close()
 
 	// Upload the file
+	serviceLogger.Debug("Uploading file", "size", result.SizeInBytes, "filename", filename, "postTo", postTo)
 	req, err := http.NewRequest("POST", postTo, buf)
 	if err != nil {
 		serviceLogger.Error("Error sending request", "error", err)
