@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeystore"
 	"net/url"
@@ -106,8 +107,8 @@ type LogEntry struct {
 }
 
 func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
-	logging.AddSecret(p.ContainerRegistryUser)
-	logging.AddSecret(p.ContainerRegistryPat)
+	secrets.AddSecret(p.ContainerRegistryUser)
+	secrets.AddSecret(p.ContainerRegistryPat)
 }
 
 type ClusterToolConnectionRequest struct {

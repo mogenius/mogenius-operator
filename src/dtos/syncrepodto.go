@@ -1,7 +1,7 @@
 package dtos
 
 import (
-	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/secrets"
 	utils "mogenius-k8s-manager/src/utils"
 	"strconv"
 
@@ -32,7 +32,7 @@ type SyncRepoData struct {
 
 func (p *SyncRepoData) AddSecretsToRedaction() {
 	if p.Pat != "***" {
-		logging.AddSecret(p.Pat)
+		secrets.AddSecret(p.Pat)
 	}
 }
 

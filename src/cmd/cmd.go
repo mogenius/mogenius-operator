@@ -14,6 +14,7 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
@@ -30,6 +31,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/alecthomas/kong"
 	"k8s.io/klog/v2"
@@ -52,53 +54,58 @@ var CLI struct {
 
 func Run() error {
 	//===============================================================
-	//====================== Initialize Logger ======================
-	//===============================================================
-	// Since the ConfigModule is initialized AFTER the LoggingModule
-	// this is an edge case. We have to directly access the MO_LOG_DIR
-	// variable. For documentation purposes there is also a key in the
-	// ConfigModule which loads the same ENV variable.
-	logDir := defaultLogDir
-	if path := os.Getenv("MO_LOG_DIR"); path != "" {
-		logDir = path
-	}
-	slogManager := logging.NewSlogManager(logDir)
-	cmdLogger := slogManager.CreateLogger("cmd")
-	klogLogger := slogManager.CreateLogger("klog")
-	klog.SetSlogLogger(klogLogger)
-
-	//===============================================================
 	//====================== Initialize Config ======================
 	//===============================================================
 	configModule := config.NewConfig()
 	configModule.OnChanged(nil, func(key string, value string, isSecret bool) {
-		logging.UpdateConfigSecrets(configModule.GetAll())
+		secrets.UpdateConfigSecrets(configModule.GetAll())
 	})
 	LoadConfigDeclarations(configModule)
 	configModule.LoadEnvs()
 	ApplyStageOverrides(configModule)
 
 	//===============================================================
-	//==================== Update Logger Config =====================
+	//====================== Initialize Logger ======================
 	//===============================================================
-	enabled, err := strconv.ParseBool(configModule.Get("MO_LOG_STDERR"))
-	assert.Assert(err == nil, err)
-	slogManager.SetStderr(enabled)
-
-	logLevel := configModule.Get("MO_LOG_LEVEL")
-	err = slogManager.SetLogLevel(logLevel)
-	assert.Assert(err == nil, err)
-
-	logFilter := configModule.Get("MO_LOG_FILTER")
-	err = slogManager.SetLogFilter(logFilter)
-	if err != nil {
-		panic(fmt.Errorf("failed to configure logfilter: %s", err.Error()))
+	// Since the ConfigModule is initialized AFTER the LoggingModule
+	// this is an edge case. We have to directly access the MO_LOG_DIR
+	// variable. For documentation purposes there is also a key in the
+	// ConfigModule which loads the same ENV variable.
+	var logDir *string
+	if path := configModule.Get("MO_LOG_DIR"); path != "" {
+		logDir = &path
 	}
-	// The value of "MO_LOG_DIR" is explicitly requested once to silence
-	// the warning of being unused. Due to initialization order the
-	// logger directly requests os.Getenv("MO_LOG_DIR") for the value.
-	_, err = configModule.TryGet("MO_LOG_DIR")
-	assert.Assert(err == nil, "MO_LOG_DIR has to be declared before it is requested.")
+	var logFileOpts *logging.SlogManagerOptsLogFile = nil
+	if logDir != nil {
+		logFileOpts = &logging.SlogManagerOptsLogFile{
+			LogDir:             logDir,
+			EnableCombinedLog:  true,
+			EnableComponentLog: true,
+		}
+	}
+	logFilter := []string{}
+	moLogFilter := strings.Split(configModule.Get("MO_LOG_FILTER"), ",")
+	for _, f := range moLogFilter {
+		if f != "" {
+			logFilter = append(logFilter, f)
+		}
+	}
+	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
+	assert.Assert(err == nil, "failed to parse log level", err)
+	slogManager := logging.NewSlogManager(logging.SlogManagerOpts{
+		LogLevel: logLevel,
+		ConsoleOpts: &logging.SlogManagerOptsConsole{
+			LogFilter: logFilter,
+		},
+		LogFileOpts: logFileOpts,
+		MessageReplace: func(msg string) string {
+			msg = secrets.EraseSecrets(msg)
+			return msg
+		},
+	})
+	cmdLogger := slogManager.CreateLogger("cmd")
+	klogLogger := slogManager.CreateLogger("klog")
+	klog.SetSlogLogger(klogLogger)
 
 	//===============================================================
 	//========================= Parse Args ==========================
@@ -356,18 +363,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_LOG_FILTER",
 		DefaultValue: utils.Pointer(""),
 		Description:  utils.Pointer("comma separated list of components for which logs should be enabled - if none are defined all logs are collected"),
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_LOG_STDERR",
-		DefaultValue: utils.Pointer("true"),
-		Description:  utils.Pointer("enable logging to stderr"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_LOG_STDERR' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_DIR",

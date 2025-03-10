@@ -17,6 +17,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/version"
 	"net"
 	"net/http"
@@ -638,8 +639,8 @@ func PrettyPrintInterface(i interface{}) string {
 }
 
 func RedactString(targetSring string) string {
-	for _, secret := range logging.SecretArray() {
-		targetSring = strings.ReplaceAll(targetSring, secret, logging.REDACTED)
+	for _, secret := range secrets.SecretArray() {
+		targetSring = strings.ReplaceAll(targetSring, secret, secrets.REDACTED)
 	}
 	return targetSring
 }

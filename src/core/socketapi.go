@@ -12,8 +12,8 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/schema"
+	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/shutdown"
@@ -432,7 +432,7 @@ func (self *socketApi) registerPatterns() {
 				if err := utils.ValidateJSON(data); err != nil {
 					return err
 				}
-				logging.AddSecret(data.Email)
+				secrets.AddSecret(data.Email)
 				result, err := services.InstallClusterIssuer(data.Email, 0)
 				return NewMessageResponse(result, err)
 			},

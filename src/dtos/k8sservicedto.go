@@ -1,8 +1,6 @@
 package dtos
 
-import (
-	"mogenius-k8s-manager/src/logging"
-)
+import "mogenius-k8s-manager/src/secrets"
 
 type K8sServiceDto struct {
 	Id                 string                   `json:"id" validate:"required"`
@@ -20,14 +18,14 @@ type K8sServiceDto struct {
 func (s *K8sServiceDto) AddSecretsToRedaction() {
 	for _, container := range s.Containers {
 		if container.ContainerImageRepoSecretDecryptValue != nil {
-			logging.AddSecret(*container.ContainerImageRepoSecretDecryptValue)
+			secrets.AddSecret(*container.ContainerImageRepoSecretDecryptValue)
 		}
 		if container.ContainerImageRepoSecretId != nil {
-			logging.AddSecret(*container.ContainerImageRepoSecretId)
+			secrets.AddSecret(*container.ContainerImageRepoSecretId)
 		}
 		for _, envVar := range container.EnvVars {
 			if envVar.Type == EnvVarKeyVault && envVar.Data.VaultType == EnvVarVaultTypeMogeniusVault {
-				logging.AddSecret(envVar.Value)
+				secrets.AddSecret(envVar.Value)
 			}
 		}
 	}

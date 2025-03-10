@@ -1,8 +1,6 @@
 package dtos
 
-import (
-	"mogenius-k8s-manager/src/logging"
-)
+import "mogenius-k8s-manager/src/secrets"
 
 type K8sProjectDto struct {
 	Id                    string                 `json:"id" validate:"required"`
@@ -22,20 +20,20 @@ type K8sProjectDto struct {
 
 func (p *K8sProjectDto) AddSecretsToRedaction() {
 	if p.GitAccessToken != nil {
-		logging.AddSecret(*p.GitAccessToken)
+		secrets.AddSecret(*p.GitAccessToken)
 	}
 
 	if p.GitUserId != nil {
-		logging.AddSecret(*p.GitUserId)
+		secrets.AddSecret(*p.GitUserId)
 	}
 
-	logging.AddSecret(p.ClusterMfaId)
+	secrets.AddSecret(p.ClusterMfaId)
 
 	if p.ContainerRegistryUser != nil {
-		logging.AddSecret(*p.ContainerRegistryUser)
+		secrets.AddSecret(*p.ContainerRegistryUser)
 	}
 
 	if p.ContainerRegistryPat != nil {
-		logging.AddSecret(*p.ContainerRegistryPat)
+		secrets.AddSecret(*p.ContainerRegistryPat)
 	}
 }
