@@ -3546,7 +3546,10 @@ func (self *socketApi) startMessageHandler() {
 		if strings.HasPrefix(rawDataStr, "######END_UPLOAD######;") {
 			openFile.Close()
 			if preparedFileName != nil && preparedFileRequest != nil {
-				services.Uploaded(*preparedFileName, *preparedFileRequest)
+				err = services.Uploaded(*preparedFileName, *preparedFileRequest)
+				if err != nil {
+					self.logger.Error("Error uploading file", "error", err)
+				}
 			}
 			os.Remove(*preparedFileName)
 
