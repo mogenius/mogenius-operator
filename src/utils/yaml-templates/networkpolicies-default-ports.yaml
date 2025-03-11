@@ -73,6 +73,38 @@ data:
       protocol: TCP
       port: 111
       createAt: 2024-10-22T00:00:00Z
+    - name: nfs-2046-tcp
+      protocol: TCP
+      port: 2046
+      createAt: 2025-03-10T00:00:00Z
+    - name: nfs-2046-udp
+      protocol: UDP
+      port: 2046
+      createAt: 2025-03-10T00:00:00Z
+    - name: nfs-2047-tcp
+      protocol: TCP
+      port: 2047
+      createAt: 2025-03-10T00:00:00Z
+    - name: nfs-2047-udp
+      protocol: UDP
+      port: 2047
+      createAt: 2025-03-10T00:00:00Z
+    - name: nfs-2068-tcp
+      protocol: TCP
+      port: 2048
+      createAt: 2025-03-10T00:00:00Z
+    - name: nfs-2048-udp
+      protocol: UDP
+      port: 2048
+      createAt: 2025-03-10T00:00:00Z
+    - name: nfs-2029-tcp
+      protocol: TCP
+      port: 2049
+      createAt: 2025-03-10T00:00:00Z
+    - name: nfs-2049-udp
+      protocol: UDP
+      port: 2049
+      createAt: 2024-10-22T00:00:00Z
     - name: ntp
       protocol: UDP
       port: 123
