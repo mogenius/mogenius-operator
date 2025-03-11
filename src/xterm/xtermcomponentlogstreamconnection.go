@@ -2,13 +2,13 @@ package xterm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"mogenius-k8s-manager/src/utils"
 	"net/url"
-	"os"
-	"os/exec"
+	"strings"
 	"time"
 
-	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
 )
 
@@ -19,19 +19,8 @@ func XTermComponentStreamConnection(
 	controllerName *string,
 	release *string,
 ) {
-	cmdType := "log"
-
-	filename, err := logManager.ComponentLogPath(string(component))
-	if err != nil {
-		xtermLogger.Error("couldnt get component logfile path", "component", component, "error", err)
-		return
-	}
-	if _, err := os.Stat(filename); err != nil {
-		xtermLogger.Error("component logfile does not exist", "component", component, "path", filename)
-		return
-	}
-
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("tail -F -n %s %s", MAX_TAIL_LINES, filename))
+	pubsub := store.SubscribeToBucket("logs", component)
+	defer pubsub.Close()
 
 	if wsConnectionRequest.WebsocketScheme == "" {
 		xtermLogger.Error("WebsocketScheme is empty")
@@ -47,7 +36,7 @@ func XTermComponentStreamConnection(
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30*time.Minute))
 	// websocket connection
-	readMessages, conn, connWriteLock, _, err := GenerateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	_, conn, connWriteLock, _, err := GenerateWsConnection("log", "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -64,30 +53,36 @@ func XTermComponentStreamConnection(
 		return
 	}
 
-	// Start pty/cmd
-	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
-	tty, err := pty.Start(cmd)
-	if err != nil {
-		xtermLogger.Error("Unable to start pty/cmd", "error", err)
+	for msg := range pubsub.Channel() {
 		if conn != nil {
 			connWriteLock.Lock()
-			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
+			var entry LogEntry
+			err := json.Unmarshal([]byte(msg.Payload), &entry)
+			if err != nil {
+				xtermLogger.Error("Unmarshal", "error", err)
+				continue
+			}
+			if !(strings.HasSuffix(entry.Message, "\n") || strings.HasSuffix(entry.Message, "\n\r")) {
+				entry.Message = entry.Message + "\n"
+			}
+			messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+
+			fmt.Println("msg", messageSt)
+			err = conn.WriteMessage(websocket.TextMessage, []byte(messageSt))
 			connWriteLock.Unlock()
 			if err != nil {
 				xtermLogger.Error("WriteMessage", "error", err)
 			}
 		}
-		return
 	}
 
-	defer closeConnection(conn, connWriteLock, cmd, tty)
-
-	// send cmd wait
-	go cmdWait(cmd, conn, connWriteLock, tty)
-
-	// cmd output to websocket
-	go cmdOutputScannerToWebsocket(ctx, cancel, conn, connWriteLock, tty, nil, component, namespace, controllerName, release)
-
-	// websocket to cmd input
-	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)
+	if conn != nil {
+		closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")
+		connWriteLock.Lock()
+		err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
+		connWriteLock.Unlock()
+		if err != nil {
+			xtermLogger.Debug("write close:", "error", err)
+		}
+	}
 }

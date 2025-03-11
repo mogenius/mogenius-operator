@@ -22,7 +22,10 @@ func NewValkeyLogger(store valkeystore.ValkeyStore, logChannel chan logging.LogL
 	go func() {
 		for {
 			record := <-self.logChannel
-			fmt.Printf("Received record: %s\n", record.ToJson())
+			err := self.store.AddToBucket(10000, record, "logs", record.Component)
+			if err != nil {
+				fmt.Printf("Failed to log record: %v\n", err)
+			}
 		}
 	}()
 

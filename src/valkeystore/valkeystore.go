@@ -30,6 +30,7 @@ type ValkeyStore interface {
 	AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
 	ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
 	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
+	SubscribeToBucket(bucketKey ...string) *redis.PubSub
 
 	Delete(keys ...string) error
 	Keys(pattern string) ([]string, error)
@@ -175,6 +176,11 @@ func (self *valkeyStore) AddToBucket(maxSize int64, value interface{}, bucketKey
 		return err
 	}
 
+	err = self.redisClient.Publish(self.ctx, createChannel(bucketKey...), utils.PrintJson(value)).Err()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -209,6 +215,11 @@ func (self *valkeyStore) LastNEntryFromBucketWithType(number int64, bucketKey ..
 	}
 
 	return elements, nil
+}
+
+func (self *valkeyStore) SubscribeToBucket(bucketKey ...string) *redis.PubSub {
+	channelName := createChannel(bucketKey...)
+	return self.redisClient.Subscribe(self.ctx, channelName)
 }
 
 func (self *valkeyStore) Delete(keys ...string) error {
@@ -357,6 +368,10 @@ func GetObjectForKey[T any](store ValkeyStore, keys ...string) (*T, error) {
 
 func createKey(parts ...string) string {
 	return strings.Join(parts, ":")
+}
+
+func createChannel(parts ...string) string {
+	return strings.Join(parts, ":") + ":channel"
 }
 
 func sortStringsByTimestamp(stringsToSort []string, order SortOrder) {
