@@ -24,7 +24,7 @@ func ListNetworkPolicies(namespace string) ([]networkingV1.NetworkPolicy, error)
 		Version:   "",
 	}
 
-	policies, err := valkeystore.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyStore, valkeystore.ORDER_NONE, VALKEY_KEY_PREFIX, resource.Group, "NetworkPolicy", namespace)
+	policies, err := valkeystore.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "NetworkPolicy", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -82,7 +82,7 @@ func ListDeployments(namespace string) ([]appsV1.Deployment, error) {
 		Version:   "",
 	}
 
-	deployments, err := valkeystore.GetObjectsByPrefix[appsV1.Deployment](valkeyStore, valkeystore.ORDER_NONE, VALKEY_KEY_PREFIX, resource.Group, "Deployment", namespace)
+	deployments, err := valkeystore.GetObjectsByPrefix[appsV1.Deployment](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "Deployment", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -110,7 +110,7 @@ func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 		Group:     "apps/v1",
 		Version:   "",
 	}
-	statefulsets, err := valkeystore.GetObjectsByPrefix[appsV1.StatefulSet](valkeyStore, valkeystore.ORDER_NONE, VALKEY_KEY_PREFIX, resource.Group, "StatefulSet", namespace)
+	statefulsets, err := valkeystore.GetObjectsByPrefix[appsV1.StatefulSet](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "StatefulSet", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -129,7 +129,7 @@ func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 func ListEvents(namespace string) ([]coreV1.Event, error) {
 	result := []coreV1.Event{}
 
-	events, err := valkeystore.GetObjectsByPrefix[coreV1.Event](valkeyStore, valkeystore.ORDER_DESC, VALKEY_KEY_PREFIX, "v1", "Event", namespace)
+	events, err := valkeystore.GetObjectsByPrefix[coreV1.Event](valkeyStore, valkeystore.ORDER_DESC, VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -158,7 +158,7 @@ func ListPods(parts ...string) ([]coreV1.Pod, error) {
 		Version:   "",
 	}
 
-	args := append([]string{VALKEY_KEY_PREFIX, resource.Group, "Pod"}, parts...)
+	args := append([]string{VALKEY_RESOURCE_PREFIX, resource.Group, "Pod"}, parts...)
 	pods, err := valkeystore.GetObjectsByPrefix[coreV1.Pod](valkeyStore, valkeystore.ORDER_NONE, args...)
 	if err != nil {
 		return result, err
@@ -180,7 +180,7 @@ func ListAllNamespaces() ([]coreV1.Namespace, error) {
 		Version:   "",
 	}
 
-	namespaces, err := valkeystore.GetObjectsByPrefix[coreV1.Namespace](valkeyStore, valkeystore.ORDER_NONE, VALKEY_KEY_PREFIX, resource.Group, "Namespace")
+	namespaces, err := valkeystore.GetObjectsByPrefix[coreV1.Namespace](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "Namespace")
 	if err != nil {
 		return result, err
 	}
@@ -197,14 +197,14 @@ func GetNamespace(name string) *coreV1.Namespace {
 		Version: "",
 	}
 
-	namespace, _ := valkeystore.GetObjectForKey[coreV1.Namespace](valkeyStore, VALKEY_KEY_PREFIX, resource.Group, resource.Kind, name)
+	namespace, _ := valkeystore.GetObjectForKey[coreV1.Namespace](valkeyStore, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, name)
 	return namespace
 }
 
 func GetResourceByKindAndNamespace(groupVersion string, kind string, namespace string) []unstructured.Unstructured {
 	var results []unstructured.Unstructured
 
-	storeResults, err := valkeystore.GetObjectsByPrefix[unstructured.Unstructured](valkeyStore, valkeystore.ORDER_NONE, VALKEY_KEY_PREFIX, groupVersion, kind, namespace)
+	storeResults, err := valkeystore.GetObjectsByPrefix[unstructured.Unstructured](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace)
 	if err != nil {
 		return results
 	}

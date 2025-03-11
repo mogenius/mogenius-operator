@@ -416,7 +416,7 @@ func InitializeSystems(
 	shutdown.Add(eventConnectionClient.Terminate)
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
-	helm.Setup(logManagerModule, configModule)
+	helm.Setup(logManagerModule, configModule, valkeyModule)
 	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyModule)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
