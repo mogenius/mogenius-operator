@@ -68,32 +68,16 @@ func Run() error {
 	//===============================================================
 	//====================== Initialize Logger ======================
 	//===============================================================
-	// Since the ConfigModule is initialized AFTER the LoggingModule
-	// this is an edge case. We have to directly access the MO_LOG_DIR
-	// variable. For documentation purposes there is also a key in the
-	// ConfigModule which loads the same ENV variable.
 	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
 	assert.Assert(err == nil, "failed to parse log level", err)
-	var logDir *string
-	if path := configModule.Get("MO_LOG_DIR"); path != "" {
-		logDir = &path
-	}
-	var logFileOpts *logging.SlogManagerOptsLogFile = nil
-	if logDir != nil {
-		logFileOpts = &logging.SlogManagerOptsLogFile{
-			LogDir:             logDir,
-			EnableCombinedLog:  true,
-			EnableComponentLog: true,
-		}
-	}
 	logFilter := []string{}
-	moLogFilter := strings.Split(configModule.Get("MO_LOG_FILTER"), ",")
-	for _, f := range moLogFilter {
+	moLogFilter := strings.SplitSeq(configModule.Get("MO_LOG_FILTER"), ",")
+	for f := range moLogFilter {
+		f = strings.TrimSpace(f)
 		if f != "" {
 			logFilter = append(logFilter, f)
 		}
 	}
-	channelHandler := logging.NewRecordChannelHandler(1000, logLevel, secrets.EraseSecrets)
 	prettyPrintHandler := logging.NewPrettyPrintHandler(
 		os.Stderr,
 		isatty.IsTerminal(os.Stderr.Fd()),
@@ -101,12 +85,18 @@ func Run() error {
 		logFilter,
 		secrets.EraseSecrets,
 	)
-	slogManager := logging.NewSlogManager(logging.SlogManagerOpts{
-		LogLevel:           logLevel,
-		AdditionalHandlers: []slog.Handler{channelHandler, prettyPrintHandler},
-		LogFileOpts:        logFileOpts,
-		MessageReplace:     secrets.EraseSecrets,
-	})
+	channelHandler := logging.NewRecordChannelHandler(
+		1000,
+		logLevel,
+		secrets.EraseSecrets,
+	)
+	slogManager := logging.NewSlogManager(
+		logLevel,
+		[]slog.Handler{
+			channelHandler,
+			prettyPrintHandler,
+		},
+	)
 	cmdLogger := slogManager.CreateLogger("cmd")
 	klogLogger := slogManager.CreateLogger("klog")
 	klog.SetSlogLogger(klogLogger)
@@ -367,12 +357,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_LOG_FILTER",
 		DefaultValue: utils.Pointer(""),
 		Description:  utils.Pointer("comma separated list of components for which logs should be enabled - if none are defined all logs are collected"),
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_LOG_DIR",
-		DefaultValue: utils.Pointer("logs"),
-		Description:  utils.Pointer(`path in which logs are stored in the filesystem`),
-		ReadOnly:     true,
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ALLOW_COUNTRY_CHECK",

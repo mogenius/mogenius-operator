@@ -1,10 +1,10 @@
 module mogenius-k8s-manager
 
-go 1.23.4
+go 1.24.1
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
-	github.com/alecthomas/kong v1.8.1
+	github.com/alecthomas/kong v1.9.0
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.14.0
@@ -22,8 +22,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.25.2
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/term v0.29.0
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
+	golang.org/x/term v0.30.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.17.1
 	k8s.io/api v0.32.2

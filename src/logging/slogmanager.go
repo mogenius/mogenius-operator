@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/shell"
 	"path"
-	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
@@ -16,7 +15,6 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/nwidger/jsoncolor"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -75,7 +73,8 @@ func (m *MockSlogManager) CreateLogger(componentId string) *slog.Logger {
 }
 
 type slogManager struct {
-	opts SlogManagerOpts
+	logLevel slog.Level
+	handlers []slog.Handler
 
 	activeLoggers     map[string]*slog.Logger
 	resolvedLogDir    *string
@@ -85,42 +84,18 @@ type slogManager struct {
 type SlogManagerOpts struct {
 	LogLevel           slog.Level
 	AdditionalHandlers []slog.Handler
-	LogFileOpts        *SlogManagerOptsLogFile
-	MessageReplace     func(msg string) string // filter function which gets each string field in log messages and allows to alter their content
 }
 
-type SlogManagerOptsLogFile struct {
-	LogDir             *string
-	EnableCombinedLog  bool // write all json logs to a single log file called "all.log" within LogDir
-	EnableComponentLog bool // write json logs for each component into a dedicated file called "${component}.log" within LogDir
-}
-
-func NewSlogManager(opts SlogManagerOpts) SlogManager {
+func NewSlogManager(logLevel slog.Level, handlers []slog.Handler) SlogManager {
 	self := slogManager{}
 
-	self.opts = opts
+	self.logLevel = logLevel
+	if handlers == nil {
+		handlers = []slog.Handler{}
+	}
+	self.handlers = handlers
 	self.activeLoggers = map[string]*slog.Logger{}
 	self.combinedLogWriter = nil
-
-	if opts.AdditionalHandlers == nil {
-		opts.AdditionalHandlers = []slog.Handler{}
-	}
-
-	if opts.LogFileOpts != nil {
-		assert.Assert(opts.LogFileOpts.LogDir != nil)
-		resolvedLogDir, err := filepath.Abs(*opts.LogFileOpts.LogDir)
-		assert.Assert(err == nil, err)
-		self.resolvedLogDir = &resolvedLogDir
-
-		if opts.LogFileOpts.EnableCombinedLog {
-			self.combinedLogWriter = &lumberjack.Logger{
-				Filename:   filepath.Join(*self.resolvedLogDir, combinedLogComponentName+".log"), // Path to log file
-				MaxSize:    logfileMaxSize,                                                       // Max size in megabytes before rotation
-				MaxBackups: logfileMaxBackups,                                                    // Max number of old log files to keep
-				Compress:   logfileCompress,                                                      // Compress old log files
-			}
-		}
-	}
 
 	return &self
 }
@@ -140,39 +115,7 @@ func (self *slogManager) CreateLogger(componentId string) *slog.Logger {
 
 	multiHandler := NewSlogMultiHandler()
 
-	if self.opts.LogFileOpts != nil {
-		logFileWriters := []io.Writer{}
-
-		if self.opts.LogFileOpts.EnableCombinedLog {
-			logFileWriters = append(logFileWriters, self.combinedLogWriter)
-		}
-
-		if self.opts.LogFileOpts.EnableComponentLog {
-			logFileWriters = append(logFileWriters, &lumberjack.Logger{
-				Filename:   filepath.Join(*self.resolvedLogDir, componentId+".log"),
-				MaxSize:    logfileMaxSize,
-				MaxBackups: logfileMaxBackups,
-				Compress:   logfileCompress,
-			})
-		}
-
-		handler := slog.NewJSONHandler(io.MultiWriter(logFileWriters...), &slog.HandlerOptions{
-			AddSource: true,
-			Level:     self.opts.LogLevel,
-			ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
-				if attr.Value.Kind() == slog.KindString {
-					val := attr.Value.String()
-					val = self.opts.MessageReplace(val)
-					attr.Value = slog.AnyValue(val)
-				}
-				return attr
-			},
-		})
-
-		multiHandler.AddHandler(handler)
-	}
-
-	for _, handler := range self.opts.AdditionalHandlers {
+	for _, handler := range self.handlers {
 		multiHandler.AddHandler(handler)
 	}
 
