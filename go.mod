@@ -4,7 +4,7 @@ go 1.23.4
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
-	github.com/alecthomas/kong v1.8.1
+	github.com/alecthomas/kong v1.9.0
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.14.0
