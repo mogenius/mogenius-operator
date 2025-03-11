@@ -12,8 +12,8 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/schema"
+	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/shutdown"
@@ -63,11 +63,11 @@ type SocketApi interface {
 type socketApi struct {
 	logger *slog.Logger
 
-	config  config.ConfigModule
-	dbstats kubernetes.BoltDbStats
-
 	jobClient    websocket.WebsocketClient
 	eventsClient websocket.WebsocketClient
+
+	config  config.ConfigModule
+	dbstats kubernetes.ValkeyStatsDb
 
 	// the patternHandler should only be edited on startup
 	patternHandlerLock sync.RWMutex
@@ -95,7 +95,7 @@ func NewSocketApi(
 	configModule config.ConfigModule,
 	jobClient websocket.WebsocketClient,
 	eventsClient websocket.WebsocketClient,
-	dbstatsModule kubernetes.BoltDbStats,
+	dbstatsModule kubernetes.ValkeyStatsDb,
 ) SocketApi {
 	self := &socketApi{}
 	self.config = configModule
@@ -432,7 +432,7 @@ func (self *socketApi) registerPatterns() {
 				if err := utils.ValidateJSON(data); err != nil {
 					return err
 				}
-				logging.AddSecret(data.Email)
+				secrets.AddSecret(data.Email)
 				result, err := services.InstallClusterIssuer(data.Email, 0)
 				return NewMessageResponse(result, err)
 			},
@@ -659,60 +659,6 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
-			PodName   string `json:"podname" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"stats/podstat/all-for-pod",
-			PatternConfig{
-				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(&[]structs.PodStats{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-				if ctrl == nil {
-					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-				}
-				return self.dbstats.GetPodStatsEntriesForController(*ctrl)
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
-			PodName   string `json:"podname" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"stats/podstat/last-for-pod",
-			PatternConfig{
-				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(&structs.PodStats{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-				if ctrl == nil {
-					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-				}
-				return self.dbstats.GetLastPodStatsEntryForController(*ctrl)
-			},
-		)
-	}
-
 	self.RegisterPatternHandlerRaw(
 		"stats/podstat/all-for-controller",
 		PatternConfig{
@@ -814,155 +760,6 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			Namespace string `json:"namespace" validate:"required"`
-			PodName   string `json:"podname" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"stats/traffic/all-for-pod",
-			PatternConfig{
-				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(&[]structs.InterfaceStats{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-				if ctrl == nil {
-					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-				}
-				return self.dbstats.GetTrafficStatsEntriesForController(*ctrl)
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
-			PodName   string `json:"podname" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"stats/traffic/sum-for-pod",
-			PatternConfig{
-				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(&structs.InterfaceStats{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-				if ctrl == nil {
-					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-				}
-				return self.dbstats.GetTrafficStatsEntrySumForController(*ctrl, false)
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
-			PodName   string `json:"podname" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"stats/traffic/last-for-pod",
-			PatternConfig{
-				Deprecated:        true,
-				DeprecatedMessage: `Use "stats/traffic/sum-for-pod" instead`,
-				RequestSchema:     schema.Generate(Request{}),
-				ResponseSchema:    schema.Generate(&structs.InterfaceStats{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				ctrl := kubernetes.ControllerForPod(data.Namespace, data.PodName)
-				if ctrl == nil {
-					return fmt.Errorf("could not find controller for pod %s in namespace %s", data.PodName, data.Namespace)
-				}
-				return self.dbstats.GetTrafficStatsEntrySumForController(*ctrl, false)
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"stats/podstat/all-for-namespace",
-			PatternConfig{
-				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(&[]structs.PodStats{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				return self.dbstats.GetPodStatsEntriesForNamespace(data.Namespace)
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"stats/podstat/last-for-namespace",
-			PatternConfig{
-				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate([]structs.PodStats{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				return self.dbstats.GetLastPodStatsEntriesForNamespace(data.Namespace)
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"stats/traffic/all-for-namespace",
-			PatternConfig{
-				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(&[]structs.InterfaceStats{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				return self.dbstats.GetTrafficStatsEntriesForNamespace(data.Namespace)
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
 		}
 
 		self.RegisterPatternHandlerRaw(
@@ -970,30 +767,6 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{
 				RequestSchema:  schema.Generate(Request{}),
 				ResponseSchema: schema.Generate([]structs.InterfaceStats{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				return self.dbstats.GetTrafficStatsEntriesSumForNamespace(data.Namespace)
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"stats/traffic/last-for-namespace",
-			PatternConfig{
-				Deprecated:        true,
-				DeprecatedMessage: `Use "stats/traffic/sum-for-namespace" instead`,
-				RequestSchema:     schema.Generate(Request{}),
-				ResponseSchema:    schema.Generate([]structs.InterfaceStats{}),
 			},
 			func(datagram structs.Datagram) any {
 				data := Request{}
@@ -2171,22 +1944,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandlerRaw(
-		"service/build-log-stream-connection-request",
-		PatternConfig{
-			RequestSchema: schema.Generate(xterm.BuildLogConnectionRequest{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := xterm.BuildLogConnectionRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			go buildLogStreamConnection(data)
-			return nil
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
 		"cluster/component-log-stream-connection-request",
 		PatternConfig{
 			RequestSchema: schema.Generate(xterm.ComponentLogConnectionRequest{}),
@@ -2214,23 +1971,6 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			go podEventStreamConnection(data)
-			return nil
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"service/scan-image-log-stream-connection-request",
-		PatternConfig{
-			RequestSchema: schema.Generate(xterm.ScanImageLogConnectionRequest{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := xterm.ScanImageLogConnectionRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			data.AddSecretsToRedaction()
-			go scanImageLogStreamConnection(data)
 			return nil
 		},
 	)
@@ -2888,185 +2628,6 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	self.RegisterPatternHandlerRaw(
-		"build/builder-status",
-		PatternConfig{
-			ResponseSchema: schema.Generate(structs.BuilderStatus{}),
-		},
-		func(datagram structs.Datagram) any {
-			return kubernetes.GetDb().GetBuilderStatus()
-		},
-	)
-
-	{
-		type Request struct {
-			BuildId uint64 `json:"buildId" validate:"required"`
-		}
-
-		self.RegisterPatternHandlerRaw(
-			"build/info",
-			PatternConfig{
-				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(structs.BuildJobInfo{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				return kubernetes.GetDb().GetBuildJobInfosFromDb(data.BuildId)
-			},
-		)
-	}
-
-	self.RegisterPatternHandlerRaw(
-		"build/last-infos",
-		PatternConfig{
-			RequestSchema:  schema.Generate(structs.BuildTaskRequest{}),
-			ResponseSchema: schema.Generate(structs.BuildJobInfo{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := structs.BuildTaskRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return kubernetes.GetDb().GetLastBuildJobInfosFromDb(data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"build/list-all",
-		PatternConfig{
-			ResponseSchema: schema.Generate([]structs.BuildJob{}),
-		},
-		func(datagram structs.Datagram) any {
-			return services.ListAll()
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"build/list-by-project",
-		PatternConfig{
-			RequestSchema:  schema.Generate(structs.ListBuildByProjectIdRequest{}),
-			ResponseSchema: schema.Generate([]structs.BuildJob{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := structs.ListBuildByProjectIdRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.ListByProjectId(data.ProjectId)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"build/add",
-		PatternConfig{
-			RequestSchema:  schema.Generate(structs.BuildJob{}),
-			ResponseSchema: schema.Generate(structs.BuildAddResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := structs.BuildJob{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			data.Project.AddSecretsToRedaction()
-			data.Service.AddSecretsToRedaction()
-			return services.AddBuildJob(self.eventsClient, data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"build/cancel",
-		PatternConfig{
-			RequestSchema:  schema.Generate(structs.BuildJob{}),
-			ResponseSchema: schema.Generate(structs.BuildCancelResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := structs.BuildJob{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			data.Project.AddSecretsToRedaction()
-			data.Service.AddSecretsToRedaction()
-			return services.Cancel(data.BuildId)
-		},
-	)
-
-	{
-		type Request struct {
-			BuildId uint64 `json:"buildId" validate:"required"`
-		}
-		self.RegisterPatternHandlerRaw(
-			"build/delete",
-			PatternConfig{
-				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(structs.BuildDeleteResult{}),
-			},
-			func(datagram structs.Datagram) any {
-				data := Request{}
-				_ = self.loadRequest(&datagram, &data)
-				if err := utils.ValidateJSON(data); err != nil {
-					return err
-				}
-				return services.DeleteBuild(data.BuildId)
-			},
-		)
-	}
-
-	self.RegisterPatternHandlerRaw(
-		"build/last-job-of-services",
-		PatternConfig{
-			RequestSchema:  schema.Generate(structs.BuildTaskListOfServicesRequest{}),
-			ResponseSchema: schema.Generate([]structs.BuildJobInfo{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := structs.BuildTaskListOfServicesRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return services.LastBuildInfosOfServices(data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"build/job-list-of-service",
-		PatternConfig{
-			RequestSchema:  schema.Generate(structs.BuildTaskRequest{}),
-			ResponseSchema: schema.Generate([]structs.BuildJobInfo{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := structs.BuildTaskRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return kubernetes.GetDb().GetBuildJobInfosListFromDb(data.Namespace, data.Controller, data.Container)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"build/delete-of-service",
-		PatternConfig{
-			RequestSchema: schema.Generate(structs.BuildTaskRequest{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := structs.BuildTaskRequest{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			kubernetes.GetDb().DeleteAllBuildData(data.Namespace, data.Controller, data.Container)
-			return nil
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
 		"storage/create-volume",
 		PatternConfig{
 			RequestSchema:  schema.Generate(services.NfsVolumeRequest{}),
@@ -3143,16 +2704,6 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			return services.StatusMogeniusNfs(data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"log/list-all",
-		PatternConfig{
-			ResponseSchema: schema.Generate([]structs.Log{}),
-		},
-		func(datagram structs.Datagram) any {
-			return kubernetes.GetDb().ListLogFromDb()
 		},
 	)
 
@@ -4024,17 +3575,6 @@ func (self *socketApi) logStreamConnection(podCmdConnectionRequest xterm.PodCmdC
 	)
 }
 
-func buildLogStreamConnection(buildLogConnectionRequest xterm.BuildLogConnectionRequest) {
-	xterm.XTermBuildLogStreamConnection(
-		buildLogConnectionRequest.WsConnection,
-		buildLogConnectionRequest.Namespace,
-		buildLogConnectionRequest.Controller,
-		buildLogConnectionRequest.Container,
-		buildLogConnectionRequest.BuildTask,
-		buildLogConnectionRequest.BuildId,
-	)
-}
-
 func componentLogStreamConnection(componentLogConnectionRequest xterm.ComponentLogConnectionRequest) {
 	xterm.XTermComponentStreamConnection(
 		componentLogConnectionRequest.WsConnection,
@@ -4045,25 +3585,11 @@ func componentLogStreamConnection(componentLogConnectionRequest xterm.ComponentL
 	)
 }
 
-func podEventStreamConnection(buildLogConnectionRequest xterm.PodEventConnectionRequest) {
+func podEventStreamConnection(podLogConnectionRequest xterm.PodEventConnectionRequest) {
 	xterm.XTermPodEventStreamConnection(
-		buildLogConnectionRequest.WsConnection,
-		buildLogConnectionRequest.Namespace,
-		buildLogConnectionRequest.Controller,
-	)
-}
-
-func scanImageLogStreamConnection(buildLogConnectionRequest xterm.ScanImageLogConnectionRequest) {
-	xterm.XTermScanImageLogStreamConnection(
-		buildLogConnectionRequest.WsConnection,
-		buildLogConnectionRequest.Namespace,
-		buildLogConnectionRequest.Controller,
-		buildLogConnectionRequest.Container,
-		buildLogConnectionRequest.CmdType,
-		buildLogConnectionRequest.ScanImageType,
-		buildLogConnectionRequest.ContainerRegistryUrl,
-		&buildLogConnectionRequest.ContainerRegistryUser,
-		&buildLogConnectionRequest.ContainerRegistryPat,
+		podLogConnectionRequest.WsConnection,
+		podLogConnectionRequest.Namespace,
+		podLogConnectionRequest.Controller,
 	)
 }
 

@@ -40,12 +40,12 @@ func processEvent(eventClient websocket.WebsocketClient, event *v1Core.Event) {
 				parts = parts[:len(parts)-2]
 			}
 			controllerName := strings.Join(parts, "-")
-			err := db.AddPodEvent(event.InvolvedObject.Namespace, controllerName, event, 150)
+			err := valkeyStore.AddToBucket(100, event, "pod-events", event.InvolvedObject.Namespace, controllerName)
 			if err != nil {
-				k8sLogger.Error("Error adding event to db", "error", err.Error())
+				k8sLogger.Error("Error adding event to pod-events", "error", err.Error())
 			}
 
-			key := fmt.Sprintf("%s-%s", event.InvolvedObject.Namespace, controllerName)
+			key := fmt.Sprintf("%s:%s", event.InvolvedObject.Namespace, controllerName)
 			ch, exists := EventChannels[key]
 			if exists {
 				var events []*v1Core.Event

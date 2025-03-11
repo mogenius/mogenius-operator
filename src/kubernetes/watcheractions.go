@@ -21,6 +21,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	VALKEY_KEY_PREFIX = "resources"
+)
+
 type GetUnstructuredNamespaceResourceListRequest struct {
 	Namespace string                     `json:"namespace" validate:"required"`
 	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
@@ -65,11 +69,11 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			SetStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			setStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
 		}, func(resource WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
-			SetStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
+			setStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			DeleteFromStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			deleteFromStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
 		})
 		if err != nil {
 			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
@@ -82,54 +86,21 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 	return nil
 }
 
-func SetStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	//if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
-	//	err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
-	//	if err != nil {
-	//		k8sLogger.Error("Error setting object in store", "error", err)
-	//	}
-	//	if kind == "Event" {
-	//		var event v1.Event
-	//		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-	//		if err != nil {
-	//			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-	//			return
-	//		}
-	//		processEvent(&event)
-	//	}
-	//	return
-	//}
-
-	if kind == "Namespace" {
-		obj = removeUnusedFieds(obj)
-		err := store.GlobalStore.Set(obj, groupVersion, kind, name)
-		if err != nil {
-			k8sLogger.Error("Error setting object in store", "error", err)
-		}
-		return
-	}
+func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+	obj = removeUnusedFieds(obj)
 
 	if kind == "NetworkPolicy" {
-		obj = removeUnusedFieds(obj)
-		err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
-		if err != nil {
-			k8sLogger.Error("Error setting object in store", "error", err)
-		}
-
 		var netPol v1Net.NetworkPolicy
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
 		if err != nil {
 			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 			return
 		}
-
 		HandleNetworkPolicyChange(eventClient, &netPol, "Added/Updated")
-		return
 	}
 
 	// other resources
-	obj = removeUnusedFieds(obj)
-	err := store.GlobalStore.Set(obj, groupVersion, kind, namespace, name)
+	err := valkeyStore.SetObject(obj, 0, VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
@@ -144,32 +115,7 @@ func SetStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string
 	}
 }
 
-func DeleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
-	//if kind == "Deployment" || kind == "ReplicaSet" || kind == "CronJob" || kind == "Pod" || kind == "Job" || kind == "Event" || kind == "DaemonSet" || kind == "StatefulSet" {
-	//	err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
-	//	if err != nil {
-	//		k8sLogger.Error("Error deleting object in store", "error", err)
-	//	}
-	//	if kind == "Event" {
-	//		var event v1.Event
-	//		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-	//		if err != nil {
-	//			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-	//			return
-	//		}
-	//		processEvent(&event)
-	//	}
-	//	return
-	//}
-
-	if kind == "Namespace" {
-		err := store.GlobalStore.Delete(groupVersion, kind, name)
-		if err != nil {
-			k8sLogger.Error("Error deleting object in store", "error", err)
-		}
-		return
-	}
-
+func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
 	if kind == "PersistentVolume" {
 		var pv v1.PersistentVolume
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &pv)
@@ -182,7 +128,7 @@ func DeleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 	}
 
 	if kind == "NetworkPolicy" {
-		err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
+		err := valkeyStore.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -199,7 +145,7 @@ func DeleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 	}
 
 	// other resources
-	err := store.GlobalStore.Delete(groupVersion, kind, namespace, name)
+	err := valkeyStore.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}

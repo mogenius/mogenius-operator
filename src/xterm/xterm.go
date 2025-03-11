@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeystore"
 	"net/url"
 	"os"
 	"os/exec"
@@ -31,14 +31,14 @@ import (
 
 var logManager logging.LogManagerModule
 var xtermLogger *slog.Logger
-var config cfg.ConfigModule
 var clientProvider k8sclient.K8sClientProvider
+var store valkeystore.ValkeyStore
 
-func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule, clientProviderModule k8sclient.K8sClientProvider) {
+func Setup(logManagerModule logging.LogManagerModule, clientProviderModule k8sclient.K8sClientProvider, storeModule valkeystore.ValkeyStore) {
 	logManager = logManagerModule
 	xtermLogger = logManagerModule.CreateLogger("xterm")
-	config = configModule
 	clientProvider = clientProviderModule
+	store = storeModule
 }
 
 const (
@@ -59,15 +59,6 @@ type PodCmdConnectionRequest struct {
 	Container    string              `json:"container" validate:"required"`
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 	LogTail      string              `json:"logTail"`
-}
-
-type BuildLogConnectionRequest struct {
-	Namespace    string                  `json:"namespace" validate:"required"`
-	Controller   string                  `json:"controller" validate:"required"`
-	Container    string                  `json:"container" validate:"required"`
-	BuildTask    structs.BuildPrefixEnum `json:"buildTask" validate:"required"` // clone, build, test, deploy, .....
-	BuildId      uint64                  `json:"buildId" validate:"required"`
-	WsConnection WsConnectionRequest     `json:"wsConnectionRequest" validate:"required"`
 }
 
 type OperatorLogConnectionRequest struct {
@@ -116,8 +107,8 @@ type LogEntry struct {
 }
 
 func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
-	logging.AddSecret(p.ContainerRegistryUser)
-	logging.AddSecret(p.ContainerRegistryPat)
+	secrets.AddSecret(p.ContainerRegistryUser)
+	secrets.AddSecret(p.ContainerRegistryPat)
 }
 
 type ClusterToolConnectionRequest struct {

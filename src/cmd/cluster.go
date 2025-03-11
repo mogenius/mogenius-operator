@@ -26,6 +26,31 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
 
+		// DB (valkey) setup
+		if !configModule.IsSet("MO_VALKEY_PASSWORD") {
+			valkeyPwd, err := mokubernetes.GetValkeyPwd()
+			if err != nil {
+				cmdLogger.Error("Error getting valkey password", "error", err)
+			}
+			if valkeyPwd != nil {
+				configModule.Set("MO_VALKEY_PASSWORD", *valkeyPwd)
+			}
+		}
+
+		err := systems.valkeyModule.Connect()
+		assert.Assert(err == nil, err)
+		err = systems.dbstatsModule.Start()
+		assert.Assert(err == nil, err)
+		// clean valkey on every startup
+		err = store.DropAllResourcesFromValkey()
+		if err != nil {
+			cmdLogger.Error("Error dropping all resources from valkey", "error", err)
+		}
+		err = store.DropAllPodEventsFromValkey()
+		if err != nil {
+			cmdLogger.Error("Error dropping all pod events from valkey", "error", err)
+		}
+
 		systems.versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
@@ -50,7 +75,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 
 		utils.SetupClusterSecret(clusterSecret)
 
-		store.Start()
 		go systems.httpApi.Run(configModule.Get("MO_HTTP_ADDR"))
 
 		url, err := url.Parse(configModule.Get("MO_EVENT_SERVER"))
@@ -119,7 +143,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		}
 
 		go func() {
-			services.DISABLEQUEUE = true
 			basicApps, userApps := services.InstallDefaultApplications()
 			if basicApps != "" || userApps != "" {
 				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
@@ -130,8 +153,6 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 					select {}
 				}
 			}
-			services.DISABLEQUEUE = false
-			services.ProcessQueue(systems.eventConnectionClient) // Process the queue maybe there are builds left to build
 		}()
 
 		mokubernetes.InitOrUpdateCrds()

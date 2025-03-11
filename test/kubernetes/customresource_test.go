@@ -6,9 +6,8 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeystore"
 	"mogenius-k8s-manager/test"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -19,11 +18,8 @@ func TestCustomResource(t *testing.T) {
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
-	})
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 	yamlData := test.YamlSanitize(`
 	apiVersion: v1
@@ -63,13 +59,10 @@ func TestSecretStoreResource(t *testing.T) {
 	t.Skip("test currently relies on sleep introducing flakyness")
 	logManager := logging.NewMockSlogManager(t)
 	config := cfg.NewConfig()
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(t.TempDir(), "mogenius.db")),
-	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider)
+	storeModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	yamlData := test.YamlSanitize(`

@@ -25,15 +25,6 @@ type CreateExternalSecretProps struct {
 	ServiceName  string `json:"serviceName" validate:"required"`
 }
 
-func CreateExternalSecretPropsExample() CreateExternalSecretProps {
-	return CreateExternalSecretProps{
-		Namespace:    "mogenius",
-		PropertyName: "postgresURL",
-		NamePrefix:   "3241lkjltg243",
-		ServiceName:  "fe-mo-service",
-	}
-}
-
 type ExternalSecretProps struct {
 	CreateExternalSecretProps
 	SecretName      string

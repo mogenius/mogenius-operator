@@ -5,11 +5,3 @@ type K8sNamespaceDto struct {
 	DisplayName string `json:"displayName" validate:"required"`
 	Name        string `json:"Name" validate:"required"`
 }
-
-func K8sNamespaceDtoExampleData() K8sNamespaceDto {
-	return K8sNamespaceDto{
-		Id:          "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		DisplayName: "displayName",
-		Name:        "name",
-	}
-}

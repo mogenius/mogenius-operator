@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/kubernetes"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -59,11 +57,9 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		return
 	}
 
-	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
-	assert.Assert(err == nil, err)
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(600))
 	// websocket connection
 	readMessages, conn, connWriteLock, _, err := GenerateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
@@ -71,7 +67,7 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		return
 	}
 
-	key := fmt.Sprintf("%s-%s", namespace, controller)
+	key := fmt.Sprintf("%s:%s", namespace, controller)
 
 	defer func() {
 		// XtermLogger.Info("[XTermPodEventStreamConnection] Closing connection.")
@@ -101,9 +97,28 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		data := kubernetes.GetDb().GetEventByKey(key)
+		data, err := store.LastNEntryFromBucketWithType(50, kubernetes.DB_STATS_POD_EVENTS_NAME, key)
+		if err != nil {
+			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+			return
+		}
+		var events []*v1.Event
+		for _, v := range data {
+			var event v1.Event
+			err := json.Unmarshal([]byte(v), &event)
+			if err != nil {
+				xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+				continue
+			}
+			events = append(events, &event)
+		}
+		updatedData, err := json.Marshal(events)
+		if err != nil {
+			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+			return
+		}
 		if ch != nil {
-			ch <- string(data)
+			ch <- string(updatedData)
 		}
 	}(ch)
 

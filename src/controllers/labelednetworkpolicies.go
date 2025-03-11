@@ -112,23 +112,6 @@ func AttachLabeledNetworkPolicy(data AttachLabeledNetworkPolicyRequest) (string,
 	return "", nil
 }
 
-func ListLabeledNetworkPolicyPortsExample() []dtos.K8sLabeledNetworkPolicyDto {
-	return []dtos.K8sLabeledNetworkPolicyDto{
-		{
-			Name:     "mogenius-policy-123",
-			Type:     dtos.Ingress,
-			Port:     80,
-			PortType: dtos.PortTypeHTTPS,
-		},
-		{
-			Name:     "mogenius-policy-098",
-			Type:     dtos.Ingress,
-			Port:     13333,
-			PortType: dtos.PortTypeSCTP,
-		},
-	}
-}
-
 func ListLabeledNetworkPolicyPorts() ([]dtos.K8sLabeledNetworkPolicyDto, error) {
 	list, err := kubernetes.ReadNetworkPolicyPorts()
 	if err != nil {

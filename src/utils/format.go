@@ -73,6 +73,10 @@ func NanoIdExtraLong() string {
 	return id()
 }
 
+func UnixTimeSeconds() string {
+	return fmt.Sprint(time.Now().Unix())
+}
+
 func QuickHash(s string) string {
 	h := fnv.New32a()
 	h.Write([]byte(s))

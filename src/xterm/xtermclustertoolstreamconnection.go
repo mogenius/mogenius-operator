@@ -2,11 +2,9 @@ package xterm
 
 import (
 	"context"
-	"mogenius-k8s-manager/src/assert"
 	"net/url"
 	"os"
 	"os/exec"
-	"strconv"
 	"time"
 
 	"github.com/creack/pty"
@@ -25,11 +23,9 @@ func XTermClusterToolStreamConnection(wsConnectionRequest WsConnectionRequest, c
 		return
 	}
 
-	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
-	assert.Assert(err == nil, err)
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
 	// context
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(600))
 	// websocket connection
 	readMessages, conn, connWriteLock, _, err := GenerateWsConnection(cmdType, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {

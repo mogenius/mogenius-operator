@@ -1,8 +1,9 @@
-package logging
+package secrets
 
 import (
 	"mogenius-k8s-manager/src/config"
 	"slices"
+	"strings"
 	"sync"
 )
 
@@ -61,5 +62,12 @@ func SecretArray() []string {
 	}
 	configSecretsLock.RUnlock()
 
+	return data
+}
+
+func EraseSecrets(data string) string {
+	for _, b := range SecretArray() {
+		data = strings.ReplaceAll(data, b, REDACTED)
+	}
 	return data
 }

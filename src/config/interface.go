@@ -25,6 +25,9 @@ type ConfigModule interface {
 	//   - a validation was provided and failed
 	TrySet(key string, value string) error
 
+	// Check if the value for a given `key` has been set.
+	IsSet(key string) bool
+
 	// Register a callback for whenever a `value` is `Set()`.
 	//
 	// Providing `keys == nil` normalizes to `keys = []string{}`.

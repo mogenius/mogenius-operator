@@ -298,14 +298,6 @@ type FilesUploadRequest struct {
 	Id          string                        `json:"id"`
 }
 
-func FilesUploadRequestExampleData() FilesUploadRequest {
-	return FilesUploadRequest{
-		File:        dtos.PersistentFileUploadDtoExampleData(),
-		SizeInBytes: 21217588,
-		Id:          "1234567890",
-	}
-}
-
 func ListDirWithTimeout(root string, timeout time.Duration) ([]dtos.PersistentFileDto, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

@@ -17,6 +17,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/version"
 	"net"
 	"net/http"
@@ -46,8 +47,6 @@ func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigMod
 
 	validate = validator.New(validator.WithRequiredStructEnabled())
 }
-
-const IMAGE_PLACEHOLDER = "PLACEHOLDER-UNTIL-BUILDSERVER-OVERWRITES-THIS-IMAGE"
 
 const APP_NAME = "k8s"
 const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-k8s-manager-default-apps"
@@ -229,7 +228,7 @@ func GetVersionData(url string) (*HelmData, error) {
 	return &helmData, nil
 }
 
-func SequenceToKey(id uint64) []byte {
+func SequenceToKey(id int64) []byte {
 	return []byte(fmt.Sprintf("%020d", id))
 }
 
@@ -640,8 +639,8 @@ func PrettyPrintInterface(i interface{}) string {
 }
 
 func RedactString(targetSring string) string {
-	for _, secret := range logging.SecretArray() {
-		targetSring = strings.ReplaceAll(targetSring, secret, logging.REDACTED)
+	for _, secret := range secrets.SecretArray() {
+		targetSring = strings.ReplaceAll(targetSring, secret, secrets.REDACTED)
 	}
 	return targetSring
 }
@@ -652,6 +651,14 @@ func PrettyPrintString(i interface{}) string {
 		utilsLogger.Error(err.Error())
 	}
 	return string(iJson)
+}
+
+func PrintJson(i interface{}) string {
+	data, err := json.Marshal(i)
+	if err != nil {
+		utilsLogger.Error(err.Error())
+	}
+	return string(data)
 }
 
 type ResponseError struct {

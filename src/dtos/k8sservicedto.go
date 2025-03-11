@@ -1,8 +1,6 @@
 package dtos
 
-import (
-	"mogenius-k8s-manager/src/logging"
-)
+import "mogenius-k8s-manager/src/secrets"
 
 type K8sServiceDto struct {
 	Id                 string                   `json:"id" validate:"required"`
@@ -20,14 +18,14 @@ type K8sServiceDto struct {
 func (s *K8sServiceDto) AddSecretsToRedaction() {
 	for _, container := range s.Containers {
 		if container.ContainerImageRepoSecretDecryptValue != nil {
-			logging.AddSecret(*container.ContainerImageRepoSecretDecryptValue)
+			secrets.AddSecret(*container.ContainerImageRepoSecretDecryptValue)
 		}
 		if container.ContainerImageRepoSecretId != nil {
-			logging.AddSecret(*container.ContainerImageRepoSecretId)
+			secrets.AddSecret(*container.ContainerImageRepoSecretId)
 		}
 		for _, envVar := range container.EnvVars {
 			if envVar.Type == EnvVarKeyVault && envVar.Data.VaultType == EnvVarVaultTypeMogeniusVault {
-				logging.AddSecret(envVar.Value)
+				secrets.AddSecret(envVar.Value)
 			}
 		}
 	}
@@ -72,45 +70,4 @@ func (k *K8sServiceDto) GetImageRepoSecretDecryptValue() *string {
 		}
 	}
 	return nil
-}
-
-func K8sServiceDtoExampleData() K8sServiceDto {
-	return K8sServiceDto{
-		Id:                 "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		DisplayName:        "displayName",
-		ControllerName:     "controllerName",
-		Controller:         DEPLOYMENT,
-		ReplicaCount:       1,
-		DeploymentStrategy: StrategyRecreate,
-		Ports:              []K8sPortsDto{K8sPortsDtoExampleData(), K8sPortsDtoExternalExampleData()},
-		CronJobSettings:    nil,
-		Containers:         []K8sContainerDto{K8sContainerDtoExampleData()},
-	}
-}
-
-func K8sServiceContainerImageDtoExampleData() K8sServiceDto {
-	return K8sServiceDto{
-		Id:                 "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		DisplayName:        "displayName",
-		ControllerName:     "controllerName",
-		Controller:         DEPLOYMENT,
-		ReplicaCount:       1,
-		DeploymentStrategy: StrategyRecreate,
-		Ports:              []K8sPortsDto{K8sPortsDtoExampleData(), K8sPortsDtoExternalExampleData()},
-		CronJobSettings:    nil,
-		Containers:         []K8sContainerDto{K8sContainerDtoExampleData()},
-	}
-}
-
-func K8sServiceCronJobExampleData() K8sServiceDto {
-	return K8sServiceDto{
-		Id:                 "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		DisplayName:        "displayName",
-		ControllerName:     "controllerName",
-		Controller:         CRON_JOB,
-		ReplicaCount:       1,
-		DeploymentStrategy: StrategyRecreate,
-		CronJobSettings:    &K8sCronJobSettingsDto{},
-		Containers:         []K8sContainerDto{K8sContainerDtoExampleData()},
-	}
 }

@@ -14,20 +14,24 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeystore"
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/alecthomas/kong"
 	"k8s.io/klog/v2"
@@ -50,53 +54,58 @@ var CLI struct {
 
 func Run() error {
 	//===============================================================
-	//====================== Initialize Logger ======================
-	//===============================================================
-	// Since the ConfigModule is initialized AFTER the LoggingModule
-	// this is an edge case. We have to directly access the MO_LOG_DIR
-	// variable. For documentation purposes there is also a key in the
-	// ConfigModule which loads the same ENV variable.
-	logDir := defaultLogDir
-	if path := os.Getenv("MO_LOG_DIR"); path != "" {
-		logDir = path
-	}
-	slogManager := logging.NewSlogManager(logDir)
-	cmdLogger := slogManager.CreateLogger("cmd")
-	klogLogger := slogManager.CreateLogger("klog")
-	klog.SetSlogLogger(klogLogger)
-
-	//===============================================================
 	//====================== Initialize Config ======================
 	//===============================================================
 	configModule := config.NewConfig()
 	configModule.OnChanged(nil, func(key string, value string, isSecret bool) {
-		logging.UpdateConfigSecrets(configModule.GetAll())
+		secrets.UpdateConfigSecrets(configModule.GetAll())
 	})
 	LoadConfigDeclarations(configModule)
 	configModule.LoadEnvs()
 	ApplyStageOverrides(configModule)
 
 	//===============================================================
-	//==================== Update Logger Config =====================
+	//====================== Initialize Logger ======================
 	//===============================================================
-	enabled, err := strconv.ParseBool(configModule.Get("MO_LOG_STDERR"))
-	assert.Assert(err == nil, err)
-	slogManager.SetStderr(enabled)
-
-	logLevel := configModule.Get("MO_LOG_LEVEL")
-	err = slogManager.SetLogLevel(logLevel)
-	assert.Assert(err == nil, err)
-
-	logFilter := configModule.Get("MO_LOG_FILTER")
-	err = slogManager.SetLogFilter(logFilter)
-	if err != nil {
-		panic(fmt.Errorf("failed to configure logfilter: %s", err.Error()))
+	// Since the ConfigModule is initialized AFTER the LoggingModule
+	// this is an edge case. We have to directly access the MO_LOG_DIR
+	// variable. For documentation purposes there is also a key in the
+	// ConfigModule which loads the same ENV variable.
+	var logDir *string
+	if path := configModule.Get("MO_LOG_DIR"); path != "" {
+		logDir = &path
 	}
-	// The value of "MO_LOG_DIR" is explicitly requested once to silence
-	// the warning of being unused. Due to initialization order the
-	// logger directly requests os.Getenv("MO_LOG_DIR") for the value.
-	_, err = configModule.TryGet("MO_LOG_DIR")
-	assert.Assert(err == nil, "MO_LOG_DIR has to be declared before it is requested.")
+	var logFileOpts *logging.SlogManagerOptsLogFile = nil
+	if logDir != nil {
+		logFileOpts = &logging.SlogManagerOptsLogFile{
+			LogDir:             logDir,
+			EnableCombinedLog:  true,
+			EnableComponentLog: true,
+		}
+	}
+	logFilter := []string{}
+	moLogFilter := strings.Split(configModule.Get("MO_LOG_FILTER"), ",")
+	for _, f := range moLogFilter {
+		if f != "" {
+			logFilter = append(logFilter, f)
+		}
+	}
+	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
+	assert.Assert(err == nil, "failed to parse log level", err)
+	slogManager := logging.NewSlogManager(logging.SlogManagerOpts{
+		LogLevel: logLevel,
+		ConsoleOpts: &logging.SlogManagerOptsConsole{
+			LogFilter: logFilter,
+		},
+		LogFileOpts: logFileOpts,
+		MessageReplace: func(msg string) string {
+			msg = secrets.EraseSecrets(msg)
+			return msg
+		},
+	})
+	cmdLogger := slogManager.CreateLogger("cmd")
+	klogLogger := slogManager.CreateLogger("klog")
+	klog.SetSlogLogger(klogLogger)
 
 	//===============================================================
 	//========================= Parse Args ==========================
@@ -248,6 +257,21 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:         "MO_VALKEY_ADDR",
+		Description: utils.Pointer("Address of operator valkey Server"),
+		Validate: func(value string) error {
+			_, _, err := net.SplitHostPort(value)
+			if err != nil {
+				return fmt.Errorf("'MO_VALKEY_ADDR' needs to be a host:port address: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:         "MO_VALKEY_PASSWORD",
+		Description: utils.Pointer("Password of operator valkey Server"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "helm-data")),
 		Description:  utils.Pointer("path to the helm data"),
@@ -258,31 +282,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "git-vault-data")),
 		Description:  utils.Pointer("path to the git vault data"),
 		Envs:         []string{"git_vault_data_path"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(workDir, "mogenius.db")),
-		Description:  utils.Pointer("path to the bbolt database"),
-		Envs:         []string{"bbolt_db_path"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_STATS_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(workDir, "mogenius-stats.db")),
-		Description:  utils.Pointer("path to the bbolt database"),
-		Envs:         []string{"bbolt_db_path"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BBOLT_DB_STATS_MAX_DATA_POINTS",
-		DefaultValue: utils.Pointer("6000"),
-		Description:  utils.Pointer(`after n data points in bucket will be overwritten following the "Last In - First Out" principle`),
-		Envs:         []string{"max_data_points"},
-		Validate: func(value string) error {
-			_, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("'MO_BBOLT_DB_STATS_MAX_DATA_POINTS' needs to be an integer: %s", err.Error())
-			}
-			return nil
-		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",
@@ -303,32 +302,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"local_registry_host"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BUILDER_BUILD_TIMEOUT",
-		DefaultValue: utils.Pointer("3600"),
-		Description:  utils.Pointer("seconds until the build will be canceled"),
-		Envs:         []string{"max_build_time"},
-		Validate: func(value string) error {
-			_, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("'MO_BUILDER_BUILD_TIMEOUT' needs to be an integer: %s", err.Error())
-			}
-			return nil
-		},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_BUILDER_MAX_CONCURRENT_BUILDS",
-		DefaultValue: utils.Pointer("1"),
-		Description:  utils.Pointer("number of concurrent builds"),
-		Envs:         []string{"max_concurrent_builds"},
-		Validate: func(value string) error {
-			_, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("'MO_BUILDER_MAX_CONCURRENT_BUILDS' needs to be an integer: %s", err.Error())
-			}
-			return nil
-		},
-	})
-	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_DEFAULT_MOUNT_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "mo-data")),
 		Description:  utils.Pointer("all containers have access to this mount point"),
@@ -342,7 +315,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Validate: func(value string) error {
 			_, err := strconv.Atoi(value)
 			if err != nil {
-				return fmt.Errorf("'MO_BUILDER_MAX_CONCURRENT_BUILDS' needs to be an integer: %s", err.Error())
+				return fmt.Errorf("'MO_UPDATE_INTERVAL' needs to be an integer: %s", err.Error())
 			}
 			return nil
 		},
@@ -392,18 +365,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Description:  utils.Pointer("comma separated list of components for which logs should be enabled - if none are defined all logs are collected"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_LOG_STDERR",
-		DefaultValue: utils.Pointer("true"),
-		Description:  utils.Pointer("enable logging to stderr"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_LOG_STDERR' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
-	})
-	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_DIR",
 		DefaultValue: utils.Pointer("logs"),
 		Description:  utils.Pointer(`path in which logs are stored in the filesystem`),
@@ -417,18 +378,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			_, err := strconv.ParseBool(value)
 			if err != nil {
 				return fmt.Errorf("'MO_ALLOW_COUNTRY_CHECK' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_DEBUG",
-		DefaultValue: utils.Pointer("false"),
-		Description:  utils.Pointer("enable debug mode"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_DEBUG' needs to be a boolean: %s", err.Error())
 			}
 			return nil
 		},
@@ -466,12 +415,12 @@ func InitializeSystems(
 	assert.Assert(cmdLogger != nil)
 
 	// initialize client modules
+	valkeyModule := valkeystore.NewValkeyStore(logManagerModule.CreateLogger("valkey"), configModule)
 	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
-	dbstatsModule, err := kubernetes.NewBoltDbStatsModule(configModule, logManagerModule.CreateLogger("db-stats"))
-	assert.Assert(err == nil, err)
+	dbstatsModule := kubernetes.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule)
 	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-job-client"))
 	shutdown.Add(jobConnectionClient.Terminate)
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
@@ -479,15 +428,15 @@ func InitializeSystems(
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule)
-	err = mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider)
+	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyModule)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
 	services.Setup(logManagerModule, configModule, clientProvider)
 	servicesexternal.Setup(logManagerModule, configModule)
-	store.Setup(logManagerModule)
-	structs.Setup(logManagerModule, configModule)
-	xterm.Setup(logManagerModule, configModule, clientProvider)
+	store.Setup(logManagerModule, valkeyModule)
+	structs.Setup(logManagerModule)
+	xterm.Setup(logManagerModule, clientProvider, valkeyModule)
 	utils.Setup(logManagerModule, configModule)
 
 	// initialization step 1 for services
@@ -514,6 +463,7 @@ func InitializeSystems(
 		socketApi,
 		httpApi,
 		xtermService,
+		valkeyModule,
 	}
 }
 
@@ -521,7 +471,7 @@ type systems struct {
 	clientProvider        k8sclient.K8sClientProvider
 	versionModule         *version.Version
 	watcherModule         *kubernetes.Watcher
-	dbstatsModule         kubernetes.BoltDbStats
+	dbstatsModule         kubernetes.ValkeyStatsDb
 	jobConnectionClient   websocket.WebsocketClient
 	eventConnectionClient websocket.WebsocketClient
 	workspaceManager      core.WorkspaceManager
@@ -529,4 +479,5 @@ type systems struct {
 	socketApi             core.SocketApi
 	httpApi               core.HttpService
 	xtermService          core.XtermService
+	valkeyModule          valkeystore.ValkeyStore
 }

@@ -3,8 +3,6 @@ package helm
 import (
 	"errors"
 	"fmt"
-	v1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
@@ -15,10 +13,11 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -1138,33 +1137,24 @@ func IsManagedByHelmRelease(labels map[string]string, annotations map[string]str
 }
 
 func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
-	workloads, err := store.GlobalStore.SearchByNamespace(reflect.TypeOf(unstructured.Unstructured{}), data.Namespace, data.Whitelist)
+	workloads, err := store.SearchByNamespace(data.Namespace, data.Whitelist)
 	if err != nil {
 		return nil, err
 	}
 
 	var results []unstructured.Unstructured
 	appendedWorkloadUIds := make(map[types.UID]bool)
-	var replicaSets []interface{}
+	var replicaSets []unstructured.Unstructured
 	replicaSetsFetched := false
 
-	for _, ref := range workloads {
-		if ref == nil {
-			continue
-		}
-
-		workload, ok := ref.(*unstructured.Unstructured)
-		if !ok || workload == nil {
-			continue
-		}
-
+	for _, workload := range workloads {
 		if appendedWorkloadUIds[workload.GetUID()] {
 			continue
 		}
 
 		if workload.GetKind() == "Pod" {
 			if !replicaSetsFetched {
-				replicaSets, err = store.GlobalStore.SearchByKeyParts(reflect.TypeOf(v1.ReplicaSet{}), "ReplicaSet", data.Namespace)
+				replicaSets, err = store.SearchByKeyParts("apps/v1", "ReplicaSet", data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
 					helmLogger.Warn("ReplicaSet not found", "error", err)
 					replicaSets = nil
@@ -1172,20 +1162,11 @@ func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructure
 				replicaSetsFetched = true
 			}
 
-			for _, ref := range replicaSets {
-				if ref == nil {
-					continue
-				}
-
-				replicaset, ok := ref.(*v1.ReplicaSet)
-				if !ok || replicaset == nil {
-					continue
-				}
-
+			for _, replicaset := range replicaSets {
 				for _, ownerReference := range workload.GetOwnerReferences() {
-					if ownerReference.UID == replicaset.UID {
+					if ownerReference.UID == replicaset.GetUID() {
 						if IsManagedByHelmRelease(replicaset.GetLabels(), replicaset.GetAnnotations(), data.Release) {
-							results = append(results, *workload)
+							results = append(results, workload)
 							appendedWorkloadUIds[workload.GetUID()] = true
 							break
 						}
@@ -1197,7 +1178,7 @@ func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructure
 		}
 
 		if IsManagedByHelmRelease(workload.GetLabels(), workload.GetAnnotations(), data.Release) {
-			results = append(results, *workload)
+			results = append(results, workload)
 			appendedWorkloadUIds[workload.GetUID()] = true
 		}
 	}

@@ -151,6 +151,25 @@ func (c *Config) TryGet(key string) (string, error) {
 	return *cv.value, nil
 }
 
+func (self *Config) IsSet(key string) bool {
+	if key == "" {
+		return false
+	}
+
+	self.dataLock.RLock()
+	defer self.dataLock.RUnlock()
+
+	cv, ok := self.data[key]
+	if !ok {
+		return false
+	}
+	if cv.value == nil {
+		return false
+	}
+
+	return true
+}
+
 func (c *Config) Set(key string, value string) {
 	err := c.TrySet(key, value)
 	if err != nil {

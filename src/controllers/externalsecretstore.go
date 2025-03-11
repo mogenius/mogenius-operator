@@ -16,16 +16,6 @@ type CreateSecretsStoreRequest struct {
 	SecretPath     string `json:"secretPath" validate:"required"`
 }
 
-func CreateSecretsStoreRequestExample() CreateSecretsStoreRequest {
-	return CreateSecretsStoreRequest{
-		DisplayName:    "Vault Secret Store 1",
-		ProjectId:      "234jhkl-lklj-234lkj-234lkj",
-		Role:           "mogenius-external-secrets",
-		VaultServerUrl: "http://vault.default.svc.cluster.local:8200",
-		SecretPath:     "mogenius-external-secrets/data/phoenix",
-	}
-}
-
 type CreateSecretsStoreResponse struct {
 	Status       string `json:"status"`
 	ErrorMessage string `json:"errorMessage"`
@@ -41,12 +31,6 @@ type ListSecretsRequest struct {
 
 type DeleteSecretsStoreRequest struct {
 	Name string `json:"name" validate:"required"`
-}
-
-func DeleteSecretsStoreRequestExample() DeleteSecretsStoreRequest {
-	return DeleteSecretsStoreRequest{
-		Name: "s78fdsf78a-vault-secret-store",
-	}
 }
 
 type DeleteSecretsStoreResponse struct {

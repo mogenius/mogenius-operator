@@ -20,7 +20,6 @@ const (
 	K8S_STATEFULSET                       K8sServiceTypeEnum = "K8S_STATEFULSET"
 	K8S_REPLICASET                        K8sServiceTypeEnum = "K8S_REPLICASET"
 	K8S_JOB                               K8sServiceTypeEnum = "K8S_JOB"
-	DOCKER_COMPOSE                        K8sServiceTypeEnum = "DOCKER_COMPOSE"
 	K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE  K8sServiceTypeEnum = "K8S_CRON_JOB_GIT_REPOSITORY_TEMPLATE"
 	K8S_CRON_JOB_GIT_REPOSITORY           K8sServiceTypeEnum = "K8S_CRON_JOB_GIT_REPOSITORY"
 	K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE K8sServiceTypeEnum = "K8S_CRON_JOB_CONTAINER_IMAGE_TEMPLATE"

@@ -5,13 +5,6 @@ type EventDto struct {
 	ApiObject interface{} `json:"apiObject"`
 }
 
-func EventDtoExampleData() EventDto {
-	return EventDto{
-		Type:      "MODIFIED",
-		ApiObject: "TEST",
-	}
-}
-
 func CreateEvent(eventType string, apiObject interface{}) EventDto {
 	return EventDto{
 		Type:      eventType,

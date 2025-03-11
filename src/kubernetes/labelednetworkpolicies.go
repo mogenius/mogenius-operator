@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
-	"reflect"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -1045,7 +1044,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.Deployment{}), resource.Group, resource.Kind, namespaceName, controllerName)
+		ref := store.GetByKeyParts(resource.Group, resource.Kind, namespaceName, controllerName)
 		if ref == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
 		}
@@ -1065,7 +1064,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.DaemonSet{}), resource.Group, resource.Kind, namespaceName, controllerName)
+		ref := store.GetByKeyParts(resource.Group, resource.Kind, namespaceName, controllerName)
 		if ref == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
 		}
@@ -1085,7 +1084,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.StatefulSet{}), resource.Group, resource.Kind, namespaceName, controllerName)
+		ref := store.GetByKeyParts(resource.Group, resource.Kind, namespaceName, controllerName)
 		if ref == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
 		}
