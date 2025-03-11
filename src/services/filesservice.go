@@ -42,7 +42,7 @@ func Info(r dtos.PersistentFileRequestDto) dtos.PersistentFileDto {
 	return dtos.PersistentFileDtoFrom(pathToFile, pathToFile)
 }
 
-func Download(pfile dtos.PersistentFileRequestDto, postTo string) interface{} {
+func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadResponse {
 	result := FilesDownloadResponse{
 		SizeInBytes: 0,
 	}
