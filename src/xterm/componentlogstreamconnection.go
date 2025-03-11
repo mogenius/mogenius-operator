@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeystore"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-func XTermComponentStreamConnection(
+func ComponentStreamConnection(
 	wsConnectionRequest WsConnectionRequest,
 	component string,
 	namespace *string,
@@ -53,21 +54,40 @@ func XTermComponentStreamConnection(
 		return
 	}
 
+	data, err := valkeystore.LastNEntryFromBucketWithType[logging.LogLine](store, 50, "logs", component)
+	if err != nil {
+		xtermLogger.Error("Error getting last 50 logs", "error", err)
+	}
+	for _, v := range data {
+		messageStr := fmt.Sprintf("[%s] %s %s", v.Level, utils.FormatJsonTimePrettyFromTime(v.Time), v.Message)
+		connWriteLock.Lock()
+		err = conn.WriteMessage(websocket.TextMessage, []byte(messageStr))
+		if err != nil {
+			xtermLogger.Error("WriteMessage", "error", err)
+		}
+		connWriteLock.Unlock()
+	}
+
+	if len(data) == 0 {
+		connWriteLock.Lock()
+		err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now()))))
+		if err != nil {
+			xtermLogger.Error("WriteMessage", "error", err)
+		}
+		connWriteLock.Unlock()
+	}
+
 	for msg := range pubsub.Channel() {
 		if conn != nil {
-			connWriteLock.Lock()
-			var entry LogEntry
+			var entry logging.LogLine
 			err := json.Unmarshal([]byte(msg.Payload), &entry)
 			if err != nil {
 				xtermLogger.Error("Unmarshal", "error", err)
 				continue
 			}
-			if !(strings.HasSuffix(entry.Message, "\n") || strings.HasSuffix(entry.Message, "\n\r")) {
-				entry.Message = entry.Message + "\n"
-			}
-			messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
+			messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePrettyFromTime(entry.Time), entry.Message)
 
-			fmt.Println("msg", messageSt)
+			connWriteLock.Lock()
 			err = conn.WriteMessage(websocket.TextMessage, []byte(messageSt))
 			connWriteLock.Unlock()
 			if err != nil {

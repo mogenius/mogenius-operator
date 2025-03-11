@@ -102,7 +102,7 @@ type LogEntry struct {
 	Namespace      string `json:"namespace"`
 	ReleaseName    string `json:"releaseName"`
 	Component      string `json:"component"`
-	Message        string `json:"msg"`
+	Message        string `json:"message"`
 	Time           string `json:"time"`
 }
 

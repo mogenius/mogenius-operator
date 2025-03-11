@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/nwidger/jsoncolor"
@@ -165,6 +166,7 @@ type LogLine struct {
 	Scope     *string
 	Source    string
 	Message   string
+	Time      time.Time
 	Payload   map[string]any
 }
 
@@ -295,6 +297,7 @@ func (self *PrettyPrintHandler) Handle(ctx context.Context, record slog.Record) 
 	logLine.Scope = self.tryGetScope()
 	logLine.Source = slogRecordToSourceString(record)
 	logLine.Message = record.Message
+	logLine.Time = record.Time
 	logLine.Payload = slogRecordToPayload(record, self.filterFunc)
 
 	return self.printLogLine(
@@ -460,6 +463,7 @@ func (self *RecordChannelHandler) Handle(ctx context.Context, record slog.Record
 	logLine.Scope = self.tryGetScope()
 	logLine.Source = slogRecordToSourceString(record)
 	logLine.Message = record.Message
+	logLine.Time = record.Time
 	logLine.Payload = slogRecordToPayload(record, self.filterFunc)
 
 	self.recordChannelTx <- logLine

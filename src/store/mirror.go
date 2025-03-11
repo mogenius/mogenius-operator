@@ -129,7 +129,7 @@ func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 func ListEvents(namespace string) ([]coreV1.Event, error) {
 	result := []coreV1.Event{}
 
-	events, err := valkeystore.GetObjectsByPrefix[coreV1.Event](valkeyStore, valkeystore.ORDER_DESC, VALKEY_KEY_PREFIX, "Event", namespace)
+	events, err := valkeystore.GetObjectsByPrefix[coreV1.Event](valkeyStore, valkeystore.ORDER_DESC, VALKEY_KEY_PREFIX, "v1", "Event", namespace)
 	if err != nil {
 		return result, err
 	}

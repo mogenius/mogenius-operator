@@ -742,7 +742,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "apps/v1",
 			Version:   "",
 		}
-		resourceInterface = store.GetByKeyParts(resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GetByKeyParts[appsv1.Deployment](store.VALKEY_KEY_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
 	case ReplicaSet:
 		// TODO replace with GetAvailableResources in the future
 		resourceNamespace := ""
@@ -753,7 +753,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "apps/v1",
 			Version:   "",
 		}
-		resourceInterface = store.GetByKeyParts(resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GetByKeyParts[appsv1.ReplicaSet](store.VALKEY_KEY_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
 	// case StatefulSet:
 	// 	// ae: not used at the moment, old code
 	// 	resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
@@ -770,7 +770,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "batch/v1",
 			Version:   "",
 		}
-		resourceInterface = store.GetByKeyParts(resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GetByKeyParts[batchv1.Job](store.VALKEY_KEY_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
 	case CronJob:
 		// TODO replace with GetAvailableResources in the future
 		resourceNamespace := ""
@@ -781,7 +781,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "batch/v1",
 			Version:   "",
 		}
-		resourceInterface = store.GetByKeyParts(resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface = store.GetByKeyParts[batchv1.CronJob](store.VALKEY_KEY_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
 	}
 
 	if resourceInterface == nil {

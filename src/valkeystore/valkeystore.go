@@ -357,13 +357,13 @@ func GetObjectsByPrefix[T any](redisStore ValkeyStore, order SortOrder, keys ...
 func GetObjectForKey[T any](store ValkeyStore, keys ...string) (*T, error) {
 	key := createKey(keys...)
 
-	var obj *T
 	data, err := store.GetRedisClient().Get(store.GetContext(), key).Result()
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal([]byte(data), obj)
-	return obj, err
+	var obj T
+	err = json.Unmarshal([]byte(data), &obj)
+	return &obj, err
 }
 
 func createKey(parts ...string) string {

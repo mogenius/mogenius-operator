@@ -25,12 +25,10 @@ func Setup(logManagerModule logging.SlogManager, storeModule valkeystore.ValkeyS
 
 var ErrNotFound = errors.New("not found")
 
-func GetByKeyParts(keys ...string) interface{} {
-	key := CreateKey(keys...)
-
-	value, err := valkeyStore.GetObject(key)
+func GetByKeyParts[T any](keys ...string) *T {
+	value, err := valkeystore.GetObjectForKey[T](valkeyStore, keys...)
 	if err != nil {
-		storeLogger.Warn("failed to get value", "key", key, "error", err)
+		storeLogger.Warn("failed to get value", "key", strings.Join(keys, ":"), "error", err)
 		return nil
 	}
 	return value
