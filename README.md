@@ -144,4 +144,5 @@ Add this to the respective daemonset and deployment (on docker-desktop):
 ---------------------
 
 
+
 mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform
