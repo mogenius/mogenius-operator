@@ -18,7 +18,7 @@ const (
 var storeLogger *slog.Logger
 var valkeyStore valkeystore.ValkeyStore
 
-func Setup(logManagerModule logging.LogManagerModule, storeModule valkeystore.ValkeyStore) {
+func Setup(logManagerModule logging.SlogManager, storeModule valkeystore.ValkeyStore) {
 	storeLogger = logManagerModule.CreateLogger("store")
 	valkeyStore = storeModule
 }

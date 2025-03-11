@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/mattn/go-isatty"
 	"k8s.io/klog/v2"
 )
 
@@ -71,6 +72,8 @@ func Run() error {
 	// this is an edge case. We have to directly access the MO_LOG_DIR
 	// variable. For documentation purposes there is also a key in the
 	// ConfigModule which loads the same ENV variable.
+	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
+	assert.Assert(err == nil, "failed to parse log level", err)
 	var logDir *string
 	if path := configModule.Get("MO_LOG_DIR"); path != "" {
 		logDir = &path
@@ -90,18 +93,19 @@ func Run() error {
 			logFilter = append(logFilter, f)
 		}
 	}
-	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
-	assert.Assert(err == nil, "failed to parse log level", err)
+	channelHandler := logging.NewRecordChannelHandler(1000, logLevel, secrets.EraseSecrets)
+	prettyPrintHandler := logging.NewPrettyPrintHandler(
+		os.Stderr,
+		isatty.IsTerminal(os.Stderr.Fd()),
+		logLevel,
+		logFilter,
+		secrets.EraseSecrets,
+	)
 	slogManager := logging.NewSlogManager(logging.SlogManagerOpts{
-		LogLevel: logLevel,
-		ConsoleOpts: &logging.SlogManagerOptsConsole{
-			LogFilter: logFilter,
-		},
-		LogFileOpts: logFileOpts,
-		MessageReplace: func(msg string) string {
-			msg = secrets.EraseSecrets(msg)
-			return msg
-		},
+		LogLevel:           logLevel,
+		AdditionalHandlers: []slog.Handler{channelHandler, prettyPrintHandler},
+		LogFileOpts:        logFileOpts,
+		MessageReplace:     secrets.EraseSecrets,
 	})
 	cmdLogger := slogManager.CreateLogger("cmd")
 	klogLogger := slogManager.CreateLogger("klog")
@@ -127,25 +131,25 @@ func Run() error {
 	//===============================================================
 	switch ctx.Command() {
 	case "clean":
-		err := RunClean(slogManager, configModule, cmdLogger)
+		err := RunClean(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
 		return nil
 	case "cluster":
-		err := RunCluster(slogManager, configModule, cmdLogger)
+		err := RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
 		return nil
 	case "install":
-		err := RunInstall(slogManager, configModule, cmdLogger)
+		err := RunInstall(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
 		return nil
 	case "system":
-		err := RunSystem(slogManager, configModule, cmdLogger)
+		err := RunSystem(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
@@ -170,7 +174,7 @@ func Run() error {
 		}
 		return nil
 	case "patterns":
-		err := RunPatterns(&CLI.Patterns, slogManager, configModule, cmdLogger)
+		err := RunPatterns(&CLI.Patterns, slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
@@ -406,9 +410,10 @@ func ApplyStageOverrides(configModule *config.Config) {
 
 // Full initialization process for mogenius-k8s-manager clients services (and packages)
 func InitializeSystems(
-	logManagerModule logging.LogManagerModule,
+	logManagerModule logging.SlogManager,
 	configModule *config.Config,
 	cmdLogger *slog.Logger,
+	valkeyLogChannel chan logging.LogLine,
 ) systems {
 	assert.Assert(logManagerModule != nil)
 	assert.Assert(configModule != nil)
@@ -445,6 +450,7 @@ func InitializeSystems(
 	httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, dbstatsModule)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
+	valkeyLoggerService := core.NewValkeyLogger(valkeyModule, valkeyLogChannel)
 
 	// initialization step 2 for services
 	socketApi.Link(httpApi, xtermService, apiModule)
@@ -463,6 +469,7 @@ func InitializeSystems(
 		socketApi,
 		httpApi,
 		xtermService,
+		valkeyLoggerService,
 		valkeyModule,
 	}
 }
@@ -479,5 +486,6 @@ type systems struct {
 	socketApi             core.SocketApi
 	httpApi               core.HttpService
 	xtermService          core.XtermService
+	valkeyLoggerService   core.ValkeyLogger
 	valkeyModule          valkeystore.ValkeyStore
 }

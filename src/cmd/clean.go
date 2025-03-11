@@ -11,10 +11,10 @@ import (
 	"mogenius-k8s-manager/src/utils"
 )
 
-func RunClean(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+func RunClean(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) error {
 	configModule.Validate()
 
-	_ = InitializeSystems(logManagerModule, configModule, cmdLogger)
+	_ = InitializeSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel)
 	defer shutdown.ExecuteShutdownHandlers()
 
 	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())

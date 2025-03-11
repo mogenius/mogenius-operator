@@ -63,7 +63,7 @@ var config cfg.ConfigModule
 
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
 
-func Setup(logManager logging.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule) {
 	helmLogger = logManager.CreateLogger("helm")
 	config = configModule
 }

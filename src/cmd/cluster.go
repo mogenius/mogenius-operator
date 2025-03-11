@@ -17,14 +17,14 @@ import (
 	"strconv"
 )
 
-func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+func RunCluster(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) error {
 	go func() {
 		defer func() {
 			shutdown.SendShutdownSignal(true)
 		}()
 		configModule.Validate()
 
-		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
+		systems := InitializeSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel)
 
 		// DB (valkey) setup
 		if !configModule.IsSet("MO_VALKEY_PASSWORD") {

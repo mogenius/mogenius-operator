@@ -8,13 +8,13 @@ import (
 // compile time check
 func TestSlogManagerAdheresToLogManagerInterface(t *testing.T) {
 	t.Parallel()
-	testfunc := func(w logging.LogManagerModule) {}
+	testfunc := func(w logging.SlogManager) {}
 	testfunc(logging.NewSlogManager(logging.SlogManagerOpts{})) // this checks if the typesystem allows to call it
 }
 
 // compile time check
 func TestMockSlogManagerAdheresToLogManagerInterface(t *testing.T) {
 	t.Parallel()
-	testfunc := func(w logging.LogManagerModule) {}
+	testfunc := func(w logging.SlogManager) {}
 	testfunc(logging.NewMockSlogManager(t)) // this checks if the typesystem allows to call it
 }
