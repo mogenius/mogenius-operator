@@ -683,6 +683,9 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 		serviceLogger.Warn("failed to fetch controller", "error", err)
 		return resourceItems, err
 	}
+	if resourceInterface == nil {
+		return resourceItems, fmt.Errorf("no controller found for %s/%s", namespace, name)
+	}
 
 	metaName, metaNamespace, kind, references, labelSelector, object := status(resourceInterface)
 	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
@@ -870,6 +873,9 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, resourc
 	resourceInterface, err := controller(namespace, ownerRef.Name, NewResourceController(ownerRef.Kind))
 	if err != nil {
 		serviceLogger.Warn("failed to fetch resources", "error", err)
+		return resourceItems
+	}
+	if resourceInterface == nil {
 		return resourceItems
 	}
 
