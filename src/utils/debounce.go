@@ -62,21 +62,9 @@ func (d *Debounce) CallFn(key string, fn func() (interface{}, error)) (interface
 		d.mutex.Unlock()
 	})
 
-	//entry := &DebounceEntry{done: make(chan struct{})}
-	//d.cache[key] = entry
-	//d.mutex.Unlock()
-	//
-	//go func() {
-	//	result, err := fn()
-	//	entry.result = result
-	//	entry.err = &err
-	//	close(entry.done)
-	//}()
-	//
 	<-entry.done
-	//
+
 	go func() {
-		// time.Sleep(d.cacheTTL)
 		d.mutex.Lock()
 		delete(d.cache, key)
 		d.mutex.Unlock()

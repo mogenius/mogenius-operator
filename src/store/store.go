@@ -12,25 +12,23 @@ import (
 )
 
 const (
-	VALKEY_KEY_PREFIX = "resources"
+	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
 var storeLogger *slog.Logger
 var valkeyStore valkeystore.ValkeyStore
 
-func Setup(logManagerModule logging.LogManagerModule, storeModule valkeystore.ValkeyStore) {
+func Setup(logManagerModule logging.SlogManager, storeModule valkeystore.ValkeyStore) {
 	storeLogger = logManagerModule.CreateLogger("store")
 	valkeyStore = storeModule
 }
 
 var ErrNotFound = errors.New("not found")
 
-func GetByKeyParts(keys ...string) interface{} {
-	key := CreateKey(keys...)
-
-	value, err := valkeyStore.GetObject(key)
+func GetByKeyParts[T any](keys ...string) *T {
+	value, err := valkeystore.GetObjectForKey[T](valkeyStore, keys...)
 	if err != nil {
-		storeLogger.Warn("failed to get value", "key", key, "error", err)
+		storeLogger.Warn("failed to get value", "key", strings.Join(keys, ":"), "error", err)
 		return nil
 	}
 	return value
@@ -82,7 +80,7 @@ func SearchByNamespace(namespace string, whitelist []*utils.SyncResourceEntry) (
 }
 
 func DropAllResourcesFromValkey() error {
-	keys, err := valkeyStore.Keys(VALKEY_KEY_PREFIX + ":*")
+	keys, err := valkeyStore.Keys(VALKEY_RESOURCE_PREFIX + ":*")
 	if err != nil {
 		storeLogger.Error("failed to get keys", "error", err)
 		return err
@@ -112,14 +110,14 @@ func DropAllPodEventsFromValkey() error {
 }
 
 func CreateKey(parts ...string) string {
-	parts = append([]string{VALKEY_KEY_PREFIX}, parts...)
+	parts = append([]string{VALKEY_RESOURCE_PREFIX}, parts...)
 	return strings.Join(parts, ":")
 }
 
 func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
 	parts := make([]string, 5)
 
-	parts[0] = VALKEY_KEY_PREFIX
+	parts[0] = VALKEY_RESOURCE_PREFIX
 
 	if groupVersion != nil && *groupVersion != "" {
 		parts[1] = *groupVersion

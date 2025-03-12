@@ -17,7 +17,7 @@ var clientProvider k8sclient.K8sClientProvider
 var valkeyStore valkeystore.ValkeyStore
 
 func Setup(
-	logManagerModule logging.LogManagerModule,
+	logManagerModule logging.SlogManager,
 	configModule cfg.ConfigModule,
 	watcherModule WatcherModule,
 	clientProviderModule k8sclient.K8sClientProvider,

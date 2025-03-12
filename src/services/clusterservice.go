@@ -181,7 +181,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 			}
 		}
 
-		message := fmt.Sprintf("💾: '%s' -> %s / %s (Free: %s)", mountPath, utils.BytesToHumanReadable(int64(entry.UsedBytes)), utils.BytesToHumanReadable(int64(entry.TotalBytes)), utils.BytesToHumanReadable(int64(entry.FreeBytes)))
+		message := fmt.Sprintf("💾: '%s' -> %s / %s (Free: %s)\n", mountPath, utils.BytesToHumanReadable(int64(entry.UsedBytes)), utils.BytesToHumanReadable(int64(entry.TotalBytes)), utils.BytesToHumanReadable(int64(entry.FreeBytes)))
 		serviceLogger.Info(message)
 		result = append(result, entry)
 	}
@@ -222,7 +222,7 @@ func sumAllBytesOfFolder(root string) uint64 {
 		return nil
 	})
 	if err != nil {
-		serviceLogger.Error("Error while summing bytes in path", "error", err)
+		serviceLogger.Error("Error while summing bytes in path", "error", err.Error())
 	}
 
 	wg.Wait()

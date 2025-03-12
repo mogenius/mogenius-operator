@@ -441,7 +441,6 @@ func UpdateDeploymentImage(namespaceName string, controllerName string, containe
 			deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
 		}
 	}
-	// deploymentToUpdate.Spec.Paused = false
 
 	_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 	return err

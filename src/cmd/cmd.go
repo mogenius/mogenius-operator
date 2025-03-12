@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/mattn/go-isatty"
 	"k8s.io/klog/v2"
 )
 
@@ -67,42 +68,35 @@ func Run() error {
 	//===============================================================
 	//====================== Initialize Logger ======================
 	//===============================================================
-	// Since the ConfigModule is initialized AFTER the LoggingModule
-	// this is an edge case. We have to directly access the MO_LOG_DIR
-	// variable. For documentation purposes there is also a key in the
-	// ConfigModule which loads the same ENV variable.
-	var logDir *string
-	if path := configModule.Get("MO_LOG_DIR"); path != "" {
-		logDir = &path
-	}
-	var logFileOpts *logging.SlogManagerOptsLogFile = nil
-	if logDir != nil {
-		logFileOpts = &logging.SlogManagerOptsLogFile{
-			LogDir:             logDir,
-			EnableCombinedLog:  true,
-			EnableComponentLog: true,
-		}
-	}
+	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
+	assert.Assert(err == nil, "failed to parse log level", err)
 	logFilter := []string{}
-	moLogFilter := strings.Split(configModule.Get("MO_LOG_FILTER"), ",")
-	for _, f := range moLogFilter {
+	moLogFilter := strings.SplitSeq(configModule.Get("MO_LOG_FILTER"), ",")
+	for f := range moLogFilter {
+		f = strings.TrimSpace(f)
 		if f != "" {
 			logFilter = append(logFilter, f)
 		}
 	}
-	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
-	assert.Assert(err == nil, "failed to parse log level", err)
-	slogManager := logging.NewSlogManager(logging.SlogManagerOpts{
-		LogLevel: logLevel,
-		ConsoleOpts: &logging.SlogManagerOptsConsole{
-			LogFilter: logFilter,
+	prettyPrintHandler := logging.NewPrettyPrintHandler(
+		os.Stderr,
+		isatty.IsTerminal(os.Stderr.Fd()),
+		logLevel,
+		logFilter,
+		secrets.EraseSecrets,
+	)
+	channelHandler := logging.NewRecordChannelHandler(
+		1000,
+		logLevel,
+		secrets.EraseSecrets,
+	)
+	slogManager := logging.NewSlogManager(
+		logLevel,
+		[]slog.Handler{
+			channelHandler,
+			prettyPrintHandler,
 		},
-		LogFileOpts: logFileOpts,
-		MessageReplace: func(msg string) string {
-			msg = secrets.EraseSecrets(msg)
-			return msg
-		},
-	})
+	)
 	cmdLogger := slogManager.CreateLogger("cmd")
 	klogLogger := slogManager.CreateLogger("klog")
 	klog.SetSlogLogger(klogLogger)
@@ -127,25 +121,25 @@ func Run() error {
 	//===============================================================
 	switch ctx.Command() {
 	case "clean":
-		err := RunClean(slogManager, configModule, cmdLogger)
+		err := RunClean(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
 		return nil
 	case "cluster":
-		err := RunCluster(slogManager, configModule, cmdLogger)
+		err := RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
 		return nil
 	case "install":
-		err := RunInstall(slogManager, configModule, cmdLogger)
+		err := RunInstall(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
 		return nil
 	case "system":
-		err := RunSystem(slogManager, configModule, cmdLogger)
+		err := RunSystem(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
@@ -170,7 +164,7 @@ func Run() error {
 		}
 		return nil
 	case "patterns":
-		err := RunPatterns(&CLI.Patterns, slogManager, configModule, cmdLogger)
+		err := RunPatterns(&CLI.Patterns, slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}
@@ -365,12 +359,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Description:  utils.Pointer("comma separated list of components for which logs should be enabled - if none are defined all logs are collected"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_LOG_DIR",
-		DefaultValue: utils.Pointer("logs"),
-		Description:  utils.Pointer(`path in which logs are stored in the filesystem`),
-		ReadOnly:     true,
-	})
-	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ALLOW_COUNTRY_CHECK",
 		DefaultValue: utils.Pointer("true"),
 		Description:  utils.Pointer(`allow the operator to determine its location country base on the IP address`),
@@ -406,9 +394,10 @@ func ApplyStageOverrides(configModule *config.Config) {
 
 // Full initialization process for mogenius-k8s-manager clients services (and packages)
 func InitializeSystems(
-	logManagerModule logging.LogManagerModule,
+	logManagerModule logging.SlogManager,
 	configModule *config.Config,
 	cmdLogger *slog.Logger,
+	valkeyLogChannel chan logging.LogLine,
 ) systems {
 	assert.Assert(logManagerModule != nil)
 	assert.Assert(configModule != nil)
@@ -427,7 +416,7 @@ func InitializeSystems(
 	shutdown.Add(eventConnectionClient.Terminate)
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
-	helm.Setup(logManagerModule, configModule)
+	helm.Setup(logManagerModule, configModule, valkeyModule)
 	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyModule)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
@@ -445,6 +434,7 @@ func InitializeSystems(
 	httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, dbstatsModule)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
+	valkeyLoggerService := core.NewValkeyLogger(valkeyModule, valkeyLogChannel)
 
 	// initialization step 2 for services
 	socketApi.Link(httpApi, xtermService, apiModule)
@@ -463,6 +453,7 @@ func InitializeSystems(
 		socketApi,
 		httpApi,
 		xtermService,
+		valkeyLoggerService,
 		valkeyModule,
 	}
 }
@@ -479,5 +470,6 @@ type systems struct {
 	socketApi             core.SocketApi
 	httpApi               core.HttpService
 	xtermService          core.XtermService
+	valkeyLoggerService   core.ValkeyLogger
 	valkeyModule          valkeystore.ValkeyStore
 }

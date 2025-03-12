@@ -1044,11 +1044,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		ref := store.GetByKeyParts(resource.Group, resource.Kind, namespaceName, controllerName)
-		if ref == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
-		}
-		deployment := ref.(*appsv1.Deployment)
+		deployment := store.GetByKeyParts[appsv1.Deployment](resource.Group, resource.Kind, namespaceName, controllerName)
 		if deployment == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
 		}
@@ -1064,11 +1060,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		ref := store.GetByKeyParts(resource.Group, resource.Kind, namespaceName, controllerName)
-		if ref == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
-		}
-		daemonset := ref.(*appsv1.DaemonSet)
+		daemonset := store.GetByKeyParts[appsv1.DaemonSet](resource.Group, resource.Kind, namespaceName, controllerName)
 		if daemonset == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
 		}
@@ -1084,11 +1076,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		ref := store.GetByKeyParts(resource.Group, resource.Kind, namespaceName, controllerName)
-		if ref == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
-		}
-		statefulset := ref.(*appsv1.StatefulSet)
+		statefulset := store.GetByKeyParts[appsv1.StatefulSet](resource.Group, resource.Kind, namespaceName, controllerName)
 		if statefulset == nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
 		}

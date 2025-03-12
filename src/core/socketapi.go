@@ -3576,7 +3576,7 @@ func (self *socketApi) logStreamConnection(podCmdConnectionRequest xterm.PodCmdC
 }
 
 func componentLogStreamConnection(componentLogConnectionRequest xterm.ComponentLogConnectionRequest) {
-	xterm.XTermComponentStreamConnection(
+	xterm.ComponentStreamConnection(
 		componentLogConnectionRequest.WsConnection,
 		componentLogConnectionRequest.Component,
 		componentLogConnectionRequest.Namespace,
@@ -3586,7 +3586,7 @@ func componentLogStreamConnection(componentLogConnectionRequest xterm.ComponentL
 }
 
 func podEventStreamConnection(podLogConnectionRequest xterm.PodEventConnectionRequest) {
-	xterm.XTermPodEventStreamConnection(
+	xterm.PodEventStreamConnection(
 		podLogConnectionRequest.WsConnection,
 		podLogConnectionRequest.Namespace,
 		podLogConnectionRequest.Controller,

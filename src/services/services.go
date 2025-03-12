@@ -12,7 +12,7 @@ var config cfg.ConfigModule
 var clientProvider k8sclient.K8sClientProvider
 
 func Setup(
-	logManagerModule logging.LogManagerModule,
+	logManagerModule logging.SlogManager,
 	configModule cfg.ConfigModule,
 	clientProviderModule k8sclient.K8sClientProvider,
 ) {

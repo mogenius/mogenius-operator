@@ -48,6 +48,9 @@ func FormatJsonTimePretty(jsonTimestamp string) string {
 	}
 	return t.Format("2006-01-02 15:04:05")
 }
+func FormatJsonTimePrettyFromTime(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
+}
 
 func NanoId() string {
 	id, err := nanoid.Custom("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890", 21)

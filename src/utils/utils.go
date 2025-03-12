@@ -41,7 +41,7 @@ var config cfg.ConfigModule
 var utilsLogger *slog.Logger
 var validate *validator.Validate
 
-func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManagerModule logging.SlogManager, configModule cfg.ConfigModule) {
 	utilsLogger = logManagerModule.CreateLogger("utils")
 	config = configModule
 

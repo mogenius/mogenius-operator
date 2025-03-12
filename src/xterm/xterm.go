@@ -29,12 +29,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var logManager logging.LogManagerModule
+var logManager logging.SlogManager
 var xtermLogger *slog.Logger
 var clientProvider k8sclient.K8sClientProvider
 var store valkeystore.ValkeyStore
 
-func Setup(logManagerModule logging.LogManagerModule, clientProviderModule k8sclient.K8sClientProvider, storeModule valkeystore.ValkeyStore) {
+func Setup(logManagerModule logging.SlogManager, clientProviderModule k8sclient.K8sClientProvider, storeModule valkeystore.ValkeyStore) {
 	logManager = logManagerModule
 	xtermLogger = logManagerModule.CreateLogger("xterm")
 	clientProvider = clientProviderModule
@@ -102,7 +102,7 @@ type LogEntry struct {
 	Namespace      string `json:"namespace"`
 	ReleaseName    string `json:"releaseName"`
 	Component      string `json:"component"`
-	Message        string `json:"msg"`
+	Message        string `json:"message"`
 	Time           string `json:"time"`
 }
 

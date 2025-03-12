@@ -7,6 +7,6 @@ import (
 
 var dtosLogger *slog.Logger
 
-func Setup(logManagerModule logging.LogManagerModule) {
+func Setup(logManagerModule logging.SlogManager) {
 	dtosLogger = logManagerModule.CreateLogger("dtos")
 }

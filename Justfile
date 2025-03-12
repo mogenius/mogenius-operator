@@ -1,5 +1,7 @@
 export CGO_ENABLED := "0"
 
+set dotenv-load
+
 [private]
 default:
     just --list --unsorted

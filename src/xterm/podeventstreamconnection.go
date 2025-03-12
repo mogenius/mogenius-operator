@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func readChannelPodEvent(ch chan string, conn *websocket.Conn, connWriteLock *sync.Mutex, ctx context.Context) {
@@ -46,7 +47,7 @@ func readChannelPodEvent(ch chan string, conn *websocket.Conn, connWriteLock *sy
 	}
 }
 
-func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string) {
+func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string) {
 	if wsConnectionRequest.WebsocketScheme == "" {
 		xtermLogger.Error("WebsocketScheme is empty")
 		return
@@ -58,10 +59,8 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	}
 
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
-	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(600))
-	// websocket connection
-	readMessages, conn, connWriteLock, _, err := GenerateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, _, err := GenerateWsConnection("pod-events", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -70,7 +69,6 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 	key := fmt.Sprintf("%s:%s", namespace, controller)
 
 	defer func() {
-		// XtermLogger.Info("[XTermPodEventStreamConnection] Closing connection.")
 		cancel()
 
 		ch := kubernetes.EventChannels[key]
@@ -111,6 +109,9 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 				continue
 			}
 			events = append(events, &event)
+		}
+		if len(events) == 0 {
+			events = append(events, &v1.Event{Message: "No recent events found. Restart the Pod to generate visible events or enjoy the silence.", FirstTimestamp: metav1.Time{Time: time.Now()}})
 		}
 		updatedData, err := json.Marshal(events)
 		if err != nil {

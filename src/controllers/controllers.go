@@ -8,7 +8,7 @@ import (
 
 var controllerLogger *slog.Logger
 
-func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManagerModule logging.SlogManager, configModule cfg.ConfigModule) {
 	controllerLogger = logManagerModule.CreateLogger("controllers")
 	config = configModule
 }

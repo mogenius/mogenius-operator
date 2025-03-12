@@ -88,7 +88,7 @@ func (self *Broadcaster) BroadcastResponse(message interface{}, messageType stri
 }
 
 func NewHttpApi(
-	logManagerModule logging.LogManagerModule,
+	logManagerModule logging.SlogManager,
 	configModule cfg.ConfigModule,
 	dbstats kubernetes.ValkeyStatsDb,
 	apiModule Api,
