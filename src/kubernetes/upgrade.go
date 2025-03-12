@@ -48,7 +48,6 @@ func ClusterForceDisconnect() bool {
 	// stop k8s-manager
 	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
 	deployment, _ := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
-	deployment.Spec.Paused = true
 	deployment.Spec.Replicas = utils.Pointer[int32](0)
 	_, err := deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 	if err != nil {
