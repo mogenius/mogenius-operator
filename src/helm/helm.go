@@ -58,6 +58,7 @@ var (
 )
 
 var RepoAlreadyExistsError = fmt.Errorf("repository name already exists")
+var RepoFileDoesNotExist = fmt.Errorf("repository.yaml does not exist")
 
 var helmLogger *slog.Logger
 var config cfg.ConfigModule
@@ -1191,6 +1192,8 @@ func yamlString(data map[string]interface{}) string {
 }
 
 func saveRepositoryFileToValkey() error {
+	helmLogger.Info("Saving repositories.yaml to valkey")
+
 	repoFile, err := repo.LoadFile(repositoryConfig)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to load repository file: %s", err)
@@ -1201,21 +1204,24 @@ func saveRepositoryFileToValkey() error {
 		return fmt.Errorf("failed to marshal repositories.yaml: %w", err)
 	}
 
-	valkeyStore.SetObject(string(yamlData), 0, "helm", "repositories.yaml")
+	valkeyStore.Set(string(yamlData), 0, "helm", "repositories.yaml")
 
 	return nil
 }
 
 func restoreRepositoryFileFromValkey() error {
-	data, err := valkeystore.GetObjectForKey[string](valkeyStore, "helm", "repositories.yaml")
+	helmLogger.Info("Restoring repositories.yaml from valkey")
+
+	data, err := valkeyStore.Get("helm", "repositories.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to get repositories.yaml from valkey: %s", err.Error())
 	}
-	if data == nil {
-		return fmt.Errorf("repositories.yaml should not be nil")
+	// key does not exist in valkey (this is ok)
+	if data == "" {
+		return RepoFileDoesNotExist
 	}
 
-	err = os.WriteFile(repositoryConfig, []byte(*data), 0644)
+	err = os.WriteFile(repositoryConfig, []byte(data), 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write repositories.yaml: %s", err.Error())
 	}
