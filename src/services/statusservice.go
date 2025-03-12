@@ -725,9 +725,6 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 }
 
 func controller(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
-	// var err error
-	var resourceInterface interface{}
-
 	switch resourceController {
 	case Deployment:
 		// TODO replace with GetAvailableResources in the future
@@ -739,7 +736,11 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "apps/v1",
 			Version:   "",
 		}
-		resourceInterface = store.GetByKeyParts[appsv1.Deployment](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[appsv1.Deployment](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		if err != nil {
+			return nil, err
+		}
+		return resourceInterface, nil
 	case ReplicaSet:
 		// TODO replace with GetAvailableResources in the future
 		resourceNamespace := ""
@@ -750,7 +751,11 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "apps/v1",
 			Version:   "",
 		}
-		resourceInterface = store.GetByKeyParts[appsv1.ReplicaSet](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[appsv1.ReplicaSet](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		if err != nil {
+			return nil, err
+		}
+		return resourceInterface, nil
 	// case StatefulSet:
 	// 	// ae: not used at the moment, old code
 	// 	resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
@@ -767,7 +772,11 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "batch/v1",
 			Version:   "",
 		}
-		resourceInterface = store.GetByKeyParts[batchv1.Job](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[batchv1.Job](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		if err != nil {
+			return nil, err
+		}
+		return resourceInterface, nil
 	case CronJob:
 		// TODO replace with GetAvailableResources in the future
 		resourceNamespace := ""
@@ -778,14 +787,14 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "batch/v1",
 			Version:   "",
 		}
-		resourceInterface = store.GetByKeyParts[batchv1.CronJob](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[batchv1.CronJob](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		if err != nil {
+			return nil, err
+		}
+		return resourceInterface, nil
 	}
 
-	if resourceInterface == nil {
-		return nil, fmt.Errorf("Warning fetching controller: %s", controllerName)
-	}
-
-	return resourceInterface, nil
+	return nil, fmt.Errorf("no controller found for %s/%s", namespace, controllerName)
 }
 
 func containerItems(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem {

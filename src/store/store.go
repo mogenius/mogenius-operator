@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
@@ -25,17 +26,15 @@ func Setup(logManagerModule logging.SlogManager, storeModule valkeystore.ValkeyS
 
 var ErrNotFound = errors.New("not found")
 
-func GetByKeyParts[T any](keys ...string) *T {
+func GetByKeyParts[T any](keys ...string) (*T, error) {
 	value, err := valkeystore.GetObjectForKey[T](valkeyStore, keys...)
 	if err != nil {
-		storeLogger.Warn("failed to get value", "key", strings.Join(keys, ":"), "error", err)
-		return nil
+		return nil, fmt.Errorf("failed to get value for key %s: %w", strings.Join(keys, ":"), err)
 	}
 	if value == nil {
-		storeLogger.Warn("Got nil value from GetObjectForKey", "key", strings.Join(keys, ":"))
-		return nil
+		return nil, fmt.Errorf("got nil value from GetObjectForKey %s", strings.Join(keys, ":"))
 	}
-	return value
+	return value, nil
 }
 
 func SearchByKeyParts(parts ...string) ([]unstructured.Unstructured, error) {

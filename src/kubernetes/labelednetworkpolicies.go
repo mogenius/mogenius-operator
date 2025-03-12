@@ -1044,9 +1044,9 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		deployment := store.GetByKeyParts[appsv1.Deployment](resource.Group, resource.Kind, namespaceName, controllerName)
-		if deployment == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
+		deployment, err := store.GetByKeyParts[appsv1.Deployment](resource.Group, resource.Kind, namespaceName, controllerName)
+		if err != nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
 		labels = extractLabels(deployment.ObjectMeta.Labels, deployment.Spec.Template.ObjectMeta.Labels)
 	case dtos.DAEMON_SET:
@@ -1060,9 +1060,9 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		daemonset := store.GetByKeyParts[appsv1.DaemonSet](resource.Group, resource.Kind, namespaceName, controllerName)
-		if daemonset == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
+		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](resource.Group, resource.Kind, namespaceName, controllerName)
+		if err != nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
 		labels = extractLabels(daemonset.ObjectMeta.Labels, daemonset.Spec.Template.ObjectMeta.Labels)
 	case dtos.STATEFUL_SET:
@@ -1076,9 +1076,9 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		statefulset := store.GetByKeyParts[appsv1.StatefulSet](resource.Group, resource.Kind, namespaceName, controllerName)
-		if statefulset == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
+		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](resource.Group, resource.Kind, namespaceName, controllerName)
+		if err != nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
 		labels = extractLabels(statefulset.ObjectMeta.Labels, statefulset.Spec.Template.ObjectMeta.Labels)
 	default:
