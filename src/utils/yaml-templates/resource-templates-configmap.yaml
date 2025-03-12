@@ -136,6 +136,9 @@ data:
       accessModes:
         - ReadWriteOnce
       persistentVolumeReclaimPolicy: Retain
+      nfs:
+        path: /path/to/storage
+        server: nfs-server.example.com
   PersistentVolumeClaim: |
     apiVersion: v1
     kind: PersistentVolumeClaim
