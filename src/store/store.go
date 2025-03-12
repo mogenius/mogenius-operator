@@ -31,6 +31,10 @@ func GetByKeyParts[T any](keys ...string) *T {
 		storeLogger.Warn("failed to get value", "key", strings.Join(keys, ":"), "error", err)
 		return nil
 	}
+	if value == nil {
+		storeLogger.Warn("Got nil value from GetObjectForKey", "key", strings.Join(keys, ":"))
+		return nil
+	}
 	return value
 }
 

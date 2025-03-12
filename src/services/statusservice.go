@@ -728,12 +728,6 @@ func controller(namespace string, controllerName string, resourceController Reso
 	// var err error
 	var resourceInterface interface{}
 
-	// provider, err := NewKubeProvider()
-	// if err != nil {
-	// 	ServiceLogger.Warningf("Warningf: %s", err.Error())
-	// 	return nil, nil
-	// }
-
 	switch resourceController {
 	case Deployment:
 		// TODO replace with GetAvailableResources in the future
