@@ -197,7 +197,7 @@ func GetNamespace(name string) *coreV1.Namespace {
 		Version: "",
 	}
 
-	namespace, _ := valkeystore.GetObjectForKey[coreV1.Namespace](valkeyStore, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, name)
+	namespace, _ := valkeystore.GetObjectForKey[coreV1.Namespace](valkeyStore, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, "", name)
 	return namespace
 }
 
