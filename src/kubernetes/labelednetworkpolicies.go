@@ -552,6 +552,13 @@ func CreateDenyAllIngressNetworkPolicy(namespaceName string) error {
 							},
 						},
 						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": "kube-system",
+								},
+							},
+						},
+						{
 							PodSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
 									"acme.cert-manager.io/http01-solver": "true",
