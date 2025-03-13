@@ -2,6 +2,7 @@ package helm_test
 
 import (
 	"fmt"
+	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	cfg "mogenius-k8s-manager/src/config"
@@ -11,7 +12,7 @@ import (
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeystore"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"os"
 	"testing"
 
@@ -112,7 +113,7 @@ func testSetup() error {
 }
 
 func TestHelmRepoAdd(t *testing.T) {
-	logManager := logging.NewMockSlogManager(t)
+	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{
@@ -142,7 +143,7 @@ func TestHelmRepoAdd(t *testing.T) {
 }
 
 func TestHelmRepoUpdate(t *testing.T) {
-	logManager := logging.NewMockSlogManager(t)
+	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{
@@ -160,7 +161,7 @@ func TestHelmRepoUpdate(t *testing.T) {
 }
 
 func TestHelmRepoList(t *testing.T) {
-	logManager := logging.NewMockSlogManager(t)
+	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
@@ -168,9 +169,9 @@ func TestHelmRepoList(t *testing.T) {
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 
-	valkeyStoreModule := valkeystore.NewValkeyStore(logManager.CreateLogger("valkeystore"), config)
+	valkeyClientModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, valkeyStoreModule)
+	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, valkeyClientModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = testSetup()
@@ -198,7 +199,7 @@ func TestHelmRepoList(t *testing.T) {
 }
 
 func TestHelmInstallRequest(t *testing.T) {
-	logManager := logging.NewMockSlogManager(t)
+	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{
@@ -227,7 +228,7 @@ func TestHelmInstallRequest(t *testing.T) {
 }
 
 func TestHelmUpgradeRequest(t *testing.T) {
-	logManager := logging.NewMockSlogManager(t)
+	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
@@ -263,7 +264,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 }
 
 func TestHelmListRequest(t *testing.T) {
-	logManager := logging.NewMockSlogManager(t)
+	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{
@@ -304,7 +305,7 @@ func TestHelmListRequest(t *testing.T) {
 }
 
 func TestHelmReleases(t *testing.T) {
-	logManager := logging.NewMockSlogManager(t)
+	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
 	helm.Setup(logManager, config)
 	config.Declare(cfg.ConfigDeclaration{

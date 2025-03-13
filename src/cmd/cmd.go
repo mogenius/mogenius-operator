@@ -18,10 +18,9 @@ import (
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeystore"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
@@ -86,7 +85,7 @@ func Run() error {
 		secrets.EraseSecrets,
 	)
 	channelHandler := logging.NewRecordChannelHandler(
-		1000,
+		512,
 		logLevel,
 		secrets.EraseSecrets,
 	)
@@ -328,6 +327,18 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_ENABLE_POD_STATS_COLLECTOR",
+		DefaultValue: utils.Pointer("false"),
+		Description:  utils.Pointer("enable collection of pod stats (requires elevated permissions)"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_ENABLE_POD_STATS_COLLECTOR' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_IGNORE_NAMESPACES",
 		DefaultValue: utils.Pointer(`["kube-system"]`),
 		Description:  utils.Pointer("list of all ignored namespaces"),
@@ -404,57 +415,58 @@ func InitializeSystems(
 	assert.Assert(cmdLogger != nil)
 
 	// initialize client modules
-	valkeyModule := valkeystore.NewValkeyStore(logManagerModule.CreateLogger("valkey"), configModule)
+	valkeyClient := valkeyclient.NewValkeyClient(logManagerModule.CreateLogger("valkey"), configModule)
 	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
-	dbstatsModule := kubernetes.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule)
 	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-job-client"))
 	shutdown.Add(jobConnectionClient.Terminate)
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
 	shutdown.Add(eventConnectionClient.Terminate)
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
-	helm.Setup(logManagerModule, configModule, valkeyModule)
-	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyModule)
+	helm.Setup(logManagerModule, configModule, valkeyClient)
+	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
 	services.Setup(logManagerModule, configModule, clientProvider)
 	servicesexternal.Setup(logManagerModule, configModule)
-	store.Setup(logManagerModule, valkeyModule)
 	structs.Setup(logManagerModule)
-	xterm.Setup(logManagerModule, clientProvider, valkeyModule)
+	xterm.Setup(logManagerModule, clientProvider, valkeyClient)
 	utils.Setup(logManagerModule, configModule)
 
 	// initialization step 1 for services
 	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
-	apiModule := core.NewApi(logManagerModule.CreateLogger("api"))
-	httpApi := core.NewHttpApi(logManagerModule, configModule, dbstatsModule, apiModule)
-	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, dbstatsModule)
+	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient)
+	httpApi := core.NewHttpApi(logManagerModule, configModule)
+	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
-	valkeyLoggerService := core.NewValkeyLogger(valkeyModule, valkeyLogChannel)
+	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
+	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider, valkeyClient)
+	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient)
 
 	// initialization step 2 for services
-	socketApi.Link(httpApi, xtermService, apiModule)
-	httpApi.Link(socketApi)
+	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule)
+	httpApi.Link(socketApi, dbstatsService, apiModule)
 	apiModule.Link(workspaceManager)
 
 	return systems{
 		clientProvider,
 		versionModule,
 		watcherModule,
-		dbstatsModule,
 		jobConnectionClient,
 		eventConnectionClient,
+		valkeyClient,
 		workspaceManager,
 		apiModule,
 		socketApi,
 		httpApi,
 		xtermService,
 		valkeyLoggerService,
-		valkeyModule,
+		podStatsCollector,
+		dbstatsService,
 	}
 }
 
@@ -462,14 +474,15 @@ type systems struct {
 	clientProvider        k8sclient.K8sClientProvider
 	versionModule         *version.Version
 	watcherModule         *kubernetes.Watcher
-	dbstatsModule         kubernetes.ValkeyStatsDb
 	jobConnectionClient   websocket.WebsocketClient
 	eventConnectionClient websocket.WebsocketClient
+	valkeyClient          valkeyclient.ValkeyClient
 	workspaceManager      core.WorkspaceManager
 	apiModule             core.Api
 	socketApi             core.SocketApi
 	httpApi               core.HttpService
 	xtermService          core.XtermService
 	valkeyLoggerService   core.ValkeyLogger
-	valkeyModule          valkeystore.ValkeyStore
+	podStatsCollector     core.PodStatsCollector
+	dbstatsService        core.ValkeyStatsDb
 }

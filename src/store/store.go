@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeystore"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -16,18 +15,10 @@ const (
 	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
-var storeLogger *slog.Logger
-var valkeyStore valkeystore.ValkeyStore
-
-func Setup(logManagerModule logging.SlogManager, storeModule valkeystore.ValkeyStore) {
-	storeLogger = logManagerModule.CreateLogger("store")
-	valkeyStore = storeModule
-}
-
 var ErrNotFound = errors.New("not found")
 
-func GetByKeyParts[T any](keys ...string) (*T, error) {
-	value, err := valkeystore.GetObjectForKey[T](valkeyStore, keys...)
+func GetByKeyParts[T any](valkeyClient valkeyclient.ValkeyClient, keys ...string) (*T, error) {
+	value, err := valkeyclient.GetObjectForKey[T](valkeyClient, keys...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get value for key %s: %w", strings.Join(keys, ":"), err)
 	}
@@ -37,10 +28,10 @@ func GetByKeyParts[T any](keys ...string) (*T, error) {
 	return value, nil
 }
 
-func SearchByKeyParts(parts ...string) ([]unstructured.Unstructured, error) {
+func SearchByKeyParts(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]unstructured.Unstructured, error) {
 	key := CreateKey(parts...)
 
-	items, err := valkeystore.GetObjectsByPrefix[unstructured.Unstructured](valkeyStore, valkeystore.ORDER_NONE, key)
+	items, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, key)
 
 	if len(items) == 0 {
 		return nil, ErrNotFound
@@ -50,23 +41,23 @@ func SearchByKeyParts(parts ...string) ([]unstructured.Unstructured, error) {
 	return items, err
 }
 
-func SearchByNamespaceAndName(namespace string, name string) ([]unstructured.Unstructured, error) {
+func SearchByNamespaceAndName(valkeyClient valkeyclient.ValkeyClient, namespace string, name string) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(nil, nil, &namespace, &name)
 
-	items, err := valkeystore.GetObjectsByPattern[unstructured.Unstructured](valkeyStore, pattern, []string{})
+	items, err := valkeyclient.GetObjectsByPattern[unstructured.Unstructured](valkeyClient, pattern, []string{})
 
 	return items, err
 }
 
-func SearchByGroupKindNameNamespace(group string, kind string, name string, namespace *string) ([]unstructured.Unstructured, error) {
+func SearchByGroupKindNameNamespace(valkeyClient valkeyclient.ValkeyClient, group string, kind string, name string, namespace *string) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(&group, &kind, namespace, &name)
 
-	items, err := valkeystore.GetObjectsByPattern[unstructured.Unstructured](valkeyStore, pattern, []string{})
+	items, err := valkeyclient.GetObjectsByPattern[unstructured.Unstructured](valkeyClient, pattern, []string{})
 
 	return items, err
 }
 
-func SearchByNamespace(namespace string, whitelist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error) {
+func SearchByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
 
 	var searchKeys []string
@@ -77,36 +68,35 @@ func SearchByNamespace(namespace string, whitelist []*utils.SyncResourceEntry) (
 		}
 	}
 
-	items, err := valkeystore.GetObjectsByPattern[unstructured.Unstructured](valkeyStore, pattern, searchKeys)
+	items, err := valkeyclient.GetObjectsByPattern[unstructured.Unstructured](valkeyClient, pattern, searchKeys)
 
 	return items, err
 }
 
-func DropAllResourcesFromValkey() error {
-	keys, err := valkeyStore.Keys(VALKEY_RESOURCE_PREFIX + ":*")
+func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
+	keys, err := valkeyClient.Keys(VALKEY_RESOURCE_PREFIX + ":*")
 	if err != nil {
-		storeLogger.Error("failed to get keys", "error", err)
-		return err
+		return fmt.Errorf("failed to get keys: %v", err)
 	}
 	for _, v := range keys {
-		err = valkeyStore.Delete(v)
+		err = valkeyClient.Delete(v)
 		if err != nil {
-			storeLogger.Error("failed to delete key", "key", v, "error", err)
+			logger.Error("failed to delete key", "key", v, "error", err)
 		}
 	}
 	return err
 }
 
-func DropAllPodEventsFromValkey() error {
-	keys, err := valkeyStore.Keys("pod-events" + ":*")
+func DropAllPodEventsFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
+	keys, err := valkeyClient.Keys("pod-events" + ":*")
 	if err != nil {
-		storeLogger.Error("failed to get keys", "error", err)
+		logger.Error("failed to get keys", "error", err)
 		return err
 	}
 	for _, v := range keys {
-		err = valkeyStore.Delete(v)
+		err = valkeyClient.Delete(v)
 		if err != nil {
-			storeLogger.Error("failed to delete key", "key", v, "error", err)
+			logger.Error("failed to delete key", "key", v, "error", err)
 		}
 	}
 	return err

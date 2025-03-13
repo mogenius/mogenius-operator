@@ -95,7 +95,7 @@ func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace
 
 	// init
 	go func(ch chan string) {
-		data, err := store.LastNEntryFromBucketWithType(50, kubernetes.DB_STATS_POD_EVENTS_NAME, key)
+		data, err := store.LastNEntryFromBucketWithType(50, "pod-events", key)
 		if err != nil {
 			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
 			return

@@ -1,19 +1,21 @@
 package kubernetes_test
 
 import (
+	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/test"
+	"os"
 	"testing"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func TestWatcher(t *testing.T) {
-	logManager := logging.NewMockSlogManager(t)
+	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	structs.Setup(logManager)
 
 	createNewDeplString := test.YamlSanitize(`

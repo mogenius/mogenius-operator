@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
+
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -27,6 +29,7 @@ const (
 
 type K8sClientProvider interface {
 	K8sClientSet() *kubernetes.Clientset
+	MetricsClientSet() *metricsv.Clientset
 	DynamicClient() *dynamic.DynamicClient
 	MogeniusClientSet() *mocrds.MogeniusClientSet
 	RunsInCluster() bool
@@ -57,6 +60,13 @@ func NewK8sClientProvider(logger *slog.Logger) K8sClientProvider {
 		select {}
 	}
 
+	_, err = metricsv.NewForConfig(config)
+	if err != nil {
+		logger.Error("invalid kubeconfig - cant create `*metricsv.Clientset`", "error", err)
+		shutdown.SendShutdownSignal(true)
+		select {}
+	}
+
 	_, err = dynamic.NewForConfig(config)
 	if err != nil {
 		logger.Error("invalid kubeconfig - cant create `*dynamic.DynamicClient`", "error", err)
@@ -75,6 +85,13 @@ func (self *k8sClientProvider) ClientConfig() *rest.Config {
 
 func (self *k8sClientProvider) K8sClientSet() *kubernetes.Clientset {
 	clientSet, err := kubernetes.NewForConfig(self.clientConfig)
+	assert.Assert(err == nil, "creating a client should not fail as it is tested when provider is created", err)
+	assert.Assert(clientSet != nil)
+	return clientSet
+}
+
+func (self *k8sClientProvider) MetricsClientSet() *metricsv.Clientset {
+	clientSet, err := metricsv.NewForConfig(self.clientConfig)
 	assert.Assert(err == nil, "creating a client should not fail as it is tested when provider is created", err)
 	assert.Assert(clientSet != nil)
 	return clientSet

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"sort"
 	"time"
 
@@ -646,21 +647,21 @@ func NewResourceController(resourceController string) ResourceController {
 
 var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
 
-func StatusServiceDebounced(r ServiceStatusRequest) ServiceStatusResponse {
+func StatusServiceDebounced(valkeyClient valkeyclient.ValkeyClient, r ServiceStatusRequest) ServiceStatusResponse {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
 	result, _ := statusServiceDebounce.CallFn(key, func() (interface{}, error) {
-		return statusService(r), nil
+		return statusService(valkeyClient, r), nil
 	})
 	return result.(ServiceStatusResponse)
 }
 
-func statusService(r ServiceStatusRequest) ServiceStatusResponse {
-	events, err := store.ListEvents(r.Namespace)
+func statusService(valkeyClient valkeyclient.ValkeyClient, r ServiceStatusRequest) ServiceStatusResponse {
+	events, err := store.ListEvents(valkeyClient, r.Namespace)
 	if err != nil {
 		serviceLogger.Warn("failed to fetch events", "error", err)
 	}
 
-	resourceItems, err := kubernetesItems(r.Namespace, r.ControllerName, NewResourceController(r.Controller))
+	resourceItems, err := kubernetesItems(valkeyClient, r.Namespace, r.ControllerName, NewResourceController(r.Controller))
 	if err != nil {
 		serviceLogger.Warn("failed to get statusItems", "error", err)
 	}
@@ -676,9 +677,9 @@ func statusService(r ServiceStatusRequest) ServiceStatusResponse {
 	return ProcessServiceStatusResponse(resourceItems)
 }
 
-func kubernetesItems(namespace string, name string, resourceController ResourceController) ([]ResourceItem, error) {
+func kubernetesItems(valkeyClient valkeyclient.ValkeyClient, namespace string, name string, resourceController ResourceController) ([]ResourceItem, error) {
 	resourceItems := []ResourceItem{}
-	resourceInterface, err := controller(namespace, name, resourceController)
+	resourceInterface, err := controller(valkeyClient, namespace, name, resourceController)
 	if err != nil {
 		serviceLogger.Warn("failed to fetch controller", "error", err)
 		return resourceItems, err
@@ -691,7 +692,7 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	resourceItems = controllerItem(metaName, kind, metaNamespace, resourceController.String(), references, object, resourceItems)
 
 	// Fetch pods
-	pods, err := store.ListPods(metaNamespace, metaName)
+	pods, err := store.ListPods(valkeyClient, metaNamespace, metaName)
 	if err != nil {
 		serviceLogger.Warn("failed to fetch pods", "error", err)
 		return resourceItems, err
@@ -715,7 +716,7 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 			for _, ownerRef := range pod.OwnerReferences {
 				// only controller parents
 				if *ownerRef.Controller {
-					resourceItems = recursiveOwnerRef(pod.Namespace, ownerRef, resourceItems)
+					resourceItems = recursiveOwnerRef(valkeyClient, pod.Namespace, ownerRef, resourceItems)
 				}
 			}
 		}
@@ -724,7 +725,7 @@ func kubernetesItems(namespace string, name string, resourceController ResourceC
 	return resourceItems, nil
 }
 
-func controller(namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
+func controller(valkeyClient valkeyclient.ValkeyClient, namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
 	switch resourceController {
 	case Deployment:
 		// TODO replace with GetAvailableResources in the future
@@ -736,7 +737,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "apps/v1",
 			Version:   "",
 		}
-		resourceInterface, err := store.GetByKeyParts[appsv1.Deployment](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
 		if err != nil {
 			return nil, err
 		}
@@ -751,7 +752,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "apps/v1",
 			Version:   "",
 		}
-		resourceInterface, err := store.GetByKeyParts[appsv1.ReplicaSet](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[appsv1.ReplicaSet](valkeyClient, store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
 		if err != nil {
 			return nil, err
 		}
@@ -772,7 +773,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "batch/v1",
 			Version:   "",
 		}
-		resourceInterface, err := store.GetByKeyParts[batchv1.Job](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[batchv1.Job](valkeyClient, store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
 		if err != nil {
 			return nil, err
 		}
@@ -787,7 +788,7 @@ func controller(namespace string, controllerName string, resourceController Reso
 			Group:     "batch/v1",
 			Version:   "",
 		}
-		resourceInterface, err := store.GetByKeyParts[batchv1.CronJob](store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[batchv1.CronJob](valkeyClient, store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
 		if err != nil {
 			return nil, err
 		}
@@ -864,7 +865,7 @@ func podItem(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem {
 	return resourceItems
 }
 
-func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, resourceItems []ResourceItem) []ResourceItem {
+func recursiveOwnerRef(valkeyClient valkeyclient.ValkeyClient, namespace string, ownerRef metav1.OwnerReference, resourceItems []ResourceItem) []ResourceItem {
 	// Skip already included resourceItems
 	for _, item := range resourceItems {
 		if item.Kind == ownerRef.Kind {
@@ -873,7 +874,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, resourc
 	}
 
 	// Fetch next k8s controller
-	resourceInterface, err := controller(namespace, ownerRef.Name, NewResourceController(ownerRef.Kind))
+	resourceInterface, err := controller(valkeyClient, namespace, ownerRef.Name, NewResourceController(ownerRef.Kind))
 	if err != nil {
 		serviceLogger.Warn("failed to fetch resources", "error", err)
 		return resourceItems
@@ -890,7 +891,7 @@ func recursiveOwnerRef(namespace string, ownerRef metav1.OwnerReference, resourc
 	if len(references) > 0 {
 		for _, parentRef := range references {
 			if *parentRef.Controller {
-				return recursiveOwnerRef(namespace, parentRef, resourceItems)
+				return recursiveOwnerRef(valkeyClient, namespace, parentRef, resourceItems)
 			}
 		}
 	}

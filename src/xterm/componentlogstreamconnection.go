@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeystore"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"net/url"
 	"time"
 
@@ -54,7 +54,7 @@ func ComponentStreamConnection(
 		return
 	}
 
-	data, err := valkeystore.LastNEntryFromBucketWithType[logging.LogLine](store, 50, "logs", component)
+	data, err := valkeyclient.LastNEntryFromBucketWithType[logging.LogLine](store, 50, "logs", component)
 	if err != nil {
 		xtermLogger.Error("Error getting last 50 logs", "error", err)
 	}

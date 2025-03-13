@@ -12,7 +12,7 @@ package iacmanager_test
 // )
 
 // func TestIacManager(t *testing.T) {
-// 	logManager := interfaces.NewMockSlogManager(t)
+// 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 // 	config := config.NewConfig()
 // 	watcherModule := watcher.NewWatcher()
 // 	kubernetes.Setup(logManager, config, watcherModule)

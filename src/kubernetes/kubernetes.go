@@ -6,7 +6,7 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeystore"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/src/websocket"
 )
 
@@ -14,20 +14,20 @@ var config cfg.ConfigModule
 var k8sLogger *slog.Logger
 var watcher WatcherModule
 var clientProvider k8sclient.K8sClientProvider
-var valkeyStore valkeystore.ValkeyStore
+var valkeyClient valkeyclient.ValkeyClient
 
 func Setup(
 	logManagerModule logging.SlogManager,
 	configModule cfg.ConfigModule,
 	watcherModule WatcherModule,
 	clientProviderModule k8sclient.K8sClientProvider,
-	valkeyStoreModule valkeystore.ValkeyStore,
+	valkey valkeyclient.ValkeyClient,
 ) error {
 	k8sLogger = logManagerModule.CreateLogger("kubernetes")
 	config = configModule
 	watcher = watcherModule
 	clientProvider = clientProviderModule
-	valkeyStore = valkeyStoreModule
+	valkeyClient = valkey
 
 	if utils.ClusterProviderCached == utils.UNKNOWN {
 		foundProvider, err := GuessClusterProvider()

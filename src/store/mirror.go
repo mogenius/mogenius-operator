@@ -2,7 +2,7 @@ package store
 
 import (
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeystore"
+	"mogenius-k8s-manager/src/valkeyclient"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -11,7 +11,7 @@ import (
 	networkingV1 "k8s.io/api/networking/v1"
 )
 
-func ListNetworkPolicies(namespace string) ([]networkingV1.NetworkPolicy, error) {
+func ListNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]networkingV1.NetworkPolicy, error) {
 	result := []networkingV1.NetworkPolicy{}
 
 	// TODO replace with GetAvailableResources in the future
@@ -24,7 +24,7 @@ func ListNetworkPolicies(namespace string) ([]networkingV1.NetworkPolicy, error)
 		Version:   "",
 	}
 
-	policies, err := valkeystore.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "NetworkPolicy", namespace)
+	policies, err := valkeyclient.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "NetworkPolicy", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -40,7 +40,7 @@ func ListNetworkPolicies(namespace string) ([]networkingV1.NetworkPolicy, error)
 	return result, nil
 }
 
-func ListDaemonSets(namespace string) ([]appsV1.DaemonSet, error) {
+func ListDaemonSets(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]appsV1.DaemonSet, error) {
 	result := []appsV1.DaemonSet{}
 
 	// TODO replace with GetAvailableResources in the future
@@ -53,7 +53,7 @@ func ListDaemonSets(namespace string) ([]appsV1.DaemonSet, error) {
 		Version:   "",
 	}
 
-	daemonsets, err := valkeystore.GetObjectsByPrefix[appsV1.DaemonSet](valkeyStore, valkeystore.ORDER_NONE, resource.Group, "DaemonSet", namespace)
+	daemonsets, err := valkeyclient.GetObjectsByPrefix[appsV1.DaemonSet](valkeyClient, valkeyclient.ORDER_NONE, resource.Group, "DaemonSet", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -69,7 +69,7 @@ func ListDaemonSets(namespace string) ([]appsV1.DaemonSet, error) {
 	return result, nil
 }
 
-func ListDeployments(namespace string) ([]appsV1.Deployment, error) {
+func ListDeployments(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]appsV1.Deployment, error) {
 	result := []appsV1.Deployment{}
 
 	// TODO replace with GetAvailableResources in the future
@@ -82,7 +82,7 @@ func ListDeployments(namespace string) ([]appsV1.Deployment, error) {
 		Version:   "",
 	}
 
-	deployments, err := valkeystore.GetObjectsByPrefix[appsV1.Deployment](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "Deployment", namespace)
+	deployments, err := valkeyclient.GetObjectsByPrefix[appsV1.Deployment](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "Deployment", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -98,7 +98,7 @@ func ListDeployments(namespace string) ([]appsV1.Deployment, error) {
 	return result, nil
 }
 
-func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
+func ListStatefulSets(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]appsV1.StatefulSet, error) {
 	result := []appsV1.StatefulSet{}
 
 	// TODO replace with GetAvailableResources in the future
@@ -110,7 +110,7 @@ func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 		Group:     "apps/v1",
 		Version:   "",
 	}
-	statefulsets, err := valkeystore.GetObjectsByPrefix[appsV1.StatefulSet](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "StatefulSet", namespace)
+	statefulsets, err := valkeyclient.GetObjectsByPrefix[appsV1.StatefulSet](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "StatefulSet", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -126,10 +126,10 @@ func ListStatefulSets(namespace string) ([]appsV1.StatefulSet, error) {
 	return result, nil
 }
 
-func ListEvents(namespace string) ([]coreV1.Event, error) {
+func ListEvents(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]coreV1.Event, error) {
 	result := []coreV1.Event{}
 
-	events, err := valkeystore.GetObjectsByPrefix[coreV1.Event](valkeyStore, valkeystore.ORDER_DESC, VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace)
+	events, err := valkeyclient.GetObjectsByPrefix[coreV1.Event](valkeyClient, valkeyclient.ORDER_DESC, VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -145,7 +145,7 @@ func ListEvents(namespace string) ([]coreV1.Event, error) {
 	return result, nil
 }
 
-func ListPods(parts ...string) ([]coreV1.Pod, error) {
+func ListPods(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]coreV1.Pod, error) {
 	result := []coreV1.Pod{}
 
 	// TODO replace with GetAvailableResources in the future
@@ -159,7 +159,7 @@ func ListPods(parts ...string) ([]coreV1.Pod, error) {
 	}
 
 	args := append([]string{VALKEY_RESOURCE_PREFIX, resource.Group, "Pod"}, parts...)
-	pods, err := valkeystore.GetObjectsByPrefix[coreV1.Pod](valkeyStore, valkeystore.ORDER_NONE, args...)
+	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_NONE, args...)
 	if err != nil {
 		return result, err
 	}
@@ -167,7 +167,7 @@ func ListPods(parts ...string) ([]coreV1.Pod, error) {
 	return pods, nil
 }
 
-func ListAllNamespaces() ([]coreV1.Namespace, error) {
+func ListAllNamespaces(valkeyClient valkeyclient.ValkeyClient) ([]coreV1.Namespace, error) {
 	result := []coreV1.Namespace{}
 
 	// TODO replace with GetAvailableResources in the future
@@ -180,7 +180,7 @@ func ListAllNamespaces() ([]coreV1.Namespace, error) {
 		Version:   "",
 	}
 
-	namespaces, err := valkeystore.GetObjectsByPrefix[coreV1.Namespace](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "Namespace")
+	namespaces, err := valkeyclient.GetObjectsByPrefix[coreV1.Namespace](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "Namespace")
 	if err != nil {
 		return result, err
 	}
@@ -188,7 +188,7 @@ func ListAllNamespaces() ([]coreV1.Namespace, error) {
 	return namespaces, nil
 }
 
-func GetNamespace(name string) *coreV1.Namespace {
+func GetNamespace(valkeyClient valkeyclient.ValkeyClient, name string) *coreV1.Namespace {
 	// TODO replace with GetAvailableResources in the future
 	resource := utils.SyncResourceEntry{
 		Kind:    "Namespace",
@@ -197,14 +197,14 @@ func GetNamespace(name string) *coreV1.Namespace {
 		Version: "",
 	}
 
-	namespace, _ := valkeystore.GetObjectForKey[coreV1.Namespace](valkeyStore, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, "", name)
+	namespace, _ := valkeyclient.GetObjectForKey[coreV1.Namespace](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, "", name)
 	return namespace
 }
 
-func GetResourceByKindAndNamespace(groupVersion string, kind string, namespace string) []unstructured.Unstructured {
+func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, groupVersion string, kind string, namespace string) []unstructured.Unstructured {
 	var results []unstructured.Unstructured
 
-	storeResults, err := valkeystore.GetObjectsByPrefix[unstructured.Unstructured](valkeyStore, valkeystore.ORDER_NONE, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace)
+	storeResults, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace)
 	if err != nil {
 		return results
 	}

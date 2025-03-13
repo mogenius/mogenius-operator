@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"sort"
 	"strings"
 
@@ -307,13 +308,13 @@ func DisableNetworkPolicyManager(namespaceName string) error {
 	return kubernetes.DisableNetworkPolicyManagerForNamespace(namespaceName)
 }
 
-func ListNamespaceNetworkPolicies(data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListNetworkPolicyNamespace, error) {
-	namespace := store.GetNamespace(data.NamespaceName)
+func ListNamespaceNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListNetworkPolicyNamespace, error) {
+	namespace := store.GetNamespace(valkeyClient, data.NamespaceName)
 	if namespace == nil {
 		return nil, fmt.Errorf("failed to get namespace")
 	}
 
-	policies, err := store.ListNetworkPolicies(data.NamespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, data.NamespaceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list network policies, err: %s", err.Error())
 	}
@@ -321,13 +322,13 @@ func ListNamespaceNetworkPolicies(data ListNamespaceLabeledNetworkPoliciesReques
 	return listNetworkPoliciesByNamespaces([]v1Core.Namespace{*namespace}, policies)
 }
 
-func ListAllNetworkPolicies() ([]ListNetworkPolicyNamespace, error) {
-	namespaces, err := store.ListAllNamespaces()
+func ListAllNetworkPolicies(valkeyClient valkeyclient.ValkeyClient) ([]ListNetworkPolicyNamespace, error) {
+	namespaces, err := store.ListAllNamespaces(valkeyClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list all namespaces, err: %s", err.Error())
 	}
 
-	policies, err := store.ListNetworkPolicies("")
+	policies, err := store.ListNetworkPolicies(valkeyClient, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list network policies, err: %s", err.Error())
 	}
@@ -442,13 +443,13 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 	return namespacesDto, nil
 }
 
-func ListManagedAndUnmanagedNamespaceNetworkPolicies(data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListManagedAndUnmanagedNetworkPolicyNamespace, error) {
-	namespace := store.GetNamespace(data.NamespaceName)
+func ListManagedAndUnmanagedNamespaceNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListManagedAndUnmanagedNetworkPolicyNamespace, error) {
+	namespace := store.GetNamespace(valkeyClient, data.NamespaceName)
 	if namespace == nil {
 		return nil, fmt.Errorf("failed to get namespace")
 	}
 
-	policies, err := store.ListNetworkPolicies(data.NamespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, data.NamespaceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list network policies, err: %s", err.Error())
 	}
